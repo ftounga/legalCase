@@ -276,9 +276,12 @@ describe('DivorceChecklistSectionComponent', () => {
     })).toBe(0);
   });
 
-  it('getPrefillCount — 1 si dateAcceptationPV YYYY-MM-DD valide (cas nominal)', () => {
+  it('getPrefillCount — 2 si dateAcceptationPV YYYY-MM-DD valide (FR + BE signature steps pré-cochés)', () => {
+    // F-236 SF-236-03 : le compteur reflète l'expérience UX réelle pour l'avocat.
+    // `prefillFromAi` runtime pré-coche 2 étapes (FR_SIGNATURE_CONVENTION +
+    // BE_REDACTION_CONVENTION), donc le badge doit afficher 2.
     expect(DivorceChecklistSectionComponent.getPrefillCount({
       aiData: { dateAcceptationPV: '2026-01-15' } as FamilleExtractedData,
-    })).toBe(1);
+    })).toBe(2);
   });
 });

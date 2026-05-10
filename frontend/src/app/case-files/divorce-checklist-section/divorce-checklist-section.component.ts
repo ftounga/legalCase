@@ -19,6 +19,8 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { DivorceChecklistPrefillRules, SIGNATURE_STEP_CODES } from './divorce-checklist-section-prefill-rules';
 
 /**
  * SF-155-19 : champs d'alerte = codes étape / code pièce.
@@ -45,15 +47,9 @@ const PIECE_CODES = new Set([
   'BE_CONTRAT_MARIAGE', 'BE_CONVENTION_PREALABLE', 'BE_JUSTIF_REVENUS', 'BE_PIECE_IDENTITE',
 ]);
 
-/**
- * SF-155-19 : code étape "signature de la convention" (FR + BE).
- * Si l'IA a fourni `dateAcceptationPV` (date de signature du PV/convention),
- * on pré-remplit ces étapes en statut FAIT (provenance IA, effaçable au toggle manuel).
- */
-import {
-  DivorceChecklistPrefillRules,
-  SIGNATURE_STEP_CODES,
-} from './divorce-checklist-section-prefill-rules';
+// SF-155-19 : codes étape "signature de la convention" (FR + BE) — désormais
+// déclarés dans le helper partagé `divorce-checklist-section-prefill-rules.ts`
+// (F-236 SF-236-03). Re-importé ci-dessus pour usage runtime.
 
 @Component({
   selector: 'app-divorce-checklist-section',
@@ -205,22 +201,25 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
    * `dateAcceptationPV` (date de signature de la convention) — on marque
    * alors les étapes "signature/rédaction de la convention" comme FAIT.
    *
+   * F-236 SF-236-03 : délègue à `DivorceChecklistPrefillRules.computeDateAcceptationPV`
+   * pour la validation ISO + la sélection des codes étape, garantissant la
+   * parité runtime/static (badge = 2 ↔ 2 étapes pré-cochées en mémoire).
+   *
    * Idempotent : ne marque IA que les étapes encore A_FAIRE (n'écrase pas
    * une saisie avocat manuelle existante) ; ne déclenche pas de save HTTP
    * (pas de side-effect réseau).
    */
   private prefillFromAi(): void {
     const r = this.result();
-    // F-236 SF-236-02 — délégation au helper pour la décision "PV signé ?".
-    const dateAcceptation = DivorceChecklistPrefillRules.computeDateAcceptationPV({
-      aiData: this.aiDataSignal(),
-    });
-    if (!r || dateAcceptation === null) return;
+    const ai = this.aiDataSignal();
+    if (!r) return;
+    const input: PrefillCountInput = { aiData: ai ?? null };
+    if (DivorceChecklistPrefillRules.computeDateAcceptationPV(input) === null) return;
 
     const next = { ...this.provenanceByCode() };
     let changed = false;
     for (const etape of r.etapes) {
-      if (!SIGNATURE_STEP_CODES.includes(etape.code)) continue;
+      if (!(SIGNATURE_STEP_CODES as readonly string[]).includes(etape.code)) continue;
       // Ne pas écraser un statut déjà saisi par l'avocat.
       if (etape.statut === 'FAIT') continue;
       etape.statut = 'FAIT';
@@ -424,14 +423,16 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
 
   /**
    * F-IA-04 / F-177 SF-177-12 — compteur de champs pré-remplis affiché
-   * en badge sur la card avant ouverture. Stricte parité avec
-   * `prefillFromAi()` ci-dessus : si `dateAcceptationPV` est un YYYY-MM-DD
-   * valide, l'étape de signature/rédaction de la convention sera marquée
-   * FAIT (1 étape par checklist FR ou BE — l'autre n'est pas dans la
-   * checklist du pays courant).
+   * en badge sur la card avant ouverture.
+   *
+   * F-236 SF-236-03 : délègue intégralement à
+   * `DivorceChecklistPrefillRules.computePrefillCount`. Quand
+   * `dateAcceptationPV` est ISO valide, 2 étapes signature/rédaction sont
+   * pré-cochées (`FR_SIGNATURE_CONVENTION` + `BE_REDACTION_CONVENTION`).
+   * Le badge reflète l'expérience UX réelle de l'avocat — corrigé via
+   * audit SF-236-01 (badge précédent = 1, divergent du runtime).
    */
-  static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
-    // F-236 SF-236-02 — délégation au helper partagé.
+  static getPrefillCount(input: PrefillCountInput): number {
     return DivorceChecklistPrefillRules.computePrefillCount(input);
   }
 }
