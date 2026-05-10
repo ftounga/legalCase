@@ -44,6 +44,10 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import {
+  AtMpSectionPrefillRules,
+  computeDateAccident as computeDateAccidentRule,
+} from './at-mp-section-prefill-rules';
 
 /**
  * SF-DT-33-02 : champs d'alerte F-IA-03 exposés par l'outil "AT/MP".
@@ -94,6 +98,23 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ACCIDENT DU TRAVAIL / MALADIE PROFESSIONNELLE (FR)';
   static readonly TOOL_ICON = 'healing';
+
+  /**
+   * F-177 SF-177-12 / F-236 SF-236-02 — Compte les champs que `prefillFromAi()`
+   * poserait potentiellement, sans instancier le composant. Délègue au helper
+   * partagé `AtMpSectionPrefillRules` qui est aussi consommé par le runtime
+   * ci-dessous — divergence impossible par construction.
+   */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return AtMpSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
 
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
@@ -398,8 +419,10 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    // dateAccident ← aiData.dateLicenciement (proxy gracieux, AT seul).
-    const iaDate = ai.dateLicenciement;
+    // F-236 SF-236-02 : la valeur est calculée par le helper partagé. Le gating
+    // runtime (dispositif === RECONNAISSANCE_AT) reste local au composant car
+    // il dépend de l'état UI signal — pas pré-calculable côté static.
+    const iaDate = computeDateAccidentRule({ aiData: ai });
     if (iaDate && this.dispositif() === 'RECONNAISSANCE_AT') {
       if (this.dateAccident() === null
           || this.provenanceDateAccident() === 'IA') {
