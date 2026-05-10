@@ -257,7 +257,10 @@ class DecisionToolVisibilityControllerIT {
 
     @Test
     void SF_IA_04_03_familleFr_sansAnalyse_returns200_outilsFamilleAlwaysOn() throws Exception {
-        // F-FA-05, F-FA-06, F-FA-07 passent ALWAYS_ON par migration 106 — rétrocompat.
+        // F-FA-05, F-FA-06 restent ALWAYS_ON (tronc commun mixed CONTEXTUAL + ALWAYS_ON).
+        // F-FA-07 — F-200 SF-200-02 migration 216 : ALWAYS_ON retiré, bascule CONTEXTUAL pur
+        // (apparaît uniquement quand divorce CM détecté via type_procedure_detectee ou
+        // via le boolean flag divorce_consentement_mutuel_envisage).
         // Utilise immCf workspace DROIT_IMMIGRATION pour créer un nouveau ws DROIT_FAMILLE.
         long ts = System.nanoTime();
         User u4 = new User();
@@ -298,7 +301,9 @@ class DecisionToolVisibilityControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-FA-05-partage-immobilier")))
                 .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-FA-06-calendrier-garde")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-FA-07-checklist-divorce")));
+                // F-FA-07 désormais CONTEXTUAL pur (cf. F-200 SF-200-02 migration 216) — visible dans catalog hors trigger.
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("F-FA-07-checklist-divorce"))))
+                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-FA-07-checklist-divorce")));
     }
 
     // ────────────────────────────── Erreurs ─────────────────────────────────

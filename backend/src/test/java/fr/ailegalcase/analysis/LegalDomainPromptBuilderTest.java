@@ -149,4 +149,57 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("FRANCE UNIQUEMENT");
         assertThat(instruction).contains("BELGIQUE, TOUS ces 8 flags DOIVENT rester false");
     }
+
+    // F-200 SF-200-01 : prompt Famille enrichi des 30 flags décisionnels niveau 3
+    @Test
+    void domainSpecificInstruction_famille_contains30NiveauTroisFlags() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // 4 cas de divorce
+        assertThat(instruction).contains("divorce_consentement_mutuel_envisage");
+        assertThat(instruction).contains("divorce_alteration_lien_envisage");
+        assertThat(instruction).contains("divorce_faute_envisage");
+        assertThat(instruction).contains("divorce_accepte_envisage");
+        // Régimes / partage / révision
+        assertThat(instruction).contains("revision_post_divorce_envisagee");
+        assertThat(instruction).contains("ordonnance_protection_envisagee");
+        assertThat(instruction).contains("recompenses_envisagees");
+        assertThat(instruction).contains("regime_communaute_universelle_detecte");
+        assertThat(instruction).contains("partage_judiciaire_envisage");
+        // Adoption + filiation
+        assertThat(instruction).contains("adoption_envisagee");
+        assertThat(instruction).contains("reconnaissance_paternelle_envisagee");
+        assertThat(instruction).contains("contestation_paternite_envisagee");
+        assertThat(instruction).contains("recherche_paternite_envisagee");
+        assertThat(instruction).contains("possession_etat_envisagee");
+        // Autorité parentale conflictuelle
+        assertThat(instruction).contains("changement_residence_envisage");
+        assertThat(instruction).contains("desaccord_parental_detecte");
+        // PACS / séparation / indivision / ordonnance requête
+        assertThat(instruction).contains("pacs_dissolution_envisagee");
+        assertThat(instruction).contains("separation_corps_envisagee");
+        assertThat(instruction).contains("indivision_envisagee");
+        assertThat(instruction).contains("ordonnance_requete_envisagee");
+        // Successions
+        assertThat(instruction).contains("succession_envisagee");
+        assertThat(instruction).contains("testament_envisage");
+        assertThat(instruction).contains("donation_envisagee");
+        assertThat(instruction).contains("reserve_hereditaire_envisagee");
+        assertThat(instruction).contains("partage_successoral_envisage");
+        assertThat(instruction).contains("indivision_successorale_envisagee");
+        assertThat(instruction).contains("rapport_succession_envisage");
+        // Protection majeurs / état civil / PMA-GPA
+        assertThat(instruction).contains("protection_majeur_envisagee");
+        assertThat(instruction).contains("changement_etat_civil_envisage");
+        assertThat(instruction).contains("pma_gpa_envisagee");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_niveauTroisFlags_explicitlyExcludeBE() {
+        // Tous les 30 flags doivent rester false pour un dossier famille BE
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+        assertThat(instruction).contains("BELGIQUE, TOUS ces 30 flags DOIVENT rester false");
+        // Mention de la migration future F-202 pour Famille BE
+        assertThat(instruction).contains("F-202");
+    }
 }

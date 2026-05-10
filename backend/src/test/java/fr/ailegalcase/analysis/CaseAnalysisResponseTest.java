@@ -1,5 +1,7 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -1685,5 +1687,145 @@ class CaseAnalysisResponseTest {
         assertThat(t.transactionEnvisagee()).isTrue();
         assertThat(t.travailDissimuleDetecte()).isFalse();
         assertThat(t.contestationAreEnvisagee()).isFalse();
+    }
+
+    // F-200 SF-200-01 : extractFamilleData parse correctement les 30 flags niveau 3 Famille FR.
+    @Test
+    void extractFamilleData_returnsNullWhenNodeAbsent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("{\"faits\": []}");
+        assertThat(CaseAnalysisResponse.extractFamilleData(root)).isNull();
+    }
+
+    @Test
+    void extractFamilleData_returnsNullWhenAllFlagsFalseOrAbsent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_consentement_mutuel_envisage": false,
+                    "succession_envisagee": false
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.extractFamilleData(root)).isNull();
+    }
+
+    @Test
+    void extractFamilleData_parsesAllThirtyFlagsTrue() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_consentement_mutuel_envisage": true,
+                    "divorce_alteration_lien_envisage": true,
+                    "divorce_faute_envisage": true,
+                    "divorce_accepte_envisage": true,
+                    "revision_post_divorce_envisagee": true,
+                    "ordonnance_protection_envisagee": true,
+                    "recompenses_envisagees": true,
+                    "regime_communaute_universelle_detecte": true,
+                    "partage_judiciaire_envisage": true,
+                    "adoption_envisagee": true,
+                    "reconnaissance_paternelle_envisagee": true,
+                    "contestation_paternite_envisagee": true,
+                    "recherche_paternite_envisagee": true,
+                    "possession_etat_envisagee": true,
+                    "changement_residence_envisage": true,
+                    "desaccord_parental_detecte": true,
+                    "pacs_dissolution_envisagee": true,
+                    "separation_corps_envisagee": true,
+                    "indivision_envisagee": true,
+                    "ordonnance_requete_envisagee": true,
+                    "succession_envisagee": true,
+                    "testament_envisage": true,
+                    "donation_envisagee": true,
+                    "reserve_hereditaire_envisagee": true,
+                    "partage_successoral_envisage": true,
+                    "indivision_successorale_envisagee": true,
+                    "rapport_succession_envisage": true,
+                    "protection_majeur_envisagee": true,
+                    "changement_etat_civil_envisage": true,
+                    "pma_gpa_envisagee": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // 4 cas divorce
+        assertThat(f.divorceConsentementMutuelEnvisage()).isTrue();
+        assertThat(f.divorceAlterationLienEnvisage()).isTrue();
+        assertThat(f.divorceFauteEnvisage()).isTrue();
+        assertThat(f.divorceAccepteEnvisage()).isTrue();
+        // Régimes / partage / révision
+        assertThat(f.revisionPostDivorceEnvisagee()).isTrue();
+        assertThat(f.ordonnanceProtectionEnvisagee()).isTrue();
+        assertThat(f.recompensesEnvisagees()).isTrue();
+        assertThat(f.regimeCommunauteUniverselleDetecte()).isTrue();
+        assertThat(f.partageJudiciaireEnvisage()).isTrue();
+        // Adoption + filiation
+        assertThat(f.adoptionEnvisagee()).isTrue();
+        assertThat(f.reconnaissancePaternelleEnvisagee()).isTrue();
+        assertThat(f.contestationPaterniteEnvisagee()).isTrue();
+        assertThat(f.recherchePaterniteEnvisagee()).isTrue();
+        assertThat(f.possessionEtatEnvisagee()).isTrue();
+        // Autorité parentale conflictuelle
+        assertThat(f.changementResidenceEnvisage()).isTrue();
+        assertThat(f.desaccordParentalDetecte()).isTrue();
+        // PACS / séparation / indivision / ordonnance requête
+        assertThat(f.pacsDissolutionEnvisagee()).isTrue();
+        assertThat(f.separationCorpsEnvisagee()).isTrue();
+        assertThat(f.indivisionEnvisagee()).isTrue();
+        assertThat(f.ordonnanceRequeteEnvisagee()).isTrue();
+        // Successions (7)
+        assertThat(f.successionEnvisagee()).isTrue();
+        assertThat(f.testamentEnvisage()).isTrue();
+        assertThat(f.donationEnvisagee()).isTrue();
+        assertThat(f.reserveHereditaireEnvisagee()).isTrue();
+        assertThat(f.partageSuccessoralEnvisage()).isTrue();
+        assertThat(f.indivisionSuccessoraleEnvisagee()).isTrue();
+        assertThat(f.rapportSuccessionEnvisage()).isTrue();
+        // Protection majeurs / état civil / PMA-GPA
+        assertThat(f.protectionMajeurEnvisagee()).isTrue();
+        assertThat(f.changementEtatCivilEnvisage()).isTrue();
+        assertThat(f.pmaGpaEnvisagee()).isTrue();
+    }
+
+    @Test
+    void extractFamilleData_partialFlags_otherDefaultFalse() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "ordonnance_protection_envisagee": true,
+                    "succession_envisagee": false
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.divorceFauteEnvisage()).isTrue();
+        assertThat(f.ordonnanceProtectionEnvisagee()).isTrue();
+        // Les autres restent false
+        assertThat(f.divorceConsentementMutuelEnvisage()).isFalse();
+        assertThat(f.successionEnvisagee()).isFalse();
+        assertThat(f.pmaGpaEnvisagee()).isFalse();
+    }
+
+    @Test
+    void extractFamilleData_acceptsStringTrue_forFailSafety() throws Exception {
+        // booleanOrFalse accepte "true" textuel (cf. helper booleanOrNull)
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": "true"
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.successionEnvisagee()).isTrue();
     }
 }

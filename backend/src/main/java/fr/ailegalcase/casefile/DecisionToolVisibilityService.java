@@ -206,6 +206,41 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40bis_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
+
+        // F-200 : 30 flags Famille FR — booleans dans famille_extracted_data.
+        // Migration 216 : 30 outils Famille FR basculent ALWAYS_ON → CONTEXTUAL.
+        // Famille BE : tous false (régimes BE équivalents distincts → F-202).
+        JsonNode familleNode = root.path("famille_extracted_data");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_consentement_mutuel_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_alteration_lien_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_faute_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_accepte_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "revision_post_divorce_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "ordonnance_protection_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "recompenses_envisagees");
+        addBooleanFlagIfTrue(detected, familleNode, "regime_communaute_universelle_detecte");
+        addBooleanFlagIfTrue(detected, familleNode, "partage_judiciaire_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "adoption_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "reconnaissance_paternelle_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "contestation_paternite_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "recherche_paternite_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "possession_etat_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "changement_residence_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "desaccord_parental_detecte");
+        addBooleanFlagIfTrue(detected, familleNode, "pacs_dissolution_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "separation_corps_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "indivision_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "ordonnance_requete_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "succession_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "testament_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "donation_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "reserve_hereditaire_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "partage_successoral_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "indivision_successorale_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "rapport_succession_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "protection_majeur_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "changement_etat_civil_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "pma_gpa_envisagee");
         return detected;
     }
 

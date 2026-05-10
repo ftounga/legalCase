@@ -401,6 +401,65 @@ public record CaseAnalysisResponse(
         }
     }
 
+    /**
+     * F-200 — 30 flags décisionnels niveau 3, FRANCE UNIQUEMENT, parsés depuis le noeud JSON
+     * top-level {@code famille_extracted_data}. Permettent à F-IA-04 de basculer 30 outils
+     * Famille FR ALWAYS_ON → CONTEXTUAL (réduction attendue −91 % cards par défaut).
+     *
+     * <p>Pour un dossier famille BELGIQUE, tous les flags doivent rester false (les régimes BE
+     * équivalents — succession Wallonie/Bruxelles/Flandre, partage UC, art. 229+ CC belge,
+     * juge de la paix, juge de la jeunesse, SECAL, etc. — sont distincts, traités par F-202).
+     *
+     * <p>À la différence d'{@link ImmigrationExtractedData} et de {@link TravailExtractedData},
+     * cette structure n'est pas (encore) thread à travers le record principal
+     * {@link CaseAnalysisResponse} : les flags sont consommés directement par
+     * {@code DecisionToolVisibilityService.extractDetectedSituations} pour décider de la
+     * visibilité des outils. Si une SF ultérieure introduit du pré-fill IA frontend pour ces
+     * 30 flags, elle étendra le record principal avec rétrocompat.
+     */
+    public record FamilleExtractedData(
+            // 4 cas de divorce (F-FA-07/08/09/10)
+            boolean divorceConsentementMutuelEnvisage,
+            boolean divorceAlterationLienEnvisage,
+            boolean divorceFauteEnvisage,
+            boolean divorceAccepteEnvisage,
+            // Révision post-divorce (F-FA-13)
+            boolean revisionPostDivorceEnvisagee,
+            // Ordonnance de protection (F-FA-14)
+            boolean ordonnanceProtectionEnvisagee,
+            // Régimes matrimoniaux (F-FA-15/16/17)
+            boolean recompensesEnvisagees,
+            boolean regimeCommunauteUniverselleDetecte,
+            boolean partageJudiciaireEnvisage,
+            // Adoption + filiation (F-FA-18 + sous-types)
+            boolean adoptionEnvisagee,
+            boolean reconnaissancePaternelleEnvisagee,
+            boolean contestationPaterniteEnvisagee,
+            boolean recherchePaterniteEnvisagee,
+            boolean possessionEtatEnvisagee,
+            // Autorité parentale conflictuelle (F-FA-19-changement-residence + desaccords-parentaux)
+            boolean changementResidenceEnvisage,
+            boolean desaccordParentalDetecte,
+            // PACS / séparation / indivision / ordonnance requête (F-FA-20/21/22/23)
+            boolean pacsDissolutionEnvisagee,
+            boolean separationCorpsEnvisagee,
+            boolean indivisionEnvisagee,
+            boolean ordonnanceRequeteEnvisagee,
+            // Successions / libéralités (F-FA-24-* — 7 sous-outils)
+            boolean successionEnvisagee,
+            boolean testamentEnvisage,
+            boolean donationEnvisagee,
+            boolean reserveHereditaireEnvisagee,
+            boolean partageSuccessoralEnvisage,
+            boolean indivisionSuccessoraleEnvisagee,
+            boolean rapportSuccessionEnvisage,
+            // Protection des majeurs (F-FA-25)
+            boolean protectionMajeurEnvisagee,
+            // État civil (F-FA-26)
+            boolean changementEtatCivilEnvisage,
+            // PMA / GPA (F-FA-27)
+            boolean pmaGpaEnvisagee) {}
+
     static final Set<String> IMMIGRATION_TITLE_CODES = Set.of(
             "VLS_TS_ETUDIANT", "VLS_TS_SALARIE", "CST_SALARIE", "CARTE_PLURIANNUELLE",
             // SF-IM-07-04 : sous-types explicites de la carte pluriannuelle (droit
@@ -1366,6 +1425,62 @@ public record CaseAnalysisResponse(
                 clientMineur, mesureEloignement,
                 // F-203 : 5 flags Immigration BE
                 procedure9bis, procedure9ter, regroupement40bis, regroupement40ter, oqtAnnexe13);
+    }
+
+    /**
+     * F-200 — extrait les 30 flags décisionnels niveau 3 Famille FR depuis le noeud
+     * {@code famille_extracted_data}. Tous les flags fail-safe à false si le noeud est absent,
+     * malformé ou si le champ booléen est absent (pattern strictement aligné sur
+     * {@link #booleanOrFalse}).
+     *
+     * <p>Retourne {@code null} si tous les flags sont false (évite de stocker un objet inutile
+     * dans la sortie JSON pour les dossiers non Famille FR ou sans flag détecté).
+     */
+    static FamilleExtractedData extractFamilleData(JsonNode root) {
+        JsonNode node = root == null ? null : root.path("famille_extracted_data");
+        if (node == null || node.isMissingNode() || !node.isObject()) {
+            return null;
+        }
+        boolean dcm = booleanOrFalse(node, "divorce_consentement_mutuel_envisage");
+        boolean dal = booleanOrFalse(node, "divorce_alteration_lien_envisage");
+        boolean dfa = booleanOrFalse(node, "divorce_faute_envisage");
+        boolean dac = booleanOrFalse(node, "divorce_accepte_envisage");
+        boolean rev = booleanOrFalse(node, "revision_post_divorce_envisagee");
+        boolean op = booleanOrFalse(node, "ordonnance_protection_envisagee");
+        boolean rec = booleanOrFalse(node, "recompenses_envisagees");
+        boolean rcu = booleanOrFalse(node, "regime_communaute_universelle_detecte");
+        boolean pj = booleanOrFalse(node, "partage_judiciaire_envisage");
+        boolean ado = booleanOrFalse(node, "adoption_envisagee");
+        boolean rp = booleanOrFalse(node, "reconnaissance_paternelle_envisagee");
+        boolean cp = booleanOrFalse(node, "contestation_paternite_envisagee");
+        boolean rche = booleanOrFalse(node, "recherche_paternite_envisagee");
+        boolean pe = booleanOrFalse(node, "possession_etat_envisagee");
+        boolean cr = booleanOrFalse(node, "changement_residence_envisage");
+        boolean dp = booleanOrFalse(node, "desaccord_parental_detecte");
+        boolean pd = booleanOrFalse(node, "pacs_dissolution_envisagee");
+        boolean sc = booleanOrFalse(node, "separation_corps_envisagee");
+        boolean ind = booleanOrFalse(node, "indivision_envisagee");
+        boolean or = booleanOrFalse(node, "ordonnance_requete_envisagee");
+        boolean su = booleanOrFalse(node, "succession_envisagee");
+        boolean te = booleanOrFalse(node, "testament_envisage");
+        boolean don = booleanOrFalse(node, "donation_envisagee");
+        boolean rh = booleanOrFalse(node, "reserve_hereditaire_envisagee");
+        boolean ps = booleanOrFalse(node, "partage_successoral_envisage");
+        boolean iss = booleanOrFalse(node, "indivision_successorale_envisagee");
+        boolean rs = booleanOrFalse(node, "rapport_succession_envisage");
+        boolean pm = booleanOrFalse(node, "protection_majeur_envisagee");
+        boolean cec = booleanOrFalse(node, "changement_etat_civil_envisage");
+        boolean pmg = booleanOrFalse(node, "pma_gpa_envisagee");
+        if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
+                && !ado && !rp && !cp && !rche && !pe && !cr && !dp
+                && !pd && !sc && !ind && !or
+                && !su && !te && !don && !rh && !ps && !iss && !rs
+                && !pm && !cec && !pmg) {
+            return null;
+        }
+        return new FamilleExtractedData(dcm, dal, dfa, dac, rev, op, rec, rcu, pj,
+                ado, rp, cp, rche, pe, cr, dp, pd, sc, ind, or,
+                su, te, don, rh, ps, iss, rs, pm, cec, pmg);
     }
 
     /**
