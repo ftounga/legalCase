@@ -88,6 +88,35 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'CALENDRIER PROCÉDURAL — DROIT DU TRAVAIL';
   static readonly TOOL_ICON = 'event';
 
+  /**
+   * F-236 SF-236-02/05 : static parité runtime/static. Compte les champs que
+   * {@link prefillFromAi} poserait — 2 champs maximum :
+   *   1. `typeProcedure` (depuis `procedureTravailDetectee`, gating pays
+   *      via suffixe `_FR`/`_BE` vs `workspaceCountry`).
+   *   2. `dateDeclencheur` (ISO YYYY-MM-DD).
+   *
+   * TODO F-236 follow-up : extraire dans `TravailProcedurePrefillRules` (helper
+   * partagé) une fois la migration vague Travail étendue à ce composant.
+   */
+  static getPrefillCount(input: { aiData?: any; workspaceCountry?: string }): number {
+    const ai = input?.aiData;
+    if (!ai) return 0;
+    let n = 0;
+    const detected = ai.procedureTravailDetectee;
+    if (typeof detected === 'string'
+        && TRAVAIL_PROCEDURE_CODES.has(detected as TravailProcedureCode)) {
+      const country = input?.workspaceCountry ?? 'FRANCE';
+      const isFrance = country === 'FRANCE';
+      const isFrCode = detected.endsWith('_FR');
+      if ((isFrance && isFrCode) || (!isFrance && !isFrCode)) n++;
+    }
+    if (typeof ai.dateDeclencheurProcedure === 'string'
+        && ISO_DATE_RE.test(ai.dateDeclencheurProcedure)) {
+      n++;
+    }
+    return n;
+  }
+
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;

@@ -192,6 +192,7 @@ Ordre : aligner avec le `priority` de la règle `decision_tool_visibility_rules`
 | **Validation IA F-IA-03** : `coherenceAlerts` computed + `CoherencePopoverTriggerDirective` sur chaque field clé (FAIL si absent) | | |
 | `ngOnChanges()` re-invoque `prefillFromAi()` quand `aiData` change (avant première résolution) | | |
 | Effacement badge provenance IA au `onXxxChange()` manuel avocat | | |
+| **`static getPrefillCount(input): number`** exposé sur la classe (parité stricte runtime/static via helper `<ComponentName>PrefillRules`) — FAIL si absent ou retour NaN/Infinity/négatif. Garde-fou F-236 SF-236-05 (`prefill-count-integrity.spec.ts`) | | |
 
 ---
 

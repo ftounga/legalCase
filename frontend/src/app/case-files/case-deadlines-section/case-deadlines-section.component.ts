@@ -27,6 +27,15 @@ export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'DÉLAIS LÉGAUX';
   static readonly TOOL_ICON = 'event';
 
+  /**
+   * F-236 SF-236-02/05 : wrapper informationnel — aucun pré-fill IA.
+   * Toujours 0 (les délais sont saisis manuellement ou détectés par le pipeline
+   * via {@code CaseDeadlineService}, pas via les champs IA outil).
+   */
+  static getPrefillCount(): number {
+    return 0;
+  }
+
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;

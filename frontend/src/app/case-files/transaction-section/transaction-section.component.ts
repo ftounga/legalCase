@@ -147,6 +147,36 @@ export class TransactionSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'TRANSACTION (FR) — ART. 2044 CCIV';
   static readonly TOOL_ICON = 'handshake';
 
+  /**
+   * F-236 SF-236-02/05 : static parité runtime/static. Compte les champs que
+   * {@link prefillFromAi} poserait — 3 champs maximum (salaire brut mensuel,
+   * ancienneté dérivée de `dateEntree`, rupture préalable mappée depuis
+   * `motifLicenciement`).
+   *
+   * TODO F-236 follow-up : extraire la logique dans `TransactionPrefillRules`
+   * (helper partagé) une fois la migration vague Travail étendue à ce composant.
+   */
+  static getPrefillCount(input: { aiData?: any }): number {
+    const ai = input?.aiData;
+    if (!ai) return 0;
+    let n = 0;
+    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) n++;
+    if (typeof ai.dateEntree === 'string' && ISO_DATE_REGEX.test(ai.dateEntree)) {
+      const refDateStr = typeof ai.dateLicenciement === 'string' && ISO_DATE_REGEX.test(ai.dateLicenciement)
+        ? ai.dateLicenciement
+        : null;
+      const entree = new Date(ai.dateEntree);
+      const ref = refDateStr ? new Date(refDateStr) : new Date();
+      if (!isNaN(entree.getTime()) && !isNaN(ref.getTime()) && entree <= ref) {
+        const diffMs = ref.getTime() - entree.getTime();
+        const years = Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
+        if (years >= 0) n++;
+      }
+    }
+    if (mapAiMotifToRupturePrealable(ai.motifLicenciement) !== null) n++;
+    return n;
+  }
+
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
