@@ -36,6 +36,7 @@ import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { AcceptationRenonciationPrefillRules } from './acceptation-renonciation-section-prefill-rules';
 
 export type AcceptationRenonciationAlertField = 'DATE_OUVERTURE' | 'ACTIF_BRUT';
 export type AcceptationRenonciationCoherenceAlert =
@@ -265,47 +266,42 @@ export class AcceptationRenonciationSectionComponent implements OnInit, OnChange
   }
 
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-    const dateOpen = ai.dateOuvertureSuccessionDetectee;
-    if (typeof dateOpen === 'string' && ISO_DATE_REGEX.test(dateOpen)) {
-      if (this.dateOuvertureSuccession() === null || this.provenanceDateOuverture() === 'IA') {
-        this.dateOuvertureSuccession.set(dateOpen);
-        this.provenanceDateOuverture.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+
+    const dateOpen = AcceptationRenonciationPrefillRules.computeDateOuverture(h);
+    if (dateOpen !== null
+        && (this.dateOuvertureSuccession() === null || this.provenanceDateOuverture() === 'IA')) {
+      this.dateOuvertureSuccession.set(dateOpen);
+      this.provenanceDateOuverture.set('IA');
     }
-    if (typeof ai.actifBrutSuccessionEurDetecte === 'number'
-        && ai.actifBrutSuccessionEurDetecte >= 0) {
-      if (this.actifBrutEur() === null || this.provenanceActifBrut() === 'IA') {
-        this.actifBrutEur.set(ai.actifBrutSuccessionEurDetecte);
-        this.provenanceActifBrut.set('IA');
-      }
+    const ab = AcceptationRenonciationPrefillRules.computeActifBrut(h);
+    if (ab !== null && (this.actifBrutEur() === null || this.provenanceActifBrut() === 'IA')) {
+      this.actifBrutEur.set(ab);
+      this.provenanceActifBrut.set('IA');
     }
-    if (typeof ai.passifSuccessionEurDetecte === 'number'
-        && ai.passifSuccessionEurDetecte >= 0) {
-      if (this.passifEur() === null || this.provenancePassif() === 'IA') {
-        this.passifEur.set(ai.passifSuccessionEurDetecte);
-        this.provenancePassif.set('IA');
-      }
+    const ps = AcceptationRenonciationPrefillRules.computePassif(h);
+    if (ps !== null && (this.passifEur() === null || this.provenancePassif() === 'IA')) {
+      this.passifEur.set(ps);
+      this.provenancePassif.set('IA');
     }
-    const qual = ai.qualiteHeritierDetectee;
-    if (qual === 'PREMIER_RANG' || qual === 'SECOND_RANG') {
-      if (this.provenanceQualite() === 'IA' || this.qualiteHeritier() === 'PREMIER_RANG') {
-        this.qualiteHeritier.set(qual);
-        this.provenanceQualite.set('IA');
-      }
+    const qual = AcceptationRenonciationPrefillRules.computeQualiteHeritier(h);
+    if (qual !== null
+        && (this.provenanceQualite() === 'IA' || this.qualiteHeritier() === 'PREMIER_RANG')) {
+      this.qualiteHeritier.set(qual);
+      this.provenanceQualite.set('IA');
     }
-    if (typeof ai.actesEquivalentAcceptationDejaPosesDetected === 'boolean') {
-      if (this.provenanceActes() === 'IA' || this.actesEquivalentAcceptation() === false) {
-        this.actesEquivalentAcceptation.set(ai.actesEquivalentAcceptationDejaPosesDetected);
-        this.provenanceActes.set('IA');
-      }
+    const actes = AcceptationRenonciationPrefillRules.computeActesEquivalentAcceptation(h);
+    if (actes !== null
+        && (this.provenanceActes() === 'IA' || this.actesEquivalentAcceptation() === false)) {
+      this.actesEquivalentAcceptation.set(actes);
+      this.provenanceActes.set('IA');
     }
-    if (typeof ai.dettesIncertainesDetected === 'boolean') {
-      if (this.provenanceDettesIncertaines() === 'IA' || this.dettesIncertaines() === false) {
-        this.dettesIncertaines.set(ai.dettesIncertainesDetected);
-        this.provenanceDettesIncertaines.set('IA');
-      }
+    const dettes = AcceptationRenonciationPrefillRules.computeDettesIncertaines(h);
+    if (dettes !== null
+        && (this.provenanceDettesIncertaines() === 'IA' || this.dettesIncertaines() === false)) {
+      this.dettesIncertaines.set(dettes);
+      this.provenanceDettesIncertaines.set('IA');
     }
   }
 
@@ -370,19 +366,7 @@ export class AcceptationRenonciationSectionComponent implements OnInit, OnChange
    * F-210 SF-210-04 : pré-fill count miroir de prefillFromAi().
    */
   static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
-    const ai = input.aiData;
-    if (!ai) return 0;
-    let n = 0;
-    if (typeof ai.dateOuvertureSuccessionDetectee === 'string'
-        && /^\d{4}-\d{2}-\d{2}$/.test(ai.dateOuvertureSuccessionDetectee)) n++;
-    if (typeof ai.actifBrutSuccessionEurDetecte === 'number'
-        && ai.actifBrutSuccessionEurDetecte >= 0) n++;
-    if (typeof ai.passifSuccessionEurDetecte === 'number'
-        && ai.passifSuccessionEurDetecte >= 0) n++;
-    const q = ai.qualiteHeritierDetectee;
-    if (q === 'PREMIER_RANG' || q === 'SECOND_RANG') n++;
-    if (typeof ai.actesEquivalentAcceptationDejaPosesDetected === 'boolean') n++;
-    if (typeof ai.dettesIncertainesDetected === 'boolean') n++;
-    return n;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    return AcceptationRenonciationPrefillRules.computePrefillCount(input);
   }
 }

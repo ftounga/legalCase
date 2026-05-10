@@ -51,6 +51,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { ChangementEtatCivilPrefillRules } from './changement-etat-civil-section-prefill-rules';
 
 /**
  * SF-FA-26-02 : champs F-IA-03 audités par l'outil F-FA-26 (changement
@@ -126,6 +127,18 @@ export class ChangementEtatCivilSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CHANGEMENT D\'ÉTAT CIVIL (FR) — ART. 60 / 61-1 / 61-5 CCIV';
   static readonly TOOL_ICON = 'badge';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return ChangementEtatCivilPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -426,59 +439,35 @@ export class ChangementEtatCivilSectionComponent implements OnInit, OnChanges {
    * par défaut indique modification manuelle).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // 1. Type changement.
-    const typeAi = ai.typeChangementDetecte;
-    if (typeof typeAi === 'string' && typeAi.length > 0) {
-      const upper = typeAi.toUpperCase();
-      if (VALID_TYPES.has(upper)) {
-        if (this.typeChangement() === null || this.provenanceTypeChangement() === 'IA') {
-          this.typeChangement.set(upper as TypeChangement);
-          this.provenanceTypeChangement.set('IA');
-        }
-      }
+    const t = ChangementEtatCivilPrefillRules.computeTypeChangement(h);
+    if (t !== null && (this.typeChangement() === null || this.provenanceTypeChangement() === 'IA')) {
+      this.typeChangement.set(t);
+      this.provenanceTypeChangement.set('IA');
     }
-
-    // 2. Motif invoqué.
-    const motifAi = ai.motifChangementDetecte;
-    if (typeof motifAi === 'string' && motifAi.length > 0) {
-      const upper = motifAi.toUpperCase();
-      if (VALID_MOTIFS.has(upper)) {
-        if (this.motifInvoque() === null || this.provenanceMotifInvoque() === 'IA') {
-          this.motifInvoque.set(upper as MotifInvoque);
-          this.provenanceMotifInvoque.set('IA');
-        }
-      }
+    const m = ChangementEtatCivilPrefillRules.computeMotif(h);
+    if (m !== null && (this.motifInvoque() === null || this.provenanceMotifInvoque() === 'IA')) {
+      this.motifInvoque.set(m);
+      this.provenanceMotifInvoque.set('IA');
     }
-
-    // 3. Date naissance demandeur.
-    const dateAi = ai.dateNaissanceDemandeurDetectee;
-    if (typeof dateAi === 'string' && ISO_DATE_REGEX.test(dateAi)) {
-      if (this.dateNaissanceDemandeur() === null || this.provenanceDateNaissance() === 'IA') {
-        this.dateNaissanceDemandeur.set(dateAi);
-        this.provenanceDateNaissance.set('IA');
-      }
+    const dn = ChangementEtatCivilPrefillRules.computeDateNaissance(h);
+    if (dn !== null && (this.dateNaissanceDemandeur() === null || this.provenanceDateNaissance() === 'IA')) {
+      this.dateNaissanceDemandeur.set(dn);
+      this.provenanceDateNaissance.set('IA');
     }
-
-    // 4. Majeur demandeur (boolean).
-    if (typeof ai.majeurDemandeurDetected === 'boolean') {
-      if (this.provenanceMajeurDemandeur() === 'IA' || this.majeurDemandeur() === true) {
-        // Heuristique : la valeur par défaut est `true`. Si l'IA dit `false`
-        // (mineur), on prend l'IA. Si l'avocat a explicitement coché `false`,
-        // provenance=null le protège déjà via la condition initiale.
-        this.majeurDemandeur.set(ai.majeurDemandeurDetected);
-        this.provenanceMajeurDemandeur.set('IA');
-      }
+    const maj = ChangementEtatCivilPrefillRules.computeMajeurDemandeur(h);
+    if (maj !== null
+        && (this.provenanceMajeurDemandeur() === 'IA' || this.majeurDemandeur() === true)) {
+      this.majeurDemandeur.set(maj);
+      this.provenanceMajeurDemandeur.set('IA');
     }
-
-    // 5. Consentement parental (boolean).
-    if (typeof ai.consentementParentalDetected === 'boolean') {
-      if (this.provenanceConsentementParental() === 'IA' || this.consentementParental() === false) {
-        this.consentementParental.set(ai.consentementParentalDetected);
-        this.provenanceConsentementParental.set('IA');
-      }
+    const cons = ChangementEtatCivilPrefillRules.computeConsentementParental(h);
+    if (cons !== null
+        && (this.provenanceConsentementParental() === 'IA' || this.consentementParental() === false)) {
+      this.consentementParental.set(cons);
+      this.provenanceConsentementParental.set('IA');
     }
   }
 

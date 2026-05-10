@@ -56,6 +56,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { MajeursProtegesPrefillRules } from './majeurs-proteges-section-prefill-rules';
 
 /**
  * SF-FA-25-02 : champs F-IA-03 audités par l'outil F-FA-25
@@ -156,6 +157,18 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MAJEURS PROTÉGÉS (FR) — ART. 425-494 / 494-1 CCIV';
   static readonly TOOL_ICON = 'supervisor_account';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: Partial<FamilleExtractedData> | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return MajeursProtegesPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -577,64 +590,56 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
    * IA OK, valeur null, ou booléen encore false par défaut).
    */
   private prefillFromAi(): void {
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+
+    const reg = MajeursProtegesPrefillRules.computeRegimeDemande(h);
+    if (reg !== null
+        && (this.regimeProtectionDemande() === null
+            || this.provenanceRegimeProtectionDemande() === 'IA')) {
+      this.regimeProtectionDemande.set(reg);
+      this.provenanceRegimeProtectionDemande.set('IA');
+    }
+
+    // Booléens : runtime applique la valeur mais ne pose IA que si true.
     const ai = this.aiDataSignal();
+    if (ai && typeof ai.altertationFacultesMentales === 'boolean'
+        && (this.provenanceAltertationFacultesMentales() === 'IA'
+            || this.altertationFacultesMentales() === false)) {
+      this.altertationFacultesMentales.set(ai.altertationFacultesMentales);
+      if (ai.altertationFacultesMentales) {
+        this.provenanceAltertationFacultesMentales.set('IA');
+      }
+    }
+    if (ai && typeof ai.altertationFacultesPhysiques === 'boolean'
+        && (this.provenanceAltertationFacultesPhysiques() === 'IA'
+            || this.altertationFacultesPhysiques() === false)) {
+      this.altertationFacultesPhysiques.set(ai.altertationFacultesPhysiques);
+      if (ai.altertationFacultesPhysiques) {
+        this.provenanceAltertationFacultesPhysiques.set('IA');
+      }
+    }
+    if (ai && typeof ai.certificatMedicalCirconstancieDetected === 'boolean'
+        && (this.provenanceCertificatMedicalCirconstancie() === 'IA'
+            || this.certificatMedicalCirconstancie() === false)) {
+      this.certificatMedicalCirconstancie.set(ai.certificatMedicalCirconstancieDetected);
+      if (ai.certificatMedicalCirconstancieDetected) {
+        this.provenanceCertificatMedicalCirconstancie.set('IA');
+      }
+    }
+
+    const dc = MajeursProtegesPrefillRules.computeDateCertificat(h);
+    if (dc !== null
+        && (this.dateCertificatMedical() === null
+            || this.provenanceDateCertificatMedical() === 'IA')) {
+      this.dateCertificatMedical.set(dc);
+      this.provenanceDateCertificatMedical.set('IA');
+    }
+
+    // F-236 SF-236-02 — champs SF-FA-25-04/06 hors helper minimal (helper
+    // couvre les 5 champs principaux SF-FA-25-02 qui pilotent le compteur).
+    // Le runtime reste exhaustif sur les autres pré-fills spécifiques.
     if (!ai) return;
-
-    // 1. Régime protection demandé.
-    const regAi = ai.regimeProtectionDemande;
-    if (typeof regAi === 'string' && regAi.length > 0) {
-      const upper = regAi.toUpperCase();
-      if (VALID_REGIMES.has(upper)) {
-        if (this.regimeProtectionDemande() === null
-            || this.provenanceRegimeProtectionDemande() === 'IA') {
-          this.regimeProtectionDemande.set(upper as RegimeProtection);
-          this.provenanceRegimeProtectionDemande.set('IA');
-        }
-      }
-    }
-
-    // 2. Altération facultés mentales.
-    if (typeof ai.altertationFacultesMentales === 'boolean') {
-      if (this.provenanceAltertationFacultesMentales() === 'IA'
-          || this.altertationFacultesMentales() === false) {
-        this.altertationFacultesMentales.set(ai.altertationFacultesMentales);
-        if (ai.altertationFacultesMentales) {
-          this.provenanceAltertationFacultesMentales.set('IA');
-        }
-      }
-    }
-
-    // 3. Altération facultés physiques.
-    if (typeof ai.altertationFacultesPhysiques === 'boolean') {
-      if (this.provenanceAltertationFacultesPhysiques() === 'IA'
-          || this.altertationFacultesPhysiques() === false) {
-        this.altertationFacultesPhysiques.set(ai.altertationFacultesPhysiques);
-        if (ai.altertationFacultesPhysiques) {
-          this.provenanceAltertationFacultesPhysiques.set('IA');
-        }
-      }
-    }
-
-    // 4. Certificat médical circonstancié.
-    if (typeof ai.certificatMedicalCirconstancieDetected === 'boolean') {
-      if (this.provenanceCertificatMedicalCirconstancie() === 'IA'
-          || this.certificatMedicalCirconstancie() === false) {
-        this.certificatMedicalCirconstancie.set(ai.certificatMedicalCirconstancieDetected);
-        if (ai.certificatMedicalCirconstancieDetected) {
-          this.provenanceCertificatMedicalCirconstancie.set('IA');
-        }
-      }
-    }
-
-    // 5. Date certificat médical (ISO).
-    if (typeof ai.dateCertificatMedicalDetected === 'string'
-        && ISO_DATE_REGEX.test(ai.dateCertificatMedicalDetected)) {
-      if (this.dateCertificatMedical() === null
-          || this.provenanceDateCertificatMedical() === 'IA') {
-        this.dateCertificatMedical.set(ai.dateCertificatMedicalDetected);
-        this.provenanceDateCertificatMedical.set('IA');
-      }
-    }
 
     // 6. Consentement personne à protéger (boolean — important pour
     // distinguer habilitation familiale vs tutelle).

@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PmaGpaBioethiquePrefillRules } from './pma-gpa-bioethique-section-prefill-rules';
 
 /**
  * SF-FA-27-02 : champs d'alerte F-IA-03 exposés par l'outil
@@ -92,6 +93,18 @@ export class PmaGpaBioethiqueSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PMA / GPA / BIOÉTHIQUE (FR)';
   static readonly TOOL_ICON = 'child_friendly';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return PmaGpaBioethiquePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -406,10 +419,8 @@ export class PmaGpaBioethiqueSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    const iaDisp = this.parseDispositifFromIa(ai.dispositifBioethiqueDetecte);
+    // F-236 SF-236-02 — délégation au helper partagé pour la détection.
+    const iaDisp = PmaGpaBioethiquePrefillRules.computeDispositif({ aiData: this.aiDataSignal() });
     if (iaDisp) {
       // On considère "champ vide" si encore sur la valeur initiale par défaut
       // ET pas de provenance IA déjà posée → ré-écrasable.
