@@ -453,4 +453,36 @@ describe('PartageImmobilierSectionComponent', () => {
     expect(component.provenanceValeur()).toBeNull();
     expect(component.provenancePret()).toBeNull();
   });
+
+  // F-IA-04 / F-177 SF-177-12 — couvre le static getPrefillCount exposé pour la card du panel.
+  it('getPrefillCount — 0 si aiData absent', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({})).toBe(0);
+    expect(PartageImmobilierSectionComponent.getPrefillCount({ aiData: null })).toBe(0);
+    expect(PartageImmobilierSectionComponent.getPrefillCount({ aiData: {} as FamilleExtractedData })).toBe(0);
+  });
+
+  it('getPrefillCount — 1 si seule valeurImmeuble présente', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      aiData: { valeurImmeuble: 420000 } as FamilleExtractedData,
+    })).toBe(1);
+  });
+
+  it('getPrefillCount — 2 si valeurImmeuble et capitalRestantDu présents (cas nominal)', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      aiData: { valeurImmeuble: 420000, capitalRestantDu: 150000 } as FamilleExtractedData,
+    })).toBe(2);
+  });
+
+  it('getPrefillCount — capitalRestantDu = 0 compte (prêt soldé)', () => {
+    // capitalRestantDu = 0 est une valeur valide (prêt soldé) — voir prefillFromAi() ligne 265.
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      aiData: { valeurImmeuble: 420000, capitalRestantDu: 0 } as FamilleExtractedData,
+    })).toBe(2);
+  });
+
+  it('getPrefillCount — valeurImmeuble <= 0 ne compte pas', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      aiData: { valeurImmeuble: 0, capitalRestantDu: 100000 } as FamilleExtractedData,
+    })).toBe(1);
+  });
 });

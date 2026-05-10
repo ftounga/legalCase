@@ -2027,6 +2027,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       piecesManquantes: synthesis?.piecesManquantesDetails ?? [],
       triggerEvents: synthesis?.immigrationTriggerEvents ?? [],
       workspaceCountry: this.workspaceCountry,
+      synthesis,
     };
     return getToolPrefillCount(entry.component, input);
   }

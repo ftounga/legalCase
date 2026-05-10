@@ -1,4 +1,5 @@
 import { DocumentPieceType } from './document.model';
+import { FamilleExtractedData } from './divorce-accepte.model';
 
 export interface TimelineEntry {
   date: string;
@@ -124,6 +125,18 @@ export interface CaseAnalysisResult {
   liquidationCommunaute?: LiquidationCommunaute | null;
   travailExtractedData?: TravailExtractedData | null;
   immigrationExtractedData?: ImmigrationExtractedData | null;
+  /**
+   * F-IA-04 : extraction Famille agrégée (ne contient que les champs
+   * effectivement utilisés par les outils décisionnels Famille — voir
+   * `FamilleExtractedData` pour la liste complète). Renseigné pour les
+   * dossiers `DROIT_FAMILLE` (FR + BE), null sinon.
+   *
+   * Branchement TypeScript ajouté pour exposer au panel décisionnel
+   * `ctx.synthesis?.familleExtractedData` (cf. decisional-tools-panel
+   * lignes 710-1450). Backend produit ce champ via `CaseAnalysisResponse`
+   * Spring depuis avril 2026 (SF-FA-10-02 et suivantes).
+   */
+  familleExtractedData?: FamilleExtractedData | null;
   licenciementValidityDetection?: LicenciementValidityDetection | null;
   ruptureConvValidityDetection?: RuptureConvValidityDetection | null;
   piecesManquantesDetails?: PieceManquanteEntry[] | null;

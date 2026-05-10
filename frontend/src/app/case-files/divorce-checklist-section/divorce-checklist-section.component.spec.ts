@@ -4,6 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { SimpleChange } from '@angular/core';
 import { DivorceChecklistSectionComponent } from './divorce-checklist-section.component';
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 describe('DivorceChecklistSectionComponent', () => {
   let component: DivorceChecklistSectionComponent;
@@ -257,5 +258,27 @@ describe('DivorceChecklistSectionComponent', () => {
   it('should expose provenanceByCode signal as record', () => {
     initNo();
     expect(component.provenanceByCode()).toEqual({});
+  });
+
+  // F-IA-04 / F-177 SF-177-12 — couvre le static getPrefillCount exposé pour la card du panel.
+  it('getPrefillCount — 0 si aiData absent', () => {
+    expect(DivorceChecklistSectionComponent.getPrefillCount({})).toBe(0);
+    expect(DivorceChecklistSectionComponent.getPrefillCount({ aiData: null })).toBe(0);
+    expect(DivorceChecklistSectionComponent.getPrefillCount({ aiData: {} as FamilleExtractedData })).toBe(0);
+  });
+
+  it('getPrefillCount — 0 si dateAcceptationPV format invalide', () => {
+    expect(DivorceChecklistSectionComponent.getPrefillCount({
+      aiData: { dateAcceptationPV: '01/01/2026' } as FamilleExtractedData,
+    })).toBe(0);
+    expect(DivorceChecklistSectionComponent.getPrefillCount({
+      aiData: { dateAcceptationPV: '' } as FamilleExtractedData,
+    })).toBe(0);
+  });
+
+  it('getPrefillCount — 1 si dateAcceptationPV YYYY-MM-DD valide (cas nominal)', () => {
+    expect(DivorceChecklistSectionComponent.getPrefillCount({
+      aiData: { dateAcceptationPV: '2026-01-15' } as FamilleExtractedData,
+    })).toBe(1);
   });
 });

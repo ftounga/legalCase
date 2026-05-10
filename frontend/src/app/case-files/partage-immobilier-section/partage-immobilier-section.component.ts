@@ -563,4 +563,21 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   onCapitalChange(): void {
     this.provenancePret.set(null);
   }
+
+  /**
+   * F-IA-04 / F-177 SF-177-12 — pattern miroir TOOL_LABEL : compteur de
+   * champs pré-remplis affiché en badge sur la card avant ouverture du
+   * composant. Stricte parité avec `prefillFromAi()` ci-dessus :
+   * - +1 si `valeurImmeuble` est un nombre > 0
+   * - +1 si `capitalRestantDu` est un nombre >= 0
+   * Total possible : 0, 1 ou 2.
+   */
+  static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
+    const ai = input.aiData;
+    if (!ai) return 0;
+    let n = 0;
+    if (typeof ai.valeurImmeuble === 'number' && ai.valeurImmeuble > 0) n++;
+    if (typeof ai.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0) n++;
+    return n;
+  }
 }

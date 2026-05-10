@@ -51,6 +51,14 @@ export interface PrefillCountInput {
   piecesManquantes?: any[];
   triggerEvents?: any[];
   workspaceCountry?: string;
+  /**
+   * F-177 SF-177-12+ : synthèse complète du dossier — utile pour les
+   * composants qui dépendent d'estimations dérivées (ex : F-FA-06
+   * `pensionAlimentaireEstimate.modeGardeDetaille`) plutôt que de
+   * `aiData` direct. Optionnel ; si absent, le composant doit dégrader
+   * gracieusement (retourne 0).
+   */
+  synthesis?: any;
 }
 
 /**
