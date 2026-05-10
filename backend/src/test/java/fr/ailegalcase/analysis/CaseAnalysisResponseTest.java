@@ -1636,12 +1636,20 @@ class CaseAnalysisResponseTest {
     }
 
     @Test
-    void travailExtractedData_constructeur9Args_legacy_setsAllFlagsToFalse() {
-        // Constructeur le plus ancien (9 champs) : les 8 flags niveau 3 doivent être false par défaut
-        var t = new CaseAnalysisResponse.TravailExtractedData(
-                "SYNTEC", "2020-01-01", 3200.0,
-                "CDI", "Développeur", "Faute simple", "2024-06-15",
-                25, 0.5);
+    void travailExtractedData_builder_minimalFields_setsAllFlagsToFalse() {
+        // F-234 SF-234-01 : Builder avec uniquement les 9 champs de base — tous les flags doivent
+        // être false par défaut (équivalent du constructeur rétrocompat 9-args supprimé).
+        var t = CaseAnalysisResponse.TravailExtractedData.builder()
+                .conventionCollective("SYNTEC")
+                .dateEntree("2020-01-01")
+                .salaireBrutMensuel(3200.0)
+                .typeContrat("CDI")
+                .poste("Développeur")
+                .motifLicenciement("Faute simple")
+                .dateLicenciement("2024-06-15")
+                .congesContractuels(25)
+                .primeAncienneteContractuelle(0.5)
+                .build();
         assertThat(t.rappelSalaireDetecte()).isFalse();
         assertThat(t.travailDissimuleDetecte()).isFalse();
         assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
@@ -1653,17 +1661,26 @@ class CaseAnalysisResponseTest {
     }
 
     @Test
-    void travailExtractedData_constructeur23Args_legacy_setsAllFlagsToFalse() {
-        // Constructeur 23 args (avant SF-166-01) : les 8 flags niveau 3 doivent être false par défaut
-        var t = new CaseAnalysisResponse.TravailExtractedData(
-                "SYNTEC", "2020-01-01", 3200.0,
-                "CDI", "Développeur", "Faute simple", "2024-06-15",
-                25, 0.5,
-                "Dupont", "Jean", "12 rue de la Paix",
-                "Acme SAS", "5 avenue des Champs",
-                "12345678901234", null, "Martin Dupond", false,
-                "HARCELEMENT_MORAL", null, "2024-06-01",
-                null, null);
+    void travailExtractedData_builder_withIdentityAndMotifNullite_setsAllFlagsToFalse() {
+        // F-234 SF-234-01 : Builder avec identité salarié+employeur et motifNullite (équivalent du
+        // constructeur rétrocompat 23-args supprimé). Les 8 flags niveau 3 restent false par défaut.
+        var t = CaseAnalysisResponse.TravailExtractedData.builder()
+                .conventionCollective("SYNTEC")
+                .dateEntree("2020-01-01")
+                .salaireBrutMensuel(3200.0)
+                .typeContrat("CDI")
+                .poste("Développeur")
+                .motifLicenciement("Faute simple")
+                .dateLicenciement("2024-06-15")
+                .congesContractuels(25)
+                .primeAncienneteContractuelle(0.5)
+                .nomSalarie("Dupont").prenomSalarie("Jean").adresseSalarie("12 rue de la Paix")
+                .nomEmployeur("Acme SAS").adresseEmployeur("5 avenue des Champs")
+                .siretEmployeur("12345678901234").representantEmployeur("Martin Dupond")
+                .salaireEstDeduit(false)
+                .motifNullitePressenti("HARCELEMENT_MORAL")
+                .avisMedecinTravailDate("2024-06-01")
+                .build();
         assertThat(t.rappelSalaireDetecte()).isFalse();
         assertThat(t.contestationAreEnvisagee()).isFalse();
         assertThat(t.motifNullitePressenti()).isEqualTo("HARCELEMENT_MORAL");
@@ -1785,22 +1802,29 @@ class CaseAnalysisResponseTest {
     }
 
     @Test
-    void travailExtractedData_constructeur36Args_legacy_setsAllF205FlagsToFalse() {
-        // Constructeur post-F-204 (36 args) : les 23 flags F-205 doivent être false par défaut
-        var t = new CaseAnalysisResponse.TravailExtractedData(
-                "SYNTEC", "2020-01-01", 3200.0,
-                "CDI", "Développeur", "Faute simple", "2024-06-15",
-                25, 0.5,
-                "Dupont", "Jean", "12 rue de la Paix",
-                "Acme SAS", "5 avenue des Champs",
-                "12345678901234", null, "Martin Dupond", false,
-                "HARCELEMENT_MORAL", null, "2024-06-01",
-                null, null,
-                // 8 flags F-166
-                true, false, false, false, false, false, false, false,
-                // 5 flags F-204
-                false, false, false, false, false);
-        // Tous les 23 flags F-205 = false
+    void travailExtractedData_builder_withF166AndF204Flags_setsAllF205FlagsToFalse() {
+        // F-234 SF-234-01 : Builder avec 8 flags F-166 + 5 flags F-204 mais pas les 23 flags F-205
+        // (équivalent du constructeur rétrocompat 36-args supprimé). Tous les flags F-205 = false.
+        var t = CaseAnalysisResponse.TravailExtractedData.builder()
+                .conventionCollective("SYNTEC")
+                .dateEntree("2020-01-01")
+                .salaireBrutMensuel(3200.0)
+                .typeContrat("CDI")
+                .poste("Développeur")
+                .motifLicenciement("Faute simple")
+                .dateLicenciement("2024-06-15")
+                .congesContractuels(25)
+                .primeAncienneteContractuelle(0.5)
+                .nomSalarie("Dupont").prenomSalarie("Jean").adresseSalarie("12 rue de la Paix")
+                .nomEmployeur("Acme SAS").adresseEmployeur("5 avenue des Champs")
+                .siretEmployeur("12345678901234").representantEmployeur("Martin Dupond")
+                .salaireEstDeduit(false)
+                .motifNullitePressenti("HARCELEMENT_MORAL")
+                .avisMedecinTravailDate("2024-06-01")
+                // 8 flags F-166 — seul rappelSalaireDetecte=true, le reste à false
+                .rappelSalaireDetecte(true)
+                .build();
+        // Tous les 23 flags F-205 = false (non setés sur le builder)
         assertThat(t.abandonPosteDetecte()).isFalse();
         assertThat(t.arretMaladieLongDetecte()).isFalse();
         assertThat(t.priseActeEnvisagee()).isFalse();
@@ -1812,12 +1836,20 @@ class CaseAnalysisResponseTest {
     }
 
     @Test
-    void travailExtractedData_constructeur9Args_legacy_setsAllF205FlagsToFalse() {
-        // Le constructeur 9 args historique propage false×23 pour les flags F-205
-        var t = new CaseAnalysisResponse.TravailExtractedData(
-                "SYNTEC", "2020-01-01", 3200.0,
-                "CDI", "Développeur", "Faute simple", "2024-06-15",
-                25, 0.5);
+    void travailExtractedData_builder_minimalFields_setsAllF205FlagsToFalse() {
+        // F-234 SF-234-01 : Builder avec uniquement les 9 champs de base — propage false×23 pour
+        // les flags F-205 (équivalent du constructeur rétrocompat 9-args supprimé).
+        var t = CaseAnalysisResponse.TravailExtractedData.builder()
+                .conventionCollective("SYNTEC")
+                .dateEntree("2020-01-01")
+                .salaireBrutMensuel(3200.0)
+                .typeContrat("CDI")
+                .poste("Développeur")
+                .motifLicenciement("Faute simple")
+                .dateLicenciement("2024-06-15")
+                .congesContractuels(25)
+                .primeAncienneteContractuelle(0.5)
+                .build();
         assertThat(t.abandonPosteDetecte()).isFalse();
         assertThat(t.priseActeEnvisagee()).isFalse();
         assertThat(t.fauteInexcusableEnvisagee()).isFalse();
