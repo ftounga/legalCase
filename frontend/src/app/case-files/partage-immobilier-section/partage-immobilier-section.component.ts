@@ -242,32 +242,66 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-155-20 : pré-remplit `valeurVenale` et `capitalRestantDu` depuis
-   * `aiData`. N'écrase pas une saisie avocat (provenance === null indique
-   * une modification manuelle).
+   * SF-155-20 + F-220 (BE) : pré-remplit `valeurVenale` et `capitalRestantDu`
+   * depuis 2 sources prioritaires :
+   * 1. `aiData.valeurImmeuble` / `aiData.capitalRestantDu` (extraction Famille
+   *    directe — actuellement renseigné par le pipeline IA pour FR uniquement,
+   *    pas pour BE en l'état des prompts post-salve 2).
+   * 2. **Fallback** `liquidationCommunaute.actifCommun` / `passifCommun` —
+   *    le pipeline IA renseigne toujours ces objets quand il détecte les
+   *    biens dans les pièces (FR + BE). On filtre par mots-clés (IMMO_KEYWORDS
+   *    / PRET_KEYWORDS) pour identifier le bien immobilier et le prêt
+   *    hypothécaire pertinents. Cas réel BE : convention préalable Vermeersch
+   *    où `liquidationCommunaute.actifCommun[0].valeur = 222000` (appartement
+   *    rue du Bailli, valeur nette) et `passifCommun[0].valeur = 198000`
+   *    (prêt BNP Paribas Fortis).
    *
-   * Convention : `valeurVenale` à 0 = "non saisi" (signal initial). Le
-   * pré-fill ne s'applique que si la valeur courante est 0 OU si la
-   * provenance est déjà 'IA' (re-prefill autorisé).
+   * N'écrase pas une saisie avocat (provenance === null indique une
+   * modification manuelle). Convention : `valeurVenale` à 0 = "non saisi"
+   * (signal initial).
    */
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
-    if (!ai) return;
+    const liquidation = this.liquidationSignal();
 
-    if (typeof ai.valeurImmeuble === 'number' && ai.valeurImmeuble > 0) {
+    // Source 1 : aiData direct (préféré). Source 2 : liquidationCommunaute (fallback).
+    // Note : le fallback ne s'applique que s'il n'y a **qu'un seul** bien immo / prêt
+    // détecté (pas d'ambiguïté). Si plusieurs biens, l'avocat choisit via le bouton
+    // "Importer depuis l'analyse" (panel SF-FA-05-04) — comportement legacy préservé.
+    let valeurImmeuble: number | null = null;
+    if (typeof ai?.valeurImmeuble === 'number' && ai.valeurImmeuble > 0) {
+      valeurImmeuble = ai.valeurImmeuble;
+    } else if (liquidation) {
+      const biens = (liquidation.actifCommun ?? []).filter(
+        b => matchesKeyword(b.libelle, IMMO_KEYWORDS) && typeof b.valeur === 'number' && (b.valeur as number) > 0,
+      );
+      if (biens.length === 1) valeurImmeuble = biens[0].valeur as number;
+    }
+
+    let capitalRestantDu: number | null = null;
+    if (typeof ai?.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0) {
+      capitalRestantDu = ai.capitalRestantDu;
+    } else if (liquidation) {
+      const prets = (liquidation.passifCommun ?? []).filter(
+        p => matchesKeyword(p.libelle, PRET_KEYWORDS) && typeof p.valeur === 'number' && (p.valeur as number) >= 0,
+      );
+      if (prets.length === 1) capitalRestantDu = prets[0].valeur as number;
+    }
+
+    if (valeurImmeuble !== null) {
       if (this.valeurVenale() === 0 || this.provenanceValeur() === 'IA') {
-        this.valeurVenale.set(ai.valeurImmeuble);
+        this.valeurVenale.set(valeurImmeuble);
         this.provenanceValeur.set('IA');
-        this.importedValeurVenale.set(ai.valeurImmeuble);
+        this.importedValeurVenale.set(valeurImmeuble);
       }
     }
 
-    if (typeof ai.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0) {
+    if (capitalRestantDu !== null) {
       if (this.capitalRestantDu() === 0 || this.provenancePret() === 'IA') {
-        this.capitalRestantDu.set(ai.capitalRestantDu);
-        if (ai.capitalRestantDu > 0) {
+        this.capitalRestantDu.set(capitalRestantDu);
+        if (capitalRestantDu > 0) {
           this.provenancePret.set('IA');
-          this.importedCapital.set(ai.capitalRestantDu);
+          this.importedCapital.set(capitalRestantDu);
         }
       }
     }
@@ -565,19 +599,40 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * F-IA-04 / F-177 SF-177-12 — pattern miroir TOOL_LABEL : compteur de
-   * champs pré-remplis affiché en badge sur la card avant ouverture du
-   * composant. Stricte parité avec `prefillFromAi()` ci-dessus :
-   * - +1 si `valeurImmeuble` est un nombre > 0
-   * - +1 si `capitalRestantDu` est un nombre >= 0
+   * F-IA-04 / F-177 SF-177-12 + F-220 (BE) — pattern miroir TOOL_LABEL :
+   * compteur de champs pré-remplis affiché en badge sur la card avant
+   * ouverture du composant. Stricte parité avec `prefillFromAi()` ci-dessus.
+   *
+   * 2 sources prioritaires (mêmes règles que le runtime) :
+   * 1. `aiData.valeurImmeuble` / `aiData.capitalRestantDu` (extraction Famille
+   *    directe — préféré).
+   * 2. Fallback `synthesis.liquidationCommunaute.actifCommun` / `passifCommun`
+   *    filtré par mots-clés (IMMO_KEYWORDS / PRET_KEYWORDS).
+   *
    * Total possible : 0, 1 ou 2.
    */
-  static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    synthesis?: { liquidationCommunaute?: LiquidationCommunaute | null } | null;
+  }): number {
     const ai = input.aiData;
-    if (!ai) return 0;
+    const liquidation = input.synthesis?.liquidationCommunaute;
     let n = 0;
-    if (typeof ai.valeurImmeuble === 'number' && ai.valeurImmeuble > 0) n++;
-    if (typeof ai.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0) n++;
+
+    const biensImmoLiq = (liquidation?.actifCommun ?? []).filter(
+      b => matchesKeyword(b.libelle, IMMO_KEYWORDS) && typeof b.valeur === 'number' && (b.valeur as number) > 0,
+    );
+    const hasValeur = (typeof ai?.valeurImmeuble === 'number' && ai.valeurImmeuble > 0)
+      || biensImmoLiq.length === 1;
+    if (hasValeur) n++;
+
+    const pretsLiq = (liquidation?.passifCommun ?? []).filter(
+      p => matchesKeyword(p.libelle, PRET_KEYWORDS) && typeof p.valeur === 'number' && (p.valeur as number) >= 0,
+    );
+    const hasCapital = (typeof ai?.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0)
+      || pretsLiq.length === 1;
+    if (hasCapital) n++;
+
     return n;
   }
 }

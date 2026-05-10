@@ -485,4 +485,85 @@ describe('PartageImmobilierSectionComponent', () => {
       aiData: { valeurImmeuble: 0, capitalRestantDu: 100000 } as FamilleExtractedData,
     })).toBe(1);
   });
+
+  // F-220 (BE) — fallback liquidationCommunaute quand aiData absent (cas Famille BE
+  // où le pipeline IA renseigne liquidation mais pas valeurImmeuble/capitalRestantDu).
+  // Note : fallback s'applique uniquement si **un seul** bien immo / prêt détecté
+  // (pas d'ambiguïté). Plusieurs biens → l'avocat choisit via "Importer depuis l'analyse".
+  it('getPrefillCount — fallback liquidation : 0 si plusieurs biens immo (ambiguïté)', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      synthesis: {
+        liquidationCommunaute: {
+          actifCommun: [
+            { libelle: 'Maison familiale', valeur: 400000 },
+            { libelle: 'Appartement secondaire', valeur: 300000 },
+          ],
+          passifCommun: [],
+        },
+      },
+    })).toBe(0);
+  });
+
+  it('getPrefillCount — fallback liquidationCommunaute (BE) : 2 si appartement + prêt détectés', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      synthesis: {
+        liquidationCommunaute: {
+          actifCommun: [
+            { libelle: 'Appartement rue du Bailli (valeur nette)', valeur: 222000 },
+            { libelle: 'Comptes bancaires communs', valeur: 31300 },
+          ],
+          passifCommun: [
+            { libelle: 'Prêt hypothécaire BNP Paribas Fortis', valeur: 198000 },
+          ],
+        },
+      },
+    })).toBe(2);
+  });
+
+  it('getPrefillCount — fallback liquidationCommunaute : 1 si seul appartement détecté', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      synthesis: {
+        liquidationCommunaute: {
+          actifCommun: [{ libelle: 'Maison familiale', valeur: 350000 }],
+          passifCommun: [],
+        },
+      },
+    })).toBe(1);
+  });
+
+  it('getPrefillCount — fallback liquidationCommunaute : 0 si aucun bien immo détectable', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      synthesis: {
+        liquidationCommunaute: {
+          actifCommun: [{ libelle: 'Comptes bancaires', valeur: 50000 }],
+          passifCommun: [],
+        },
+      },
+    })).toBe(0);
+  });
+
+  it('getPrefillCount — aiData prime sur liquidation si les 2 présents', () => {
+    // aiData.valeurImmeuble présent → on compte 1 via aiData (pas double comptage avec liquidation).
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      aiData: { valeurImmeuble: 500000 } as FamilleExtractedData,
+      synthesis: {
+        liquidationCommunaute: {
+          actifCommun: [{ libelle: 'Appartement', valeur: 222000 }],
+          passifCommun: [],
+        },
+      },
+    })).toBe(1);
+  });
+
+  it('getPrefillCount — fallback partiel : aiData.valeurImmeuble + liquidation.passifCommun', () => {
+    expect(PartageImmobilierSectionComponent.getPrefillCount({
+      aiData: { valeurImmeuble: 500000 } as FamilleExtractedData,
+      synthesis: {
+        liquidationCommunaute: {
+          actifCommun: [],
+          passifCommun: [{ libelle: 'Crédit immobilier', valeur: 100000 }],
+        },
+      },
+    })).toBe(2);
+  });
 });
