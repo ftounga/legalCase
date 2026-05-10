@@ -43,6 +43,7 @@ import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { MesuresProvisoiresPrefillRules } from './mesures-provisoires-section-prefill-rules';
 
 /**
  * SF-FA-12-02 : champs de form audités par F-IA-03 pour l'outil F-FA-12.
@@ -92,6 +93,18 @@ export class MesuresProvisoiresSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MESURES PROVISOIRES (FR) — ART. 254 CCIV';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: MesuresProvisoiresAiData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return MesuresProvisoiresPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -289,54 +302,42 @@ export class MesuresProvisoiresSectionComponent implements OnInit, OnChanges {
    * absent ou si l'on est en mode résultat.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    // 1. dateAudienceAOMP
-    if (typeof ai.dateAudienceAOMP === 'string'
-        && ai.dateAudienceAOMP.length > 0
-        && ISO_DATE_REGEX.test(ai.dateAudienceAOMP)) {
-      if (this.dateAudienceAOMP() === null
-          || this.provenanceDateAudience() === 'IA') {
-        this.dateAudienceAOMP.set(ai.dateAudienceAOMP);
-        this.provenanceDateAudience.set('IA');
-      }
+    const date = MesuresProvisoiresPrefillRules.computeDateAudienceAOMP(helperInput);
+    if (date !== null
+        && (this.dateAudienceAOMP() === null || this.provenanceDateAudience() === 'IA')) {
+      this.dateAudienceAOMP.set(date);
+      this.provenanceDateAudience.set('IA');
     }
 
-    // 2. revenus demandeur (mensuel direct ou annuel /12)
-    const revD = this.resolveRevenusDemandeur(ai);
-    if (typeof revD === 'number' && revD >= 0) {
-      if (this.revenusEpouxDemandeurEur() === null
-          || this.provenanceRevenusDemandeur() === 'IA') {
-        this.revenusEpouxDemandeurEur.set(revD);
-        this.provenanceRevenusDemandeur.set('IA');
-      }
+    const revD = MesuresProvisoiresPrefillRules.computeRevenusDemandeur(helperInput);
+    if (revD !== null
+        && (this.revenusEpouxDemandeurEur() === null || this.provenanceRevenusDemandeur() === 'IA')) {
+      this.revenusEpouxDemandeurEur.set(revD);
+      this.provenanceRevenusDemandeur.set('IA');
     }
 
-    // 3. revenus défendeur (mensuel direct ou annuel /12)
-    const revF = this.resolveRevenusDefendeur(ai);
-    if (typeof revF === 'number' && revF >= 0) {
-      if (this.revenusEpouxDefendeurEur() === null
-          || this.provenanceRevenusDefendeur() === 'IA') {
-        this.revenusEpouxDefendeurEur.set(revF);
-        this.provenanceRevenusDefendeur.set('IA');
-      }
+    const revF = MesuresProvisoiresPrefillRules.computeRevenusDefendeur(helperInput);
+    if (revF !== null
+        && (this.revenusEpouxDefendeurEur() === null || this.provenanceRevenusDefendeur() === 'IA')) {
+      this.revenusEpouxDefendeurEur.set(revF);
+      this.provenanceRevenusDefendeur.set('IA');
     }
 
-    // 4. violencesAlleguees (boolean)
-    if (typeof ai.violencesAlleguees === 'boolean') {
-      if (this.provenanceViolences() === 'IA' || !this.violencesAlleguees()) {
-        this.violencesAlleguees.set(ai.violencesAlleguees);
-        this.provenanceViolences.set('IA');
-      }
+    const violences = MesuresProvisoiresPrefillRules.computeViolencesAlleguees(helperInput);
+    if (violences !== null
+        && (this.provenanceViolences() === 'IA' || !this.violencesAlleguees())) {
+      this.violencesAlleguees.set(violences);
+      this.provenanceViolences.set('IA');
     }
 
-    // 5. patrimoineCommunSignificatif (boolean — préfixé `Significatif` côté IA)
-    if (typeof ai.patrimoineCommunSignificatif === 'boolean') {
-      if (this.provenancePatrimoine() === 'IA' || !this.patrimoineCommunIsignificatif()) {
-        this.patrimoineCommunIsignificatif.set(ai.patrimoineCommunSignificatif);
-        this.provenancePatrimoine.set('IA');
-      }
+    const patr = MesuresProvisoiresPrefillRules.computePatrimoineCommun(helperInput);
+    if (patr !== null
+        && (this.provenancePatrimoine() === 'IA' || !this.patrimoineCommunIsignificatif())) {
+      this.patrimoineCommunIsignificatif.set(patr);
+      this.provenancePatrimoine.set('IA');
     }
   }
 
