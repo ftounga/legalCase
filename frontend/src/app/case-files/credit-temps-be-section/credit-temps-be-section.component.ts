@@ -44,6 +44,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  CreditTempsBeSectionPrefillRules,
+} from './credit-temps-be-section-prefill-rules';
 
 /**
  * SF-DT-29-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-29
@@ -94,6 +97,22 @@ const AGE_DIVERGENCE_ANNEES = 1;
 export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CRÉDIT-TEMPS / INTERRUPTION DE CARRIÈRE BE';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return CreditTempsBeSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'schedule';
 
   @Input() caseFileId!: string;
@@ -446,6 +465,10 @@ export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
 
   /**
    * SF-DT-29-02 : pré-fill depuis `aiData` (TravailExtractedData).
+   * F-236 SF-236-02 : la logique est déléguée au helper partagé
+   * `CreditTempsBeSectionPrefillRules` pour garantir la parité avec le
+   * static `getPrefillCount` (divergence impossible par construction).
+   *
    * Règles (fail-open) :
    * - passe silencieusement si aiData absent
    * - ne pré-remplit QUE si le champ est encore vide (préserve les edits)
@@ -455,9 +478,12 @@ export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
     // 1. Ancienneté en mois — calculée depuis dateEntree.
-    const iaAnc = this.computeAncienneteMois(ai.dateEntree);
-    if (typeof iaAnc === 'number' && iaAnc >= 0) {
+    const iaAnc = CreditTempsBeSectionPrefillRules.computeAncienneteMois(ruleInput);
+    if (iaAnc !== null) {
       if (this.ancienneteEntrepriseMois() === null
           || this.provenanceAnciennete() === 'IA') {
         this.ancienneteEntrepriseMois.set(iaAnc);
@@ -466,11 +492,11 @@ export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
     }
 
     // 2. Âge du demandeur.
-    if (typeof ai.ageDemandeurAnnees === 'number' && ai.ageDemandeurAnnees >= 0
-        && ai.ageDemandeurAnnees <= 75) {
+    const iaAge = CreditTempsBeSectionPrefillRules.computeAgeDemandeur(ruleInput);
+    if (iaAge !== null) {
       if (this.ageDemandeurAnnees() === null
           || this.provenanceAge() === 'IA') {
-        this.ageDemandeurAnnees.set(ai.ageDemandeurAnnees);
+        this.ageDemandeurAnnees.set(iaAge);
         this.provenanceAge.set('IA');
       }
     }

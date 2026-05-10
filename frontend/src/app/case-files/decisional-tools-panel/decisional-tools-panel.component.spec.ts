@@ -242,8 +242,10 @@ describe('DecisionToolsPanelComponent', () => {
   });
 
   it('prefillCountFor returns null for a tool without static getPrefillCount', () => {
-    // F-DT-07 (anciennete) n'expose pas encore `getPrefillCount` dans cette SF.
-    expect(component.prefillCountFor('F-DT-07-anciennete-conges-prime')).toBeNull();
+    // F-236 SF-236-02 Wave A : tous les outils Travail exposent désormais
+    // `getPrefillCount`. F-IM-09-aes-etudiant (vague Immigration, hors scope
+    // de cette wave) ne l'expose pas encore — choisi comme cas négatif stable.
+    expect(component.prefillCountFor('F-IM-09-aes-etudiant')).toBeNull();
   });
 
   it('resolves F-132-rupture-amiable-info to RuptureAmiableInfoSectionComponent', () => {

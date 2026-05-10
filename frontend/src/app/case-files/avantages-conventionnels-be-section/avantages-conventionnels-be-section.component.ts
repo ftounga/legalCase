@@ -41,6 +41,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  AvantagesConventionnelsBeSectionPrefillRules,
+} from './avantages-conventionnels-be-section-prefill-rules';
 
 /**
  * SF-DT-28-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-28
@@ -99,6 +102,22 @@ const ANNEE_MAX = 2030;
 export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AVANTAGES CONVENTIONNELS BE';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return AvantagesConventionnelsBeSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'card_giftcard';
 
   @Input() caseFileId!: string;
@@ -353,9 +372,14 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const salaire = AvantagesConventionnelsBeSectionPrefillRules.computeSalaireMensuelBrutEur({
+      aiData: ai,
+      workspaceCountry: this.workspaceCountry,
+    });
+    if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(ai.salaireBrutMensuel);
+        this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
