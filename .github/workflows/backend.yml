@@ -179,7 +179,7 @@ jobs:
             k8s/base/frontend/deployment.yaml
 
           kubectl apply -k k8s/overlays/staging/
-          kubectl rollout status deployment/legalcase-backend -n staging --timeout=120s
+          kubectl rollout status deployment/legalcase-backend -n staging --timeout=10m
 
       - name: Health check
         run: |
