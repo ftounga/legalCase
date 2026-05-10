@@ -34,6 +34,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  TravailDissimuleSectionPrefillRules,
+} from './travail-dissimule-section-prefill-rules';
 
 /**
  * SF-DT-21-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -84,6 +87,19 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class TravailDissimuleSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDEMNITÉ TRAVAIL DISSIMULÉ — L.8223-1';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return TravailDissimuleSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
+
   static readonly TOOL_ICON = 'work_off';
 
   @Input() caseFileId!: string;
@@ -187,9 +203,11 @@ export class TravailDissimuleSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const salaire = TravailDissimuleSectionPrefillRules.computeSalaireMensuelReference({ aiData: ai });
+    if (salaire !== null) {
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelReference.set(ai.salaireBrutMensuel);
+        this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
