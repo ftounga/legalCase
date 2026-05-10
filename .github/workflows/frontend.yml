@@ -103,7 +103,7 @@ jobs:
           sed -i "s|SECRETS_HASH_PLACEHOLDER|$SECRETS_HASH|g" k8s/base/backend/deployment.yaml
 
           kubectl apply -k k8s/overlays/staging/
-          kubectl rollout status deployment/legalcase-frontend -n staging --timeout=60s
+          kubectl rollout status deployment/legalcase-frontend -n staging --timeout=10m
 
       - name: Health check
         run: |
