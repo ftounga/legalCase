@@ -37,6 +37,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  MotifGraveBeSectionPrefillRules,
+} from './motif-grave-be-section-prefill-rules';
 
 /**
  * SF-DT-27-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-27
@@ -93,6 +96,22 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MOTIF GRAVE BE (ART. 35 LOI 03/07/1978)';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return MotifGraveBeSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'gavel';
 
   @Input() caseFileId!: string;
@@ -348,18 +367,21 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    // 1. dateLicenciement → dateNotificationRupture.
-    if (typeof ai.dateLicenciement === 'string' && ai.dateLicenciement.length > 0) {
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
+    const dateNotif = MotifGraveBeSectionPrefillRules.computeDateNotificationRupture(ruleInput);
+    if (dateNotif !== null) {
       if (this.dateNotificationRupture() === null || this.provenanceDateRupture() === 'IA') {
-        this.dateNotificationRupture.set(ai.dateLicenciement);
+        this.dateNotificationRupture.set(dateNotif);
         this.provenanceDateRupture.set('IA');
       }
     }
 
-    // 2. salaireBrutMensuel → salaireMensuelReference.
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    const salaire = MotifGraveBeSectionPrefillRules.computeSalaireMensuelReference(ruleInput);
+    if (salaire !== null) {
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelReference.set(ai.salaireBrutMensuel);
+        this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }

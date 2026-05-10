@@ -46,6 +46,9 @@ import {
 } from '../../core/services/convention-referential.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  RappelSalaireSectionPrefillRules,
+} from './rappel-salaire-section-prefill-rules';
 
 /**
  * SF-DT-20-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -100,6 +103,22 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class RappelSalaireSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RAPPEL DE SALAIRE';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return RappelSalaireSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'payments';
 
   @Input() caseFileId!: string;
@@ -245,10 +264,13 @@ export class RappelSalaireSectionComponent implements OnInit, OnChanges {
     if (!ai) return;
     if (this.workspaceCountry !== 'FRANCE') return;
 
-    // 1. Salaire mensuel dû (référence contractuelle extraite par l'IA).
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const salaire = RappelSalaireSectionPrefillRules.computeMontantSalaireDuMensuel({
+      aiData: ai, workspaceCountry: this.workspaceCountry,
+    });
+    if (salaire !== null) {
       if (this.montantSalaireDuMensuelEur() === null || this.provenanceMontantDu() === 'IA') {
-        this.montantSalaireDuMensuelEur.set(ai.salaireBrutMensuel);
+        this.montantSalaireDuMensuelEur.set(salaire);
         this.provenanceMontantDu.set('IA');
       }
     }

@@ -15,6 +15,14 @@ import { AncienneteResponse } from '../../core/models/anciennete.model';
 import { BaremeService } from '../../core/services/bareme.service';
 import { BaremeResponse } from '../../core/models/bareme.model';
 import { ConventionReferentialService, ConventionOption } from '../../core/services/convention-referential.service';
+import {
+  AncienneteSectionPrefillRules,
+  computeConventionCode as computeConventionCodeRule,
+  computeDateEntree as computeDateEntreeRule,
+  computeSalaireBase as computeSalaireBaseRule,
+  computeCongesContrat as computeCongesContratRule,
+  computePrimeContrat as computePrimeContratRule,
+} from './anciennete-section-prefill-rules';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
@@ -45,6 +53,18 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ANCIENNETÉ ET CONGÉS';
   static readonly TOOL_ICON = 'calendar_month';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return AncienneteSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
 
   @Input() caseFileId!: string;
   @Input() aiData?: TravailExtractedData | null;
@@ -363,30 +383,30 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
       this.loadBaremeAndPrefill();
       return;
     }
-    // SF-155-14 : pour chaque field IA extrait, applique la valeur + marque provenance='IA'.
-    // Le badge `auto_awesome` "Pré-rempli depuis l'analyse" s'affiche dans le template.
-    if (this.aiData.conventionCollective) {
-      // SF-129-01 : normaliser (ex. "3043" → "IDCC_3043", "METALLURGIE" → "IDCC_3248")
-      const normalized = ConventionReferentialService.normalizeCode(this.aiData.conventionCollective);
-      if (normalized) {
-        this.conventionCode.set(normalized);
-        this.provenanceConvention.set('IA');
-      }
+    // SF-155-14 / F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const conventionCode = computeConventionCodeRule({ aiData: this.aiData });
+    if (conventionCode) {
+      this.conventionCode.set(conventionCode);
+      this.provenanceConvention.set('IA');
     }
-    if (this.aiData.dateEntree) {
-      this.dateEntree.set(this.aiData.dateEntree);
+    const dateEntree = computeDateEntreeRule({ aiData: this.aiData });
+    if (dateEntree) {
+      this.dateEntree.set(dateEntree);
       this.provenanceDateEntree.set('IA');
     }
-    if (this.aiData.salaireBrutMensuel) {
-      this.salaireBase.set(this.aiData.salaireBrutMensuel);
+    const salaireBase = computeSalaireBaseRule({ aiData: this.aiData });
+    if (salaireBase !== null) {
+      this.salaireBase.set(salaireBase);
       this.provenanceSalaire.set('IA');
     }
-    if (this.aiData.congesContractuels != null) {
-      this.congesContrat.set(this.aiData.congesContractuels);
+    const congesContrat = computeCongesContratRule({ aiData: this.aiData });
+    if (congesContrat !== null) {
+      this.congesContrat.set(congesContrat);
       this.provenanceConges.set('IA');
     }
-    if (this.aiData.primeAncienneteContractuelle != null) {
-      this.primeContrat.set(this.aiData.primeAncienneteContractuelle);
+    const primeContrat = computePrimeContratRule({ aiData: this.aiData });
+    if (primeContrat !== null) {
+      this.primeContrat.set(primeContrat);
       this.provenancePrime.set('IA');
     }
     // SF-DT-07-05 : charger le bareme et compléter prefill pour les champs qu'IA n'a pas extraits.

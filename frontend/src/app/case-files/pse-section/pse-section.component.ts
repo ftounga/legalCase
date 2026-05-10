@@ -48,6 +48,10 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import {
+  PseSectionPrefillRules,
+  computeDateProjet as computeDateProjetRule,
+} from './pse-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -104,6 +108,18 @@ export class PseSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PSE — CRITÈRES DE VALIDITÉ (FR)';
   static readonly TOOL_ICON = 'groups';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return PseSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
 
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
@@ -426,11 +442,12 @@ export class PseSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    // dateProjet ← dateLicenciement (1ʳᵉ approximation).
-    if (ai.dateLicenciement) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const iaDate = computeDateProjetRule({ aiData: ai });
+    if (iaDate) {
       if (this.dateProjet() === null
           || this.provenanceDateProjet() === 'IA') {
-        this.dateProjet.set(ai.dateLicenciement);
+        this.dateProjet.set(iaDate);
         this.provenanceDateProjet.set('IA');
       }
     }

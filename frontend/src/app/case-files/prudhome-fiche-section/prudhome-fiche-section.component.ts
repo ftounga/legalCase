@@ -30,6 +30,10 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import {
+  PrudhomeFicheSectionPrefillRules,
+  computeProfession as computeProfessionRule,
+} from './prudhome-fiche-section-prefill-rules';
 
 /**
  * SF-173-01 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-04
@@ -59,6 +63,18 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'FICHE PRUD\'HOMALE';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return PrudhomeFicheSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
 
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
@@ -237,10 +253,12 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    if (ai.poste) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const profession = computeProfessionRule({ aiData: ai });
+    if (profession) {
       const ctrl = this.form.get('demandeur.profession');
       if (ctrl && !ctrl.value) {
-        ctrl.setValue(ai.poste, { emitEvent: false });
+        ctrl.setValue(profession, { emitEvent: false });
         this.provenanceProfession.set('IA');
       }
     }

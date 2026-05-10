@@ -31,6 +31,14 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import {
+  TribunalTravailFicheSectionPrefillRules,
+  computeCommissionParitaire as computeCommissionParitaireRule,
+  computeTypeContrat as computeTypeContratRule,
+  computeDateDebut as computeDateDebutRule,
+  computeDateFin as computeDateFinRule,
+  computeMotifRupture as computeMotifRuptureRule,
+} from './tribunal-travail-fiche-section-prefill-rules';
 
 /**
  * SF-173-02 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-06
@@ -59,6 +67,20 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'REQUÊTE TRIBUNAL DU TRAVAIL';
   static readonly TOOL_ICON = 'balance';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return TribunalTravailFicheSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+    });
+  }
 
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
@@ -257,15 +279,17 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    if (ai.conventionCollective) {
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const commissionParitaire = computeCommissionParitaireRule({ aiData: ai });
+    if (commissionParitaire) {
       const ctrl = this.form.get('procedureInfo.commissionParitaire');
       if (ctrl && !ctrl.value) {
-        ctrl.setValue(ai.conventionCollective, { emitEvent: false });
+        ctrl.setValue(commissionParitaire, { emitEvent: false });
         this.provenanceCommissionParitaire.set('IA');
       }
     }
 
-    const typeNorm = this.normalizeTypeContrat(ai.typeContrat ?? null);
+    const typeNorm = computeTypeContratRule({ aiData: ai });
     if (typeNorm) {
       const ctrl = this.form.get('contratInfo.typeContrat');
       if (ctrl && !ctrl.value) {
@@ -274,26 +298,29 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
       }
     }
 
-    if (ai.dateEntree) {
+    const dateDebut = computeDateDebutRule({ aiData: ai });
+    if (dateDebut) {
       const ctrl = this.form.get('contratInfo.dateDebut');
       if (ctrl && !ctrl.value) {
-        ctrl.setValue(ai.dateEntree, { emitEvent: false });
+        ctrl.setValue(dateDebut, { emitEvent: false });
         this.provenanceDateDebut.set('IA');
       }
     }
 
-    if (ai.dateLicenciement) {
+    const dateFin = computeDateFinRule({ aiData: ai });
+    if (dateFin) {
       const ctrl = this.form.get('contratInfo.dateFin');
       if (ctrl && !ctrl.value) {
-        ctrl.setValue(ai.dateLicenciement, { emitEvent: false });
+        ctrl.setValue(dateFin, { emitEvent: false });
         this.provenanceDateFin.set('IA');
       }
     }
 
-    if (ai.motifLicenciement) {
+    const motifRupture = computeMotifRuptureRule({ aiData: ai });
+    if (motifRupture) {
       const ctrl = this.form.get('contratInfo.motifRupture');
       if (ctrl && !ctrl.value) {
-        ctrl.setValue(ai.motifLicenciement, { emitEvent: false });
+        ctrl.setValue(motifRupture, { emitEvent: false });
         this.provenanceMotifRupture.set('IA');
       }
     }

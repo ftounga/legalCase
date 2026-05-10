@@ -46,6 +46,9 @@ import {
 } from '../../core/services/convention-referential.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  IndemnitePreavisSectionPrefillRules,
+} from './indemnite-preavis-section-prefill-rules';
 
 /**
  * SF-DT-25-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -100,6 +103,22 @@ const DATE_RUPTURE_DIVERGENCE_DAYS = 15;
 export class IndemnitePreavisSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDEMNITÉ COMPENSATRICE DE PRÉAVIS';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return IndemnitePreavisSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'schedule';
 
   @Input() caseFileId!: string;
@@ -239,18 +258,23 @@ export class IndemnitePreavisSectionComponent implements OnInit, OnChanges {
     if (!ai) return;
     if (this.workspaceCountry !== 'FRANCE') return;
 
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
     // 1. Salaire brut mensuel.
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    const salaire = IndemnitePreavisSectionPrefillRules.computeSalaireMensuelBrutEur(ruleInput);
+    if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(ai.salaireBrutMensuel);
+        this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
 
     // 2. Date de rupture (mappée depuis dateLicenciement IA).
-    if (ai.dateLicenciement) {
+    const dateRupture = IndemnitePreavisSectionPrefillRules.computeDateRupture(ruleInput);
+    if (dateRupture !== null) {
       if (this.dateRupture() === null || this.provenanceDateRupture() === 'IA') {
-        this.dateRupture.set(ai.dateLicenciement);
+        this.dateRupture.set(dateRupture);
         this.provenanceDateRupture.set('IA');
       }
     }

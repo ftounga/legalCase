@@ -241,9 +241,11 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.prefillCountFor('F-XX-999-unknown')).toBeNull();
   });
 
-  it('prefillCountFor returns null for a tool without static getPrefillCount', () => {
-    // F-DT-07 (anciennete) n'expose pas encore `getPrefillCount` dans cette SF.
-    expect(component.prefillCountFor('F-DT-07-anciennete-conges-prime')).toBeNull();
+  it('prefillCountFor returns null for an unknown tool_id', () => {
+    // F-236 SF-236-02 Waves A+B+C : tous les outils du TOOL_REGISTRY exposent
+    // désormais `getPrefillCount`. Le cas "absence" se teste donc uniquement
+    // via un tool_id inexistant (résolution échoue → null).
+    expect(component.prefillCountFor('F-INEXISTANT-fake-tool-xyz')).toBeNull();
   });
 
   it('resolves F-132-rupture-amiable-info to RuptureAmiableInfoSectionComponent', () => {

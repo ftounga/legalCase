@@ -23,6 +23,9 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
+import {
+  IndemniteComparatifSectionPrefillRules,
+} from './indemnite-comparatif-section-prefill-rules';
 
 interface TypeRuptureOption {
   value: string;
@@ -72,6 +75,24 @@ const TYPES_BE: TypeRuptureOption[] = [
 export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'COMPARATEUR INDEMNITÉS';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    synthesis?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return IndemniteComparatifSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      synthesis: input.synthesis,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'euro_symbol';
 
   /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
@@ -439,20 +460,27 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
    * à côté de chaque champ. Pattern canonique immigration-title-decision-section.
    */
   private prefillFromAi(): void {
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = {
+      aiData: this.aiDataSignal(),
+      synthesis: this.synthesisSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
     // 1. Salaire brut mensuel depuis aiData.
-    const ai = this.aiDataSignal();
-    if (ai?.salaireBrutMensuel) {
-      this.salaireMensuel.set(ai.salaireBrutMensuel);
+    const salaire = IndemniteComparatifSectionPrefillRules.computeSalaireMensuel(ruleInput);
+    if (salaire !== null) {
+      this.salaireMensuel.set(salaire);
       this.provenanceSalaire.set('IA');
     }
     // 2. Ancienneté (années + mois) depuis compensationEstimate.
-    const ce = this.synthesisSignal()?.compensationEstimate;
-    if (ce?.ancienneteAnnees != null) {
-      this.ancienneteAnnees.set(ce.ancienneteAnnees);
+    const annees = IndemniteComparatifSectionPrefillRules.computeAncienneteAnnees(ruleInput);
+    if (annees !== null) {
+      this.ancienneteAnnees.set(annees);
       this.provenanceAncienneteAnnees.set('IA');
     }
-    if (ce?.ancienneteMois != null) {
-      this.ancienneteMois.set(ce.ancienneteMois);
+    const mois = IndemniteComparatifSectionPrefillRules.computeAncienneteMois(ruleInput);
+    if (mois !== null) {
+      this.ancienneteMois.set(mois);
       this.provenanceAncienneteMois.set('IA');
     }
     // 3. Type de rupture (logique dédiée : gate pays + note si non supporté).

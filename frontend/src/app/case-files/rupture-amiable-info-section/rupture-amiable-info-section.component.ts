@@ -23,6 +23,15 @@ export class RuptureAmiableInfoSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'RUPTURE AMIABLE';
   static readonly TOOL_ICON = 'handshake';
 
+  /**
+   * F-177 SF-177-12 / F-236 SF-236-02 — outil informationnel pur (pas de
+   * formulaire, pas de pré-fill possible). Conservé pour cohérence avec
+   * le contrat unifié de tous les outils décisionnels.
+   */
+  static getPrefillCount(): number {
+    return 0;
+  }
+
   @Input() caseFileId!: string;
   // F-177 SF-177-11 : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;

@@ -34,6 +34,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  RuptureConvIndemniteSectionPrefillRules,
+} from './rupture-conv-indemnite-section-prefill-rules';
 
 /**
  * SF-155-12 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -79,6 +82,23 @@ const ANCIENNETE_DIVERGENCE_YEARS = 1; // tolérance ≥ 1 an pour déclencher a
 export class RuptureConvIndemniteSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDEMNITÉ RUPTURE CONVENTIONNELLE';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    synthesis?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return RuptureConvIndemniteSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      synthesis: input.synthesis,
+    });
+  }
+
   static readonly TOOL_ICON = 'euro_symbol';
 
   @Input() caseFileId!: string;
@@ -193,26 +213,23 @@ export class RuptureConvIndemniteSectionComponent implements OnInit, OnChanges {
    * fallback). N'écrase jamais une saisie avocat existante.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    const estim = this.synthesisSignal()?.compensationEstimate;
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = {
+      aiData: this.aiDataSignal(),
+      synthesis: this.synthesisSignal(),
+    };
 
-    // 1. Salaire mensuel — priorité aiData.salaireBrutMensuel (IA enrichi,
-    //    inclut la déduction net×1,30 SF-130-01), fallback compensationEstimate.
-    const iaSalaire = typeof ai?.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0
-      ? ai.salaireBrutMensuel : null;
-    const estimSalaire = estim?.salaireReference != null && estim.salaireReference > 0
-      ? estim.salaireReference : null;
-    const salaireSource = iaSalaire ?? estimSalaire;
+    const salaireSource = RuptureConvIndemniteSectionPrefillRules.computeSalaireMensuel(ruleInput);
     if (salaireSource !== null
         && (this.salaireMensuel() === null || this.provenanceSalaireMensuel() === 'IA')) {
       this.salaireMensuel.set(salaireSource);
       this.provenanceSalaireMensuel.set('IA');
     }
 
-    // 2. Ancienneté — depuis compensationEstimate.ancienneteAnnees.
-    if (estim?.ancienneteAnnees != null
+    const annees = RuptureConvIndemniteSectionPrefillRules.computeAncienneteAnnees(ruleInput);
+    if (annees !== null
         && (this.ancienneteAnnees() === null || this.provenanceAncienneteAnnees() === 'IA')) {
-      this.ancienneteAnnees.set(estim.ancienneteAnnees);
+      this.ancienneteAnnees.set(annees);
       this.provenanceAncienneteAnnees.set('IA');
     }
   }

@@ -50,6 +50,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  ContestationAreSectionPrefillRules,
+} from './contestation-are-section-prefill-rules';
 
 /** Regex ISO strict YYYY-MM-DD. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -97,6 +100,22 @@ export type ContestationAreCoherenceAlert =
 export class ContestationAreSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CONTESTATION ARE — FRANCE TRAVAIL (EX-PÔLE EMPLOI)';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return ContestationAreSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'how_to_vote';
 
   @Input() caseFileId!: string;
@@ -374,8 +393,11 @@ export class ContestationAreSectionComponent implements OnInit, OnChanges {
     if (!this.isFrance()) return;
     if (!this.showForm()) return;
 
-    const date = ai.dateLicenciement;
-    if (typeof date === 'string' && ISO_DATE_RE.test(date) && date <= this.todayIso) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const date = ContestationAreSectionPrefillRules.computeDateNotificationDecision({
+      aiData: ai, workspaceCountry: this.workspaceCountry, todayIso: this.todayIso,
+    });
+    if (date !== null) {
       if (this.dateNotificationDecision() === null
           || this.provenanceDateNotification() === 'IA') {
         this.dateNotificationDecision.set(date);

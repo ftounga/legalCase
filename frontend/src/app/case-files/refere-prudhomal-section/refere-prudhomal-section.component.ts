@@ -50,6 +50,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  ReferePrudhomalSectionPrefillRules,
+} from './refere-prudhomal-section-prefill-rules';
 
 /** Regex ISO strict YYYY-MM-DD. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -107,6 +110,22 @@ const ANCIENNETE_DIVERGENCE_MOIS = 2;
 export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉFÉRÉ PRUD\'HOMAL R.1454-1 (FR)';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return ReferePrudhomalSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'gavel';
 
   @Input() caseFileId!: string;
@@ -417,42 +436,34 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
     if (!this.isFrance()) return;
     if (!this.showForm()) return;
 
-    // 1) dateMiseEnDemeure — depuis dateLicenciement IA (proxy : la mise en
-    //    demeure est typiquement contemporaine de la rupture).
-    const dateLic = ai.dateLicenciement;
-    if (typeof dateLic === 'string' && ISO_DATE_RE.test(dateLic) && dateLic <= this.todayIso) {
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = {
+      aiData: ai, workspaceCountry: this.workspaceCountry, todayIso: this.todayIso,
+    };
+
+    // 1) dateMiseEnDemeure — depuis dateLicenciement IA.
+    const dateMiseEnDemeure = ReferePrudhomalSectionPrefillRules.computeDateMiseEnDemeure(ruleInput);
+    if (dateMiseEnDemeure !== null) {
       if (this.dateMiseEnDemeure() === null || this.provenanceDateMiseEnDemeure() === 'IA') {
-        this.dateMiseEnDemeure.set(dateLic);
+        this.dateMiseEnDemeure.set(dateMiseEnDemeure);
         this.provenanceDateMiseEnDemeure.set('IA');
       }
     }
 
     // 2) ancienneteContratMois — calculée depuis dateEntree IA.
-    const dateEntree = ai.dateEntree;
-    if (typeof dateEntree === 'string' && ISO_DATE_RE.test(dateEntree)) {
-      const endRef = (typeof dateLic === 'string' && ISO_DATE_RE.test(dateLic))
-        ? dateLic
-        : this.todayIso;
-      const mois = this.monthsBetween(dateEntree, endRef);
-      if (mois !== null && mois >= 0) {
-        if (this.ancienneteContratMois() === null || this.provenanceAnciennete() === 'IA') {
-          this.ancienneteContratMois.set(mois);
-          this.provenanceAnciennete.set('IA');
-        }
+    const anciennete = ReferePrudhomalSectionPrefillRules.computeAncienneteContratMois(ruleInput);
+    if (anciennete !== null) {
+      if (this.ancienneteContratMois() === null || this.provenanceAnciennete() === 'IA') {
+        this.ancienneteContratMois.set(anciennete);
+        this.provenanceAnciennete.set('IA');
       }
     }
 
-    // 3) natureCreance — pré-fill HEURES_SUPPLEMENTAIRES si l'IA a détecté
-    //    des heures sup mentionnées dans le dossier.
-    const heuresSup = ai.heuresSupMentionneesDansDossier;
-    const hasHeuresSup = !!heuresSup && (
-      (typeof heuresSup.totalDeclarees25pct === 'number' && heuresSup.totalDeclarees25pct > 0) ||
-      (typeof heuresSup.totalDeclarees50pct === 'number' && heuresSup.totalDeclarees50pct > 0) ||
-      (typeof heuresSup.horsContingent === 'number' && heuresSup.horsContingent > 0)
-    );
-    if (hasHeuresSup) {
+    // 3) natureCreance — pré-fill HEURES_SUPPLEMENTAIRES si l'IA a détecté des heures sup.
+    const natureCreance = ReferePrudhomalSectionPrefillRules.computeNatureCreance(ruleInput);
+    if (natureCreance !== null) {
       if (this.natureCreance() === null || this.provenanceNatureCreance() === 'IA') {
-        this.natureCreance.set('HEURES_SUPPLEMENTAIRES');
+        this.natureCreance.set(natureCreance as 'HEURES_SUPPLEMENTAIRES');
         this.provenanceNatureCreance.set('IA');
       }
     }

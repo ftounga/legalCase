@@ -39,6 +39,9 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import {
+  DiscriminationSectionPrefillRules,
+} from './discrimination-section-prefill-rules';
 
 /**
  * SF-DT-12-02 : champs pré-remplissables depuis l'analyse IA. Palier 1 —
@@ -85,6 +88,19 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class DiscriminationSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DISCRIMINATION — DOMMAGES-INTÉRÊTS';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return DiscriminationSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
+
   static readonly TOOL_ICON = 'balance';
 
   @Input() caseFileId!: string;
@@ -185,10 +201,12 @@ export class DiscriminationSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const salaire = DiscriminationSectionPrefillRules.computeSalaireMensuelReference({ aiData: ai });
+    if (salaire !== null) {
       // Ne pré-remplit QUE si le champ est encore vide ou déjà marqué 'IA'.
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelReference.set(ai.salaireBrutMensuel);
+        this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }

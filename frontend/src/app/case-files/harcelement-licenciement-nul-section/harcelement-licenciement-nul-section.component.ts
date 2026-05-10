@@ -40,6 +40,9 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import {
+  HarcelementLicenciementNulSectionPrefillRules,
+} from './harcelement-licenciement-nul-section-prefill-rules';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
@@ -101,6 +104,22 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class HarcelementLicenciementNulSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDEMNITÉ LICENCIEMENT NUL — HARCÈLEMENT';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return HarcelementLicenciementNulSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'gavel';
 
   /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
@@ -216,26 +235,27 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
     const ai = this.aiDataSignal();
     if (!ai) return;
 
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
     // 1. Salaire brut mensuel → salaireMensuelReference (si > 0).
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    const salaire = HarcelementLicenciementNulSectionPrefillRules.computeSalaireMensuelReference(ruleInput);
+    if (salaire !== null) {
       // Ne pré-rempli QUE si le champ est encore vide (préserve les edits avocats
       // arrivant après première résolution 404 + modif).
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelReference.set(ai.salaireBrutMensuel);
+        this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
 
-    // 2. Motif de nullité : mapping IA → UI + gate pays (FR uniquement —
-    //    côté backend, `motifNullitePressenti` n'est rempli que sur dossiers FR).
-    if (this.workspaceCountry !== 'FRANCE') return;
-    const iaMotif = ai.motifNullitePressenti?.toUpperCase();
-    if (!iaMotif) return;
-    const mapped = AI_MOTIF_TO_MOTIF_NULLITE_FR[iaMotif];
-    if (!mapped) return; // Valeur IA non mappable → pas de pré-fill (graceful).
-    if (this.motifNullite() === null || this.provenanceMotifNullite() === 'IA') {
-      this.motifNullite.set(mapped);
-      this.provenanceMotifNullite.set('IA');
+    // 2. Motif de nullité : mapping IA → UI + gate pays (FRANCE uniquement).
+    const mapped = HarcelementLicenciementNulSectionPrefillRules.computeMotifNullite(ruleInput);
+    if (mapped) {
+      if (this.motifNullite() === null || this.provenanceMotifNullite() === 'IA') {
+        this.motifNullite.set(mapped);
+        this.provenanceMotifNullite.set('IA');
+      }
     }
   }
 
