@@ -28,6 +28,7 @@ import {
 } from '../../core/models/divorce-alteration.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { DivorceAlterationPrefillRules } from './divorce-alteration-section-prefill-rules';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
@@ -77,6 +78,21 @@ export class DivorceAlterationSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DIVORCE — ALTÉRATION DÉFINITIVE LIEN CONJUGAL';
   static readonly TOOL_ICON = 'balance';
+
+  /**
+   * F-236 SF-236-02 — Compteur pré-fill miroir de `prefillFromAi()`.
+   * Délègue au helper partagé `DivorceAlterationPrefillRules`.
+   */
+  static getPrefillCount(input: {
+    aiData?: FamilleAiData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return DivorceAlterationPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -248,46 +264,37 @@ export class DivorceAlterationSectionComponent implements OnInit, OnChanges {
   // ---------------------------------------------------------------------------
 
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    if (typeof ai.dateCessationVieCommune === 'string'
-        && ai.dateCessationVieCommune.length > 0) {
-      if (this.dateCessationVieCommune() === null
-          || this.provenanceDateCessation() === 'IA') {
-        this.dateCessationVieCommune.set(ai.dateCessationVieCommune);
-        this.provenanceDateCessation.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé (parité runtime/static).
+    const helperInput = { aiData: this.aiDataSignal() };
+    const date = DivorceAlterationPrefillRules.computeDateCessation(helperInput);
+    if (date !== null
+        && (this.dateCessationVieCommune() === null || this.provenanceDateCessation() === 'IA')) {
+      this.dateCessationVieCommune.set(date);
+      this.provenanceDateCessation.set('IA');
     }
-    if (typeof ai.dureeMariageAnnees === 'number' && ai.dureeMariageAnnees >= 0) {
-      if (this.dureeMariageAnnees() === null
-          || this.provenanceDureeMariage() === 'IA') {
-        this.dureeMariageAnnees.set(ai.dureeMariageAnnees);
-        this.provenanceDureeMariage.set('IA');
-      }
+    const duree = DivorceAlterationPrefillRules.computeDureeMariage(helperInput);
+    if (duree !== null
+        && (this.dureeMariageAnnees() === null || this.provenanceDureeMariage() === 'IA')) {
+      this.dureeMariageAnnees.set(duree);
+      this.provenanceDureeMariage.set('IA');
     }
-    if (typeof ai.revenusAnnuelsEpoux1Eur === 'number'
-        && ai.revenusAnnuelsEpoux1Eur >= 0) {
-      if (this.revenusAnnuelsEpoux1Eur() === null
-          || this.provenanceRevenus1() === 'IA') {
-        this.revenusAnnuelsEpoux1Eur.set(ai.revenusAnnuelsEpoux1Eur);
-        this.provenanceRevenus1.set('IA');
-      }
+    const r1 = DivorceAlterationPrefillRules.computeRevenusEpoux1(helperInput);
+    if (r1 !== null
+        && (this.revenusAnnuelsEpoux1Eur() === null || this.provenanceRevenus1() === 'IA')) {
+      this.revenusAnnuelsEpoux1Eur.set(r1);
+      this.provenanceRevenus1.set('IA');
     }
-    if (typeof ai.revenusAnnuelsEpoux2Eur === 'number'
-        && ai.revenusAnnuelsEpoux2Eur >= 0) {
-      if (this.revenusAnnuelsEpoux2Eur() === null
-          || this.provenanceRevenus2() === 'IA') {
-        this.revenusAnnuelsEpoux2Eur.set(ai.revenusAnnuelsEpoux2Eur);
-        this.provenanceRevenus2.set('IA');
-      }
+    const r2 = DivorceAlterationPrefillRules.computeRevenusEpoux2(helperInput);
+    if (r2 !== null
+        && (this.revenusAnnuelsEpoux2Eur() === null || this.provenanceRevenus2() === 'IA')) {
+      this.revenusAnnuelsEpoux2Eur.set(r2);
+      this.provenanceRevenus2.set('IA');
     }
-    if (typeof ai.patrimoineCommunSignificatif === 'boolean') {
-      // Pas d'écrasement si l'avocat a déjà saisi (provenance null).
-      if (this.provenancePatrimoine() === 'IA' || !this.patrimoineCommunSignificatif()) {
-        this.patrimoineCommunSignificatif.set(ai.patrimoineCommunSignificatif);
-        this.provenancePatrimoine.set('IA');
-      }
+    const patrimoine = DivorceAlterationPrefillRules.computePatrimoineCommun(helperInput);
+    if (patrimoine !== null
+        && (this.provenancePatrimoine() === 'IA' || !this.patrimoineCommunSignificatif())) {
+      this.patrimoineCommunSignificatif.set(patrimoine);
+      this.provenancePatrimoine.set('IA');
     }
   }
 

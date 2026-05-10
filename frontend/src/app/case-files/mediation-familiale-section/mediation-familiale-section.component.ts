@@ -38,6 +38,7 @@ import {
   CoherenceAlert,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { MediationFamilialePrefillRules } from './mediation-familiale-section-prefill-rules';
 
 export type MediationAlertField = 'MOTIF_SAISINE';
 export type MediationCoherenceAlert = CoherenceAlert<MediationAlertField>;
@@ -239,11 +240,10 @@ export class MediationFamilialeSectionComponent implements OnInit, OnChanges {
   }
 
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-    const motif = ai.motifSaisineMediationDetecte;
-    if (motif && (this.motifSaisine() === null || this.provenanceMotif() === 'IA')) {
-      this.motifSaisine.set(motif as MediationMotifSaisine);
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const motif = MediationFamilialePrefillRules.computeMotifSaisine({ aiData: this.aiDataSignal() });
+    if (motif !== null && (this.motifSaisine() === null || this.provenanceMotif() === 'IA')) {
+      this.motifSaisine.set(motif);
       this.provenanceMotif.set('IA');
     }
   }
@@ -307,11 +307,7 @@ export class MediationFamilialeSectionComponent implements OnInit, OnChanges {
    * F-IA-04 pour afficher le badge "Pré-rempli par l'IA (N champs)".
    */
   static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
-    const ai = input.aiData;
-    if (!ai) return 0;
-    let n = 0;
-    if (typeof ai.motifSaisineMediationDetecte === 'string'
-        && ai.motifSaisineMediationDetecte) n++;
-    return n;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    return MediationFamilialePrefillRules.computePrefillCount(input);
   }
 }

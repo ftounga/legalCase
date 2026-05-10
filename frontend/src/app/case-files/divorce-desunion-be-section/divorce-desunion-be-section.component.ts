@@ -33,6 +33,7 @@ import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { DivorceDesunionBePrefillRules } from './divorce-desunion-be-section-prefill-rules';
 
 /**
  * SF-FA-11-02 : champs audités par F-IA-03 pour la désunion irrémédiable BE.
@@ -87,6 +88,18 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DIVORCE BE — DÉSUNION IRRÉMÉDIABLE (ART. 229 CC)';
   static readonly TOOL_ICON = 'balance';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: Partial<FamilleExtractedData> | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return DivorceDesunionBePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
@@ -254,22 +267,20 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
    *   tentativesReconciliation) n'ont pas de mapping IA natif — crochets prêts.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    if (typeof ai.dateSeparation === 'string' && ai.dateSeparation.length > 0) {
-      if (this.dateSeparation() === null
-          || this.provenanceDateSeparation() === 'IA') {
-        this.dateSeparation.set(ai.dateSeparation);
-        this.provenanceDateSeparation.set('IA');
-      }
+    const date = DivorceDesunionBePrefillRules.computeDateSeparation(helperInput);
+    if (date !== null
+        && (this.dateSeparation() === null || this.provenanceDateSeparation() === 'IA')) {
+      this.dateSeparation.set(date);
+      this.provenanceDateSeparation.set('IA');
     }
-    if (typeof ai.separationConsentue === 'boolean') {
-      // Pas d'écrasement si l'avocat a déjà saisi (provenance null).
-      if (this.provenanceSeparationConsentue() === 'IA' || !this.separationConsentue()) {
-        this.separationConsentue.set(ai.separationConsentue);
-        this.provenanceSeparationConsentue.set('IA');
-      }
+    const consentue = DivorceDesunionBePrefillRules.computeSeparationConsentue(helperInput);
+    if (consentue !== null
+        && (this.provenanceSeparationConsentue() === 'IA' || !this.separationConsentue())) {
+      this.separationConsentue.set(consentue);
+      this.provenanceSeparationConsentue.set('IA');
     }
   }
 

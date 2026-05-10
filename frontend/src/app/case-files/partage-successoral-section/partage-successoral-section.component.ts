@@ -39,6 +39,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PartageSuccessoralPrefillRules } from './partage-successoral-section-prefill-rules';
 
 /**
  * SF-FA-24-10 : champs d'alerte F-IA-03 exposés par l'outil "Partage
@@ -89,6 +90,18 @@ export class PartageSuccessoralSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PARTAGE SUCCESSORAL (FR)';
   static readonly TOOL_ICON = 'handshake';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return PartageSuccessoralPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -442,37 +455,22 @@ export class PartageSuccessoralSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais une saisie avocat (provenance !== 'IA')
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // modePartageDemande
-    const iaMode = this.parseModeFromIa(ai.modePartageDemandeDetecte ?? null);
-    if (iaMode) {
-      if (this.modePartageDemande() === null
-          || this.provenanceMode() === 'IA') {
-        this.modePartageDemande.set(iaMode);
-        this.provenanceMode.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+    const m = PartageSuccessoralPrefillRules.computeModePartage(h);
+    if (m !== null && (this.modePartageDemande() === null || this.provenanceMode() === 'IA')) {
+      this.modePartageDemande.set(m);
+      this.provenanceMode.set('IA');
     }
-
-    // nombreCoheritiers
-    const iaCoh = ai.nombreCoheritiersDetecte;
-    if (iaCoh !== null && iaCoh !== undefined && iaCoh >= 2) {
-      if (this.nombreCoheritiers() === null
-          || this.provenanceNombreCoheritiers() === 'IA') {
-        this.nombreCoheritiers.set(iaCoh);
-        this.provenanceNombreCoheritiers.set('IA');
-      }
+    const nc = PartageSuccessoralPrefillRules.computeNombreCoheritiers(h);
+    if (nc !== null && (this.nombreCoheritiers() === null || this.provenanceNombreCoheritiers() === 'IA')) {
+      this.nombreCoheritiers.set(nc);
+      this.provenanceNombreCoheritiers.set('IA');
     }
-
-    // dateDeces — accepte deux clés possibles selon les SF antérieures.
-    const iaDate = ai.dateDecesDetectee
-      ?? ai.dateOuvertureSuccessionDetectee;
-    if (iaDate && typeof iaDate === 'string' && iaDate.trim()) {
-      if (!this.dateDeces() || this.provenanceDateDeces() === 'IA') {
-        this.dateDeces.set(iaDate);
-        this.provenanceDateDeces.set('IA');
-      }
+    const dd = PartageSuccessoralPrefillRules.computeDateDeces(h);
+    if (dd !== null && (!this.dateDeces() || this.provenanceDateDeces() === 'IA')) {
+      this.dateDeces.set(dd);
+      this.provenanceDateDeces.set('IA');
     }
   }
 

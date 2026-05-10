@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PossessionEtatPrefillRules } from './possession-etat-section-prefill-rules';
 
 /**
  * SF-FA-18-08 : champs d'alerte F-IA-03 exposés par l'outil
@@ -93,6 +94,18 @@ export class PossessionEtatSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'POSSESSION D\'ÉTAT (FR)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return PossessionEtatPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -452,10 +465,8 @@ export class PossessionEtatSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-    const conforme = ai.possessionEtatConforme5AnsDetected;
-    if (conforme !== true) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    if (!PossessionEtatPrefillRules.isFaisceauConforme({ aiData: this.aiDataSignal() })) return;
 
     // Pré-coche tractatus + fama + 3 conditions cardinales (faisceau).
     if (!this.tractatus() || this.provenanceTractatus() === 'IA') {

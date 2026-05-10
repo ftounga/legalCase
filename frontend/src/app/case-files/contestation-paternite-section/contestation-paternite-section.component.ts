@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ContestationPaternitePrefillRules } from './contestation-paternite-section-prefill-rules';
 
 /**
  * SF-FA-18-04 : champs d'alerte F-IA-03 exposés par l'outil
@@ -90,6 +91,18 @@ export class ContestationPaterniteSectionComponent implements OnInit, OnChanges 
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CONTESTATION DE PATERNITÉ (FR)';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return ContestationPaternitePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -434,77 +447,42 @@ export class ContestationPaterniteSectionComponent implements OnInit, OnChanges 
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // qualiteAagir ← aiData.qualiteAagirContestationDetected.
-    const iaQ = ai.qualiteAagirContestationDetected;
-    if (iaQ) {
-      if (this.qualiteAagir() === null
-          || this.provenanceQualiteAagir() === 'IA') {
-        this.qualiteAagir.set(iaQ);
-        this.provenanceQualiteAagir.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+    const iaQ = ContestationPaternitePrefillRules.computeQualiteAagir(h);
+    if (iaQ !== null && (this.qualiteAagir() === null || this.provenanceQualiteAagir() === 'IA')) {
+      this.qualiteAagir.set(iaQ as any);
+      this.provenanceQualiteAagir.set('IA');
     }
-
-    // dateEtablissementFiliation ← aiData.dateEtablissementFiliationDetectee.
-    const iaDE = ai.dateEtablissementFiliationDetectee;
-    if (iaDE) {
-      if (this.dateEtablissementFiliation() === null
-          || this.provenanceDateEtablissement() === 'IA') {
-        this.dateEtablissementFiliation.set(iaDE);
-        this.provenanceDateEtablissement.set('IA');
-      }
+    const iaDE = ContestationPaternitePrefillRules.computeDateEtablissement(h);
+    if (iaDE !== null && (this.dateEtablissementFiliation() === null || this.provenanceDateEtablissement() === 'IA')) {
+      this.dateEtablissementFiliation.set(iaDE);
+      this.provenanceDateEtablissement.set('IA');
     }
-
-    // dateConnaissanceVerite ← aiData.dateConnaissanceVeriteDetectee.
-    const iaDC = ai.dateConnaissanceVeriteDetectee;
-    if (iaDC) {
-      if (this.dateConnaissanceVerite() === null
-          || this.provenanceDateConnaissance() === 'IA') {
-        this.dateConnaissanceVerite.set(iaDC);
-        this.provenanceDateConnaissance.set('IA');
-      }
+    const iaDC = ContestationPaternitePrefillRules.computeDateConnaissance(h);
+    if (iaDC !== null && (this.dateConnaissanceVerite() === null || this.provenanceDateConnaissance() === 'IA')) {
+      this.dateConnaissanceVerite.set(iaDC);
+      this.provenanceDateConnaissance.set('IA');
     }
-
-    // dateMajoriteEnfant ← aiData.dateMajoriteEnfantDetectee.
-    const iaDM = ai.dateMajoriteEnfantDetectee;
-    if (iaDM) {
-      if (this.dateMajoriteEnfant() === null
-          || this.provenanceDateMajorite() === 'IA') {
-        this.dateMajoriteEnfant.set(iaDM);
-        this.provenanceDateMajorite.set('IA');
-      }
+    const iaDM = ContestationPaternitePrefillRules.computeDateMajorite(h);
+    if (iaDM !== null && (this.dateMajoriteEnfant() === null || this.provenanceDateMajorite() === 'IA')) {
+      this.dateMajoriteEnfant.set(iaDM);
+      this.provenanceDateMajorite.set('IA');
     }
-
-    // possessionEtatConforme5Ans ← aiData.possessionEtatConforme5AnsDetected.
-    const iaPE = ai.possessionEtatConforme5AnsDetected;
-    if (iaPE !== null && iaPE !== undefined) {
-      if (this.possessionEtatConforme5Ans() === null
-          || this.provenancePossessionEtat() === 'IA') {
-        this.possessionEtatConforme5Ans.set(iaPE);
-        this.provenancePossessionEtat.set('IA');
-      }
+    const iaPE = ContestationPaternitePrefillRules.computePossessionEtat(h);
+    if (iaPE !== null && (this.possessionEtatConforme5Ans() === null || this.provenancePossessionEtat() === 'IA')) {
+      this.possessionEtatConforme5Ans.set(iaPE);
+      this.provenancePossessionEtat.set('IA');
     }
-
-    // expertiseAdnDemandee ← aiData.expertiseAdnDemandeeDetected.
-    const iaEA = ai.expertiseAdnDemandeeDetected;
-    if (iaEA !== null && iaEA !== undefined) {
-      if (!this.expertiseAdnDemandee()
-          || this.provenanceExpertiseAdn() === 'IA') {
-        this.expertiseAdnDemandee.set(iaEA);
-        this.provenanceExpertiseAdn.set('IA');
-      }
+    const iaEA = ContestationPaternitePrefillRules.computeExpertiseAdn(h);
+    if (iaEA !== null && (!this.expertiseAdnDemandee() || this.provenanceExpertiseAdn() === 'IA')) {
+      this.expertiseAdnDemandee.set(iaEA);
+      this.provenanceExpertiseAdn.set('IA');
     }
-
-    // motifsSerieux ← aiData.motifsSerieuxDetected.
-    const iaMS = ai.motifsSerieuxDetected;
-    if (iaMS !== null && iaMS !== undefined) {
-      if (this.motifsSerieux() === null
-          || this.provenanceMotifsSerieux() === 'IA') {
-        this.motifsSerieux.set(iaMS);
-        this.provenanceMotifsSerieux.set('IA');
-      }
+    const iaMS = ContestationPaternitePrefillRules.computeMotifsSerieux(h);
+    if (iaMS !== null && (this.motifsSerieux() === null || this.provenanceMotifsSerieux() === 'IA')) {
+      this.motifsSerieux.set(iaMS);
+      this.provenanceMotifsSerieux.set('IA');
     }
   }
 

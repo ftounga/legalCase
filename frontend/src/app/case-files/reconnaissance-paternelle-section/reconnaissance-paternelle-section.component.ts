@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ReconnaissancePaternellePrefillRules } from './reconnaissance-paternelle-section-prefill-rules';
 
 /**
  * SF-FA-18-02 : champs d'alerte F-IA-03 exposés par l'outil
@@ -95,6 +96,18 @@ export class ReconnaissancePaternelleSectionComponent implements OnInit, OnChang
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RECONNAISSANCE PATERNELLE (FR)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return ReconnaissancePaternellePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -431,57 +444,37 @@ export class ReconnaissancePaternelleSectionComponent implements OnInit, OnChang
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // consentementLibreDuPere ← aiData.consentementLibreDuPereDetected.
-    const iaCl = ai.consentementLibreDuPereDetected;
-    if (iaCl !== null && iaCl !== undefined) {
-      if (this.consentementLibreDuPere() === null
-          || this.provenanceConsentementLibre() === 'IA') {
-        this.consentementLibreDuPere.set(iaCl);
-        this.provenanceConsentementLibre.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
+    const cl = ReconnaissancePaternellePrefillRules.computeConsentementLibre(helperInput);
+    if (cl !== null
+        && (this.consentementLibreDuPere() === null || this.provenanceConsentementLibre() === 'IA')) {
+      this.consentementLibreDuPere.set(cl);
+      this.provenanceConsentementLibre.set('IA');
     }
-
-    // paterniteVraisemblable ← aiData.paterniteVraisemblableDetected.
-    const iaPv = ai.paterniteVraisemblableDetected;
-    if (iaPv !== null && iaPv !== undefined) {
-      if (this.paterniteVraisemblable() === null
-          || this.provenancePaterniteVraisemblable() === 'IA') {
-        this.paterniteVraisemblable.set(iaPv);
-        this.provenancePaterniteVraisemblable.set('IA');
-      }
+    const pv = ReconnaissancePaternellePrefillRules.computePaterniteVraisemblable(helperInput);
+    if (pv !== null
+        && (this.paterniteVraisemblable() === null || this.provenancePaterniteVraisemblable() === 'IA')) {
+      this.paterniteVraisemblable.set(pv);
+      this.provenancePaterniteVraisemblable.set('IA');
     }
-
-    // enfantNonReconnuParAutrePere ← aiData.enfantNonReconnuParAutrePereDetected.
-    const iaEn = ai.enfantNonReconnuParAutrePereDetected;
-    if (iaEn !== null && iaEn !== undefined) {
-      if (this.enfantNonReconnuParAutrePere() === null
-          || this.provenanceEnfantNonReconnu() === 'IA') {
-        this.enfantNonReconnuParAutrePere.set(iaEn);
-        this.provenanceEnfantNonReconnu.set('IA');
-      }
+    const en = ReconnaissancePaternellePrefillRules.computeEnfantNonReconnu(helperInput);
+    if (en !== null
+        && (this.enfantNonReconnuParAutrePere() === null || this.provenanceEnfantNonReconnu() === 'IA')) {
+      this.enfantNonReconnuParAutrePere.set(en);
+      this.provenanceEnfantNonReconnu.set('IA');
     }
-
-    // procedureRespectee ← aiData.procedureRespecteeReconnaissanceDetected.
-    const iaPr = ai.procedureRespecteeReconnaissanceDetected;
-    if (iaPr !== null && iaPr !== undefined) {
-      if (this.procedureRespectee() === null
-          || this.provenanceProcedureRespectee() === 'IA') {
-        this.procedureRespectee.set(iaPr);
-        this.provenanceProcedureRespectee.set('IA');
-      }
+    const pr = ReconnaissancePaternellePrefillRules.computeProcedureRespectee(helperInput);
+    if (pr !== null
+        && (this.procedureRespectee() === null || this.provenanceProcedureRespectee() === 'IA')) {
+      this.procedureRespectee.set(pr);
+      this.provenanceProcedureRespectee.set('IA');
     }
-
-    // dateNaissanceEnfant ← aiData.dateNaissanceEnfantDetectee.
-    const iaDate = ai.dateNaissanceEnfantDetectee;
-    if (iaDate) {
-      if (this.dateNaissanceEnfant() === null
-          || this.provenanceDateNaissance() === 'IA') {
-        this.dateNaissanceEnfant.set(iaDate);
-        this.provenanceDateNaissance.set('IA');
-      }
+    const dn = ReconnaissancePaternellePrefillRules.computeDateNaissance(helperInput);
+    if (dn !== null
+        && (this.dateNaissanceEnfant() === null || this.provenanceDateNaissance() === 'IA')) {
+      this.dateNaissanceEnfant.set(dn);
+      this.provenanceDateNaissance.set('IA');
     }
   }
 

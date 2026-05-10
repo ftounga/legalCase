@@ -47,6 +47,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { AutoriteParentalePrefillRules } from './autorite-parentale-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -111,6 +112,18 @@ export class AutoriteParentaleSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AUTORITÉ PARENTALE — EXERCICE (FR) — ART. 372-373 CCIV';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return AutoriteParentalePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -433,58 +446,43 @@ export class AutoriteParentaleSectionComponent implements OnInit, OnChanges {
    * différent de la valeur par défaut indique modification manuelle).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // 1. Régime exercice actuel.
-    const regAi = ai.regimeExerciceActuel;
-    if (typeof regAi === 'string' && regAi.length > 0) {
-      const upper = regAi.toUpperCase();
-      if (VALID_REGIMES.has(upper)) {
-        if (this.regimeExerciceActuel() === null || this.provenanceRegimeActuel() === 'IA') {
-          this.regimeExerciceActuel.set(upper as RegimeExercice);
-          this.provenanceRegimeActuel.set('IA');
-        }
-      }
+    const regAi = AutoriteParentalePrefillRules.computeRegimeActuel(h);
+    if (regAi !== null
+        && (this.regimeExerciceActuel() === null || this.provenanceRegimeActuel() === 'IA')) {
+      this.regimeExerciceActuel.set(regAi);
+      this.provenanceRegimeActuel.set('IA');
     }
 
-    // 2. Danger caractérisé (boolean).
-    if (typeof ai.dangerCaracterise === 'boolean') {
-      // Heuristique conservatrice : on aligne sur l'IA si pas encore touché
-      // (provenance IA OK ou champ encore false par défaut).
-      if (this.provenanceDangerCaracterise() === 'IA' || this.dangerCaracterise() === false) {
-        this.dangerCaracterise.set(ai.dangerCaracterise);
-        this.provenanceDangerCaracterise.set('IA');
-      }
+    const danger = AutoriteParentalePrefillRules.computeDangerCaracterise(h);
+    if (danger !== null
+        && (this.provenanceDangerCaracterise() === 'IA' || this.dangerCaracterise() === false)) {
+      this.dangerCaracterise.set(danger);
+      this.provenanceDangerCaracterise.set('IA');
     }
 
-    // 3. Consentement autre parent.
-    if (typeof ai.consentementAutreParent === 'boolean') {
-      if (this.provenanceConsentementAutreParent() === 'IA' || this.consentementAutreParent() === false) {
-        this.consentementAutreParent.set(ai.consentementAutreParent);
-        this.provenanceConsentementAutreParent.set('IA');
-      }
+    const cons = AutoriteParentalePrefillRules.computeConsentementAutreParent(h);
+    if (cons !== null
+        && (this.provenanceConsentementAutreParent() === 'IA' || this.consentementAutreParent() === false)) {
+      this.consentementAutreParent.set(cons);
+      this.provenanceConsentementAutreParent.set('IA');
     }
 
-    // 4. Interférence vie enfant.
-    if (typeof ai.interferenceVieEnfant === 'boolean') {
-      if (this.provenanceInterferenceVieEnfant() === 'IA' || this.interferenceVieEnfant() === false) {
-        this.interferenceVieEnfant.set(ai.interferenceVieEnfant);
-        this.provenanceInterferenceVieEnfant.set('IA');
-      }
+    const inter = AutoriteParentalePrefillRules.computeInterferenceVieEnfant(h);
+    if (inter !== null
+        && (this.provenanceInterferenceVieEnfant() === 'IA' || this.interferenceVieEnfant() === false)) {
+      this.interferenceVieEnfant.set(inter);
+      this.provenanceInterferenceVieEnfant.set('IA');
     }
 
-    // 5. Âges enfants.
-    const ages = ai.ageEnfants;
-    if (Array.isArray(ages) && ages.length > 0) {
-      const filtered = ages
-        .filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 30);
-      if (filtered.length > 0
-          && (this.ageEnfants().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
-        this.ageEnfants.set(filtered);
-        this.ageEnfantsRaw.set(filtered.join(', '));
-        this.provenanceAgeEnfants.set('IA');
-      }
+    const ages = AutoriteParentalePrefillRules.computeAgeEnfants(h);
+    if (ages.length > 0
+        && (this.ageEnfants().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
+      this.ageEnfants.set(ages);
+      this.ageEnfantsRaw.set(ages.join(', '));
+      this.provenanceAgeEnfants.set('IA');
     }
   }
 

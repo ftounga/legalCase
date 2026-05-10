@@ -42,6 +42,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { TestamentValiditePrefillRules } from './testament-validite-section-prefill-rules';
 
 /**
  * SF-FA-24-04 : champs d'alerte F-IA-03 exposés par l'outil "Validité testament".
@@ -92,6 +93,18 @@ export class TestamentValiditeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'VALIDITÉ TESTAMENT (FR)';
   static readonly TOOL_ICON = 'history_edu';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return TestamentValiditePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -577,48 +590,36 @@ export class TestamentValiditeSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais une saisie avocat (provenance !== 'IA')
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // formeTestament
-    const iaForme = this.parseFormeFromIa(ai.formeTestamentDetectee ?? null);
-    if (iaForme) {
-      if (this.formeTestament() === null
-          || this.provenanceForme() === 'IA') {
-        this.formeTestament.set(iaForme);
-        this.provenanceForme.set('IA');
-      }
+    const forme = TestamentValiditePrefillRules.computeFormeTestament(h);
+    if (forme !== null
+        && (this.formeTestament() === null || this.provenanceForme() === 'IA')) {
+      this.formeTestament.set(forme);
+      this.provenanceForme.set('IA');
     }
 
-    // dateRedaction
-    const iaDate = ai.dateRedactionTestamentDetectee;
-    if (iaDate && typeof iaDate === 'string' && iaDate.trim()) {
-      if (!this.dateRedaction() || this.provenanceDateRedaction() === 'IA') {
-        this.dateRedaction.set(iaDate);
-        this.provenanceDateRedaction.set('IA');
-      }
+    const date = TestamentValiditePrefillRules.computeDateRedaction(h);
+    if (date !== null
+        && (!this.dateRedaction() || this.provenanceDateRedaction() === 'IA')) {
+      this.dateRedaction.set(date);
+      this.provenanceDateRedaction.set('IA');
     }
 
-    // saineDEsprit
-    const iaSaine = ai.saineDEspritTestateurDetected;
-    if (iaSaine !== null && iaSaine !== undefined) {
-      if (this.saineDEsprit() === null
-          || this.provenanceSaineEsprit() === 'IA') {
-        this.saineDEsprit.set(iaSaine);
-        this.provenanceSaineEsprit.set('IA');
-      }
+    const saine = TestamentValiditePrefillRules.computeSaineDEsprit(h);
+    if (saine !== null
+        && (this.saineDEsprit() === null || this.provenanceSaineEsprit() === 'IA')) {
+      this.saineDEsprit.set(saine);
+      this.provenanceSaineEsprit.set('IA');
     }
 
-    // legsExcedeQuotiteDisponible
-    const iaLegs = ai.legsExcedeQuotiteDisponibleDetected;
-    if (iaLegs !== null && iaLegs !== undefined) {
-      if (this.provenanceLegsExcedeQuotite() === 'IA'
-          || this.legsExcedeQuotiteDisponible() === false) {
-        // On n'écrase la valeur "false" par défaut que si l'avocat n'a pas
-        // explicitement coché — la provenance IA évite l'effacement.
-        this.legsExcedeQuotiteDisponible.set(iaLegs);
-        this.provenanceLegsExcedeQuotite.set('IA');
-      }
+    const legs = TestamentValiditePrefillRules.computeLegsExcedeQuotite(h);
+    if (legs !== null
+        && (this.provenanceLegsExcedeQuotite() === 'IA'
+            || this.legsExcedeQuotiteDisponible() === false)) {
+      this.legsExcedeQuotiteDisponible.set(legs);
+      this.provenanceLegsExcedeQuotite.set('IA');
     }
   }
 

@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { RecherchePaternitePrefillRules } from './recherche-paternite-section-prefill-rules';
 
 /**
  * SF-FA-18-06 : champs d'alerte F-IA-03 exposés par l'outil
@@ -93,6 +94,18 @@ export class RecherchePaterniteSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RECHERCHE DE PATERNITÉ (FR)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return RecherchePaternitePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -434,67 +447,37 @@ export class RecherchePaterniteSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // qualiteDuDemandeur ← aiData.qualiteDuDemandeurRechercheDetected.
-    const iaQ = ai.qualiteDuDemandeurRechercheDetected;
-    if (iaQ) {
-      if (this.qualiteDuDemandeur() === null
-          || this.provenanceQualite() === 'IA') {
-        this.qualiteDuDemandeur.set(iaQ);
-        this.provenanceQualite.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+    const iaQ = RecherchePaternitePrefillRules.computeQualite(h);
+    if (iaQ !== null && (this.qualiteDuDemandeur() === null || this.provenanceQualite() === 'IA')) {
+      this.qualiteDuDemandeur.set(iaQ as any);
+      this.provenanceQualite.set('IA');
     }
-
-    // dateNaissanceEnfant ← aiData.dateNaissanceEnfantRechercheDetectee.
-    const iaDN = ai.dateNaissanceEnfantRechercheDetectee;
-    if (iaDN) {
-      if (this.dateNaissanceEnfant() === null
-          || this.provenanceDateNaissance() === 'IA') {
-        this.dateNaissanceEnfant.set(iaDN);
-        this.provenanceDateNaissance.set('IA');
-      }
+    const iaDN = RecherchePaternitePrefillRules.computeDateNaissance(h);
+    if (iaDN !== null && (this.dateNaissanceEnfant() === null || this.provenanceDateNaissance() === 'IA')) {
+      this.dateNaissanceEnfant.set(iaDN);
+      this.provenanceDateNaissance.set('IA');
     }
-
-    // presomptionPossessionEtat ← aiData.presomptionPossessionEtatRechercheDetected.
-    const iaPE = ai.presomptionPossessionEtatRechercheDetected;
-    if (iaPE !== null && iaPE !== undefined) {
-      if (!this.presomptionPossessionEtat()
-          || this.provenancePossessionEtat() === 'IA') {
-        this.presomptionPossessionEtat.set(iaPE);
-        this.provenancePossessionEtat.set('IA');
-      }
+    const iaPE = RecherchePaternitePrefillRules.computePresomptionPossessionEtat(h);
+    if (iaPE !== null && (!this.presomptionPossessionEtat() || this.provenancePossessionEtat() === 'IA')) {
+      this.presomptionPossessionEtat.set(iaPE);
+      this.provenancePossessionEtat.set('IA');
     }
-
-    // expertiseAdnDemandee ← aiData.expertiseAdnDemandeeRechercheDetected.
-    const iaEA = ai.expertiseAdnDemandeeRechercheDetected;
-    if (iaEA !== null && iaEA !== undefined) {
-      if (!this.expertiseAdnDemandee()
-          || this.provenanceExpertiseAdn() === 'IA') {
-        this.expertiseAdnDemandee.set(iaEA);
-        this.provenanceExpertiseAdn.set('IA');
-      }
+    const iaEA = RecherchePaternitePrefillRules.computeExpertiseAdn(h);
+    if (iaEA !== null && (!this.expertiseAdnDemandee() || this.provenanceExpertiseAdn() === 'IA')) {
+      this.expertiseAdnDemandee.set(iaEA);
+      this.provenanceExpertiseAdn.set('IA');
     }
-
-    // pereDesigneRefuseADN ← aiData.pereDesigneRefuseADNDetected.
-    const iaRA = ai.pereDesigneRefuseADNDetected;
-    if (iaRA !== null && iaRA !== undefined) {
-      if (!this.pereDesigneRefuseADN()
-          || this.provenanceRefusAdn() === 'IA') {
-        this.pereDesigneRefuseADN.set(iaRA);
-        this.provenanceRefusAdn.set('IA');
-      }
+    const iaRA = RecherchePaternitePrefillRules.computeRefusAdn(h);
+    if (iaRA !== null && (!this.pereDesigneRefuseADN() || this.provenanceRefusAdn() === 'IA')) {
+      this.pereDesigneRefuseADN.set(iaRA);
+      this.provenanceRefusAdn.set('IA');
     }
-
-    // motifsSerieux ← aiData.motifsSerieuxRechercheDetected.
-    const iaMS = ai.motifsSerieuxRechercheDetected;
-    if (iaMS !== null && iaMS !== undefined) {
-      if (!this.motifsSerieux()
-          || this.provenanceMotifsSerieux() === 'IA') {
-        this.motifsSerieux.set(iaMS);
-        this.provenanceMotifsSerieux.set('IA');
-      }
+    const iaMS = RecherchePaternitePrefillRules.computeMotifsSerieux(h);
+    if (iaMS !== null && (!this.motifsSerieux() || this.provenanceMotifsSerieux() === 'IA')) {
+      this.motifsSerieux.set(iaMS);
+      this.provenanceMotifsSerieux.set('IA');
     }
   }
 

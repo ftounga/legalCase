@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PartageJudiciairePrefillRules } from './partage-judiciaire-section-prefill-rules';
 
 /**
  * SF-FA-17-02 : champs d'alerte F-IA-03 exposés par l'outil "Partage judiciaire".
@@ -87,6 +88,18 @@ export class PartageJudiciaireSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PARTAGE JUDICIAIRE (FR)';
   static readonly TOOL_ICON = 'balance';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return PartageJudiciairePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -403,47 +416,37 @@ export class PartageJudiciaireSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    // pvDifficultesEtabli ← aiData.pvDifficultesEtablisDetected.
-    const iaPv = ai.pvDifficultesEtablisDetected;
-    if (iaPv !== null && iaPv !== undefined) {
-      if (this.pvDifficultesEtabli() === null
-          || this.provenancePvDifficultes() === 'IA') {
-        this.pvDifficultesEtabli.set(iaPv);
-        this.provenancePvDifficultes.set('IA');
-      }
+    const pv = PartageJudiciairePrefillRules.computePvDifficultes(helperInput);
+    if (pv !== null
+        && (this.pvDifficultesEtabli() === null || this.provenancePvDifficultes() === 'IA')) {
+      this.pvDifficultesEtabli.set(pv);
+      this.provenancePvDifficultes.set('IA');
     }
 
-    // tentativeAmiableEpuiseuee ← aiData.tentativeAmiableEpuiseueeDetected.
-    const iaTa = ai.tentativeAmiableEpuiseueeDetected;
-    if (iaTa !== null && iaTa !== undefined) {
-      if (this.tentativeAmiableEpuiseuee() === null
-          || this.provenanceTentativeAmiable() === 'IA') {
-        this.tentativeAmiableEpuiseuee.set(iaTa);
-        this.provenanceTentativeAmiable.set('IA');
-      }
+    const ta = PartageJudiciairePrefillRules.computeTentativeAmiable(helperInput);
+    if (ta !== null
+        && (this.tentativeAmiableEpuiseuee() === null
+            || this.provenanceTentativeAmiable() === 'IA')) {
+      this.tentativeAmiableEpuiseuee.set(ta);
+      this.provenanceTentativeAmiable.set('IA');
     }
 
-    // nombreCoindivisaires ← aiData.nombreCoindivisairesDetecte.
-    const iaNb = ai.nombreCoindivisairesDetecte;
-    if (iaNb !== null && iaNb !== undefined && iaNb >= 2) {
-      if (this.nombreCoindivisaires() === null
-          || this.provenanceNombreCoindivisaires() === 'IA') {
-        this.nombreCoindivisaires.set(iaNb);
-        this.provenanceNombreCoindivisaires.set('IA');
-      }
+    const nb = PartageJudiciairePrefillRules.computeNombreCoindivisaires(helperInput);
+    if (nb !== null
+        && (this.nombreCoindivisaires() === null
+            || this.provenanceNombreCoindivisaires() === 'IA')) {
+      this.nombreCoindivisaires.set(nb);
+      this.provenanceNombreCoindivisaires.set('IA');
     }
 
-    // valeurEstimeeBiensEur ← aiData.valeurBiensIndivisionEur.
-    const iaValeur = ai.valeurBiensIndivisionEur;
-    if (iaValeur !== null && iaValeur !== undefined && iaValeur >= 0) {
-      if (this.valeurEstimeeBiensEur() === null
-          || this.provenanceValeurBiens() === 'IA') {
-        this.valeurEstimeeBiensEur.set(iaValeur);
-        this.provenanceValeurBiens.set('IA');
-      }
+    const valeur = PartageJudiciairePrefillRules.computeValeurBiens(helperInput);
+    if (valeur !== null
+        && (this.valeurEstimeeBiensEur() === null || this.provenanceValeurBiens() === 'IA')) {
+      this.valeurEstimeeBiensEur.set(valeur);
+      this.provenanceValeurBiens.set('IA');
     }
   }
 

@@ -43,6 +43,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { DevolutionLegalePrefillRules } from './devolution-legale-section-prefill-rules';
 
 /**
  * SF-FA-24-02 : champs d'alerte F-IA-03 exposés par l'outil "Dévolution
@@ -91,6 +92,18 @@ export class DevolutionLegaleSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DÉVOLUTION LÉGALE SUCCESSORALE (FR)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return DevolutionLegalePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -479,47 +492,27 @@ export class DevolutionLegaleSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais une saisie avocat (provenance !== 'IA')
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // conjointSurvivant
-    const iaConj = ai.conjointSurvivantDetected;
-    if (iaConj !== null && iaConj !== undefined) {
-      if (this.conjointSurvivant() === null
-          || this.provenanceConjoint() === 'IA') {
-        this.conjointSurvivant.set(iaConj);
-        this.provenanceConjoint.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+    const cj = DevolutionLegalePrefillRules.computeConjointSurvivant(h);
+    if (cj !== null && (this.conjointSurvivant() === null || this.provenanceConjoint() === 'IA')) {
+      this.conjointSurvivant.set(cj);
+      this.provenanceConjoint.set('IA');
     }
-
-    // nbDescendants
-    const iaNd = ai.nbDescendantsDetecte;
-    if (iaNd !== null && iaNd !== undefined && iaNd >= 0) {
-      if (this.nbDescendants() === null
-          || this.provenanceNbDescendants() === 'IA') {
-        this.nbDescendants.set(iaNd);
-        this.provenanceNbDescendants.set('IA');
-      }
+    const nd = DevolutionLegalePrefillRules.computeNbDescendants(h);
+    if (nd !== null && (this.nbDescendants() === null || this.provenanceNbDescendants() === 'IA')) {
+      this.nbDescendants.set(nd);
+      this.provenanceNbDescendants.set('IA');
     }
-
-    // tousDescendantsCommunsAvecConjoint
-    const iaDc = ai.tousDescendantsCommunsAvecConjointDetected;
-    if (iaDc !== null && iaDc !== undefined) {
-      if (this.tousDescendantsCommunsAvecConjoint() === null
-          || this.provenanceTousCommuns() === 'IA') {
-        this.tousDescendantsCommunsAvecConjoint.set(iaDc);
-        this.provenanceTousCommuns.set('IA');
-      }
+    const dc = DevolutionLegalePrefillRules.computeTousDescendantsCommuns(h);
+    if (dc !== null && (this.tousDescendantsCommunsAvecConjoint() === null || this.provenanceTousCommuns() === 'IA')) {
+      this.tousDescendantsCommunsAvecConjoint.set(dc);
+      this.provenanceTousCommuns.set('IA');
     }
-
-    // nbFreresSoeurs
-    const iaFs = ai.nbFreresSoeursDetecte;
-    if (iaFs !== null && iaFs !== undefined && iaFs >= 0) {
-      if (this.nbFreresSoeurs() === null
-          || this.provenanceNbFreresSoeurs() === 'IA') {
-        this.nbFreresSoeurs.set(iaFs);
-        this.provenanceNbFreresSoeurs.set('IA');
-      }
+    const fs = DevolutionLegalePrefillRules.computeNbFreresSoeurs(h);
+    if (fs !== null && (this.nbFreresSoeurs() === null || this.provenanceNbFreresSoeurs() === 'IA')) {
+      this.nbFreresSoeurs.set(fs);
+      this.provenanceNbFreresSoeurs.set('IA');
     }
   }
 

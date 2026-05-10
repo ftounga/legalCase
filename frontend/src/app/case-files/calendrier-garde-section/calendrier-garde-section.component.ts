@@ -20,9 +20,12 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
-const MODES_FR = new Set(['ALTERNEE_FR', 'DVH_CLASSIQUE_FR', 'DVH_ELARGI_FR']);
-const MODES_BE = new Set(['ALTERNEE_BE', 'SECONDAIRE_BE', 'SECONDAIRE_ELARGI_BE']);
-const ALL_MODES = new Set([...MODES_FR, ...MODES_BE]);
+import {
+  ALL_MODES,
+  CalendrierGardePrefillRules,
+  MODES_BE,
+  MODES_FR,
+} from './calendrier-garde-section-prefill-rules';
 const ALTERNEE_MODES = new Set(['ALTERNEE_FR', 'ALTERNEE_BE']);
 
 /**
@@ -175,30 +178,18 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
    * pré-remplit pas (gate `workspaceCountry`).
    */
   private prefillFromAi(): void {
-    const ai = this.aiModeGardeDetaille?.toUpperCase();
-    if (!ai) {
-      this.modeDetailleNote.set(null);
-      return;
-    }
-    const wsFR = this.workspaceCountry === 'FRANCE';
-    const isFR = MODES_FR.has(ai);
-    const isBE = MODES_BE.has(ai);
-    if (!isFR && !isBE) {
-      // Valeur IA non reconnue → pas de pré-fill (graceful).
-      this.modeDetailleNote.set(null);
-      return;
-    }
-    if ((wsFR && isFR) || (!wsFR && isBE)) {
-      // Mode compatible avec le workspace → pré-fill + badge IA.
-      this.gardeCode.set(ai);
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const input = {
+      aiModeGardeDetaille: this.aiModeGardeDetaille ?? null,
+      workspaceCountry: this.workspaceCountry,
+    };
+    const mode = CalendrierGardePrefillRules.computeGardeCode(input);
+    const note = CalendrierGardePrefillRules.computeModeDetailleNote(input);
+    if (mode) {
+      this.gardeCode.set(mode);
       this.provenanceGardeCode.set('IA');
-      this.modeDetailleNote.set(null);
-    } else {
-      // Mode de l'autre pays → note explicite, pas d'écrasement.
-      this.modeDetailleNote.set(
-        `Mode détecté : "${ai}" (autre pays). Vérifier que ce dossier est adapté.`
-      );
     }
+    this.modeDetailleNote.set(note);
   }
 
   private buildPiecesIndex(pieces: PieceManquanteEntry[]): Record<string, string> {
@@ -398,14 +389,12 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
    * - mode du même pays que le workspace → 1
    * - mode de l'autre pays → 0 (note informative seulement, pas de prefill)
    */
-  static getPrefillCount(input: { synthesis?: any; workspaceCountry?: string }): number {
-    const mode = input.synthesis?.pensionAlimentaireEstimate?.modeGardeDetaille;
-    if (typeof mode !== 'string' || !mode) return 0;
-    const upper = mode.toUpperCase();
-    const wsFR = (input.workspaceCountry ?? 'FRANCE') === 'FRANCE';
-    const isFR = MODES_FR.has(upper);
-    const isBE = MODES_BE.has(upper);
-    if ((wsFR && isFR) || (!wsFR && isBE)) return 1;
-    return 0;
+  static getPrefillCount(input: {
+    synthesis?: any;
+    workspaceCountry?: string;
+    aiModeGardeDetaille?: string | null;
+  }): number {
+    // F-236 SF-236-02 — délégation au helper partagé.
+    return CalendrierGardePrefillRules.computePrefillCount(input);
   }
 }

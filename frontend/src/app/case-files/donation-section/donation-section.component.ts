@@ -42,6 +42,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { DonationPrefillRules } from './donation-section-prefill-rules';
 
 /**
  * SF-FA-24-06 : champs d'alerte F-IA-03 exposés par l'outil "Validité donation".
@@ -91,6 +92,18 @@ export class DonationSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'VALIDITÉ DONATION ENTRE VIFS (FR)';
   static readonly TOOL_ICON = 'redeem';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return DonationPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -577,46 +590,27 @@ export class DonationSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais une saisie avocat (provenance !== 'IA')
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // formeDonation
-    const iaForme = this.parseFormeFromIa(ai.formeDonationDetectee ?? null);
-    if (iaForme) {
-      if (this.formeDonation() === null
-          || this.provenanceForme() === 'IA') {
-        this.formeDonation.set(iaForme);
-        this.provenanceForme.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+    const fm = DonationPrefillRules.computeFormeDonation(h);
+    if (fm !== null && (this.formeDonation() === null || this.provenanceForme() === 'IA')) {
+      this.formeDonation.set(fm);
+      this.provenanceForme.set('IA');
     }
-
-    // dateDonation
-    const iaDate = ai.dateDonationDetectee;
-    if (iaDate && typeof iaDate === 'string' && iaDate.trim()) {
-      if (!this.dateDonation() || this.provenanceDateDonation() === 'IA') {
-        this.dateDonation.set(iaDate);
-        this.provenanceDateDonation.set('IA');
-      }
+    const dt = DonationPrefillRules.computeDateDonation(h);
+    if (dt !== null && (!this.dateDonation() || this.provenanceDateDonation() === 'IA')) {
+      this.dateDonation.set(dt);
+      this.provenanceDateDonation.set('IA');
     }
-
-    // saineDEsprit
-    const iaSaine = ai.saineDEspritDonateurDetected;
-    if (iaSaine !== null && iaSaine !== undefined) {
-      if (this.saineDEsprit() === null
-          || this.provenanceSaineEsprit() === 'IA') {
-        this.saineDEsprit.set(iaSaine);
-        this.provenanceSaineEsprit.set('IA');
-      }
+    const se = DonationPrefillRules.computeSaineDEsprit(h);
+    if (se !== null && (this.saineDEsprit() === null || this.provenanceSaineEsprit() === 'IA')) {
+      this.saineDEsprit.set(se);
+      this.provenanceSaineEsprit.set('IA');
     }
-
-    // respectQuotiteDisponible
-    const iaQuotite = ai.respectQuotiteDisponibleDetected;
-    if (iaQuotite !== null && iaQuotite !== undefined) {
-      if (this.respectQuotiteDisponible() === null
-          || this.provenanceRespectQuotite() === 'IA') {
-        this.respectQuotiteDisponible.set(iaQuotite);
-        this.provenanceRespectQuotite.set('IA');
-      }
+    const rq = DonationPrefillRules.computeRespectQuotite(h);
+    if (rq !== null && (this.respectQuotiteDisponible() === null || this.provenanceRespectQuotite() === 'IA')) {
+      this.respectQuotiteDisponible.set(rq);
+      this.provenanceRespectQuotite.set('IA');
     }
   }
 

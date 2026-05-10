@@ -37,6 +37,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { CommunauteUniversellePrefillRules } from './communaute-universelle-section-prefill-rules';
 
 /**
  * SF-FA-16-02 : champs d'alerte F-IA-03 exposés par l'outil
@@ -89,6 +90,18 @@ export class CommunauteUniverselleSectionComponent implements OnInit, OnChanges 
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'COMMUNAUTÉ UNIVERSELLE (FR)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return CommunauteUniversellePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -439,47 +452,36 @@ export class CommunauteUniverselleSectionComponent implements OnInit, OnChanges 
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    // contratNotarie ← aiData.contratNotarieDetected.
-    const iaCn = ai.contratNotarieDetected;
-    if (iaCn !== null && iaCn !== undefined) {
-      if (this.contratNotarie() === null
-          || this.provenanceContratNotarie() === 'IA') {
-        this.contratNotarie.set(iaCn);
-        this.provenanceContratNotarie.set('IA');
-      }
+    const cn = CommunauteUniversellePrefillRules.computeContratNotarie(helperInput);
+    if (cn !== null
+        && (this.contratNotarie() === null || this.provenanceContratNotarie() === 'IA')) {
+      this.contratNotarie.set(cn);
+      this.provenanceContratNotarie.set('IA');
     }
 
-    // enfantsNonCommuns ← aiData.enfantsNonCommunsDetected.
-    const iaEn = ai.enfantsNonCommunsDetected;
-    if (iaEn !== null && iaEn !== undefined) {
-      if (this.enfantsNonCommuns() === null
-          || this.provenanceEnfantsNonCommuns() === 'IA') {
-        this.enfantsNonCommuns.set(iaEn);
-        this.provenanceEnfantsNonCommuns.set('IA');
-      }
+    const enc = CommunauteUniversellePrefillRules.computeEnfantsNonCommuns(helperInput);
+    if (enc !== null
+        && (this.enfantsNonCommuns() === null || this.provenanceEnfantsNonCommuns() === 'IA')) {
+      this.enfantsNonCommuns.set(enc);
+      this.provenanceEnfantsNonCommuns.set('IA');
     }
 
-    // clauseAttributionIntegrale ← aiData.clauseAttributionIntegraleDetected.
-    const iaCai = ai.clauseAttributionIntegraleDetected;
-    if (iaCai !== null && iaCai !== undefined) {
-      if (this.clauseAttributionIntegrale() === null
-          || this.provenanceClauseAttributionIntegrale() === 'IA') {
-        this.clauseAttributionIntegrale.set(iaCai);
-        this.provenanceClauseAttributionIntegrale.set('IA');
-      }
+    const cai = CommunauteUniversellePrefillRules.computeClauseAttributionIntegrale(helperInput);
+    if (cai !== null
+        && (this.clauseAttributionIntegrale() === null
+            || this.provenanceClauseAttributionIntegrale() === 'IA')) {
+      this.clauseAttributionIntegrale.set(cai);
+      this.provenanceClauseAttributionIntegrale.set('IA');
     }
 
-    // valeurCommunauteEur ← aiData.valeurCommunauteEurDetectee.
-    const iaValeur = ai.valeurCommunauteEurDetectee;
-    if (iaValeur !== null && iaValeur !== undefined && iaValeur >= 0) {
-      if (this.valeurCommunauteEur() === null
-          || this.provenanceValeurCommunaute() === 'IA') {
-        this.valeurCommunauteEur.set(iaValeur);
-        this.provenanceValeurCommunaute.set('IA');
-      }
+    const valeur = CommunauteUniversellePrefillRules.computeValeurCommunaute(helperInput);
+    if (valeur !== null
+        && (this.valeurCommunauteEur() === null || this.provenanceValeurCommunaute() === 'IA')) {
+      this.valeurCommunauteEur.set(valeur);
+      this.provenanceValeurCommunaute.set('IA');
     }
   }
 

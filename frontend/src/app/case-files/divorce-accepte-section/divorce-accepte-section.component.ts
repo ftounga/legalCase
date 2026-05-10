@@ -37,6 +37,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { DivorceAcceptePrefillRules } from './divorce-accepte-section-prefill-rules';
 
 /**
  * SF-FA-10-02 : champs F-IA-03 audités par l'outil F-FA-10 (divorce accepté).
@@ -91,6 +92,20 @@ export class DivorceAccepteSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DIVORCE ACCEPTÉ — ART. 233 CCIV';
   static readonly TOOL_ICON = 'how_to_vote';
+
+  /**
+   * F-236 SF-236-02 — Compteur miroir de `prefillFromAi()` via helper partagé.
+   */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return DivorceAcceptePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -359,46 +374,43 @@ export class DivorceAccepteSectionComponent implements OnInit, OnChanges {
    * (provenance === null indique modification manuelle).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé (parité runtime/static).
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    if (typeof ai.dureeMariageAnnees === 'number' && ai.dureeMariageAnnees >= 0
-        && Number.isInteger(ai.dureeMariageAnnees)) {
-      if (this.dureeMariageAnnees() === null || this.provenanceDureeMariage() === 'IA') {
-        this.dureeMariageAnnees.set(ai.dureeMariageAnnees);
-        this.provenanceDureeMariage.set('IA');
-      }
+    const duree = DivorceAcceptePrefillRules.computeDureeMariage(helperInput);
+    if (duree !== null
+        && (this.dureeMariageAnnees() === null || this.provenanceDureeMariage() === 'IA')) {
+      this.dureeMariageAnnees.set(duree);
+      this.provenanceDureeMariage.set('IA');
     }
 
-    if (typeof ai.revenusAnnuelsEpoux1Eur === 'number' && ai.revenusAnnuelsEpoux1Eur >= 0) {
-      if (this.revenusAnnuelsEpoux1Eur() === null || this.provenanceRevenusEpoux1() === 'IA') {
-        this.revenusAnnuelsEpoux1Eur.set(ai.revenusAnnuelsEpoux1Eur);
-        this.provenanceRevenusEpoux1.set('IA');
-      }
+    const r1 = DivorceAcceptePrefillRules.computeRevenusEpoux1(helperInput);
+    if (r1 !== null
+        && (this.revenusAnnuelsEpoux1Eur() === null || this.provenanceRevenusEpoux1() === 'IA')) {
+      this.revenusAnnuelsEpoux1Eur.set(r1);
+      this.provenanceRevenusEpoux1.set('IA');
     }
 
-    if (typeof ai.revenusAnnuelsEpoux2Eur === 'number' && ai.revenusAnnuelsEpoux2Eur >= 0) {
-      if (this.revenusAnnuelsEpoux2Eur() === null || this.provenanceRevenusEpoux2() === 'IA') {
-        this.revenusAnnuelsEpoux2Eur.set(ai.revenusAnnuelsEpoux2Eur);
-        this.provenanceRevenusEpoux2.set('IA');
-      }
+    const r2 = DivorceAcceptePrefillRules.computeRevenusEpoux2(helperInput);
+    if (r2 !== null
+        && (this.revenusAnnuelsEpoux2Eur() === null || this.provenanceRevenusEpoux2() === 'IA')) {
+      this.revenusAnnuelsEpoux2Eur.set(r2);
+      this.provenanceRevenusEpoux2.set('IA');
     }
 
-    if (typeof ai.patrimoineCommun === 'boolean') {
-      if (this.provenancePatrimoineCommun() === 'IA' || this.patrimoineCommun() === false) {
-        // Heuristique conservatrice : si l'avocat a déjà coché true, on n'écrase pas.
-        // Sinon on aligne sur l'IA.
-        this.patrimoineCommun.set(ai.patrimoineCommun);
-        this.provenancePatrimoineCommun.set('IA');
-      }
+    const patr = DivorceAcceptePrefillRules.computePatrimoineCommun(helperInput);
+    if (patr !== null
+        && (this.provenancePatrimoineCommun() === 'IA' || this.patrimoineCommun() === false)) {
+      // Heuristique conservatrice : si l'avocat a déjà coché true, on n'écrase pas.
+      this.patrimoineCommun.set(patr);
+      this.provenancePatrimoineCommun.set('IA');
     }
 
-    const pv = ai.dateAcceptationPV;
-    if (pv && ISO_DATE_REGEX.test(pv)) {
-      if (this.dateAcceptationPV() === null || this.provenanceDateAcceptationPV() === 'IA') {
-        this.dateAcceptationPV.set(pv);
-        this.provenanceDateAcceptationPV.set('IA');
-      }
+    const pv = DivorceAcceptePrefillRules.computeDateAcceptationPV(helperInput);
+    if (pv !== null
+        && (this.dateAcceptationPV() === null || this.provenanceDateAcceptationPV() === 'IA')) {
+      this.dateAcceptationPV.set(pv);
+      this.provenanceDateAcceptationPV.set('IA');
     }
   }
 

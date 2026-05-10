@@ -47,6 +47,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PacsDissolutionPrefillRules } from './pacs-dissolution-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -129,6 +130,18 @@ export class PacsDissolutionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DISSOLUTION PACS (FR) — ART. 515-7 CCIV';
   static readonly TOOL_ICON = 'link_off';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: Partial<FamilleExtractedData> | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return PacsDissolutionPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -434,63 +447,42 @@ export class PacsDissolutionSectionComponent implements OnInit, OnChanges {
    * (provenance === null indique modification manuelle).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // 1. Date conclusion PACS.
-    const datePacs = ai.dateConclusionPacs;
-    if (typeof datePacs === 'string' && ISO_DATE_REGEX.test(datePacs)) {
-      if (this.dateConclusionPacs() === null || this.provenanceDateConclusionPacs() === 'IA') {
-        this.dateConclusionPacs.set(datePacs);
-        this.provenanceDateConclusionPacs.set('IA');
-      }
+    const date = PacsDissolutionPrefillRules.computeDateConclusion(h);
+    if (date !== null
+        && (this.dateConclusionPacs() === null || this.provenanceDateConclusionPacs() === 'IA')) {
+      this.dateConclusionPacs.set(date);
+      this.provenanceDateConclusionPacs.set('IA');
     }
 
-    // 2. Mode dissolution.
-    const modeAi = ai.modeDissolutionPacsDetecte;
-    if (typeof modeAi === 'string' && modeAi.length > 0) {
-      const upper = modeAi.toUpperCase();
-      if (VALID_MODES.has(upper)) {
-        if (this.modeDissolution() === null || this.provenanceModeDissolution() === 'IA') {
-          this.modeDissolution.set(upper as ModeDissolutionPacs);
-          this.provenanceModeDissolution.set('IA');
-        }
-      }
+    const mode = PacsDissolutionPrefillRules.computeModeDissolution(h);
+    if (mode !== null
+        && (this.modeDissolution() === null || this.provenanceModeDissolution() === 'IA')) {
+      this.modeDissolution.set(mode);
+      this.provenanceModeDissolution.set('IA');
     }
 
-    // 3. Régime biens.
-    const regAi = ai.regimeBiensPacsDetecte;
-    if (typeof regAi === 'string' && regAi.length > 0) {
-      const upper = regAi.toUpperCase();
-      if (VALID_REGIMES.has(upper)) {
-        if (this.regimeBiens() === null || this.provenanceRegimeBiens() === 'IA') {
-          this.regimeBiens.set(upper as RegimeBiensPacs);
-          this.provenanceRegimeBiens.set('IA');
-        }
-      }
+    const reg = PacsDissolutionPrefillRules.computeRegimeBiens(h);
+    if (reg !== null
+        && (this.regimeBiens() === null || this.provenanceRegimeBiens() === 'IA')) {
+      this.regimeBiens.set(reg);
+      this.provenanceRegimeBiens.set('IA');
     }
 
-    // 4. Créances alléguées.
-    const crAi = ai.creancesAllegueesDetectees;
-    if (Array.isArray(crAi) && crAi.length > 0) {
-      const filtered = crAi
-        .filter((t): t is string => typeof t === 'string' && t.length > 0)
-        .map((t) => t.toUpperCase())
-        .filter((t) => VALID_CREANCES.has(t)) as CreanceAlleguee[];
-      if (filtered.length > 0
-          && (this.creancesAlleguees().length === 0 || this.provenanceCreancesAlleguees() === 'IA')) {
-        this.creancesAlleguees.set(filtered);
-        this.provenanceCreancesAlleguees.set('IA');
-      }
+    const cre = PacsDissolutionPrefillRules.computeCreances(h);
+    if (cre.length > 0
+        && (this.creancesAlleguees().length === 0 || this.provenanceCreancesAlleguees() === 'IA')) {
+      this.creancesAlleguees.set(cre);
+      this.provenanceCreancesAlleguees.set('IA');
     }
 
-    // 5. Patrimoine commun significatif.
-    if (typeof ai.patrimoineCommunSignificatifDetecte === 'boolean') {
-      // Heuristique : on aligne sur l'IA si pas encore touché.
-      if (this.provenancePatrimoineCommun() === 'IA' || this.patrimoineCommunSignificatif() === false) {
-        this.patrimoineCommunSignificatif.set(ai.patrimoineCommunSignificatifDetecte);
-        this.provenancePatrimoineCommun.set('IA');
-      }
+    const patr = PacsDissolutionPrefillRules.computePatrimoineCommun(h);
+    if (patr !== null
+        && (this.provenancePatrimoineCommun() === 'IA' || this.patrimoineCommunSignificatif() === false)) {
+      this.patrimoineCommunSignificatif.set(patr);
+      this.provenancePatrimoineCommun.set('IA');
     }
   }
 
