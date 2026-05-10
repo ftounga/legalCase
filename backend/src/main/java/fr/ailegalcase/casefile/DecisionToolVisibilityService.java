@@ -187,6 +187,35 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "heures_sup_mentionnees_be");
         addBooleanFlagIfTrue(detected, travailNode, "motif_grave_be_envisage");
 
+        // F-205 : 23 flags Travail FR additionnels — booleans dans travail_extracted_data.
+        // Aucune migration de visibilité dans cette SF — les flags sont propagés dès maintenant
+        // pour que F-206 (P1) et F-212 (P2) puissent les consommer sans modification ultérieure
+        // du service. Aucun outil existant n'est impacté tant que decision_tool_visibility_rules
+        // n'a pas de règle CONTEXTUAL référençant ces trigger_field.
+        addBooleanFlagIfTrue(detected, travailNode, "abandon_poste_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "arret_maladie_long_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "prise_acte_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "resiliation_judiciaire_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "forfait_jours_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "transfert_entreprise_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "faute_inexcusable_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "cs_crp_envisage");
+        addBooleanFlagIfTrue(detected, travailNode, "csp_propose");
+        addBooleanFlagIfTrue(detected, travailNode, "mutation_refusee");
+        addBooleanFlagIfTrue(detected, travailNode, "modification_contrat_refusee");
+        addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "interim_requalification_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "forfait_jours_validite_contestee");
+        addBooleanFlagIfTrue(detected, travailNode, "prescription_proche_detectee");
+        addBooleanFlagIfTrue(detected, travailNode, "rupture_amiable_negociee");
+        addBooleanFlagIfTrue(detected, travailNode, "entretien_preavis_obtenu");
+        addBooleanFlagIfTrue(detected, travailNode, "cse_consultation_demandee");
+        addBooleanFlagIfTrue(detected, travailNode, "irp_election_demandee");
+        addBooleanFlagIfTrue(detected, travailNode, "inspection_travail_saisie");
+        addBooleanFlagIfTrue(detected, travailNode, "mediation_judiciaire_envisagee");
+
         // F-201 / F-203 : 9 flags Immigration FR + 5 flags Immigration BE.
         // Migrations 213 + 214 : 14 outils Immigration FR/BE basculent ALWAYS_ON → CONTEXTUAL.
         JsonNode immigrationNode = root.path("immigration_extracted_data");

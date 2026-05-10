@@ -223,4 +223,43 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("BELGIQUE UNIQUEMENT");
         assertThat(instruction).contains("FRANCE, TOUS ces 5 flags BE DOIVENT rester false");
     }
+
+    // F-205 SF-205-01 : prompt Travail enrichi de 23 flags additionnels FR
+    @Test
+    void domainSpecificInstruction_travail_contains23F205Flags() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        // P1 — urgences procédurales (F-206)
+        assertThat(instruction).contains("abandon_poste_detecte");
+        assertThat(instruction).contains("arret_maladie_long_detecte");
+        assertThat(instruction).contains("prise_acte_envisagee");
+        assertThat(instruction).contains("resiliation_judiciaire_envisagee");
+        // P2 — fréquence haute (F-212)
+        assertThat(instruction).contains("forfait_jours_detecte");
+        assertThat(instruction).contains("transfert_entreprise_detecte");
+        assertThat(instruction).contains("faute_inexcusable_envisagee");
+        assertThat(instruction).contains("cs_crp_envisage");
+        assertThat(instruction).contains("csp_propose");
+        assertThat(instruction).contains("mutation_refusee");
+        assertThat(instruction).contains("modification_contrat_refusee");
+        assertThat(instruction).contains("faute_grave_envisagee");
+        assertThat(instruction).contains("faute_lourde_envisagee");
+        assertThat(instruction).contains("cdd_requalification_envisagee");
+        assertThat(instruction).contains("interim_requalification_envisagee");
+        assertThat(instruction).contains("forfait_jours_validite_contestee");
+        assertThat(instruction).contains("prescription_proche_detectee");
+        assertThat(instruction).contains("rupture_amiable_negociee");
+        assertThat(instruction).contains("entretien_preavis_obtenu");
+        assertThat(instruction).contains("cse_consultation_demandee");
+        assertThat(instruction).contains("irp_election_demandee");
+        assertThat(instruction).contains("inspection_travail_saisie");
+        assertThat(instruction).contains("mediation_judiciaire_envisagee");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_F205Flags_explicitlyExcludeBE() {
+        // Tous les 23 flags F-205 FR doivent rester false pour un dossier travail BE
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("F-205");
+        assertThat(instruction).contains("23 flags FR DOIVENT rester false");
+    }
 }
