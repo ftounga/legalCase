@@ -466,7 +466,14 @@ public record CaseAnalysisResponse(
             boolean procedure9terMedicaleDetectee,
             boolean regroupement40bisDetecte,
             boolean regroupement40terDetecte,
-            boolean oqtAnnexe13Detectee) {
+            boolean oqtAnnexe13Detectee,
+            // === F-235 nationalite ===
+            // Champ texte libre (ex. "Algérienne", "Tunisienne", "Française") consommé par
+            // DecisionToolVisibilityService pour activer les outils conditionnés à une
+            // nationalité bilatérale (F-IM-17 régime franco-algérien). Nullable —
+            // dossiers où l'IA n'identifie pas la nationalité ou non-immigration : null.
+            // Distinct de nationaliteUe (booléen UE vs pays tiers).
+            String nationalite) {
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure) {
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
@@ -474,7 +481,8 @@ public record CaseAnalysisResponse(
                     null, null, null, null, null,
                     null, null, null, null,
                     false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false);
+                    false, false, false, false, false,
+                    null /* F-235 nationalite */);
         }
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure,
@@ -484,7 +492,8 @@ public record CaseAnalysisResponse(
                     null, null, null, null, null,
                     null, null, null, null,
                     false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false);
+                    false, false, false, false, false,
+                    null /* F-235 nationalite */);
         }
         /** Rétrocompat 8-args pré-SF-IM-01-04. */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -496,7 +505,8 @@ public record CaseAnalysisResponse(
                     null, null, null, null, null,
                     null, null, null, null,
                     false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false);
+                    false, false, false, false, false,
+                    null /* F-235 nationalite */);
         }
         /** Rétrocompat 9-args pré-SF-155-04-00-BE-immig-FR/BE (signature SF-IM-01-04). */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -510,7 +520,8 @@ public record CaseAnalysisResponse(
                     null, null, null, null, null,
                     null, null, null, null,
                     false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false);
+                    false, false, false, false, false,
+                    null /* F-235 nationalite */);
         }
         /** Rétrocompat 14-args pré-SF-155-04-00-BE-immig-BE (signature post-SF-155-04-00-BE-immig-FR). */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -529,7 +540,50 @@ public record CaseAnalysisResponse(
                     dateHeureNotificationOqtfSansDelai, placementCraDetected,
                     null, null, null, null,
                     false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false);
+                    false, false, false, false, false,
+                    null /* F-235 nationalite */);
+        }
+        /** Rétrocompat 32-args pré-F-235 (signature post-F-201/F-203 sans nationalite). */
+        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
+                                         String typeProcedureDetectee, String dateDepotProcedure,
+                                         String typeTitreSejourCode, Boolean nationaliteUe,
+                                         String typeRecoursCode, String dateNotificationDecisionContestee,
+                                         String inferredChecklistType,
+                                         String dateNotificationOqtf, String motifOqtfCode,
+                                         DetectedAnswer recoursFormeDetected,
+                                         String dateHeureNotificationOqtfSansDelai,
+                                         Boolean placementCraDetected,
+                                         String dateNotificationAnnexe13,
+                                         Integer delaiDepartImposeJours,
+                                         String motifOqtCodeBe,
+                                         Boolean transfertImminentDetected,
+                                         boolean aesMetiersTensionEligibleDetecte,
+                                         boolean aesFamilialEligibleDetecte,
+                                         boolean aesHumanitaireEligibleDetecte,
+                                         boolean aesEtudiantEligibleDetecte,
+                                         boolean changementStatutEnvisageDetecte,
+                                         boolean procedureAsileDetectee,
+                                         boolean naturalisationEnvisageeDetectee,
+                                         boolean clientMineurDetecte,
+                                         boolean mesureEloignementDetectee,
+                                         boolean procedure9bisEnvisagee,
+                                         boolean procedure9terMedicaleDetectee,
+                                         boolean regroupement40bisDetecte,
+                                         boolean regroupement40terDetecte,
+                                         boolean oqtAnnexe13Detectee) {
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee,
+                    inferredChecklistType,
+                    dateNotificationOqtf, motifOqtfCode, recoursFormeDetected,
+                    dateHeureNotificationOqtfSansDelai, placementCraDetected,
+                    dateNotificationAnnexe13, delaiDepartImposeJours, motifOqtCodeBe, transfertImminentDetected,
+                    aesMetiersTensionEligibleDetecte, aesFamilialEligibleDetecte,
+                    aesHumanitaireEligibleDetecte, aesEtudiantEligibleDetecte,
+                    changementStatutEnvisageDetecte, procedureAsileDetectee,
+                    naturalisationEnvisageeDetectee, clientMineurDetecte, mesureEloignementDetectee,
+                    procedure9bisEnvisagee, procedure9terMedicaleDetectee,
+                    regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
+                    null /* F-235 nationalite */);
         }
     }
 
@@ -801,7 +855,9 @@ public record CaseAnalysisResponse(
                                 immigrationExtractedData.procedure9terMedicaleDetectee(),
                                 immigrationExtractedData.regroupement40bisDetecte(),
                                 immigrationExtractedData.regroupement40terDetecte(),
-                                immigrationExtractedData.oqtAnnexe13Detectee()
+                                immigrationExtractedData.oqtAnnexe13Detectee(),
+                                // F-235 : préserver la nationalite (texte libre)
+                                immigrationExtractedData.nationalite()
                         );
                     }
                 }
@@ -1570,6 +1626,10 @@ public record CaseAnalysisResponse(
         boolean regroupement40bis = booleanOrFalse(root, "regroupement_40bis_detecte");
         boolean regroupement40ter = booleanOrFalse(root, "regroupement_40ter_detecte");
         boolean oqtAnnexe13 = booleanOrFalse(root, "oqt_annexe13_detectee");
+        // F-235 : nationalite (texte libre, ex. "Algérienne") — consommée par
+        // DecisionToolVisibilityService pour activer F-IM-17 et autres outils
+        // décisionnels conditionnés à un régime national bilatéral.
+        String nationalite = textOrNull(root, "nationalite");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -1581,7 +1641,8 @@ public record CaseAnalysisResponse(
                 && !changementStatut && !procedureAsile && !naturalisationEnvisagee
                 && !clientMineur && !mesureEloignement
                 && !procedure9bis && !procedure9ter && !regroupement40bis
-                && !regroupement40ter && !oqtAnnexe13) return null;
+                && !regroupement40ter && !oqtAnnexe13
+                && nationalite == null) return null;
         return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot,
                 typeCode, nationaliteUe, recoursCode, dateNotif, null,
                 // SF-155-04-00-BE-immig-FR : 5 champs pour F-IM-08-02 / F-IM-08-04
@@ -1594,7 +1655,9 @@ public record CaseAnalysisResponse(
                 changementStatut, procedureAsile, naturalisationEnvisagee,
                 clientMineur, mesureEloignement,
                 // F-203 : 5 flags Immigration BE
-                procedure9bis, procedure9ter, regroupement40bis, regroupement40ter, oqtAnnexe13);
+                procedure9bis, procedure9ter, regroupement40bis, regroupement40ter, oqtAnnexe13,
+                // F-235 : nationalite (texte libre)
+                nationalite);
     }
 
     /**
