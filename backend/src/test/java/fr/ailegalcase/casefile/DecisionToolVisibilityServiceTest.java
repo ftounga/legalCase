@@ -688,6 +688,102 @@ class DecisionToolVisibilityServiceTest {
         when(ruleRepository.findForDomainAndCountry("DROIT_DU_TRAVAIL", "FRANCE")).thenReturn(rules);
     }
 
+    // ─────────────────────── F-235 SF-235-01/02 — nationalite + F-IM-17 CONTEXTUAL ─────────────────────
+
+    @Test
+    void f235_immigrationFr_nationaliteAlgerienne_active_F_IM_17() {
+        givenImmigrationFrRulesF235();
+        mockCaseFile("DROIT_IMMIGRATION", "FRANCE");
+        mockLatestAnalysisJson(
+                "{\"immigration_extracted_data\":{\"nationalite\":\"Algérienne\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-IM-17-regime-algerien");
+        assertThat(r.catalog()).doesNotContain("F-IM-17-regime-algerien");
+    }
+
+    @Test
+    void f235_immigrationFr_nationaliteAlgerienne_lowercase_normalised_titlecase() {
+        // Vérifie la normalisation titlecase : "algerienne" → "Algérienne" via
+        // Character.toUpperCase + toLowerCase Locale.FRENCH. Note : les accents
+        // ne sont PAS ajoutés (le prompt IA est instruit d'utiliser la forme
+        // accentuée native — "Algérienne"). Ce test couvre la robustesse au cas
+        // où l'IA retournerait "Algérienne" ou "ALGÉRIENNE".
+        givenImmigrationFrRulesF235();
+        mockCaseFile("DROIT_IMMIGRATION", "FRANCE");
+        mockLatestAnalysisJson(
+                "{\"immigration_extracted_data\":{\"nationalite\":\"ALGÉRIENNE\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-IM-17-regime-algerien");
+    }
+
+    @Test
+    void f235_immigrationFr_nationaliteAutre_F_IM_17_dans_catalog() {
+        givenImmigrationFrRulesF235();
+        mockCaseFile("DROIT_IMMIGRATION", "FRANCE");
+        mockLatestAnalysisJson(
+                "{\"immigration_extracted_data\":{\"nationalite\":\"Tunisienne\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).doesNotContain("F-IM-17-regime-algerien");
+        assertThat(r.catalog()).contains("F-IM-17-regime-algerien");
+    }
+
+    @Test
+    void f235_immigrationFr_nationaliteAbsente_F_IM_17_dans_catalog() {
+        givenImmigrationFrRulesF235();
+        mockCaseFile("DROIT_IMMIGRATION", "FRANCE");
+        mockLatestAnalysisJson(
+                "{\"immigration_extracted_data\":{\"type_titre_sejour\":\"Carte de résident\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).doesNotContain("F-IM-17-regime-algerien");
+        assertThat(r.catalog()).contains("F-IM-17-regime-algerien");
+    }
+
+    @Test
+    void f235_immigrationFr_immigrationExtractedDataAbsent_F_IM_17_dans_catalog() {
+        givenImmigrationFrRulesF235();
+        mockCaseFile("DROIT_IMMIGRATION", "FRANCE");
+        mockLatestAnalysisJson("{\"compensation_data\":{}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).doesNotContain("F-IM-17-regime-algerien");
+        assertThat(r.catalog()).contains("F-IM-17-regime-algerien");
+    }
+
+    @Test
+    void f235_normalizeTitleCase_helper_handles_edge_cases() {
+        // Helper unitaire (paquet-private static) — couverture pure.
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase("Algérienne")).isEqualTo("Algérienne");
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase("ALGÉRIENNE")).isEqualTo("Algérienne");
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase("algérienne")).isEqualTo("Algérienne");
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase("  Tunisienne  ")).isEqualTo("Tunisienne");
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase(null)).isNull();
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase("")).isNull();
+        assertThat(DecisionToolVisibilityService.normalizeTitleCase("   ")).isNull();
+    }
+
+    /**
+     * Reproduit le seeding réel post F-235 SF-235-02 (migration 222) :
+     * F-IM-17 CONTEXTUAL avec trigger nationalite='Algérienne'.
+     */
+    private void givenImmigrationFrRulesF235() {
+        List<DecisionToolVisibilityRule> rules = new ArrayList<>();
+        // Quelques ALWAYS_ON Immigration FR pour réalisme
+        rules.add(rule("DROIT_IMMIGRATION", "FRANCE", "F-IM-05-arbre-decisionnel-titre", ALWAYS_ON, null, null, 10));
+        rules.add(rule("DROIT_IMMIGRATION", "FRANCE", "F-IM-07-droit-au-travail", ALWAYS_ON, null, null, 20));
+        // F-235 SF-235-02 : F-IM-17 CONTEXTUAL nationalite='Algérienne'
+        rules.add(rule("DROIT_IMMIGRATION", "FRANCE", "F-IM-17-regime-algerien", CONTEXTUAL, "nationalite", "Algérienne", 77));
+        when(ruleRepository.findForDomainAndCountry("DROIT_IMMIGRATION", "FRANCE")).thenReturn(rules);
+    }
+
     // ─────────────────────────── Helpers ────────────────────────────────────
 
     private void givenTravailFrRules() {

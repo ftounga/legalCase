@@ -236,6 +236,16 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
 
+        // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
+        // les règles CONTEXTUAL conditionnées à un régime national bilatéral
+        // (F-IM-17 algérien, ouverture future tunisien/marocain/sénégalais).
+        // Lue depuis immigration_extracted_data.nationalite ; root.nationalite en fallback
+        // pour rétrocompat. Skip silencieux si absente, null ou blank.
+        addIfPresent(detected, "nationalite",
+                normalizeTitleCase(readString(immigrationNode.path("nationalite"))));
+        addIfPresent(detected, "nationalite",
+                normalizeTitleCase(readString(root.path("nationalite"))));
+
         // F-200 + F-202 : flags Famille FR (30) + Famille BE (5) — booleans dans famille_extracted_data.
         //   F-200 (migration 216) : 30 outils Famille FR ALWAYS_ON → CONTEXTUAL.
         //   F-202 (migration 217) : F-FA-11-desunion-irremediable-be ALWAYS_ON → CONTEXTUAL
@@ -338,6 +348,31 @@ public class DecisionToolVisibilityService {
         if (isTrue) {
             addIfPresent(detected, field, "true");
         }
+    }
+
+    /**
+     * F-235 : normalise une nationalité texte libre en titlecase (1ʳᵉ majuscule,
+     * reste minuscule). Préserve les accents. Exemples :
+     * <ul>
+     *   <li>{@code "algerienne"} → {@code "Algerienne"}</li>
+     *   <li>{@code "ALGÉRIENNE"} → {@code "Algérienne"}</li>
+     *   <li>{@code "Algérienne"} → {@code "Algérienne"} (idempotent)</li>
+     *   <li>{@code "  tunisienne  "} → {@code "Tunisienne"}</li>
+     *   <li>{@code null} ou blank → {@code null}</li>
+     * </ul>
+     * <p>Note : la normalisation des accents (ex. "algerienne" → "Algérienne")
+     * n'est pas effectuée — l'IA est instruite via le prompt d'utiliser les
+     * adjectifs avec accent natifs ("Algérienne"). Ce helper assure uniquement
+     * la cohérence de capitalisation pour le matching CONTEXTUAL.</p>
+     */
+    static String normalizeTitleCase(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return null;
+        // 1ʳᵉ lettre en majuscule (locale FR pour gérer correctement les accents),
+        // reste en minuscule.
+        return Character.toUpperCase(trimmed.charAt(0))
+                + trimmed.substring(1).toLowerCase(java.util.Locale.FRENCH);
     }
 
     private static String readString(JsonNode node) {

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="222-shift-fim17-regime-algerien-contextual" author="legalcase">
+        <comment>
+            F-235 SF-235-02 : conversion ALWAYS_ON → CONTEXTUAL pour F-IM-17
+            (régime franco-algérien — Accord 27/12/1968 + avenants 1985/1994/2001).
+
+            SF-235-01 (cette PR, partie code) a livré l'extension du mécanisme
+            extractDetectedSituations dans DecisionToolVisibilityService pour
+            propager le champ texte 'nationalite' (extrait par l'IA dans
+            immigration_extracted_data.nationalite) avec normalisation titlecase
+            ("algerienne" → "Algérienne"). C'était le blocage qui forçait F-IM-17
+            à rester ALWAYS_ON malgré F-201 (cf. commentaire migration 213).
+
+            Effet final : F-IM-17 n'apparaît dans le panel F-IA-04 que pour les
+            dossiers Immigration FR avec nationalite='Algérienne'. Pour les
+            ~95 % de dossiers Immigration FR non concernés, F-IM-17 bascule
+            dans le catalog (accessible via "Voir tous les outils").
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20100170 (parallèle au
+            namespace F-201 'eeee20100' pour Immigration FR).
+
+            Audit "Impact F-166 cross-C×D" :
+              - FR × Travail : aucun impact.
+              - FR × Immigration : impact direct (ALWAYS_ON → CONTEXTUAL).
+              - FR × Famille : aucun impact.
+              - BE × Travail : aucun impact (country='FRANCE' filtre).
+              - BE × Immigration : aucun impact (country='FRANCE' filtre).
+              - BE × Famille : aucun impact.
+
+            Audit "exhaustivité droit national FR" :
+              Source : Accord franco-algérien du 27/12/1968 (régime spécial
+              dérogatoire au CESEDA pour les ressortissants algériens).
+              Équivalent BE : aucun accord bilatéral spécifique BE-Algérie.
+              Pas d'entrée jumelle BE requise.
+              Ouvertures futures (backlog F-220) : Tunisie 1988, Maroc 1983,
+              Sénégal 2006 — même pattern (CONTEXTUAL sur nationalite=...).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : entrée ALWAYS_ON F-IM-17 existante (migration 176)
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-ee0000000176';
+
+-- =========================================================================
+-- INSERT : nouvelle entrée CONTEXTUAL avec trigger nationalite='Algérienne'
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100170', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-17-regime-algerien', 'CONTEXTUAL', 'nationalite', 'Algérienne', 77);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20100170';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000176', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-17-regime-algerien', 'ALWAYS_ON', NULL, NULL, 77);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
