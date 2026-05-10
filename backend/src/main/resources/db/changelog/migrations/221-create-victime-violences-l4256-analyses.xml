@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="221-create-victime-violences-l4256-analyses" author="legalcase">
+        <comment>
+            SF-208-04 : table dédiée à l'outil décisionnel "Titre vie privée et familiale
+            victime de violences" (CESEDA L.425-6, ancien L.316-3).
+            Analyse l'éligibilité à un titre VPF de plein droit pour étranger bénéficiant
+            d'une ordonnance de protection JAF (Cciv 515-9 à 515-13). Verdict en 3 niveaux :
+            ELIGIBLE_PLEIN_DROIT / ELIGIBLE_SOUS_RESERVE / NON_ELIGIBLE.
+            Outil single-country FRANCE — mécanisme spécifique français articulé avec
+            l'ordonnance de protection JAF (régime BE distinct, traité par F-209 si pertinent).
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE) — pas de
+            flag IA dédié `victime_violences_conjugales_detectee` aujourd'hui ; ALWAYS_ON
+            pour permettre à l'avocat de saisir proactivement (urgence + protection).
+            À reconvertir CONTEXTUAL quand un flag dédié sera ajouté (F-205+).
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Immigration FR.
+            Audit "exhaustivité droit national FR" : équivalent BE = mécanisme distinct,
+            non équivalent strict (Loi 15/12/1980 art. 11 §2/9bis). Différé F-209.
+        </comment>
+
+        <createTable tableName="victime_violences_l4256_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_victime_violences_l4256_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_ordonnance_protection" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="juridiction" type="varchar(80)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_protection_mois" type="int" defaultValueNumeric="6">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_expiration_protection" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="enfants_a_charge" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nationalite" type="varchar(80)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="victime_violences_l4256_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_victime_violences_l4256_analyses_case_file"/>
+
+        <createIndex tableName="victime_violences_l4256_analyses"
+                     indexName="idx_victime_violences_l4256_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20800240', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-24-victime-violences-l4256-fr', 'ALWAYS_ON', NULL, NULL, 73);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-eeee20800240';
+            </sql>
+            <dropTable tableName="victime_violences_l4256_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
