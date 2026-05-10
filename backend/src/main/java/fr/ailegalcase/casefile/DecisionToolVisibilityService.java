@@ -207,10 +207,15 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
 
-        // F-200 : 30 flags Famille FR — booleans dans famille_extracted_data.
-        // Migration 216 : 30 outils Famille FR basculent ALWAYS_ON → CONTEXTUAL.
-        // Famille BE : tous false (régimes BE équivalents distincts → F-202).
+        // F-200 + F-202 : flags Famille FR (30) + Famille BE (5) — booleans dans famille_extracted_data.
+        //   F-200 (migration 216) : 30 outils Famille FR ALWAYS_ON → CONTEXTUAL.
+        //   F-202 (migration 217) : F-FA-11-desunion-irremediable-be ALWAYS_ON → CONTEXTUAL
+        //     (trigger divorce_ddi_envisage). Les 4 autres flags BE sont prêts pour les outils
+        //     MANQUE Famille BE futurs (F-211/F-217+ — cohabitation légale, pacte successoral,
+        //     kafala, DC).
+        // Dossiers Famille FR : flags BE tous false (et inversement).
         JsonNode familleNode = root.path("famille_extracted_data");
+        // === Flags FR (F-200) — 30 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_consentement_mutuel_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_alteration_lien_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_faute_envisage");
@@ -241,6 +246,12 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, familleNode, "protection_majeur_envisagee");
         addBooleanFlagIfTrue(detected, familleNode, "changement_etat_civil_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "pma_gpa_envisagee");
+        // === Flags BE (F-202) — 5 ===
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "cohabitation_legale_be_detectee");
+        addBooleanFlagIfTrue(detected, familleNode, "pacte_successoral_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "kafala_recueil_detecte");
         return detected;
     }
 

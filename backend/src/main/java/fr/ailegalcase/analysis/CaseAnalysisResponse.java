@@ -44,8 +44,46 @@ public record CaseAnalysisResponse(
         List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios,
         // F-152 : validité divorce consentement mutuel (famille, null hors domaine famille).
         DivorceConsentementValidityDetection divorceConsentementValidityDetection,
-        DivorceConsentementScoring divorceConsentementScoring
+        DivorceConsentementScoring divorceConsentementScoring,
+        // F-202 : flags décisionnels niveau 3 Famille BE (FR ajoutés ultérieurement par F-200).
+        // Null hors domaine famille.
+        FamilleExtractedData familleExtractedData
 ) {
+
+    /**
+     * Constructeur rétrocompat 29-args (pré-F-202) — délègue avec
+     * {@code familleExtractedData = null}.
+     */
+    public CaseAnalysisResponse(UUID id, int version, String analysisType, String status,
+                                List<TimelineEntry> timeline,
+                                List<AnalysisItem> faits, List<AnalysisItem> pointsJuridiques,
+                                List<AnalysisItem> risques, List<String> questionsOuvertes,
+                                List<String> piecesManquantes, List<String> pointsProcedure,
+                                String riskLevel, Integer riskScore, String modelUsed,
+                                Instant updatedAt, List<AnalysisDocumentEntry> analysisDocuments,
+                                CompensationCalculator.CompensationEstimate compensationEstimate,
+                                BelgianCompensationCalculator.BelgianCompensationEstimate belgianCompensationEstimate,
+                                PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
+                                PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
+                                LiquidationCommunauteResult liquidationCommunaute,
+                                TravailExtractedData travailExtractedData,
+                                ImmigrationExtractedData immigrationExtractedData,
+                                LicenciementValidityDetection licenciementValidityDetection,
+                                RuptureConvValidityDetection ruptureConvValidityDetection,
+                                List<PieceManquanteEntry> piecesManquantesDetails,
+                                List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents,
+                                List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios,
+                                DivorceConsentementValidityDetection divorceConsentementValidityDetection,
+                                DivorceConsentementScoring divorceConsentementScoring) {
+        this(id, version, analysisType, status, timeline, faits, pointsJuridiques, risques,
+                questionsOuvertes, piecesManquantes, pointsProcedure, riskLevel, riskScore, modelUsed,
+                updatedAt, analysisDocuments, compensationEstimate, belgianCompensationEstimate,
+                pensionAlimentaireEstimate, prestationCompensatoireEstimate, liquidationCommunaute,
+                travailExtractedData, immigrationExtractedData, licenciementValidityDetection,
+                ruptureConvValidityDetection, piecesManquantesDetails, immigrationTriggerEvents,
+                immigrationStrategyScenarios, divorceConsentementValidityDetection,
+                divorceConsentementScoring, null);
+    }
 
     /** Constructeur rétrocompat sans trigger events (pré-F-150). */
     public CaseAnalysisResponse(UUID id, int version, String analysisType, String status,
@@ -401,23 +439,49 @@ public record CaseAnalysisResponse(
         }
     }
 
+    static final Set<String> IMMIGRATION_TITLE_CODES = Set.of(
+            "VLS_TS_ETUDIANT", "VLS_TS_SALARIE", "CST_SALARIE", "CARTE_PLURIANNUELLE",
+            // SF-IM-07-04 : sous-types explicites de la carte pluriannuelle (droit
+            // au travail différent selon le motif).
+            "CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE", "CARTE_PLURIANNUELLE_SALARIE",
+            "CARTE_PLURIANNUELLE_PASSEPORT_TALENT", "CARTE_PLURIANNUELLE_VPF",
+            "CARTE_RESIDENT", "APS", "CST_VPF",
+            // SF-IM-07-04 : code parallèle à CST_VPF pour conjoint de Français (L.423-1).
+            "CST_VPF_CONJOINT_FR",
+            "RECEPISSE_ASILE",
+            "CARTE_A_TRAVAIL", "CARTE_A_ETUDES", "CARTE_A_FAMILLE",
+            "CARTE_B", "CARTE_C", "PERMIS_UNIQUE", "ANNEXE_15", "ATTESTATION_IMMATRICULATION"
+    );
+
+    static final Set<String> IMMIGRATION_RECOURS_CODES = Set.of(
+            "RECOURS_GRACIEUX_PREFET", "RECOURS_CONTENTIEUX_TA", "RECOURS_CNDA",
+            "RECOURS_CGRA", "RECOURS_CCE", "RECOURS_CE_BELGIQUE"
+    );
+
     /**
-     * F-200 — 30 flags décisionnels niveau 3, FRANCE UNIQUEMENT, parsés depuis le noeud JSON
-     * top-level {@code famille_extracted_data}. Permettent à F-IA-04 de basculer 30 outils
-     * Famille FR ALWAYS_ON → CONTEXTUAL (réduction attendue −91 % cards par défaut).
+     * SF-155-04-00-BE-immig-BE : codes de motif OQT belges pour pré-fill F-IM-08 Annexe 13.
+     * Exactement alignés sur {@code Annexe13BeCalculator.MOTIFS_VALIDES} (art. 7 Loi 15/12/1980)
+     * — toute divergence casserait le pré-fill en silence côté frontend.
+     */
+    static final Set<String> MOTIFS_OQT_BE_CODES = Set.of(
+            "SEJOUR_IRREGULIER_ART_7", "REFUS_SEJOUR_APRES_DEMANDE",
+            "FIN_SEJOUR_REGULIER", "AUTRE"
+    );
+
+    /**
+     * Famille — agrégat des flags décisionnels niveau 3 (FR + BE) extraits depuis la clé
+     * {@code famille_extracted_data} du JSON IA, pour permettre à F-IA-04 de basculer les
+     * outils Famille ALWAYS_ON → CONTEXTUAL (cf. F-166 pattern).
      *
-     * <p>Pour un dossier famille BELGIQUE, tous les flags doivent rester false (les régimes BE
-     * équivalents — succession Wallonie/Bruxelles/Flandre, partage UC, art. 229+ CC belge,
-     * juge de la paix, juge de la jeunesse, SECAL, etc. — sont distincts, traités par F-202).
-     *
-     * <p>À la différence d'{@link ImmigrationExtractedData} et de {@link TravailExtractedData},
-     * cette structure n'est pas (encore) thread à travers le record principal
-     * {@link CaseAnalysisResponse} : les flags sont consommés directement par
-     * {@code DecisionToolVisibilityService.extractDetectedSituations} pour décider de la
-     * visibilité des outils. Si une SF ultérieure introduit du pré-fill IA frontend pour ces
-     * 30 flags, elle étendra le record principal avec rétrocompat.
+     * <p>F-200 (FR) livre 30 flags décisionnels niveau 3 en tête. F-202 (BE) livre 5 flags
+     * décisionnels niveau 3 en queue — un dossier FR a tous les flags BE à false et
+     * inversement, conformément aux instructions du prompt {@code FAMILLE_INSTRUCTION}.
      */
     public record FamilleExtractedData(
+            // === Flags FR (F-200) — 30 flags ===
+            // Permettent à F-IA-04 de basculer 30 outils Famille FR ALWAYS_ON → CONTEXTUAL
+            // (migration 216). Dossiers BE : tous false (les régimes BE équivalents
+            // sont gérés par les flags BE F-202 en queue de ce record).
             // 4 cas de divorce (F-FA-07/08/09/10)
             boolean divorceConsentementMutuelEnvisage,
             boolean divorceAlterationLienEnvisage,
@@ -458,36 +522,16 @@ public record CaseAnalysisResponse(
             // État civil (F-FA-26)
             boolean changementEtatCivilEnvisage,
             // PMA / GPA (F-FA-27)
-            boolean pmaGpaEnvisagee) {}
-
-    static final Set<String> IMMIGRATION_TITLE_CODES = Set.of(
-            "VLS_TS_ETUDIANT", "VLS_TS_SALARIE", "CST_SALARIE", "CARTE_PLURIANNUELLE",
-            // SF-IM-07-04 : sous-types explicites de la carte pluriannuelle (droit
-            // au travail différent selon le motif).
-            "CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE", "CARTE_PLURIANNUELLE_SALARIE",
-            "CARTE_PLURIANNUELLE_PASSEPORT_TALENT", "CARTE_PLURIANNUELLE_VPF",
-            "CARTE_RESIDENT", "APS", "CST_VPF",
-            // SF-IM-07-04 : code parallèle à CST_VPF pour conjoint de Français (L.423-1).
-            "CST_VPF_CONJOINT_FR",
-            "RECEPISSE_ASILE",
-            "CARTE_A_TRAVAIL", "CARTE_A_ETUDES", "CARTE_A_FAMILLE",
-            "CARTE_B", "CARTE_C", "PERMIS_UNIQUE", "ANNEXE_15", "ATTESTATION_IMMATRICULATION"
-    );
-
-    static final Set<String> IMMIGRATION_RECOURS_CODES = Set.of(
-            "RECOURS_GRACIEUX_PREFET", "RECOURS_CONTENTIEUX_TA", "RECOURS_CNDA",
-            "RECOURS_CGRA", "RECOURS_CCE", "RECOURS_CE_BELGIQUE"
-    );
-
-    /**
-     * SF-155-04-00-BE-immig-BE : codes de motif OQT belges pour pré-fill F-IM-08 Annexe 13.
-     * Exactement alignés sur {@code Annexe13BeCalculator.MOTIFS_VALIDES} (art. 7 Loi 15/12/1980)
-     * — toute divergence casserait le pré-fill en silence côté frontend.
-     */
-    static final Set<String> MOTIFS_OQT_BE_CODES = Set.of(
-            "SEJOUR_IRREGULIER_ART_7", "REFUS_SEJOUR_APRES_DEMANDE",
-            "FIN_SEJOUR_REGULIER", "AUTRE"
-    );
+            boolean pmaGpaEnvisagee,
+            // === Flags BE (F-202) — 5 flags ===
+            // F-202 : 5 flags décisionnels niveau 3 — Famille BELGIQUE uniquement, default false.
+            // Permettent à F-IA-04 de basculer les outils Famille BE ALWAYS_ON → CONTEXTUAL
+            // (migration 217). Dossiers FR : tous false.
+            boolean divorceDcEnvisage,
+            boolean divorceDdiEnvisage,
+            boolean cohabitationLegaleBeDetectee,
+            boolean pacteSuccessoralEnvisage,
+            boolean kafalaRecueilDetecte) {}
 
     public record TimelineEntry(String date, String evenement) {}
 
@@ -577,6 +621,8 @@ public record CaseAnalysisResponse(
         List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios = List.of();
         DivorceConsentementValidityDetection divorceConsentementValidityDetection = null;
         DivorceConsentementScoring divorceConsentementScoring = null;
+        // F-202 : flags Famille BE (F-200 ajoutera les flags FR ultérieurement).
+        FamilleExtractedData familleExtractedData = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -602,6 +648,8 @@ public record CaseAnalysisResponse(
                 immigrationStrategyScenarios = extractImmigrationStrategyScenarios(root);
                 divorceConsentementValidityDetection = extractDivorceConsentementValidityDetection(root);
                 divorceConsentementScoring = computeDivorceConsentementScoring(divorceConsentementValidityDetection);
+                // F-202 SF-202-01 : 5 flags Famille BE (la fonction retourne null si tous false ou clé absente).
+                familleExtractedData = extractFamilleData(root);
 
                 // SF-IM-01-04 : enrichit ImmigrationExtractedData avec le type de
                 // checklist inféré (combine titre actuel + titre cible suggéré par
@@ -698,7 +746,8 @@ public record CaseAnalysisResponse(
                 immigrationTriggerEvents,
                 immigrationStrategyScenarios,
                 divorceConsentementValidityDetection,
-                divorceConsentementScoring
+                divorceConsentementScoring,
+                familleExtractedData
         );
     }
 
@@ -727,7 +776,8 @@ public record CaseAnalysisResponse(
                     base.ruptureConvValidityDetection(),
                     base.piecesManquantesDetails(),
                     base.immigrationTriggerEvents(), base.immigrationStrategyScenarios(),
-                    base.divorceConsentementValidityDetection(), base.divorceConsentementScoring());
+                    base.divorceConsentementValidityDetection(), base.divorceConsentementScoring(),
+                    base.familleExtractedData());
         }
         return base;
     }
@@ -1428,62 +1478,6 @@ public record CaseAnalysisResponse(
     }
 
     /**
-     * F-200 — extrait les 30 flags décisionnels niveau 3 Famille FR depuis le noeud
-     * {@code famille_extracted_data}. Tous les flags fail-safe à false si le noeud est absent,
-     * malformé ou si le champ booléen est absent (pattern strictement aligné sur
-     * {@link #booleanOrFalse}).
-     *
-     * <p>Retourne {@code null} si tous les flags sont false (évite de stocker un objet inutile
-     * dans la sortie JSON pour les dossiers non Famille FR ou sans flag détecté).
-     */
-    static FamilleExtractedData extractFamilleData(JsonNode root) {
-        JsonNode node = root == null ? null : root.path("famille_extracted_data");
-        if (node == null || node.isMissingNode() || !node.isObject()) {
-            return null;
-        }
-        boolean dcm = booleanOrFalse(node, "divorce_consentement_mutuel_envisage");
-        boolean dal = booleanOrFalse(node, "divorce_alteration_lien_envisage");
-        boolean dfa = booleanOrFalse(node, "divorce_faute_envisage");
-        boolean dac = booleanOrFalse(node, "divorce_accepte_envisage");
-        boolean rev = booleanOrFalse(node, "revision_post_divorce_envisagee");
-        boolean op = booleanOrFalse(node, "ordonnance_protection_envisagee");
-        boolean rec = booleanOrFalse(node, "recompenses_envisagees");
-        boolean rcu = booleanOrFalse(node, "regime_communaute_universelle_detecte");
-        boolean pj = booleanOrFalse(node, "partage_judiciaire_envisage");
-        boolean ado = booleanOrFalse(node, "adoption_envisagee");
-        boolean rp = booleanOrFalse(node, "reconnaissance_paternelle_envisagee");
-        boolean cp = booleanOrFalse(node, "contestation_paternite_envisagee");
-        boolean rche = booleanOrFalse(node, "recherche_paternite_envisagee");
-        boolean pe = booleanOrFalse(node, "possession_etat_envisagee");
-        boolean cr = booleanOrFalse(node, "changement_residence_envisage");
-        boolean dp = booleanOrFalse(node, "desaccord_parental_detecte");
-        boolean pd = booleanOrFalse(node, "pacs_dissolution_envisagee");
-        boolean sc = booleanOrFalse(node, "separation_corps_envisagee");
-        boolean ind = booleanOrFalse(node, "indivision_envisagee");
-        boolean or = booleanOrFalse(node, "ordonnance_requete_envisagee");
-        boolean su = booleanOrFalse(node, "succession_envisagee");
-        boolean te = booleanOrFalse(node, "testament_envisage");
-        boolean don = booleanOrFalse(node, "donation_envisagee");
-        boolean rh = booleanOrFalse(node, "reserve_hereditaire_envisagee");
-        boolean ps = booleanOrFalse(node, "partage_successoral_envisage");
-        boolean iss = booleanOrFalse(node, "indivision_successorale_envisagee");
-        boolean rs = booleanOrFalse(node, "rapport_succession_envisage");
-        boolean pm = booleanOrFalse(node, "protection_majeur_envisagee");
-        boolean cec = booleanOrFalse(node, "changement_etat_civil_envisage");
-        boolean pmg = booleanOrFalse(node, "pma_gpa_envisagee");
-        if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
-                && !ado && !rp && !cp && !rche && !pe && !cr && !dp
-                && !pd && !sc && !ind && !or
-                && !su && !te && !don && !rh && !ps && !iss && !rs
-                && !pm && !cec && !pmg) {
-            return null;
-        }
-        return new FamilleExtractedData(dcm, dal, dfa, dac, rev, op, rec, rcu, pj,
-                ado, rp, cp, rche, pe, cr, dp, pd, sc, ind, or,
-                su, te, don, rh, ps, iss, rs, pm, cec, pmg);
-    }
-
-    /**
      * SF-155-04-00-BE-immig-FR : valide l'horodatage OQTF sans délai via regex permissive.
      * Accepte {@code YYYY-MM-DDTHH:mm} et {@code YYYY-MM-DDTHH:mm:ss}. Retourne {@code null}
      * pour tout autre format (fail-open).
@@ -1549,5 +1543,69 @@ public record CaseAnalysisResponse(
     private static boolean booleanOrFalse(JsonNode node, String field) {
         Boolean v = booleanOrNull(node, field);
         return v != null && v;
+    }
+
+    /**
+     * F-200 + F-202 : parseur des 30 flags Famille FR (F-200) + 5 flags Famille BE (F-202)
+     * depuis la clé {@code famille_extracted_data} du JSON IA. Retourne {@code null} si la
+     * clé est absente / non-objet (cas dossiers Travail / Immigration où l'IA n'émet pas
+     * ce nœud) ou si tous les flags sont à false (économie mémoire — la map de visibilité
+     * ne lit que les flags à true via {@code addBooleanFlagIfTrue}).
+     */
+    static FamilleExtractedData extractFamilleData(JsonNode root) {
+        JsonNode node = root.get("famille_extracted_data");
+        if (node == null || !node.isObject()) return null;
+        // === Flags FR (F-200) === — 30 flags fail-safe à false
+        boolean dcm = booleanOrFalse(node, "divorce_consentement_mutuel_envisage");
+        boolean dal = booleanOrFalse(node, "divorce_alteration_lien_envisage");
+        boolean dfa = booleanOrFalse(node, "divorce_faute_envisage");
+        boolean dac = booleanOrFalse(node, "divorce_accepte_envisage");
+        boolean rev = booleanOrFalse(node, "revision_post_divorce_envisagee");
+        boolean op = booleanOrFalse(node, "ordonnance_protection_envisagee");
+        boolean rec = booleanOrFalse(node, "recompenses_envisagees");
+        boolean rcu = booleanOrFalse(node, "regime_communaute_universelle_detecte");
+        boolean pj = booleanOrFalse(node, "partage_judiciaire_envisage");
+        boolean ado = booleanOrFalse(node, "adoption_envisagee");
+        boolean rp = booleanOrFalse(node, "reconnaissance_paternelle_envisagee");
+        boolean cp = booleanOrFalse(node, "contestation_paternite_envisagee");
+        boolean rche = booleanOrFalse(node, "recherche_paternite_envisagee");
+        boolean pe = booleanOrFalse(node, "possession_etat_envisagee");
+        boolean cr = booleanOrFalse(node, "changement_residence_envisage");
+        boolean dp = booleanOrFalse(node, "desaccord_parental_detecte");
+        boolean pd = booleanOrFalse(node, "pacs_dissolution_envisagee");
+        boolean sc = booleanOrFalse(node, "separation_corps_envisagee");
+        boolean ind = booleanOrFalse(node, "indivision_envisagee");
+        boolean or = booleanOrFalse(node, "ordonnance_requete_envisagee");
+        boolean su = booleanOrFalse(node, "succession_envisagee");
+        boolean te = booleanOrFalse(node, "testament_envisage");
+        boolean don = booleanOrFalse(node, "donation_envisagee");
+        boolean rh = booleanOrFalse(node, "reserve_hereditaire_envisagee");
+        boolean ps = booleanOrFalse(node, "partage_successoral_envisage");
+        boolean iss = booleanOrFalse(node, "indivision_successorale_envisagee");
+        boolean rs = booleanOrFalse(node, "rapport_succession_envisage");
+        boolean pm = booleanOrFalse(node, "protection_majeur_envisagee");
+        boolean cec = booleanOrFalse(node, "changement_etat_civil_envisage");
+        boolean pmg = booleanOrFalse(node, "pma_gpa_envisagee");
+        // === Flags BE (F-202) === — 5 flags fail-safe à false
+        boolean divorceDc = booleanOrFalse(node, "divorce_dc_envisage");
+        boolean divorceDdi = booleanOrFalse(node, "divorce_ddi_envisage");
+        boolean cohabitationLegale = booleanOrFalse(node, "cohabitation_legale_be_detectee");
+        boolean pacteSuccessoral = booleanOrFalse(node, "pacte_successoral_envisage");
+        boolean kafalaRecueil = booleanOrFalse(node, "kafala_recueil_detecte");
+        if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
+                && !ado && !rp && !cp && !rche && !pe && !cr && !dp
+                && !pd && !sc && !ind && !or
+                && !su && !te && !don && !rh && !ps && !iss && !rs
+                && !pm && !cec && !pmg
+                && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
+            return null;
+        }
+        return new FamilleExtractedData(
+                // FR (30)
+                dcm, dal, dfa, dac, rev, op, rec, rcu, pj,
+                ado, rp, cp, rche, pe, cr, dp, pd, sc, ind, or,
+                su, te, don, rh, ps, iss, rs, pm, cec, pmg,
+                // BE (5)
+                divorceDc, divorceDdi, cohabitationLegale, pacteSuccessoral, kafalaRecueil);
     }
 }

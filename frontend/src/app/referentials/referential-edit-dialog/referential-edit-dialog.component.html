@@ -15,16 +15,27 @@
 
       @case ('LITIGATION_TYPE') {
         <div class="field-row">
-          <mat-form-field appearance="outline" class="field-years">
-            <mat-label>Années de prescription</mat-label>
-            <input matInput type="number" formControlName="litigYears" min="1" max="30" />
-            @if (form.get('litigYears')?.hasError('required')) {
-              <mat-error>Obligatoire.</mat-error>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Années de prescription</mat-label>
+              <input matInput type="number" formControlName="litigYears" min="1" max="30" />
+              @if (form.get('litigYears')?.hasError('required')) {
+                <mat-error>Obligatoire.</mat-error>
+              }
+              @if (form.get('litigYears')?.hasError('min') || form.get('litigYears')?.hasError('max')) {
+                <mat-error>Entre 1 et 30 ans.</mat-error>
+              }
+            </mat-form-field>
+            @if (coherenceAlerts().LITIG_YEARS; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="''"
+                    [appCoherencePopoverBlocker]="false">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
             }
-            @if (form.get('litigYears')?.hasError('min') || form.get('litigYears')?.hasError('max')) {
-              <mat-error>Entre 1 et 30 ans.</mat-error>
-            }
-          </mat-form-field>
+          </div>
           <mat-form-field appearance="outline" class="field-article">
             <mat-label>Article de référence</mat-label>
             <input matInput formControlName="litigArticle" maxlength="200" />
@@ -113,18 +124,40 @@
           <mat-label>Pièces à fournir (une par ligne)</mat-label>
           <textarea matInput formControlName="titlePieces" rows="6"></textarea>
         </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Délai moyen (jours)</mat-label>
-          <input matInput type="number" formControlName="titleDelai" min="0" />
-        </mat-form-field>
+        <div class="field-with-alert">
+          <mat-form-field appearance="outline">
+            <mat-label>Délai moyen (jours)</mat-label>
+            <input matInput type="number" formControlName="titleDelai" min="0" />
+          </mat-form-field>
+          @if (coherenceAlerts().TITLE_DELAI; as alert) {
+            <span class="coherence-badge coherence-warning"
+                  [appCoherencePopover]="[]"
+                  [appCoherencePopoverReason]="alertTooltip(alert)"
+                  [appCoherencePopoverCaseFileId]="''"
+                  [appCoherencePopoverBlocker]="false">
+              <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+            </span>
+          }
+        </div>
       }
 
       @case ('IMMIGRATION_RECOURS') {
         <div class="field-row">
-          <mat-form-field appearance="outline" class="field-years">
-            <mat-label>Délai recours (jours)</mat-label>
-            <input matInput type="number" formControlName="recoursDelai" min="1" />
-          </mat-form-field>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Délai recours (jours)</mat-label>
+              <input matInput type="number" formControlName="recoursDelai" min="1" />
+            </mat-form-field>
+            @if (coherenceAlerts().RECOURS_DELAI; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="''"
+                    [appCoherencePopoverBlocker]="false">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
           <mat-form-field appearance="outline" class="field-article">
             <mat-label>Juridiction</mat-label>
             <input matInput formControlName="recoursJuridiction" />
@@ -158,10 +191,21 @@
 
       @case ('LICENCIEMENT_CRITERES') {
         <div class="field-row">
-          <mat-form-field appearance="outline" class="field-years">
-            <mat-label>Poids (1-50)</mat-label>
-            <input matInput type="number" formControlName="critPoids" min="1" max="50" />
-          </mat-form-field>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Poids (1-50)</mat-label>
+              <input matInput type="number" formControlName="critPoids" min="1" max="50" />
+            </mat-form-field>
+            @if (coherenceAlerts().CRIT_POIDS; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="''"
+                    [appCoherencePopoverBlocker]="false">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
           <div class="toggle-row">
             <mat-slide-toggle formControlName="critBloquant" color="warn">Bloquant</mat-slide-toggle>
           </div>
@@ -173,13 +217,24 @@
       }
 
       @case ('CONVENTION_BAREMES') {
-        <mat-form-field appearance="outline" class="field-years">
-          <mat-label>Congés légaux (jours)</mat-label>
-          <input matInput type="number" formControlName="convConges" min="0" max="60" />
-          @if (form.get('convConges')?.invalid) {
-            <mat-error>Entre 0 et 60 jours.</mat-error>
+        <div class="field-with-alert">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Congés légaux (jours)</mat-label>
+            <input matInput type="number" formControlName="convConges" min="0" max="60" />
+            @if (form.get('convConges')?.invalid) {
+              <mat-error>Entre 0 et 60 jours.</mat-error>
+            }
+          </mat-form-field>
+          @if (coherenceAlerts().CONV_CONGES; as alert) {
+            <span class="coherence-badge coherence-warning"
+                  [appCoherencePopover]="[]"
+                  [appCoherencePopoverReason]="alertTooltip(alert)"
+                  [appCoherencePopoverCaseFileId]="''"
+                  [appCoherencePopoverBlocker]="false">
+              <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+            </span>
           }
-        </mat-form-field>
+        </div>
 
         <div class="array-section">
           <div class="array-section-header">
@@ -331,10 +386,21 @@
 
       @case ('DIVORCE_ETAPES') {
         <div class="field-row">
-          <mat-form-field appearance="outline" class="field-years">
-            <mat-label>Ordre</mat-label>
-            <input matInput type="number" formControlName="etapeOrdre" min="1" max="20" />
-          </mat-form-field>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Ordre</mat-label>
+              <input matInput type="number" formControlName="etapeOrdre" min="1" max="20" />
+            </mat-form-field>
+            @if (coherenceAlerts().ETAPE_ORDRE; as alert) {
+              <span class="coherence-badge coherence-info"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="''"
+                    [appCoherencePopoverBlocker]="false">
+                <mat-icon>info</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
           <mat-form-field appearance="outline" class="field-article">
             <mat-label>Délai (texte libre)</mat-label>
             <input matInput formControlName="etapeDelai" maxlength="50" />
@@ -467,13 +533,24 @@
 
       @case ('MAJEURS_PROTEGES_REGIMES') {
         <div class="field-row">
-          <mat-form-field appearance="outline" class="field-years">
-            <mat-label>Délai procédure (mois)</mat-label>
-            <input matInput type="number" formControlName="mpDelaiProcedure" min="0" max="60" />
-            @if (form.get('mpDelaiProcedure')?.invalid) {
-              <mat-error>Entre 0 et 60.</mat-error>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Délai procédure (mois)</mat-label>
+              <input matInput type="number" formControlName="mpDelaiProcedure" min="0" max="60" />
+              @if (form.get('mpDelaiProcedure')?.invalid) {
+                <mat-error>Entre 0 et 60.</mat-error>
+              }
+            </mat-form-field>
+            @if (coherenceAlerts().MP_DELAI_PROCEDURE; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="''"
+                    [appCoherencePopoverBlocker]="false">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
             }
-          </mat-form-field>
+          </div>
           <mat-form-field appearance="outline" class="field-years">
             <mat-label>Durée initiale max (ans)</mat-label>
             <input matInput type="number" formControlName="mpDureeInitiale" min="1" max="20" />
@@ -509,14 +586,25 @@
             Critère binaire (Oui / Non)
           </mat-slide-toggle>
         </div>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Description du critère</mat-label>
-          <textarea matInput formControlName="im21Description" rows="4" maxlength="1000"></textarea>
-          <mat-hint align="end">{{ (form.get('im21Description')?.value?.length ?? 0) }}/1000</mat-hint>
-          @if (form.get('im21Description')?.hasError('required')) {
-            <mat-error>La description est obligatoire.</mat-error>
+        <div class="field-with-alert">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description du critère</mat-label>
+            <textarea matInput formControlName="im21Description" rows="4" maxlength="1000"></textarea>
+            <mat-hint align="end">{{ (form.get('im21Description')?.value?.length ?? 0) }}/1000</mat-hint>
+            @if (form.get('im21Description')?.hasError('required')) {
+              <mat-error>La description est obligatoire.</mat-error>
+            }
+          </mat-form-field>
+          @if (coherenceAlerts().IM21_DESCRIPTION; as alert) {
+            <span class="coherence-badge coherence-info"
+                  [appCoherencePopover]="[]"
+                  [appCoherencePopoverReason]="alertTooltip(alert)"
+                  [appCoherencePopoverCaseFileId]="''"
+                  [appCoherencePopoverBlocker]="false">
+              <mat-icon>info</mat-icon> {{ alertBadgeLabel(alert) }}
+            </span>
           }
-        </mat-form-field>
+        </div>
       }
 
       @case ('IMMIGRATION_JALONS') {

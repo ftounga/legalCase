@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="217-shift-tools-to-contextual-niveau3-famille-be" author="legalcase">
+        <comment>
+            F-202 SF-202-02 : conversion ALWAYS_ON → CONTEXTUAL pour le seul outil
+            Famille BELGIQUE existant aujourd'hui dans decision_tool_visibility_rules
+            (F-FA-11-desunion-irremediable-be). Pendant BE de F-166 (Travail FR
+            migration 199) appliqué au domaine Famille — symétrique de F-200
+            (Famille FR, migration 216 attendue).
+
+            SF-202-01 (cette PR) a livré 5 booleans dans famille_extracted_data :
+            divorce_dc_envisage, divorce_ddi_envisage, cohabitation_legale_be_detectee,
+            pacte_successoral_envisage, kafala_recueil_detecte.
+
+            Effet final : ALWAYS_ON Famille BE = outils transversaux gardés
+            (F-FA-05 partage immobilier, F-FA-06 calendrier garde, F-FA-07 checklist
+            divorce, F-FA-23 ordonnance sur requête bipays). F-FA-11 réapparaît
+            uniquement quand l'IA détecte une voie DDI (art. 229 § 1 ou § 3 CC).
+
+            Les 4 autres flags Famille BE (divorce_dc_envisage, cohabitation_legale_be_detectee,
+            pacte_successoral_envisage, kafala_recueil_detecte) sont déjà extraits
+            par l'IA mais sans rule CONTEXTUAL active : ils servent les outils MANQUE
+            Famille BE futurs (F-211/F-217+ — cohabitation légale, pacte successoral,
+            kafala, DC, audit F-191 §4).
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20200XXX (parallèle aux
+            namespaces F-166 'eeee20000' Travail FR + F-201 'eeee20100' Immigration FR
+            + F-203 'eeee20300' Immigration BE + F-204 'eeee20400' Travail BE +
+            F-200 'eeee20000' attendu pour Famille FR).
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Famille BE.
+            Famille FR = F-200 (parallèle, migration 216), Travail FR = F-166
+            (migration 199 livrée), Travail BE = F-204 (migration 215 livrée),
+            Immigration FR = F-201 (migration 213 livrée), Immigration BE = F-203
+            (migration 214 livrée).
+
+            Audit "exhaustivité droit national BE" : F-FA-11 est BE-only (CC art. 229
+            § 1 + § 3 + CJ art. 1255 § 1 + § 2). Aucune entrée FR créée — pas
+            d'asymétrie introduite. Les 4 flags BE sans bascule active aujourd'hui
+            sont alignés sur les sources juridiques BE : Loi 23/11/1998 + CC art. 1475+
+            (cohabitation légale), CC art. 1100/1+ + Loi 31/07/2017 (pacte successoral),
+            CDIP belge + CC art. 343 al. 2 (kafala), CJ art. 1287+ + Loi 27/04/2007 (DC).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : 1 ALWAYS_ON Famille BE à supprimer (le seul outil seedé en BE)
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE legal_domain = 'DROIT_FAMILLE' AND country = 'BELGIQUE' AND layer = 'ALWAYS_ON' AND tool_id IN (
+    'F-FA-11-desunion-irremediable-be'
+);
+
+-- =========================================================================
+-- INSERT : 1 nouvelle entrée CONTEXTUAL avec trigger boolean (string 'true')
+-- F-FA-11 réapparaît dès que l'IA détecte la voie DDI (toutes voies confondues)
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20200111', 'DROIT_FAMILLE', 'BELGIQUE', 'F-FA-11-desunion-irremediable-be', 'CONTEXTUAL', 'divorce_ddi_envisage', 'true', 73);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee20200%';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee00000fa111', 'DROIT_FAMILLE', 'BELGIQUE', 'F-FA-11-desunion-irremediable-be', 'ALWAYS_ON', NULL, NULL, 73);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
