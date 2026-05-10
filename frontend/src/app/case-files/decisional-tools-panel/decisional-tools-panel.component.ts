@@ -1657,6 +1657,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-IM-08-referes-admin-fr', 'DELAIS'],
     ['F-IM-08-annexe13-be', 'DELAIS'],
     ['F-IM-20-mesures-eloignement', 'DELAIS'],
+    // F-220 / SF-IM-21-XX — outils Immigration FR à délais courts ajoutés
+    // post-salve 2 sans alignement THEME_BY_TOOL_ID (cf. test SF-169-01 T-01).
+    ['F-IM-21-jld-retention-fr', 'DELAIS'],
+    ['F-IM-22-dublin-recours-fr', 'DELAIS'],
+    ['F-IM-23-crrv-refus-visa-fr', 'DELAIS'],
+    ['F-IM-24-victime-violences-l4256-fr', 'DELAIS'],
     ['F-136-travail-procedure', 'DELAIS'],
 
     // ── Documents ──────────────────────────────────────────────────────
