@@ -4,15 +4,22 @@ import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contr
  * F-236 SF-236-02 — Helper partagé pour `Belgian40bisSectionComponent`
  * (F-IM-14-40bis-cohabitant-ue-be) — BE only.
  *
- * NOTE F-236 SF-236-04 : gating workspaceCountry === 'BELGIQUE' non
- * appliqué ici (anomalie (E) — rattrapage SF-236-04).
+ * F-236 SF-236-04 : gating workspaceCountry === 'BELGIQUE' appliqué
+ * dans `compute*` (early return null) + dans `computePrefillCount`
+ * (early return 0). Pattern miroir de `ImmigrationWorkRightPrefillRules`.
  *
  * 2 champs : dateDepotDemande (depuis aiData.dateDepotProcedure),
  * regroupantCitoyenUe (depuis aiData.nationaliteUe — best-effort).
  */
 
+/** F-236 SF-236-04 : gating BE-only. */
+function isBelgium(input: PrefillCountInput): boolean {
+  return (input.workspaceCountry ?? 'FRANCE') === 'BELGIQUE';
+}
+
 export const Belgian40bisPrefillRules = {
   computeDateDepotDemande(input: PrefillCountInput): string | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const d = ai.dateDepotProcedure;
@@ -26,6 +33,7 @@ export const Belgian40bisPrefillRules = {
    * un boolean.
    */
   computeRegroupantCitoyenUe(input: PrefillCountInput): boolean | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     if (typeof ai.nationaliteUe !== 'boolean') return null;
@@ -33,6 +41,7 @@ export const Belgian40bisPrefillRules = {
   },
 
   computePrefillCount(input: PrefillCountInput): number {
+    if (!isBelgium(input)) return 0;
     let n = 0;
     if (this.computeDateDepotDemande(input) !== null) n++;
     if (this.computeRegroupantCitoyenUe(input) !== null) n++;

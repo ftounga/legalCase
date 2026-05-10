@@ -5,10 +5,9 @@ import { MOTIFS_OQT, MotifOqt } from '../../core/models/annexe13-be.model';
  * F-236 SF-236-02 — Helper partagé pour `Annexe13BeSectionComponent`
  * (F-IM-08-annexe13-be) — outil belge.
  *
- * NOTE F-236 SF-236-04 : le gating workspaceCountry === 'BELGIQUE' n'est PAS
- * appliqué ici car le runtime `prefillFromAi()` ne le fait pas non plus (cf.
- * audit-matrix.md anomalie (E)). Le rattrapage sera fait dans SF-236-04
- * en ajoutant le guard dans `compute*` ET en ajustant le test Jest.
+ * F-236 SF-236-04 — gating workspaceCountry === 'BELGIQUE' appliqué dans
+ * chaque `compute*` (early return null) + dans `computePrefillCount`
+ * (early return 0). Pattern miroir de l'`ImmigrationWorkRightPrefillRules`.
  *
  * 4 champs : dateNotificationAnnexe13, delaiDepartImposeJours,
  * motifOqtCodeBe (enum), transfertImminentDetected (boolean).
@@ -16,10 +15,16 @@ import { MOTIFS_OQT, MotifOqt } from '../../core/models/annexe13-be.model';
 
 export const MOTIFS_OQT_WHITELIST = new Set<MotifOqt>(MOTIFS_OQT.map(m => m.code));
 
+/** F-236 SF-236-04 : gating BE-only. */
+function isBelgium(input: PrefillCountInput): boolean {
+  return (input.workspaceCountry ?? 'FRANCE') === 'BELGIQUE';
+}
+
 export const Annexe13BePrefillRules = {
   MOTIFS_OQT_WHITELIST,
 
   computeDateNotificationAnnexe13(input: PrefillCountInput): string | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const d = ai.dateNotificationAnnexe13;
@@ -28,6 +33,7 @@ export const Annexe13BePrefillRules = {
   },
 
   computeDelaiDepartImposeJours(input: PrefillCountInput): number | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const v = ai.delaiDepartImposeJours;
@@ -36,6 +42,7 @@ export const Annexe13BePrefillRules = {
   },
 
   computeMotifOqt(input: PrefillCountInput): MotifOqt | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const m = ai.motifOqtCodeBe;
@@ -44,6 +51,7 @@ export const Annexe13BePrefillRules = {
   },
 
   computeTransfertImminent(input: PrefillCountInput): boolean | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     if (typeof ai.transfertImminentDetected !== 'boolean') return null;
@@ -51,6 +59,8 @@ export const Annexe13BePrefillRules = {
   },
 
   computePrefillCount(input: PrefillCountInput): number {
+    // F-236 SF-236-04 : gating BE-only — court-circuit explicite pour parité avec les compute*.
+    if (!isBelgium(input)) return 0;
     let n = 0;
     if (this.computeDateNotificationAnnexe13(input) !== null) n++;
     if (this.computeDelaiDepartImposeJours(input) !== null) n++;
