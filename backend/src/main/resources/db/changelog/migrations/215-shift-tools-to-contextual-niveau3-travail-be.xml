@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="215-shift-tools-to-contextual-niveau3-travail-be" author="legalcase">
+        <comment>
+            F-204 SF-204-02 : conversion ALWAYS_ON → CONTEXTUAL pour 5 outils
+            décisionnels Travail BELGIQUE (niveau 3). Pendant BE de F-166
+            (Travail FR migration 199).
+
+            SF-204-01 (cette PR) a livré 5 booleans dans travail_extracted_data :
+            harcelement_be_detecte, discrimination_be_detectee,
+            inaptitude_medicale_be_detectee, heures_sup_mentionnees_be,
+            motif_grave_be_envisage.
+
+            Effet final : ALWAYS_ON Travail BE = ~7 outils essentiels gardés
+            (F-DT-05 préavis, F-DT-06 requête, F-DT-07 ancienneté/CP, F-DT-08
+            licenciement validity, F-DT-09 comparateur, F-DT-28 avantages CCT,
+            F-DT-29 crédit-temps).
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20400XXX (parallèle au
+            namespace F-166 'eeee20000' pour Travail FR + F-201 'eeee20100' pour
+            Immigration FR + F-203 'eeee20300' pour Immigration BE).
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Travail BE.
+            Travail FR = F-166 (déjà livré migration 199), Immigration FR/BE =
+            F-201/F-203 (parallèles), Famille FR/BE = F-200/F-202 (ultérieurs).
+
+            Audit "exhaustivité droit national BE" : 5 flags couvrent les régimes
+            BE clés : harcèlement (Loi 4/8/1996 bien-être au travail),
+            discrimination (Loi 10/5/2007 anti-discrimination), inaptitude médicale
+            (art. 34 Loi 03/07/1978 + AR 28/05/2003 trajet réintégration), heures
+            supplémentaires (art. 29 Loi 16/03/1971), motif grave (art. 35 Loi
+            03/07/1978). Outils BE-only restants — clause non-concurrence BE
+            CCT 13/2/2013, RCC variants, etc. — couverts par F-213 P2 ultérieurement.
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : 5 ALWAYS_ON Travail BE à supprimer
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE legal_domain = 'DROIT_DU_TRAVAIL' AND country = 'BELGIQUE' AND layer = 'ALWAYS_ON' AND tool_id IN (
+    'F-DT-11-harcelement-licenciement-nul',
+    'F-DT-12-discrimination-dommages-interets',
+    'F-DT-15-inaptitude',
+    'F-DT-19-heures-sup',
+    'F-DT-27-motif-grave-be'
+);
+
+-- =========================================================================
+-- INSERT : 5 nouvelles entrées CONTEXTUAL avec triggers boolean (string 'true')
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20400111', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-11-harcelement-licenciement-nul', 'CONTEXTUAL', 'harcelement_be_detecte', 'true', 52);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20400121', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-12-discrimination-dommages-interets', 'CONTEXTUAL', 'discrimination_be_detectee', 'true', 53);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20400151', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-15-inaptitude', 'CONTEXTUAL', 'inaptitude_medicale_be_detectee', 'true', 54);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20400191', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-19-heures-sup', 'CONTEXTUAL', 'heures_sup_mentionnees_be', 'true', 55);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20400271', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-27-motif-grave-be', 'CONTEXTUAL', 'motif_grave_be_envisage', 'true', 56);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee20400%';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000112', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-11-harcelement-licenciement-nul', 'ALWAYS_ON', NULL, NULL, 52);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000122', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-12-discrimination-dommages-interets', 'ALWAYS_ON', NULL, NULL, 53);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000152', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-15-inaptitude', 'ALWAYS_ON', NULL, NULL, 54);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000192', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-19-heures-sup', 'ALWAYS_ON', NULL, NULL, 55);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000271', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-27-motif-grave-be', 'ALWAYS_ON', NULL, NULL, 56);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
