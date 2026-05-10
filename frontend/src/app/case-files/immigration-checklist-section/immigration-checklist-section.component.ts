@@ -10,25 +10,14 @@ import { ImmigrationChecklistService } from '../../core/services/immigration-che
 import { ImmigrationChecklist, ImmigrationPieceItem, ImmigrationStatut } from '../../core/models/immigration-checklist.model';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { ImmigrationChecklistPrefillRules } from './immigration-checklist-section-prefill-rules';
 
 const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
   INCONNU: 'PRESENT',
   PRESENT: 'ABSENT',
   ABSENT:  'INCONNU',
 };
-
-/**
- * F-177 SF-177-12 — Liste exhaustive des 13 régimes juridiques exposés par
- * `titreTypes`. Utilisé par le static `getPrefillCount` pour valider une
- * valeur `inferredChecklistType` venant de l'IA. Doit rester synchronisé
- * avec `titreTypes` (la divergence rend le badge faux).
- */
-const KNOWN_TITRE_TYPES = new Set<string>([
-  'VISA_ETUDIANT', 'APS_POST_ETUDES', 'TITRE_SALARIE', 'PASSEPORT_TALENT',
-  'CST_VPF_CONJOINT_FR', 'CST_VPF_PARENT_ENFANT_FR', 'CST_VPF_LIENS_PERSONNELS',
-  'REGROUPEMENT_FAMILIAL', 'ADMISSION_EXCEPTIONNELLE_AES', 'ASILE_OFPRA',
-  'PROTECTION_SUBSIDIAIRE', 'CARTE_RESIDENT_10ANS', 'NATURALISATION',
-]);
 
 @Component({
   selector: 'app-immigration-checklist-section',
@@ -48,28 +37,16 @@ export class ImmigrationChecklistSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'assignment_turned_in';
 
   /**
-   * F-177 SF-177-12 — Compte les champs pré-remplis par l'IA, sans instancier
-   * le composant. Le composant n'a pas de `prefillFromAi()` à proprement parler ;
-   * son seul mécanisme IA est le setter `inferredChecklistType` (input venant de
-   * `synthesis.immigrationExtractedData.inferredChecklistType` via la TOOL_REGISTRY)
-   * qui sélectionne le `titreType` parmi les 13 régimes connus.
-   *
-   * Retourne 1 si `aiData.inferredChecklistType` est un des 13 régimes valides,
-   * 0 sinon.
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé
+   * `ImmigrationChecklistPrefillRules`. Le composant n'a pas de
+   * `prefillFromAi()` à proprement parler ; son seul mécanisme IA est le
+   * setter `inferredChecklistType` (input venant de
+   * `synthesis.immigrationExtractedData.inferredChecklistType` via la
+   * TOOL_REGISTRY). Le helper utilise la même liste `KNOWN_TITRE_TYPES`
+   * pour la validation, garantissant la parité.
    */
-  static getPrefillCount(input: {
-    aiData?: any;
-    procedureChecks?: any[];
-    aiQuestions?: any[];
-    piecesManquantes?: any[];
-    triggerEvents?: any[];
-    workspaceCountry?: string;
-  }): number {
-    const ai = input.aiData;
-    if (!ai) return 0;
-    const inferred = ai.inferredChecklistType;
-    if (typeof inferred !== 'string' || inferred.length === 0) return 0;
-    return KNOWN_TITRE_TYPES.has(inferred) ? 1 : 0;
+  static getPrefillCount(input: PrefillCountInput): number {
+    return ImmigrationChecklistPrefillRules.computePrefillCount(input);
   }
 
   @Input() caseFileId!: string;

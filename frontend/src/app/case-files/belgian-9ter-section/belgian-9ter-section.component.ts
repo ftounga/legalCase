@@ -34,6 +34,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { Belgian9terPrefillRules } from './belgian-9ter-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -102,6 +104,11 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉGULARISATION 9TER MÉDICAL (BE)';
   static readonly TOOL_ICON = 'medical_services';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return Belgian9terPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
@@ -341,37 +348,26 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
    *   strict pour les toggles.
    */
   private prefillFromAi(): void {
-    const ai: any = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = { aiData: this.aiDataSignal() };
 
-    if (typeof ai.dateDebutSymptomes === 'string' && ai.dateDebutSymptomes.length > 0) {
-      this.dateDebutSymptomes.set(ai.dateDebutSymptomes);
-      this.provenanceDateDebutSymptomes.set('IA');
-    }
-    if (typeof ai.maladieGraveCertifiee === 'boolean') {
-      this.maladieGraveCertifiee.set(ai.maladieGraveCertifiee);
-      this.provenanceMaladieGrave.set('IA');
-    } else if (typeof ai.maladieGrave === 'boolean') {
-      // Tolérance : nom alternatif possible côté extraction IA.
-      this.maladieGraveCertifiee.set(ai.maladieGrave);
-      this.provenanceMaladieGrave.set('IA');
-    }
-    if (typeof ai.soinsNecessairesDisponiblesBe === 'boolean') {
-      this.soinsNecessairesDisponiblesBe.set(ai.soinsNecessairesDisponiblesBe);
-      this.provenanceSoinsBe.set('IA');
-    }
-    if (typeof ai.soinsInaccessiblesPaysOrigine === 'boolean') {
-      this.soinsInaccessiblesPaysOrigine.set(ai.soinsInaccessiblesPaysOrigine);
-      this.provenanceSoinsInaccessibles.set('IA');
-    }
-    if (typeof ai.menaceOrdrePublic === 'boolean') {
-      this.menaceOrdrePublic.set(ai.menaceOrdrePublic);
-      this.provenanceMenace.set('IA');
-    }
-    if (typeof ai.dateDepotDemande === 'string' && ai.dateDepotDemande.length > 0) {
-      this.dateDepotDemande.set(ai.dateDepotDemande);
-      this.provenanceDateDepotDemande.set('IA');
-    }
+    const dDeb = Belgian9terPrefillRules.computeDateDebutSymptomes(input);
+    if (dDeb !== null) { this.dateDebutSymptomes.set(dDeb); this.provenanceDateDebutSymptomes.set('IA'); }
+
+    const mg = Belgian9terPrefillRules.computeMaladieGraveCertifiee(input);
+    if (mg !== null) { this.maladieGraveCertifiee.set(mg); this.provenanceMaladieGrave.set('IA'); }
+
+    const sBe = Belgian9terPrefillRules.computeSoinsNecessairesDisponiblesBe(input);
+    if (sBe !== null) { this.soinsNecessairesDisponiblesBe.set(sBe); this.provenanceSoinsBe.set('IA'); }
+
+    const sIn = Belgian9terPrefillRules.computeSoinsInaccessiblesPaysOrigine(input);
+    if (sIn !== null) { this.soinsInaccessiblesPaysOrigine.set(sIn); this.provenanceSoinsInaccessibles.set('IA'); }
+
+    const mOP = Belgian9terPrefillRules.computeMenaceOrdrePublic(input);
+    if (mOP !== null) { this.menaceOrdrePublic.set(mOP); this.provenanceMenace.set('IA'); }
+
+    const dDep = Belgian9terPrefillRules.computeDateDepotDemande(input);
+    if (dDep !== null) { this.dateDepotDemande.set(dDep); this.provenanceDateDepotDemande.set('IA'); }
   }
 
   private loadSourceExplanations(): void {

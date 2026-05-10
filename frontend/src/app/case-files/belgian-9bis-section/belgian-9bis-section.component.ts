@@ -28,6 +28,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { Belgian9bisPrefillRules } from './belgian-9bis-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -102,6 +104,11 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = '9BIS HUMANITAIRE — RÉGULARISATION (BE)';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return Belgian9bisPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
@@ -337,13 +344,10 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
    *   ligne 190 (RÈGLE FONDAMENTALE A).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // 1. dateDepotProcedure → dateDepotDemande (ne pré-remplit QUE si vide
-    //    ou déjà marqué IA — ne jamais écraser une saisie avocat).
-    const dDepot = ai.dateDepotProcedure;
-    if (typeof dDepot === 'string' && dDepot.length > 0
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = { aiData: this.aiDataSignal() };
+    const dDepot = Belgian9bisPrefillRules.computeDateDepotDemande(input);
+    if (dDepot !== null
         && (this.dateDepotDemande() === null || this.provenanceDateDepot() === 'IA')) {
       this.dateDepotDemande.set(dDepot);
       this.provenanceDateDepot.set('IA');
@@ -351,11 +355,12 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
 
     // 2. Autres fields : pas de mapping IA natif aujourd'hui. No-op gracieux.
     //    Crochet prêt pour des extractions futures (ex. dateEntreeBelgique
-    //    depuis un Annexe 26 détecté).
-    //    Cast `as any` volontaire — préfigure l'évolution du modèle sans
-    //    forcer la main à la spec actuelle. SF future pourra brancher.
-    const extendedAi = ai as any;
-    if (typeof extendedAi.dateEntreeBelgique === 'string'
+    //    depuis un Annexe 26 détecté). Cast `as any` volontaire — préfigure
+    //    l'évolution du modèle sans forcer la main à la spec actuelle.
+    const aiSignal = this.aiDataSignal();
+    const extendedAi = aiSignal as any;
+    if (extendedAi
+        && typeof extendedAi.dateEntreeBelgique === 'string'
         && extendedAi.dateEntreeBelgique.length > 0
         && (this.dateEntreeBelgique() === null
             || this.provenanceDateEntreeBelgique() === 'IA')) {

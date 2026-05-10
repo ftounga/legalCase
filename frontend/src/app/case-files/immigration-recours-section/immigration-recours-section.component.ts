@@ -25,11 +25,11 @@ import { RetainedPistesBadge } from '../immigration-title-decision-section/immig
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
-
-const VALID_RECOURS_CODES = new Set([
-  'RECOURS_GRACIEUX_PREFET', 'RECOURS_CONTENTIEUX_TA', 'RECOURS_CNDA',
-  'RECOURS_CGRA', 'RECOURS_CCE', 'RECOURS_CE_BELGIQUE',
-]);
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import {
+  ImmigrationRecoursPrefillRules,
+  VALID_RECOURS_CODES,
+} from './immigration-recours-section-prefill-rules';
 
 export type IM06AlertField = 'RECOURS_TYPE' | 'DATE_NOTIFICATION';
 // SF-155-13 : alias rétro-compat — utilise l'interface générique partagée.
@@ -80,6 +80,15 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   }): ProcedureChecksBadge {
     return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
+  /**
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé
+   * `ImmigrationRecoursPrefillRules`. Parité runtime/static garantie par
+   * construction.
+   */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return ImmigrationRecoursPrefillRules.computePrefillCount(input);
   }
 
   @Input() caseFileId!: string;
@@ -354,14 +363,15 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   }
 
   private prefillFromAi(): void {
-    if (!this.aiData) return;
-    const code = this.aiData.typeRecoursCode?.toUpperCase();
-    if (code && VALID_RECOURS_CODES.has(code)) {
-      this.recoursType.set(code);
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = { aiData: this.aiData };
+    const recours = ImmigrationRecoursPrefillRules.computeRecoursType(input);
+    if (recours !== null) {
+      this.recoursType.set(recours);
       this.provenanceRecoursType.set('IA');
     }
-    const date = this.aiData.dateNotificationDecisionContestee;
-    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const date = ImmigrationRecoursPrefillRules.computeDateNotification(input);
+    if (date !== null) {
       this.dateNotification.set(date);
       this.provenanceDateNotification.set('IA');
     }

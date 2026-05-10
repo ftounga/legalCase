@@ -22,20 +22,13 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
-
-const FR_TITRE_CODES = new Set([
-  'VLS_TS_ETUDIANT', 'VLS_TS_SALARIE', 'CST_SALARIE', 'CARTE_PLURIANNUELLE',
-  // SF-IM-07-04 : sous-types explicites de la carte pluriannuelle (droit au
-  // travail différent selon le motif) + code conjoint de Français L.423-1.
-  'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE', 'CARTE_PLURIANNUELLE_SALARIE',
-  'CARTE_PLURIANNUELLE_PASSEPORT_TALENT', 'CARTE_PLURIANNUELLE_VPF',
-  'CARTE_RESIDENT', 'APS', 'CST_VPF', 'CST_VPF_CONJOINT_FR', 'RECEPISSE_ASILE',
-]);
-const BE_TITRE_CODES = new Set([
-  'CARTE_A_TRAVAIL', 'CARTE_A_ETUDES', 'CARTE_A_FAMILLE', 'CARTE_B', 'CARTE_C',
-  'PERMIS_UNIQUE', 'ANNEXE_15', 'ATTESTATION_IMMATRICULATION',
-]);
-const ALL_TITRE_CODES = new Set([...FR_TITRE_CODES, ...BE_TITRE_CODES]);
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import {
+  ImmigrationWorkRightPrefillRules,
+  FR_TITRE_CODES,
+  BE_TITRE_CODES,
+  ALL_TITRE_CODES,
+} from './immigration-work-right-section-prefill-rules';
 
 /**
  * SF-155-11 : fields d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -69,38 +62,16 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'work';
 
   /**
-   * F-177 SF-177-12 — Compte les champs que `prefillFromAi()` poserait, sans
-   * instancier le composant. Stricte parité avec la logique runtime :
-   *   - `titreType` : posé si `aiData.typeTitreSejourCode` est présent ET
-   *     compatible avec `workspaceCountry` (FR_TITRE_CODES si FRANCE,
-   *     BE_TITRE_CODES si BELGIQUE).
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé
+   * `ImmigrationWorkRightPrefillRules`. Le runtime `prefillFromAi()`
+   * consomme la même fonction sur le même input — divergence impossible
+   * par construction.
    *
    * `country` n'est pas comptabilisé : le runtime aligne juste la valeur
-   * locale sur `workspaceCountry` (pas un champ formulaire pré-rempli au
-   * sens IA — c'est de la cohérence interne).
+   * locale sur `workspaceCountry` (cohérence interne, pas un champ IA).
    */
-  static getPrefillCount(input: {
-    aiData?: any;
-    procedureChecks?: any[];
-    aiQuestions?: any[];
-    piecesManquantes?: any[];
-    triggerEvents?: any[];
-    workspaceCountry?: string;
-  }): number {
-    const ai = input.aiData;
-    if (!ai) return 0;
-    const code = typeof ai.typeTitreSejourCode === 'string'
-      ? ai.typeTitreSejourCode.toUpperCase()
-      : null;
-    if (!code) return 0;
-    const isFR = FR_TITRE_CODES.has(code);
-    const isBE = BE_TITRE_CODES.has(code);
-    if (!isFR && !isBE) return 0;
-    const country = input.workspaceCountry ?? 'FRANCE';
-    if ((country === 'FRANCE' && isFR) || (country === 'BELGIQUE' && isBE)) {
-      return 1;
-    }
-    return 0;
+  static getPrefillCount(input: PrefillCountInput): number {
+    return ImmigrationWorkRightPrefillRules.computePrefillCount(input);
   }
 
   /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
@@ -293,21 +264,22 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
 
   private prefillFromAi(): void {
     // 1. Pays : toujours aligné sur le workspace (source authoritative).
+    //    Conservé en logique composant — n'est PAS un champ pré-rempli IA
+    //    au sens du contrat (non compté par getPrefillCount).
     if (this.country() !== this.workspaceCountry) {
       this.country.set(this.workspaceCountry);
     }
     this.provenanceCountry.set('IA');
 
-    // 2. Titre de séjour depuis aiData.typeTitreSejourCode.
-    if (!this.aiData) return;
-    const code = this.aiData.typeTitreSejourCode?.toUpperCase();
-    if (!code) return;
-    const isFR = FR_TITRE_CODES.has(code);
-    const isBE = BE_TITRE_CODES.has(code);
-    if (!isFR && !isBE) return;
-    // Ne pré-rempli QUE si compatible avec le pays du workspace.
-    if ((this.country() === 'FRANCE' && isFR) || (this.country() === 'BELGIQUE' && isBE)) {
-      this.titreType.set(code);
+    // 2. F-236 SF-236-02 : titre de séjour via le helper pur partagé
+    //    (parité runtime/static garantie par construction).
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      workspaceCountry: this.country(),
+    };
+    const titre = ImmigrationWorkRightPrefillRules.computeTitreType(input);
+    if (titre !== null) {
+      this.titreType.set(titre);
       this.provenanceTitreType.set('IA');
     }
   }

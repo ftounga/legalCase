@@ -41,6 +41,8 @@ import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-p
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { OqtfSansDelaiPrefillRules } from './oqtf-sans-delai-section-prefill-rules';
 
 /**
  * SF-IM-08-04 : outil décisionnel dédié "OQTF SANS délai de départ
@@ -65,9 +67,8 @@ export type OqtfSdAlertField =
 export type OqtfSdAlertSeverity = CoherenceAlertSeverity;
 export type OqtfSdCoherenceAlert = CoherenceAlert<OqtfSdAlertField>;
 
-const ALLOWED_MOTIFS_SANS_DELAI: ReadonlySet<string> = new Set<string>(
-  MOTIFS_SANS_DELAI.map((m) => m.code),
-);
+// F-236 SF-236-02 : `ALLOWED_MOTIFS_SANS_DELAI` est désormais déclaré dans le
+// helper partagé `<component>-prefill-rules.ts` (re-export ALLOWED_MOTIFS_SANS_DELAI).
 
 const MS_ONE_HOUR = 3_600_000;
 const MS_48H = 48 * MS_ONE_HOUR;
@@ -91,6 +92,11 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'OQTF SANS DÉLAI DE DÉPART VOLONTAIRE (FR) — 48H';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return OqtfSansDelaiPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
@@ -569,50 +575,45 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   // -----------------------------------------------------------------
 
   private prefillFromAi(): void {
-    const ai = this.aiData;
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé. Garde-fou supplémentaire :
+    // ne pas écraser si le form n'est pas affiché (analyse déjà faite).
     if (!this.isFrance()) return;
-    // Si le form n'est plus affiché (analyse déjà faite), ne pas écraser.
     if (!this.showForm()) return;
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      workspaceCountry: this.workspaceCountry,
+    };
 
     // 1) dateHeureNotificationOqtf
-    if (ai.dateHeureNotificationOqtfSansDelai && !this.dateHeureNotificationOqtf()) {
-      const normalized = this.normalizeDatetimeLocalInput(ai.dateHeureNotificationOqtfSansDelai);
-      if (normalized) {
-        this.dateHeureNotificationOqtf.set(normalized);
-        this.provenanceDateHeure.set('IA');
-      }
+    const dateHeure = OqtfSansDelaiPrefillRules.computeDateHeureNotificationOqtf(input);
+    if (dateHeure !== null && !this.dateHeureNotificationOqtf()) {
+      this.dateHeureNotificationOqtf.set(dateHeure);
+      this.provenanceDateHeure.set('IA');
     }
 
-    // 2) motifSansDelai — on n'utilise que les valeurs qui croisent
-    // l'enum front MotifSansDelai (en pratique : seul 'AUTRE' est
-    // dans les deux enums au 2026-04-24). Les autres valeurs backend
-    // sont ignorées silencieusement.
-    const rawMotif = ai.motifOqtfCode;
-    if (rawMotif && ALLOWED_MOTIFS_SANS_DELAI.has(rawMotif) && !this.motifSansDelai()) {
-      this.motifSansDelai.set(rawMotif as MotifSansDelai);
+    // 2) motifSansDelai
+    const motif = OqtfSansDelaiPrefillRules.computeMotifSansDelai(input);
+    if (motif !== null && !this.motifSansDelai()) {
+      this.motifSansDelai.set(motif);
       this.provenanceMotifSansDelai.set('IA');
     }
 
-    // 3) placementCra (boolean strict — null / undefined = skip).
-    if (ai.placementCraDetected === true || ai.placementCraDetected === false) {
-      // Pré-fill uniquement si l'avocat n'a pas déjà interagi (valeur défaut false,
-      // mais sans provenance) : pour rester non destructif, on ne pré-remplit que
-      // si le signal provenance est encore null ET que la valeur courante est la
-      // valeur défaut (false). Cas simple : initial mount.
-      if (this.provenancePlacementCra() === null && this.placementCra() === false) {
-        this.placementCra.set(ai.placementCraDetected);
-        this.provenancePlacementCra.set('IA');
-      }
+    // 3) placementCra
+    const placement = OqtfSansDelaiPrefillRules.computePlacementCra(input);
+    if (placement !== null
+        && this.provenancePlacementCra() === null
+        && this.placementCra() === false) {
+      this.placementCra.set(placement);
+      this.provenancePlacementCra.set('IA');
     }
 
-    // 4) recoursForme (OUI/NON/INCONNU — INCONNU skip).
-    const reponse = ai.recoursFormeDetected?.reponse;
-    if (reponse === 'OUI' || reponse === 'NON') {
-      if (this.provenanceRecoursForme() === null && this.recoursForme() === false) {
-        this.recoursForme.set(reponse === 'OUI');
-        this.provenanceRecoursForme.set('IA');
-      }
+    // 4) recoursForme
+    const recours = OqtfSansDelaiPrefillRules.computeRecoursForme(input);
+    if (recours !== null
+        && this.provenanceRecoursForme() === null
+        && this.recoursForme() === false) {
+      this.recoursForme.set(recours);
+      this.provenanceRecoursForme.set('IA');
     }
   }
 

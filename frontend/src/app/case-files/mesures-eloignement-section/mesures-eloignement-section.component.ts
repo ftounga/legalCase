@@ -48,6 +48,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { MesuresEloignementPrefillRules } from './mesures-eloignement-section-prefill-rules';
 
 /**
  * SF-IM-20-02 : champs F-IA-03 audités par l'outil "Mesures d'éloignement".
@@ -91,6 +93,11 @@ export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = "MESURE D'ÉLOIGNEMENT (FR)";
   static readonly TOOL_ICON = 'flight_takeoff';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return MesuresEloignementPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -327,15 +334,16 @@ export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    if (this.dispositif() === null) {
-      const mapped = mapDispositifFromIa(ai.typeProcedureDetectee);
-      if (mapped) {
-        this.dispositif.set(mapped);
-        this.provenanceDispositif.set('IA');
-      }
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    if (this.dispositif() !== null) return;
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
+    const mapped = MesuresEloignementPrefillRules.computeDispositif(input);
+    if (mapped !== null) {
+      this.dispositif.set(mapped);
+      this.provenanceDispositif.set('IA');
     }
   }
 

@@ -43,6 +43,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { ChangementStatutPrefillRules } from './changement-statut-section-prefill-rules';
 
 /**
  * SF-IM-11-02 : champs F-IA-03 audités par l'outil "Changement de statut".
@@ -88,38 +90,12 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'swap_horiz';
 
   /**
-   * F-177 SF-177-12 — Compte les champs que `prefillFromAi()` poserait, sans
-   * instancier le composant. Stricte parité avec la logique runtime :
-   *   - `titreActuel` : posé si `mapTitreSejourFromIa(typeTitreSejourCode)`
-   *     retourne un titre, sinon fallback sur `typeTitreSejour`.
-   *   - `dureeRestanteSurTitreActuelMois` : posé si `dateExpirationTitre`
-   *     est une string non vide ET parse en date valide. Le runtime plancher
-   *     à 0 si la date est passée — le champ est posé dans tous les cas.
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé
+   * `ChangementStatutPrefillRules`. Le runtime `prefillFromAi()` consomme
+   * les mêmes fonctions sur le même input — parité garantie par construction.
    */
-  static getPrefillCount(input: {
-    aiData?: any;
-    procedureChecks?: any[];
-    aiQuestions?: any[];
-    piecesManquantes?: any[];
-    triggerEvents?: any[];
-    workspaceCountry?: string;
-  }): number {
-    const ai = input.aiData;
-    if (!ai) return 0;
-    let count = 0;
-
-    const fromCode = mapTitreSejourFromIa(ai.typeTitreSejourCode ?? null);
-    const fromText = fromCode ?? mapTitreSejourFromIa(ai.typeTitreSejour ?? null);
-    if (fromText) count++;
-
-    const dateStr = ai.dateExpirationTitre;
-    if (typeof dateStr === 'string' && dateStr.trim() !== '') {
-      const expiration = new Date(dateStr);
-      if (!Number.isNaN(expiration.getTime())) {
-        count++;
-      }
-    }
-    return count;
+  static getPrefillCount(input: PrefillCountInput): number {
+    return ChangementStatutPrefillRules.computePrefillCount(input);
   }
 
   @Input() caseFileId!: string;
@@ -319,44 +295,40 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
     if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé. Le warn "date malformée"
+    // est désormais émis ici car le helper n'a pas d'effet de bord.
+    const input: PrefillCountInput = {
+      aiData: ai,
+      workspaceCountry: this.workspaceCountry,
+    };
 
-    // titreActuel ← aiData.typeTitreSejourCode (priorité) sinon typeTitreSejour heuristique.
-    const iaTitreFromCode = mapTitreSejourFromIa(ai.typeTitreSejourCode ?? null);
-    const iaTitreFromText = iaTitreFromCode ?? mapTitreSejourFromIa(ai.typeTitreSejour ?? null);
-    if (iaTitreFromText) {
-      if (this.titreActuel() === null
-          || this.provenanceTitreActuel() === 'IA') {
-        this.titreActuel.set(iaTitreFromText);
-        this.provenanceTitreActuel.set('IA');
-      }
+    // 1. Titre actuel — pas d'écrasement de saisie manuelle (champ vide ou
+    //    valeur IA précédente uniquement).
+    const titre = ChangementStatutPrefillRules.computeTitreActuel(input);
+    if (titre !== null
+        && (this.titreActuel() === null || this.provenanceTitreActuel() === 'IA')) {
+      this.titreActuel.set(titre);
+      this.provenanceTitreActuel.set('IA');
     }
 
-    // SF-IM-11-03 : durée restante ← floor((dateExpirationTitre - aujourd'hui) / 30.44 jours).
-    // Plancher à 0 si la date est passée. Pas d'écrasement si l'avocat a saisi manuellement.
+    // 2. Durée restante (mois) — calcul via helper. Warn legacy émis ici si
+    //    `dateExpirationTitre` n'est pas parsable (le helper retourne null).
     const dateStr = ai.dateExpirationTitre;
-    if (dateStr && typeof dateStr === 'string' && dateStr.trim() !== '') {
-      const expiration = new Date(dateStr);
-      if (Number.isNaN(expiration.getTime())) {
-        if (!this.dateExpirationParseWarned) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[changement-statut-section] dateExpirationTitre malformée, ignorée : "${dateStr}"`,
-          );
-          this.dateExpirationParseWarned = true;
-        }
-      } else {
-        const today = new Date();
-        const diffMs = expiration.getTime() - today.getTime();
-        const moisCalcules = Math.max(
-          0,
-          Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44)),
-        );
-        if (this.dureeRestanteSurTitreActuelMois() === null
-            || this.provenanceDureeRestante() === 'IA') {
-          this.dureeRestanteSurTitreActuelMois.set(moisCalcules);
-          this.provenanceDureeRestante.set('IA');
-        }
-      }
+    if (typeof dateStr === 'string' && dateStr.trim() !== ''
+        && Number.isNaN(new Date(dateStr).getTime())
+        && !this.dateExpirationParseWarned) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[changement-statut-section] dateExpirationTitre malformée, ignorée : "${dateStr}"`,
+      );
+      this.dateExpirationParseWarned = true;
+    }
+    const duree = ChangementStatutPrefillRules.computeDureeRestanteMois(input);
+    if (duree !== null
+        && (this.dureeRestanteSurTitreActuelMois() === null
+            || this.provenanceDureeRestante() === 'IA')) {
+      this.dureeRestanteSurTitreActuelMois.set(duree);
+      this.provenanceDureeRestante.set('IA');
     }
   }
 

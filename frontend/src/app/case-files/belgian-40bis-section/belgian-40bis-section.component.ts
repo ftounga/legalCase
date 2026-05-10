@@ -45,6 +45,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { Belgian40bisPrefillRules } from './belgian-40bis-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -97,6 +99,11 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'REGROUPEMENT FAMILIAL — CITOYEN UE (ART. 40BIS)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return Belgian40bisPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
@@ -328,23 +335,22 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
    * - n'écrase jamais une saisie manuelle (provenance !== 'IA')
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = { aiData: this.aiDataSignal() };
 
-    if (typeof ai.dateDepotProcedure === 'string' && ai.dateDepotProcedure.length > 0) {
-      if (this.dateDepotDemande() === null || this.provenanceDateDepot() === 'IA') {
-        this.dateDepotDemande.set(ai.dateDepotProcedure);
-        this.provenanceDateDepot.set('IA');
-      }
+    const date = Belgian40bisPrefillRules.computeDateDepotDemande(input);
+    if (date !== null
+        && (this.dateDepotDemande() === null || this.provenanceDateDepot() === 'IA')) {
+      this.dateDepotDemande.set(date);
+      this.provenanceDateDepot.set('IA');
     }
 
-    if (typeof ai.nationaliteUe === 'boolean') {
-      // Si le client est UE, on suppose le regroupant aussi (best-effort) — l'avocat ajustera.
-      if (this.provenanceRegroupantCitoyenUe() !== null
-          || ai.nationaliteUe !== this.regroupantCitoyenUe()) {
-        this.regroupantCitoyenUe.set(ai.nationaliteUe);
-        this.provenanceRegroupantCitoyenUe.set('IA');
-      }
+    const ue = Belgian40bisPrefillRules.computeRegroupantCitoyenUe(input);
+    if (ue !== null
+        && (this.provenanceRegroupantCitoyenUe() !== null
+            || ue !== this.regroupantCitoyenUe())) {
+      this.regroupantCitoyenUe.set(ue);
+      this.provenanceRegroupantCitoyenUe.set('IA');
     }
   }
 
