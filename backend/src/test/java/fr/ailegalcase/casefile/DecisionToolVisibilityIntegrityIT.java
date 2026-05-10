@@ -140,6 +140,11 @@ class DecisionToolVisibilityIntegrityIT {
             "F-IM-17-regime-algerien",
             "F-IM-19-mineurs",
             "F-IM-20-mesures-eloignement",
+            // F-208 : 4 outils P1 Immigration FR délais courts (backend livré, frontend différé).
+            "F-IM-21-jld-retention-fr",
+            "F-IM-22-dublin-recours-fr",
+            "F-IM-23-crrv-refus-visa-fr",
+            "F-IM-24-victime-violences-l4256-fr",
             "F-132-rupture-amiable-info",
             "F-132-rupture-conv-indemnite",
             "F-136-travail-procedure",
