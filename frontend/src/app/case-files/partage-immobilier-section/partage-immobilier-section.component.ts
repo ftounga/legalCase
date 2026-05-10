@@ -29,8 +29,12 @@ import { ProcedureCheckAlignment } from '../../core/models/procedure-check-align
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
-const IMMO_KEYWORDS = ['immobilier', 'maison', 'appartement', 'résidence', 'residence', 'villa', 'studio', 'terrain', 'logement'];
-const PRET_KEYWORDS = ['prêt', 'pret', 'emprunt', 'crédit', 'credit', 'hypothèque', 'hypotheque', 'hypothécaire', 'hypothecaire'];
+import {
+  IMMO_KEYWORDS,
+  PRET_KEYWORDS,
+  PartageImmobilierPrefillRules,
+  matchesKeyword,
+} from './partage-immobilier-section-prefill-rules';
 
 const FA05_VALEUR_CODE = 'FA05_VALEUR_VENALE';
 const FA05_CAPITAL_CODE = 'FA05_CAPITAL_RESTANT';
@@ -38,12 +42,6 @@ const FA05_CODES = new Set([FA05_VALEUR_CODE, FA05_CAPITAL_CODE]);
 
 /** Seuil divergence relatif (10 %) — aligné sur SF-IA-03-08 + F-DT-09. */
 const DIVERGENCE_RATIO = 0.10;
-
-function matchesKeyword(libelle: string | null, keywords: string[]): boolean {
-  if (!libelle) return false;
-  const lower = libelle.toLowerCase();
-  return keywords.some(k => lower.includes(k));
-}
 
 function findBestMatch(value: number, items: BienItem[]): BienItem | null {
   let best: BienItem | null = null;
@@ -261,32 +259,16 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
    * (signal initial).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    const liquidation = this.liquidationSignal();
-
-    // Source 1 : aiData direct (préféré). Source 2 : liquidationCommunaute (fallback).
-    // Note : le fallback ne s'applique que s'il n'y a **qu'un seul** bien immo / prêt
-    // détecté (pas d'ambiguïté). Si plusieurs biens, l'avocat choisit via le bouton
-    // "Importer depuis l'analyse" (panel SF-FA-05-04) — comportement legacy préservé.
-    let valeurImmeuble: number | null = null;
-    if (typeof ai?.valeurImmeuble === 'number' && ai.valeurImmeuble > 0) {
-      valeurImmeuble = ai.valeurImmeuble;
-    } else if (liquidation) {
-      const biens = (liquidation.actifCommun ?? []).filter(
-        b => matchesKeyword(b.libelle, IMMO_KEYWORDS) && typeof b.valeur === 'number' && (b.valeur as number) > 0,
-      );
-      if (biens.length === 1) valeurImmeuble = biens[0].valeur as number;
-    }
-
-    let capitalRestantDu: number | null = null;
-    if (typeof ai?.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0) {
-      capitalRestantDu = ai.capitalRestantDu;
-    } else if (liquidation) {
-      const prets = (liquidation.passifCommun ?? []).filter(
-        p => matchesKeyword(p.libelle, PRET_KEYWORDS) && typeof p.valeur === 'number' && (p.valeur as number) >= 0,
-      );
-      if (prets.length === 1) capitalRestantDu = prets[0].valeur as number;
-    }
+    // F-236 SF-236-02 — délégation au helper partagé `PartageImmobilierPrefillRules`.
+    // Note : le fallback liquidation ne s'applique que s'il n'y a **qu'un seul**
+    // bien immo / prêt détecté (pas d'ambiguïté). Si plusieurs biens, l'avocat
+    // choisit via le bouton "Importer depuis l'analyse" (panel SF-FA-05-04).
+    const helperInput = {
+      aiData: this.aiDataSignal(),
+      liquidationCommunaute: this.liquidationSignal() ?? null,
+    };
+    const valeurImmeuble = PartageImmobilierPrefillRules.computeValeurImmeuble(helperInput);
+    const capitalRestantDu = PartageImmobilierPrefillRules.computeCapitalRestantDu(helperInput);
 
     if (valeurImmeuble !== null) {
       if (this.valeurVenale() === 0 || this.provenanceValeur() === 'IA') {
@@ -614,25 +596,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   static getPrefillCount(input: {
     aiData?: FamilleExtractedData | null;
     synthesis?: { liquidationCommunaute?: LiquidationCommunaute | null } | null;
+    liquidationCommunaute?: LiquidationCommunaute | null;
   }): number {
-    const ai = input.aiData;
-    const liquidation = input.synthesis?.liquidationCommunaute;
-    let n = 0;
-
-    const biensImmoLiq = (liquidation?.actifCommun ?? []).filter(
-      b => matchesKeyword(b.libelle, IMMO_KEYWORDS) && typeof b.valeur === 'number' && (b.valeur as number) > 0,
-    );
-    const hasValeur = (typeof ai?.valeurImmeuble === 'number' && ai.valeurImmeuble > 0)
-      || biensImmoLiq.length === 1;
-    if (hasValeur) n++;
-
-    const pretsLiq = (liquidation?.passifCommun ?? []).filter(
-      p => matchesKeyword(p.libelle, PRET_KEYWORDS) && typeof p.valeur === 'number' && (p.valeur as number) >= 0,
-    );
-    const hasCapital = (typeof ai?.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0)
-      || pretsLiq.length === 1;
-    if (hasCapital) n++;
-
-    return n;
+    // F-236 SF-236-02 — délégation au helper partagé (parité runtime/static).
+    return PartageImmobilierPrefillRules.computePrefillCount(input);
   }
 }

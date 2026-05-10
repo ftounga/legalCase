@@ -50,7 +50,10 @@ const PIECE_CODES = new Set([
  * Si l'IA a fourni `dateAcceptationPV` (date de signature du PV/convention),
  * on pré-remplit ces étapes en statut FAIT (provenance IA, effaçable au toggle manuel).
  */
-const SIGNATURE_STEP_CODES = ['FR_SIGNATURE_CONVENTION', 'BE_REDACTION_CONVENTION'];
+import {
+  DivorceChecklistPrefillRules,
+  SIGNATURE_STEP_CODES,
+} from './divorce-checklist-section-prefill-rules';
 
 @Component({
   selector: 'app-divorce-checklist-section',
@@ -208,9 +211,11 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
    */
   private prefillFromAi(): void {
     const r = this.result();
-    const ai = this.aiDataSignal();
-    if (!r || !ai) return;
-    if (!ai.dateAcceptationPV) return;
+    // F-236 SF-236-02 — délégation au helper pour la décision "PV signé ?".
+    const dateAcceptation = DivorceChecklistPrefillRules.computeDateAcceptationPV({
+      aiData: this.aiDataSignal(),
+    });
+    if (!r || dateAcceptation === null) return;
 
     const next = { ...this.provenanceByCode() };
     let changed = false;
@@ -426,10 +431,7 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
    * checklist du pays courant).
    */
   static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
-    const ai = input.aiData;
-    if (!ai) return 0;
-    if (typeof ai.dateAcceptationPV !== 'string') return 0;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(ai.dateAcceptationPV)) return 0;
-    return 1;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    return DivorceChecklistPrefillRules.computePrefillCount(input);
   }
 }
