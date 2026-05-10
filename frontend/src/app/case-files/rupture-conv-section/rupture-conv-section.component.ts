@@ -19,6 +19,10 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import {
+  RuptureConvSectionPrefillRules,
+  computePrefilledCodes as computeRcPrefilledCodes,
+} from './rupture-conv-section-prefill-rules';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
@@ -93,6 +97,19 @@ type Reponse = 'OUI' | 'NON' | 'INCONNU';
 export class RuptureConvSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'VALIDITÉ DE LA RUPTURE CONVENTIONNELLE';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return RuptureConvSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
+
   static readonly TOOL_ICON = 'gavel';
 
   /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
@@ -456,6 +473,12 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     const currentProv = this.provenanceReponses();
     const nextReponses: Record<string, Reponse> = { ...currentReponses };
     const nextProv: Record<string, 'IA' | null> = { ...currentProv };
+
+    // F-236 SF-236-02 : codes prefillables OUI/NON via helper (parité static).
+    // L'INCONNU est conservé runtime (effacer la sélection avocat) mais
+    // n'incrémente pas le count static.
+    const prefillable = new Set(computeRcPrefilledCodes({ aiData: this.aiDataSignal() }));
+
     for (const code of Object.keys(detections)) {
       if (!RC_CODES.has(code as RCAlertField)) continue;
       const r = detections[code].reponse;
@@ -463,7 +486,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
       // Pré-fill uniquement si la case est INCONNU (vide) OU déjà pré-remplie par IA.
       if (currentReponses[code] === 'INCONNU' || currentProv[code] === 'IA') {
         nextReponses[code] = r;
-        nextProv[code] = r === 'INCONNU' ? null : 'IA';
+        nextProv[code] = (r === 'INCONNU' || !prefillable.has(code)) ? null : 'IA';
       }
     }
     this.reponses.set(nextReponses);

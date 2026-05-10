@@ -24,6 +24,10 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
+import {
+  LicenciementSectionPrefillRules,
+  computePrefilledCodes as computeLicenciementPrefilledCodes,
+} from './licenciement-section-prefill-rules';
 
 interface CritereForm {
   code: string;
@@ -73,6 +77,18 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'VALIDITÉ DU LICENCIEMENT';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return LicenciementSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
 
   /**
    * F-193 SF-193-02 — Pattern miroir de `getRetainedPistesBadge` (F-192) :
@@ -527,10 +543,13 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     const current = this.criteresForm();
     if (current.length === 0) return;
 
+    // F-236 SF-236-02 : codes pré-remplissables calculés par le helper partagé (parité static).
+    const prefillable = new Set(computeLicenciementPrefilledCodes({ aiData: this.aiData }));
+
     const newProvenance: Record<string, 'IA' | null> = { ...this.provenanceByCode() };
     const next = current.map(c => {
-      const detected = detections[c.code];
-      if (detected && (detected.reponse === 'OUI' || detected.reponse === 'NON')) {
+      if (prefillable.has(c.code)) {
+        const detected = detections[c.code];
         // Ne pré-rempli QUE si champ encore INCONNU OU déjà marqué IA
         // (préserve les edits avocats faits après un premier pré-fill).
         if (c.reponse === 'INCONNU' || this.provenanceByCode()[c.code] === 'IA') {
