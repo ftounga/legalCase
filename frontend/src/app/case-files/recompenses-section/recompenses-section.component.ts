@@ -41,6 +41,10 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import {
+  RecompensesPrefillRules,
+  VALID_REGIMES,
+} from './recompenses-section-prefill-rules';
 
 /**
  * SF-FA-15-02 : champs F-IA-03 audités par l'outil récompenses.
@@ -55,17 +59,6 @@ export type RecompensesAlertField = 'REGIME_MATRIMONIAL' | 'REGIME_APPLICABILITE
 // SF-155-05 : alias rétro-compat — utilise l'interface partagée.
 export type RecompensesAlertSource = CoherenceAlertSource;
 export type RecompensesCoherenceAlert = CoherenceAlert<RecompensesAlertField>;
-
-/**
- * Régimes valides pour récompenses (cf. SF-FA-15-01 calculator). On exclut
- * `SEPARATION_BIENS` côté UI — backend rejette de toute façon (400) car les
- * créances entre patrimoines en séparation ne relèvent pas de 1437/1469.
- */
-const VALID_REGIMES: ReadonlySet<RegimeMatrimonialRecompenses> = new Set<RegimeMatrimonialRecompenses>([
-  'COMMUNAUTE_LEGALE',
-  'PARTICIPATION_AUX_ACQUETS',
-  'COMMUNAUTE_UNIVERSELLE',
-]);
 
 /**
  * Outil décisionnel Récompenses (art. 1437 et 1469 Cciv) — single-country FR.
@@ -99,6 +92,25 @@ export class RecompensesSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉCOMPENSES (ART. 1437/1469 CCIV)';
   static readonly TOOL_ICON = 'account_balance';
+
+  /**
+   * F-236 SF-236-02 — Pattern miroir SF-177-12. Compte les champs que
+   * `prefillFromAi()` runtime poserait, sans instancier le composant.
+   *
+   * Délègue à `RecompensesPrefillRules.computePrefillCount` (helper partagé
+   * consommé aussi par le runtime) — divergence runtime/static impossible
+   * par construction.
+   */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return RecompensesPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -193,18 +205,18 @@ export class RecompensesSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-FA-15-02 : pré-remplit `regimeMatrimonial` depuis `aiData`. N'écrase pas
-   * une saisie avocat (provenance === null indique modification manuelle).
+   * SF-FA-15-02 / F-236 SF-236-02 : pré-remplit `regimeMatrimonial` depuis `aiData`.
+   * N'écrase pas une saisie avocat (provenance === null indique modification manuelle).
    * No-op gracieux si `aiData` absent ou si la valeur IA est `SEPARATION_BIENS`
    * (régime exclu — pas de récompenses).
+   *
+   * Délègue le calcul à `RecompensesPrefillRules` (helper partagé runtime/static).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-    const detected = ai.regimeMatrimonialDetecte;
-    if (!detected) return;
-    const normalized = detected.toUpperCase() as RegimeMatrimonialRecompenses;
-    if (!VALID_REGIMES.has(normalized)) return; // SEPARATION_BIENS ou inconnu → skip.
+    const normalized = RecompensesPrefillRules.computeRegimeMatrimonial({
+      aiData: this.aiDataSignal(),
+    });
+    if (normalized === null) return;
     if (this.regimeMatrimonial() !== null && this.provenanceRegime() !== 'IA') return;
     this.regimeMatrimonial.set(normalized);
     this.provenanceRegime.set('IA');
