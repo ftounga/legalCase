@@ -33,10 +33,8 @@ import {
 } from '../../core/models/divorce-faute.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
-import {
-  PieceManquanteEntry,
-  TravailExtractedData,
-} from '../../core/models/case-analysis.model';
+import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
@@ -121,14 +119,20 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   // SF-FA-09-02 : pré-fill IA (tous optionnels — null-safe partout).
-  @Input() aiData?: TravailExtractedData | null;
+  // F-236 SF-236-03 — F-FA-09 est un outil **famille** : son `aiData` est
+  // alimenté par `synthesis.familleExtractedData` (et non `travailExtractedData`
+  // comme historiquement à cause d'une erreur de mapping dans TOOL_REGISTRY).
+  // Note : `fautesDetectees` reste actuellement déclaré sur `TravailExtractedData`
+  // côté modèle backend — la lecture se fait via cast permissif en ligne 273
+  // jusqu'à ce que le pipeline backend déplace le champ dans `FamilleExtractedData`.
+  @Input() aiData?: FamilleExtractedData | null;
   // SF-155-10 : inputs multi-sources F-IA-03 (F96 / QUESTION_IA / PIECE_MANQUANTE).
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
   // Snapshots signal pour que les `computed` réagissent aux changements d'input.
-  private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
+  private aiDataSignal = signal<FamilleExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
   private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
@@ -270,7 +274,10 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
     }
 
     // 5. Fautes détectées par pipeline IA — no-op gracieux si absent.
-    const fautesIa = ai.fautesDetectees;
+    // F-236 SF-236-03 : `fautesDetectees` est actuellement déclaré sur
+    // `TravailExtractedData` (anomalie modèle backend — devra migrer vers
+    // `FamilleExtractedData` côté pipeline). Cast permissif jusqu'au fix.
+    const fautesIa = (ai as { fautesDetectees?: string[] | null }).fautesDetectees;
     if (Array.isArray(fautesIa) && fautesIa.length > 0) {
       const filtered = fautesIa
         .map((f) => f?.toUpperCase())
@@ -475,7 +482,9 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
    */
   private buildFautesAlert(): DivorceFauteCoherenceAlert | null {
     const ai = this.aiDataSignal();
-    const aiList = ai?.fautesDetectees;
+    // F-236 SF-236-03 : `fautesDetectees` est actuellement déclaré sur
+    // `TravailExtractedData`. Cast permissif jusqu'à correction modèle backend.
+    const aiList = (ai as { fautesDetectees?: string[] | null } | null | undefined)?.fautesDetectees;
     if (!Array.isArray(aiList) || aiList.length === 0) return null;
     const aiSet = new Set(aiList.map((f) => f?.toUpperCase()).filter((f): f is string => !!f));
     if (aiSet.size === 0) return null;

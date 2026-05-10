@@ -1054,12 +1054,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // F-236 SF-236-03 : F-FA-09 est un outil **famille** — son `aiData` doit
+      // pointer sur `familleExtractedData` (et non `travailExtractedData`,
+      // erreur de mapping héritée). Cf. mini-spec F-236 § "F-FA-09 hotfix".
       ['F-FA-09-divorce-faute', {
         component: DivorceFauteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          aiData: ctx.synthesis?.travailExtractedData,
+          aiData: ctx.synthesis?.familleExtractedData,
         }),
       }],
       ['F-FA-10-divorce-accepte', {
