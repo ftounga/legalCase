@@ -385,4 +385,27 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   onParentBNomChange(): void {
     // Pas de provenance IA sur ce champ textuel libre.
   }
+
+  /**
+   * F-IA-04 / F-177 SF-177-12 — compteur de champs pré-remplis affiché
+   * en badge sur la card avant ouverture. Lit le mode de garde détecté
+   * dans `synthesis.pensionAlimentaireEstimate.modeGardeDetaille` (et non
+   * `aiData` direct, car F-FA-06 a son propre @Input `aiModeGardeDetaille`
+   * sourcé depuis l'estimate, pas depuis FamilleExtractedData).
+   *
+   * Stricte parité avec `prefillFromAi()` :
+   * - mode absent / non reconnu → 0
+   * - mode du même pays que le workspace → 1
+   * - mode de l'autre pays → 0 (note informative seulement, pas de prefill)
+   */
+  static getPrefillCount(input: { synthesis?: any; workspaceCountry?: string }): number {
+    const mode = input.synthesis?.pensionAlimentaireEstimate?.modeGardeDetaille;
+    if (typeof mode !== 'string' || !mode) return 0;
+    const upper = mode.toUpperCase();
+    const wsFR = (input.workspaceCountry ?? 'FRANCE') === 'FRANCE';
+    const isFR = MODES_FR.has(upper);
+    const isBE = MODES_BE.has(upper);
+    if ((wsFR && isFR) || (!wsFR && isBE)) return 1;
+    return 0;
+  }
 }

@@ -262,4 +262,57 @@ describe('CalendrierGardeSectionComponent', () => {
     expect(component.gardeCode()).toBe('DVH_CLASSIQUE_FR');
     expect(component.provenanceGardeCode()).toBe('IA');
   });
+
+  // F-IA-04 / F-177 SF-177-12 — couvre le static getPrefillCount exposé pour la card du panel.
+  it('getPrefillCount — 0 si synthesis absent', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({})).toBe(0);
+    expect(CalendrierGardeSectionComponent.getPrefillCount({ synthesis: null })).toBe(0);
+    expect(CalendrierGardeSectionComponent.getPrefillCount({ synthesis: {} })).toBe(0);
+  });
+
+  it('getPrefillCount — 0 si pensionAlimentaireEstimate.modeGardeDetaille absent', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: {} },
+    })).toBe(0);
+  });
+
+  it('getPrefillCount — 1 si mode FR et workspace FR (cas nominal)', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'ALTERNEE_FR' } },
+      workspaceCountry: 'FRANCE',
+    })).toBe(1);
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'DVH_CLASSIQUE_FR' } },
+      workspaceCountry: 'FRANCE',
+    })).toBe(1);
+  });
+
+  it('getPrefillCount — 1 si mode BE et workspace BE (cas nominal Mengue)', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'ALTERNEE_BE' } },
+      workspaceCountry: 'BELGIQUE',
+    })).toBe(1);
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'SECONDAIRE_BE' } },
+      workspaceCountry: 'BELGIQUE',
+    })).toBe(1);
+  });
+
+  it('getPrefillCount — 0 si mode pays opposé (note informative seulement, pas de prefill)', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'ALTERNEE_FR' } },
+      workspaceCountry: 'BELGIQUE',
+    })).toBe(0);
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'ALTERNEE_BE' } },
+      workspaceCountry: 'FRANCE',
+    })).toBe(0);
+  });
+
+  it('getPrefillCount — 0 si mode non reconnu', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'UNKNOWN_MODE' } },
+      workspaceCountry: 'FRANCE',
+    })).toBe(0);
+  });
 });

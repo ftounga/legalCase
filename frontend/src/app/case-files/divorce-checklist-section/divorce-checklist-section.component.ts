@@ -416,4 +416,20 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
       error: () => { this.saving.set(false); this.snackBar.open('Erreur', 'Fermer', { duration: 4000 }); },
     });
   }
+
+  /**
+   * F-IA-04 / F-177 SF-177-12 — compteur de champs pré-remplis affiché
+   * en badge sur la card avant ouverture. Stricte parité avec
+   * `prefillFromAi()` ci-dessus : si `dateAcceptationPV` est un YYYY-MM-DD
+   * valide, l'étape de signature/rédaction de la convention sera marquée
+   * FAIT (1 étape par checklist FR ou BE — l'autre n'est pas dans la
+   * checklist du pays courant).
+   */
+  static getPrefillCount(input: { aiData?: FamilleExtractedData | null }): number {
+    const ai = input.aiData;
+    if (!ai) return 0;
+    if (typeof ai.dateAcceptationPV !== 'string') return 0;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ai.dateAcceptationPV)) return 0;
+    return 1;
+  }
 }
