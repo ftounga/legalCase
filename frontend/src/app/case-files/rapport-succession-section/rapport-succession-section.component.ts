@@ -41,6 +41,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { RapportSuccessionPrefillRules } from './rapport-succession-section-prefill-rules';
 
 /**
  * SF-FA-24-14 : champs F-IA-03 audités par l'outil "Rapport à succession".
@@ -96,6 +97,18 @@ export class RapportSuccessionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RAPPORT À SUCCESSION (FR)';
   static readonly TOOL_ICON = 'account_balance';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return RapportSuccessionPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -426,71 +439,42 @@ export class RapportSuccessionSectionComponent implements OnInit, OnChanges {
    * absent. Ne pré-remplit que si le champ est encore vide ou marqué IA.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // qualiteHeritier
-    const iaQ = ai.qualiteHeritierRapportDetectee;
-    if (iaQ === 'DESCENDANT' || iaQ === 'CONJOINT_SURVIVANT') {
-      if (this.qualiteHeritier() === null
-          || this.provenanceQualiteHeritier() === 'IA') {
-        this.qualiteHeritier.set(iaQ);
-        this.provenanceQualiteHeritier.set('IA');
-      }
+    const q = RapportSuccessionPrefillRules.computeQualiteHeritier(h);
+    if (q !== null && (this.qualiteHeritier() === null || this.provenanceQualiteHeritier() === 'IA')) {
+      this.qualiteHeritier.set(q);
+      this.provenanceQualiteHeritier.set('IA');
     }
-
-    // donationsRecuesEur
-    const iaDr = ai.montantDonationsRecuesEurDetecte;
-    if (iaDr !== null && iaDr !== undefined && iaDr > 0) {
-      if (this.donationsRecuesEur() === null
-          || this.provenanceDonationsRecues() === 'IA') {
-        this.donationsRecuesEur.set(iaDr);
-        this.provenanceDonationsRecues.set('IA');
-      }
+    const dr = RapportSuccessionPrefillRules.computeDonationsRecues(h);
+    if (dr !== null && (this.donationsRecuesEur() === null || this.provenanceDonationsRecues() === 'IA')) {
+      this.donationsRecuesEur.set(dr);
+      this.provenanceDonationsRecues.set('IA');
     }
-
-    // valeurAuJourPartage
-    const iaVp = ai.valeurDonationAuJourPartageEurDetectee;
-    if (iaVp !== null && iaVp !== undefined && iaVp > 0) {
-      if (this.valeurAuJourPartage() === null
-          || this.provenanceValeurPartage() === 'IA') {
-        this.valeurAuJourPartage.set(iaVp);
-        this.provenanceValeurPartage.set('IA');
-      }
+    const vp = RapportSuccessionPrefillRules.computeValeurPartage(h);
+    if (vp !== null && (this.valeurAuJourPartage() === null || this.provenanceValeurPartage() === 'IA')) {
+      this.valeurAuJourPartage.set(vp);
+      this.provenanceValeurPartage.set('IA');
     }
-
-    // dateDonation
-    const iaDate = ai.dateDonationDetectee;
-    if (iaDate) {
-      if (this.dateDonation() === null
-          || this.provenanceDateDonation() === 'IA') {
-        this.dateDonation.set(iaDate);
-        this.provenanceDateDonation.set('IA');
-      }
+    const dd = RapportSuccessionPrefillRules.computeDateDonation(h);
+    if (dd !== null && (this.dateDonation() === null || this.provenanceDateDonation() === 'IA')) {
+      this.dateDonation.set(dd);
+      this.provenanceDateDonation.set('IA');
     }
-
-    // donationDispenseDeRapport
-    const iaDispense = ai.donationDispenseDeRapportDetected;
-    if (iaDispense !== null && iaDispense !== undefined) {
-      if (this.provenanceDispense() === null
-          && this.donationDispenseDeRapport() === false) {
-        this.donationDispenseDeRapport.set(iaDispense);
-        this.provenanceDispense.set('IA');
-      } else if (this.provenanceDispense() === 'IA') {
-        this.donationDispenseDeRapport.set(iaDispense);
+    const dispense = RapportSuccessionPrefillRules.computeDispense(h);
+    if (dispense !== null) {
+      if ((this.provenanceDispense() === null && this.donationDispenseDeRapport() === false)
+          || this.provenanceDispense() === 'IA') {
+        this.donationDispenseDeRapport.set(dispense);
         this.provenanceDispense.set('IA');
       }
     }
-
-    // naturePresumeeNonRapportable
-    const iaNature = ai.naturePresumeeNonRapportableDetected;
-    if (iaNature !== null && iaNature !== undefined) {
-      if (this.provenanceNatureNonRapportable() === null
-          && this.naturePresumeeNonRapportable() === false) {
-        this.naturePresumeeNonRapportable.set(iaNature);
-        this.provenanceNatureNonRapportable.set('IA');
-      } else if (this.provenanceNatureNonRapportable() === 'IA') {
-        this.naturePresumeeNonRapportable.set(iaNature);
+    const nature = RapportSuccessionPrefillRules.computeNatureNonRapportable(h);
+    if (nature !== null) {
+      if ((this.provenanceNatureNonRapportable() === null && this.naturePresumeeNonRapportable() === false)
+          || this.provenanceNatureNonRapportable() === 'IA') {
+        this.naturePresumeeNonRapportable.set(nature);
         this.provenanceNatureNonRapportable.set('IA');
       }
     }

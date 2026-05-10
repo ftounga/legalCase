@@ -40,6 +40,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { IndivisionSuccessoralePrefillRules } from './indivision-successorale-section-prefill-rules';
 
 /**
  * SF-FA-24-12 : champs d'alerte F-IA-03 exposés par l'outil "Indivision
@@ -89,6 +90,18 @@ export class IndivisionSuccessoraleSectionComponent implements OnInit, OnChanges
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDIVISION SUCCESSORALE (FR)';
   static readonly TOOL_ICON = 'groups';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return IndivisionSuccessoralePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -411,26 +424,17 @@ export class IndivisionSuccessoraleSectionComponent implements OnInit, OnChanges
    * - n'écrase jamais une saisie avocat (provenance !== 'IA')
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // typeIndivision
-    const iaType = this.parseTypeFromIa(ai.typeIndivisionSuccessoraleDetecte);
-    if (iaType) {
-      if (this.typeIndivision() === null
-          || this.provenanceTypeIndivision() === 'IA') {
-        this.typeIndivision.set(iaType);
-        this.provenanceTypeIndivision.set('IA');
-      }
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
+    const t = IndivisionSuccessoralePrefillRules.computeTypeIndivision(h);
+    if (t !== null && (this.typeIndivision() === null || this.provenanceTypeIndivision() === 'IA')) {
+      this.typeIndivision.set(t);
+      this.provenanceTypeIndivision.set('IA');
     }
-
-    // dateOuvertureSuccession (réutilise pré-fill SF-FA-24-08)
-    const iaDate = ai.dateOuvertureSuccessionDetectee;
-    if (iaDate && typeof iaDate === 'string' && iaDate.trim()) {
-      if (!this.dateOuvertureSuccession() || this.provenanceDateOuverture() === 'IA') {
-        this.dateOuvertureSuccession.set(iaDate);
-        this.provenanceDateOuverture.set('IA');
-      }
+    const d = IndivisionSuccessoralePrefillRules.computeDateOuverture(h);
+    if (d !== null && (!this.dateOuvertureSuccession() || this.provenanceDateOuverture() === 'IA')) {
+      this.dateOuvertureSuccession.set(d);
+      this.provenanceDateOuverture.set('IA');
     }
   }
 

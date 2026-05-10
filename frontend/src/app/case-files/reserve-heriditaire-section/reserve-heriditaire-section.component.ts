@@ -39,6 +39,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ReserveHeriditairePrefillRules } from './reserve-heriditaire-section-prefill-rules';
 
 /**
  * SF-FA-24-08 : champs d'alerte F-IA-03 audités par l'outil
@@ -91,6 +92,18 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉSERVE HÉRÉDITAIRE & ACTION EN RÉDUCTION (FR)';
   static readonly TOOL_ICON = 'balance';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return ReserveHeriditairePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -548,67 +561,38 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
    * - ne pré-remplit que si le champ est encore vide ou marqué IA
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // nombreEnfants
-    const iaNe = ai.nombreEnfantsSuccessionDetecte ?? ai.nbDescendantsDetecte;
-    if (iaNe !== null && iaNe !== undefined && iaNe >= 0) {
-      if (this.nombreEnfants() === null
-          || this.provenanceNombreEnfants() === 'IA') {
-        this.nombreEnfants.set(iaNe);
-        this.provenanceNombreEnfants.set('IA');
-      }
+    const ne = ReserveHeriditairePrefillRules.computeNombreEnfants(h);
+    if (ne !== null && (this.nombreEnfants() === null || this.provenanceNombreEnfants() === 'IA')) {
+      this.nombreEnfants.set(ne);
+      this.provenanceNombreEnfants.set('IA');
     }
-
-    // conjointSurvivant
-    const iaConj = ai.conjointSurvivantDetected;
-    if (iaConj !== null && iaConj !== undefined) {
-      if (this.conjointSurvivant() === null
-          || this.provenanceConjoint() === 'IA') {
-        this.conjointSurvivant.set(iaConj);
-        this.provenanceConjoint.set('IA');
-      }
+    const cj = ReserveHeriditairePrefillRules.computeConjointSurvivant(h);
+    if (cj !== null && (this.conjointSurvivant() === null || this.provenanceConjoint() === 'IA')) {
+      this.conjointSurvivant.set(cj);
+      this.provenanceConjoint.set('IA');
     }
-
-    // montantSuccession
-    const iaMs = ai.montantSuccessionEurDetecte;
-    if (iaMs !== null && iaMs !== undefined && iaMs > 0) {
-      if (this.montantSuccession() === null
-          || this.provenanceMontantSuccession() === 'IA') {
-        this.montantSuccession.set(iaMs);
-        this.provenanceMontantSuccession.set('IA');
-      }
+    const ms = ReserveHeriditairePrefillRules.computeMontantSuccession(h);
+    if (ms !== null && (this.montantSuccession() === null || this.provenanceMontantSuccession() === 'IA')) {
+      this.montantSuccession.set(ms);
+      this.provenanceMontantSuccession.set('IA');
     }
-
-    // montantLibsTotal
-    const iaMl = ai.montantLibsTotalEurDetecte;
-    if (iaMl !== null && iaMl !== undefined && iaMl >= 0) {
-      if (this.montantLibsTotal() === null
-          || this.provenanceMontantLibs() === 'IA') {
-        this.montantLibsTotal.set(iaMl);
-        this.provenanceMontantLibs.set('IA');
-      }
+    const ml = ReserveHeriditairePrefillRules.computeMontantLibs(h);
+    if (ml !== null && (this.montantLibsTotal() === null || this.provenanceMontantLibs() === 'IA')) {
+      this.montantLibsTotal.set(ml);
+      this.provenanceMontantLibs.set('IA');
     }
-
-    // dateOuvertureSuccession
-    const iaDate = ai.dateOuvertureSuccessionDetectee;
-    if (iaDate) {
-      if (this.dateOuvertureSuccession() === null
-          || this.provenanceDateOuverture() === 'IA') {
-        this.dateOuvertureSuccession.set(iaDate);
-        this.provenanceDateOuverture.set('IA');
-      }
+    const dt = ReserveHeriditairePrefillRules.computeDateOuverture(h);
+    if (dt !== null && (this.dateOuvertureSuccession() === null || this.provenanceDateOuverture() === 'IA')) {
+      this.dateOuvertureSuccession.set(dt);
+      this.provenanceDateOuverture.set('IA');
     }
-
-    // qualiteDuDemandeur
-    const iaQ = ai.qualiteDuDemandeurReserveDetecte;
-    if (iaQ) {
-      if (this.qualiteDuDemandeur() === null
-          || this.provenanceQualiteDemandeur() === 'IA') {
-        this.qualiteDuDemandeur.set(iaQ);
-        this.provenanceQualiteDemandeur.set('IA');
-      }
+    const qa = ReserveHeriditairePrefillRules.computeQualiteDemandeur(h);
+    if (qa !== null && (this.qualiteDuDemandeur() === null || this.provenanceQualiteDemandeur() === 'IA')) {
+      this.qualiteDuDemandeur.set(qa as any);
+      this.provenanceQualiteDemandeur.set('IA');
     }
   }
 
