@@ -46,6 +46,10 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import {
+  ProtectionRpSectionPrefillRules,
+  computeMotifLicenciement as computeMotifLicenciementRule,
+} from './protection-rp-section-prefill-rules';
 
 /**
  * SF-DT-30-02 : champs d'alerte F-IA-03 exposés par l'outil "Protection RP".
@@ -92,6 +96,18 @@ export class ProtectionRpSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PROTECTION DES REPRÉSENTANTS DU PERSONNEL (FR)';
   static readonly TOOL_ICON = 'shield';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return ProtectionRpSectionPrefillRules.computePrefillCount({ aiData: input.aiData });
+  }
 
   @Input() caseFileId!: string;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
@@ -332,8 +348,8 @@ export class ProtectionRpSectionComponent implements OnInit, OnChanges {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    // motifLicenciement ← aiData.motifLicenciement mappé.
-    const iaMotif = mapMotifLicenciementFromIa(ai.motifLicenciement ?? null);
+    // F-236 SF-236-02 : motifLicenciement calculé par le helper partagé (parité static).
+    const iaMotif = computeMotifLicenciementRule({ aiData: ai });
     if (iaMotif) {
       if (this.motifLicenciement() === null
           || this.provenanceMotifLicenciement() === 'IA') {
