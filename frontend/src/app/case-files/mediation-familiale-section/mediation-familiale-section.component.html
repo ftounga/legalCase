@@ -1,0 +1,161 @@
+<div class="mfp-section" [class.mfp-section--collapsed]="collapsed()">
+  <header class="mfp-header" (click)="toggleCollapse()">
+    <mat-icon class="mfp-header__icon">group</mat-icon>
+    <h3 class="mfp-header__title">Médiation familiale obligatoire pré-saisine JAF</h3>
+    <span class="mfp-header__chip">FR — art. 373-2-10 al. 3 Cciv</span>
+    @if (alertsSummary().total > 0) {
+      <span class="mfp-header__alerts">
+        <mat-icon>warning</mat-icon> {{ alertsSummary().total }}
+      </span>
+    }
+    <mat-icon class="mfp-header__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div class="mfp-body">
+      @if (!isFrance()) {
+        <div class="mfp-banner mfp-banner--info">
+          <mat-icon>info</mat-icon>
+          <span>Outil disponible uniquement pour la France (Loi 18/11/2016, art. 373-2-10 al. 3 Cciv).
+                La procédure belge correspondante (CJ art. 1734) est juridiquement distincte.</span>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="mfp-loading"><mat-progress-spinner mode="indeterminate" diameter="32"></mat-progress-spinner></div>
+        }
+
+        @if (!loading()) {
+          @if (showForm()) {
+            <div class="mfp-form">
+              <div class="mfp-field">
+                <label class="mfp-field__label">
+                  Motif de saisine
+                  @if (provenanceMotif() === 'IA') {
+                    <span class="mfp-prefill-badge" matTooltip="Pré-rempli depuis l'analyse">
+                      <mat-icon>auto_awesome</mat-icon>
+                    </span>
+                  }
+                  @if (coherenceAlerts()['MOTIF_SAISINE']; as alert) {
+                    <span class="mfp-coherence-badge"
+                          [matTooltip]="alertTooltip(alert)">
+                      <mat-icon>warning</mat-icon>
+                      {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </label>
+                <mat-form-field appearance="outline" class="mfp-field__control">
+                  <mat-select [ngModel]="motifSaisine()"
+                              (ngModelChange)="onMotifChange($event)"
+                              placeholder="Choisir un motif">
+                    @for (opt of motifsOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="mfp-field">
+                <label class="mfp-field__label">Médiation familiale tentée ?</label>
+                <mat-slide-toggle [ngModel]="mediationTentee()"
+                                  (ngModelChange)="onMediationTenteeChange($event)">
+                  {{ mediationTentee() ? 'Oui' : 'Non' }}
+                </mat-slide-toggle>
+              </div>
+
+              @if (mediationTentee()) {
+                <div class="mfp-field">
+                  <label class="mfp-field__label">Date de la tentative</label>
+                  <mat-form-field appearance="outline" class="mfp-field__control">
+                    <input matInput type="date"
+                           [ngModel]="dateMediation()"
+                           (ngModelChange)="onDateMediationChange($event)">
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="mfp-field">
+                <label class="mfp-field__label">Exception applicable</label>
+                <mat-form-field appearance="outline" class="mfp-field__control">
+                  <mat-select [ngModel]="exceptionApplicable()"
+                              (ngModelChange)="onExceptionChange($event)">
+                    @for (opt of exceptionsOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              @if (exceptionApplicable() !== 'AUCUNE') {
+                <div class="mfp-field">
+                  <label class="mfp-field__label">Détail de l'exception</label>
+                  <mat-form-field appearance="outline" class="mfp-field__control">
+                    <textarea matInput rows="2"
+                              [ngModel]="exceptionDetail()"
+                              (ngModelChange)="onExceptionDetailChange($event)"
+                              placeholder="Plainte du JJ/MM/AAAA, certificat médical, etc."></textarea>
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="mfp-actions">
+                <button mat-flat-button color="primary"
+                        [disabled]="!formValid() || calculating()"
+                        (click)="calculate()">
+                  @if (calculating()) {
+                    <mat-progress-spinner mode="indeterminate" diameter="18"></mat-progress-spinner>
+                  } @else {
+                    <mat-icon>analytics</mat-icon>
+                  }
+                  Analyser la recevabilité
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (!showForm() && result(); as r) {
+            <div class="mfp-result">
+              <div [ngClass]="verdictBannerClass(r.verdict)">
+                <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+                <span>{{ verdictBannerLabel(r.verdict) }}</span>
+              </div>
+
+              <p class="mfp-formule">{{ r.formule }}</p>
+
+              <div class="mfp-base-juridique">
+                <strong>Base juridique :</strong>
+                <span>{{ r.baseJuridique | legalCitations }}</span>
+              </div>
+
+              @if (r.piecesAJoindre.length > 0) {
+                <div class="mfp-pieces">
+                  <strong>Pièces à joindre / actions :</strong>
+                  <ul>
+                    @for (p of r.piecesAJoindre; track p) {
+                      <li>{{ p }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (r.messages.length > 0) {
+                <div class="mfp-messages">
+                  <ul>
+                    @for (m of r.messages; track m) {
+                      <li>{{ m | legalCitations }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <div class="mfp-actions">
+                <button mat-stroked-button (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier la qualification
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</div>
