@@ -241,11 +241,11 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.prefillCountFor('F-XX-999-unknown')).toBeNull();
   });
 
-  it('prefillCountFor returns null for a tool without static getPrefillCount', () => {
-    // F-236 SF-236-02 Wave A : tous les outils Travail exposent désormais
-    // `getPrefillCount`. F-IM-09-aes-etudiant (vague Immigration, hors scope
-    // de cette wave) ne l'expose pas encore — choisi comme cas négatif stable.
-    expect(component.prefillCountFor('F-IM-09-aes-etudiant')).toBeNull();
+  it('prefillCountFor returns null for an unknown tool_id', () => {
+    // F-236 SF-236-02 Waves A+B+C : tous les outils du TOOL_REGISTRY exposent
+    // désormais `getPrefillCount`. Le cas "absence" se teste donc uniquement
+    // via un tool_id inexistant (résolution échoue → null).
+    expect(component.prefillCountFor('F-INEXISTANT-fake-tool-xyz')).toBeNull();
   });
 
   it('resolves F-132-rupture-amiable-info to RuptureAmiableInfoSectionComponent', () => {
