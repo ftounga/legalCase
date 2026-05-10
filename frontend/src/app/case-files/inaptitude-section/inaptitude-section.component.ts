@@ -27,6 +27,9 @@ import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-pop
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  InaptitudeSectionPrefillRules,
+} from './inaptitude-section-prefill-rules';
 
 /**
  * SF-155-04-A2 : types pour les alertes de cohérence IA (pattern F-IA-03 aligné
@@ -77,6 +80,22 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 export class InaptitudeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'LICENCIEMENT POUR INAPTITUDE';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return InaptitudeSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'medical_services';
 
   @Input() caseFileId!: string;
@@ -296,53 +315,43 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
   private prefillFromAi(): void {
     if (!this.aiData) return;
 
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: this.aiData, workspaceCountry: this.workspaceCountry };
+
     // 1. Salaire brut mensuel → salaireMensuelReference
-    const salaireIa = this.aiData.salaireBrutMensuel;
-    if (typeof salaireIa === 'number' && salaireIa > 0) {
-      this.salaireMensuelReference.set(salaireIa);
+    const salaire = InaptitudeSectionPrefillRules.computeSalaireMensuel(ruleInput);
+    if (salaire !== null) {
+      this.salaireMensuelReference.set(salaire);
       this.provenanceSalaire.set('IA');
     }
 
-    // 2. Ancienneté dérivée depuis dateEntree (YYYY-MM-DD historique)
-    const dateEntree = this.aiData.dateEntree;
-    if (dateEntree && ISO_DATE_REGEX.test(dateEntree)) {
-      const anciennete = this.computeAncienneteAnnees(dateEntree);
-      if (anciennete !== null) {
-        this.ancienneteAnnees.set(anciennete);
-        this.provenanceAnciennete.set('IA');
-      }
+    // 2. Ancienneté dérivée depuis dateEntree
+    const anciennete = InaptitudeSectionPrefillRules.computeAncienneteAnnees(ruleInput);
+    if (anciennete !== null) {
+      this.ancienneteAnnees.set(anciennete);
+      this.provenanceAnciennete.set('IA');
     }
 
-    // 3. Origine inaptitude : mapping AT/MP → PROFESSIONNELLE, MO → NON_PROFESSIONNELLE
-    const origineIa = this.aiData.origineInaptitudePressentie;
-    if (origineIa && ORIGINE_IA_TO_FRONT[origineIa]) {
-      const mapped = ORIGINE_IA_TO_FRONT[origineIa];
-      // Si on est côté BE, le mapping FR ne s'applique pas — skip silencieux
-      // (les origines BE ne sont pas encore extraites par le prompt IA, cf.
-      // mini-spec backend SF-155-04-00-BE-travail §2.2).
-      if (this.workspaceCountry !== 'BELGIQUE') {
-        this.origineInaptitude.set(mapped);
-        this.provenanceOrigineInaptitude.set('IA');
-      }
+    // 3. Origine inaptitude (FR uniquement)
+    const origine = InaptitudeSectionPrefillRules.computeOrigineInaptitude(ruleInput);
+    if (origine !== null) {
+      this.origineInaptitude.set(origine);
+      this.provenanceOrigineInaptitude.set('IA');
     }
 
     // 4. Date avis médecin du travail (YYYY-MM-DD strict)
-    const avisDate = this.aiData.avisMedecinTravailDate;
-    if (avisDate && ISO_DATE_REGEX.test(avisDate)) {
+    const avisDate = InaptitudeSectionPrefillRules.computeAvisMedecinDate(ruleInput);
+    if (avisDate !== null) {
       this.avisMedecinTravailDate.set(avisDate);
       this.provenanceAvisMedecinDate.set('IA');
     }
 
     // 5. Reclassement respecté : OUI → true, NON → false, INCONNU → ne touche pas
-    const reclassIa = this.aiData.reclassementRespecteDetected?.reponse;
-    if (reclassIa === 'OUI') {
-      this.reclassementRespecte.set(true);
-      this.provenanceReclassement.set('IA');
-    } else if (reclassIa === 'NON') {
-      this.reclassementRespecte.set(false);
+    const reclassement = InaptitudeSectionPrefillRules.computeReclassementRespecte(ruleInput);
+    if (reclassement !== null) {
+      this.reclassementRespecte.set(reclassement);
       this.provenanceReclassement.set('IA');
     }
-    // INCONNU ou undefined → laisser la valeur avocat (défaut false)
   }
 
   /**

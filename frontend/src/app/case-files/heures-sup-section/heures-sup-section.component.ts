@@ -28,6 +28,9 @@ import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.m
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  HeuresSupSectionPrefillRules,
+} from './heures-sup-section-prefill-rules';
 
 /** Durée légale française mensualisée (35 h × 52 semaines / 12). */
 const HEURES_MOIS_FR = 151.67;
@@ -82,6 +85,22 @@ export type HsCoherenceAlert = CoherenceAlert<HsAlertField>;
 export class HeuresSupSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RAPPEL HEURES SUPPLÉMENTAIRES';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return HeuresSupSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'schedule';
 
   @Input() caseFileId!: string;
@@ -337,34 +356,29 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     const ai = this.aiData;
     if (!ai) return;
 
-    // 1. tauxHoraireBrut dérivé depuis salaireBrutMensuel.
-    //    Pré-fill uniquement si le champ n'a pas encore de provenance IA
-    //    et n'a pas été modifié manuellement (tauxHoraireBrut() null ou IA).
-    if (
-      typeof ai.salaireBrutMensuel === 'number' &&
-      ai.salaireBrutMensuel > 0 &&
-      this.canPrefill('TAUX')
-    ) {
-      const derived = Math.round((ai.salaireBrutMensuel / HEURES_MOIS_FR) * 100) / 100;
-      this.tauxHoraireBrut.set(derived);
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
+    const tauxDerived = HeuresSupSectionPrefillRules.computeTauxHoraireBrut(ruleInput);
+    if (tauxDerived !== null && this.canPrefill('TAUX')) {
+      this.tauxHoraireBrut.set(tauxDerived);
       this.provenanceTauxHoraire.set('IA');
     }
 
-    // 2. heuresSupMentionneesDansDossier — garde-fou typeof object.
-    const mentionnees = ai.heuresSupMentionneesDansDossier;
-    if (mentionnees && typeof mentionnees === 'object') {
-      if (typeof mentionnees.totalDeclarees25pct === 'number' && this.canPrefill('H25')) {
-        this.heuresSupDeclarees25pct.set(mentionnees.totalDeclarees25pct);
-        this.provenanceHeures25.set('IA');
-      }
-      if (typeof mentionnees.totalDeclarees50pct === 'number' && this.canPrefill('H50')) {
-        this.heuresSupDeclarees50pct.set(mentionnees.totalDeclarees50pct);
-        this.provenanceHeures50.set('IA');
-      }
-      if (typeof mentionnees.horsContingent === 'number' && this.canPrefill('HC')) {
-        this.heuresHorsContingent.set(mentionnees.horsContingent);
-        this.provenanceHorsContingent.set('IA');
-      }
+    const h25 = HeuresSupSectionPrefillRules.computeHeures25(ruleInput);
+    if (h25 !== null && this.canPrefill('H25')) {
+      this.heuresSupDeclarees25pct.set(h25);
+      this.provenanceHeures25.set('IA');
+    }
+    const h50 = HeuresSupSectionPrefillRules.computeHeures50(ruleInput);
+    if (h50 !== null && this.canPrefill('H50')) {
+      this.heuresSupDeclarees50pct.set(h50);
+      this.provenanceHeures50.set('IA');
+    }
+    const hc = HeuresSupSectionPrefillRules.computeHeuresHorsContingent(ruleInput);
+    if (hc !== null && this.canPrefill('HC')) {
+      this.heuresHorsContingent.set(hc);
+      this.provenanceHorsContingent.set('IA');
     }
   }
 

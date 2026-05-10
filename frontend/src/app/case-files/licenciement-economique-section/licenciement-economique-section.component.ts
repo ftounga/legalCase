@@ -59,6 +59,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  LicenciementEconomiqueSectionPrefillRules,
+} from './licenciement-economique-section-prefill-rules';
 
 /**
  * SF-DT-13-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -102,6 +105,21 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'LICENCIEMENT ÉCONOMIQUE (FR) — ART. L.1233-3/4/5/45';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return LicenciementEconomiqueSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+    });
+  }
+
   static readonly TOOL_ICON = 'gavel';
 
   @Input() caseFileId!: string;
@@ -225,20 +243,21 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
     const ai = this.aiDataSignal();
     if (!ai) return;
 
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai };
+
     // 1. Motif économique : mapping IA chaîne libre → enum UI.
-    if (typeof ai.motifLicenciement === 'string' && ai.motifLicenciement.trim().length > 0) {
-      const code = ai.motifLicenciement.trim().toUpperCase();
-      const mapped = AI_MOTIF_TO_MOTIF_ECONOMIQUE[code];
-      if (mapped && (this.motifEconomiqueInvoque() === null || this.provenanceMotif() === 'IA')) {
-        this.motifEconomiqueInvoque.set(mapped);
-        this.provenanceMotif.set('IA');
-      }
+    const mappedMotif = LicenciementEconomiqueSectionPrefillRules.computeMotifEconomique(ruleInput);
+    if (mappedMotif && (this.motifEconomiqueInvoque() === null || this.provenanceMotif() === 'IA')) {
+      this.motifEconomiqueInvoque.set(mappedMotif);
+      this.provenanceMotif.set('IA');
     }
 
     // 2. Date notification : `dateLicenciement` IA (YYYY-MM-DD).
-    if (typeof ai.dateLicenciement === 'string' && ISO_DATE_REGEX.test(ai.dateLicenciement)) {
+    const dateNotif = LicenciementEconomiqueSectionPrefillRules.computeDateNotification(ruleInput);
+    if (dateNotif) {
       if (this.dateNotification() === null || this.provenanceDateNotification() === 'IA') {
-        this.dateNotification.set(ai.dateLicenciement);
+        this.dateNotification.set(dateNotif);
         this.provenanceDateNotification.set('IA');
       }
     }

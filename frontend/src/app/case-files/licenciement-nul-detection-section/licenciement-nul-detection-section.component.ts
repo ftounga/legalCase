@@ -41,6 +41,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  LicenciementNulDetectionSectionPrefillRules,
+} from './licenciement-nul-detection-section-prefill-rules';
 
 /**
  * SF-DT-16-02 : champs F-IA-03 audités par l'outil F-DT-16 (licenciement nul
@@ -109,6 +112,21 @@ const AI_MOTIF_TO_PROTECTION_FLAG: Readonly<Record<string, keyof Pick<
 export class LicenciementNulDetectionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'LICENCIEMENT NUL — DÉTECTION (ART. L.1235-3-1)';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return LicenciementNulDetectionSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+    });
+  }
+
   static readonly TOOL_ICON = 'policy';
 
   @Input() caseFileId!: string;
@@ -421,32 +439,36 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai };
+
+    const salaire = LicenciementNulDetectionSectionPrefillRules.computeSalaire(ruleInput);
+    if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(ai.salaireBrutMensuel);
+        this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
 
-    const aiDate = ai.dateLicenciement;
-    if (aiDate && ISO_DATE_REGEX.test(aiDate)) {
+    const dateNotif = LicenciementNulDetectionSectionPrefillRules.computeDateNotification(ruleInput);
+    if (dateNotif) {
       if (this.dateNotificationLicenciement() === null || this.provenanceDateNotification() === 'IA') {
-        this.dateNotificationLicenciement.set(aiDate);
+        this.dateNotificationLicenciement.set(dateNotif);
         this.provenanceDateNotification.set('IA');
       }
     }
 
-    const iaMotif = ai.motifNullitePressenti?.toUpperCase();
-    if (iaMotif) {
-      const flag = AI_MOTIF_TO_PROTECTION_FLAG[iaMotif];
-      if (flag) {
-        const currentSignal = this.protectionSignalFor(flag);
-        // N'écrase pas une saisie manuelle (provenance null AVEC une valeur true
-        // signifie que l'avocat a coché — on n'efface pas).
-        if (!currentSignal() || this.provenanceProtections() === 'IA') {
-          currentSignal.set(true);
-          this.provenanceProtections.set('IA');
-        }
+    const flag = LicenciementNulDetectionSectionPrefillRules.computeProtectionFlag(ruleInput) as
+      | 'salarieEnceinte' | 'salarieAccidentTravail' | 'salarieHarceleAvere'
+      | 'salarieDiscriminationAlleguee' | 'salarieMotifLanceurAlerte'
+      | 'salarieMandatRepresentant' | 'salarieActionJustice' | null;
+    if (flag) {
+      const currentSignal = this.protectionSignalFor(flag);
+      // N'écrase pas une saisie manuelle (provenance null AVEC une valeur true
+      // signifie que l'avocat a coché — on n'efface pas).
+      if (!currentSignal() || this.provenanceProtections() === 'IA') {
+        currentSignal.set(true);
+        this.provenanceProtections.set('IA');
       }
     }
   }
