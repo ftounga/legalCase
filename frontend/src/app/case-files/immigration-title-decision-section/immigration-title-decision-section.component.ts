@@ -23,6 +23,8 @@ import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignme
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { ImmigrationTitleDecisionPrefillRules } from './immigration-title-decision-section-prefill-rules';
 
 /**
  * F-192 SF-192-02 — Verdict utilisé par la card du panel F-IA-04 pour afficher
@@ -44,46 +46,10 @@ export type IM05AlertField = 'MOTIF' | 'NATIONALITE_UE';
 export type IM05AlertSource = CoherenceAlertSource;
 export type IM05CoherenceAlert = CoherenceAlert<IM05AlertField>;
 
-const CODE_TO_MOTIF: Record<string, string> = {
-  VLS_TS_ETUDIANT: 'ETUDES',
-  CARTE_A_ETUDES: 'ETUDES',
-  CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE: 'ETUDES',
-  VLS_TS_SALARIE: 'TRAVAIL',
-  CST_SALARIE: 'TRAVAIL',
-  CARTE_PLURIANNUELLE: 'TRAVAIL',
-  CARTE_PLURIANNUELLE_SALARIE: 'TRAVAIL',
-  CARTE_PLURIANNUELLE_PASSEPORT_TALENT: 'TRAVAIL',
-  APS: 'TRAVAIL',
-  CARTE_A_TRAVAIL: 'TRAVAIL',
-  PERMIS_UNIQUE: 'TRAVAIL',
-  CST_VPF: 'FAMILLE',
-  CST_VPF_CONJOINT_FR: 'FAMILLE',
-  CARTE_PLURIANNUELLE_VPF: 'FAMILLE',
-  CARTE_A_FAMILLE: 'FAMILLE',
-  RECEPISSE_ASILE: 'ASILE',
-  ATTESTATION_IMMATRICULATION: 'ASILE',
-  ANNEXE_15: 'ASILE',
-  // CARTE_RESIDENT, CARTE_B, CARTE_C : titres génériques stables, pas de mapping motif
-};
-
-/**
- * SF-IM-05-04 : mapping trigger_event → (motif, situationFamiliale).
- * Prioritaire sur CODE_TO_MOTIF car décrit la voie JURIDIQUE CIBLE (ex: mariage
- * avec Français → FAMILLE/MARIE), tandis que le code titre reflète la situation
- * actuelle (ex: pluriannuelle Étudiant-Recherche → ETUDES).
- */
-const TRIGGER_TO_CRITERIA: Record<string, { motif: string; situationFamiliale?: string }> = {
-  MARIAGE_RESSORTISSANT_FR: { motif: 'FAMILLE', situationFamiliale: 'MARIE' },
-  PACS_RESSORTISSANT_FR: { motif: 'FAMILLE', situationFamiliale: 'PACS_COHABITATION' },
-  NAISSANCE_ENFANT_FR: { motif: 'FAMILLE' },
-  REGROUPEMENT_FAMILIAL_AUTORISE: { motif: 'FAMILLE' },
-  VIOLENCES_CONJUGALES_CONSTATEES: { motif: 'FAMILLE' },
-  CDI_OBTENU_SALARIE: { motif: 'TRAVAIL' },
-  DOCTORAT_OBTENU: { motif: 'TRAVAIL' }, // chercheur/post-doc → Passeport Talent
-  DEMANDE_ASILE_ACCORDEE_OFPRA: { motif: 'ASILE' },
-  ENFANT_NE_FR_13ANS_PRESENCE: { motif: 'FAMILLE' },
-  // ENTREE_LEGALE_10ANS : pas de motif unique, peut être TRAVAIL ou FAMILLE → pas de mapping
-};
+// F-236 SF-236-02 : les constantes CODE_TO_MOTIF / TRIGGER_TO_CRITERIA sont
+// désormais déclarées dans le helper partagé `<component>-prefill-rules.ts`.
+// On en récupère un alias local pour `buildMotifAlert` (lecture seule).
+const CODE_TO_MOTIF = ImmigrationTitleDecisionPrefillRules.CODE_TO_MOTIF;
 
 @Component({
   selector: 'app-immigration-title-decision-section',
@@ -106,76 +72,13 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   static readonly TOOL_ICON = 'account_tree';
 
   /**
-   * F-177 SF-177-12 — Compte les champs que `prefillFromAi()` poserait, sans
-   * instancier le composant. Stricte parité avec la logique runtime ci-dessous :
-   *   1. `nationaliteUe` : posé si `aiData.nationaliteUe` est un boolean.
-   *   2. `motif` (+ optionnellement `situationFamiliale`) : posé en priorité
-   *      depuis `triggerEvents[0].eventCode` mappé via TRIGGER_TO_CRITERIA,
-   *      sinon depuis `aiData.typeTitreSejourCode` (CODE_TO_MOTIF), sinon
-   *      depuis l'heuristique texte sur `aiData.typeTitreSejour`.
-   *
-   * Divergence avec `prefillFromAi()` runtime = bug (badge faux) — tout ajout
-   * dans la méthode runtime doit être reflété ici.
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé
+   * `ImmigrationTitleDecisionPrefillRules`. Le runtime `prefillFromAi()`
+   * ci-dessous consomme les mêmes fonctions sur le même input — divergence
+   * impossible par construction (cf. `<component>-prefill-rules.ts`).
    */
-  static getPrefillCount(input: {
-    aiData?: any;
-    procedureChecks?: any[];
-    aiQuestions?: any[];
-    piecesManquantes?: any[];
-    triggerEvents?: any[];
-    workspaceCountry?: string;
-  }): number {
-    const ai = input.aiData;
-    // Le runtime sort tôt si ni aiData ni triggerEvents.
-    const triggers = Array.isArray(input.triggerEvents) ? input.triggerEvents : [];
-    if (!ai && triggers.length === 0) return 0;
-
-    let count = 0;
-
-    // 1. Nationalité UE — posée si aiData.nationaliteUe est un boolean.
-    if (ai && typeof ai.nationaliteUe === 'boolean') {
-      count++;
-    }
-
-    // 2. Motif (+ situationFamiliale) — priorité aux trigger_events.
-    //    Support des 2 conventions de field (eventCode runtime / event_code legacy).
-    const firstTrigger = triggers[0];
-    const firstTriggerCode = firstTrigger?.eventCode ?? firstTrigger?.event_code;
-    if (firstTriggerCode && TRIGGER_TO_CRITERIA[firstTriggerCode]) {
-      const criteria = TRIGGER_TO_CRITERIA[firstTriggerCode];
-      count++; // motif posé
-      if (criteria.situationFamiliale) {
-        count++; // situationFamiliale posée
-      }
-      return count;
-    }
-
-    if (!ai) return count;
-
-    // 2b. Fallback : aiData.typeTitreSejourCode mappé via CODE_TO_MOTIF.
-    const code = typeof ai.typeTitreSejourCode === 'string'
-      ? ai.typeTitreSejourCode.toUpperCase()
-      : null;
-    if (code && CODE_TO_MOTIF[code]) {
-      count++;
-      return count;
-    }
-
-    // 2c. Heuristique texte libre sur typeTitreSejour.
-    if (typeof ai.typeTitreSejour === 'string' && ai.typeTitreSejour.length > 0) {
-      const type = ai.typeTitreSejour
-        .toUpperCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '');
-      if (
-        type.includes('ETUDIANT') || type.includes('STUDENT')
-        || type.includes('SALARIE') || type.includes('TRAVAIL')
-        || type.includes('FAMILLE') || type.includes('VPF')
-        || type.includes('ASILE') || type.includes('REFUGIE')
-      ) {
-        count++;
-      }
-    }
-    return count;
+  static getPrefillCount(input: PrefillCountInput): number {
+    return ImmigrationTitleDecisionPrefillRules.computePrefillCount(input);
   }
 
   /**
@@ -515,50 +418,26 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   }
 
   private prefillFromAi(): void {
-    if (!this.aiData && !this.triggerEvents?.length) return;
-
-    // 1. Nationalité UE depuis l'IA
-    if (this.aiData && typeof this.aiData.nationaliteUe === 'boolean') {
-      this.nationaliteUe.set(this.aiData.nationaliteUe);
+    // F-236 SF-236-02 : délègue au helper pur partagé pour garantir la parité
+    // runtime / static `getPrefillCount` (divergence impossible par construction).
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      triggerEvents: this.triggerEvents ?? undefined,
+    };
+    const ue = ImmigrationTitleDecisionPrefillRules.computeNationaliteUe(input);
+    if (ue !== null) {
+      this.nationaliteUe.set(ue);
       this.provenanceNationaliteUe.set('IA');
     }
-
-    // 2. Motif + situationFamiliale : SF-IM-05-04 — priorité aux trigger_events
-    //    (décrivent la voie juridique cible : mariage → FAMILLE/MARIE), puis
-    //    fallback sur le code titre actuel, puis heuristique texte libre.
-    const firstTrigger = this.triggerEvents?.[0]?.eventCode;
-    if (firstTrigger && TRIGGER_TO_CRITERIA[firstTrigger]) {
-      const criteria = TRIGGER_TO_CRITERIA[firstTrigger];
-      this.motif.set(criteria.motif);
+    const motif = ImmigrationTitleDecisionPrefillRules.computeMotif(input);
+    if (motif !== null) {
+      this.motif.set(motif);
       this.provenanceMotif.set('IA');
-      if (criteria.situationFamiliale) {
-        this.situationFamiliale.set(criteria.situationFamiliale);
-        this.provenanceSituationFamiliale.set('IA');
-      }
-      return;
     }
-
-    if (!this.aiData) return;
-
-    const code = this.aiData.typeTitreSejourCode?.toUpperCase();
-    if (code && CODE_TO_MOTIF[code]) {
-      this.motif.set(CODE_TO_MOTIF[code]);
-      this.provenanceMotif.set('IA');
-      return;
-    }
-    if (this.aiData.typeTitreSejour) {
-      const type = this.aiData.typeTitreSejour
-        .toUpperCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // strip accents
-      let detected: string | null = null;
-      if (type.includes('ETUDIANT') || type.includes('STUDENT')) detected = 'ETUDES';
-      else if (type.includes('SALARIE') || type.includes('TRAVAIL')) detected = 'TRAVAIL';
-      else if (type.includes('FAMILLE') || type.includes('VPF')) detected = 'FAMILLE';
-      else if (type.includes('ASILE') || type.includes('REFUGIE')) detected = 'ASILE';
-      if (detected) {
-        this.motif.set(detected);
-        this.provenanceMotif.set('IA');
-      }
+    const sit = ImmigrationTitleDecisionPrefillRules.computeSituationFamiliale(input);
+    if (sit !== null) {
+      this.situationFamiliale.set(sit);
+      this.provenanceSituationFamiliale.set('IA');
     }
   }
 

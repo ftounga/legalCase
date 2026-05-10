@@ -29,11 +29,8 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
-
-/** Enum valeurs valides pour pré-fill / alertes motif. */
-const MOTIFS_OQTF_SET: ReadonlySet<MotifOqtf> = new Set<MotifOqtf>([
-  'REFUS_TITRE', 'EXPIRATION_TITRE', 'SEJOUR_IRREGULIER', 'RETRAIT_TITRE', 'AUTRE',
-]);
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { OqtfAvecDelaiPrefillRules, MOTIFS_OQTF_SET } from './oqtf-avec-delai-section-prefill-rules';
 
 /** Regex ISO strict YYYY-MM-DD. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -76,6 +73,13 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'OQTF AVEC DÉLAI DE DÉPART VOLONTAIRE (FR)';
   static readonly TOOL_ICON = 'gavel';
+
+  /**
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé.
+   */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return OqtfAvecDelaiPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -326,43 +330,37 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-155-04-B1 : pré-remplissage des 3 champs clés depuis l'analyse IA.
-   * Pas d'écrasement des valeurs déjà saisies.
+   * SF-155-04-B1 / F-236 SF-236-02 : pré-remplissage IA via helper pur partagé.
+   * Parité runtime / static garantie par construction.
    */
   private prefillFromAi(): void {
-    const ai = this.aiData;
-    if (!ai) return;
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      workspaceCountry: this.workspaceCountry,
+    };
 
-    // 1. Date de notification OQTF — format YYYY-MM-DD strict, non futur.
-    const date = ai.dateNotificationOqtf;
-    if (typeof date === 'string' && ISO_DATE_RE.test(date) && date <= this.todayIso) {
-      if (!this.dateNotificationOqtf()) {
-        this.dateNotificationOqtf.set(date);
-        this.provenanceDateNotification.set('IA');
-      }
+    // 1. Date de notification OQTF.
+    const date = OqtfAvecDelaiPrefillRules.computeDateNotificationOqtf(input);
+    if (date !== null && !this.dateNotificationOqtf()) {
+      this.dateNotificationOqtf.set(date);
+      this.provenanceDateNotification.set('IA');
     }
 
-    // 2. Motif OQTF — seulement si valeur dans l'enum front (garde-fou).
-    const code = ai.motifOqtfCode;
-    if (code && MOTIFS_OQTF_SET.has(code as MotifOqtf)) {
-      if (!this.motifOqtf()) {
-        this.motifOqtf.set(code as MotifOqtf);
-        this.provenanceMotifOqtf.set('IA');
-      }
+    // 2. Motif OQTF.
+    const motif = OqtfAvecDelaiPrefillRules.computeMotifOqtf(input);
+    if (motif !== null && !this.motifOqtf()) {
+      this.motifOqtf.set(motif);
+      this.provenanceMotifOqtf.set('IA');
     }
 
-    // 3. Recours formé — dérivé de DetectedAnswer {OUI/NON/INCONNU}.
-    //    INCONNU = pas de signal, on reste à la valeur par défaut (false).
-    const detected = ai.recoursFormeDetected;
-    if (detected && (detected.reponse === 'OUI' || detected.reponse === 'NON')) {
-      // On ne pré-fill que si l'avocat n'a pas déjà manipulé le toggle
-      // (signal à 'false' défaut → inchangé si détecté NON, mais badge sans
-      // effet visible ; pour OUI on change la valeur).
-      if (this.provenanceRecoursForme() === null && !this.recoursForme()) {
-        this.recoursForme.set(detected.reponse === 'OUI');
+    // 3. Recours formé — pré-fill conditionné à la non-saisie avocat
+    //    (provenance null + recoursForme défaut false).
+    const recours = OqtfAvecDelaiPrefillRules.computeRecoursForme(input);
+    if (recours !== null && this.provenanceRecoursForme() === null) {
+      if (!this.recoursForme()) {
+        this.recoursForme.set(recours);
         this.provenanceRecoursForme.set('IA');
-      } else if (this.provenanceRecoursForme() === null && this.recoursForme() && detected.reponse === 'OUI') {
-        // Déjà true par défaut impossible ici (défaut false) — no-op défensif
+      } else if (recours === true) {
         this.provenanceRecoursForme.set('IA');
       }
     }

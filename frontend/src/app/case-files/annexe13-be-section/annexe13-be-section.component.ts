@@ -32,11 +32,8 @@ import { SourceExplanationService } from '../../core/services/source-explanation
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
-
-/** SF-155-04-C : whitelist stricte alignée sur Annexe13BeCalculator.MOTIFS_VALIDES (4 codes). */
-const MOTIFS_OQT_WHITELIST = new Set<MotifOqt>(
-  MOTIFS_OQT.map(m => m.code),
-);
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { Annexe13BePrefillRules, MOTIFS_OQT_WHITELIST } from './annexe13-be-section-prefill-rules';
 
 /** SF-155-04-C : champs éligibles à la validation F-IA-03. */
 export type IM08AnnexeBeAlertField =
@@ -81,6 +78,15 @@ export class Annexe13BeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ANNEXE 13 — OQT BELGE (BE)';
   static readonly TOOL_ICON = 'gavel';
+
+  /**
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé. NOTE : le
+   * gating workspaceCountry==='BELGIQUE' n'est pas encore appliqué (anomalie
+   * (E) — rattrapage SF-236-04).
+   */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return Annexe13BePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
@@ -423,29 +429,27 @@ export class Annexe13BeSectionComponent implements OnInit, OnChanges {
    * - date : passthrough sans parsing (format déjà normalisé backend)
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = { aiData: this.aiDataSignal() };
 
-    if (typeof ai.dateNotificationAnnexe13 === 'string' && ai.dateNotificationAnnexe13.length > 0) {
-      this.dateNotificationAnnexe13.set(ai.dateNotificationAnnexe13);
+    const date = Annexe13BePrefillRules.computeDateNotificationAnnexe13(input);
+    if (date !== null) {
+      this.dateNotificationAnnexe13.set(date);
       this.provenanceDateNotification.set('IA');
     }
-
-    if (typeof ai.delaiDepartImposeJours === 'number'
-        && Number.isInteger(ai.delaiDepartImposeJours)
-        && ai.delaiDepartImposeJours >= 0) {
-      this.delaiDepartImposeJours.set(ai.delaiDepartImposeJours);
+    const delai = Annexe13BePrefillRules.computeDelaiDepartImposeJours(input);
+    if (delai !== null) {
+      this.delaiDepartImposeJours.set(delai);
       this.provenanceDelaiDepart.set('IA');
     }
-
-    const motif = ai.motifOqtCodeBe as MotifOqt | null | undefined;
-    if (motif && typeof motif === 'string' && MOTIFS_OQT_WHITELIST.has(motif)) {
+    const motif = Annexe13BePrefillRules.computeMotifOqt(input);
+    if (motif !== null) {
       this.motifOqt.set(motif);
       this.provenanceMotifOqt.set('IA');
     }
-
-    if (typeof ai.transfertImminentDetected === 'boolean') {
-      this.transfertImminent.set(ai.transfertImminentDetected);
+    const transfert = Annexe13BePrefillRules.computeTransfertImminent(input);
+    if (transfert !== null) {
+      this.transfertImminent.set(transfert);
       this.provenanceTransfertImminent.set('IA');
     }
   }
