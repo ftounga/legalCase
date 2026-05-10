@@ -106,7 +106,17 @@ public record CaseAnalysisResponse(
             boolean transactionEnvisagee,
             boolean atMpDetecte,
             boolean urgenceProcedurale,
-            boolean contestationAreEnvisagee) {
+            boolean contestationAreEnvisagee,
+            // === Flags BE (F-204) ===
+            // F-204 : 5 flags décisionnels niveau 3 — Travail BELGIQUE uniquement, default false.
+            // Permettent à F-IA-04 de basculer F-DT-11/12/15/19/27 (BE) en CONTEXTUAL.
+            // Dossiers FR : tous false (les régimes FR équivalents sont gérés par les flags FR ci-dessus
+            // ou par F-205 ultérieur).
+            boolean harcelementBeDetecte,
+            boolean discriminationBeDetectee,
+            boolean inaptitudeMedicaleBeDetectee,
+            boolean heuresSupMentionneesBe,
+            boolean motifGraveBeEnvisage) {
 
         /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
         public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
@@ -117,7 +127,7 @@ public record CaseAnalysisResponse(
                     congesContractuels, primeAncienneteContractuelle,
                     null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null,
-                    false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 17 champs (avant SF-130-01). */
@@ -136,7 +146,7 @@ public record CaseAnalysisResponse(
                     siretEmployeur, bceEmployeur,
                     representantEmployeur, null,
                     null, null, null, null, null,
-                    false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 18 champs (avant SF-155-04-00-BE-travail). */
@@ -155,7 +165,7 @@ public record CaseAnalysisResponse(
                     siretEmployeur, bceEmployeur,
                     representantEmployeur, salaireEstDeduit,
                     null, null, null, null, null,
-                    false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 23 champs (avant SF-166-01). */
@@ -181,7 +191,7 @@ public record CaseAnalysisResponse(
                     avisMedecinTravailDate,
                     reclassementRespecteDetected,
                     heuresSupMentionneesDansDossier,
-                    false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false);
         }
     }
 
@@ -301,13 +311,38 @@ public record CaseAnalysisResponse(
             String dateNotificationAnnexe13,
             Integer delaiDepartImposeJours,
             String motifOqtCodeBe,
-            Boolean transfertImminentDetected) {
+            Boolean transfertImminentDetected,
+            // === Flags FR (F-201) ===
+            // F-201 : 9 flags décisionnels niveau 3 — Immigration FRANCE uniquement, default false.
+            // Permettent à F-IA-04 de basculer 10 outils Immigration FR ALWAYS_ON → CONTEXTUAL.
+            // Régime algérien : utilise nationalite='Algérienne' déjà extrait, pas de nouveau flag.
+            // Dossiers BE : tous false (régimes BE équivalents distincts → F-203).
+            boolean aesMetiersTensionEligibleDetecte,
+            boolean aesFamilialEligibleDetecte,
+            boolean aesHumanitaireEligibleDetecte,
+            boolean aesEtudiantEligibleDetecte,
+            boolean changementStatutEnvisageDetecte,
+            boolean procedureAsileDetectee,
+            boolean naturalisationEnvisageeDetectee,
+            boolean clientMineurDetecte,
+            boolean mesureEloignementDetectee,
+            // === Flags BE (F-203) ===
+            // F-203 : 5 flags décisionnels niveau 3 — Immigration BELGIQUE uniquement, default false.
+            // Permettent à F-IA-04 de basculer 5 outils Immigration BE ALWAYS_ON → CONTEXTUAL.
+            // Dossiers FR : tous false (régimes FR équivalents distincts → F-201).
+            boolean procedure9bisEnvisagee,
+            boolean procedure9terMedicaleDetectee,
+            boolean regroupement40bisDetecte,
+            boolean regroupement40terDetecte,
+            boolean oqtAnnexe13Detectee) {
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure) {
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
                     null, null, null, null, null,
                     null, null, null, null, null,
-                    null, null, null, null);
+                    null, null, null, null,
+                    false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false);
         }
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure,
@@ -315,7 +350,9 @@ public record CaseAnalysisResponse(
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
                     typeTitreSejourCode, nationaliteUe, null, null, null,
                     null, null, null, null, null,
-                    null, null, null, null);
+                    null, null, null, null,
+                    false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false);
         }
         /** Rétrocompat 8-args pré-SF-IM-01-04. */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -325,7 +362,9 @@ public record CaseAnalysisResponse(
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
                     typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee, null,
                     null, null, null, null, null,
-                    null, null, null, null);
+                    null, null, null, null,
+                    false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false);
         }
         /** Rétrocompat 9-args pré-SF-155-04-00-BE-immig-FR/BE (signature SF-IM-01-04). */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -337,7 +376,9 @@ public record CaseAnalysisResponse(
                     typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee,
                     inferredChecklistType,
                     null, null, null, null, null,
-                    null, null, null, null);
+                    null, null, null, null,
+                    false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false);
         }
         /** Rétrocompat 14-args pré-SF-155-04-00-BE-immig-BE (signature post-SF-155-04-00-BE-immig-FR). */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -354,7 +395,9 @@ public record CaseAnalysisResponse(
                     inferredChecklistType,
                     dateNotificationOqtf, motifOqtfCode, recoursFormeDetected,
                     dateHeureNotificationOqtfSansDelai, placementCraDetected,
-                    null, null, null, null);
+                    null, null, null, null,
+                    false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false);
         }
     }
 
@@ -539,7 +582,23 @@ public record CaseAnalysisResponse(
                                 immigrationExtractedData.dateNotificationAnnexe13(),
                                 immigrationExtractedData.delaiDepartImposeJours(),
                                 immigrationExtractedData.motifOqtCodeBe(),
-                                immigrationExtractedData.transfertImminentDetected()
+                                immigrationExtractedData.transfertImminentDetected(),
+                                // F-201 : préserver les 9 flags Immigration FR
+                                immigrationExtractedData.aesMetiersTensionEligibleDetecte(),
+                                immigrationExtractedData.aesFamilialEligibleDetecte(),
+                                immigrationExtractedData.aesHumanitaireEligibleDetecte(),
+                                immigrationExtractedData.aesEtudiantEligibleDetecte(),
+                                immigrationExtractedData.changementStatutEnvisageDetecte(),
+                                immigrationExtractedData.procedureAsileDetectee(),
+                                immigrationExtractedData.naturalisationEnvisageeDetectee(),
+                                immigrationExtractedData.clientMineurDetecte(),
+                                immigrationExtractedData.mesureEloignementDetectee(),
+                                // F-203 : préserver les 5 flags Immigration BE
+                                immigrationExtractedData.procedure9bisEnvisagee(),
+                                immigrationExtractedData.procedure9terMedicaleDetectee(),
+                                immigrationExtractedData.regroupement40bisDetecte(),
+                                immigrationExtractedData.regroupement40terDetecte(),
+                                immigrationExtractedData.oqtAnnexe13Detectee()
                         );
                     }
                 }
@@ -1081,7 +1140,13 @@ public record CaseAnalysisResponse(
                     booleanOrFalse(node, "transaction_envisagee"),
                     booleanOrFalse(node, "at_mp_detecte"),
                     booleanOrFalse(node, "urgence_procedurale"),
-                    booleanOrFalse(node, "contestation_are_envisagee")
+                    booleanOrFalse(node, "contestation_are_envisagee"),
+                    // F-204 : 5 flags décisionnels niveau 3 — Travail BE uniquement, fail-safe à false
+                    booleanOrFalse(node, "harcelement_be_detecte"),
+                    booleanOrFalse(node, "discrimination_be_detectee"),
+                    booleanOrFalse(node, "inaptitude_medicale_be_detectee"),
+                    booleanOrFalse(node, "heures_sup_mentionnees_be"),
+                    booleanOrFalse(node, "motif_grave_be_envisage")
             );
         } catch (Exception ignored) { return null; }
     }
@@ -1260,20 +1325,47 @@ public record CaseAnalysisResponse(
         Integer delaiDepart = nonNegativeIntOrNull(root, "delai_depart_impose_jours");
         String motifOqtBe = normalizeEnumCode(textOrNull(root, "motif_oqt_code_be"), MOTIFS_OQT_BE_CODES);
         Boolean transfertImminent = booleanOrNull(root, "transfert_imminent_detected");
+        // F-201 : 9 flags décisionnels niveau 3 — Immigration FR uniquement, fail-safe à false.
+        boolean aesMetiersTension = booleanOrFalse(root, "aes_metiers_tension_eligible_detecte");
+        boolean aesFamilial = booleanOrFalse(root, "aes_familial_eligible_detecte");
+        boolean aesHumanitaire = booleanOrFalse(root, "aes_humanitaire_eligible_detecte");
+        boolean aesEtudiant = booleanOrFalse(root, "aes_etudiant_eligible_detecte");
+        boolean changementStatut = booleanOrFalse(root, "changement_statut_envisage_detecte");
+        boolean procedureAsile = booleanOrFalse(root, "procedure_asile_detectee");
+        boolean naturalisationEnvisagee = booleanOrFalse(root, "naturalisation_envisagee_detectee");
+        boolean clientMineur = booleanOrFalse(root, "client_mineur_detecte");
+        boolean mesureEloignement = booleanOrFalse(root, "mesure_eloignement_detectee");
+        // F-203 : 5 flags décisionnels niveau 3 — Immigration BE uniquement, fail-safe à false.
+        boolean procedure9bis = booleanOrFalse(root, "procedure_9bis_envisagee");
+        boolean procedure9ter = booleanOrFalse(root, "procedure_9ter_medicale_detectee");
+        boolean regroupement40bis = booleanOrFalse(root, "regroupement_40bis_detecte");
+        boolean regroupement40ter = booleanOrFalse(root, "regroupement_40ter_detecte");
+        boolean oqtAnnexe13 = booleanOrFalse(root, "oqt_annexe13_detectee");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
                 && dateNotifOqtf == null && motifOqtfCode == null && recoursFormeDetected == null
                 && dateHeureNotifOqtfSansDelai == null && placementCraDetected == null
                 && dateAnnexe13 == null && delaiDepart == null
-                && motifOqtBe == null && transfertImminent == null) return null;
+                && motifOqtBe == null && transfertImminent == null
+                && !aesMetiersTension && !aesFamilial && !aesHumanitaire && !aesEtudiant
+                && !changementStatut && !procedureAsile && !naturalisationEnvisagee
+                && !clientMineur && !mesureEloignement
+                && !procedure9bis && !procedure9ter && !regroupement40bis
+                && !regroupement40ter && !oqtAnnexe13) return null;
         return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot,
                 typeCode, nationaliteUe, recoursCode, dateNotif, null,
                 // SF-155-04-00-BE-immig-FR : 5 champs pour F-IM-08-02 / F-IM-08-04
                 dateNotifOqtf, motifOqtfCode, recoursFormeDetected,
                 dateHeureNotifOqtfSansDelai, placementCraDetected,
                 // SF-155-04-00-BE-immig-BE : 4 champs pour F-IM-08 Annexe 13 BE
-                dateAnnexe13, delaiDepart, motifOqtBe, transfertImminent);
+                dateAnnexe13, delaiDepart, motifOqtBe, transfertImminent,
+                // F-201 : 9 flags Immigration FR
+                aesMetiersTension, aesFamilial, aesHumanitaire, aesEtudiant,
+                changementStatut, procedureAsile, naturalisationEnvisagee,
+                clientMineur, mesureEloignement,
+                // F-203 : 5 flags Immigration BE
+                procedure9bis, procedure9ter, regroupement40bis, regroupement40ter, oqtAnnexe13);
     }
 
     /**

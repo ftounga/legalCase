@@ -178,6 +178,34 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "at_mp_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "urgence_procedurale");
         addBooleanFlagIfTrue(detected, travailNode, "contestation_are_envisagee");
+
+        // F-204 : 5 flags Travail BE — booleans dans travail_extracted_data.
+        // Migration 215 : F-DT-11/12/15/19/27 BE basculent ALWAYS_ON → CONTEXTUAL.
+        addBooleanFlagIfTrue(detected, travailNode, "harcelement_be_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "discrimination_be_detectee");
+        addBooleanFlagIfTrue(detected, travailNode, "inaptitude_medicale_be_detectee");
+        addBooleanFlagIfTrue(detected, travailNode, "heures_sup_mentionnees_be");
+        addBooleanFlagIfTrue(detected, travailNode, "motif_grave_be_envisage");
+
+        // F-201 / F-203 : 9 flags Immigration FR + 5 flags Immigration BE.
+        // Migrations 213 + 214 : 14 outils Immigration FR/BE basculent ALWAYS_ON → CONTEXTUAL.
+        JsonNode immigrationNode = root.path("immigration_extracted_data");
+        // F-201 (9 flags FR)
+        addBooleanFlagIfTrue(detected, immigrationNode, "aes_metiers_tension_eligible_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "aes_familial_eligible_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "aes_humanitaire_eligible_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "aes_etudiant_eligible_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "changement_statut_envisage_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "procedure_asile_detectee");
+        addBooleanFlagIfTrue(detected, immigrationNode, "naturalisation_envisagee_detectee");
+        addBooleanFlagIfTrue(detected, immigrationNode, "client_mineur_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "mesure_eloignement_detectee");
+        // F-203 (5 flags BE)
+        addBooleanFlagIfTrue(detected, immigrationNode, "procedure_9bis_envisagee");
+        addBooleanFlagIfTrue(detected, immigrationNode, "procedure_9ter_medicale_detectee");
+        addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40bis_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
+        addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
         return detected;
     }
 

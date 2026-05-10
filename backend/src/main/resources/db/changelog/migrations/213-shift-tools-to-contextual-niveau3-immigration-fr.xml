@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="213-shift-tools-to-contextual-niveau3-immigration-fr" author="legalcase">
+        <comment>
+            F-201 SF-201-02 : conversion ALWAYS_ON → CONTEXTUAL pour 9 outils
+            décisionnels Immigration FRANCE (niveau 3). Suite directe de F-166
+            (Travail FR niveau 3 livré migration 199).
+
+            SF-201-01 (cette PR) a livré 9 booleans dans immigration_extracted_data :
+            aes_metiers_tension_eligible_detecte, aes_familial_eligible_detecte,
+            aes_humanitaire_eligible_detecte, aes_etudiant_eligible_detecte,
+            changement_statut_envisage_detecte, procedure_asile_detectee,
+            naturalisation_envisagee_detectee, client_mineur_detecte,
+            mesure_eloignement_detectee.
+
+            Effet final : ALWAYS_ON Immigration FR = 4 outils transversaux gardés
+            (F-IM-01 checklist pièces, F-IM-05 arbre titre, F-IM-06 générateur recours,
+            F-IM-07 visa). Réduction attendue −71 % (14 → 4 cards par défaut).
+
+            F-IM-17-regime-algerien : reste ALWAYS_ON faute de flag dédié — la spec
+            indiquait d'utiliser nationalite='Algérienne' mais le mécanisme actuel
+            de matching CONTEXTUAL n'expose pas ce champ texte (uniquement booleans
+            extracted_data). À traiter dans une feature future si jugé nécessaire.
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20100XXX (parallèle au
+            namespace F-166 'eeee20000' pour Travail FR).
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Immigration FR.
+            Immigration BE = F-203 (parallèle), Famille FR = F-200 (ultérieur),
+            Famille BE = F-202 (ultérieur), Travail BE = F-204 (parallèle),
+            Travail FR = F-205 (extension flags ultérieurs).
+
+            Audit "exhaustivité droit national FR" : 9 flags couvrent les voies
+            de séjour FR principales (4 AES variants, changement statut, asile,
+            naturalisation, mineurs, mesures éloignement). Régime algérien
+            (Accord franco-algérien 27/12/1968) couvert par flag implicite
+            nationalite_ue (false + nationalite='Algérienne' au front).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : 9 ALWAYS_ON Immigration FR à supprimer
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE legal_domain = 'DROIT_IMMIGRATION' AND country = 'FRANCE' AND layer = 'ALWAYS_ON' AND tool_id IN (
+    'F-IM-09-aes-metiers-tension',
+    'F-IM-09-aes-famille',
+    'F-IM-09-aes-humanitaire',
+    'F-IM-09-aes-etudiant',
+    'F-IM-11-changement-statut',
+    'F-IM-12-asile-avance',
+    'F-IM-13-naturalisation',
+    'F-IM-19-mineurs',
+    'F-IM-20-mesures-eloignement'
+);
+
+-- =========================================================================
+-- INSERT : 9 nouvelles entrées CONTEXTUAL avec triggers boolean (string 'true')
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100091', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-metiers-tension', 'CONTEXTUAL', 'aes_metiers_tension_eligible_detecte', 'true', 60);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100092', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-famille', 'CONTEXTUAL', 'aes_familial_eligible_detecte', 'true', 61);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100093', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-humanitaire', 'CONTEXTUAL', 'aes_humanitaire_eligible_detecte', 'true', 62);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100094', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-etudiant', 'CONTEXTUAL', 'aes_etudiant_eligible_detecte', 'true', 63);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100111', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-11-changement-statut', 'CONTEXTUAL', 'changement_statut_envisage_detecte', 'true', 72);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100121', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-12-asile-avance', 'CONTEXTUAL', 'procedure_asile_detectee', 'true', 75);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100131', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-13-naturalisation', 'CONTEXTUAL', 'naturalisation_envisagee_detectee', 'true', 73);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100191', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-19-mineurs', 'CONTEXTUAL', 'client_mineur_detecte', 'true', 74);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20100201', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-20-mesures-eloignement', 'CONTEXTUAL', 'mesure_eloignement_detectee', 'true', 76);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee20100%';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee000000091a', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-metiers-tension', 'ALWAYS_ON', NULL, NULL, 60);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee000000092a', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-famille', 'ALWAYS_ON', NULL, NULL, 61);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee000000093a', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-humanitaire', 'ALWAYS_ON', NULL, NULL, 62);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee000000094a', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-09-aes-etudiant', 'ALWAYS_ON', NULL, NULL, 63);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000170', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-11-changement-statut', 'ALWAYS_ON', NULL, NULL, 72);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000173', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-12-asile-avance', 'ALWAYS_ON', NULL, NULL, 75);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000171', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-13-naturalisation', 'ALWAYS_ON', NULL, NULL, 73);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000172', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-19-mineurs', 'ALWAYS_ON', NULL, NULL, 74);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000174', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-20-mesures-eloignement', 'ALWAYS_ON', NULL, NULL, 76);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

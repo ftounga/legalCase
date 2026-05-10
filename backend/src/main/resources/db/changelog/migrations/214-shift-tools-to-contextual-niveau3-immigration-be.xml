@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="214-shift-tools-to-contextual-niveau3-immigration-be" author="legalcase">
+        <comment>
+            F-203 SF-203-02 : conversion ALWAYS_ON → CONTEXTUAL pour 5 outils
+            décisionnels Immigration BELGIQUE (niveau 3). Pendant BE de F-201
+            (Immigration FR migration 213).
+
+            SF-203-01 (cette PR) a livré 5 booleans dans immigration_extracted_data :
+            procedure_9bis_envisagee, procedure_9ter_medicale_detectee,
+            regroupement_40bis_detecte, regroupement_40ter_detecte,
+            oqt_annexe13_detectee.
+
+            Effet final : ALWAYS_ON Immigration BE = ~4 outils transversaux gardés
+            (F-IM-01 checklist BE, F-IM-05 arbre titre BE, F-IM-06 générateur recours BE,
+            F-IM-07 visa BE). Réduction attendue −56 % (9 → 4 cards par défaut).
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20300XXX (parallèle au
+            namespace F-201 'eeee20100' pour Immigration FR).
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Immigration BE.
+            Immigration FR = F-201 (parallèle), Travail BE = F-204 (parallèle),
+            Famille FR = F-200 (ultérieur), Famille BE = F-202 (ultérieur).
+
+            Audit "exhaustivité droit national BE" : 5 flags couvrent les 4
+            articles BE clés de la Loi du 15/12/1980 sur l'accès au territoire
+            (art. 9bis humanitaire, art. 9ter médical, art. 40bis citoyens UE,
+            art. 40ter ressortissants tiers liés à un Belge) + l'OQT/Annexe 13
+            (art. 7+74/14). Outils BE-only restants — single permit, AESM,
+            carte H Brexit, etc. — couverts par F-209+ ultérieurement.
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : 5 ALWAYS_ON Immigration BE à supprimer
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE legal_domain = 'DROIT_IMMIGRATION' AND country = 'BELGIQUE' AND layer = 'ALWAYS_ON' AND tool_id IN (
+    'F-IM-14-9bis-humanitaire-be',
+    'F-IM-14-9ter-medical-be',
+    'F-IM-14-40bis-cohabitant-ue-be',
+    'F-IM-14-40ter-familial-belge-be',
+    'F-IM-08-annexe13-be'
+);
+
+-- =========================================================================
+-- INSERT : 5 nouvelles entrées CONTEXTUAL avec triggers boolean (string 'true')
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20300141', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-9bis-humanitaire-be', 'CONTEXTUAL', 'procedure_9bis_envisagee', 'true', 64);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20300142', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-9ter-medical-be', 'CONTEXTUAL', 'procedure_9ter_medicale_detectee', 'true', 65);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20300143', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-40bis-cohabitant-ue-be', 'CONTEXTUAL', 'regroupement_40bis_detecte', 'true', 66);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20300144', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-40ter-familial-belge-be', 'CONTEXTUAL', 'regroupement_40ter_detecte', 'true', 67);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20300085', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-08-annexe13-be', 'CONTEXTUAL', 'oqt_annexe13_detectee', 'true', 59);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee20300%';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000141', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-9bis-humanitaire-be', 'ALWAYS_ON', NULL, NULL, 64);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000142', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-9ter-medical-be', 'ALWAYS_ON', NULL, NULL, 65);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000143', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-40bis-cohabitant-ue-be', 'ALWAYS_ON', NULL, NULL, 66);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000144', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-40ter-familial-belge-be', 'ALWAYS_ON', NULL, NULL, 67);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee000000085a', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-08-annexe13-be', 'ALWAYS_ON', NULL, NULL, 59);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
