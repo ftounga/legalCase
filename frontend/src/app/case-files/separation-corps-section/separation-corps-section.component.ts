@@ -42,6 +42,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SeparationCorpsPrefillRules } from './separation-corps-section-prefill-rules';
 
 /**
  * SF-FA-21-02 : champs F-IA-03 audités par l'outil "Séparation de corps +
@@ -98,6 +99,18 @@ export class SeparationCorpsSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'SÉPARATION DE CORPS + CONVERSION DIVORCE — ART. 296+306 CCIV';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: Partial<FamilleExtractedData> | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return SeparationCorpsPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -363,26 +376,22 @@ export class SeparationCorpsSectionComponent implements OnInit, OnChanges {
    * (provenance === null indique modification manuelle).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // 1. Date jugement séparation (réutilise le champ IA `dateSeparation`).
-    const dateSep = ai.dateSeparation;
-    if (typeof dateSep === 'string' && ISO_DATE_REGEX.test(dateSep)) {
-      if (this.dateJugementSeparationCorps() === null
-          || this.provenanceDateJugementSeparation() === 'IA') {
-        this.dateJugementSeparationCorps.set(dateSep);
-        this.provenanceDateJugementSeparation.set('IA');
-      }
+    const date = SeparationCorpsPrefillRules.computeDateJugement(h);
+    if (date !== null
+        && (this.dateJugementSeparationCorps() === null
+            || this.provenanceDateJugementSeparation() === 'IA')) {
+      this.dateJugementSeparationCorps.set(date);
+      this.provenanceDateJugementSeparation.set('IA');
     }
 
-    // 2. Patrimoine commun.
-    if (typeof ai.patrimoineCommun === 'boolean') {
-      // Heuristique : on aligne sur l'IA si pas encore touché.
-      if (this.provenancePatrimoineCommun() === 'IA' || this.patrimoineCommun() === false) {
-        this.patrimoineCommun.set(ai.patrimoineCommun);
-        this.provenancePatrimoineCommun.set('IA');
-      }
+    const patr = SeparationCorpsPrefillRules.computePatrimoineCommun(h);
+    if (patr !== null
+        && (this.provenancePatrimoineCommun() === 'IA' || this.patrimoineCommun() === false)) {
+      this.patrimoineCommun.set(patr);
+      this.provenancePatrimoineCommun.set('IA');
     }
   }
 

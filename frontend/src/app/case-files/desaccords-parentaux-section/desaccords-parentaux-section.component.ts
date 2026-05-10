@@ -47,6 +47,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { DesaccordsParentauxPrefillRules } from './desaccords-parentaux-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -130,6 +131,18 @@ export class DesaccordsParentauxSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DÉSACCORDS PARENTAUX (FR) — ART. 373-2-10 CCIV';
   static readonly TOOL_ICON = 'forum';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return DesaccordsParentauxPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -442,68 +455,43 @@ export class DesaccordsParentauxSectionComponent implements OnInit, OnChanges {
    * No-op gracieux si champ absent.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // 1. Domaine désaccord.
-    const domAi = ai.domaineDesaccordDetecte;
-    if (typeof domAi === 'string' && domAi.length > 0) {
-      const upper = domAi.toUpperCase();
-      if (VALID_DOMAINES.has(upper)) {
-        if (this.domaineDesaccord() === null || this.provenanceDomaine() === 'IA') {
-          this.domaineDesaccord.set(upper as DomaineDesaccord);
-          this.provenanceDomaine.set('IA');
-        }
-      }
+    const dom = DesaccordsParentauxPrefillRules.computeDomaine(h);
+    if (dom !== null
+        && (this.domaineDesaccord() === null || this.provenanceDomaine() === 'IA')) {
+      this.domaineDesaccord.set(dom);
+      this.provenanceDomaine.set('IA');
     }
 
-    // 2. Intensité désaccord.
-    const intAi = ai.intensiteDesaccordDetecte;
-    if (typeof intAi === 'string' && intAi.length > 0) {
-      const upper = intAi.toUpperCase();
-      if (VALID_INTENSITES.has(upper)) {
-        if (this.intensiteDesaccord() === null || this.provenanceIntensite() === 'IA') {
-          this.intensiteDesaccord.set(upper as IntensiteDesaccord);
-          this.provenanceIntensite.set('IA');
-        }
-      }
+    const inten = DesaccordsParentauxPrefillRules.computeIntensite(h);
+    if (inten !== null
+        && (this.intensiteDesaccord() === null || this.provenanceIntensite() === 'IA')) {
+      this.intensiteDesaccord.set(inten);
+      this.provenanceIntensite.set('IA');
     }
 
-    // 3. Tentatives médiation.
-    const tentAi = ai.tentativesMediationDetectees;
-    if (Array.isArray(tentAi) && tentAi.length > 0) {
-      const filtered = tentAi
-        .filter((t): t is string => typeof t === 'string' && t.length > 0)
-        .map((t) => t.toUpperCase())
-        .filter((t) => VALID_TENTATIVES.has(t)) as TentativeMediation[];
-      if (filtered.length > 0
-          && (this.tentativesMediation().length === 0 || this.provenanceTentatives() === 'IA')) {
-        this.tentativesMediation.set(filtered);
-        this.provenanceTentatives.set('IA');
-      }
+    const tents = DesaccordsParentauxPrefillRules.computeTentatives(h);
+    if (tents.length > 0
+        && (this.tentativesMediation().length === 0 || this.provenanceTentatives() === 'IA')) {
+      this.tentativesMediation.set(tents);
+      this.provenanceTentatives.set('IA');
     }
 
-    // 4. Âges enfants concernés (réutilise `ageEnfants` existant).
-    const ages = ai.ageEnfants;
-    if (Array.isArray(ages) && ages.length > 0) {
-      const filtered = ages
-        .filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 30);
-      if (filtered.length > 0
-          && (this.ageEnfantsConcernes().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
-        this.ageEnfantsConcernes.set(filtered);
-        this.ageEnfantsRaw.set(filtered.join(', '));
-        this.provenanceAgeEnfants.set('IA');
-      }
+    const ages = DesaccordsParentauxPrefillRules.computeAgeEnfants(h);
+    if (ages.length > 0
+        && (this.ageEnfantsConcernes().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
+      this.ageEnfantsConcernes.set(ages);
+      this.ageEnfantsRaw.set(ages.join(', '));
+      this.provenanceAgeEnfants.set('IA');
     }
 
-    // 5. Urgence.
-    if (typeof ai.urgenceDetectee === 'boolean') {
-      // Heuristique : on aligne sur l'IA si pas encore touché
-      // (provenance IA OK ou urgence encore false par défaut).
-      if (this.provenanceUrgence() === 'IA' || this.urgence() === false) {
-        this.urgence.set(ai.urgenceDetectee);
-        this.provenanceUrgence.set('IA');
-      }
+    const urg = DesaccordsParentauxPrefillRules.computeUrgence(h);
+    if (urg !== null
+        && (this.provenanceUrgence() === 'IA' || this.urgence() === false)) {
+      this.urgence.set(urg);
+      this.provenanceUrgence.set('IA');
     }
   }
 

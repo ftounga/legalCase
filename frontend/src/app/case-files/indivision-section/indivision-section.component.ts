@@ -43,6 +43,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { IndivisionPrefillRules } from './indivision-section-prefill-rules';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -114,6 +115,18 @@ export class IndivisionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDIVISION POST-COMMUNAUTAIRE (ART. 815 CCIV)';
   static readonly TOOL_ICON = 'apartment';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return IndivisionPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -232,29 +245,21 @@ export class IndivisionSectionComponent implements OnInit, OnChanges {
    * No-op gracieux si `aiData` absent ou champs vides.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const h = { aiData: this.aiDataSignal() };
 
-    // Date origine indivision = date séparation (heuristique classique
-    // post-communautaire : indivision ouvre à la dissolution du régime).
-    const dateSep = ai.dateSeparation;
-    if (typeof dateSep === 'string' && ISO_DATE_REGEX.test(dateSep)) {
-      if (this.dateOrigineIndivision() === null
-          || this.provenanceDateOrigine() === 'IA') {
-        this.dateOrigineIndivision.set(dateSep);
-        this.provenanceDateOrigine.set('IA');
-      }
+    const date = IndivisionPrefillRules.computeDateOrigine(h);
+    if (date !== null
+        && (this.dateOrigineIndivision() === null || this.provenanceDateOrigine() === 'IA')) {
+      this.dateOrigineIndivision.set(date);
+      this.provenanceDateOrigine.set('IA');
     }
 
-    // Occupation bien = logement commun détecté par l'IA (cas typique :
-    // un époux reste dans l'ex-domicile conjugal post-séparation).
-    if (typeof ai.logementCommunDetected === 'boolean'
-        && ai.logementCommunDetected === true) {
-      if (this.occupationBienParUnIndivisaire() === false
-          || this.provenanceOccupation() === 'IA') {
-        this.occupationBienParUnIndivisaire.set(true);
-        this.provenanceOccupation.set('IA');
-      }
+    if (IndivisionPrefillRules.isOccupationBien(h)
+        && (this.occupationBienParUnIndivisaire() === false
+            || this.provenanceOccupation() === 'IA')) {
+      this.occupationBienParUnIndivisaire.set(true);
+      this.provenanceOccupation.set('IA');
     }
   }
 

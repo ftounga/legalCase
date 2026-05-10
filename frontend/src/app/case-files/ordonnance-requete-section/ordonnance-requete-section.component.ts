@@ -40,6 +40,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { OrdonnanceRequetePrefillRules } from './ordonnance-requete-section-prefill-rules';
 
 /**
  * SF-FA-23-02 : champs d'alerte F-IA-03 exposés par "Ordonnance sur requête".
@@ -90,6 +91,18 @@ export class OrdonnanceRequeteSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ORDONNANCE SUR REQUÊTE (FR/BE)';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return OrdonnanceRequetePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
