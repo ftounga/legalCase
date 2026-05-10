@@ -46,6 +46,12 @@ import { LicenciementSectionComponent } from '../licenciement-section/licencieme
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
 import { RuptureConvIndemniteSectionComponent } from '../rupture-conv-indemnite-section/rupture-conv-indemnite-section.component';
 import { RuptureAmiableInfoSectionComponent } from '../rupture-amiable-info-section/rupture-amiable-info-section.component';
+// F-208 — Wrappers informationnels P1 Immigration FR (backend complet PR #915, composants
+// de saisie complets à livrer dans une SF ultérieure de F-208).
+import { JldRetentionSectionComponent } from '../jld-retention-section/jld-retention-section.component';
+import { DublinRecoursSectionComponent } from '../dublin-recours-section/dublin-recours-section.component';
+import { CrrvRefusVisaSectionComponent } from '../crrv-refus-visa-section/crrv-refus-visa-section.component';
+import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l4256-section/victime-violences-l4256-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -634,6 +640,36 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-132-rupture-amiable-info', {
         component: RuptureAmiableInfoSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      // F-208 — 4 wrappers informationnels P1 Immigration FR (délais courts).
+      // Backend complet (calculator/analyzer + endpoint POST/GET + table + migration)
+      // livré dans la PR #915. Le composant frontend de saisie/visualisation complet
+      // sera livré dans une SF ultérieure de F-208 ; ce wrapper rappelle uniquement
+      // le cadre juridique pour ne pas laisser le tool_id orphelin (cf. règle
+      // SF-164-01 / DecisionToolVisibilityIntegrityIT).
+      ['F-IM-21-jld-retention-fr', {
+        component: JldRetentionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      ['F-IM-22-dublin-recours-fr', {
+        component: DublinRecoursSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      ['F-IM-23-crrv-refus-visa-fr', {
+        component: CrrvRefusVisaSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      ['F-IM-24-victime-violences-l4256-fr', {
+        component: VictimeViolencesL4256SectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
         }),

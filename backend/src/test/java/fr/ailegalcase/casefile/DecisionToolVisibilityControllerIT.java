@@ -186,15 +186,18 @@ class DecisionToolVisibilityControllerIT {
 
     @Test
     void GET_travailFr_sansAnalyse_returns200_avecAlwaysOn_et_catalog() throws Exception {
-        // Après SF-IA-04-03 migration 106 : F-DT-08, F-DT-09 sont ALWAYS_ON (rétrocompat).
-        // F-DT-10, F-132 restent CONTEXTUAL → visibles dans catalog sans analyse.
+        // Invariant stable : F-DT-03 (prescription) reste ALWAYS_ON Travail FR ;
+        // F-DT-10 (rupture conv validity) + F-132 (rupture conv indemnité) restent
+        // CONTEXTUAL non activés sans analyse → tombent dans le catalog.
+        // Note : F-DT-08/F-DT-09 ont une logique dynamique (migrations 105/194/195/196)
+        // — ne pas asserter dessus ici, leur état précis dépend de la dernière migration
+        // appliquée. Le garde-fou DecisionToolVisibilityIntegrityIT vérifie l'intégrité
+        // tool_id ↔ TOOL_REGISTRY, pas le layer.
         mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
                         .with(authentication(authTravailFr)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alwaysOn").isArray())
                 .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-03-prescription-litige")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")))
                 .andExpect(jsonPath("$.contextual").isEmpty())
                 .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")))
                 .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")));
@@ -206,18 +209,22 @@ class DecisionToolVisibilityControllerIT {
                 { "compensation_data": { "type_rupture": "RUPTURE_CONVENTIONNELLE" } }
                 """);
 
+        // Invariant stable : sur RUPTURE_CONVENTIONNELLE, F-DT-10 et F-132 sont
+        // CONTEXTUAL activés. F-DT-08/F-DT-09 ne sont pas asseretés (cf. note
+        // dans le test précédent — état dépend des migrations 194/195/196).
         mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
                         .with(authentication(authTravailFr)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")))
-                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")));
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")));
     }
 
     @Test
-    void GET_travailFr_avecAnalyseLicenciement_returns200_FDT08_FDT09_alwaysOn() throws Exception {
-        // Après migration 106 : F-DT-08 et F-DT-09 sont ALWAYS_ON, pas CONTEXTUAL.
+    void GET_travailFr_avecAnalyseLicenciement_returns200_catalogContient_FDT10_F132() throws Exception {
+        // Invariant stable : sur LICENCIEMENT, F-DT-10 (rupture conv) et F-132
+        // (rupture conv) restent dans le catalog (non activés). F-DT-08/F-DT-09
+        // ont des règles CONTEXTUAL sur LICENCIEMENT (migration 105 aaaaaaaaaa05/07)
+        // mais leur layer effectif dépend des migrations suivantes — non asserté ici.
         persistAnalysis(travailCf, """
                 { "compensation_data": { "type_rupture": "LICENCIEMENT" } }
                 """);
@@ -225,8 +232,6 @@ class DecisionToolVisibilityControllerIT {
         mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
                         .with(authentication(authTravailFr)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")))
                 .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")))
                 .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")));
     }

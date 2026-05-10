@@ -1,0 +1,14 @@
+<div class="info-section" [class.collapsed]="collapsed()">
+  <div class="header" (click)="toggleCollapse()">
+    <mat-icon>flight_takeoff</mat-icon>
+    <h3>{{ title }}</h3>
+    <mat-icon class="toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </div>
+  <div class="body" *ngIf="!collapsed()">
+    <p>{{ description }}</p>
+    <p class="note">
+      <mat-icon class="note-icon">info</mat-icon>
+      Composant de saisie complet (formulaire, verdict, pré-fill IA) à livrer dans une SF ultérieure de F-208.
+    </p>
+  </div>
+</div>
