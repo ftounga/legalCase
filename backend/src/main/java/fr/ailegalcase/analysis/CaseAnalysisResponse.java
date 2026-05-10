@@ -473,16 +473,60 @@ public record CaseAnalysisResponse(
      * {@code famille_extracted_data} du JSON IA, pour permettre à F-IA-04 de basculer les
      * outils Famille ALWAYS_ON → CONTEXTUAL (cf. F-166 pattern).
      *
-     * <p>Les flags FR seront ajoutés par F-200 (parallèle) en tête de ce record avec un
-     * commentaire d'ancrage {@code // === Flags FR (F-200) ===}. F-202 livre uniquement
-     * les 5 flags BE en queue avec {@code // === Flags BE (F-202) ===} pour minimiser
-     * le merge conflict mécanique.
+     * <p>F-200 (FR) livre 30 flags décisionnels niveau 3 en tête. F-202 (BE) livre 5 flags
+     * décisionnels niveau 3 en queue — un dossier FR a tous les flags BE à false et
+     * inversement, conformément aux instructions du prompt {@code FAMILLE_INSTRUCTION}.
      */
     public record FamilleExtractedData(
-            // === Flags BE (F-202) ===
+            // === Flags FR (F-200) — 30 flags ===
+            // Permettent à F-IA-04 de basculer 30 outils Famille FR ALWAYS_ON → CONTEXTUAL
+            // (migration 216). Dossiers BE : tous false (les régimes BE équivalents
+            // sont gérés par les flags BE F-202 en queue de ce record).
+            // 4 cas de divorce (F-FA-07/08/09/10)
+            boolean divorceConsentementMutuelEnvisage,
+            boolean divorceAlterationLienEnvisage,
+            boolean divorceFauteEnvisage,
+            boolean divorceAccepteEnvisage,
+            // Révision post-divorce (F-FA-13)
+            boolean revisionPostDivorceEnvisagee,
+            // Ordonnance de protection (F-FA-14)
+            boolean ordonnanceProtectionEnvisagee,
+            // Régimes matrimoniaux (F-FA-15/16/17)
+            boolean recompensesEnvisagees,
+            boolean regimeCommunauteUniverselleDetecte,
+            boolean partageJudiciaireEnvisage,
+            // Adoption + filiation (F-FA-18 + sous-types)
+            boolean adoptionEnvisagee,
+            boolean reconnaissancePaternelleEnvisagee,
+            boolean contestationPaterniteEnvisagee,
+            boolean recherchePaterniteEnvisagee,
+            boolean possessionEtatEnvisagee,
+            // Autorité parentale conflictuelle (F-FA-19-changement-residence + desaccords-parentaux)
+            boolean changementResidenceEnvisage,
+            boolean desaccordParentalDetecte,
+            // PACS / séparation / indivision / ordonnance requête (F-FA-20/21/22/23)
+            boolean pacsDissolutionEnvisagee,
+            boolean separationCorpsEnvisagee,
+            boolean indivisionEnvisagee,
+            boolean ordonnanceRequeteEnvisagee,
+            // Successions / libéralités (F-FA-24-* — 7 sous-outils)
+            boolean successionEnvisagee,
+            boolean testamentEnvisage,
+            boolean donationEnvisagee,
+            boolean reserveHereditaireEnvisagee,
+            boolean partageSuccessoralEnvisage,
+            boolean indivisionSuccessoraleEnvisagee,
+            boolean rapportSuccessionEnvisage,
+            // Protection des majeurs (F-FA-25)
+            boolean protectionMajeurEnvisagee,
+            // État civil (F-FA-26)
+            boolean changementEtatCivilEnvisage,
+            // PMA / GPA (F-FA-27)
+            boolean pmaGpaEnvisagee,
+            // === Flags BE (F-202) — 5 flags ===
             // F-202 : 5 flags décisionnels niveau 3 — Famille BELGIQUE uniquement, default false.
             // Permettent à F-IA-04 de basculer les outils Famille BE ALWAYS_ON → CONTEXTUAL
-            // (migration 217). Dossiers FR : tous false (F-200 livrera ses propres flags FR).
+            // (migration 217). Dossiers FR : tous false.
             boolean divorceDcEnvisage,
             boolean divorceDdiEnvisage,
             boolean cohabitationLegaleBeDetectee,
@@ -1502,28 +1546,66 @@ public record CaseAnalysisResponse(
     }
 
     /**
-     * F-202 SF-202-01 : parseur des 5 flags Famille BE depuis la clé
-     * {@code famille_extracted_data} du JSON IA. Retourne {@code null} si la clé est
-     * absente / non-objet (cas dossiers Travail / Immigration où l'IA n'émet pas ce nœud)
-     * ou si tous les flags sont à false (économie mémoire — la map de visibilité ne lit
-     * que les flags à true via {@code addBooleanFlagIfTrue}).
-     *
-     * <p>F-200 enrichira ce parseur en ajoutant les ~30 flags FR en tête, avec un
-     * commentaire d'ancrage {@code // === Flags FR (F-200) ===}.
+     * F-200 + F-202 : parseur des 30 flags Famille FR (F-200) + 5 flags Famille BE (F-202)
+     * depuis la clé {@code famille_extracted_data} du JSON IA. Retourne {@code null} si la
+     * clé est absente / non-objet (cas dossiers Travail / Immigration où l'IA n'émet pas
+     * ce nœud) ou si tous les flags sont à false (économie mémoire — la map de visibilité
+     * ne lit que les flags à true via {@code addBooleanFlagIfTrue}).
      */
     static FamilleExtractedData extractFamilleData(JsonNode root) {
         JsonNode node = root.get("famille_extracted_data");
         if (node == null || !node.isObject()) return null;
-        // === Flags BE (F-202) === — fail-safe à false
+        // === Flags FR (F-200) === — 30 flags fail-safe à false
+        boolean dcm = booleanOrFalse(node, "divorce_consentement_mutuel_envisage");
+        boolean dal = booleanOrFalse(node, "divorce_alteration_lien_envisage");
+        boolean dfa = booleanOrFalse(node, "divorce_faute_envisage");
+        boolean dac = booleanOrFalse(node, "divorce_accepte_envisage");
+        boolean rev = booleanOrFalse(node, "revision_post_divorce_envisagee");
+        boolean op = booleanOrFalse(node, "ordonnance_protection_envisagee");
+        boolean rec = booleanOrFalse(node, "recompenses_envisagees");
+        boolean rcu = booleanOrFalse(node, "regime_communaute_universelle_detecte");
+        boolean pj = booleanOrFalse(node, "partage_judiciaire_envisage");
+        boolean ado = booleanOrFalse(node, "adoption_envisagee");
+        boolean rp = booleanOrFalse(node, "reconnaissance_paternelle_envisagee");
+        boolean cp = booleanOrFalse(node, "contestation_paternite_envisagee");
+        boolean rche = booleanOrFalse(node, "recherche_paternite_envisagee");
+        boolean pe = booleanOrFalse(node, "possession_etat_envisagee");
+        boolean cr = booleanOrFalse(node, "changement_residence_envisage");
+        boolean dp = booleanOrFalse(node, "desaccord_parental_detecte");
+        boolean pd = booleanOrFalse(node, "pacs_dissolution_envisagee");
+        boolean sc = booleanOrFalse(node, "separation_corps_envisagee");
+        boolean ind = booleanOrFalse(node, "indivision_envisagee");
+        boolean or = booleanOrFalse(node, "ordonnance_requete_envisagee");
+        boolean su = booleanOrFalse(node, "succession_envisagee");
+        boolean te = booleanOrFalse(node, "testament_envisage");
+        boolean don = booleanOrFalse(node, "donation_envisagee");
+        boolean rh = booleanOrFalse(node, "reserve_hereditaire_envisagee");
+        boolean ps = booleanOrFalse(node, "partage_successoral_envisage");
+        boolean iss = booleanOrFalse(node, "indivision_successorale_envisagee");
+        boolean rs = booleanOrFalse(node, "rapport_succession_envisage");
+        boolean pm = booleanOrFalse(node, "protection_majeur_envisagee");
+        boolean cec = booleanOrFalse(node, "changement_etat_civil_envisage");
+        boolean pmg = booleanOrFalse(node, "pma_gpa_envisagee");
+        // === Flags BE (F-202) === — 5 flags fail-safe à false
         boolean divorceDc = booleanOrFalse(node, "divorce_dc_envisage");
         boolean divorceDdi = booleanOrFalse(node, "divorce_ddi_envisage");
         boolean cohabitationLegale = booleanOrFalse(node, "cohabitation_legale_be_detectee");
         boolean pacteSuccessoral = booleanOrFalse(node, "pacte_successoral_envisage");
         boolean kafalaRecueil = booleanOrFalse(node, "kafala_recueil_detecte");
-        if (!divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
+        if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
+                && !ado && !rp && !cp && !rche && !pe && !cr && !dp
+                && !pd && !sc && !ind && !or
+                && !su && !te && !don && !rh && !ps && !iss && !rs
+                && !pm && !cec && !pmg
+                && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
             return null;
         }
         return new FamilleExtractedData(
+                // FR (30)
+                dcm, dal, dfa, dac, rev, op, rec, rcu, pj,
+                ado, rp, cp, rche, pe, cr, dp, pd, sc, ind, or,
+                su, te, don, rh, ps, iss, rs, pm, cec, pmg,
+                // BE (5)
                 divorceDc, divorceDdi, cohabitationLegale, pacteSuccessoral, kafalaRecueil);
     }
 }

@@ -207,12 +207,46 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
 
-        // F-202 : 5 flags Famille BE — booleans dans famille_extracted_data.
-        // Migration 217 : F-FA-11-desunion-irremediable-be bascule ALWAYS_ON → CONTEXTUAL
-        // (trigger divorce_ddi_envisage). Les 4 autres flags sont prêts pour les
-        // outils MANQUE Famille BE futurs (F-211/F-217+ — cohabitation légale, pacte
-        // successoral, kafala, DC). F-200 ajoutera les flags FR ultérieurement.
+        // F-200 + F-202 : flags Famille FR (30) + Famille BE (5) — booleans dans famille_extracted_data.
+        //   F-200 (migration 216) : 30 outils Famille FR ALWAYS_ON → CONTEXTUAL.
+        //   F-202 (migration 217) : F-FA-11-desunion-irremediable-be ALWAYS_ON → CONTEXTUAL
+        //     (trigger divorce_ddi_envisage). Les 4 autres flags BE sont prêts pour les outils
+        //     MANQUE Famille BE futurs (F-211/F-217+ — cohabitation légale, pacte successoral,
+        //     kafala, DC).
+        // Dossiers Famille FR : flags BE tous false (et inversement).
         JsonNode familleNode = root.path("famille_extracted_data");
+        // === Flags FR (F-200) — 30 ===
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_consentement_mutuel_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_alteration_lien_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_faute_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_accepte_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "revision_post_divorce_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "ordonnance_protection_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "recompenses_envisagees");
+        addBooleanFlagIfTrue(detected, familleNode, "regime_communaute_universelle_detecte");
+        addBooleanFlagIfTrue(detected, familleNode, "partage_judiciaire_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "adoption_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "reconnaissance_paternelle_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "contestation_paternite_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "recherche_paternite_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "possession_etat_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "changement_residence_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "desaccord_parental_detecte");
+        addBooleanFlagIfTrue(detected, familleNode, "pacs_dissolution_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "separation_corps_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "indivision_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "ordonnance_requete_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "succession_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "testament_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "donation_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "reserve_hereditaire_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "partage_successoral_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "indivision_successorale_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "rapport_succession_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "protection_majeur_envisagee");
+        addBooleanFlagIfTrue(detected, familleNode, "changement_etat_civil_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "pma_gpa_envisagee");
+        // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "cohabitation_legale_be_detectee");
