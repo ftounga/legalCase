@@ -5,8 +5,9 @@ import { LIENS_FAMILIAUX, LienFamilial } from '../../core/models/belgian-40ter.m
  * F-236 SF-236-02 — Helper partagé pour `Belgian40terSectionComponent`
  * (F-IM-14-40ter-familial-belge-be) — BE only.
  *
- * NOTE F-236 SF-236-04 : gating workspaceCountry === 'BELGIQUE' non
- * appliqué ici, le runtime ne le fait pas non plus (anomalie (E)).
+ * F-236 SF-236-04 : gating workspaceCountry === 'BELGIQUE' appliqué
+ * dans `compute*` (early return null) + dans `computePrefillCount`
+ * (early return 0). Pattern miroir de `ImmigrationWorkRightPrefillRules`.
  *
  * 4 champs : lienFamilial (enum), regroupantBelge (boolean),
  * revenusMensuelsNetsEur (number > 0), dateDepotDemande (string non future).
@@ -20,10 +21,16 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** F-236 SF-236-04 : gating BE-only. */
+function isBelgium(input: PrefillCountInput): boolean {
+  return (input.workspaceCountry ?? 'FRANCE') === 'BELGIQUE';
+}
+
 export const Belgian40terPrefillRules = {
   LIENS_FAMILIAUX_WHITELIST,
 
   computeLienFamilial(input: PrefillCountInput): LienFamilial | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const a = ai as Record<string, unknown>;
@@ -33,6 +40,7 @@ export const Belgian40terPrefillRules = {
   },
 
   computeRegroupantBelge(input: PrefillCountInput): boolean | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const a = ai as Record<string, unknown>;
@@ -41,6 +49,7 @@ export const Belgian40terPrefillRules = {
   },
 
   computeRevenusMensuelsNets(input: PrefillCountInput): number | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const a = ai as Record<string, unknown>;
@@ -50,6 +59,7 @@ export const Belgian40terPrefillRules = {
   },
 
   computeDateDepotDemande(input: PrefillCountInput): string | null {
+    if (!isBelgium(input)) return null;
     const ai = input.aiData;
     if (!ai) return null;
     const a = ai as Record<string, unknown>;
@@ -60,6 +70,7 @@ export const Belgian40terPrefillRules = {
   },
 
   computePrefillCount(input: PrefillCountInput): number {
+    if (!isBelgium(input)) return 0;
     let n = 0;
     if (this.computeLienFamilial(input) !== null) n++;
     if (this.computeRegroupantBelge(input) !== null) n++;

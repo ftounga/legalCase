@@ -268,7 +268,11 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
    */
   private prefillFromAi(): void {
     // F-236 SF-236-02 — délégation au helper partagé.
-    const helperInput = { aiData: this.aiDataSignal() };
+    // F-236 SF-236-04 : passe workspaceCountry pour gating BE-only.
+    const helperInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
 
     const date = DivorceDesunionBePrefillRules.computeDateSeparation(helperInput);
     if (date !== null

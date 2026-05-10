@@ -349,7 +349,11 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
    */
   private prefillFromAi(): void {
     // F-236 SF-236-02 : délègue au helper pur partagé.
-    const input: PrefillCountInput = { aiData: this.aiDataSignal() };
+    // F-236 SF-236-04 : passe workspaceCountry pour gating BE-only.
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
 
     const dDeb = Belgian9terPrefillRules.computeDateDebutSymptomes(input);
     if (dDeb !== null) { this.dateDebutSymptomes.set(dDeb); this.provenanceDateDebutSymptomes.set('IA'); }

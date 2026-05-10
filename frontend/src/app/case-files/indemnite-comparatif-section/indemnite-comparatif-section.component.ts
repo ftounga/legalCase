@@ -224,6 +224,31 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       candidates.push({ source: 'IA', expected: iaType, reason: `Analyse du dossier : ${iaType}` });
     }
 
+    // F-236 SF-236-04 — D' : couverture alerte enrichie via synthesis.*ValidityDetection
+    // (jusque-là exposés en input mais non consommés — audit-matrix anomalie D).
+    // Pattern : si l'IA a affirmé OUI sur au moins un critère de validité
+    // RUPTURE_CONV ou LICENCIEMENT, on en infère un type de rupture cible.
+    // Source 'IA' (cohérence avec D) ; on évite les doublons d'expected.
+    const validityAlertes = IndemniteComparatifSectionPrefillRules.computeAlertesValidite({
+      synthesis: this.synthesisSignal() ?? undefined,
+    });
+    if (validityAlertes?.ruptureConvAlert
+        && !candidates.some(c => c.expected === 'RUPTURE_CONVENTIONNELLE')) {
+      candidates.push({
+        source: 'IA',
+        expected: 'RUPTURE_CONVENTIONNELLE',
+        reason: 'Analyse du dossier : critères de validité rupture conventionnelle détectés (F-DT-10)',
+      });
+    }
+    if (validityAlertes?.licenciementAlert
+        && !candidates.some(c => c.expected === 'LICENCIEMENT')) {
+      candidates.push({
+        source: 'IA',
+        expected: 'LICENCIEMENT',
+        reason: 'Analyse du dossier : critères de validité licenciement détectés (F-DT-08)',
+      });
+    }
+
     if (candidates.length === 0) return null;
     // Si n'importe quelle source confirme la saisie avocat, pas d'alerte.
     if (candidates.some(c => c.expected === userValue)) return null;
