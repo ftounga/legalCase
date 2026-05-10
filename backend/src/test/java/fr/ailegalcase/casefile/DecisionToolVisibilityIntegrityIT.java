@@ -150,7 +150,10 @@ class DecisionToolVisibilityIntegrityIT {
             "F-136-travail-procedure",
             // F-198 SF-198-04/05 : rattrapage F-152 / F-153 DELETE par migration 191.
             "F-152-divorce-consentement-scoring",
-            "F-153-fourchettes-jaf"
+            "F-153-fourchettes-jaf",
+            // F-210 — 2 outils urgences procédurales Famille FR.
+            "mediation-familiale-pre-saisine",
+            "acceptation-renonciation-succession"
     );
 
     @Test

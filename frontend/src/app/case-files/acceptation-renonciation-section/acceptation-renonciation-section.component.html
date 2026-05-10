@@ -1,0 +1,196 @@
+<div class="ars-section" [class.ars-section--collapsed]="collapsed()">
+  <header class="ars-header" (click)="toggleCollapse()">
+    <mat-icon class="ars-header__icon">how_to_reg</mat-icon>
+    <h3 class="ars-header__title">Acceptation / renonciation à succession</h3>
+    <span class="ars-header__chip">FR — art. 768+ Cciv</span>
+    @if (alertsSummary().total > 0) {
+      <span class="ars-header__alerts">
+        <mat-icon>warning</mat-icon> {{ alertsSummary().total }}
+      </span>
+    }
+    <mat-icon class="ars-header__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div class="ars-body">
+      @if (!isFrance()) {
+        <div class="ars-banner ars-banner--info">
+          <mat-icon>info</mat-icon>
+          <span>Outil disponible uniquement pour la France (Cciv art. 768+).
+                L'équivalent BE (CC art. 784-787, délais 3+3 mois) est juridiquement distinct.</span>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="ars-loading"><mat-progress-spinner mode="indeterminate" diameter="32"></mat-progress-spinner></div>
+        }
+
+        @if (!loading()) {
+          @if (showForm()) {
+            <div class="ars-form">
+              <div class="ars-field">
+                <label class="ars-field__label">
+                  Date d'ouverture de la succession
+                  @if (provenanceDateOuverture() === 'IA') {
+                    <span class="ars-prefill-badge" matTooltip="Pré-rempli depuis l'analyse">
+                      <mat-icon>auto_awesome</mat-icon>
+                    </span>
+                  }
+                  @if (coherenceAlerts()['DATE_OUVERTURE']; as alert) {
+                    <span class="ars-coherence-badge"
+                          [matTooltip]="alertTooltip(alert)">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </label>
+                <mat-form-field appearance="outline" class="ars-field__control">
+                  <input matInput type="date"
+                         [ngModel]="dateOuvertureSuccession()"
+                         (ngModelChange)="onDateOuvertureChange($event)">
+                </mat-form-field>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">
+                  Qualité d'héritier
+                  @if (provenanceQualite() === 'IA') {
+                    <span class="ars-prefill-badge"><mat-icon>auto_awesome</mat-icon></span>
+                  }
+                </label>
+                <mat-radio-group [ngModel]="qualiteHeritier()"
+                                 (ngModelChange)="onQualiteChange($event)">
+                  <mat-radio-button value="PREMIER_RANG">Premier rang (4 mois)</mat-radio-button>
+                  <mat-radio-button value="SECOND_RANG">Second rang (6 mois)</mat-radio-button>
+                </mat-radio-group>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">
+                  Actif brut (€)
+                  @if (provenanceActifBrut() === 'IA') {
+                    <span class="ars-prefill-badge"><mat-icon>auto_awesome</mat-icon></span>
+                  }
+                  @if (coherenceAlerts()['ACTIF_BRUT']; as alert) {
+                    <span class="ars-coherence-badge"
+                          [matTooltip]="alertTooltip(alert)">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </label>
+                <mat-form-field appearance="outline" class="ars-field__control">
+                  <input matInput type="number" min="0" step="100"
+                         [ngModel]="actifBrutEur()"
+                         (ngModelChange)="onActifChange($event)">
+                </mat-form-field>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">Passif (€)</label>
+                <mat-form-field appearance="outline" class="ars-field__control">
+                  <input matInput type="number" min="0" step="100"
+                         [ngModel]="passifEur()"
+                         (ngModelChange)="onPassifChange($event)">
+                </mat-form-field>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">Actes équivalents à acceptation déjà posés (art. 783)</label>
+                <mat-slide-toggle [ngModel]="actesEquivalentAcceptation()"
+                                  (ngModelChange)="onActesChange($event)">
+                  {{ actesEquivalentAcceptation() ? 'Oui' : 'Non' }}
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">Inventaire notarié réalisé</label>
+                <mat-slide-toggle [ngModel]="inventaireRealise()"
+                                  (ngModelChange)="onInventaireChange($event)">
+                  {{ inventaireRealise() ? 'Oui' : 'Non' }}
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">Dettes incertaines</label>
+                <mat-slide-toggle [ngModel]="dettesIncertaines()"
+                                  (ngModelChange)="onDettesIncertainesChange($event)">
+                  {{ dettesIncertaines() ? 'Oui' : 'Non' }}
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ars-field">
+                <label class="ars-field__label">Intention exprimée par le client</label>
+                <mat-form-field appearance="outline" class="ars-field__control">
+                  <mat-select [ngModel]="intentionExprimee()"
+                              (ngModelChange)="onIntentionChange($event)">
+                    @for (opt of intentionsOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="ars-actions">
+                <button mat-flat-button color="primary"
+                        [disabled]="!formValid() || calculating()"
+                        (click)="calculate()">
+                  @if (calculating()) {
+                    <mat-progress-spinner mode="indeterminate" diameter="18"></mat-progress-spinner>
+                  } @else {
+                    <mat-icon>analytics</mat-icon>
+                  }
+                  Analyser les options
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (!showForm() && result(); as r) {
+            <div class="ars-result">
+              <div class="ars-verdict-banner">
+                <mat-icon>recommend</mat-icon>
+                <span>Recommandation : {{ optionLabel(r.optionRecommandee) }}</span>
+              </div>
+
+              <div [ngClass]="delaiBadgeClass(r.delaiRestantJours)">
+                <mat-icon>schedule</mat-icon>
+                {{ delaiBadgeLabel(r.delaiRestantJours) }}
+                <span class="ars-delai-total">/ délai total : {{ r.delaiTotalJours }} jours</span>
+              </div>
+
+              <div class="ars-options">
+                <strong>Options ouvertes :</strong>
+                <ul>
+                  @for (opt of r.optionsOuvertes; track opt) {
+                    <li>{{ optionLabel(opt) }}</li>
+                  }
+                </ul>
+              </div>
+
+              <p class="ars-formule">{{ r.formule }}</p>
+
+              <div class="ars-base-juridique">
+                <strong>Base juridique :</strong>
+                <span>{{ r.baseJuridique | legalCitations }}</span>
+              </div>
+
+              @if (r.messages.length > 0) {
+                <div class="ars-messages">
+                  <ul>
+                    @for (m of r.messages; track m) {
+                      <li>{{ m | legalCitations }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <div class="ars-actions">
+                <button mat-stroked-button (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</div>

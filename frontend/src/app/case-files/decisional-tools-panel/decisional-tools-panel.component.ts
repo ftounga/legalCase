@@ -144,6 +144,9 @@ import { PensionAlimentaireSectionComponent } from '../pension-alimentaire-secti
 import { LiquidationCommunauteSectionComponent } from '../liquidation-communaute-section/liquidation-communaute-section.component';
 import { DivorceCmScoringSectionComponent } from '../divorce-cm-scoring-section/divorce-cm-scoring-section.component';
 import { FourchettesJafSectionComponent } from '../fourchettes-jaf-section/fourchettes-jaf-section.component';
+// F-210 — 2 outils urgences procédurales Famille FR.
+import { MediationFamilialeSectionComponent } from '../mediation-familiale-section/mediation-familiale-section.component';
+import { AcceptationRenonciationSectionComponent } from '../acceptation-renonciation-section/acceptation-renonciation-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1504,6 +1507,32 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // F-210 SF-210-02 : médiation familiale obligatoire pré-saisine JAF (FR).
+      // Migration 218 — CONTEXTUAL trigger `mediation_familiale_pre_saisine_pertinente=true`.
+      ['mediation-familiale-pre-saisine', {
+        component: MediationFamilialeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // F-210 SF-210-04 : acceptation / renonciation succession (FR — art. 768+).
+      // Migration 219 — CONTEXTUAL trigger `succession_envisagee=true` (flag pivot F-200).
+      ['acceptation-renonciation-succession', {
+        component: AcceptationRenonciationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
     ]);
 
   /**
@@ -1583,6 +1612,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-13-revisions-post-divorce', 'DELAIS'],
     ['F-FA-14-ordonnance-protection', 'DELAIS'],
     ['F-FA-23-ordonnance-requete', 'DELAIS'],
+    // F-210 — 2 outils urgences procédurales Famille FR.
+    ['mediation-familiale-pre-saisine', 'DELAIS'],
+    ['acceptation-renonciation-succession', 'DELAIS'],
     ['F-IM-06-recours', 'DELAIS'],
     ['F-IM-08-oqtf-avec-delai-fr', 'DELAIS'],
     ['F-IM-08-oqtf-sans-delai-fr', 'DELAIS'],

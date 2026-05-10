@@ -275,6 +275,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, familleNode, "protection_majeur_envisagee");
         addBooleanFlagIfTrue(detected, familleNode, "changement_etat_civil_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "pma_gpa_envisagee");
+        // === F-210 — 1 flag procédural Famille FR ===
+        addBooleanFlagIfTrue(detected, familleNode, "mediation_familiale_pre_saisine_pertinente");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

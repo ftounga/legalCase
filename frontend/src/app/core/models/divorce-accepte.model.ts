@@ -313,4 +313,34 @@ export interface FamilleExtractedData {
     | null;
   donationDispenseDeRapportDetected?: boolean | null;
   naturePresumeeNonRapportableDetected?: boolean | null;
+  /**
+   * F-210 SF-210-02 : flag pivot "médiation familiale obligatoire pré-saisine
+   * JAF pertinente" (Cciv art. 373-2-10 al. 3). True si l'IA détecte une
+   * saisine in-scope (autorité parentale / contribution / résidence enfant /
+   * DVH) sans tentative documentée ni exception applicable.
+   */
+  mediationFamilialePreSaisinePertinente?: boolean | null;
+  /**
+   * F-210 SF-210-02 : motif détecté pour l'outil médiation familiale
+   * pré-saisine (best-effort).
+   */
+  motifSaisineMediationDetecte?:
+    | 'AUTORITE_PARENTALE'
+    | 'CONTRIBUTION_ENTRETIEN'
+    | 'RESIDENCE_ENFANT'
+    | 'DROIT_VISITE'
+    | 'DIVORCE_CONTENTIEUX'
+    | 'SUCCESSION'
+    | 'AUTRE'
+    | null;
+  /** F-210 SF-210-04 : actif brut succession détecté (€). */
+  actifBrutSuccessionEurDetecte?: number | null;
+  /** F-210 SF-210-04 : passif succession détecté (€). */
+  passifSuccessionEurDetecte?: number | null;
+  /** F-210 SF-210-04 : qualité héritier détectée (PREMIER_RANG / SECOND_RANG). */
+  qualiteHeritierDetectee?: 'PREMIER_RANG' | 'SECOND_RANG' | null;
+  /** F-210 SF-210-04 : actes équivalents acceptation détectés (art. 783). */
+  actesEquivalentAcceptationDejaPosesDetected?: boolean | null;
+  /** F-210 SF-210-04 : dettes incertaines détectées. */
+  dettesIncertainesDetected?: boolean | null;
 }

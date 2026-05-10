@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="219-create-acceptation-renonciation-succession-analyses" author="legalcase">
+        <comment>
+            SF-210-03 : table dédiée à l'outil décisionnel "Acceptation /
+            renonciation à succession" (FR — Cciv art. 768+, 771-772 délais,
+            783 acceptation tacite, 791 effet de l'acceptation à concurrence
+            de l'actif net).
+
+            Outil P1 — délai légal critique : 4 mois à compter de l'ouverture
+            de la succession (art. 771), +2 mois pour les héritiers de second
+            rang (art. 772). Au delà, l'héritier peut être sommé d'opter.
+            L'accomplissement d'actes équivalents à acceptation (art. 783)
+            ferme définitivement l'option de renonciation.
+
+            Recommandation prudente :
+            - PURE_SIMPLE si actif positif et dettes documentées ;
+            - CONCURRENCE_ACTIF si dettes incertaines ou actif/passif proches
+              (sécurise la responsabilité) ;
+            - RENONCIATION si passif > actif et pas d'acte équivalent posé.
+
+            Outil single-country FRANCE — l'équivalent BE (CC art. 784-787,
+            délais 3+3 mois) est juridiquement distinct et fera l'objet d'un
+            outil BE séparé (à porter au backlog Famille BE).
+
+            + 1 règle visibility F-IA-04 (CONTEXTUAL, DROIT_FAMILLE, FRANCE,
+            trigger `succession_envisagee=true` (flag pivot livré par F-200
+            SF-200-01), priority 97) pour exposer l'outil dès qu'une
+            succession est détectée.
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Famille FR.
+
+            Audit "exhaustivité droit national FR" : Cciv art. 768+ couvert.
+            BE distinct (CC art. 784-787) — outil jumeau à créer séparément
+            (règle "un outil = une situation métier" + "Belgique never forget").
+        </comment>
+
+        <createTable tableName="acceptation_renonciation_succession_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_accept_renon_succ_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_ouverture_succession" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="qualite_heritier" type="varchar(20)" defaultValue="PREMIER_RANG">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actif_brut_eur" type="numeric(14,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="passif_eur" type="numeric(14,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actes_equivalent_acceptation" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="inventaire_realise" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dettes_incertaines" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="intention_exprimee" type="varchar(40)"/>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="acceptation_renonciation_succession_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_accept_renon_succ_case_file"/>
+
+        <createIndex tableName="acceptation_renonciation_succession_analyses"
+                     indexName="idx_accept_renon_succ_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES
+                ('f1a04001-0000-0000-0000-eeeefa210003', 'DROIT_FAMILLE', 'FRANCE',
+                 'acceptation-renonciation-succession', 'CONTEXTUAL',
+                 'succession_envisagee', 'true', 97);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-eeeefa210003';
+            </sql>
+            <dropTable tableName="acceptation_renonciation_succession_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
