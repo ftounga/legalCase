@@ -1690,6 +1690,141 @@ class CaseAnalysisResponseTest {
     }
 
     // ===========================================================================
+    // F-205 SF-205-01 — extractTravailData : 23 flags Travail FR additionnels niveau 3
+    // ===========================================================================
+    @Test
+    void extractTravailData_F205Flags_parsedFromJsonAllTrue() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "abandon_poste_detecte": true,
+                    "arret_maladie_long_detecte": true,
+                    "prise_acte_envisagee": true,
+                    "resiliation_judiciaire_envisagee": true,
+                    "forfait_jours_detecte": true,
+                    "transfert_entreprise_detecte": true,
+                    "faute_inexcusable_envisagee": true,
+                    "cs_crp_envisage": true,
+                    "csp_propose": true,
+                    "mutation_refusee": true,
+                    "modification_contrat_refusee": true,
+                    "faute_grave_envisagee": true,
+                    "faute_lourde_envisagee": true,
+                    "cdd_requalification_envisagee": true,
+                    "interim_requalification_envisagee": true,
+                    "forfait_jours_validite_contestee": true,
+                    "prescription_proche_detectee": true,
+                    "rupture_amiable_negociee": true,
+                    "entretien_preavis_obtenu": true,
+                    "cse_consultation_demandee": true,
+                    "irp_election_demandee": true,
+                    "inspection_travail_saisie": true,
+                    "mediation_judiciaire_envisagee": true
+                  }
+                }
+                """)).travailExtractedData();
+        assertThat(t.abandonPosteDetecte()).isTrue();
+        assertThat(t.arretMaladieLongDetecte()).isTrue();
+        assertThat(t.priseActeEnvisagee()).isTrue();
+        assertThat(t.resiliationJudiciaireEnvisagee()).isTrue();
+        assertThat(t.forfaitJoursDetecte()).isTrue();
+        assertThat(t.transfertEntrepriseDetecte()).isTrue();
+        assertThat(t.fauteInexcusableEnvisagee()).isTrue();
+        assertThat(t.csCrpEnvisage()).isTrue();
+        assertThat(t.cspPropose()).isTrue();
+        assertThat(t.mutationRefusee()).isTrue();
+        assertThat(t.modificationContratRefusee()).isTrue();
+        assertThat(t.fauteGraveEnvisagee()).isTrue();
+        assertThat(t.fauteLourdeEnvisagee()).isTrue();
+        assertThat(t.cddRequalificationEnvisagee()).isTrue();
+        assertThat(t.interimRequalificationEnvisagee()).isTrue();
+        assertThat(t.forfaitJoursValiditeContestee()).isTrue();
+        assertThat(t.prescriptionProcheDetectee()).isTrue();
+        assertThat(t.ruptureAmiableNegociee()).isTrue();
+        assertThat(t.entretienPreavisObtenu()).isTrue();
+        assertThat(t.cseConsultationDemandee()).isTrue();
+        assertThat(t.irpElectionDemandee()).isTrue();
+        assertThat(t.inspectionTravailSaisie()).isTrue();
+        assertThat(t.mediationJudiciaireEnvisagee()).isTrue();
+    }
+
+    @Test
+    void extractTravailData_F205Flags_defaultFalseIfAbsent() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC"
+                  }
+                }
+                """)).travailExtractedData();
+        // Tous les 23 flags F-205 absents → false par défaut (booleanOrFalse)
+        assertThat(t.abandonPosteDetecte()).isFalse();
+        assertThat(t.arretMaladieLongDetecte()).isFalse();
+        assertThat(t.priseActeEnvisagee()).isFalse();
+        assertThat(t.resiliationJudiciaireEnvisagee()).isFalse();
+        assertThat(t.forfaitJoursDetecte()).isFalse();
+        assertThat(t.transfertEntrepriseDetecte()).isFalse();
+        assertThat(t.fauteInexcusableEnvisagee()).isFalse();
+        assertThat(t.csCrpEnvisage()).isFalse();
+        assertThat(t.cspPropose()).isFalse();
+        assertThat(t.mutationRefusee()).isFalse();
+        assertThat(t.modificationContratRefusee()).isFalse();
+        assertThat(t.fauteGraveEnvisagee()).isFalse();
+        assertThat(t.fauteLourdeEnvisagee()).isFalse();
+        assertThat(t.cddRequalificationEnvisagee()).isFalse();
+        assertThat(t.interimRequalificationEnvisagee()).isFalse();
+        assertThat(t.forfaitJoursValiditeContestee()).isFalse();
+        assertThat(t.prescriptionProcheDetectee()).isFalse();
+        assertThat(t.ruptureAmiableNegociee()).isFalse();
+        assertThat(t.entretienPreavisObtenu()).isFalse();
+        assertThat(t.cseConsultationDemandee()).isFalse();
+        assertThat(t.irpElectionDemandee()).isFalse();
+        assertThat(t.inspectionTravailSaisie()).isFalse();
+        assertThat(t.mediationJudiciaireEnvisagee()).isFalse();
+    }
+
+    @Test
+    void travailExtractedData_constructeur36Args_legacy_setsAllF205FlagsToFalse() {
+        // Constructeur post-F-204 (36 args) : les 23 flags F-205 doivent être false par défaut
+        var t = new CaseAnalysisResponse.TravailExtractedData(
+                "SYNTEC", "2020-01-01", 3200.0,
+                "CDI", "Développeur", "Faute simple", "2024-06-15",
+                25, 0.5,
+                "Dupont", "Jean", "12 rue de la Paix",
+                "Acme SAS", "5 avenue des Champs",
+                "12345678901234", null, "Martin Dupond", false,
+                "HARCELEMENT_MORAL", null, "2024-06-01",
+                null, null,
+                // 8 flags F-166
+                true, false, false, false, false, false, false, false,
+                // 5 flags F-204
+                false, false, false, false, false);
+        // Tous les 23 flags F-205 = false
+        assertThat(t.abandonPosteDetecte()).isFalse();
+        assertThat(t.arretMaladieLongDetecte()).isFalse();
+        assertThat(t.priseActeEnvisagee()).isFalse();
+        assertThat(t.resiliationJudiciaireEnvisagee()).isFalse();
+        assertThat(t.mediationJudiciaireEnvisagee()).isFalse();
+        // Vérifier que les flags F-166 sont préservés (rappelSalaireDetecte = true)
+        assertThat(t.rappelSalaireDetecte()).isTrue();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+    }
+
+    @Test
+    void travailExtractedData_constructeur9Args_legacy_setsAllF205FlagsToFalse() {
+        // Le constructeur 9 args historique propage false×23 pour les flags F-205
+        var t = new CaseAnalysisResponse.TravailExtractedData(
+                "SYNTEC", "2020-01-01", 3200.0,
+                "CDI", "Développeur", "Faute simple", "2024-06-15",
+                25, 0.5);
+        assertThat(t.abandonPosteDetecte()).isFalse();
+        assertThat(t.priseActeEnvisagee()).isFalse();
+        assertThat(t.fauteInexcusableEnvisagee()).isFalse();
+        assertThat(t.mediationJudiciaireEnvisagee()).isFalse();
+    }
+
+    // ===========================================================================
     // F-200 SF-200-01 — extractFamilleData : 30 flags Famille FR niveau 3
     // ===========================================================================
     @Test

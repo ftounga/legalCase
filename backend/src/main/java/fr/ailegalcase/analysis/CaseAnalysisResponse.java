@@ -154,7 +154,40 @@ public record CaseAnalysisResponse(
             boolean discriminationBeDetectee,
             boolean inaptitudeMedicaleBeDetectee,
             boolean heuresSupMentionneesBe,
-            boolean motifGraveBeEnvisage) {
+            boolean motifGraveBeEnvisage,
+            // === F-205 (P1+P2 flags FR) ===
+            // F-205 : 23 flags décisionnels niveau 3 additionnels — Travail FRANCE uniquement, default false.
+            // Préparent l'arrivée des outils manquants P1 (F-206) et P2 (F-212) listés dans
+            // docs/features/F-191/audit-travail-fr-exhaustif.md (Tableau C). Aucune règle de visibilité
+            // ne consomme encore ces flags : F-206/F-212 livreront les migrations decision_tool_visibility_rules.
+            // Dossiers BE : tous false (régimes BE équivalents gérés par F-204 ou sans équivalent direct
+            // — CSP/CRP, prise d'acte, résiliation judiciaire, présomption abandon de poste loi 21/12/2022
+            // sont des mécanismes purement français).
+            // Note : `salarie_protege_detecte` du brief F-205 est volontairement OMIS — déjà couvert par
+            // `statutProtegeDetecte` (F-166).
+            boolean abandonPosteDetecte,
+            boolean arretMaladieLongDetecte,
+            boolean priseActeEnvisagee,
+            boolean resiliationJudiciaireEnvisagee,
+            boolean forfaitJoursDetecte,
+            boolean transfertEntrepriseDetecte,
+            boolean fauteInexcusableEnvisagee,
+            boolean csCrpEnvisage,
+            boolean cspPropose,
+            boolean mutationRefusee,
+            boolean modificationContratRefusee,
+            boolean fauteGraveEnvisagee,
+            boolean fauteLourdeEnvisagee,
+            boolean cddRequalificationEnvisagee,
+            boolean interimRequalificationEnvisagee,
+            boolean forfaitJoursValiditeContestee,
+            boolean prescriptionProcheDetectee,
+            boolean ruptureAmiableNegociee,
+            boolean entretienPreavisObtenu,
+            boolean cseConsultationDemandee,
+            boolean irpElectionDemandee,
+            boolean inspectionTravailSaisie,
+            boolean mediationJudiciaireEnvisagee) {
 
         /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
         public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
@@ -165,7 +198,10 @@ public record CaseAnalysisResponse(
                     congesContractuels, primeAncienneteContractuelle,
                     null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false,
+                    // F-205 : 23 flags Travail FR additionnels — false par défaut
+                    false, false, false, false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 17 champs (avant SF-130-01). */
@@ -184,7 +220,10 @@ public record CaseAnalysisResponse(
                     siretEmployeur, bceEmployeur,
                     representantEmployeur, null,
                     null, null, null, null, null,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false,
+                    // F-205 : 23 flags Travail FR additionnels — false par défaut
+                    false, false, false, false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 18 champs (avant SF-155-04-00-BE-travail). */
@@ -203,7 +242,10 @@ public record CaseAnalysisResponse(
                     siretEmployeur, bceEmployeur,
                     representantEmployeur, salaireEstDeduit,
                     null, null, null, null, null,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false,
+                    // F-205 : 23 flags Travail FR additionnels — false par défaut
+                    false, false, false, false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 23 champs (avant SF-166-01). */
@@ -229,7 +271,59 @@ public record CaseAnalysisResponse(
                     avisMedecinTravailDate,
                     reclassementRespecteDetected,
                     heuresSupMentionneesDansDossier,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false);
+                    false, false, false, false, false, false, false, false, false, false, false, false, false,
+                    // F-205 : 23 flags Travail FR additionnels — false par défaut
+                    false, false, false, false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false, false, false, false, false, false, false);
+        }
+
+        /**
+         * Constructeur rétrocompat 36 champs (avant F-205).
+         * Inclut les 8 flags F-166 + 5 flags F-204 ; passe false×23 pour les flags F-205.
+         */
+        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
+                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
+                                     Integer congesContractuels, Double primeAncienneteContractuelle,
+                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
+                                     String nomEmployeur, String adresseEmployeur,
+                                     String siretEmployeur, String bceEmployeur,
+                                     String representantEmployeur, Boolean salaireEstDeduit,
+                                     String motifNullitePressenti, String origineInaptitudePressentie,
+                                     String avisMedecinTravailDate,
+                                     DetectedAnswer reclassementRespecteDetected,
+                                     HeuresSupMentionnees heuresSupMentionneesDansDossier,
+                                     boolean rappelSalaireDetecte,
+                                     boolean travailDissimuleDetecte,
+                                     boolean clauseNonConcurrenceDetectee,
+                                     boolean statutProtegeDetecte,
+                                     boolean transactionEnvisagee,
+                                     boolean atMpDetecte,
+                                     boolean urgenceProcedurale,
+                                     boolean contestationAreEnvisagee,
+                                     boolean harcelementBeDetecte,
+                                     boolean discriminationBeDetectee,
+                                     boolean inaptitudeMedicaleBeDetectee,
+                                     boolean heuresSupMentionneesBe,
+                                     boolean motifGraveBeEnvisage) {
+            this(conventionCollective, dateEntree, salaireBrutMensuel,
+                    typeContrat, poste, motifLicenciement, dateLicenciement,
+                    congesContractuels, primeAncienneteContractuelle,
+                    nomSalarie, prenomSalarie, adresseSalarie,
+                    nomEmployeur, adresseEmployeur,
+                    siretEmployeur, bceEmployeur,
+                    representantEmployeur, salaireEstDeduit,
+                    motifNullitePressenti, origineInaptitudePressentie,
+                    avisMedecinTravailDate,
+                    reclassementRespecteDetected,
+                    heuresSupMentionneesDansDossier,
+                    rappelSalaireDetecte, travailDissimuleDetecte, clauseNonConcurrenceDetectee,
+                    statutProtegeDetecte, transactionEnvisagee, atMpDetecte,
+                    urgenceProcedurale, contestationAreEnvisagee,
+                    harcelementBeDetecte, discriminationBeDetectee, inaptitudeMedicaleBeDetectee,
+                    heuresSupMentionneesBe, motifGraveBeEnvisage,
+                    // F-205 : 23 flags Travail FR additionnels — false par défaut
+                    false, false, false, false, false, false, false, false, false, false, false, false,
+                    false, false, false, false, false, false, false, false, false, false, false);
         }
     }
 
@@ -1255,7 +1349,31 @@ public record CaseAnalysisResponse(
                     booleanOrFalse(node, "discrimination_be_detectee"),
                     booleanOrFalse(node, "inaptitude_medicale_be_detectee"),
                     booleanOrFalse(node, "heures_sup_mentionnees_be"),
-                    booleanOrFalse(node, "motif_grave_be_envisage")
+                    booleanOrFalse(node, "motif_grave_be_envisage"),
+                    // F-205 : 23 flags décisionnels niveau 3 additionnels — Travail FR uniquement, fail-safe à false
+                    booleanOrFalse(node, "abandon_poste_detecte"),
+                    booleanOrFalse(node, "arret_maladie_long_detecte"),
+                    booleanOrFalse(node, "prise_acte_envisagee"),
+                    booleanOrFalse(node, "resiliation_judiciaire_envisagee"),
+                    booleanOrFalse(node, "forfait_jours_detecte"),
+                    booleanOrFalse(node, "transfert_entreprise_detecte"),
+                    booleanOrFalse(node, "faute_inexcusable_envisagee"),
+                    booleanOrFalse(node, "cs_crp_envisage"),
+                    booleanOrFalse(node, "csp_propose"),
+                    booleanOrFalse(node, "mutation_refusee"),
+                    booleanOrFalse(node, "modification_contrat_refusee"),
+                    booleanOrFalse(node, "faute_grave_envisagee"),
+                    booleanOrFalse(node, "faute_lourde_envisagee"),
+                    booleanOrFalse(node, "cdd_requalification_envisagee"),
+                    booleanOrFalse(node, "interim_requalification_envisagee"),
+                    booleanOrFalse(node, "forfait_jours_validite_contestee"),
+                    booleanOrFalse(node, "prescription_proche_detectee"),
+                    booleanOrFalse(node, "rupture_amiable_negociee"),
+                    booleanOrFalse(node, "entretien_preavis_obtenu"),
+                    booleanOrFalse(node, "cse_consultation_demandee"),
+                    booleanOrFalse(node, "irp_election_demandee"),
+                    booleanOrFalse(node, "inspection_travail_saisie"),
+                    booleanOrFalse(node, "mediation_judiciaire_envisagee")
             );
         } catch (Exception ignored) { return null; }
     }
