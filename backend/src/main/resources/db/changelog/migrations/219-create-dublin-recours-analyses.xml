@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="219-create-dublin-recours-analyses" author="legalcase">
+        <comment>
+            SF-208-02 : table dédiée à l'outil décisionnel "Dublin recours 7 jours suspensif"
+            — CESEDA L.572-1+ + Règlement (UE) 604/2013 art. 27 + 29.
+            Calcule le délai suspensif de 7 jours calendaires pour contester une décision
+            de transfert vers l'État membre Dublin responsable, et la date limite de
+            transfert effectif (notification + 6 mois).
+            Outil single-country FRANCE — la procédure BE Dublin (Loi 15/12/1980 art. 51/5
+            + recours CCE) sera traitée par F-209 si pertinent.
+            + 1 règle visibility F-IA-04 (CONTEXTUAL, DROIT_IMMIGRATION, FRANCE,
+            trigger=procedure_asile_detectee=true) — réutilise un flag IA existant
+            (livré par F-201 SF-201-01).
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Immigration FR.
+            Audit "exhaustivité droit national FR" : équivalent BE différé F-209.
+        </comment>
+
+        <createTable tableName="dublin_recours_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_dublin_recours_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_notification_decision_transfert" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="etat_membre_responsable" type="varchar(60)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="motif_transfert" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_forme" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_recours" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="dublin_recours_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_dublin_recours_analyses_case_file"/>
+
+        <createIndex tableName="dublin_recours_analyses"
+                     indexName="idx_dublin_recours_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20800220', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-22-dublin-recours-fr', 'CONTEXTUAL', 'procedure_asile_detectee', 'true', 71);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-eeee20800220';
+            </sql>
+            <dropTable tableName="dublin_recours_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
