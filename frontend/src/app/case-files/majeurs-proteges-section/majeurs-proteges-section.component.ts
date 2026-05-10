@@ -56,6 +56,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { MajeursProtegesPrefillRules } from './majeurs-proteges-section-prefill-rules';
 
 /**
@@ -72,39 +73,10 @@ export type MajeursProtegesAlertSource = CoherenceAlertSource;
 export type MajeursProtegesCoherenceAlert =
   CoherenceAlert<MajeursProtegesAlertField>;
 
-const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const VALID_REGIMES: ReadonlySet<string> = new Set<RegimeProtection>([
-  'SAUVEGARDE_JUSTICE',
-  'HABILITATION_FAMILIALE',
-  'CURATELLE_SIMPLE',
-  'CURATELLE_RENFORCEE',
-  'TUTELLE',
-  'MANDAT_PROTECTION_FUTURE',
-]);
-
-const VALID_DEMANDEURS: ReadonlySet<string> = new Set<DemandeurFamilial>([
-  'CONJOINT',
-  'ENFANT_MAJEUR',
-  'PARENT',
-  'FRERE_SOEUR',
-  'TIERS_PROCHE',
-  'MINISTERE_PUBLIC',
-]);
-
-const VALID_ACTES: ReadonlySet<string> = new Set<ActeEnvisage>([
-  'GESTION_PATRIMOINE',
-  'DECISIONS_LOGEMENT',
-  'DECISIONS_SANTE',
-  'DECISIONS_FAMILIALES',
-  'ACTES_ETAT_CIVIL',
-  'AUTRE',
-]);
-
-const VALID_FORMES_MANDAT: ReadonlySet<string> = new Set<FormeMandatProtection>([
-  'NOTARIE',
-  'SOUS_SEING_PRIVE',
-]);
+// F-236 SF-236-03 : ISO regex + sets VALID_* unifiés via le helper partagé
+// `MajeursProtegesPrefillRules` (parité runtime/static par construction).
+const ISO_DATE_REGEX = MajeursProtegesPrefillRules.ISO_DATE_RE;
+const VALID_DEMANDEURS = MajeursProtegesPrefillRules.VALID_DEMANDEURS;
 
 /**
  * SF-FA-25-02 : composant Angular standalone pour l'outil "Majeurs protégés —
@@ -157,18 +129,6 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MAJEURS PROTÉGÉS (FR) — ART. 425-494 / 494-1 CCIV';
   static readonly TOOL_ICON = 'supervisor_account';
-
-  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
-  static getPrefillCount(input: {
-    aiData?: Partial<FamilleExtractedData> | null;
-    procedureChecks?: unknown[];
-    aiQuestions?: unknown[];
-    piecesManquantes?: unknown[];
-    triggerEvents?: unknown[];
-    workspaceCountry?: string;
-  }): number {
-    return MajeursProtegesPrefillRules.computePrefillCount(input);
-  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -585,96 +545,95 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Pré-fill 8 champs IA depuis `aiData`. No-op gracieux si champ absent.
+   * Pré-fill 12 champs IA depuis `aiData`. No-op gracieux si champ absent.
    * N'écrase jamais une saisie avocat (la garde est par champ : provenance
    * IA OK, valeur null, ou booléen encore false par défaut).
+   *
+   * F-236 SF-236-03 : délègue à `MajeursProtegesPrefillRules.compute<Field>`
+   * pour chaque champ (parité runtime/static garantie par construction).
+   * Les gardes "ne pas écraser une saisie avocat" restent côté composant.
    */
   private prefillFromAi(): void {
-    // F-236 SF-236-02 — délégation au helper partagé.
-    const h = { aiData: this.aiDataSignal() };
+    const ai = this.aiDataSignal();
+    if (!ai) return;
+    const input: PrefillCountInput = { aiData: ai };
 
-    const reg = MajeursProtegesPrefillRules.computeRegimeDemande(h);
-    if (reg !== null
-        && (this.regimeProtectionDemande() === null
-            || this.provenanceRegimeProtectionDemande() === 'IA')) {
-      this.regimeProtectionDemande.set(reg);
-      this.provenanceRegimeProtectionDemande.set('IA');
+    // 1. Régime protection demandé.
+    const reg = MajeursProtegesPrefillRules.computeRegimeProtectionDemande(input);
+    if (reg !== null) {
+      if (this.regimeProtectionDemande() === null
+          || this.provenanceRegimeProtectionDemande() === 'IA') {
+        this.regimeProtectionDemande.set(reg as RegimeProtection);
+        this.provenanceRegimeProtectionDemande.set('IA');
+      }
     }
 
-    // Booléens : runtime applique la valeur mais ne pose IA que si true.
-    const ai = this.aiDataSignal();
-    if (ai && typeof ai.altertationFacultesMentales === 'boolean'
-        && (this.provenanceAltertationFacultesMentales() === 'IA'
-            || this.altertationFacultesMentales() === false)) {
-      this.altertationFacultesMentales.set(ai.altertationFacultesMentales);
-      if (ai.altertationFacultesMentales) {
+    // 2. Altération facultés mentales.
+    const altM = MajeursProtegesPrefillRules.computeAltertationFacultesMentales(input);
+    if (altM !== null) {
+      if (this.provenanceAltertationFacultesMentales() === 'IA'
+          || this.altertationFacultesMentales() === false) {
+        this.altertationFacultesMentales.set(altM);
         this.provenanceAltertationFacultesMentales.set('IA');
       }
     }
-    if (ai && typeof ai.altertationFacultesPhysiques === 'boolean'
-        && (this.provenanceAltertationFacultesPhysiques() === 'IA'
-            || this.altertationFacultesPhysiques() === false)) {
-      this.altertationFacultesPhysiques.set(ai.altertationFacultesPhysiques);
-      if (ai.altertationFacultesPhysiques) {
+
+    // 3. Altération facultés physiques.
+    const altP = MajeursProtegesPrefillRules.computeAltertationFacultesPhysiques(input);
+    if (altP !== null) {
+      if (this.provenanceAltertationFacultesPhysiques() === 'IA'
+          || this.altertationFacultesPhysiques() === false) {
+        this.altertationFacultesPhysiques.set(altP);
         this.provenanceAltertationFacultesPhysiques.set('IA');
       }
     }
-    if (ai && typeof ai.certificatMedicalCirconstancieDetected === 'boolean'
-        && (this.provenanceCertificatMedicalCirconstancie() === 'IA'
-            || this.certificatMedicalCirconstancie() === false)) {
-      this.certificatMedicalCirconstancie.set(ai.certificatMedicalCirconstancieDetected);
-      if (ai.certificatMedicalCirconstancieDetected) {
+
+    // 4. Certificat médical circonstancié.
+    const certif = MajeursProtegesPrefillRules.computeCertificatMedicalCirconstancie(input);
+    if (certif !== null) {
+      if (this.provenanceCertificatMedicalCirconstancie() === 'IA'
+          || this.certificatMedicalCirconstancie() === false) {
+        this.certificatMedicalCirconstancie.set(certif);
         this.provenanceCertificatMedicalCirconstancie.set('IA');
       }
     }
 
-    const dc = MajeursProtegesPrefillRules.computeDateCertificat(h);
-    if (dc !== null
-        && (this.dateCertificatMedical() === null
-            || this.provenanceDateCertificatMedical() === 'IA')) {
-      this.dateCertificatMedical.set(dc);
-      this.provenanceDateCertificatMedical.set('IA');
+    // 5. Date certificat médical (ISO).
+    const dateCert = MajeursProtegesPrefillRules.computeDateCertificatMedical(input);
+    if (dateCert !== null) {
+      if (this.dateCertificatMedical() === null
+          || this.provenanceDateCertificatMedical() === 'IA') {
+        this.dateCertificatMedical.set(dateCert);
+        this.provenanceDateCertificatMedical.set('IA');
+      }
     }
 
-    // F-236 SF-236-02 — champs SF-FA-25-04/06 hors helper minimal (helper
-    // couvre les 5 champs principaux SF-FA-25-02 qui pilotent le compteur).
-    // Le runtime reste exhaustif sur les autres pré-fills spécifiques.
-    if (!ai) return;
-
-    // 6. Consentement personne à protéger (boolean — important pour
-    // distinguer habilitation familiale vs tutelle).
-    if (typeof ai.consentementPersonneAProtegerDetected === 'boolean') {
+    // 6. Consentement personne à protéger.
+    const consent = MajeursProtegesPrefillRules.computeConsentementPersonneAProteger(input);
+    if (consent !== null) {
       if (this.provenanceConsentementPersonneAProteger() === 'IA'
           || this.consentementPersonneAProteger() === false) {
-        this.consentementPersonneAProteger.set(ai.consentementPersonneAProtegerDetected);
-        if (ai.consentementPersonneAProtegerDetected) {
-          this.provenanceConsentementPersonneAProteger.set('IA');
-        }
+        this.consentementPersonneAProteger.set(consent);
+        this.provenanceConsentementPersonneAProteger.set('IA');
       }
     }
 
     // 7. Demandeur familial.
-    const demAi = ai.demandeurFamilialDetected;
-    if (typeof demAi === 'string' && demAi.length > 0) {
-      const upper = demAi.toUpperCase();
-      if (VALID_DEMANDEURS.has(upper)) {
-        if (this.demandeurFamilial() === null
-            || this.provenanceDemandeurFamilial() === 'IA') {
-          this.demandeurFamilial.set(upper as DemandeurFamilial);
-          this.provenanceDemandeurFamilial.set('IA');
-        }
+    const dem = MajeursProtegesPrefillRules.computeDemandeurFamilial(input);
+    if (dem !== null) {
+      if (this.demandeurFamilial() === null
+          || this.provenanceDemandeurFamilial() === 'IA') {
+        this.demandeurFamilial.set(dem as DemandeurFamilial);
+        this.provenanceDemandeurFamilial.set('IA');
       }
     }
 
     // 8. Actes envisagés (multi).
-    if (Array.isArray(ai.actesEnvisagesDetected) && ai.actesEnvisagesDetected.length > 0) {
-      const filtered = ai.actesEnvisagesDetected
-        .map((a) => a?.toUpperCase())
-        .filter((a): a is ActeEnvisage => !!a && VALID_ACTES.has(a));
-      if (filtered.length > 0
-          && (this.actesEnvisages().length === 0
-              || this.provenanceActesEnvisages() === 'IA')) {
-        this.actesEnvisages.set(filtered);
+    const actes = MajeursProtegesPrefillRules.computeActesEnvisages(input);
+    if (actes !== null) {
+      if (this.actesEnvisages().length === 0
+          || this.provenanceActesEnvisages() === 'IA') {
+        this.actesEnvisages.set(actes as ActeEnvisage[]);
         this.provenanceActesEnvisages.set('IA');
       }
     }
@@ -682,50 +641,56 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
     // SF-FA-25-06 : 4 champs spécifiques aux régimes 3-6.
 
     // 9. Incapacité de gestion quotidienne (CURATELLE_RENFORCEE / TUTELLE).
-    if (typeof ai.incapaciteGestionQuotidienneDetected === 'boolean') {
+    const incap = MajeursProtegesPrefillRules.computeIncapaciteGestionQuotidienne(input);
+    if (incap !== null) {
       if (this.provenanceIncapaciteGestionQuotidienne() === 'IA'
           || this.incapaciteGestionQuotidienne() === false) {
-        this.incapaciteGestionQuotidienne.set(ai.incapaciteGestionQuotidienneDetected);
-        if (ai.incapaciteGestionQuotidienneDetected) {
-          this.provenanceIncapaciteGestionQuotidienne.set('IA');
-        }
+        this.incapaciteGestionQuotidienne.set(incap);
+        this.provenanceIncapaciteGestionQuotidienne.set('IA');
       }
     }
 
     // 10. Altération grave (TUTELLE).
-    if (typeof ai.altertationGraveDetected === 'boolean') {
+    const altG = MajeursProtegesPrefillRules.computeAltertationGrave(input);
+    if (altG !== null) {
       if (this.provenanceAltertationGrave() === 'IA'
           || this.altertationGrave() === false) {
-        this.altertationGrave.set(ai.altertationGraveDetected);
-        if (ai.altertationGraveDetected) {
-          this.provenanceAltertationGrave.set('IA');
-        }
+        this.altertationGrave.set(altG);
+        this.provenanceAltertationGrave.set('IA');
       }
     }
 
     // 11. Mandat préalable signé (MANDAT_PROTECTION_FUTURE).
-    if (typeof ai.mandatPrealableSigneDetected === 'boolean') {
+    const mandat = MajeursProtegesPrefillRules.computeMandatPrealableSigne(input);
+    if (mandat !== null) {
       if (this.provenanceMandatPrealableSigne() === 'IA'
           || this.mandatPrealableSigne() === false) {
-        this.mandatPrealableSigne.set(ai.mandatPrealableSigneDetected);
-        if (ai.mandatPrealableSigneDetected) {
-          this.provenanceMandatPrealableSigne.set('IA');
-        }
+        this.mandatPrealableSigne.set(mandat);
+        this.provenanceMandatPrealableSigne.set('IA');
       }
     }
 
     // 12. Forme mandat protection (NOTARIE / SOUS_SEING_PRIVE).
-    const formeAi = ai.formeMandatProtectionDetected;
-    if (typeof formeAi === 'string' && formeAi.length > 0) {
-      const upper = formeAi.toUpperCase();
-      if (VALID_FORMES_MANDAT.has(upper)) {
-        if (this.formeMandatProtection() === null
-            || this.provenanceFormeMandatProtection() === 'IA') {
-          this.formeMandatProtection.set(upper as FormeMandatProtection);
-          this.provenanceFormeMandatProtection.set('IA');
-        }
+    const forme = MajeursProtegesPrefillRules.computeFormeMandatProtection(input);
+    if (forme !== null) {
+      if (this.formeMandatProtection() === null
+          || this.provenanceFormeMandatProtection() === 'IA') {
+        this.formeMandatProtection.set(forme as FormeMandatProtection);
+        this.provenanceFormeMandatProtection.set('IA');
       }
     }
+  }
+
+  /**
+   * F-IA-04 / F-177 SF-177-12 — compteur de champs pré-remplis affiché
+   * en badge sur la card avant ouverture.
+   *
+   * F-236 SF-236-03 : délègue intégralement à
+   * `MajeursProtegesPrefillRules.computePrefillCount` (parité runtime/static
+   * garantie par construction — 12 champs maximum).
+   */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return MajeursProtegesPrefillRules.computePrefillCount(input);
   }
 
   // ---------------------------------------------------------------------------

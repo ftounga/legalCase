@@ -1,64 +1,59 @@
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+
 /**
- * F-236 SF-236-02 — Helper partagé `DivorceChecklistPrefillRules` (module pur).
+ * F-236 SF-236-03 — Helper partagé pour le pré-remplissage IA de
+ * `DivorceChecklistSectionComponent` (F-FA-07-checklist-divorce).
  *
- * <p>Note divergence connue (laissée pour SF-236-03) : le runtime marque
- * jusqu'à 2 étapes "signature convention" (FR + BE) si elles sont toutes deux
- * présentes dans la checklist générée backend, mais `computePrefillCount`
- * retourne 1 (1 seule étape attendue par pays). La divergence sera corrigée
- * en SF-236-03 ; ici le helper consolide la **duplication runtime/static**
- * sans changer le compteur.
- */
-import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
-
-/**
- * Codes d'étapes "signature convention" que le pré-fill IA marque FAIT
- * (FR : signature CM ; BE : rédaction convention).
- */
-export const SIGNATURE_STEP_CODES: readonly string[] = [
-  'FR_SIGNATURE_CONVENTION',
-  'BE_REDACTION_CONVENTION',
-];
-
-export interface DivorceChecklistPrefillInput {
-  aiData?: FamilleExtractedData | null;
-  // Champs ignorés (contrat unifié).
-  procedureChecks?: unknown[] | null;
-  aiQuestions?: unknown[] | null;
-  piecesManquantes?: unknown[] | null;
-  triggerEvents?: unknown[] | null;
-  workspaceCountry?: string;
-}
-
-/** Format YYYY-MM-DD validé strictement. */
-export function isIsoDate(value: unknown): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-/**
- * Détermine si `dateAcceptationPV` est exploitable pour le pré-fill.
- * Retourne la date ISO si oui, null sinon.
- */
-export function computeDateAcceptationPV(input: DivorceChecklistPrefillInput): string | null {
-  const ai = input.aiData;
-  if (!ai) return null;
-  return isIsoDate(ai.dateAcceptationPV) ? ai.dateAcceptationPV : null;
-}
-
-/**
- * Compteur de champs pré-remplis. Toujours 0 ou 1 — la checklist du pays
- * courant contient au plus une étape "signature convention".
+ * Référence canonique du contrat (cf. `docs/features/F-236/contract-prefill-rules.md`).
  *
- * <p>Le runtime peut marquer plusieurs étapes (cas FR + BE simultanés —
- * divergence connue traitée par SF-236-03). Le badge utilisateur reste à 1
- * pour ne pas tromper sur le nombre logique de champs pré-remplis.
+ * <p>Le seul signal IA exploitable au pré-fill est `aiData.dateAcceptationPV`
+ * (date de signature du PV/convention) — quand renseignée et valide
+ * (format ISO `YYYY-MM-DD`), le runtime pré-coche l'étape "signature/rédaction
+ * de la convention" sur les deux pays (FR et BE). Le `SIGNATURE_STEP_CODES`
+ * couvre les 2 codes — la checklist du dossier ne contient en pratique que
+ * les étapes du pays courant, mais le compteur reflète **l'expérience UX
+ * réelle pour l'avocat** (2 cases pré-cochées si les 2 pays étaient mélangés
+ * — corrigé en SF-236-03 — divergence remontée par audit SF-236-01).</p>
+ *
+ * <p>Champs pré-remplis :
+ * <ul>
+ *   <li>Étape `FR_SIGNATURE_CONVENTION` — quand `dateAcceptationPV` ISO valide.</li>
+ *   <li>Étape `BE_REDACTION_CONVENTION` — quand `dateAcceptationPV` ISO valide.</li>
+ * </ul></p>
  */
-export function computePrefillCount(input: DivorceChecklistPrefillInput): number {
-  return computeDateAcceptationPV(input) !== null ? 1 : 0;
-}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * SF-155-19 : codes étape "signature de la convention" (FR + BE).
+ * Si l'IA a fourni `dateAcceptationPV`, ces 2 étapes sont marquées FAIT.
+ */
+export const SIGNATURE_STEP_CODES = ['FR_SIGNATURE_CONVENTION', 'BE_REDACTION_CONVENTION'] as const;
 
 export const DivorceChecklistPrefillRules = {
+  ISO_DATE_RE,
   SIGNATURE_STEP_CODES,
-  isIsoDate,
-  computeDateAcceptationPV,
-  computePrefillCount,
-};
+
+  /**
+   * Renvoie la date ISO si valide ; `null` sinon. C'est la fonction "valeur"
+   * unique du helper — un seul input IA, deux étapes pré-cochées.
+   */
+  computeDateAcceptationPV(input: PrefillCountInput): string | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.dateAcceptationPV !== 'string') return null;
+    if (!ISO_DATE_RE.test(ai.dateAcceptationPV)) return null;
+    return ai.dateAcceptationPV;
+  },
+
+  /**
+   * Maître : compte les étapes pré-cochées par l'IA. Quand `dateAcceptationPV`
+   * est valide, 2 étapes sont pré-cochées (FR_SIGNATURE_CONVENTION +
+   * BE_REDACTION_CONVENTION) — chiffre qui reflète l'expérience UX réelle
+   * de l'avocat (parité avec `prefillFromAi()` runtime — SF-236-03).
+   */
+  computePrefillCount(input: PrefillCountInput): number {
+    if (this.computeDateAcceptationPV(input) === null) return 0;
+    return SIGNATURE_STEP_CODES.length;
+  },
+} as const;

@@ -5,7 +5,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimpleChange } from '@angular/core';
 import { DivorceFauteSectionComponent } from './divorce-faute-section.component';
 import { DivorceFauteResponse } from '../../core/models/divorce-faute.model';
-import { TravailExtractedData, PieceManquanteEntry } from '../../core/models/case-analysis.model';
+import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
@@ -126,7 +127,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('GET 200 → form masqué, valeurs persistées affichées, pas de badge IA', () => {
     component.aiData = {
       revenusAnnuelsDemandeurEur: 9999,
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     expect(req.request.method).toBe('GET');
@@ -146,7 +147,7 @@ describe('DivorceFauteSectionComponent', () => {
       dureeMariageAnnees: 10,
       dateDepotAssignation: '2026-03-01',
       fautesDetectees: ['ADULTERE', 'VIOLENCES'],
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -227,7 +228,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('onRevenusDemandeurChange efface le badge IA', () => {
     component.aiData = {
       revenusAnnuelsDemandeurEur: 24000,
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -241,7 +242,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('onFautesChange efface le badge IA fautes', () => {
     component.aiData = {
       fautesDetectees: ['ADULTERE'],
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -259,7 +260,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('coherenceAlerts.REVENUS_DEMANDEUR présent si divergence > 10 %', () => {
     component.aiData = {
       revenusAnnuelsDemandeurEur: 20000,
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -278,7 +279,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('coherenceAlerts.REVENUS_DEMANDEUR absent si écart ≤ 10 %', () => {
     component.aiData = {
       revenusAnnuelsDemandeurEur: 20000,
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -290,7 +291,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('coherenceAlerts.FAUTES_INVOQUEES présent si IA détecte des fautes et avocat sélectionne autres', () => {
     component.aiData = {
       fautesDetectees: ['ADULTERE'],
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -305,7 +306,7 @@ describe('DivorceFauteSectionComponent', () => {
   it('alertes masquées après résultat affiché (showForm=false)', () => {
     component.aiData = {
       revenusAnnuelsDemandeurEur: 20000,
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -319,7 +320,7 @@ describe('DivorceFauteSectionComponent', () => {
   // SF-155-10 : nouveaux tests F-IA-03 multi-sources + popover.
 
   it('SF-155-10 : DUREE_MARIAGE alerte multi-source IA + F96 + PIECE_MANQUANTE', () => {
-    component.aiData = { dureeMariageAnnees: 10 } as unknown as TravailExtractedData;
+    component.aiData = { dureeMariageAnnees: 10 } as unknown as FamilleExtractedData;
     component.procedureChecks = [
       {
         id: 'c1', ordre: 1, description: 'Acte mariage', statut: 'NON_COMPLIANT',
@@ -348,7 +349,7 @@ describe('DivorceFauteSectionComponent', () => {
   });
 
   it('SF-155-10 : DATE_DEPOT_ASSIGNATION alerte si IA et user divergent', () => {
-    component.aiData = { dateDepotAssignation: '2026-03-01' } as unknown as TravailExtractedData;
+    component.aiData = { dateDepotAssignation: '2026-03-01' } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -364,7 +365,7 @@ describe('DivorceFauteSectionComponent', () => {
   });
 
   it('SF-155-10 : DATE_DEPOT_ASSIGNATION absent si user vide ou identique IA', () => {
-    component.aiData = { dateDepotAssignation: '2026-03-01' } as unknown as TravailExtractedData;
+    component.aiData = { dateDepotAssignation: '2026-03-01' } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -378,7 +379,7 @@ describe('DivorceFauteSectionComponent', () => {
   });
 
   it('SF-155-10 : REVENUS_DEFENDEUR enrichi par PIECE_MANQUANTE (avis imposition)', () => {
-    component.aiData = { revenusAnnuelsDefendeurEur: 50000 } as unknown as TravailExtractedData;
+    component.aiData = { revenusAnnuelsDefendeurEur: 50000 } as unknown as FamilleExtractedData;
     component.piecesManquantes = [
       { texte: 'Avis d\'imposition défendeur', critereCode: 'AVIS_IMPOSITION_DEFENDEUR' },
     ] as PieceManquanteEntry[];
@@ -394,7 +395,7 @@ describe('DivorceFauteSectionComponent', () => {
   });
 
   it('SF-155-10 : FAUTES_INVOQUEES enrichi par F96 + PIECE_MANQUANTE', () => {
-    component.aiData = { fautesDetectees: ['ADULTERE'] } as unknown as TravailExtractedData;
+    component.aiData = { fautesDetectees: ['ADULTERE'] } as unknown as FamilleExtractedData;
     component.procedureChecks = [
       {
         id: 'c2', ordre: 2, description: 'Fautes attendues', statut: 'NON_COMPLIANT',
@@ -454,7 +455,7 @@ describe('DivorceFauteSectionComponent', () => {
   });
 
   it('SF-155-10 : ngOnChanges propage les nouveaux inputs (procedureChecks)', () => {
-    component.aiData = { revenusAnnuelsDemandeurEur: 20000 } as unknown as TravailExtractedData;
+    component.aiData = { revenusAnnuelsDemandeurEur: 20000 } as unknown as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -512,7 +513,7 @@ describe('DivorceFauteSectionComponent', () => {
       revenusAnnuelsDemandeurEur: 22000,
       revenusAnnuelsDefendeurEur: 55000,
       dureeMariageAnnees: 8,
-    } as unknown as TravailExtractedData;
+    } as unknown as FamilleExtractedData;
     component.aiData = newAi;
     component.ngOnChanges({
       aiData: new SimpleChange(null, newAi, false),

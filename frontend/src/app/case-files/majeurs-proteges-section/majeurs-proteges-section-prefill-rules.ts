@@ -1,156 +1,202 @@
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+
 /**
- * F-236 SF-236-02 — Helper partagé `MajeursProtegesPrefillRules`.
- * 5 champs : regimeProtectionDemande, altertationFacultesMentales (bool),
- * altertationFacultesPhysiques (bool), certificatMedicalCirconstancie (bool),
- * dateCertificatMedical (ISO).
+ * F-236 SF-236-03 — Helper partagé pour le pré-remplissage IA de
+ * `MajeursProtegesSectionComponent` (F-FA-25-majeurs-proteges).
  *
- * Singularités runtime :
- * - les 3 booléens posent IA uniquement si IA detected = true (mais set la
- *   valeur dans tous les cas si la condition d'écrasement est remplie).
- *   Pour le compteur, ces 3 sont comptés UNIQUEMENT si true (parité avec
- *   la pose de provenance / badge visible).
+ * Référence canonique du contrat (cf. `docs/features/F-236/contract-prefill-rules.md`).
+ *
+ * <p>12 champs pré-remplissables depuis `aiData` (`FamilleExtractedData`) :
+ * <ol>
+ *   <li>`regimeProtectionDemande` (string enum 6 valeurs) — depuis
+ *   `ai.regimeProtectionDemande` (validé contre `VALID_REGIMES`).</li>
+ *   <li>`altertationFacultesMentales` (boolean) — depuis
+ *   `ai.altertationFacultesMentales`. Pré-fill seulement si `true`
+ *   (saisie avocat préservée sinon — sémantique runtime).</li>
+ *   <li>`altertationFacultesPhysiques` (boolean) — depuis
+ *   `ai.altertationFacultesPhysiques`. Pré-fill seulement si `true`.</li>
+ *   <li>`certificatMedicalCirconstancie` (boolean) — depuis
+ *   `ai.certificatMedicalCirconstancieDetected`. Pré-fill seulement si `true`.</li>
+ *   <li>`dateCertificatMedical` (string ISO YYYY-MM-DD) — depuis
+ *   `ai.dateCertificatMedicalDetected`.</li>
+ *   <li>`consentementPersonneAProteger` (boolean) — depuis
+ *   `ai.consentementPersonneAProtegerDetected`. Pré-fill seulement si `true`.</li>
+ *   <li>`demandeurFamilial` (string enum 6 valeurs) — depuis
+ *   `ai.demandeurFamilialDetected` (validé contre `VALID_DEMANDEURS`).</li>
+ *   <li>`actesEnvisages` (string[] enum) — depuis
+ *   `ai.actesEnvisagesDetected` (chaque acte validé contre `VALID_ACTES`,
+ *   array non vide après filtrage).</li>
+ *   <li>`incapaciteGestionQuotidienne` (boolean) — depuis
+ *   `ai.incapaciteGestionQuotidienneDetected`. Pré-fill seulement si `true`.</li>
+ *   <li>`altertationGrave` (boolean) — depuis
+ *   `ai.altertationGraveDetected`. Pré-fill seulement si `true`.</li>
+ *   <li>`mandatPrealableSigne` (boolean) — depuis
+ *   `ai.mandatPrealableSigneDetected`. Pré-fill seulement si `true`.</li>
+ *   <li>`formeMandatProtection` (string enum 2 valeurs) — depuis
+ *   `ai.formeMandatProtectionDetected` (validé contre `VALID_FORMES_MANDAT`).</li>
+ * </ol></p>
+ *
+ * <p>F-FA-25 est FRANCE only — pas de gating pays au niveau du helper (déjà
+ * filtré côté composant via `isFrance()` qui contrôle `load()` et donc le
+ * mount effectif du formulaire).</p>
  */
-import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
-import {
-  ActeEnvisage,
-  DemandeurFamilial,
-  FormeMandatProtection,
-  RegimeProtection,
-} from '../../core/models/majeurs-proteges.model';
 
-export const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const VALID_REGIMES: ReadonlySet<string> = new Set<RegimeProtection>([
-  'SAUVEGARDE_JUSTICE', 'HABILITATION_FAMILIALE', 'CURATELLE_SIMPLE',
-  'CURATELLE_RENFORCEE', 'TUTELLE', 'MANDAT_PROTECTION_FUTURE',
-]);
-export const VALID_DEMANDEURS: ReadonlySet<string> = new Set<DemandeurFamilial>([
-  'CONJOINT', 'ENFANT_MAJEUR', 'PARENT', 'FRERE_SOEUR', 'TIERS_PROCHE', 'MINISTERE_PUBLIC',
-]);
-export const VALID_ACTES: ReadonlySet<string> = new Set<ActeEnvisage>([
-  'GESTION_PATRIMOINE', 'DECISIONS_LOGEMENT', 'DECISIONS_SANTE',
-  'DECISIONS_FAMILIALES', 'ACTES_ETAT_CIVIL', 'AUTRE',
-]);
-export const VALID_FORMES_MANDAT: ReadonlySet<string> = new Set<FormeMandatProtection>([
-  'NOTARIE', 'SOUS_SEING_PRIVE',
+export const VALID_REGIMES: ReadonlySet<string> = new Set<string>([
+  'SAUVEGARDE_JUSTICE',
+  'HABILITATION_FAMILIALE',
+  'CURATELLE_SIMPLE',
+  'CURATELLE_RENFORCEE',
+  'TUTELLE',
+  'MANDAT_PROTECTION_FUTURE',
 ]);
 
-type Ai = Partial<FamilleExtractedData> & {
-  regimeProtectionDemande?: string | null;
-  altertationFacultesMentales?: boolean | null;
-  altertationFacultesPhysiques?: boolean | null;
-  certificatMedicalCirconstancieDetected?: boolean | null;
-  dateCertificatMedicalDetected?: string | null;
-  consentementPersonneAProtegerDetected?: boolean | null;
-  demandeurFamilialDetected?: string | null;
-  actesEnvisagesDetected?: (string | null)[] | null;
-  incapaciteGestionQuotidienneDetected?: boolean | null;
-  altertationGraveDetected?: boolean | null;
-  mandatPrealableSigneDetected?: boolean | null;
-  formeMandatProtectionDetected?: string | null;
-};
+export const VALID_DEMANDEURS: ReadonlySet<string> = new Set<string>([
+  'CONJOINT',
+  'ENFANT_MAJEUR',
+  'PARENT',
+  'FRERE_SOEUR',
+  'TIERS_PROCHE',
+  'MINISTERE_PUBLIC',
+]);
 
-export interface MajeursProtegesPrefillInput {
-  aiData?: Ai | null;
-  procedureChecks?: unknown[] | null;
-  aiQuestions?: unknown[] | null;
-  piecesManquantes?: unknown[] | null;
-  triggerEvents?: unknown[] | null;
-  workspaceCountry?: string;
-}
+export const VALID_ACTES: ReadonlySet<string> = new Set<string>([
+  'GESTION_PATRIMOINE',
+  'DECISIONS_LOGEMENT',
+  'DECISIONS_SANTE',
+  'DECISIONS_FAMILIALES',
+  'ACTES_ETAT_CIVIL',
+  'AUTRE',
+]);
 
-export function computeRegimeDemande(input: MajeursProtegesPrefillInput): RegimeProtection | null {
-  const raw = input.aiData?.regimeProtectionDemande;
-  if (typeof raw !== 'string' || !raw) return null;
-  const upper = raw.toUpperCase();
-  return VALID_REGIMES.has(upper) ? (upper as RegimeProtection) : null;
-}
-
-export function isAlterationMentalesTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.altertationFacultesMentales === true;
-}
-export function isAlterationPhysiquesTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.altertationFacultesPhysiques === true;
-}
-export function isCertificatMedicalTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.certificatMedicalCirconstancieDetected === true;
-}
-
-export function computeDateCertificat(input: MajeursProtegesPrefillInput): string | null {
-  const v = input.aiData?.dateCertificatMedicalDetected;
-  return typeof v === 'string' && ISO_DATE_REGEX.test(v) ? v : null;
-}
-
-export function isConsentementPersonneTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.consentementPersonneAProtegerDetected === true;
-}
-
-export function computeDemandeurFamilial(input: MajeursProtegesPrefillInput): DemandeurFamilial | null {
-  const raw = input.aiData?.demandeurFamilialDetected;
-  if (typeof raw !== 'string' || !raw) return null;
-  const u = raw.toUpperCase();
-  return VALID_DEMANDEURS.has(u) ? (u as DemandeurFamilial) : null;
-}
-
-export function computeActesEnvisages(input: MajeursProtegesPrefillInput): ActeEnvisage[] {
-  const raw = input.aiData?.actesEnvisagesDetected;
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map(a => (typeof a === 'string' ? a.toUpperCase() : null))
-    .filter((a): a is ActeEnvisage => !!a && VALID_ACTES.has(a));
-}
-
-export function isIncapaciteGestionTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.incapaciteGestionQuotidienneDetected === true;
-}
-export function isAltertationGraveTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.altertationGraveDetected === true;
-}
-export function isMandatPrealableSigneTrue(input: MajeursProtegesPrefillInput): boolean {
-  return input.aiData?.mandatPrealableSigneDetected === true;
-}
-
-export function computeFormeMandat(input: MajeursProtegesPrefillInput): FormeMandatProtection | null {
-  const raw = input.aiData?.formeMandatProtectionDetected;
-  if (typeof raw !== 'string' || !raw) return null;
-  const u = raw.toUpperCase();
-  return VALID_FORMES_MANDAT.has(u) ? (u as FormeMandatProtection) : null;
-}
-
-export function computePrefillCount(input: MajeursProtegesPrefillInput): number {
-  let n = 0;
-  if (computeRegimeDemande(input) !== null) n++;
-  if (isAlterationMentalesTrue(input)) n++;
-  if (isAlterationPhysiquesTrue(input)) n++;
-  if (isCertificatMedicalTrue(input)) n++;
-  if (computeDateCertificat(input) !== null) n++;
-  if (isConsentementPersonneTrue(input)) n++;
-  if (computeDemandeurFamilial(input) !== null) n++;
-  if (computeActesEnvisages(input).length > 0) n++;
-  if (isIncapaciteGestionTrue(input)) n++;
-  if (isAltertationGraveTrue(input)) n++;
-  if (isMandatPrealableSigneTrue(input)) n++;
-  if (computeFormeMandat(input) !== null) n++;
-  return n;
-}
+export const VALID_FORMES_MANDAT: ReadonlySet<string> = new Set<string>([
+  'NOTARIE',
+  'SOUS_SEING_PRIVE',
+]);
 
 export const MajeursProtegesPrefillRules = {
-  ISO_DATE_REGEX,
+  ISO_DATE_RE,
   VALID_REGIMES,
   VALID_DEMANDEURS,
   VALID_ACTES,
   VALID_FORMES_MANDAT,
-  computeRegimeDemande,
-  isAlterationMentalesTrue,
-  isAlterationPhysiquesTrue,
-  isCertificatMedicalTrue,
-  computeDateCertificat,
-  isConsentementPersonneTrue,
-  computeDemandeurFamilial,
-  computeActesEnvisages,
-  isIncapaciteGestionTrue,
-  isAltertationGraveTrue,
-  isMandatPrealableSigneTrue,
-  computeFormeMandat,
-  computePrefillCount,
-};
+
+  computeRegimeProtectionDemande(input: PrefillCountInput): string | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    const raw = ai.regimeProtectionDemande;
+    if (typeof raw !== 'string' || raw.length === 0) return null;
+    const upper = raw.toUpperCase();
+    return VALID_REGIMES.has(upper) ? upper : null;
+  },
+
+  /** Pré-fill seulement quand IA = `true` (sémantique runtime : `false` ne
+   *  surcharge pas la valeur par défaut `false` de l'avocat). */
+  computeAltertationFacultesMentales(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.altertationFacultesMentales !== 'boolean') return null;
+    return ai.altertationFacultesMentales === true ? true : null;
+  },
+
+  computeAltertationFacultesPhysiques(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.altertationFacultesPhysiques !== 'boolean') return null;
+    return ai.altertationFacultesPhysiques === true ? true : null;
+  },
+
+  computeCertificatMedicalCirconstancie(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.certificatMedicalCirconstancieDetected !== 'boolean') return null;
+    return ai.certificatMedicalCirconstancieDetected === true ? true : null;
+  },
+
+  computeDateCertificatMedical(input: PrefillCountInput): string | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.dateCertificatMedicalDetected !== 'string') return null;
+    if (!ISO_DATE_RE.test(ai.dateCertificatMedicalDetected)) return null;
+    return ai.dateCertificatMedicalDetected;
+  },
+
+  computeConsentementPersonneAProteger(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.consentementPersonneAProtegerDetected !== 'boolean') return null;
+    return ai.consentementPersonneAProtegerDetected === true ? true : null;
+  },
+
+  computeDemandeurFamilial(input: PrefillCountInput): string | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    const raw = ai.demandeurFamilialDetected;
+    if (typeof raw !== 'string' || raw.length === 0) return null;
+    const upper = raw.toUpperCase();
+    return VALID_DEMANDEURS.has(upper) ? upper : null;
+  },
+
+  /** Renvoie le tableau filtré (non vide) d'actes valides, ou `null`. */
+  computeActesEnvisages(input: PrefillCountInput): string[] | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    const raw = ai.actesEnvisagesDetected;
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    const filtered = raw
+      .map((a: any) => typeof a === 'string' ? a.toUpperCase() : null)
+      .filter((a: string | null): a is string => !!a && VALID_ACTES.has(a));
+    return filtered.length > 0 ? filtered : null;
+  },
+
+  computeIncapaciteGestionQuotidienne(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.incapaciteGestionQuotidienneDetected !== 'boolean') return null;
+    return ai.incapaciteGestionQuotidienneDetected === true ? true : null;
+  },
+
+  computeAltertationGrave(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.altertationGraveDetected !== 'boolean') return null;
+    return ai.altertationGraveDetected === true ? true : null;
+  },
+
+  computeMandatPrealableSigne(input: PrefillCountInput): boolean | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    if (typeof ai.mandatPrealableSigneDetected !== 'boolean') return null;
+    return ai.mandatPrealableSigneDetected === true ? true : null;
+  },
+
+  computeFormeMandatProtection(input: PrefillCountInput): string | null {
+    const ai = input.aiData;
+    if (!ai) return null;
+    const raw = ai.formeMandatProtectionDetected;
+    if (typeof raw !== 'string' || raw.length === 0) return null;
+    const upper = raw.toUpperCase();
+    return VALID_FORMES_MANDAT.has(upper) ? upper : null;
+  },
+
+  /**
+   * Maître : compte les 12 champs non-`null` après application des règles.
+   */
+  computePrefillCount(input: PrefillCountInput): number {
+    let n = 0;
+    if (this.computeRegimeProtectionDemande(input) !== null) n++;
+    if (this.computeAltertationFacultesMentales(input) !== null) n++;
+    if (this.computeAltertationFacultesPhysiques(input) !== null) n++;
+    if (this.computeCertificatMedicalCirconstancie(input) !== null) n++;
+    if (this.computeDateCertificatMedical(input) !== null) n++;
+    if (this.computeConsentementPersonneAProteger(input) !== null) n++;
+    if (this.computeDemandeurFamilial(input) !== null) n++;
+    if (this.computeActesEnvisages(input) !== null) n++;
+    if (this.computeIncapaciteGestionQuotidienne(input) !== null) n++;
+    if (this.computeAltertationGrave(input) !== null) n++;
+    if (this.computeMandatPrealableSigne(input) !== null) n++;
+    if (this.computeFormeMandatProtection(input) !== null) n++;
+    return n;
+  },
+} as const;
