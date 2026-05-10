@@ -1,0 +1,51 @@
+.info-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin: 8px 0;
+  background: #fafafa;
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+
+    h3 {
+      flex: 1;
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .toggle {
+      opacity: 0.6;
+    }
+  }
+
+  .body {
+    padding: 0 16px 16px 16px;
+
+    p {
+      margin: 8px 0;
+    }
+
+    .note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #fff8e1;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      color: #5d4037;
+
+      .note-icon {
+        font-size: 18px;
+        height: 18px;
+        width: 18px;
+      }
+    }
+  }
+}
