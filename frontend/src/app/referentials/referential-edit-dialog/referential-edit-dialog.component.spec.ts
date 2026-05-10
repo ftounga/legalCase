@@ -408,4 +408,121 @@ describe('ReferentialEditDialogComponent — formulaires typés', () => {
     expect(c.form.get('im21Description')?.hasError('required')).toBe(true);
     expect(c.form.invalid).toBe(true);
   });
+
+  // ---- SF-225-02 : validation IA live (pattern F-IA-03) ------------------
+
+  it('EDT-FIA03-01 : LITIGATION_TYPE → years=15 déclenche alerte LITIG_YEARS (>10 inhabituel)', () => {
+    const c = createComponent('LITIGATION_TYPE', '{"years":3,"article":"Art. L3245-1"}');
+    c.form.get('litigYears')?.setValue(15);
+    const alert = c.coherenceAlerts().LITIG_YEARS;
+    expect(alert).toBeDefined();
+    expect(alert!.severity).toBe('WARNING');
+    expect(alert!.expectedDisplay).toBe('≤ 10 ans');
+    expect(alert!.reason).toContain('15 ans');
+  });
+
+  it('EDT-FIA03-01 bis : LITIGATION_TYPE → years=5 ne déclenche aucune alerte', () => {
+    const c = createComponent('LITIGATION_TYPE', '{"years":3,"article":"Art. L3245-1"}');
+    c.form.get('litigYears')?.setValue(5);
+    expect(c.coherenceAlerts().LITIG_YEARS).toBeUndefined();
+  });
+
+  it('EDT-FIA03-02 : IMMIGRATION_TITLES → titleDelai=1200 déclenche alerte TITLE_DELAI', () => {
+    const c = createComponent('IMMIGRATION_TITLES',
+      '{"motif":"X","conditions":"Y","pieces":["P"],"delaiMoyenJours":120}');
+    c.form.get('titleDelai')?.setValue(1200);
+    const alert = c.coherenceAlerts().TITLE_DELAI;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toBe('≤ 999 jours');
+    expect(alert!.reason).toContain('1200');
+  });
+
+  it('EDT-FIA03-03 : IMMIGRATION_RECOURS → recoursDelai=180 déclenche alerte RECOURS_DELAI', () => {
+    const c = createComponent('IMMIGRATION_RECOURS',
+      '{"delaiJours":30,"juridiction":"TA","textesApplicables":[],"piecesStandard":[]}');
+    c.form.get('recoursDelai')?.setValue(180);
+    const alert = c.coherenceAlerts().RECOURS_DELAI;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toBe('2–90 jours');
+  });
+
+  it('EDT-FIA03-03 bis : IMMIGRATION_RECOURS → recoursDelai=30 (nominal) → pas d\'alerte', () => {
+    const c = createComponent('IMMIGRATION_RECOURS',
+      '{"delaiJours":30,"juridiction":"TA","textesApplicables":[],"piecesStandard":[]}');
+    expect(c.coherenceAlerts().RECOURS_DELAI).toBeUndefined();
+  });
+
+  it('EDT-FIA03-04 : MAJEURS_PROTEGES_REGIMES → mpDelaiProcedure=24 déclenche alerte MP_DELAI_PROCEDURE', () => {
+    const c = createComponent('MAJEURS_PROTEGES_REGIMES',
+      '{"articles":["X"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["X"]}');
+    c.form.get('mpDelaiProcedure')?.setValue(24);
+    const alert = c.coherenceAlerts().MP_DELAI_PROCEDURE;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toBe('≤ 12 mois');
+    expect(alert!.reason).toContain('24 mois');
+  });
+
+  it('EDT-FIA03-05 : IM21_VALIDITY_CRITERES → description > 800 char déclenche alerte INFO', () => {
+    const c = createComponent('IM21_VALIDITY_CRITERES', '{"binaire":true,"description":"court"}');
+    const longDesc = 'A'.repeat(900);
+    c.form.get('im21Description')?.setValue(longDesc);
+    const alert = c.coherenceAlerts().IM21_DESCRIPTION;
+    expect(alert).toBeDefined();
+    expect(alert!.severity).toBe('INFO');
+    expect(alert!.expectedDisplay).toBe('≤ 800 char');
+  });
+
+  it('EDT-FIA03-06 : CONVENTION_BAREMES → convConges=15 déclenche alerte CONV_CONGES', () => {
+    const c = createComponent('CONVENTION_BAREMES',
+      '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}');
+    c.form.get('convConges')?.setValue(15);
+    const alert = c.coherenceAlerts().CONV_CONGES;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toBe('≥ 20 jours');
+    expect(alert!.reason).toContain('15 jours');
+  });
+
+  it('EDT-FIA03-07 : LICENCIEMENT_CRITERES → critPoids=35 déclenche alerte CRIT_POIDS', () => {
+    const c = createComponent('LICENCIEMENT_CRITERES',
+      '{"poids":10,"bloquant":false,"description":"D"}');
+    c.form.get('critPoids')?.setValue(35);
+    const alert = c.coherenceAlerts().CRIT_POIDS;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toBe('< 30');
+    expect(alert!.reason).toContain('35');
+  });
+
+  it('EDT-FIA03-08 : DIVORCE_ETAPES → etapeOrdre=15 déclenche alerte ETAPE_ORDRE (INFO)', () => {
+    const c = createComponent('DIVORCE_ETAPES',
+      '{"ordre":1,"description":"X","delai":"—","obligatoire":true}');
+    c.form.get('etapeOrdre')?.setValue(15);
+    const alert = c.coherenceAlerts().ETAPE_ORDRE;
+    expect(alert).toBeDefined();
+    expect(alert!.severity).toBe('INFO');
+    expect(alert!.expectedDisplay).toBe('≤ 10');
+  });
+
+  it('EDT-FIA03-NONE : valeurs nominales → coherenceAlerts() retourne {}', () => {
+    const c = createComponent('LITIGATION_TYPE', '{"years":3,"article":"Art. L3245-1"}');
+    expect(Object.keys(c.coherenceAlerts())).toEqual([]);
+  });
+
+  it('EDT-FIA03-BUILDER : alert utilise CoherenceAlertBuilder (source IA, contributors=[\'IA\'])', () => {
+    // Vérifie que les alertes utilisent bien le helper partagé (source/contributors normalisés).
+    const c = createComponent('LITIGATION_TYPE', '{"years":3,"article":"Art. L3245-1"}');
+    c.form.get('litigYears')?.setValue(20);
+    const alert = c.coherenceAlerts().LITIG_YEARS;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.field).toBe('LITIG_YEARS');
+  });
+
+  it('EDT-FIA03-TOOLTIP : alertTooltip / alertBadgeLabel produisent un texte lisible', () => {
+    const c = createComponent('LITIGATION_TYPE', '{"years":3,"article":"Art. L3245-1"}');
+    c.form.get('litigYears')?.setValue(20);
+    const alert = c.coherenceAlerts().LITIG_YEARS!;
+    expect(c.alertTooltip(alert)).toContain('20 ans');
+    expect(c.alertBadgeLabel(alert)).toContain('Valeur inhabituelle');
+  });
 });

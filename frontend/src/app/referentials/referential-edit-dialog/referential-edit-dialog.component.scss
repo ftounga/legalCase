@@ -98,3 +98,41 @@
   color: #C0392B;
   padding: 4px 8px;
 }
+
+/* SF-225-02 : alertes de cohérence F-IA-03 (popover live non-bloquant). */
+.field-with-alert {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: help;
+  user-select: none;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.coherence-warning {
+  background: #FFF4E5;
+  color: #B7791F;
+  border: 1px solid #ECC94B;
+}
+
+.coherence-info {
+  background: #EBF8FF;
+  color: #2C5282;
+  border: 1px solid #90CDF4;
+}

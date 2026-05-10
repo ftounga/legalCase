@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, computed, signal } from '@angular/core';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -8,6 +8,27 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ReferentialEntry } from '../../core/models/referential.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
+
+/**
+ * SF-225-02 : fields audités côté dialog référentiels pour la validation IA
+ * live (pattern F-IA-03). Liste union plutôt qu'un enum pour rester souple
+ * face aux multiples sectionTypes (chaque type ne consomme qu'une partie de
+ * cette union).
+ */
+export type ReferentialDialogAlertField =
+  | 'LITIG_YEARS'
+  | 'TITLE_DELAI'
+  | 'RECOURS_DELAI'
+  | 'MP_DELAI_PROCEDURE'
+  | 'IM21_DESCRIPTION'
+  | 'CONV_CONGES'
+  | 'CRIT_POIDS'
+  | 'ETAPE_ORDRE';
+
+export type ReferentialDialogCoherenceAlert = CoherenceAlert<ReferentialDialogAlertField>;
 
 export interface ReferentialEditDialogData {
   entry: ReferentialEntry;
@@ -43,6 +64,7 @@ const GARDE_REPARTITION_OPTIONS = [
     ReactiveFormsModule,
     MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule,
     MatIconModule, MatSelectModule, MatSlideToggleModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './referential-edit-dialog.component.html',
   styleUrl: './referential-edit-dialog.component.scss',
@@ -51,6 +73,10 @@ export class ReferentialEditDialogComponent {
   form: FormGroup;
   readonly pensionRows = PENSION_ROWS.map(label => ({ label }));
   readonly gardeOptions = GARDE_REPARTITION_OPTIONS;
+
+  // SF-225-02 : signal qui suit la valeur courante du form pour alimenter
+  // le computed `coherenceAlerts` (recalcul live à chaque modification).
+  private readonly formValue = signal<Record<string, unknown>>({});
 
   constructor(
     private fb: FormBuilder,
@@ -63,6 +89,182 @@ export class ReferentialEditDialogComponent {
       'description',
       this.fb.control(data.entry.description ?? '', [Validators.maxLength(2000)])
     );
+    // SF-225-02 : initialise + suit la valeur du form pour les alertes live.
+    this.formValue.set(this.form.getRawValue());
+    this.form.valueChanges.subscribe(() => {
+      this.formValue.set(this.form.getRawValue());
+    });
+  }
+
+  // ---- SF-225-02 : alertes de cohérence F-IA-03 ---------------------------
+
+  /**
+   * Computed signal qui produit une alerte par field clé du dialog quand un
+   * seuil simple est franchi. Recalculé à chaque `formValue` change.
+   *
+   * Convention : `source = 'IA'` car c'est une analyse de seuil locale, et
+   * c'est la sémantique la plus proche disponible dans `CoherenceAlertSource`
+   * pour ce pattern de validation côté formulaire admin.
+   */
+  coherenceAlerts = computed<Partial<Record<ReferentialDialogAlertField, ReferentialDialogCoherenceAlert>>>(() => {
+    const alerts: Partial<Record<ReferentialDialogAlertField, ReferentialDialogCoherenceAlert>> = {};
+    const v = this.formValue();
+    const sectionType = this.data.sectionType;
+
+    // LITIGATION_TYPE : prescription au-delà des durées usuelles (> 10 ans).
+    // Note : les Validators bornent déjà à 1-30 ; cette alerte pointe les
+    // valeurs valides mais inhabituelles (la majorité des prescriptions
+    // sociales sont 1-5 ans, la décennale étant l'extrême usuel).
+    if (sectionType === 'LITIGATION_TYPE') {
+      const years = Number((v as { litigYears?: unknown }).litigYears);
+      if (Number.isFinite(years) && years > 10) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('LITIG_YEARS')
+          .withSeverity('WARNING')
+          .addSource('IA', {
+            expectedDisplay: '≤ 10 ans',
+            reason: `Prescription saisie : ${years} ans. Les prescriptions usuelles en droit social sont 1 à 5 ans (10 ans pour les actions personnelles ou réelles immobilières).`,
+          })
+          .build();
+        if (a) alerts.LITIG_YEARS = a;
+      }
+    }
+
+    // IMMIGRATION_TITLES : délai instruction extrême (> 999 j ≈ 33 mois)
+    if (sectionType === 'IMMIGRATION_TITLES') {
+      const delai = Number((v as { titleDelai?: unknown }).titleDelai);
+      if (Number.isFinite(delai) && delai > 999) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('TITLE_DELAI')
+          .withSeverity('WARNING')
+          .addSource('IA', {
+            expectedDisplay: '≤ 999 jours',
+            reason: `Délai moyen saisi : ${delai} jours (≈ ${Math.round(delai / 30)} mois). Cela dépasse les ordres de grandeur connus pour un titre de séjour standard.`,
+          })
+          .build();
+        if (a) alerts.TITLE_DELAI = a;
+      }
+    }
+
+    // IMMIGRATION_RECOURS : délai recours hors fourchette usuelle (> 90 j ou < 7 j)
+    // Note : Validators borne min(1) ; les délais usuels sont 48h (OQTF) à 60j (2 mois).
+    if (sectionType === 'IMMIGRATION_RECOURS') {
+      const delai = Number((v as { recoursDelai?: unknown }).recoursDelai);
+      if (Number.isFinite(delai) && delai >= 1 && (delai < 2 || delai > 90)) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('RECOURS_DELAI')
+          .withSeverity('WARNING')
+          .addSource('IA', {
+            expectedDisplay: '2–90 jours',
+            reason: `Délai recours saisi : ${delai} jours. Les délais usuels en contentieux des étrangers sont entre 48 h (OQTF) et 60 j (2 mois recours général).`,
+          })
+          .build();
+        if (a) alerts.RECOURS_DELAI = a;
+      }
+    }
+
+    // MAJEURS_PROTEGES_REGIMES : délai procédure au-delà des durées usuelles (> 12 mois).
+    // Note : Validators borne 0-60 ; les délais d'instruction usuels sont < 12 mois.
+    if (sectionType === 'MAJEURS_PROTEGES_REGIMES') {
+      const delai = Number((v as { mpDelaiProcedure?: unknown }).mpDelaiProcedure);
+      if (Number.isFinite(delai) && delai > 12) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('MP_DELAI_PROCEDURE')
+          .withSeverity('WARNING')
+          .addSource('IA', {
+            expectedDisplay: '≤ 12 mois',
+            reason: `Délai procédure saisi : ${delai} mois. Les délais d'instruction d'une mesure de protection juridique sont normalement ≤ 12 mois.`,
+          })
+          .build();
+        if (a) alerts.MP_DELAI_PROCEDURE = a;
+      }
+    }
+
+    // IM21_VALIDITY_CRITERES : description longue (> 800 char) — peu lisible
+    // (maxlength HTML est 1000 ; on déclenche l'info bien avant la limite)
+    if (sectionType === 'IM21_VALIDITY_CRITERES') {
+      const desc = String((v as { im21Description?: unknown }).im21Description ?? '');
+      if (desc.length > 800) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('IM21_DESCRIPTION')
+          .withSeverity('INFO')
+          .addSource('IA', {
+            expectedDisplay: '≤ 800 char',
+            reason: `Description : ${desc.length} caractères. Au-delà de 800 caractères, le critère devient peu lisible — envisager de scinder en plusieurs critères.`,
+          })
+          .build();
+        if (a) alerts.IM21_DESCRIPTION = a;
+      }
+    }
+
+    // CONVENTION_BAREMES : congés légaux à 0 — suspect (au moins 25 jours en FR)
+    if (sectionType === 'CONVENTION_BAREMES') {
+      const conges = Number((v as { convConges?: unknown }).convConges);
+      if (Number.isFinite(conges) && conges < 20) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('CONV_CONGES')
+          .withSeverity('WARNING')
+          .addSource('IA', {
+            expectedDisplay: '≥ 20 jours',
+            reason: `Congés légaux saisis : ${conges} jours. Le minimum légal est 25 jours ouvrables en FR (≈ 20 jours ouvrés). Une convention ne peut être inférieure.`,
+          })
+          .build();
+        if (a) alerts.CONV_CONGES = a;
+      }
+    }
+
+    // LICENCIEMENT_CRITERES : poids élevé (≥ 30) — vérifier l'intention.
+    // Note : Validators borne 1-50 ; un poids ≥ 30 écrase la plupart des
+    // autres critères et devrait probablement être un toggle "bloquant".
+    if (sectionType === 'LICENCIEMENT_CRITERES') {
+      const poids = Number((v as { critPoids?: unknown }).critPoids);
+      if (Number.isFinite(poids) && poids >= 30) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('CRIT_POIDS')
+          .withSeverity('WARNING')
+          .addSource('IA', {
+            expectedDisplay: '< 30',
+            reason: `Poids saisi : ${poids}. Un poids ≥ 30 écrase la majorité des autres critères — vérifier l'intention ou utiliser le toggle "bloquant".`,
+          })
+          .build();
+        if (a) alerts.CRIT_POIDS = a;
+      }
+    }
+
+    // DIVORCE_ETAPES : ordre élevé (> 10) — typiquement 1–10 étapes.
+    // Note : Validators borne 1-20 ; un ordre > 10 reste valide mais
+    // inhabituel (procédure morcelée).
+    if (sectionType === 'DIVORCE_ETAPES') {
+      const ordre = Number((v as { etapeOrdre?: unknown }).etapeOrdre);
+      if (Number.isFinite(ordre) && ordre > 10) {
+        const a = CoherenceAlertBuilder
+          .forField<ReferentialDialogAlertField>('ETAPE_ORDRE')
+          .withSeverity('INFO')
+          .addSource('IA', {
+            expectedDisplay: '≤ 10',
+            reason: `Ordre saisi : ${ordre}. Une procédure de divorce comporte usuellement 5 à 10 étapes.`,
+          })
+          .build();
+        if (a) alerts.ETAPE_ORDRE = a;
+      }
+    }
+
+    return alerts;
+  });
+
+  /** SF-225-02 : tooltip lisible pour le popover (alignement F-IM-05). */
+  alertTooltip(alert: ReferentialDialogCoherenceAlert): string {
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
+  }
+
+  /** SF-225-02 : libellé court du badge (sévérité-aware). */
+  alertBadgeLabel(alert: ReferentialDialogCoherenceAlert): string {
+    switch (alert.severity) {
+      case 'CRITICAL': return `Alerte critique : ${alert.expectedDisplay}`;
+      case 'INFO':     return `Note : ${alert.expectedDisplay}`;
+      case 'WARNING':
+      default:         return `Valeur inhabituelle : ${alert.expectedDisplay}`;
+    }
   }
 
   // ---- FormArray getters (pour le template) -------------------------------
