@@ -37,6 +37,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { AesFamillePrefillRules } from './aes-famille-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -78,6 +80,11 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AES — VOIE FAMILIALE (L.435-1)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return AesFamillePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -199,24 +206,23 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
    * No-op si aiData null ou champs manquants.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
     if (this.workspaceCountry !== 'FRANCE') return;
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
+    const date = AesFamillePrefillRules.computeDateEntreeFrance(input);
+    if (date !== null
+        && (this.dateEntreeFrance() === null || this.provenanceDateEntree() === 'IA')) {
+      this.dateEntreeFrance.set(date);
+      this.provenanceDateEntree.set('IA');
 
-    // dateEntreeFrance — champ non typé sur ImmigrationExtractedData, fallback any.
-    const aiDate = (ai as { dateEntreeFrance?: string | null }).dateEntreeFrance;
-    if (typeof aiDate === 'string' && aiDate.length >= 10) {
-      if (this.dateEntreeFrance() === null || this.provenanceDateEntree() === 'IA') {
-        this.dateEntreeFrance.set(aiDate.substring(0, 10));
-        this.provenanceDateEntree.set('IA');
-
-        // Calcule dureePresenceMois si pas déjà saisie ou pré-remplie.
-        if (this.dureePresenceMois() === null || this.provenanceDureePresence() === 'IA') {
-          const months = this.computeMonthsSince(aiDate.substring(0, 10));
-          if (months !== null) {
-            this.dureePresenceMois.set(months);
-            this.provenanceDureePresence.set('IA');
-          }
+      if (this.dureePresenceMois() === null || this.provenanceDureePresence() === 'IA') {
+        const months = AesFamillePrefillRules.computeDureePresenceMois(input);
+        if (months !== null) {
+          this.dureePresenceMois.set(months);
+          this.provenanceDureePresence.set('IA');
         }
       }
     }

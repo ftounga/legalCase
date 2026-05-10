@@ -42,6 +42,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { MineursImmigrationPrefillRules } from './mineurs-immigration-section-prefill-rules';
 
 /**
  * SF-IM-19-02 : champs F-IA-03 audités par l'outil "Mineurs étrangers".
@@ -86,6 +88,11 @@ export class MineursImmigrationSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MINEURS ÉTRANGERS (FR)';
   static readonly TOOL_ICON = 'child_care';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return MineursImmigrationPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -310,27 +317,27 @@ export class MineursImmigrationSectionComponent implements OnInit, OnChanges {
    * défensif `any`). Extension future via SF dédiée pipeline IA.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal() as any;
-    if (!ai) return;
-
-    const iaDateNaissance: string | null = ai.dateNaissance ?? null;
-    if (iaDateNaissance && (this.dateNaissance() === null
-        || this.provenanceDateNaissance() === 'IA')) {
-      this.dateNaissance.set(iaDateNaissance);
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
+    const dN = MineursImmigrationPrefillRules.computeDateNaissance(input);
+    if (dN !== null
+        && (this.dateNaissance() === null || this.provenanceDateNaissance() === 'IA')) {
+      this.dateNaissance.set(dN);
       this.provenanceDateNaissance.set('IA');
     }
-
-    const iaDateEntree: string | null = ai.dateEntreeFrance ?? null;
-    if (iaDateEntree && (this.dateEntreeFrance() === null
-        || this.provenanceDateEntreeFrance() === 'IA')) {
-      this.dateEntreeFrance.set(iaDateEntree);
+    const dE = MineursImmigrationPrefillRules.computeDateEntreeFrance(input);
+    if (dE !== null
+        && (this.dateEntreeFrance() === null || this.provenanceDateEntreeFrance() === 'IA')) {
+      this.dateEntreeFrance.set(dE);
       this.provenanceDateEntreeFrance.set('IA');
     }
-
-    const iaNationalite: string | null = ai.nationalite ?? null;
-    if (iaNationalite && (this.nationalite() === null
-        || this.provenanceNationalite() === 'IA')) {
-      this.nationalite.set(iaNationalite);
+    const nat = MineursImmigrationPrefillRules.computeNationalite(input);
+    if (nat !== null
+        && (this.nationalite() === null || this.provenanceNationalite() === 'IA')) {
+      this.nationalite.set(nat);
       this.provenanceNationalite.set('IA');
     }
   }

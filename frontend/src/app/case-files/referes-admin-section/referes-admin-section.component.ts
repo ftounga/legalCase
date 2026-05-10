@@ -52,17 +52,11 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { ReferesAdminPrefillRules } from './referes-admin-section-prefill-rules';
 
 /** Regex ISO strict YYYY-MM-DD. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Mapping ImmigrationExtractedData.typeRecoursCode → DecisionContestee. */
-const TYPE_RECOURS_TO_DECISION: Readonly<Record<string, DecisionContestee>> = {
-  OQTF: 'OQTF',
-  REFUS_TITRE: 'REFUS_TITRE',
-  RETRAIT_TITRE: 'RETRAIT_TITRE',
-  IRTF: 'IRTF',
-};
 
 const DECISIONS_SET: ReadonlySet<DecisionContestee> = new Set<DecisionContestee>([
   'OQTF', 'RETRAIT_TITRE', 'REFUS_TITRE', 'IRTF', 'AUTRE_MESURE_ADMIN',
@@ -109,6 +103,11 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉFÉRÉS ADMINISTRATIFS L.521-1 / L.521-2 (FR)';
   static readonly TOOL_ICON = 'gavel';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return ReferesAdminPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -374,36 +373,31 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
   // ----- Pré-fill IA -----
 
   private prefillFromAi(): void {
-    const ai = this.aiData;
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé. Garde-fou supplémentaire :
+    // ne pas écraser si le form n'est pas affiché (analyse déjà faite).
     if (!this.isFrance()) return;
     if (!this.showForm()) return;
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      workspaceCountry: this.workspaceCountry,
+    };
 
-    // 1) dateNotificationDecision — depuis dateNotificationDecisionContestee.
-    const date = ai.dateNotificationDecisionContestee;
-    if (typeof date === 'string' && ISO_DATE_RE.test(date) && date <= this.todayIso) {
-      if (!this.dateNotificationDecision()) {
-        this.dateNotificationDecision.set(date);
-        this.provenanceDateNotification.set('IA');
-      }
+    const date = ReferesAdminPrefillRules.computeDateNotificationDecision(input);
+    if (date !== null && !this.dateNotificationDecision()) {
+      this.dateNotificationDecision.set(date);
+      this.provenanceDateNotification.set('IA');
     }
 
-    // 2) decisionContestee — mapping typeRecoursCode IA.
-    const recoursCode = ai.typeRecoursCode;
-    if (recoursCode && TYPE_RECOURS_TO_DECISION[recoursCode]) {
-      const mapped = TYPE_RECOURS_TO_DECISION[recoursCode];
-      if (!this.decisionContestee()) {
-        this.decisionContestee.set(mapped);
-        this.provenanceDecisionContestee.set('IA');
-      }
+    const decision = ReferesAdminPrefillRules.computeDecisionContestee(input);
+    if (decision !== null && !this.decisionContestee()) {
+      this.decisionContestee.set(decision);
+      this.provenanceDecisionContestee.set('IA');
     }
 
-    // 3) preuvesUrgence — pré-fill TRANSFERT_IMMINENT si transfertImminentDetected.
-    if (ai.transfertImminentDetected === true) {
-      if (this.preuvesUrgence().length === 0) {
-        this.preuvesUrgence.set(['TRANSFERT_IMMINENT']);
-        this.provenancePreuvesUrgence.set('IA');
-      }
+    const preuves = ReferesAdminPrefillRules.computePreuvesUrgence(input);
+    if (preuves !== null && this.preuvesUrgence().length === 0) {
+      this.preuvesUrgence.set(preuves);
+      this.provenancePreuvesUrgence.set('IA');
     }
   }
 
@@ -435,10 +429,10 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
     const builder = CoherenceAlertBuilder.forField<RefereAlertField>('DECISION_CONTESTEE')
       .withSeverity('WARNING');
 
-    // IA : mapping typeRecoursCode.
+    // IA : mapping typeRecoursCode (F-236 SF-236-02 : constante dans helper partagé).
     const recoursCode = this.aiDataSignal()?.typeRecoursCode;
-    if (recoursCode && TYPE_RECOURS_TO_DECISION[recoursCode]) {
-      const mapped = TYPE_RECOURS_TO_DECISION[recoursCode];
+    if (recoursCode && ReferesAdminPrefillRules.TYPE_RECOURS_TO_DECISION[recoursCode]) {
+      const mapped = ReferesAdminPrefillRules.TYPE_RECOURS_TO_DECISION[recoursCode];
       if (mapped !== user && DECISIONS_SET.has(mapped)) {
         const label = DECISIONS_CONTESTEES.find((d) => d.code === mapped)?.label ?? mapped;
         builder.addSource('IA', {

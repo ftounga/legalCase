@@ -43,6 +43,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { AsileAvancePrefillRules } from './asile-avance-section-prefill-rules';
 
 /**
  * SF-IM-12-02 : champs F-IA-03 audités par l'outil "Asile avancé".
@@ -86,6 +88,11 @@ export class AsileAvanceSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ASILE AVANCÉ (FR)';
   static readonly TOOL_ICON = 'support';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return AsileAvancePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -325,11 +332,14 @@ export class AsileAvanceSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
     if (this.dispositifAsile()) return;
-    const detected = mapDispositifFromIa(ai.typeProcedureDetectee ?? null);
-    if (detected) {
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
+    const detected = AsileAvancePrefillRules.computeDispositifAsile(input);
+    if (detected !== null) {
       this.dispositifAsile.set(detected);
       this.provenanceDispositif.set('IA');
     }

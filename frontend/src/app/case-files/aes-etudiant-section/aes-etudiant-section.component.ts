@@ -40,6 +40,8 @@ import {
   CoherenceAlertSeverity,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { AesEtudiantPrefillRules } from './aes-etudiant-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -96,6 +98,11 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AES VOIE ÉTUDIANTE (FR)';
   static readonly TOOL_ICON = 'school';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return AesEtudiantPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -343,25 +350,20 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
    *  - `dateDepotDemande` via `dateDepotProcedure` (champ standard).
    */
   private prefillFromAi(): void {
-    const ai = this.aiData;
-    if (!ai) return;
-
-    // dateEntreeFrance — fallback gracieux sur champ futur (pattern aes-famille).
-    const aiDateEntree = (ai as { dateEntreeFrance?: string | null }).dateEntreeFrance;
-    if (typeof aiDateEntree === 'string' && ISO_DATE_RE.test(aiDateEntree)
-        && aiDateEntree <= this.todayIso) {
-      if (!this.dateEntreeFrance()) {
-        this.dateEntreeFrance.set(aiDateEntree);
-        this.provenanceDateEntreeFrance.set('IA');
-      }
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      workspaceCountry: this.workspaceCountry,
+    };
+    const entree = AesEtudiantPrefillRules.computeDateEntreeFrance(input);
+    if (entree !== null && !this.dateEntreeFrance()) {
+      this.dateEntreeFrance.set(entree);
+      this.provenanceDateEntreeFrance.set('IA');
     }
-
-    const depot = ai.dateDepotProcedure;
-    if (typeof depot === 'string' && ISO_DATE_RE.test(depot) && depot <= this.todayIso) {
-      if (!this.dateDepotDemande()) {
-        this.dateDepotDemande.set(depot);
-        this.provenanceDateDepotDemande.set('IA');
-      }
+    const depot = AesEtudiantPrefillRules.computeDateDepotDemande(input);
+    if (depot !== null && !this.dateDepotDemande()) {
+      this.dateDepotDemande.set(depot);
+      this.provenanceDateDepotDemande.set('IA');
     }
   }
 

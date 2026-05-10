@@ -44,6 +44,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { RegimeAlgerienPrefillRules } from './regime-algerien-section-prefill-rules';
 
 /**
  * SF-IM-17-02 : champs F-IA-03 audités par l'outil "Régime algérien".
@@ -91,6 +93,11 @@ export class RegimeAlgerienSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉGIME ALGÉRIEN (FR)';
   static readonly TOOL_ICON = 'flag';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return RegimeAlgerienPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -358,22 +365,21 @@ export class RegimeAlgerienSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
-
-    // Nationalité algérienne (heuristique défensive — souvent no-op).
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
     if (!this.nationaliteAlgerienne() && this.provenanceNationalite() === null) {
-      const detected = detectNationaliteAlgerienneFromIa(ai);
-      if (detected === true) {
+      const nat = RegimeAlgerienPrefillRules.computeNationaliteAlgerienne(input);
+      if (nat === true) {
         this.nationaliteAlgerienne.set(true);
         this.provenanceNationalite.set('IA');
       }
     }
-
-    // Voie depuis `typeProcedureDetectee` (IA libre).
     if (this.voieDemande() === null && this.provenanceVoie() === null) {
-      const voie = mapVoieFromIa(ai.typeProcedureDetectee);
-      if (voie) {
+      const voie = RegimeAlgerienPrefillRules.computeVoieDemande(input);
+      if (voie !== null) {
         this.voieDemande.set(voie);
         this.provenanceVoie.set('IA');
       }

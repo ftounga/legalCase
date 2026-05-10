@@ -40,11 +40,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
-
-/** Whitelist stricte alignée sur Belgian40terCalculator.isLienValide (5 codes). */
-const LIENS_FAMILIAUX_WHITELIST = new Set<LienFamilial>(
-  LIENS_FAMILIAUX.map((l) => l.code),
-);
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { Belgian40terPrefillRules, LIENS_FAMILIAUX_WHITELIST } from './belgian-40ter-section-prefill-rules';
 
 /** Champs éligibles à la validation F-IA-03. */
 export type IM14_40terAlertField =
@@ -93,6 +90,11 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = '40TER FAMILIAL BELGE (BE)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return Belgian40terPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
@@ -284,32 +286,27 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
    *   d'ajouter une dépendance backend pour cette SF).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = { aiData: this.aiDataSignal() };
 
-    const aiAny = ai as Record<string, unknown>;
-
-    const aiLien = aiAny['lienFamilialBe'] ?? aiAny['lienFamilial'];
-    if (typeof aiLien === 'string' && LIENS_FAMILIAUX_WHITELIST.has(aiLien as LienFamilial)) {
-      this.lienFamilial.set(aiLien as LienFamilial);
+    const lien = Belgian40terPrefillRules.computeLienFamilial(input);
+    if (lien !== null) {
+      this.lienFamilial.set(lien);
       this.provenanceLienFamilial.set('IA');
     }
-
-    const aiRegroupant = aiAny['regroupantBelge'];
-    if (typeof aiRegroupant === 'boolean') {
-      this.regroupantBelge.set(aiRegroupant);
+    const reg = Belgian40terPrefillRules.computeRegroupantBelge(input);
+    if (reg !== null) {
+      this.regroupantBelge.set(reg);
       this.provenanceRegroupantBelge.set('IA');
     }
-
-    const aiRevenus = aiAny['revenusNetsMensuels'] ?? aiAny['revenusMensuelsNets'];
-    if (typeof aiRevenus === 'number' && !isNaN(aiRevenus) && aiRevenus > 0) {
-      this.revenusMensuelsNetsEur.set(aiRevenus);
+    const rev = Belgian40terPrefillRules.computeRevenusMensuelsNets(input);
+    if (rev !== null) {
+      this.revenusMensuelsNetsEur.set(rev);
       this.provenanceRevenusMensuels.set('IA');
     }
-
-    const aiDate = aiAny['dateDepotDemande'] ?? ai.dateDepotProcedure;
-    if (typeof aiDate === 'string' && aiDate.length > 0 && aiDate <= this.todayIso) {
-      this.dateDepotDemande.set(aiDate);
+    const date = Belgian40terPrefillRules.computeDateDepotDemande(input);
+    if (date !== null) {
+      this.dateDepotDemande.set(date);
       this.provenanceDateDepot.set('IA');
     }
   }

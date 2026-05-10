@@ -39,6 +39,8 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { AesHumanitairePrefillRules } from './aes-humanitaire-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -102,6 +104,11 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AES — VOIE HUMANITAIRE (L.435-2)';
   static readonly TOOL_ICON = 'volunteer_activism';
+
+  /** F-236 SF-236-02 — Délègue intégralement au helper pur partagé. */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return AesHumanitairePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -239,30 +246,23 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
    * champ IA dédié à ce stade : no-op gracieux.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 : délègue au helper pur partagé.
     if (!this.isFrance()) return;
-
-    // dateEntreeFrance — champ non typé sur ImmigrationExtractedData, fallback any.
-    const aiDate = (ai as { dateEntreeFrance?: string | null }).dateEntreeFrance;
-    if (typeof aiDate === 'string' && aiDate.length >= 10) {
-      const dateIso = aiDate.substring(0, 10);
-      if (this.dateEntreeFrance() === null || this.provenanceDateEntree() === 'IA') {
-        this.dateEntreeFrance.set(dateIso);
-        this.provenanceDateEntree.set('IA');
-      }
+    const input: PrefillCountInput = {
+      aiData: this.aiDataSignal(),
+      workspaceCountry: this.workspaceCountry,
+    };
+    const entree = AesHumanitairePrefillRules.computeDateEntreeFrance(input);
+    if (entree !== null
+        && (this.dateEntreeFrance() === null || this.provenanceDateEntree() === 'IA')) {
+      this.dateEntreeFrance.set(entree);
+      this.provenanceDateEntree.set('IA');
     }
-
-    // dateDepotDemande ← aiData.dateDepotProcedure si présente et postérieure
-    // à dateEntreeFrance (sinon le backend rejettera la requête).
-    const depot = ai.dateDepotProcedure;
-    if (typeof depot === 'string' && ISO_DATE_RE.test(depot) && depot <= this.todayIso) {
-      const entree = this.dateEntreeFrance();
-      if ((entree === null || depot >= entree)
-          && (this.dateDepotDemande() === null || this.provenanceDateDepot() === 'IA')) {
-        this.dateDepotDemande.set(depot);
-        this.provenanceDateDepot.set('IA');
-      }
+    const depot = AesHumanitairePrefillRules.computeDateDepotDemande(input);
+    if (depot !== null
+        && (this.dateDepotDemande() === null || this.provenanceDateDepot() === 'IA')) {
+      this.dateDepotDemande.set(depot);
+      this.provenanceDateDepot.set('IA');
     }
   }
 
