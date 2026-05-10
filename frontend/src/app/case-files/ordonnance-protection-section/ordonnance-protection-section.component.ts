@@ -65,26 +65,12 @@ export type OrdonnanceProtectionAlertSource = CoherenceAlertSource;
 export type OrdonnanceProtectionCoherenceAlert =
   CoherenceAlert<OrdonnanceProtectionAlertField>;
 
-const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const VALID_VIOLENCE_CODES: ReadonlySet<string> = new Set<ViolenceCode>([
-  'PHYSIQUES',
-  'PSYCHOLOGIQUES',
-  'SEXUELLES',
-  'ECONOMIQUES',
-  'MENACES_MORT',
-]);
-
-const VALID_PREUVE_CODES: ReadonlySet<string> = new Set<PreuveCode>([
-  'CONSTAT_HUISSIER',
-  'MAIN_COURANTE',
-  'CERTIFICAT_MEDICAL',
-  'TEMOIGNAGES',
-  'PHOTOS',
-  'PLAINTE_DEPOSEE',
-  'JUGEMENT_CORRECTIONNEL',
-  'AUTRE',
-]);
+import {
+  ISO_DATE_REGEX,
+  OrdonnanceProtectionPrefillRules,
+  VALID_PREUVE_CODES,
+  VALID_VIOLENCE_CODES,
+} from './ordonnance-protection-section-prefill-rules';
 
 /**
  * SF-FA-14-02 : outil décisionnel "Ordonnance de protection" (FR uniquement,
@@ -125,6 +111,18 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ORDONNANCE DE PROTECTION (FR) — ART. 515-9 CCIV';
   static readonly TOOL_ICON = 'shield';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return OrdonnanceProtectionPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -238,40 +236,34 @@ export class OrdonnanceProtectionSectionComponent implements OnInit, OnChanges {
    * ou champ encore vide / valeur par défaut).
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
     // 1. Date requête (ISO YYYY-MM-DD).
-    if (typeof ai.dateRequeteOP === 'string' && ai.dateRequeteOP.length > 0) {
-      if (this.dateRequete() === null || this.provenanceDateRequete() === 'IA') {
-        this.dateRequete.set(ai.dateRequeteOP);
-        this.provenanceDateRequete.set('IA');
-      }
+    const date = OrdonnanceProtectionPrefillRules.computeDateRequete(helperInput);
+    if (date !== null
+        && (this.dateRequete() === null || this.provenanceDateRequete() === 'IA')) {
+      this.dateRequete.set(date);
+      this.provenanceDateRequete.set('IA');
     }
 
     // 2. Violences alléguées (codes filtrés).
-    if (Array.isArray(ai.violencesAllegueesDetectees) && ai.violencesAllegueesDetectees.length > 0) {
-      const filtered = ai.violencesAllegueesDetectees
-        .map((v) => v?.toUpperCase())
-        .filter((v): v is ViolenceCode => !!v && VALID_VIOLENCE_CODES.has(v));
-      if (filtered.length > 0
-          && (this.violencesAlleguees().length === 0 || this.provenanceViolencesAlleguees() === 'IA')) {
-        this.violencesAlleguees.set(filtered);
-        this.provenanceViolencesAlleguees.set('IA');
-      }
+    const violences = OrdonnanceProtectionPrefillRules.computeViolencesAllegueesCodes(helperInput);
+    if (violences.length > 0
+        && (this.violencesAlleguees().length === 0 || this.provenanceViolencesAlleguees() === 'IA')) {
+      this.violencesAlleguees.set(violences);
+      this.provenanceViolencesAlleguees.set('IA');
     }
 
     // 3. Preuves violences (codes filtrés).
-    if (Array.isArray(ai.preuvesViolencesDetectees) && ai.preuvesViolencesDetectees.length > 0) {
-      const filtered = ai.preuvesViolencesDetectees
-        .map((p) => p?.toUpperCase())
-        .filter((p): p is PreuveCode => !!p && VALID_PREUVE_CODES.has(p));
-      if (filtered.length > 0
-          && (this.preuvesViolences().length === 0 || this.provenancePreuvesViolences() === 'IA')) {
-        this.preuvesViolences.set(filtered);
-        this.provenancePreuvesViolences.set('IA');
-      }
+    const preuves = OrdonnanceProtectionPrefillRules.computePreuvesViolencesCodes(helperInput);
+    if (preuves.length > 0
+        && (this.preuvesViolences().length === 0 || this.provenancePreuvesViolences() === 'IA')) {
+      this.preuvesViolences.set(preuves);
+      this.provenancePreuvesViolences.set('IA');
     }
+    const ai = this.aiDataSignal();
+    if (!ai) return;
 
     // 4. Booléens — provenance IA seulement si la valeur diffère de la valeur
     // par défaut (false). Sinon, on ne pose pas de provenance pour ne pas

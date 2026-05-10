@@ -38,6 +38,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { AdoptionPrefillRules } from './adoption-section-prefill-rules';
 
 /**
  * SF-FA-18-10 : champs d'alerte F-IA-03 exposés par l'outil "Adoption"
@@ -89,6 +90,18 @@ export class AdoptionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ADOPTION (FR)';
   static readonly TOOL_ICON = 'family_restroom';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: FamilleExtractedData | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return AdoptionPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -537,49 +550,40 @@ export class AdoptionSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    // formeAdoption
-    const forme = ai.formeAdoptionDemandeeDetected;
-    if ((forme === 'PLENIERE' || forme === 'SIMPLE')
-        && (this.formeAdoption() === 'PLENIERE'
-            || this.provenanceFormeAdoption() === 'IA')) {
-      // Par défaut formeAdoption = PLENIERE — on respecte uniquement si l'IA
-      // détecte 'SIMPLE' OU si la provenance était déjà IA.
-      if (forme !== this.formeAdoption() || this.provenanceFormeAdoption() === 'IA') {
-        this.formeAdoption.set(forme);
-        this.provenanceFormeAdoption.set('IA');
-      }
+    const forme = AdoptionPrefillRules.computeFormeAdoption(helperInput);
+    if (forme !== null
+        && (this.formeAdoption() === 'PLENIERE' || this.provenanceFormeAdoption() === 'IA')
+        && (forme !== this.formeAdoption() || this.provenanceFormeAdoption() === 'IA')) {
+      this.formeAdoption.set(forme);
+      this.provenanceFormeAdoption.set('IA');
     }
 
-    // pupilleEtat
-    if (ai.pupilleEtatDetected === true
+    if (AdoptionPrefillRules.isPupilleEtatTrue(helperInput)
         && (!this.pupilleEtat() || this.provenancePupilleEtat() === 'IA')) {
       this.pupilleEtat.set(true);
       this.provenancePupilleEtat.set('IA');
     }
 
-    // adoptantMarie
-    if (ai.adoptantMarieDetected === true
+    if (AdoptionPrefillRules.isAdoptantMarieTrue(helperInput)
         && (!this.adoptantMarie() || this.provenanceAdoptantMarie() === 'IA')) {
       this.adoptantMarie.set(true);
       this.provenanceAdoptantMarie.set('IA');
     }
 
-    // ageAdoptant
-    if (typeof ai.ageAdoptantDetecte === 'number' && ai.ageAdoptantDetecte >= 0
-        && (this.ageAdoptant() === null
-            || this.provenanceAgeAdoptant() === 'IA')) {
-      this.ageAdoptant.set(ai.ageAdoptantDetecte);
+    const ageAd = AdoptionPrefillRules.computeAgeAdoptant(helperInput);
+    if (ageAd !== null
+        && (this.ageAdoptant() === null || this.provenanceAgeAdoptant() === 'IA')) {
+      this.ageAdoptant.set(ageAd);
       this.provenanceAgeAdoptant.set('IA');
     }
 
-    // ageAdopte
-    if (typeof ai.ageAdopteDetecte === 'number' && ai.ageAdopteDetecte >= 0
-        && (this.ageAdopte() === null
-            || this.provenanceAgeAdopte() === 'IA')) {
-      this.ageAdopte.set(ai.ageAdopteDetecte);
+    const ageAdo = AdoptionPrefillRules.computeAgeAdopte(helperInput);
+    if (ageAdo !== null
+        && (this.ageAdopte() === null || this.provenanceAgeAdopte() === 'IA')) {
+      this.ageAdopte.set(ageAdo);
       this.provenanceAgeAdopte.set('IA');
     }
   }

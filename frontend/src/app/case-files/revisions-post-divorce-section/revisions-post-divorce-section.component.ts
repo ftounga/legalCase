@@ -41,6 +41,7 @@ import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { RevisionsPostDivorcePrefillRules } from './revisions-post-divorce-section-prefill-rules';
 
 /**
  * SF-FA-13-02 : champs audités par F-IA-03 pour cet outil.
@@ -99,6 +100,18 @@ export class RevisionsPostDivorceSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉVISIONS POST-DIVORCE (FR)';
   static readonly TOOL_ICON = 'history';
+
+  /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
+  static getPrefillCount(input: {
+    aiData?: (Partial<FamilleExtractedData> & { nbEnfantsACharge?: number | null }) | null;
+    procedureChecks?: unknown[];
+    aiQuestions?: unknown[];
+    piecesManquantes?: unknown[];
+    triggerEvents?: unknown[];
+    workspaceCountry?: string;
+  }): number {
+    return RevisionsPostDivorcePrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -331,32 +344,26 @@ export class RevisionsPostDivorceSectionComponent implements OnInit, OnChanges {
    * effacé via `onRevenusActuels*Change`.
    */
   private prefillFromAi(): void {
-    const ai = this.aiDataSignal();
-    if (!ai) return;
+    // F-236 SF-236-02 — délégation au helper partagé.
+    const helperInput = { aiData: this.aiDataSignal() };
 
-    if (typeof ai.revenusAnnuelsEpoux1Eur === 'number'
-        && ai.revenusAnnuelsEpoux1Eur > 0) {
-      if (this.revenusActuelsDebiteurEur() === null
-          || this.provenanceRevenusActuelsDebiteur() === 'IA') {
-        this.revenusActuelsDebiteurEur.set(ai.revenusAnnuelsEpoux1Eur);
-        this.provenanceRevenusActuelsDebiteur.set('IA');
-      }
+    const rDebiteur = RevisionsPostDivorcePrefillRules.computeRevenusDebiteur(helperInput);
+    if (rDebiteur !== null
+        && (this.revenusActuelsDebiteurEur() === null || this.provenanceRevenusActuelsDebiteur() === 'IA')) {
+      this.revenusActuelsDebiteurEur.set(rDebiteur);
+      this.provenanceRevenusActuelsDebiteur.set('IA');
     }
-    if (typeof ai.revenusAnnuelsEpoux2Eur === 'number'
-        && ai.revenusAnnuelsEpoux2Eur > 0) {
-      if (this.revenusActuelsCreancierEur() === null
-          || this.provenanceRevenusActuelsCreancier() === 'IA') {
-        this.revenusActuelsCreancierEur.set(ai.revenusAnnuelsEpoux2Eur);
-        this.provenanceRevenusActuelsCreancier.set('IA');
-      }
+    const rCreancier = RevisionsPostDivorcePrefillRules.computeRevenusCreancier(helperInput);
+    if (rCreancier !== null
+        && (this.revenusActuelsCreancierEur() === null || this.provenanceRevenusActuelsCreancier() === 'IA')) {
+      this.revenusActuelsCreancierEur.set(rCreancier);
+      this.provenanceRevenusActuelsCreancier.set('IA');
     }
-    // Nombre d'enfants : peut venir de aiData via clé optionnelle.
-    const nbEnfantsIa = (ai as { nbEnfantsACharge?: number | null }).nbEnfantsACharge;
-    if (typeof nbEnfantsIa === 'number' && nbEnfantsIa >= 0) {
-      if (this.nbEnfantsACharge() === null || this.provenanceNbEnfants() === 'IA') {
-        this.nbEnfantsACharge.set(nbEnfantsIa);
-        this.provenanceNbEnfants.set('IA');
-      }
+    const nb = RevisionsPostDivorcePrefillRules.computeNbEnfants(helperInput);
+    if (nb !== null
+        && (this.nbEnfantsACharge() === null || this.provenanceNbEnfants() === 'IA')) {
+      this.nbEnfantsACharge.set(nb);
+      this.provenanceNbEnfants.set('IA');
     }
   }
 
