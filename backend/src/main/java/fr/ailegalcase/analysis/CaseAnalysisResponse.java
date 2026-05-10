@@ -189,141 +189,230 @@ public record CaseAnalysisResponse(
             boolean inspectionTravailSaisie,
             boolean mediationJudiciaireEnvisagee) {
 
-        /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
-        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
-                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
-                                     Integer congesContractuels, Double primeAncienneteContractuelle) {
-            this(conventionCollective, dateEntree, salaireBrutMensuel,
-                    typeContrat, poste, motifLicenciement, dateLicenciement,
-                    congesContractuels, primeAncienneteContractuelle,
-                    null, null, null, null, null, null, null, null, null,
-                    null, null, null, null, null,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false,
-                    // F-205 : 23 flags Travail FR additionnels — false par défaut
-                    false, false, false, false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false, false, false, false);
-        }
-
-        /** Constructeur rétrocompat 17 champs (avant SF-130-01). */
-        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
-                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
-                                     Integer congesContractuels, Double primeAncienneteContractuelle,
-                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
-                                     String nomEmployeur, String adresseEmployeur,
-                                     String siretEmployeur, String bceEmployeur,
-                                     String representantEmployeur) {
-            this(conventionCollective, dateEntree, salaireBrutMensuel,
-                    typeContrat, poste, motifLicenciement, dateLicenciement,
-                    congesContractuels, primeAncienneteContractuelle,
-                    nomSalarie, prenomSalarie, adresseSalarie,
-                    nomEmployeur, adresseEmployeur,
-                    siretEmployeur, bceEmployeur,
-                    representantEmployeur, null,
-                    null, null, null, null, null,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false,
-                    // F-205 : 23 flags Travail FR additionnels — false par défaut
-                    false, false, false, false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false, false, false, false);
-        }
-
-        /** Constructeur rétrocompat 18 champs (avant SF-155-04-00-BE-travail). */
-        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
-                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
-                                     Integer congesContractuels, Double primeAncienneteContractuelle,
-                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
-                                     String nomEmployeur, String adresseEmployeur,
-                                     String siretEmployeur, String bceEmployeur,
-                                     String representantEmployeur, Boolean salaireEstDeduit) {
-            this(conventionCollective, dateEntree, salaireBrutMensuel,
-                    typeContrat, poste, motifLicenciement, dateLicenciement,
-                    congesContractuels, primeAncienneteContractuelle,
-                    nomSalarie, prenomSalarie, adresseSalarie,
-                    nomEmployeur, adresseEmployeur,
-                    siretEmployeur, bceEmployeur,
-                    representantEmployeur, salaireEstDeduit,
-                    null, null, null, null, null,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false,
-                    // F-205 : 23 flags Travail FR additionnels — false par défaut
-                    false, false, false, false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false, false, false, false);
-        }
-
-        /** Constructeur rétrocompat 23 champs (avant SF-166-01). */
-        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
-                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
-                                     Integer congesContractuels, Double primeAncienneteContractuelle,
-                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
-                                     String nomEmployeur, String adresseEmployeur,
-                                     String siretEmployeur, String bceEmployeur,
-                                     String representantEmployeur, Boolean salaireEstDeduit,
-                                     String motifNullitePressenti, String origineInaptitudePressentie,
-                                     String avisMedecinTravailDate,
-                                     DetectedAnswer reclassementRespecteDetected,
-                                     HeuresSupMentionnees heuresSupMentionneesDansDossier) {
-            this(conventionCollective, dateEntree, salaireBrutMensuel,
-                    typeContrat, poste, motifLicenciement, dateLicenciement,
-                    congesContractuels, primeAncienneteContractuelle,
-                    nomSalarie, prenomSalarie, adresseSalarie,
-                    nomEmployeur, adresseEmployeur,
-                    siretEmployeur, bceEmployeur,
-                    representantEmployeur, salaireEstDeduit,
-                    motifNullitePressenti, origineInaptitudePressentie,
-                    avisMedecinTravailDate,
-                    reclassementRespecteDetected,
-                    heuresSupMentionneesDansDossier,
-                    false, false, false, false, false, false, false, false, false, false, false, false, false,
-                    // F-205 : 23 flags Travail FR additionnels — false par défaut
-                    false, false, false, false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false, false, false, false);
-        }
-
         /**
-         * Constructeur rétrocompat 36 champs (avant F-205).
-         * Inclut les 8 flags F-166 + 5 flags F-204 ; passe false×23 pour les flags F-205.
+         * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
+         * Permet la construction nommée et la propagation automatique de valeurs par défaut sûres
+         * (null pour Object/Wrapper, false pour boolean) sans avoir à maintenir un constructeur
+         * rétrocompat à chaque ajout de flag IA.
          */
-        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
-                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
-                                     Integer congesContractuels, Double primeAncienneteContractuelle,
-                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
-                                     String nomEmployeur, String adresseEmployeur,
-                                     String siretEmployeur, String bceEmployeur,
-                                     String representantEmployeur, Boolean salaireEstDeduit,
-                                     String motifNullitePressenti, String origineInaptitudePressentie,
-                                     String avisMedecinTravailDate,
-                                     DetectedAnswer reclassementRespecteDetected,
-                                     HeuresSupMentionnees heuresSupMentionneesDansDossier,
-                                     boolean rappelSalaireDetecte,
-                                     boolean travailDissimuleDetecte,
-                                     boolean clauseNonConcurrenceDetectee,
-                                     boolean statutProtegeDetecte,
-                                     boolean transactionEnvisagee,
-                                     boolean atMpDetecte,
-                                     boolean urgenceProcedurale,
-                                     boolean contestationAreEnvisagee,
-                                     boolean harcelementBeDetecte,
-                                     boolean discriminationBeDetectee,
-                                     boolean inaptitudeMedicaleBeDetectee,
-                                     boolean heuresSupMentionneesBe,
-                                     boolean motifGraveBeEnvisage) {
-            this(conventionCollective, dateEntree, salaireBrutMensuel,
-                    typeContrat, poste, motifLicenciement, dateLicenciement,
-                    congesContractuels, primeAncienneteContractuelle,
-                    nomSalarie, prenomSalarie, adresseSalarie,
-                    nomEmployeur, adresseEmployeur,
-                    siretEmployeur, bceEmployeur,
-                    representantEmployeur, salaireEstDeduit,
-                    motifNullitePressenti, origineInaptitudePressentie,
-                    avisMedecinTravailDate,
-                    reclassementRespecteDetected,
-                    heuresSupMentionneesDansDossier,
-                    rappelSalaireDetecte, travailDissimuleDetecte, clauseNonConcurrenceDetectee,
-                    statutProtegeDetecte, transactionEnvisagee, atMpDetecte,
-                    urgenceProcedurale, contestationAreEnvisagee,
-                    harcelementBeDetecte, discriminationBeDetectee, inaptitudeMedicaleBeDetectee,
-                    heuresSupMentionneesBe, motifGraveBeEnvisage,
-                    // F-205 : 23 flags Travail FR additionnels — false par défaut
-                    false, false, false, false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false, false, false, false);
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        /** F-234 SF-234-01 : copie un record existant pour ajuster un sous-ensemble de champs. */
+        public Builder toBuilder() {
+            return new Builder()
+                    .conventionCollective(conventionCollective)
+                    .dateEntree(dateEntree)
+                    .salaireBrutMensuel(salaireBrutMensuel)
+                    .typeContrat(typeContrat)
+                    .poste(poste)
+                    .motifLicenciement(motifLicenciement)
+                    .dateLicenciement(dateLicenciement)
+                    .congesContractuels(congesContractuels)
+                    .primeAncienneteContractuelle(primeAncienneteContractuelle)
+                    .nomSalarie(nomSalarie)
+                    .prenomSalarie(prenomSalarie)
+                    .adresseSalarie(adresseSalarie)
+                    .nomEmployeur(nomEmployeur)
+                    .adresseEmployeur(adresseEmployeur)
+                    .siretEmployeur(siretEmployeur)
+                    .bceEmployeur(bceEmployeur)
+                    .representantEmployeur(representantEmployeur)
+                    .salaireEstDeduit(salaireEstDeduit)
+                    .motifNullitePressenti(motifNullitePressenti)
+                    .origineInaptitudePressentie(origineInaptitudePressentie)
+                    .avisMedecinTravailDate(avisMedecinTravailDate)
+                    .reclassementRespecteDetected(reclassementRespecteDetected)
+                    .heuresSupMentionneesDansDossier(heuresSupMentionneesDansDossier)
+                    .rappelSalaireDetecte(rappelSalaireDetecte)
+                    .travailDissimuleDetecte(travailDissimuleDetecte)
+                    .clauseNonConcurrenceDetectee(clauseNonConcurrenceDetectee)
+                    .statutProtegeDetecte(statutProtegeDetecte)
+                    .transactionEnvisagee(transactionEnvisagee)
+                    .atMpDetecte(atMpDetecte)
+                    .urgenceProcedurale(urgenceProcedurale)
+                    .contestationAreEnvisagee(contestationAreEnvisagee)
+                    .harcelementBeDetecte(harcelementBeDetecte)
+                    .discriminationBeDetectee(discriminationBeDetectee)
+                    .inaptitudeMedicaleBeDetectee(inaptitudeMedicaleBeDetectee)
+                    .heuresSupMentionneesBe(heuresSupMentionneesBe)
+                    .motifGraveBeEnvisage(motifGraveBeEnvisage)
+                    .abandonPosteDetecte(abandonPosteDetecte)
+                    .arretMaladieLongDetecte(arretMaladieLongDetecte)
+                    .priseActeEnvisagee(priseActeEnvisagee)
+                    .resiliationJudiciaireEnvisagee(resiliationJudiciaireEnvisagee)
+                    .forfaitJoursDetecte(forfaitJoursDetecte)
+                    .transfertEntrepriseDetecte(transfertEntrepriseDetecte)
+                    .fauteInexcusableEnvisagee(fauteInexcusableEnvisagee)
+                    .csCrpEnvisage(csCrpEnvisage)
+                    .cspPropose(cspPropose)
+                    .mutationRefusee(mutationRefusee)
+                    .modificationContratRefusee(modificationContratRefusee)
+                    .fauteGraveEnvisagee(fauteGraveEnvisagee)
+                    .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
+                    .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
+                    .interimRequalificationEnvisagee(interimRequalificationEnvisagee)
+                    .forfaitJoursValiditeContestee(forfaitJoursValiditeContestee)
+                    .prescriptionProcheDetectee(prescriptionProcheDetectee)
+                    .ruptureAmiableNegociee(ruptureAmiableNegociee)
+                    .entretienPreavisObtenu(entretienPreavisObtenu)
+                    .cseConsultationDemandee(cseConsultationDemandee)
+                    .irpElectionDemandee(irpElectionDemandee)
+                    .inspectionTravailSaisie(inspectionTravailSaisie)
+                    .mediationJudiciaireEnvisagee(mediationJudiciaireEnvisagee);
+        }
+
+        public static final class Builder {
+            private String conventionCollective;
+            private String dateEntree;
+            private Double salaireBrutMensuel;
+            private String typeContrat;
+            private String poste;
+            private String motifLicenciement;
+            private String dateLicenciement;
+            private Integer congesContractuels;
+            private Double primeAncienneteContractuelle;
+            private String nomSalarie;
+            private String prenomSalarie;
+            private String adresseSalarie;
+            private String nomEmployeur;
+            private String adresseEmployeur;
+            private String siretEmployeur;
+            private String bceEmployeur;
+            private String representantEmployeur;
+            private Boolean salaireEstDeduit;
+            private String motifNullitePressenti;
+            private String origineInaptitudePressentie;
+            private String avisMedecinTravailDate;
+            private DetectedAnswer reclassementRespecteDetected;
+            private HeuresSupMentionnees heuresSupMentionneesDansDossier;
+            private boolean rappelSalaireDetecte;
+            private boolean travailDissimuleDetecte;
+            private boolean clauseNonConcurrenceDetectee;
+            private boolean statutProtegeDetecte;
+            private boolean transactionEnvisagee;
+            private boolean atMpDetecte;
+            private boolean urgenceProcedurale;
+            private boolean contestationAreEnvisagee;
+            private boolean harcelementBeDetecte;
+            private boolean discriminationBeDetectee;
+            private boolean inaptitudeMedicaleBeDetectee;
+            private boolean heuresSupMentionneesBe;
+            private boolean motifGraveBeEnvisage;
+            private boolean abandonPosteDetecte;
+            private boolean arretMaladieLongDetecte;
+            private boolean priseActeEnvisagee;
+            private boolean resiliationJudiciaireEnvisagee;
+            private boolean forfaitJoursDetecte;
+            private boolean transfertEntrepriseDetecte;
+            private boolean fauteInexcusableEnvisagee;
+            private boolean csCrpEnvisage;
+            private boolean cspPropose;
+            private boolean mutationRefusee;
+            private boolean modificationContratRefusee;
+            private boolean fauteGraveEnvisagee;
+            private boolean fauteLourdeEnvisagee;
+            private boolean cddRequalificationEnvisagee;
+            private boolean interimRequalificationEnvisagee;
+            private boolean forfaitJoursValiditeContestee;
+            private boolean prescriptionProcheDetectee;
+            private boolean ruptureAmiableNegociee;
+            private boolean entretienPreavisObtenu;
+            private boolean cseConsultationDemandee;
+            private boolean irpElectionDemandee;
+            private boolean inspectionTravailSaisie;
+            private boolean mediationJudiciaireEnvisagee;
+
+            private Builder() {}
+
+            public Builder conventionCollective(String v) { this.conventionCollective = v; return this; }
+            public Builder dateEntree(String v) { this.dateEntree = v; return this; }
+            public Builder salaireBrutMensuel(Double v) { this.salaireBrutMensuel = v; return this; }
+            public Builder typeContrat(String v) { this.typeContrat = v; return this; }
+            public Builder poste(String v) { this.poste = v; return this; }
+            public Builder motifLicenciement(String v) { this.motifLicenciement = v; return this; }
+            public Builder dateLicenciement(String v) { this.dateLicenciement = v; return this; }
+            public Builder congesContractuels(Integer v) { this.congesContractuels = v; return this; }
+            public Builder primeAncienneteContractuelle(Double v) { this.primeAncienneteContractuelle = v; return this; }
+            public Builder nomSalarie(String v) { this.nomSalarie = v; return this; }
+            public Builder prenomSalarie(String v) { this.prenomSalarie = v; return this; }
+            public Builder adresseSalarie(String v) { this.adresseSalarie = v; return this; }
+            public Builder nomEmployeur(String v) { this.nomEmployeur = v; return this; }
+            public Builder adresseEmployeur(String v) { this.adresseEmployeur = v; return this; }
+            public Builder siretEmployeur(String v) { this.siretEmployeur = v; return this; }
+            public Builder bceEmployeur(String v) { this.bceEmployeur = v; return this; }
+            public Builder representantEmployeur(String v) { this.representantEmployeur = v; return this; }
+            public Builder salaireEstDeduit(Boolean v) { this.salaireEstDeduit = v; return this; }
+            public Builder motifNullitePressenti(String v) { this.motifNullitePressenti = v; return this; }
+            public Builder origineInaptitudePressentie(String v) { this.origineInaptitudePressentie = v; return this; }
+            public Builder avisMedecinTravailDate(String v) { this.avisMedecinTravailDate = v; return this; }
+            public Builder reclassementRespecteDetected(DetectedAnswer v) { this.reclassementRespecteDetected = v; return this; }
+            public Builder heuresSupMentionneesDansDossier(HeuresSupMentionnees v) { this.heuresSupMentionneesDansDossier = v; return this; }
+            public Builder rappelSalaireDetecte(boolean v) { this.rappelSalaireDetecte = v; return this; }
+            public Builder travailDissimuleDetecte(boolean v) { this.travailDissimuleDetecte = v; return this; }
+            public Builder clauseNonConcurrenceDetectee(boolean v) { this.clauseNonConcurrenceDetectee = v; return this; }
+            public Builder statutProtegeDetecte(boolean v) { this.statutProtegeDetecte = v; return this; }
+            public Builder transactionEnvisagee(boolean v) { this.transactionEnvisagee = v; return this; }
+            public Builder atMpDetecte(boolean v) { this.atMpDetecte = v; return this; }
+            public Builder urgenceProcedurale(boolean v) { this.urgenceProcedurale = v; return this; }
+            public Builder contestationAreEnvisagee(boolean v) { this.contestationAreEnvisagee = v; return this; }
+            public Builder harcelementBeDetecte(boolean v) { this.harcelementBeDetecte = v; return this; }
+            public Builder discriminationBeDetectee(boolean v) { this.discriminationBeDetectee = v; return this; }
+            public Builder inaptitudeMedicaleBeDetectee(boolean v) { this.inaptitudeMedicaleBeDetectee = v; return this; }
+            public Builder heuresSupMentionneesBe(boolean v) { this.heuresSupMentionneesBe = v; return this; }
+            public Builder motifGraveBeEnvisage(boolean v) { this.motifGraveBeEnvisage = v; return this; }
+            public Builder abandonPosteDetecte(boolean v) { this.abandonPosteDetecte = v; return this; }
+            public Builder arretMaladieLongDetecte(boolean v) { this.arretMaladieLongDetecte = v; return this; }
+            public Builder priseActeEnvisagee(boolean v) { this.priseActeEnvisagee = v; return this; }
+            public Builder resiliationJudiciaireEnvisagee(boolean v) { this.resiliationJudiciaireEnvisagee = v; return this; }
+            public Builder forfaitJoursDetecte(boolean v) { this.forfaitJoursDetecte = v; return this; }
+            public Builder transfertEntrepriseDetecte(boolean v) { this.transfertEntrepriseDetecte = v; return this; }
+            public Builder fauteInexcusableEnvisagee(boolean v) { this.fauteInexcusableEnvisagee = v; return this; }
+            public Builder csCrpEnvisage(boolean v) { this.csCrpEnvisage = v; return this; }
+            public Builder cspPropose(boolean v) { this.cspPropose = v; return this; }
+            public Builder mutationRefusee(boolean v) { this.mutationRefusee = v; return this; }
+            public Builder modificationContratRefusee(boolean v) { this.modificationContratRefusee = v; return this; }
+            public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
+            public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
+            public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
+            public Builder interimRequalificationEnvisagee(boolean v) { this.interimRequalificationEnvisagee = v; return this; }
+            public Builder forfaitJoursValiditeContestee(boolean v) { this.forfaitJoursValiditeContestee = v; return this; }
+            public Builder prescriptionProcheDetectee(boolean v) { this.prescriptionProcheDetectee = v; return this; }
+            public Builder ruptureAmiableNegociee(boolean v) { this.ruptureAmiableNegociee = v; return this; }
+            public Builder entretienPreavisObtenu(boolean v) { this.entretienPreavisObtenu = v; return this; }
+            public Builder cseConsultationDemandee(boolean v) { this.cseConsultationDemandee = v; return this; }
+            public Builder irpElectionDemandee(boolean v) { this.irpElectionDemandee = v; return this; }
+            public Builder inspectionTravailSaisie(boolean v) { this.inspectionTravailSaisie = v; return this; }
+            public Builder mediationJudiciaireEnvisagee(boolean v) { this.mediationJudiciaireEnvisagee = v; return this; }
+
+            public TravailExtractedData build() {
+                return new TravailExtractedData(
+                        conventionCollective, dateEntree, salaireBrutMensuel,
+                        typeContrat, poste, motifLicenciement, dateLicenciement,
+                        congesContractuels, primeAncienneteContractuelle,
+                        nomSalarie, prenomSalarie, adresseSalarie,
+                        nomEmployeur, adresseEmployeur,
+                        siretEmployeur, bceEmployeur,
+                        representantEmployeur, salaireEstDeduit,
+                        motifNullitePressenti, origineInaptitudePressentie,
+                        avisMedecinTravailDate,
+                        reclassementRespecteDetected,
+                        heuresSupMentionneesDansDossier,
+                        rappelSalaireDetecte, travailDissimuleDetecte, clauseNonConcurrenceDetectee,
+                        statutProtegeDetecte, transactionEnvisagee, atMpDetecte,
+                        urgenceProcedurale, contestationAreEnvisagee,
+                        harcelementBeDetecte, discriminationBeDetectee, inaptitudeMedicaleBeDetectee,
+                        heuresSupMentionneesBe, motifGraveBeEnvisage,
+                        abandonPosteDetecte, arretMaladieLongDetecte, priseActeEnvisagee,
+                        resiliationJudiciaireEnvisagee, forfaitJoursDetecte, transfertEntrepriseDetecte,
+                        fauteInexcusableEnvisagee, csCrpEnvisage, cspPropose,
+                        mutationRefusee, modificationContratRefusee, fauteGraveEnvisagee,
+                        fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
+                        forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
+                        entretienPreavisObtenu, cseConsultationDemandee, irpElectionDemandee,
+                        inspectionTravailSaisie, mediationJudiciaireEnvisagee);
+            }
         }
     }
 
@@ -474,116 +563,139 @@ public record CaseAnalysisResponse(
             // dossiers où l'IA n'identifie pas la nationalité ou non-immigration : null.
             // Distinct de nationaliteUe (booléen UE vs pays tiers).
             String nationalite) {
-        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
-                                         String typeProcedureDetectee, String dateDepotProcedure) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    null, null, null, null, null,
-                    null, null, null, null, null,
-                    null, null, null, null,
-                    false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false,
-                    null /* F-235 nationalite */);
+
+        /**
+         * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
+         */
+        public static Builder builder() {
+            return new Builder();
         }
-        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
-                                         String typeProcedureDetectee, String dateDepotProcedure,
-                                         String typeTitreSejourCode, Boolean nationaliteUe) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, null, null, null,
-                    null, null, null, null, null,
-                    null, null, null, null,
-                    false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false,
-                    null /* F-235 nationalite */);
+
+        /** F-234 SF-234-01 : copie un record existant pour ajuster un sous-ensemble de champs. */
+        public Builder toBuilder() {
+            return new Builder()
+                    .dateExpirationTitre(dateExpirationTitre)
+                    .typeTitreSejour(typeTitreSejour)
+                    .typeProcedureDetectee(typeProcedureDetectee)
+                    .dateDepotProcedure(dateDepotProcedure)
+                    .typeTitreSejourCode(typeTitreSejourCode)
+                    .nationaliteUe(nationaliteUe)
+                    .typeRecoursCode(typeRecoursCode)
+                    .dateNotificationDecisionContestee(dateNotificationDecisionContestee)
+                    .inferredChecklistType(inferredChecklistType)
+                    .dateNotificationOqtf(dateNotificationOqtf)
+                    .motifOqtfCode(motifOqtfCode)
+                    .recoursFormeDetected(recoursFormeDetected)
+                    .dateHeureNotificationOqtfSansDelai(dateHeureNotificationOqtfSansDelai)
+                    .placementCraDetected(placementCraDetected)
+                    .dateNotificationAnnexe13(dateNotificationAnnexe13)
+                    .delaiDepartImposeJours(delaiDepartImposeJours)
+                    .motifOqtCodeBe(motifOqtCodeBe)
+                    .transfertImminentDetected(transfertImminentDetected)
+                    .aesMetiersTensionEligibleDetecte(aesMetiersTensionEligibleDetecte)
+                    .aesFamilialEligibleDetecte(aesFamilialEligibleDetecte)
+                    .aesHumanitaireEligibleDetecte(aesHumanitaireEligibleDetecte)
+                    .aesEtudiantEligibleDetecte(aesEtudiantEligibleDetecte)
+                    .changementStatutEnvisageDetecte(changementStatutEnvisageDetecte)
+                    .procedureAsileDetectee(procedureAsileDetectee)
+                    .naturalisationEnvisageeDetectee(naturalisationEnvisageeDetectee)
+                    .clientMineurDetecte(clientMineurDetecte)
+                    .mesureEloignementDetectee(mesureEloignementDetectee)
+                    .procedure9bisEnvisagee(procedure9bisEnvisagee)
+                    .procedure9terMedicaleDetectee(procedure9terMedicaleDetectee)
+                    .regroupement40bisDetecte(regroupement40bisDetecte)
+                    .regroupement40terDetecte(regroupement40terDetecte)
+                    .oqtAnnexe13Detectee(oqtAnnexe13Detectee)
+                    .nationalite(nationalite);
         }
-        /** Rétrocompat 8-args pré-SF-IM-01-04. */
-        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
-                                         String typeProcedureDetectee, String dateDepotProcedure,
-                                         String typeTitreSejourCode, Boolean nationaliteUe,
-                                         String typeRecoursCode, String dateNotificationDecisionContestee) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee, null,
-                    null, null, null, null, null,
-                    null, null, null, null,
-                    false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false,
-                    null /* F-235 nationalite */);
-        }
-        /** Rétrocompat 9-args pré-SF-155-04-00-BE-immig-FR/BE (signature SF-IM-01-04). */
-        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
-                                         String typeProcedureDetectee, String dateDepotProcedure,
-                                         String typeTitreSejourCode, Boolean nationaliteUe,
-                                         String typeRecoursCode, String dateNotificationDecisionContestee,
-                                         String inferredChecklistType) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee,
-                    inferredChecklistType,
-                    null, null, null, null, null,
-                    null, null, null, null,
-                    false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false,
-                    null /* F-235 nationalite */);
-        }
-        /** Rétrocompat 14-args pré-SF-155-04-00-BE-immig-BE (signature post-SF-155-04-00-BE-immig-FR). */
-        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
-                                         String typeProcedureDetectee, String dateDepotProcedure,
-                                         String typeTitreSejourCode, Boolean nationaliteUe,
-                                         String typeRecoursCode, String dateNotificationDecisionContestee,
-                                         String inferredChecklistType,
-                                         String dateNotificationOqtf, String motifOqtfCode,
-                                         DetectedAnswer recoursFormeDetected,
-                                         String dateHeureNotificationOqtfSansDelai,
-                                         Boolean placementCraDetected) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee,
-                    inferredChecklistType,
-                    dateNotificationOqtf, motifOqtfCode, recoursFormeDetected,
-                    dateHeureNotificationOqtfSansDelai, placementCraDetected,
-                    null, null, null, null,
-                    false, false, false, false, false, false, false, false, false,
-                    false, false, false, false, false,
-                    null /* F-235 nationalite */);
-        }
-        /** Rétrocompat 32-args pré-F-235 (signature post-F-201/F-203 sans nationalite). */
-        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
-                                         String typeProcedureDetectee, String dateDepotProcedure,
-                                         String typeTitreSejourCode, Boolean nationaliteUe,
-                                         String typeRecoursCode, String dateNotificationDecisionContestee,
-                                         String inferredChecklistType,
-                                         String dateNotificationOqtf, String motifOqtfCode,
-                                         DetectedAnswer recoursFormeDetected,
-                                         String dateHeureNotificationOqtfSansDelai,
-                                         Boolean placementCraDetected,
-                                         String dateNotificationAnnexe13,
-                                         Integer delaiDepartImposeJours,
-                                         String motifOqtCodeBe,
-                                         Boolean transfertImminentDetected,
-                                         boolean aesMetiersTensionEligibleDetecte,
-                                         boolean aesFamilialEligibleDetecte,
-                                         boolean aesHumanitaireEligibleDetecte,
-                                         boolean aesEtudiantEligibleDetecte,
-                                         boolean changementStatutEnvisageDetecte,
-                                         boolean procedureAsileDetectee,
-                                         boolean naturalisationEnvisageeDetectee,
-                                         boolean clientMineurDetecte,
-                                         boolean mesureEloignementDetectee,
-                                         boolean procedure9bisEnvisagee,
-                                         boolean procedure9terMedicaleDetectee,
-                                         boolean regroupement40bisDetecte,
-                                         boolean regroupement40terDetecte,
-                                         boolean oqtAnnexe13Detectee) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee,
-                    inferredChecklistType,
-                    dateNotificationOqtf, motifOqtfCode, recoursFormeDetected,
-                    dateHeureNotificationOqtfSansDelai, placementCraDetected,
-                    dateNotificationAnnexe13, delaiDepartImposeJours, motifOqtCodeBe, transfertImminentDetected,
-                    aesMetiersTensionEligibleDetecte, aesFamilialEligibleDetecte,
-                    aesHumanitaireEligibleDetecte, aesEtudiantEligibleDetecte,
-                    changementStatutEnvisageDetecte, procedureAsileDetectee,
-                    naturalisationEnvisageeDetectee, clientMineurDetecte, mesureEloignementDetectee,
-                    procedure9bisEnvisagee, procedure9terMedicaleDetectee,
-                    regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
-                    null /* F-235 nationalite */);
+
+        public static final class Builder {
+            private String dateExpirationTitre;
+            private String typeTitreSejour;
+            private String typeProcedureDetectee;
+            private String dateDepotProcedure;
+            private String typeTitreSejourCode;
+            private Boolean nationaliteUe;
+            private String typeRecoursCode;
+            private String dateNotificationDecisionContestee;
+            private String inferredChecklistType;
+            private String dateNotificationOqtf;
+            private String motifOqtfCode;
+            private DetectedAnswer recoursFormeDetected;
+            private String dateHeureNotificationOqtfSansDelai;
+            private Boolean placementCraDetected;
+            private String dateNotificationAnnexe13;
+            private Integer delaiDepartImposeJours;
+            private String motifOqtCodeBe;
+            private Boolean transfertImminentDetected;
+            private boolean aesMetiersTensionEligibleDetecte;
+            private boolean aesFamilialEligibleDetecte;
+            private boolean aesHumanitaireEligibleDetecte;
+            private boolean aesEtudiantEligibleDetecte;
+            private boolean changementStatutEnvisageDetecte;
+            private boolean procedureAsileDetectee;
+            private boolean naturalisationEnvisageeDetectee;
+            private boolean clientMineurDetecte;
+            private boolean mesureEloignementDetectee;
+            private boolean procedure9bisEnvisagee;
+            private boolean procedure9terMedicaleDetectee;
+            private boolean regroupement40bisDetecte;
+            private boolean regroupement40terDetecte;
+            private boolean oqtAnnexe13Detectee;
+            private String nationalite;
+
+            private Builder() {}
+
+            public Builder dateExpirationTitre(String v) { this.dateExpirationTitre = v; return this; }
+            public Builder typeTitreSejour(String v) { this.typeTitreSejour = v; return this; }
+            public Builder typeProcedureDetectee(String v) { this.typeProcedureDetectee = v; return this; }
+            public Builder dateDepotProcedure(String v) { this.dateDepotProcedure = v; return this; }
+            public Builder typeTitreSejourCode(String v) { this.typeTitreSejourCode = v; return this; }
+            public Builder nationaliteUe(Boolean v) { this.nationaliteUe = v; return this; }
+            public Builder typeRecoursCode(String v) { this.typeRecoursCode = v; return this; }
+            public Builder dateNotificationDecisionContestee(String v) { this.dateNotificationDecisionContestee = v; return this; }
+            public Builder inferredChecklistType(String v) { this.inferredChecklistType = v; return this; }
+            public Builder dateNotificationOqtf(String v) { this.dateNotificationOqtf = v; return this; }
+            public Builder motifOqtfCode(String v) { this.motifOqtfCode = v; return this; }
+            public Builder recoursFormeDetected(DetectedAnswer v) { this.recoursFormeDetected = v; return this; }
+            public Builder dateHeureNotificationOqtfSansDelai(String v) { this.dateHeureNotificationOqtfSansDelai = v; return this; }
+            public Builder placementCraDetected(Boolean v) { this.placementCraDetected = v; return this; }
+            public Builder dateNotificationAnnexe13(String v) { this.dateNotificationAnnexe13 = v; return this; }
+            public Builder delaiDepartImposeJours(Integer v) { this.delaiDepartImposeJours = v; return this; }
+            public Builder motifOqtCodeBe(String v) { this.motifOqtCodeBe = v; return this; }
+            public Builder transfertImminentDetected(Boolean v) { this.transfertImminentDetected = v; return this; }
+            public Builder aesMetiersTensionEligibleDetecte(boolean v) { this.aesMetiersTensionEligibleDetecte = v; return this; }
+            public Builder aesFamilialEligibleDetecte(boolean v) { this.aesFamilialEligibleDetecte = v; return this; }
+            public Builder aesHumanitaireEligibleDetecte(boolean v) { this.aesHumanitaireEligibleDetecte = v; return this; }
+            public Builder aesEtudiantEligibleDetecte(boolean v) { this.aesEtudiantEligibleDetecte = v; return this; }
+            public Builder changementStatutEnvisageDetecte(boolean v) { this.changementStatutEnvisageDetecte = v; return this; }
+            public Builder procedureAsileDetectee(boolean v) { this.procedureAsileDetectee = v; return this; }
+            public Builder naturalisationEnvisageeDetectee(boolean v) { this.naturalisationEnvisageeDetectee = v; return this; }
+            public Builder clientMineurDetecte(boolean v) { this.clientMineurDetecte = v; return this; }
+            public Builder mesureEloignementDetectee(boolean v) { this.mesureEloignementDetectee = v; return this; }
+            public Builder procedure9bisEnvisagee(boolean v) { this.procedure9bisEnvisagee = v; return this; }
+            public Builder procedure9terMedicaleDetectee(boolean v) { this.procedure9terMedicaleDetectee = v; return this; }
+            public Builder regroupement40bisDetecte(boolean v) { this.regroupement40bisDetecte = v; return this; }
+            public Builder regroupement40terDetecte(boolean v) { this.regroupement40terDetecte = v; return this; }
+            public Builder oqtAnnexe13Detectee(boolean v) { this.oqtAnnexe13Detectee = v; return this; }
+            public Builder nationalite(String v) { this.nationalite = v; return this; }
+
+            public ImmigrationExtractedData build() {
+                return new ImmigrationExtractedData(
+                        dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                        typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee,
+                        inferredChecklistType,
+                        dateNotificationOqtf, motifOqtfCode, recoursFormeDetected,
+                        dateHeureNotificationOqtfSansDelai, placementCraDetected,
+                        dateNotificationAnnexe13, delaiDepartImposeJours, motifOqtCodeBe, transfertImminentDetected,
+                        aesMetiersTensionEligibleDetecte, aesFamilialEligibleDetecte,
+                        aesHumanitaireEligibleDetecte, aesEtudiantEligibleDetecte,
+                        changementStatutEnvisageDetecte, procedureAsileDetectee,
+                        naturalisationEnvisageeDetectee, clientMineurDetecte, mesureEloignementDetectee,
+                        procedure9bisEnvisagee, procedure9terMedicaleDetectee,
+                        regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
+                        nationalite);
+            }
         }
     }
 
@@ -681,7 +793,116 @@ public record CaseAnalysisResponse(
             boolean divorceDdiEnvisage,
             boolean cohabitationLegaleBeDetectee,
             boolean pacteSuccessoralEnvisage,
-            boolean kafalaRecueilDetecte) {}
+            boolean kafalaRecueilDetecte) {
+
+        /**
+         * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
+         */
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static final class Builder {
+            // FR (F-200) — 30 flags
+            private boolean divorceConsentementMutuelEnvisage;
+            private boolean divorceAlterationLienEnvisage;
+            private boolean divorceFauteEnvisage;
+            private boolean divorceAccepteEnvisage;
+            private boolean revisionPostDivorceEnvisagee;
+            private boolean ordonnanceProtectionEnvisagee;
+            private boolean recompensesEnvisagees;
+            private boolean regimeCommunauteUniverselleDetecte;
+            private boolean partageJudiciaireEnvisage;
+            private boolean adoptionEnvisagee;
+            private boolean reconnaissancePaternelleEnvisagee;
+            private boolean contestationPaterniteEnvisagee;
+            private boolean recherchePaterniteEnvisagee;
+            private boolean possessionEtatEnvisagee;
+            private boolean changementResidenceEnvisage;
+            private boolean desaccordParentalDetecte;
+            private boolean pacsDissolutionEnvisagee;
+            private boolean separationCorpsEnvisagee;
+            private boolean indivisionEnvisagee;
+            private boolean ordonnanceRequeteEnvisagee;
+            private boolean successionEnvisagee;
+            private boolean testamentEnvisage;
+            private boolean donationEnvisagee;
+            private boolean reserveHereditaireEnvisagee;
+            private boolean partageSuccessoralEnvisage;
+            private boolean indivisionSuccessoraleEnvisagee;
+            private boolean rapportSuccessionEnvisage;
+            private boolean protectionMajeurEnvisagee;
+            private boolean changementEtatCivilEnvisage;
+            private boolean pmaGpaEnvisagee;
+            // F-210
+            private boolean mediationFamilialePreSaisinePertinente;
+            // BE (F-202) — 5 flags
+            private boolean divorceDcEnvisage;
+            private boolean divorceDdiEnvisage;
+            private boolean cohabitationLegaleBeDetectee;
+            private boolean pacteSuccessoralEnvisage;
+            private boolean kafalaRecueilDetecte;
+
+            private Builder() {}
+
+            public Builder divorceConsentementMutuelEnvisage(boolean v) { this.divorceConsentementMutuelEnvisage = v; return this; }
+            public Builder divorceAlterationLienEnvisage(boolean v) { this.divorceAlterationLienEnvisage = v; return this; }
+            public Builder divorceFauteEnvisage(boolean v) { this.divorceFauteEnvisage = v; return this; }
+            public Builder divorceAccepteEnvisage(boolean v) { this.divorceAccepteEnvisage = v; return this; }
+            public Builder revisionPostDivorceEnvisagee(boolean v) { this.revisionPostDivorceEnvisagee = v; return this; }
+            public Builder ordonnanceProtectionEnvisagee(boolean v) { this.ordonnanceProtectionEnvisagee = v; return this; }
+            public Builder recompensesEnvisagees(boolean v) { this.recompensesEnvisagees = v; return this; }
+            public Builder regimeCommunauteUniverselleDetecte(boolean v) { this.regimeCommunauteUniverselleDetecte = v; return this; }
+            public Builder partageJudiciaireEnvisage(boolean v) { this.partageJudiciaireEnvisage = v; return this; }
+            public Builder adoptionEnvisagee(boolean v) { this.adoptionEnvisagee = v; return this; }
+            public Builder reconnaissancePaternelleEnvisagee(boolean v) { this.reconnaissancePaternelleEnvisagee = v; return this; }
+            public Builder contestationPaterniteEnvisagee(boolean v) { this.contestationPaterniteEnvisagee = v; return this; }
+            public Builder recherchePaterniteEnvisagee(boolean v) { this.recherchePaterniteEnvisagee = v; return this; }
+            public Builder possessionEtatEnvisagee(boolean v) { this.possessionEtatEnvisagee = v; return this; }
+            public Builder changementResidenceEnvisage(boolean v) { this.changementResidenceEnvisage = v; return this; }
+            public Builder desaccordParentalDetecte(boolean v) { this.desaccordParentalDetecte = v; return this; }
+            public Builder pacsDissolutionEnvisagee(boolean v) { this.pacsDissolutionEnvisagee = v; return this; }
+            public Builder separationCorpsEnvisagee(boolean v) { this.separationCorpsEnvisagee = v; return this; }
+            public Builder indivisionEnvisagee(boolean v) { this.indivisionEnvisagee = v; return this; }
+            public Builder ordonnanceRequeteEnvisagee(boolean v) { this.ordonnanceRequeteEnvisagee = v; return this; }
+            public Builder successionEnvisagee(boolean v) { this.successionEnvisagee = v; return this; }
+            public Builder testamentEnvisage(boolean v) { this.testamentEnvisage = v; return this; }
+            public Builder donationEnvisagee(boolean v) { this.donationEnvisagee = v; return this; }
+            public Builder reserveHereditaireEnvisagee(boolean v) { this.reserveHereditaireEnvisagee = v; return this; }
+            public Builder partageSuccessoralEnvisage(boolean v) { this.partageSuccessoralEnvisage = v; return this; }
+            public Builder indivisionSuccessoraleEnvisagee(boolean v) { this.indivisionSuccessoraleEnvisagee = v; return this; }
+            public Builder rapportSuccessionEnvisage(boolean v) { this.rapportSuccessionEnvisage = v; return this; }
+            public Builder protectionMajeurEnvisagee(boolean v) { this.protectionMajeurEnvisagee = v; return this; }
+            public Builder changementEtatCivilEnvisage(boolean v) { this.changementEtatCivilEnvisage = v; return this; }
+            public Builder pmaGpaEnvisagee(boolean v) { this.pmaGpaEnvisagee = v; return this; }
+            public Builder mediationFamilialePreSaisinePertinente(boolean v) { this.mediationFamilialePreSaisinePertinente = v; return this; }
+            public Builder divorceDcEnvisage(boolean v) { this.divorceDcEnvisage = v; return this; }
+            public Builder divorceDdiEnvisage(boolean v) { this.divorceDdiEnvisage = v; return this; }
+            public Builder cohabitationLegaleBeDetectee(boolean v) { this.cohabitationLegaleBeDetectee = v; return this; }
+            public Builder pacteSuccessoralEnvisage(boolean v) { this.pacteSuccessoralEnvisage = v; return this; }
+            public Builder kafalaRecueilDetecte(boolean v) { this.kafalaRecueilDetecte = v; return this; }
+
+            public FamilleExtractedData build() {
+                return new FamilleExtractedData(
+                        divorceConsentementMutuelEnvisage, divorceAlterationLienEnvisage,
+                        divorceFauteEnvisage, divorceAccepteEnvisage,
+                        revisionPostDivorceEnvisagee,
+                        ordonnanceProtectionEnvisagee,
+                        recompensesEnvisagees, regimeCommunauteUniverselleDetecte, partageJudiciaireEnvisage,
+                        adoptionEnvisagee, reconnaissancePaternelleEnvisagee,
+                        contestationPaterniteEnvisagee, recherchePaterniteEnvisagee, possessionEtatEnvisagee,
+                        changementResidenceEnvisage, desaccordParentalDetecte,
+                        pacsDissolutionEnvisagee, separationCorpsEnvisagee,
+                        indivisionEnvisagee, ordonnanceRequeteEnvisagee,
+                        successionEnvisagee, testamentEnvisage, donationEnvisagee, reserveHereditaireEnvisagee,
+                        partageSuccessoralEnvisage, indivisionSuccessoraleEnvisagee, rapportSuccessionEnvisage,
+                        protectionMajeurEnvisagee, changementEtatCivilEnvisage, pmaGpaEnvisagee,
+                        mediationFamilialePreSaisinePertinente,
+                        divorceDcEnvisage, divorceDdiEnvisage, cohabitationLegaleBeDetectee,
+                        pacteSuccessoralEnvisage, kafalaRecueilDetecte);
+            }
+        }
+    }
 
     public record TimelineEntry(String date, String evenement) {}
 
@@ -819,46 +1040,12 @@ public record CaseAnalysisResponse(
                     String inferred = fr.ailegalcase.casefile.ImmigrationPieceReferentiel
                             .inferChecklistType(immigrationExtractedData.typeTitreSejourCode(), targetTitleCode, firstEventCode);
                     if (inferred != null) {
-                        immigrationExtractedData = new ImmigrationExtractedData(
-                                immigrationExtractedData.dateExpirationTitre(),
-                                immigrationExtractedData.typeTitreSejour(),
-                                immigrationExtractedData.typeProcedureDetectee(),
-                                immigrationExtractedData.dateDepotProcedure(),
-                                immigrationExtractedData.typeTitreSejourCode(),
-                                immigrationExtractedData.nationaliteUe(),
-                                immigrationExtractedData.typeRecoursCode(),
-                                immigrationExtractedData.dateNotificationDecisionContestee(),
-                                inferred,
-                                // SF-155-04-00-BE-immig-FR : préserver les 5 champs FR lors de la reconstruction
-                                immigrationExtractedData.dateNotificationOqtf(),
-                                immigrationExtractedData.motifOqtfCode(),
-                                immigrationExtractedData.recoursFormeDetected(),
-                                immigrationExtractedData.dateHeureNotificationOqtfSansDelai(),
-                                immigrationExtractedData.placementCraDetected(),
-                                // SF-155-04-00-BE-immig-BE : préserver les 4 champs BE lors de la reconstruction
-                                immigrationExtractedData.dateNotificationAnnexe13(),
-                                immigrationExtractedData.delaiDepartImposeJours(),
-                                immigrationExtractedData.motifOqtCodeBe(),
-                                immigrationExtractedData.transfertImminentDetected(),
-                                // F-201 : préserver les 9 flags Immigration FR
-                                immigrationExtractedData.aesMetiersTensionEligibleDetecte(),
-                                immigrationExtractedData.aesFamilialEligibleDetecte(),
-                                immigrationExtractedData.aesHumanitaireEligibleDetecte(),
-                                immigrationExtractedData.aesEtudiantEligibleDetecte(),
-                                immigrationExtractedData.changementStatutEnvisageDetecte(),
-                                immigrationExtractedData.procedureAsileDetectee(),
-                                immigrationExtractedData.naturalisationEnvisageeDetectee(),
-                                immigrationExtractedData.clientMineurDetecte(),
-                                immigrationExtractedData.mesureEloignementDetectee(),
-                                // F-203 : préserver les 5 flags Immigration BE
-                                immigrationExtractedData.procedure9bisEnvisagee(),
-                                immigrationExtractedData.procedure9terMedicaleDetectee(),
-                                immigrationExtractedData.regroupement40bisDetecte(),
-                                immigrationExtractedData.regroupement40terDetecte(),
-                                immigrationExtractedData.oqtAnnexe13Detectee(),
-                                // F-235 : préserver la nationalite (texte libre)
-                                immigrationExtractedData.nationalite()
-                        );
+                        // F-234 SF-234-01 : reconstruction via toBuilder() — propage automatiquement
+                        // tous les champs du record (y compris la nationalite F-235) et n'ajuste
+                        // que inferredChecklistType.
+                        immigrationExtractedData = immigrationExtractedData.toBuilder()
+                                .inferredChecklistType(inferred)
+                                .build();
                     }
                 }
             } catch (Exception ignored) {
@@ -1366,73 +1553,75 @@ public record CaseAnalysisResponse(
         JsonNode node = root.get("travail_extracted_data");
         if (node == null || !node.isObject()) return null;
         try {
-            return new TravailExtractedData(
+            // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
+            // sur les champs absents au lieu de propager des arguments positionnels.
+            return TravailExtractedData.builder()
                     // SF-129-01 : normaliser le code convention pour matcher le référentiel
-                    fr.ailegalcase.casefile.ConventionCodeNormalizer.normalize(textOrNull(node, "convention_collective")),
-                    textOrNull(node, "date_entree"),
-                    doubleOrNull(node, "salaire_brut_mensuel"),
-                    textOrNull(node, "type_contrat"),
-                    textOrNull(node, "poste"),
-                    textOrNull(node, "motif_licenciement"),
-                    textOrNull(node, "date_licenciement"),
-                    intOrNull(node, "conges_contractuels"),
-                    doubleOrNull(node, "prime_anciennete_contractuelle"),
-                    textOrNull(node, "nom_salarie"),
-                    textOrNull(node, "prenom_salarie"),
-                    textOrNull(node, "adresse_salarie"),
-                    textOrNull(node, "nom_employeur"),
-                    textOrNull(node, "adresse_employeur"),
-                    normalizeFrIdentifier(textOrNull(node, "siret_employeur")),
-                    normalizeBeBceIdentifier(textOrNull(node, "bce_employeur")),
-                    textOrNull(node, "representant_employeur"),
+                    .conventionCollective(fr.ailegalcase.casefile.ConventionCodeNormalizer.normalize(textOrNull(node, "convention_collective")))
+                    .dateEntree(textOrNull(node, "date_entree"))
+                    .salaireBrutMensuel(doubleOrNull(node, "salaire_brut_mensuel"))
+                    .typeContrat(textOrNull(node, "type_contrat"))
+                    .poste(textOrNull(node, "poste"))
+                    .motifLicenciement(textOrNull(node, "motif_licenciement"))
+                    .dateLicenciement(textOrNull(node, "date_licenciement"))
+                    .congesContractuels(intOrNull(node, "conges_contractuels"))
+                    .primeAncienneteContractuelle(doubleOrNull(node, "prime_anciennete_contractuelle"))
+                    .nomSalarie(textOrNull(node, "nom_salarie"))
+                    .prenomSalarie(textOrNull(node, "prenom_salarie"))
+                    .adresseSalarie(textOrNull(node, "adresse_salarie"))
+                    .nomEmployeur(textOrNull(node, "nom_employeur"))
+                    .adresseEmployeur(textOrNull(node, "adresse_employeur"))
+                    .siretEmployeur(normalizeFrIdentifier(textOrNull(node, "siret_employeur")))
+                    .bceEmployeur(normalizeBeBceIdentifier(textOrNull(node, "bce_employeur")))
+                    .representantEmployeur(textOrNull(node, "representant_employeur"))
                     // SF-130-01 : flag IA "salaire déduit d'un net"
-                    booleanOrNull(node, "salaire_est_deduit"),
+                    .salaireEstDeduit(booleanOrNull(node, "salaire_est_deduit"))
                     // SF-155-04-00-BE-travail : 5 champs IA pour F-DT-11 / F-DT-15 / F-DT-19
-                    normalizeEnumCode(textOrNull(node, "motif_nullite_pressenti"), MOTIFS_NULLITE_CODES),
-                    normalizeEnumCode(textOrNull(node, "origine_inaptitude_pressentie"), ORIGINE_INAPTITUDE_CODES),
-                    textOrNull(node, "avis_medecin_travail_date"),
-                    extractDetectedAnswer(node.get("reclassement_respecte_detected")),
-                    extractHeuresSupMentionnees(node.get("heures_sup_mentionnees")),
+                    .motifNullitePressenti(normalizeEnumCode(textOrNull(node, "motif_nullite_pressenti"), MOTIFS_NULLITE_CODES))
+                    .origineInaptitudePressentie(normalizeEnumCode(textOrNull(node, "origine_inaptitude_pressentie"), ORIGINE_INAPTITUDE_CODES))
+                    .avisMedecinTravailDate(textOrNull(node, "avis_medecin_travail_date"))
+                    .reclassementRespecteDetected(extractDetectedAnswer(node.get("reclassement_respecte_detected")))
+                    .heuresSupMentionneesDansDossier(extractHeuresSupMentionnees(node.get("heures_sup_mentionnees")))
                     // SF-166-01 : 8 flags décisionnels niveau 3 — fail-safe à false
-                    booleanOrFalse(node, "rappel_salaire_detecte"),
-                    booleanOrFalse(node, "travail_dissimule_detecte"),
-                    booleanOrFalse(node, "clause_non_concurrence_detectee"),
-                    booleanOrFalse(node, "statut_protege_detecte"),
-                    booleanOrFalse(node, "transaction_envisagee"),
-                    booleanOrFalse(node, "at_mp_detecte"),
-                    booleanOrFalse(node, "urgence_procedurale"),
-                    booleanOrFalse(node, "contestation_are_envisagee"),
+                    .rappelSalaireDetecte(booleanOrFalse(node, "rappel_salaire_detecte"))
+                    .travailDissimuleDetecte(booleanOrFalse(node, "travail_dissimule_detecte"))
+                    .clauseNonConcurrenceDetectee(booleanOrFalse(node, "clause_non_concurrence_detectee"))
+                    .statutProtegeDetecte(booleanOrFalse(node, "statut_protege_detecte"))
+                    .transactionEnvisagee(booleanOrFalse(node, "transaction_envisagee"))
+                    .atMpDetecte(booleanOrFalse(node, "at_mp_detecte"))
+                    .urgenceProcedurale(booleanOrFalse(node, "urgence_procedurale"))
+                    .contestationAreEnvisagee(booleanOrFalse(node, "contestation_are_envisagee"))
                     // F-204 : 5 flags décisionnels niveau 3 — Travail BE uniquement, fail-safe à false
-                    booleanOrFalse(node, "harcelement_be_detecte"),
-                    booleanOrFalse(node, "discrimination_be_detectee"),
-                    booleanOrFalse(node, "inaptitude_medicale_be_detectee"),
-                    booleanOrFalse(node, "heures_sup_mentionnees_be"),
-                    booleanOrFalse(node, "motif_grave_be_envisage"),
+                    .harcelementBeDetecte(booleanOrFalse(node, "harcelement_be_detecte"))
+                    .discriminationBeDetectee(booleanOrFalse(node, "discrimination_be_detectee"))
+                    .inaptitudeMedicaleBeDetectee(booleanOrFalse(node, "inaptitude_medicale_be_detectee"))
+                    .heuresSupMentionneesBe(booleanOrFalse(node, "heures_sup_mentionnees_be"))
+                    .motifGraveBeEnvisage(booleanOrFalse(node, "motif_grave_be_envisage"))
                     // F-205 : 23 flags décisionnels niveau 3 additionnels — Travail FR uniquement, fail-safe à false
-                    booleanOrFalse(node, "abandon_poste_detecte"),
-                    booleanOrFalse(node, "arret_maladie_long_detecte"),
-                    booleanOrFalse(node, "prise_acte_envisagee"),
-                    booleanOrFalse(node, "resiliation_judiciaire_envisagee"),
-                    booleanOrFalse(node, "forfait_jours_detecte"),
-                    booleanOrFalse(node, "transfert_entreprise_detecte"),
-                    booleanOrFalse(node, "faute_inexcusable_envisagee"),
-                    booleanOrFalse(node, "cs_crp_envisage"),
-                    booleanOrFalse(node, "csp_propose"),
-                    booleanOrFalse(node, "mutation_refusee"),
-                    booleanOrFalse(node, "modification_contrat_refusee"),
-                    booleanOrFalse(node, "faute_grave_envisagee"),
-                    booleanOrFalse(node, "faute_lourde_envisagee"),
-                    booleanOrFalse(node, "cdd_requalification_envisagee"),
-                    booleanOrFalse(node, "interim_requalification_envisagee"),
-                    booleanOrFalse(node, "forfait_jours_validite_contestee"),
-                    booleanOrFalse(node, "prescription_proche_detectee"),
-                    booleanOrFalse(node, "rupture_amiable_negociee"),
-                    booleanOrFalse(node, "entretien_preavis_obtenu"),
-                    booleanOrFalse(node, "cse_consultation_demandee"),
-                    booleanOrFalse(node, "irp_election_demandee"),
-                    booleanOrFalse(node, "inspection_travail_saisie"),
-                    booleanOrFalse(node, "mediation_judiciaire_envisagee")
-            );
+                    .abandonPosteDetecte(booleanOrFalse(node, "abandon_poste_detecte"))
+                    .arretMaladieLongDetecte(booleanOrFalse(node, "arret_maladie_long_detecte"))
+                    .priseActeEnvisagee(booleanOrFalse(node, "prise_acte_envisagee"))
+                    .resiliationJudiciaireEnvisagee(booleanOrFalse(node, "resiliation_judiciaire_envisagee"))
+                    .forfaitJoursDetecte(booleanOrFalse(node, "forfait_jours_detecte"))
+                    .transfertEntrepriseDetecte(booleanOrFalse(node, "transfert_entreprise_detecte"))
+                    .fauteInexcusableEnvisagee(booleanOrFalse(node, "faute_inexcusable_envisagee"))
+                    .csCrpEnvisage(booleanOrFalse(node, "cs_crp_envisage"))
+                    .cspPropose(booleanOrFalse(node, "csp_propose"))
+                    .mutationRefusee(booleanOrFalse(node, "mutation_refusee"))
+                    .modificationContratRefusee(booleanOrFalse(node, "modification_contrat_refusee"))
+                    .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
+                    .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
+                    .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
+                    .interimRequalificationEnvisagee(booleanOrFalse(node, "interim_requalification_envisagee"))
+                    .forfaitJoursValiditeContestee(booleanOrFalse(node, "forfait_jours_validite_contestee"))
+                    .prescriptionProcheDetectee(booleanOrFalse(node, "prescription_proche_detectee"))
+                    .ruptureAmiableNegociee(booleanOrFalse(node, "rupture_amiable_negociee"))
+                    .entretienPreavisObtenu(booleanOrFalse(node, "entretien_preavis_obtenu"))
+                    .cseConsultationDemandee(booleanOrFalse(node, "cse_consultation_demandee"))
+                    .irpElectionDemandee(booleanOrFalse(node, "irp_election_demandee"))
+                    .inspectionTravailSaisie(booleanOrFalse(node, "inspection_travail_saisie"))
+                    .mediationJudiciaireEnvisagee(booleanOrFalse(node, "mediation_judiciaire_envisagee"))
+                    .build();
         } catch (Exception ignored) { return null; }
     }
 
@@ -1643,21 +1832,47 @@ public record CaseAnalysisResponse(
                 && !procedure9bis && !procedure9ter && !regroupement40bis
                 && !regroupement40ter && !oqtAnnexe13
                 && nationalite == null) return null;
-        return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot,
-                typeCode, nationaliteUe, recoursCode, dateNotif, null,
+        // F-234 SF-234-01 : construction via Builder.
+        return ImmigrationExtractedData.builder()
+                .dateExpirationTitre(dateExpiration)
+                .typeTitreSejour(typeTitre)
+                .typeProcedureDetectee(typeProcedure)
+                .dateDepotProcedure(dateDepot)
+                .typeTitreSejourCode(typeCode)
+                .nationaliteUe(nationaliteUe)
+                .typeRecoursCode(recoursCode)
+                .dateNotificationDecisionContestee(dateNotif)
+                // inferredChecklistType : null à ce stade — peuplé en aval dans from() après inférence.
                 // SF-155-04-00-BE-immig-FR : 5 champs pour F-IM-08-02 / F-IM-08-04
-                dateNotifOqtf, motifOqtfCode, recoursFormeDetected,
-                dateHeureNotifOqtfSansDelai, placementCraDetected,
+                .dateNotificationOqtf(dateNotifOqtf)
+                .motifOqtfCode(motifOqtfCode)
+                .recoursFormeDetected(recoursFormeDetected)
+                .dateHeureNotificationOqtfSansDelai(dateHeureNotifOqtfSansDelai)
+                .placementCraDetected(placementCraDetected)
                 // SF-155-04-00-BE-immig-BE : 4 champs pour F-IM-08 Annexe 13 BE
-                dateAnnexe13, delaiDepart, motifOqtBe, transfertImminent,
+                .dateNotificationAnnexe13(dateAnnexe13)
+                .delaiDepartImposeJours(delaiDepart)
+                .motifOqtCodeBe(motifOqtBe)
+                .transfertImminentDetected(transfertImminent)
                 // F-201 : 9 flags Immigration FR
-                aesMetiersTension, aesFamilial, aesHumanitaire, aesEtudiant,
-                changementStatut, procedureAsile, naturalisationEnvisagee,
-                clientMineur, mesureEloignement,
+                .aesMetiersTensionEligibleDetecte(aesMetiersTension)
+                .aesFamilialEligibleDetecte(aesFamilial)
+                .aesHumanitaireEligibleDetecte(aesHumanitaire)
+                .aesEtudiantEligibleDetecte(aesEtudiant)
+                .changementStatutEnvisageDetecte(changementStatut)
+                .procedureAsileDetectee(procedureAsile)
+                .naturalisationEnvisageeDetectee(naturalisationEnvisagee)
+                .clientMineurDetecte(clientMineur)
+                .mesureEloignementDetectee(mesureEloignement)
                 // F-203 : 5 flags Immigration BE
-                procedure9bis, procedure9ter, regroupement40bis, regroupement40ter, oqtAnnexe13,
+                .procedure9bisEnvisagee(procedure9bis)
+                .procedure9terMedicaleDetectee(procedure9ter)
+                .regroupement40bisDetecte(regroupement40bis)
+                .regroupement40terDetecte(regroupement40ter)
+                .oqtAnnexe13Detectee(oqtAnnexe13)
                 // F-235 : nationalite (texte libre)
-                nationalite);
+                .nationalite(nationalite)
+                .build();
     }
 
     /**
@@ -1785,14 +2000,47 @@ public record CaseAnalysisResponse(
                 && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
             return null;
         }
-        return new FamilleExtractedData(
-                // FR (30)
-                dcm, dal, dfa, dac, rev, op, rec, rcu, pj,
-                ado, rp, cp, rche, pe, cr, dp, pd, sc, ind, or,
-                su, te, don, rh, ps, iss, rs, pm, cec, pmg,
+        // F-234 SF-234-01 : construction via Builder.
+        return FamilleExtractedData.builder()
+                // FR (30) — F-200
+                .divorceConsentementMutuelEnvisage(dcm)
+                .divorceAlterationLienEnvisage(dal)
+                .divorceFauteEnvisage(dfa)
+                .divorceAccepteEnvisage(dac)
+                .revisionPostDivorceEnvisagee(rev)
+                .ordonnanceProtectionEnvisagee(op)
+                .recompensesEnvisagees(rec)
+                .regimeCommunauteUniverselleDetecte(rcu)
+                .partageJudiciaireEnvisage(pj)
+                .adoptionEnvisagee(ado)
+                .reconnaissancePaternelleEnvisagee(rp)
+                .contestationPaterniteEnvisagee(cp)
+                .recherchePaterniteEnvisagee(rche)
+                .possessionEtatEnvisagee(pe)
+                .changementResidenceEnvisage(cr)
+                .desaccordParentalDetecte(dp)
+                .pacsDissolutionEnvisagee(pd)
+                .separationCorpsEnvisagee(sc)
+                .indivisionEnvisagee(ind)
+                .ordonnanceRequeteEnvisagee(or)
+                .successionEnvisagee(su)
+                .testamentEnvisage(te)
+                .donationEnvisagee(don)
+                .reserveHereditaireEnvisagee(rh)
+                .partageSuccessoralEnvisage(ps)
+                .indivisionSuccessoraleEnvisagee(iss)
+                .rapportSuccessionEnvisage(rs)
+                .protectionMajeurEnvisagee(pm)
+                .changementEtatCivilEnvisage(cec)
+                .pmaGpaEnvisagee(pmg)
                 // F-210 (1)
-                mfp,
-                // BE (5)
-                divorceDc, divorceDdi, cohabitationLegale, pacteSuccessoral, kafalaRecueil);
+                .mediationFamilialePreSaisinePertinente(mfp)
+                // BE (5) — F-202
+                .divorceDcEnvisage(divorceDc)
+                .divorceDdiEnvisage(divorceDdi)
+                .cohabitationLegaleBeDetectee(cohabitationLegale)
+                .pacteSuccessoralEnvisage(pacteSuccessoral)
+                .kafalaRecueilDetecte(kafalaRecueil)
+                .build();
     }
 }
