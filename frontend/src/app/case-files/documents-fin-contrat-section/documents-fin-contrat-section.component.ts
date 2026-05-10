@@ -38,6 +38,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  DocumentsFinContratSectionPrefillRules,
+} from './documents-fin-contrat-section-prefill-rules';
 
 /**
  * SF-DT-32-02 : champs alertables F-IA-03 exposés par l'outil F-DT-32
@@ -94,6 +97,22 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class DocumentsFinContratSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DOCUMENTS DE FIN DE CONTRAT — CONFORMITÉ';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return DocumentsFinContratSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'fact_check';
 
   @Input() caseFileId!: string;
@@ -215,18 +234,21 @@ export class DocumentsFinContratSectionComponent implements OnInit, OnChanges {
     if (!ai) return;
     if (this.workspaceCountry !== 'FRANCE') return;
 
-    // 1. salaireBrutMensuel → salaireMensuelBrutEur.
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
+    const salaire = DocumentsFinContratSectionPrefillRules.computeSalaireMensuelBrutEur(ruleInput);
+    if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(ai.salaireBrutMensuel);
+        this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
 
-    // 2. dateLicenciement → dateFinContrat.
-    if (typeof ai.dateLicenciement === 'string' && ai.dateLicenciement.length > 0) {
+    const dateFinContrat = DocumentsFinContratSectionPrefillRules.computeDateFinContrat(ruleInput);
+    if (dateFinContrat !== null) {
       if (this.dateFinContrat() === null || this.provenanceDateFinContrat() === 'IA') {
-        this.dateFinContrat.set(ai.dateLicenciement);
+        this.dateFinContrat.set(dateFinContrat);
         this.provenanceDateFinContrat.set('IA');
       }
     }

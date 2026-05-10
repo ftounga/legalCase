@@ -49,6 +49,9 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import {
+  RequalificationInterimCdiSectionPrefillRules,
+} from './requalification-interim-cdi-section-prefill-rules';
 
 /**
  * SF-DT-23-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -100,6 +103,22 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
 export class RequalificationInterimCdiSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'REQUALIFICATION INTÉRIM → CDI (FR) — ART. L.1251-40';
+
+  /** F-177 SF-177-12 / F-236 SF-236-02 — délègue au helper partagé (parité runtime). */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    return RequalificationInterimCdiSectionPrefillRules.computePrefillCount({
+      aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
+    });
+  }
+
   static readonly TOOL_ICON = 'swap_horiz';
 
   @Input() caseFileId!: string;
@@ -208,9 +227,13 @@ export class RequalificationInterimCdiSectionComponent implements OnInit, OnChan
     if (!ai) return;
     if (!this.isFrance()) return;
 
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    const salaire = RequalificationInterimCdiSectionPrefillRules.computeSalaireMensuelBrutEur({
+      aiData: ai, workspaceCountry: this.workspaceCountry,
+    });
+    if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(ai.salaireBrutMensuel);
+        this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
