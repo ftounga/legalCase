@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="218-create-mediation-familiale-pre-saisine-analyses" author="legalcase">
+        <comment>
+            SF-210-01 : table dédiée à l'outil décisionnel "Médiation familiale
+            obligatoire pré-saisine JAF" (FR — Cciv art. 373-2-10 al. 3 + Loi
+            n°2016-1547 du 18/11/2016 + CPC art. 1108).
+
+            Outil P1 — situation à délai / prérequis légal critique pour la
+            recevabilité de la requête JAF (autorité parentale, contribution
+            entretien, résidence enfant, droit de visite). À défaut de
+            tentative de médiation OU d'exception applicable (urgence,
+            violences, motif légitime, accord conjoint), la requête est
+            irrecevable et le juge peut soulever d'office.
+
+            Verdicts : RECEVABLE / IRRECEVABLE / NON_CONCERNE.
+
+            Outil single-country FRANCE — la procédure BE est distincte
+            (CJ art. 1734 — médiation encouragée mais non sanctionnée
+            d'irrecevabilité pour la même catégorie de motifs).
+
+            + 1 règle visibility F-IA-04 (CONTEXTUAL, DROIT_FAMILLE, FRANCE,
+            trigger `mediation_familiale_pre_saisine_pertinente=true`,
+            priority 96) pour exposer l'outil quand l'IA détecte une saisine
+            JAF in-scope sans tentative de médiation documentée.
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement Famille FR.
+            Aucun effet sur Travail / Immigration / Famille BE.
+
+            Audit "exhaustivité droit national FR" : couvre l'art. 373-2-10
+            al. 3 Cciv (modifié par Loi 18/11/2016). Pas d'équivalent direct
+            BE — outil FR-only justifié.
+        </comment>
+
+        <createTable tableName="mediation_familiale_pre_saisine_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mediation_fam_psai_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="motif_saisine" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mediation_tentee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_mediation" type="date"/>
+            <column name="exception_applicable" type="varchar(40)" defaultValue="AUCUNE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="exception_detail" type="text"/>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mediation_familiale_pre_saisine_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mediation_fam_psai_case_file"/>
+
+        <createIndex tableName="mediation_familiale_pre_saisine_analyses"
+                     indexName="idx_mediation_fam_psai_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES
+                ('f1a04001-0000-0000-0000-eeeefa210001', 'DROIT_FAMILLE', 'FRANCE',
+                 'mediation-familiale-pre-saisine', 'CONTEXTUAL',
+                 'mediation_familiale_pre_saisine_pertinente', 'true', 96);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-eeeefa210001';
+            </sql>
+            <dropTable tableName="mediation_familiale_pre_saisine_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

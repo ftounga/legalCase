@@ -523,6 +523,8 @@ public record CaseAnalysisResponse(
             boolean changementEtatCivilEnvisage,
             // PMA / GPA (F-FA-27)
             boolean pmaGpaEnvisagee,
+            // F-210 SF-210-01 : médiation familiale obligatoire pré-saisine JAF
+            boolean mediationFamilialePreSaisinePertinente,
             // === Flags BE (F-202) — 5 flags ===
             // F-202 : 5 flags décisionnels niveau 3 — Famille BELGIQUE uniquement, default false.
             // Permettent à F-IA-04 de basculer les outils Famille BE ALWAYS_ON → CONTEXTUAL
@@ -1586,6 +1588,8 @@ public record CaseAnalysisResponse(
         boolean pm = booleanOrFalse(node, "protection_majeur_envisagee");
         boolean cec = booleanOrFalse(node, "changement_etat_civil_envisage");
         boolean pmg = booleanOrFalse(node, "pma_gpa_envisagee");
+        // F-210 SF-210-01 : flag médiation pré-saisine JAF
+        boolean mfp = booleanOrFalse(node, "mediation_familiale_pre_saisine_pertinente");
         // === Flags BE (F-202) === — 5 flags fail-safe à false
         boolean divorceDc = booleanOrFalse(node, "divorce_dc_envisage");
         boolean divorceDdi = booleanOrFalse(node, "divorce_ddi_envisage");
@@ -1596,7 +1600,7 @@ public record CaseAnalysisResponse(
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
                 && !su && !te && !don && !rh && !ps && !iss && !rs
-                && !pm && !cec && !pmg
+                && !pm && !cec && !pmg && !mfp
                 && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
             return null;
         }
@@ -1605,6 +1609,8 @@ public record CaseAnalysisResponse(
                 dcm, dal, dfa, dac, rev, op, rec, rcu, pj,
                 ado, rp, cp, rche, pe, cr, dp, pd, sc, ind, or,
                 su, te, don, rh, ps, iss, rs, pm, cec, pmg,
+                // F-210 (1)
+                mfp,
                 // BE (5)
                 divorceDc, divorceDdi, cohabitationLegale, pacteSuccessoral, kafalaRecueil);
     }
