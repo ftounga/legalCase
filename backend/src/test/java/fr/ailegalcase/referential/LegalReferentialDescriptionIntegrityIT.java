@@ -90,4 +90,78 @@ class LegalReferentialDescriptionIntegrityIT {
         assertThat(nativeTypesEntries).isNotEmpty();
         // Pas d'assertion sur description : null OU renseignée sont tous les deux OK
     }
+
+    /**
+     * F-225 SF-225-03 garde-fou : tout {@code referential_type} système doit avoir
+     * une intégration UX dédiée côté frontend (entrée {@code SECTION_LABELS} +
+     * branches {@code formatValue} / {@code sectionIcon} dans
+     * {@code frontend/src/app/referentials/referentials.component.ts}).
+     *
+     * <p>Pattern miroir de {@code DecisionToolVisibilityIntegrityIT} (F-164 SF-164-01) :
+     * la liste {@link #KNOWN_FRONTEND_REFERENTIAL_TYPES} doit être manuellement mise
+     * à jour en même temps que toute migration qui INSERT un nouveau {@code referential_type}.
+     * Si elle est oubliée, le test échoue → empêche un type orphelin (titre brut, JSON brut)
+     * d'arriver en prod (cas réel des 5 types F-225 SF-225-01).
+     *
+     * <p>Pour ajouter un nouveau {@code referential_type} :
+     * <ol>
+     *   <li>Ajouter l'entrée {@code SECTION_LABELS} + branches {@code formatValue} / {@code sectionIcon}
+     *       dans {@code referentials.component.ts}.</li>
+     *   <li>Ajouter la clé dans {@link #KNOWN_FRONTEND_REFERENTIAL_TYPES} ci-dessous.</li>
+     *   <li>Lancer la migration Liquibase qui INSERT les entries du nouveau type.</li>
+     * </ol>
+     */
+    private static final List<String> KNOWN_FRONTEND_REFERENTIAL_TYPES = List.of(
+            // Existants pré-SF-225 (parité avec SECTION_LABELS référentiels)
+            "LITIGATION_TYPE",
+            "BAREME_MACRON",
+            "IMMIGRATION_JALONS",
+            "IMMIGRATION_PIECES",
+            "PENSION_TAUX",
+            "PRESTATION_COEFF",
+            "IMMIGRATION_TITLES",
+            "IMMIGRATION_RECOURS",
+            "IMMIGRATION_WORK_RIGHTS",
+            "CONVENTION_BAREMES",
+            "LICENCIEMENT_CRITERES",
+            "RUPTURE_CONV_CRITERES",
+            "INDEMNITE_BAREMES",
+            "GARDE_MODES",
+            "DIVORCE_ETAPES",
+            "DIVORCE_PIECES",
+            // SF-225-01 : 5 types orphelins intégrés UX
+            "CONVENTION_PREAVIS",
+            "TRAVAIL_PROCEDURE_JALONS",
+            "FAMILLE_PROCEDURE_JALONS",
+            "MAJEURS_PROTEGES_REGIMES",
+            "IM21_VALIDITY_CRITERES"
+    );
+
+    @Test
+    void tout_referential_type_systeme_a_une_integration_UX_frontend() {
+        List<String> orphans = repository.findAll().stream()
+                .filter(LegalReferential::isSystem)
+                .map(LegalReferential::getReferentialType)
+                .distinct()
+                .filter(type -> !KNOWN_FRONTEND_REFERENTIAL_TYPES.contains(type))
+                .sorted()
+                .collect(Collectors.toList());
+
+        assertThat(orphans)
+                .withFailMessage(() -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("F-225 SF-225-03 : les referential_type suivants sont seedés en DB ")
+                            .append("(is_system=true) mais n'ont PAS d'intégration UX dédiée côté frontend ")
+                            .append("(absence dans SECTION_LABELS / formatValue / sectionIcon de ")
+                            .append("frontend/src/app/referentials/referentials.component.ts).\n\n")
+                            .append("Action : étendre référentials.component.ts (3 branches : ")
+                            .append("SECTION_LABELS, formatValue, sectionIcon — éventuellement buildForm ")
+                            .append("dans le edit dialog) PUIS ajouter les types ci-dessous dans ")
+                            .append("KNOWN_FRONTEND_REFERENTIAL_TYPES de ce test.\n\n")
+                            .append("Types orphelins :\n");
+                    orphans.forEach(t -> sb.append(" - ").append(t).append("\n"));
+                    return sb.toString();
+                })
+                .isEmpty();
+    }
 }
