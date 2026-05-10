@@ -149,4 +149,25 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("FRANCE UNIQUEMENT");
         assertThat(instruction).contains("BELGIQUE, TOUS ces 8 flags DOIVENT rester false");
     }
+
+    // F-202 SF-202-01 : prompt Famille enrichi des 5 flags décisionnels niveau 3 BE
+    @Test
+    void domainSpecificInstruction_famille_contains5NiveauTroisFlagsBE() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("divorce_dc_envisage");
+        assertThat(instruction).contains("divorce_ddi_envisage");
+        assertThat(instruction).contains("cohabitation_legale_be_detectee");
+        assertThat(instruction).contains("pacte_successoral_envisage");
+        assertThat(instruction).contains("kafala_recueil_detecte");
+        // Conteneur famille_extracted_data documenté
+        assertThat(instruction).contains("famille_extracted_data");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_niveauTroisFlagsBE_explicitlyExcludeFR() {
+        // Tous les 5 flags BE doivent rester false pour un dossier famille FR
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("BELGIQUE UNIQUEMENT");
+        assertThat(instruction).contains("FRANCE, TOUS ces 5 flags BE DOIVENT rester false");
+    }
 }

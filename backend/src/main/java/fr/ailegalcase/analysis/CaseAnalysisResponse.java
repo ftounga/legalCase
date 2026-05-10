@@ -44,8 +44,46 @@ public record CaseAnalysisResponse(
         List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios,
         // F-152 : validité divorce consentement mutuel (famille, null hors domaine famille).
         DivorceConsentementValidityDetection divorceConsentementValidityDetection,
-        DivorceConsentementScoring divorceConsentementScoring
+        DivorceConsentementScoring divorceConsentementScoring,
+        // F-202 : flags décisionnels niveau 3 Famille BE (FR ajoutés ultérieurement par F-200).
+        // Null hors domaine famille.
+        FamilleExtractedData familleExtractedData
 ) {
+
+    /**
+     * Constructeur rétrocompat 29-args (pré-F-202) — délègue avec
+     * {@code familleExtractedData = null}.
+     */
+    public CaseAnalysisResponse(UUID id, int version, String analysisType, String status,
+                                List<TimelineEntry> timeline,
+                                List<AnalysisItem> faits, List<AnalysisItem> pointsJuridiques,
+                                List<AnalysisItem> risques, List<String> questionsOuvertes,
+                                List<String> piecesManquantes, List<String> pointsProcedure,
+                                String riskLevel, Integer riskScore, String modelUsed,
+                                Instant updatedAt, List<AnalysisDocumentEntry> analysisDocuments,
+                                CompensationCalculator.CompensationEstimate compensationEstimate,
+                                BelgianCompensationCalculator.BelgianCompensationEstimate belgianCompensationEstimate,
+                                PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
+                                PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
+                                LiquidationCommunauteResult liquidationCommunaute,
+                                TravailExtractedData travailExtractedData,
+                                ImmigrationExtractedData immigrationExtractedData,
+                                LicenciementValidityDetection licenciementValidityDetection,
+                                RuptureConvValidityDetection ruptureConvValidityDetection,
+                                List<PieceManquanteEntry> piecesManquantesDetails,
+                                List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents,
+                                List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios,
+                                DivorceConsentementValidityDetection divorceConsentementValidityDetection,
+                                DivorceConsentementScoring divorceConsentementScoring) {
+        this(id, version, analysisType, status, timeline, faits, pointsJuridiques, risques,
+                questionsOuvertes, piecesManquantes, pointsProcedure, riskLevel, riskScore, modelUsed,
+                updatedAt, analysisDocuments, compensationEstimate, belgianCompensationEstimate,
+                pensionAlimentaireEstimate, prestationCompensatoireEstimate, liquidationCommunaute,
+                travailExtractedData, immigrationExtractedData, licenciementValidityDetection,
+                ruptureConvValidityDetection, piecesManquantesDetails, immigrationTriggerEvents,
+                immigrationStrategyScenarios, divorceConsentementValidityDetection,
+                divorceConsentementScoring, null);
+    }
 
     /** Constructeur rétrocompat sans trigger events (pré-F-150). */
     public CaseAnalysisResponse(UUID id, int version, String analysisType, String status,
@@ -430,6 +468,27 @@ public record CaseAnalysisResponse(
             "FIN_SEJOUR_REGULIER", "AUTRE"
     );
 
+    /**
+     * Famille — agrégat des flags décisionnels niveau 3 (FR + BE) extraits depuis la clé
+     * {@code famille_extracted_data} du JSON IA, pour permettre à F-IA-04 de basculer les
+     * outils Famille ALWAYS_ON → CONTEXTUAL (cf. F-166 pattern).
+     *
+     * <p>Les flags FR seront ajoutés par F-200 (parallèle) en tête de ce record avec un
+     * commentaire d'ancrage {@code // === Flags FR (F-200) ===}. F-202 livre uniquement
+     * les 5 flags BE en queue avec {@code // === Flags BE (F-202) ===} pour minimiser
+     * le merge conflict mécanique.
+     */
+    public record FamilleExtractedData(
+            // === Flags BE (F-202) ===
+            // F-202 : 5 flags décisionnels niveau 3 — Famille BELGIQUE uniquement, default false.
+            // Permettent à F-IA-04 de basculer les outils Famille BE ALWAYS_ON → CONTEXTUAL
+            // (migration 217). Dossiers FR : tous false (F-200 livrera ses propres flags FR).
+            boolean divorceDcEnvisage,
+            boolean divorceDdiEnvisage,
+            boolean cohabitationLegaleBeDetectee,
+            boolean pacteSuccessoralEnvisage,
+            boolean kafalaRecueilDetecte) {}
+
     public record TimelineEntry(String date, String evenement) {}
 
     public record AnalysisDocumentEntry(int index, String name) {}
@@ -518,6 +577,8 @@ public record CaseAnalysisResponse(
         List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios = List.of();
         DivorceConsentementValidityDetection divorceConsentementValidityDetection = null;
         DivorceConsentementScoring divorceConsentementScoring = null;
+        // F-202 : flags Famille BE (F-200 ajoutera les flags FR ultérieurement).
+        FamilleExtractedData familleExtractedData = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -543,6 +604,8 @@ public record CaseAnalysisResponse(
                 immigrationStrategyScenarios = extractImmigrationStrategyScenarios(root);
                 divorceConsentementValidityDetection = extractDivorceConsentementValidityDetection(root);
                 divorceConsentementScoring = computeDivorceConsentementScoring(divorceConsentementValidityDetection);
+                // F-202 SF-202-01 : 5 flags Famille BE (la fonction retourne null si tous false ou clé absente).
+                familleExtractedData = extractFamilleData(root);
 
                 // SF-IM-01-04 : enrichit ImmigrationExtractedData avec le type de
                 // checklist inféré (combine titre actuel + titre cible suggéré par
@@ -639,7 +702,8 @@ public record CaseAnalysisResponse(
                 immigrationTriggerEvents,
                 immigrationStrategyScenarios,
                 divorceConsentementValidityDetection,
-                divorceConsentementScoring
+                divorceConsentementScoring,
+                familleExtractedData
         );
     }
 
@@ -668,7 +732,8 @@ public record CaseAnalysisResponse(
                     base.ruptureConvValidityDetection(),
                     base.piecesManquantesDetails(),
                     base.immigrationTriggerEvents(), base.immigrationStrategyScenarios(),
-                    base.divorceConsentementValidityDetection(), base.divorceConsentementScoring());
+                    base.divorceConsentementValidityDetection(), base.divorceConsentementScoring(),
+                    base.familleExtractedData());
         }
         return base;
     }
@@ -1434,5 +1499,31 @@ public record CaseAnalysisResponse(
     private static boolean booleanOrFalse(JsonNode node, String field) {
         Boolean v = booleanOrNull(node, field);
         return v != null && v;
+    }
+
+    /**
+     * F-202 SF-202-01 : parseur des 5 flags Famille BE depuis la clé
+     * {@code famille_extracted_data} du JSON IA. Retourne {@code null} si la clé est
+     * absente / non-objet (cas dossiers Travail / Immigration où l'IA n'émet pas ce nœud)
+     * ou si tous les flags sont à false (économie mémoire — la map de visibilité ne lit
+     * que les flags à true via {@code addBooleanFlagIfTrue}).
+     *
+     * <p>F-200 enrichira ce parseur en ajoutant les ~30 flags FR en tête, avec un
+     * commentaire d'ancrage {@code // === Flags FR (F-200) ===}.
+     */
+    static FamilleExtractedData extractFamilleData(JsonNode root) {
+        JsonNode node = root.get("famille_extracted_data");
+        if (node == null || !node.isObject()) return null;
+        // === Flags BE (F-202) === — fail-safe à false
+        boolean divorceDc = booleanOrFalse(node, "divorce_dc_envisage");
+        boolean divorceDdi = booleanOrFalse(node, "divorce_ddi_envisage");
+        boolean cohabitationLegale = booleanOrFalse(node, "cohabitation_legale_be_detectee");
+        boolean pacteSuccessoral = booleanOrFalse(node, "pacte_successoral_envisage");
+        boolean kafalaRecueil = booleanOrFalse(node, "kafala_recueil_detecte");
+        if (!divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
+            return null;
+        }
+        return new FamilleExtractedData(
+                divorceDc, divorceDdi, cohabitationLegale, pacteSuccessoral, kafalaRecueil);
     }
 }
