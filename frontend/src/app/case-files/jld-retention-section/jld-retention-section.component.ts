@@ -25,6 +25,14 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'JLD RÉTENTION 24-48H';
   static readonly TOOL_ICON = 'gavel';
 
+  /**
+   * F-236 SF-236-02/05 : wrapper informationnel F-208 — aucun pré-fill IA tant
+   * que le composant de saisie complet n'est pas livré. Toujours 0.
+   */
+  static getPrefillCount(): number {
+    return 0;
+  }
+
   @Input() caseFileId!: string;
   @Input() forceExpanded = false;
 

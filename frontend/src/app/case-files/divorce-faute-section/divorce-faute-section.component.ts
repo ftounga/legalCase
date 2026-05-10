@@ -118,6 +118,32 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'DIVORCE POUR FAUTE (FR) — ART. 242 CCIV';
   static readonly TOOL_ICON = 'gavel';
 
+  /**
+   * F-236 SF-236-02/05 : static parité runtime/static. Compte les champs que
+   * {@link prefillFromAi} poserait — 5 champs maximum (durée mariage, revenus
+   * demandeur, revenus défendeur, date dépôt assignation, fautes détectées).
+   *
+   * TODO F-236 follow-up : extraire la logique dans `DivorceFautePrefillRules`
+   * (helper partagé) une fois la migration vague Famille étendue à ce composant.
+   */
+  static getPrefillCount(input: { aiData?: any }): number {
+    const ai = input?.aiData;
+    if (!ai) return 0;
+    let n = 0;
+    if (typeof ai.dureeMariageAnnees === 'number' && ai.dureeMariageAnnees > 0) n++;
+    if (typeof ai.revenusAnnuelsDemandeurEur === 'number' && ai.revenusAnnuelsDemandeurEur > 0) n++;
+    if (typeof ai.revenusAnnuelsDefendeurEur === 'number' && ai.revenusAnnuelsDefendeurEur > 0) n++;
+    if (typeof ai.dateDepotAssignation === 'string' && ai.dateDepotAssignation.length > 0) n++;
+    if (Array.isArray(ai.fautesDetectees) && ai.fautesDetectees.length > 0) {
+      const filtered = ai.fautesDetectees
+        .filter((f: unknown) => typeof f === 'string')
+        .map((f: string) => f.toUpperCase())
+        .filter((f: string) => VALID_FAUTE_CODES.has(f));
+      if (filtered.length > 0) n++;
+    }
+    return n;
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   // SF-FA-09-02 : pré-fill IA (tous optionnels — null-safe partout).
