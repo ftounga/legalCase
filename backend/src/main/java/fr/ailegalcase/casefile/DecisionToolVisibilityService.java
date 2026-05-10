@@ -206,6 +206,18 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40bis_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
+
+        // F-202 : 5 flags Famille BE — booleans dans famille_extracted_data.
+        // Migration 217 : F-FA-11-desunion-irremediable-be bascule ALWAYS_ON → CONTEXTUAL
+        // (trigger divorce_ddi_envisage). Les 4 autres flags sont prêts pour les
+        // outils MANQUE Famille BE futurs (F-211/F-217+ — cohabitation légale, pacte
+        // successoral, kafala, DC). F-200 ajoutera les flags FR ultérieurement.
+        JsonNode familleNode = root.path("famille_extracted_data");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "cohabitation_legale_be_detectee");
+        addBooleanFlagIfTrue(detected, familleNode, "pacte_successoral_envisage");
+        addBooleanFlagIfTrue(detected, familleNode, "kafala_recueil_detecte");
         return detected;
     }
 

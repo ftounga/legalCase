@@ -1686,4 +1686,121 @@ class CaseAnalysisResponseTest {
         assertThat(t.travailDissimuleDetecte()).isFalse();
         assertThat(t.contestationAreEnvisagee()).isFalse();
     }
+
+    // ===========================================================================
+    // F-202 SF-202-01 — extractFamilleData : 5 flags Famille BE niveau 3
+    // ===========================================================================
+
+    @Test
+    void from_familleExtractedData_absent_returnsNull() {
+        // Pas de famille_extracted_data dans le JSON → record null
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "faits": []
+                }
+                """)).familleExtractedData();
+        assertThat(f).isNull();
+    }
+
+    @Test
+    void from_familleExtractedData_allFlagsFalse_returnsNull() {
+        // Tous les flags à false → record null (économie mémoire, pattern aligné sur extractImmigrationData)
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": false,
+                    "divorce_ddi_envisage": false,
+                    "cohabitation_legale_be_detectee": false,
+                    "pacte_successoral_envisage": false,
+                    "kafala_recueil_detecte": false
+                  }
+                }
+                """)).familleExtractedData();
+        assertThat(f).isNull();
+    }
+
+    @Test
+    void from_familleExtractedData_singleFlagTrue_isParsed() {
+        // Un seul flag true → record non-null avec les autres flags false
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_ddi_envisage": true
+                  }
+                }
+                """)).familleExtractedData();
+        assertThat(f).isNotNull();
+        assertThat(f.divorceDdiEnvisage()).isTrue();
+        assertThat(f.divorceDcEnvisage()).isFalse();
+        assertThat(f.cohabitationLegaleBeDetectee()).isFalse();
+        assertThat(f.pacteSuccessoralEnvisage()).isFalse();
+        assertThat(f.kafalaRecueilDetecte()).isFalse();
+    }
+
+    @Test
+    void from_familleExtractedData_allFlagsTrue_isParsed() {
+        // Tous les flags true en même temps (cas hypothétique de dossier multi-situations)
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "divorce_ddi_envisage": true,
+                    "cohabitation_legale_be_detectee": true,
+                    "pacte_successoral_envisage": true,
+                    "kafala_recueil_detecte": true
+                  }
+                }
+                """)).familleExtractedData();
+        assertThat(f).isNotNull();
+        assertThat(f.divorceDcEnvisage()).isTrue();
+        assertThat(f.divorceDdiEnvisage()).isTrue();
+        assertThat(f.cohabitationLegaleBeDetectee()).isTrue();
+        assertThat(f.pacteSuccessoralEnvisage()).isTrue();
+        assertThat(f.kafalaRecueilDetecte()).isTrue();
+    }
+
+    @Test
+    void from_familleExtractedData_invalidValues_failSafeToFalse() {
+        // Valeurs non-boolean (entier, string non standard, null) → false (pattern booleanOrFalse)
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": "yes",
+                    "divorce_ddi_envisage": 1,
+                    "cohabitation_legale_be_detectee": null,
+                    "pacte_successoral_envisage": "TRUE_INVALID",
+                    "kafala_recueil_detecte": true
+                  }
+                }
+                """)).familleExtractedData();
+        // Seul kafala (true littéral) doit être true ; les autres → false
+        assertThat(f).isNotNull();
+        assertThat(f.divorceDcEnvisage()).isFalse();
+        assertThat(f.divorceDdiEnvisage()).isFalse();
+        assertThat(f.cohabitationLegaleBeDetectee()).isFalse();
+        assertThat(f.pacteSuccessoralEnvisage()).isFalse();
+        assertThat(f.kafalaRecueilDetecte()).isTrue();
+    }
+
+    @Test
+    void from_familleExtractedData_stringTrueAndFalse_recognizedCaseInsensitive() {
+        // booleanOrFalse tolère les chaînes "true" / "false" (case-insensitive)
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": "true",
+                    "divorce_ddi_envisage": "false",
+                    "cohabitation_legale_be_detectee": "TRUE",
+                    "pacte_successoral_envisage": "False",
+                    "kafala_recueil_detecte": "False"
+                  }
+                }
+                """)).familleExtractedData();
+        assertThat(f).isNotNull();
+        assertThat(f.divorceDcEnvisage()).isTrue();
+        assertThat(f.divorceDdiEnvisage()).isFalse();
+        assertThat(f.cohabitationLegaleBeDetectee()).isTrue();
+        assertThat(f.pacteSuccessoralEnvisage()).isFalse();
+        assertThat(f.kafalaRecueilDetecte()).isFalse();
+    }
 }
