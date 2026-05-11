@@ -650,28 +650,52 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // sera livré dans une SF ultérieure de F-208 ; ce wrapper rappelle uniquement
       // le cadre juridique pour ne pas laisser le tool_id orphelin (cf. règle
       // SF-164-01 / DecisionToolVisibilityIntegrityIT).
+      // SF-208-05 : composant complet F-IM-21 (formulaire + verdict + pre-fill IA + F-IA-03).
       ['F-IM-21-jld-retention-fr', {
         component: JldRetentionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-208-06 : composant complet F-IM-22.
       ['F-IM-22-dublin-recours-fr', {
         component: DublinRecoursSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-208-07 : composant complet F-IM-23.
       ['F-IM-23-crrv-refus-visa-fr', {
         component: CrrvRefusVisaSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-208-08 : composant complet F-IM-24 (analyzer scoring 3 verdicts).
       ['F-IM-24-victime-violences-l4256-fr', {
         component: VictimeViolencesL4256SectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       // F-198 SF-198-01 : restauration de F-FA-01-prestation-compensatoire
