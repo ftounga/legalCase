@@ -70,6 +70,10 @@
                     matBadgeSize="small">menu_book</mat-icon>
           <span matListItemTitle>Guides & barèmes</span>
         </a>
+        <a mat-list-item routerLink="/simulators" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>science</mat-icon>
+          <span matListItemTitle>Simulateurs</span>
+        </a>
         <a mat-list-item routerLink="/workspace/time-report" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>schedule</mat-icon>
           <span matListItemTitle>Rapport de temps</span>

@@ -94,6 +94,11 @@ export const routes: Routes = [
           .then(m => m.ReferentialsComponent)
       },
       {
+        path: 'simulators',
+        loadComponent: () => import('./simulators/simulators-catalog-page.component')
+          .then(m => m.SimulatorsCatalogPageComponent)
+      },
+      {
         path: 'search',
         loadComponent: () => import('./search/search.component')
           .then(m => m.SearchComponent)

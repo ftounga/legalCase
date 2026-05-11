@@ -390,6 +390,50 @@ describe('ShellComponent — badge alertes référentiels', () => {
   }));
 });
 
+describe('ShellComponent — entrée menu Simulateurs (F-163 SF-163-01)', () => {
+  let fixture: ComponentFixture<ShellComponent>;
+
+  beforeEach(async () => {
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    const authServiceStub = { currentUser: signal(null), logout: () => {} };
+    const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
+
+    await TestBed.configureTestingModule({
+      imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
+      providers: [
+        provideHttpClient(), provideHttpClientTesting(),
+        { provide: AuthService, useValue: authServiceStub },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
+        { provide: ReferentialService, useValue: referentialServiceStub }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ShellComponent);
+    fixture.detectChanges();
+  });
+
+  // T-SIM-01 : l'entrée « Simulateurs » est présente dans la sidenav
+  it('affiche l\'entrée Simulateurs dans le menu latéral', fakeAsync(() => {
+    tick();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Simulateurs');
+  }));
+
+  // T-SIM-02 : le lien routerLink pointe vers /simulators
+  it('le lien Simulateurs cible la route /simulators', fakeAsync(() => {
+    tick();
+    fixture.detectChanges();
+    const links = Array.from(fixture.nativeElement.querySelectorAll('a[mat-list-item]')) as HTMLElement[];
+    const simulatorsLink = links.find(l => (l.textContent || '').includes('Simulateurs'));
+    expect(simulatorsLink).toBeTruthy();
+    expect(simulatorsLink?.getAttribute('ng-reflect-router-link')).toBe('/simulators');
+  }));
+});
+
 describe('ShellComponent — responsive mobile', () => {
   let fixture: ComponentFixture<ShellComponent>;
   let component: ShellComponent;

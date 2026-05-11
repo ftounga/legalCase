@@ -1,0 +1,143 @@
+<div class="simulators-page">
+  <header class="simulators-header">
+    <div class="header-titles">
+      <h1>
+        <mat-icon class="header-icon">science</mat-icon>
+        Simulateurs
+      </h1>
+      <p class="header-subtitle">
+        @if (loading()) {
+          Chargement du catalogue des outils décisionnels…
+        } @else if (error()) {
+          Catalogue indisponible — vérifiez votre connexion ou réessayez.
+        } @else if (isWorkspaceUnconfigured()) {
+          Précisez le domaine de votre workspace pour découvrir les simulateurs disponibles.
+        } @else if (legalDomainLabel() && countryLabel()) {
+          {{ availableTools().length }} outil(s) décisionnel(s) pour
+          {{ legalDomainLabel() }} / {{ countryLabel() }}
+        } @else if (legalDomainLabel()) {
+          {{ availableTools().length }} outil(s) décisionnel(s) pour
+          {{ legalDomainLabel() }} (tous pays)
+        } @else {
+          {{ availableTools().length }} outil(s) décisionnel(s) disponible(s)
+        }
+      </p>
+    </div>
+  </header>
+
+  <!-- Bannière workspace non configuré (legalDomain absent) -->
+  @if (!loading() && !error() && isWorkspaceUnconfigured()) {
+    <section class="banner banner-info" data-testid="banner-workspace-unconfigured">
+      <mat-icon>info</mat-icon>
+      <div class="banner-content">
+        <p class="banner-title">Domaine de workspace non renseigné</p>
+        <p class="banner-text">
+          Renseignez le domaine juridique de votre workspace (Droit du travail,
+          Droit de la famille, Droit de l'immigration) pour voir les simulateurs
+          correspondants.
+        </p>
+        <a mat-flat-button color="primary" routerLink="/workspace/settings">
+          Configurer le workspace
+        </a>
+      </div>
+    </section>
+  }
+
+  <!-- Bannière erreur API -->
+  @if (!loading() && error()) {
+    <section class="banner banner-error" data-testid="banner-error">
+      <mat-icon>error_outline</mat-icon>
+      <div class="banner-content">
+        <p class="banner-title">Impossible de charger les simulateurs</p>
+        <p class="banner-text">
+          Une erreur est survenue. Réessayez dans quelques instants — si le
+          problème persiste, contactez le support.
+        </p>
+        <button mat-flat-button color="primary" (click)="loadCatalog()">
+          <mat-icon>refresh</mat-icon>
+          Réessayer
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- Spinner pendant chargement initial -->
+  @if (loading()) {
+    <div class="loading-block">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  <!-- Catalogue : barre de recherche + grille -->
+  @if (!loading() && !error() && !isWorkspaceUnconfigured()) {
+    <section class="search-block">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Rechercher un simulateur</mat-label>
+        <input
+          matInput
+          type="search"
+          placeholder="OQTF, validité, divorce…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+          data-testid="search-input"
+        />
+        <mat-icon matPrefix>search</mat-icon>
+        @if (searchQuery().length > 0) {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            aria-label="Effacer la recherche"
+            (click)="onResetSearch()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+      <p class="results-counter" data-testid="results-counter">
+        {{ resultsCount().matching }} résultat(s) sur {{ resultsCount().total }}
+      </p>
+    </section>
+
+    @if (availableTools().length === 0) {
+      <section class="empty-state empty-state-no-tools" data-testid="empty-no-tools">
+        <mat-icon>inbox</mat-icon>
+        <p>
+          Aucun simulateur n'est disponible pour ce workspace pour le moment.
+        </p>
+      </section>
+    } @else if (isSearchEmpty()) {
+      <section class="empty-state empty-state-search" data-testid="empty-search">
+        <mat-icon>search_off</mat-icon>
+        <p>Aucun simulateur ne correspond à votre recherche.</p>
+        <button mat-stroked-button color="primary" (click)="onResetSearch()">
+          <mat-icon>refresh</mat-icon>
+          Réinitialiser
+        </button>
+      </section>
+    } @else {
+      <section class="simulators-grid" data-testid="simulators-grid">
+        @for (tool of filteredTools(); track tool.toolId) {
+          <button
+            type="button"
+            class="simulator-card"
+            data-testid="simulator-card"
+            [attr.data-tool-id]="tool.toolId"
+            (click)="onCardClick(tool)"
+          >
+            <span class="card-icon-wrap">
+              <mat-icon>{{ tool.icon }}</mat-icon>
+            </span>
+            <span class="card-body">
+              <span class="card-title">{{ tool.displayLabel }}</span>
+              @if (tool.shortLabel && tool.shortLabel !== tool.displayLabel) {
+                <span class="card-short">{{ tool.shortLabel }}</span>
+              }
+            </span>
+            <mat-icon class="card-chevron">chevron_right</mat-icon>
+          </button>
+        }
+      </section>
+    }
+  }
+</div>
