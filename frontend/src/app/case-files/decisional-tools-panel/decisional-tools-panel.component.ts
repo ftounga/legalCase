@@ -728,6 +728,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-208-06 : composant complet F-IM-22.
@@ -741,6 +743,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-208-07 : composant complet F-IM-23.
@@ -754,6 +758,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-208-08 : composant complet F-IM-24 (analyzer scoring 3 verdicts).
@@ -767,6 +773,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // F-198 SF-198-01 : restauration de F-FA-01-prestation-compensatoire
@@ -945,6 +953,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-08-oqtf-sans-delai-fr', {
@@ -958,6 +968,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-08-annexe13-be', {
@@ -971,6 +983,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-08-08 : référés administratifs L.521-1 / L.521-2 (FR uniquement).
@@ -984,6 +998,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-DT-35-02 : contestation ARE / France Travail (FR uniquement).
@@ -1116,6 +1132,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-14-9bis-humanitaire-be', {
@@ -1125,6 +1143,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.immigrationExtractedData,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-14-9ter-medical-be', {
@@ -1134,6 +1154,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.immigrationExtractedData,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-14-40bis-cohabitant-ue-be', {
@@ -1146,6 +1168,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-09-aes-metiers-tension', {
@@ -1158,6 +1182,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-09-aes-famille', {
@@ -1170,6 +1196,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-08-divorce-alteration', {
@@ -1387,6 +1415,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-13-02 : naturalisation française FR — 6 voies Cciv 21-15+.
@@ -1400,6 +1430,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-19-02 : mineurs étrangers FR — MNA / L.435-3 / DCEM / TIR.
@@ -1413,6 +1445,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-20-02 : mesures d'éloignement avancées FR — Expulsion + IRTF + IAT.
@@ -1426,6 +1460,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-12-02 : asile avancé FR — Dublin III / accélérée / réexamen / apatridie / PS.
@@ -1439,6 +1475,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-FA-17-02 : partage judiciaire FR (art. 840+ Cciv + 1364+ + 1366 CPC).
@@ -1680,6 +1718,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // ===================================================================
@@ -1715,6 +1755,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-IM-09-aes-humanitaire', {
@@ -1727,6 +1769,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-11-desunion-irremediable-be', {
