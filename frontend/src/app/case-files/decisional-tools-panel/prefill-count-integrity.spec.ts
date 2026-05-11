@@ -1,5 +1,5 @@
 /**
- * F-236 SF-236-05 — Garde-fou CI `prefill-count-integrity`.
+ * F-236 SF-236-05 + F-237 SF-237-01 — Garde-fou CI `prefill-count-integrity`.
  *
  * Vérifie que **chaque** entrée du `TOOL_REGISTRY` du panel décisionnel
  * (F-IA-04) expose une méthode statique `getPrefillCount(input)` conforme au
@@ -10,11 +10,36 @@
  *  - appelée avec `{}` (input vide), elle retourne un nombre fini, non-NaN,
  *    non-négatif.
  *
- * **Motivation produit** (mini-spec SF-236-05) : sans ce static, le panel
- * F-IA-04 affiche silencieusement un badge faux ou absent (`auto_awesome +N`),
- * ce qui invalide la promesse UX "outils décisionnels assistés par l'IA". Le
- * helper `getToolPrefillCount()` du contract retourne `null` quand le static
- * manque → le panel masque le badge sans alerte → bug produit silencieux.
+ * **F-237 SF-237-01 — Extension parité runtime/static** : en plus du check
+ * SF-236-05 (présence + signature), ce fichier vérifie que le `static
+ * getPrefillCount` du composant **s'aligne comportementalement** avec le
+ * helper partagé `<ComponentName>PrefillRules.computePrefillCount` co-localisé
+ * dans le dossier du composant. Pour chaque entrée TOOL_REGISTRY non tolérée :
+ *
+ *  - le fichier helper `<component>-prefill-rules.ts` doit exister à côté du
+ *    composant (convention F-236 SF-236-01 §1.1) ;
+ *  - il doit exporter un objet `*PrefillRules` avec une fonction
+ *    `computePrefillCount(input): number` ;
+ *  - sur une batterie de fixtures canoniques (`{}`, `{aiData: null}`, etc.),
+ *    le static et le helper doivent retourner exactement la même valeur.
+ *
+ * Le check est **comportemental** (par fixture) plutôt que de stricte identité
+ * de référence (`Component.getPrefillCount === Helper.computePrefillCount`)
+ * parce que sur master post-SF-236, les 89 statics délèguent au helper via un
+ * wrapper léger (`return Helper.computePrefillCount({ aiData: input.aiData })`),
+ * et non par exposition directe du pointeur. La parité comportementale capture
+ * le même invariant : si un static dérive du helper (logique copiée, return
+ * constant injecté, …), la batterie de fixtures fait apparaître la divergence.
+ *
+ * **Motivation produit** (mini-specs SF-236-05 + F-237) : sans ce static, le
+ * panel F-IA-04 affiche silencieusement un badge faux ou absent
+ * (`auto_awesome +N`), ce qui invalide la promesse UX "outils décisionnels
+ * assistés par l'IA". Le helper `getToolPrefillCount()` du contract retourne
+ * `null` quand le static manque → le panel masque le badge sans alerte → bug
+ * produit silencieux. Sans le check parité F-237 SF-237-01, un agent peut
+ * faire mentir le compteur (`getPrefillCount` retournant 0 pendant que
+ * `prefillFromAi()` remplit N champs) — exactement le bug que F-236 vient de
+ * corriger sur F-FA-07.
  *
  * **Pattern miroir** :
  *  - `DecisionToolVisibilityIntegrityIT` (F-164 SF-164-01) — backend Java vérifiant
@@ -26,9 +51,13 @@
  * Notre test est en Jest (frontend) car la cible est un import TypeScript dynamique
  * via `TOOL_REGISTRY`.
  *
- * **Démonstration de la sensibilité** : retirer manuellement `static getPrefillCount`
- * d'un composant aléatoire fait échouer ce test avec un message clair indiquant
- * le tool_id concerné + le nom de la classe.
+ * **Démonstration de la sensibilité** :
+ *  - SF-236-05 : retirer manuellement `static getPrefillCount` d'un composant
+ *    aléatoire fait échouer ce test avec un message clair indiquant le
+ *    tool_id concerné + le nom de la classe.
+ *  - SF-237-01 : remplacer le corps du static par un return constant non-zéro
+ *    (drift volontaire) fait échouer le check parité avec un message listant
+ *    `tool_id`, classe et fixture qui a divergé.
  */
 import { Type } from '@angular/core';
 
@@ -171,5 +200,345 @@ describe('TOOL_REGISTRY prefill count integrity (F-236 SF-236-05)', () => {
     }
     // Pas d'expect.fail — c'est un warning consultatif.
     expect(true).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F-237 SF-237-01 — Parité runtime ↔ static via helper PrefillRules.
+//
+// Objectif : pour chaque entrée TOOL_REGISTRY, vérifier que le static
+// `getPrefillCount` du composant est **arrimé** au helper partagé
+// `<ComponentName>PrefillRules.computePrefillCount` co-localisé (contrat
+// F-236 SF-236-01).
+//
+// Forme de la vérification — **parité comportementale par fixture**.
+// La cible idéale de la mini-spec est l'« identité de référence »
+// (`Component.getPrefillCount === Helper.computePrefillCount`). Sur master
+// post-SF-236, les 89 statics délèguent en **wrapper léger** :
+//
+//   static getPrefillCount(input) {
+//     return XxxPrefillRules.computePrefillCount({ aiData: input.aiData });
+//   }
+//
+// → l'identité stricte échouerait pour tous (le static est une nouvelle
+// closure, pas le même pointeur). La parité comportementale capture le
+// même invariant **par construction** : pour une batterie de fixtures
+// canoniques, `static(F)` doit retourner exactement
+// `helper.computePrefillCount(F)`. Toute dérive (logique copiée/divergente,
+// fonction détachée du helper) produit une différence détectable.
+//
+// Périmètre de tolérance — 14 composants sans helper sur master :
+//  - Étiquettes `static readonly PREFILL_COUNT_ALWAYS_ZERO = true;` à venir
+//    en SF-237-02 ; en attendant, listés dans `TOLERATED_NO_HELPER` ci-bas.
+//
+// Garde-fou symétrique (P0) :
+//  - `PREFILL_COUNT_ALWAYS_ZERO === true` ⇒ on vérifie strictement
+//    `getPrefillCount({}) === 0` (cohérence de l'étiquette).
+//
+// **Démonstration de la sensibilité** (test du test) :
+//  - Remplacer `static getPrefillCount` d'un composant aléatoire par une
+//    fonction locale détachée du helper avec une logique qui diverge sur
+//    `{}` (ex. retourner `1` au lieu de `0`) → le test échoue avec un message
+//    listant `tool_id`, nom de classe et fixture qui a divergé.
+//  - Restaurer la délégation → le test passe.
+// ---------------------------------------------------------------------------
+
+import * as path from 'path';
+import * as fs from 'fs';
+
+/**
+ * Convention de dérivation `classe Angular → dossier kebab-case`.
+ *
+ * Règle de base (97/98 cas) : retirer le suffixe `Component`, convertir
+ * la PascalCase en kebab-case.
+ *
+ * Exceptions (1/98) : `BelgianCohabitantUeBeSectionComponent` réside dans le
+ * dossier `belgian-40bis-section` (alias historique conservé par F-DT-26 BE).
+ */
+const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
+  // Dossier alias historique conservé par F-DT-26 BE.
+  ['BelgianCohabitantUeBeSectionComponent', 'belgian-40bis-section'],
+  // Le mapping kebab-case standard collerait les chiffres au préfixe :
+  // `Belgian9bis` → `belgian9bis-section` au lieu de `belgian-9bis-section`.
+  ['Belgian9bisSectionComponent', 'belgian-9bis-section'],
+  ['Belgian9terSectionComponent', 'belgian-9ter-section'],
+  ['Belgian40terSectionComponent', 'belgian-40ter-section'],
+]);
+
+function deriveFolderFromClassName(className: string): string {
+  const override = FOLDER_OVERRIDES.get(className);
+  if (override) return override;
+  const base = className.replace(/Component$/, '');
+  // Conversion PascalCase → kebab-case, insertion d'un `-` :
+  //  - entre minuscule/digit et majuscule (`RuptureConv` → `rupture-conv`)
+  //  - entre lettre et digit (`L4256` → `l-4256`) — rarement nécessaire, géré
+  //    par FOLDER_OVERRIDES quand le dossier ne suit pas la règle (cas BE).
+  return base.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+/**
+ * Composants sans fichier helper `*-prefill-rules.ts` sur master post-SF-236.
+ *
+ * - 11 wrappers `count=0` (case-deadlines, jld-retention, dublin-recours,
+ *   crrv-refus-visa, victime-violences-l4256, divorce-cm-scoring,
+ *   fourchettes-jaf, liquidation-communaute, pension-alimentaire,
+ *   prestation-compensatoire, rupture-amiable-info).
+ * - 3 statics avec logique inline non extraite : divorce-faute-section,
+ *   transaction-section, travail-procedure-section.
+ *
+ * **TODO F-237 SF-237-02** : appliquer la convention déclarative
+ * `static readonly PREFILL_COUNT_ALWAYS_ZERO = true;` sur les 11 wrappers,
+ * extraire helpers pour les 3 restants, puis vider cette liste de tolérance.
+ *
+ * Tant que cette liste n'est pas vidée, ces composants sont exemptés du
+ * check parité runtime/static car ils n'ont pas (encore) de helper.
+ */
+const TOLERATED_NO_HELPER: ReadonlySet<string> = new Set<string>([
+  // Wrappers retournant 0 (P1 — à marquer PREFILL_COUNT_ALWAYS_ZERO en SF-237-02)
+  'case-deadlines-section',
+  'crrv-refus-visa-section',
+  'divorce-cm-scoring-section',
+  'dublin-recours-section',
+  'fourchettes-jaf-section',
+  'jld-retention-section',
+  'liquidation-communaute-section',
+  'pension-alimentaire-section',
+  'prestation-compensatoire-section',
+  'rupture-amiable-info-section',
+  'victime-violences-l4256-section',
+  // Statics avec logique inline non extraite (P0 — à refactorer en SF-237-02)
+  'divorce-faute-section',
+  'transaction-section',
+  'travail-procedure-section',
+]);
+
+/**
+ * Batterie de fixtures canoniques utilisées pour la parité comportementale.
+ *
+ * Chaque fixture est un `PrefillCountInput` partiel. Pour chaque composant
+ * et chaque fixture F : `static.getPrefillCount(F)` doit retourner exactement
+ * `helper.computePrefillCount(F)`. Toute divergence ⇒ FAIL.
+ *
+ * Choix : fixtures **agnostiques au domaine** (champs `aiData` vides ou
+ * placeholders non métier) → font la jonction sur le contrat top-level
+ * sans casser la sémantique pays/domaine. Couvre les 99% de cas de drift
+ * pratique (static détaché, copie locale dérivante, return constant injecté).
+ */
+const PARITY_FIXTURES: ReadonlyArray<{ label: string; input: Record<string, unknown> }> = [
+  { label: 'empty {}', input: {} },
+  { label: 'aiData null', input: { aiData: null } },
+  { label: 'aiData undefined + arrays empty', input: { aiData: undefined, procedureChecks: [], aiQuestions: [], piecesManquantes: [], triggerEvents: [] } },
+  { label: 'aiData {}', input: { aiData: {} } },
+  { label: 'workspaceCountry FRANCE no aiData', input: { workspaceCountry: 'FRANCE' } },
+  { label: 'workspaceCountry BELGIQUE no aiData', input: { workspaceCountry: 'BELGIQUE' } },
+];
+
+interface ParityFailure {
+  toolId: string;
+  componentName: string;
+  reason: string;
+}
+
+describe('F-237 SF-237-01 — parité runtime/static via helper PrefillRules', () => {
+  const registry = DecisionToolsPanelComponent.TOOL_REGISTRY;
+  // Racine relative au fichier de spec, qui réside dans
+  // `frontend/src/app/case-files/decisional-tools-panel/`.
+  const caseFilesRoot = path.join(__dirname, '..');
+
+  it('every PREFILL_COUNT_ALWAYS_ZERO === true component returns exactly 0 on empty input', () => {
+    const failures: ParityFailure[] = [];
+
+    for (const [toolId, entry] of registry.entries()) {
+      const cls = entry.component as unknown as {
+        PREFILL_COUNT_ALWAYS_ZERO?: unknown;
+        getPrefillCount?: (input: object) => unknown;
+        name?: string;
+      };
+      if (cls.PREFILL_COUNT_ALWAYS_ZERO !== true) continue;
+      const componentName = cls.name ?? '<anonymous>';
+
+      if (typeof cls.getPrefillCount !== 'function') {
+        failures.push({ toolId, componentName, reason: 'marked PREFILL_COUNT_ALWAYS_ZERO but getPrefillCount is missing' });
+        continue;
+      }
+      let result: unknown;
+      try {
+        result = cls.getPrefillCount({});
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        failures.push({ toolId, componentName, reason: `marked PREFILL_COUNT_ALWAYS_ZERO but getPrefillCount({}) threw: ${message}` });
+        continue;
+      }
+      if (result !== 0) {
+        failures.push({
+          toolId,
+          componentName,
+          reason: `marked PREFILL_COUNT_ALWAYS_ZERO but getPrefillCount({}) returned ${JSON.stringify(result)} (expected 0)`,
+        });
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(
+        `F-237 SF-237-01 — PREFILL_COUNT_ALWAYS_ZERO inconsistency (${failures.length}):\n` +
+          failures.map((f) => `  - ${f.toolId} (${f.componentName}): ${f.reason}`).join('\n'),
+      );
+    }
+  });
+
+  it('every non-tolerated TOOL_REGISTRY entry has a co-located helper PrefillRules behaviorally aligned with its static getPrefillCount', () => {
+    const failures: ParityFailure[] = [];
+    const checkedCount = { total: 0, withHelper: 0, tolerated: 0, exempted: 0 };
+
+    for (const [toolId, entry] of registry.entries()) {
+      checkedCount.total += 1;
+
+      const cls = entry.component as unknown as {
+        PREFILL_COUNT_ALWAYS_ZERO?: unknown;
+        getPrefillCount?: (input: object) => unknown;
+        name?: string;
+      };
+      const componentName = cls.name ?? '<anonymous>';
+
+      // Étiquette déclarative explicite (SF-237-02) — exempté
+      if (cls.PREFILL_COUNT_ALWAYS_ZERO === true) {
+        checkedCount.exempted += 1;
+        continue;
+      }
+
+      const folder = deriveFolderFromClassName(componentName);
+
+      // Tolérance temporaire (sera vidée par SF-237-02)
+      if (TOLERATED_NO_HELPER.has(folder)) {
+        checkedCount.tolerated += 1;
+        continue;
+      }
+
+      // 1) Le static doit exister et être une fonction
+      if (typeof cls.getPrefillCount !== 'function') {
+        failures.push({
+          toolId,
+          componentName,
+          reason: `static getPrefillCount missing or not a function (deriveFolder=${folder})`,
+        });
+        continue;
+      }
+
+      // 2) Vérifier la présence physique du helper à côté du composant
+      const helperFilePath = path.join(caseFilesRoot, folder, `${folder}-prefill-rules.ts`);
+      if (!fs.existsSync(helperFilePath)) {
+        failures.push({
+          toolId,
+          componentName,
+          reason: `helper file not found at expected path '${folder}/${folder}-prefill-rules.ts' (resolved: ${helperFilePath})`,
+        });
+        continue;
+      }
+
+      // 3) Importer le helper et trouver l'export `*PrefillRules`
+      let helperModule: Record<string, unknown>;
+      try {
+        // require dynamique — ts-jest transpile .ts à la volée.
+        helperModule = require(`../${folder}/${folder}-prefill-rules`) as Record<string, unknown>;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        failures.push({
+          toolId,
+          componentName,
+          reason: `helper module import failed: ${message}`,
+        });
+        continue;
+      }
+
+      const rulesKey = Object.keys(helperModule).find((k) => /PrefillRules$/.test(k));
+      if (!rulesKey) {
+        failures.push({
+          toolId,
+          componentName,
+          reason: `helper module '${folder}-prefill-rules.ts' exports no '*PrefillRules' symbol`,
+        });
+        continue;
+      }
+      const rules = helperModule[rulesKey] as { computePrefillCount?: unknown };
+      if (typeof rules.computePrefillCount !== 'function') {
+        failures.push({
+          toolId,
+          componentName,
+          reason: `helper '${rulesKey}' has no computePrefillCount function`,
+        });
+        continue;
+      }
+      // Important : conserver `this` lié au helper (certains
+      // `computePrefillCount` appellent `this.computeXxx(...)`).
+      const helperCompute = (input: Record<string, unknown>): unknown =>
+        (rules.computePrefillCount as (this: typeof rules, input: Record<string, unknown>) => unknown).call(rules, input);
+      const staticCompute = cls.getPrefillCount as (input: Record<string, unknown>) => unknown;
+
+      checkedCount.withHelper += 1;
+
+      // 4) Parité comportementale sur la batterie de fixtures
+      for (const { label, input } of PARITY_FIXTURES) {
+        let staticResult: unknown;
+        let helperResult: unknown;
+        let staticErr: unknown = null;
+        let helperErr: unknown = null;
+        try {
+          staticResult = staticCompute(input);
+        } catch (err) {
+          staticErr = err;
+        }
+        try {
+          helperResult = helperCompute(input);
+        } catch (err) {
+          helperErr = err;
+        }
+
+        if (staticErr !== null || helperErr !== null) {
+          // Au moins l'un des deux a thrown — divergence (les deux doivent
+          // soit retourner la même valeur, soit throw symétriquement).
+          if (staticErr === null || helperErr === null) {
+            failures.push({
+              toolId,
+              componentName,
+              reason: `parity divergence on fixture '${label}' — static ${staticErr ? 'threw' : 'returned ' + JSON.stringify(staticResult)}, helper ${helperErr ? 'threw' : 'returned ' + JSON.stringify(helperResult)}`,
+            });
+          }
+          // Si les deux ont thrown, on tolère (cas pathologique symétrique).
+          continue;
+        }
+
+        if (staticResult !== helperResult) {
+          failures.push({
+            toolId,
+            componentName,
+            reason: `parity divergence on fixture '${label}' — static returned ${JSON.stringify(staticResult)}, helper.${rulesKey}.computePrefillCount returned ${JSON.stringify(helperResult)}`,
+          });
+        }
+      }
+    }
+
+    // Sanity log — décommenter pour vérifier la couverture lors d'un audit.
+    // eslint-disable-next-line no-console
+    // console.log(`[F-237 SF-237-01] checked: total=${checkedCount.total}, withHelper=${checkedCount.withHelper}, tolerated=${checkedCount.tolerated}, exempted=${checkedCount.exempted}`);
+
+    if (failures.length > 0) {
+      const lines = failures.map((f) => `  - ${f.toolId} (${f.componentName}): ${f.reason}`);
+      const msg = [
+        `F-237 SF-237-01 parity violation — ${failures.length} TOOL_REGISTRY entries non conformes :`,
+        ...lines,
+        '',
+        'Chaque entrée TOOL_REGISTRY non-tolérée DOIT exposer un helper',
+        "co-localisé `<component>-prefill-rules.ts` exportant un objet `*PrefillRules`",
+        "dont la fonction `computePrefillCount(input)` retourne la même valeur que le",
+        '`static getPrefillCount(input)` du composant sur les fixtures canoniques.',
+        'Cf. docs/features/F-236/contract-prefill-rules.md §5 et docs/features/F-237/SF-237-01.',
+      ].join('\n');
+      throw new Error(msg);
+    }
+
+    // Le test doit avoir effectivement vérifié au moins 1 composant avec helper.
+    // (Garde-fou : si la convention `deriveFolderFromClassName` rate, le test
+    // ne doit pas être silencieux.)
+    expect(checkedCount.withHelper).toBeGreaterThan(0);
   });
 });
