@@ -15,6 +15,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class CongesPayesIndemniteService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-26-conges-payes-indemnite';
 
   constructor(private http: HttpClient) {}
 
@@ -27,5 +29,12 @@ export class CongesPayesIndemniteService {
   get(caseFileId: string): Observable<CongesPayesIndemniteResponse> {
     return this.http.get<CongesPayesIndemniteResponse>(
       `/api/v1/case-files/${caseFileId}/conges-payes-indemnite`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: CongesPayesIndemniteRequest): Observable<CongesPayesIndemniteResponse> {
+    return this.http.post<CongesPayesIndemniteResponse>(
+      `/api/v1/simulators/${CongesPayesIndemniteService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

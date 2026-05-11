@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class TravailDissimuleService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-21-travail-dissimule';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class TravailDissimuleService {
   get(caseFileId: string): Observable<TravailDissimuleResponse> {
     return this.http.get<TravailDissimuleResponse>(
       `/api/v1/case-files/${caseFileId}/travail-dissimule`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: TravailDissimuleRequest): Observable<TravailDissimuleResponse> {
+    return this.http.post<TravailDissimuleResponse>(
+      `/api/v1/simulators/${TravailDissimuleService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

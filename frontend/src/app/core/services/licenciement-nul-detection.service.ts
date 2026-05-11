@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class LicenciementNulDetectionService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-16-licenciement-nul-detection';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class LicenciementNulDetectionService {
   get(caseFileId: string): Observable<LicenciementNulDetectionResponse> {
     return this.http.get<LicenciementNulDetectionResponse>(
       `/api/v1/case-files/${caseFileId}/licenciement-nul-detection`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: LicenciementNulDetectionRequest): Observable<LicenciementNulDetectionResponse> {
+    return this.http.post<LicenciementNulDetectionResponse>(
+      `/api/v1/simulators/${LicenciementNulDetectionService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

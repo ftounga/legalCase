@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class AvantagesConventionnelsBeService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-28-avantages-conventionnels-be';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class AvantagesConventionnelsBeService {
   get(caseFileId: string): Observable<AvantagesConventionnelsBeResponse> {
     return this.http.get<AvantagesConventionnelsBeResponse>(
       `/api/v1/case-files/${caseFileId}/avantages-conventionnels-be`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: AvantagesConventionnelsBeRequest): Observable<AvantagesConventionnelsBeResponse> {
+    return this.http.post<AvantagesConventionnelsBeResponse>(
+      `/api/v1/simulators/${AvantagesConventionnelsBeService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

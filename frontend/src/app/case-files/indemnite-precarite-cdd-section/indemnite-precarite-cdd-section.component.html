@@ -11,6 +11,16 @@
 
   @if (!collapsed()) {
     <div id="ipc-body" class="ipc-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+
       @if (workspaceCountry !== 'FRANCE') {
         <div class="ipc-country-banner">
           <mat-icon>info_outline</mat-icon>

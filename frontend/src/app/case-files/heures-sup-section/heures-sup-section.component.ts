@@ -113,6 +113,14 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   // Signaux miroirs des inputs (déclenchent les computed coherenceAlerts).
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   // SF-155-06 : signals miroirs pour F96 + QUESTION_IA + PIECE_MANQUANTE.
@@ -155,6 +163,8 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
    * BE : pas d'alertes IA (concept FR-only).
    */
   coherenceAlerts = computed<Partial<Record<HsAlertField, HsCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     if (this.workspaceCountry !== 'FRANCE') return {};
     const ai = this.aiDataSignal();
@@ -209,6 +219,8 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
    * Fail-open strict : erreur ou absence de service = map vide.
    */
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId) return;
     if (!this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
@@ -245,7 +257,7 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
       // mais uniquement si le form est en édition et aucune analyse persistée.
       // Les champs déjà modifiés manuellement (provenance null) ne sont pas écrasés.
       if (this.showForm() && !this.result()) {
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
       }
     }
   }
@@ -303,13 +315,18 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
       request.heuresDimancheJoursFeries = this.heuresDimancheJoursFeries() ?? 0;
     }
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.calculateStandalone(request)
+      : this.service.calculate(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Rappel heures sup calculé', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.calculating.set(false);
@@ -321,6 +338,20 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.result.set(r);
@@ -337,7 +368,7 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
       },
       error: () => {
         // 404 attendu si aucune analyse — on reste en mode formulaire + prefill IA.
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
         this.loading.set(false);
       },
     });
@@ -352,6 +383,8 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
    * n'est pas ré-écrasé lors d'un second appel (cf. `ngOnChanges`).
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     if (this.workspaceCountry !== 'FRANCE') return;
     const ai = this.aiData;
     if (!ai) return;

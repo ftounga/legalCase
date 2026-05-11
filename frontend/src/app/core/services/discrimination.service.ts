@@ -14,6 +14,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class DiscriminationService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-12-discrimination-dommages-interets';
 
   constructor(private http: HttpClient) {}
 
@@ -26,5 +28,12 @@ export class DiscriminationService {
   get(caseFileId: string): Observable<DiscriminationResponse> {
     return this.http.get<DiscriminationResponse>(
       `/api/v1/case-files/${caseFileId}/discrimination-dommages-interets`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: DiscriminationRequest): Observable<DiscriminationResponse> {
+    return this.http.post<DiscriminationResponse>(
+      `/api/v1/simulators/${DiscriminationService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

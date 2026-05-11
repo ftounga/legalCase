@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class ContestationAreService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-35-contestation-are-fr';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class ContestationAreService {
   get(caseFileId: string): Observable<ContestationAreResponse> {
     return this.http.get<ContestationAreResponse>(
       `/api/v1/case-files/${caseFileId}/contestation-are`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  analyzeStandalone(request: ContestationAreRequest): Observable<ContestationAreResponse> {
+    return this.http.post<ContestationAreResponse>(
+      `/api/v1/simulators/${ContestationAreService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

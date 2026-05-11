@@ -108,6 +108,14 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   // SF-155-06 : signals miroirs des inputs IA pour que les `computed`
   // (coherenceAlerts) réagissent aux changements post-mount. Aligné sur le
   // pattern canonique `immigration-title-decision-section` (lignes 95-98).
@@ -145,6 +153,8 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
 
   /** SF-155-04-A2 : alertes de cohérence F-IA-03 entre valeurs avocat et IA. */
   coherenceAlerts = computed<Partial<Record<InaptitudeAlertField, InaptitudeCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     const alerts: Partial<Record<InaptitudeAlertField, InaptitudeCoherenceAlert>> = {};
     const salaireAlert = this.buildSalaireAlert();
@@ -197,6 +207,8 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
    * `reason` sans contenu enrichi.
    */
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId) return;
     if (!this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
@@ -235,7 +247,7 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     // persistance côté backend). Pas d'écrasement si result() est déjà chargé.
     if (changes['aiData'] && !changes['aiData'].firstChange
         && this.showForm() && !this.result()) {
-      this.prefillFromAi();
+      if (!this.standaloneMode) this.prefillFromAi();
     }
   }
 
@@ -268,13 +280,18 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
         : {}),
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.calculateStandalone(request)
+      : this.service.calculate(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Indemnité calculée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.calculating.set(false);
@@ -286,6 +303,20 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.result.set(r);
@@ -301,7 +332,7 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
         // 404 attendu si aucune analyse — on reste en mode formulaire.
         // SF-155-04-A2 : dans ce cas, on tente un pré-fill depuis l'analyse IA.
         this.loading.set(false);
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
       },
     });
   }
@@ -313,6 +344,8 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
    * analyse déjà persistée côté backend.
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     if (!this.aiData) return;
 
     // F-236 SF-236-02 : valeurs calculées par le helper partagé (parité static).

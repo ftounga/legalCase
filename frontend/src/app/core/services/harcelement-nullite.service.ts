@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class HarcelementNulliteService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-11-harcelement-licenciement-nul';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,14 @@ export class HarcelementNulliteService {
   get(caseFileId: string): Observable<HarcelementNulliteResponse> {
     return this.http.get<HarcelementNulliteResponse>(
       `/api/v1/case-files/${caseFileId}/harcelement-licenciement-nul`);
+  }
+
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: HarcelementNulliteRequest):
+      Observable<HarcelementNulliteResponse> {
+    return this.http.post<HarcelementNulliteResponse>(
+      `/api/v1/simulators/${HarcelementNulliteService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

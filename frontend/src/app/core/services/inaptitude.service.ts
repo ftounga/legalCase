@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class InaptitudeService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-15-inaptitude';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class InaptitudeService {
   get(caseFileId: string): Observable<InaptitudeResponse> {
     return this.http.get<InaptitudeResponse>(
       `/api/v1/case-files/${caseFileId}/inaptitude`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: InaptitudeRequest): Observable<InaptitudeResponse> {
+    return this.http.post<InaptitudeResponse>(
+      `/api/v1/simulators/${InaptitudeService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

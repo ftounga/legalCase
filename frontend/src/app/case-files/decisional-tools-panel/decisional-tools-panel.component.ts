@@ -442,7 +442,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-132-rupture-conv-indemnite', {
         displayLabel: 'Rupture conventionnelle — indemnité (FR)',
@@ -466,7 +468,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // F-195 SF-195-02 : libellés des risques statut VALIDE alignés sur cet outil
           // (ex. "harcèlement moral subi" → flag visuel "risque validé" sur la card).
           risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-11-harcelement-licenciement-nul'),
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-16-licenciement-nul-detection', {
         displayLabel: 'Détection de licenciement nul (FR)',
@@ -481,7 +485,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-12-discrimination-dommages-interets', {
         displayLabel: 'Discrimination — dommages-intérêts (FR)',
@@ -498,7 +504,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // F-195 SF-195-02 : libellés des risques statut VALIDE alignés
           // (ex. "discrimination" → flag visuel "risque validé").
           risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-12-discrimination-dommages-interets'),
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-13-licenciement-economique', {
         displayLabel: 'Licenciement économique (FR)',
@@ -514,7 +522,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-15-inaptitude', {
         displayLabel: 'Inaptitude — indemnités (FR)',
@@ -527,7 +537,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-19-heures-sup', {
         displayLabel: 'Heures supplémentaires (FR)',
@@ -540,7 +552,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-17-indemnite-precarite-cdd', {
         displayLabel: 'Indemnité de précarité CDD (FR)',
@@ -553,7 +567,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-26-conges-payes-indemnite', {
         displayLabel: 'Indemnité congés payés (FR)',
@@ -567,7 +583,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-18-fin-mission-interim', {
         displayLabel: 'Fin de mission intérim (FR)',
@@ -580,7 +598,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-32-documents-fin-contrat', {
         displayLabel: 'Documents de fin de contrat (FR)',
@@ -610,7 +630,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-21-travail-dissimule', {
         displayLabel: 'Travail dissimulé (FR)',
@@ -623,7 +645,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-25-indemnite-preavis', {
         displayLabel: 'Indemnité de préavis (FR)',
@@ -667,7 +691,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-23-requalification-interim-cdi', {
         displayLabel: 'Requalification intérim en CDI (FR)',
@@ -683,7 +709,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-24-non-concurrence', {
         displayLabel: 'Clause de non-concurrence (FR)',
@@ -702,7 +730,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // (ex. "clause non-concurrence abusive" → flag visuel ; ECARTE
           // → masquage potentiel via F-IA-04).
           risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-24-non-concurrence'),
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-132-rupture-amiable-info', {
         displayLabel: 'Rupture amiable — informations',
@@ -1015,7 +1045,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-27-motif-grave-be', {
         displayLabel: 'Motif grave (Belgique)',
@@ -1029,7 +1061,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
@@ -1044,7 +1078,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       // SF-DT-29-02 : crédit-temps / interruption de carrière BE
       // (CCT 103 + AR 29/10/1997). BE uniquement.
@@ -1062,7 +1098,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       // SF-DT-14-02 : PSE — critères de validité (FR uniquement,
       // L.1233-24-1 + L.1233-30 + L.1233-57-2 + L.1233-61 + L.1235-7-1).
@@ -1099,7 +1137,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       // SF-DT-33-02 : Accident du travail / Maladie professionnelle (FR uniquement,
       // CSS L.411-1 / L.461-1 / L.434-2 + L.142-2 + R.142-1 + R.441-13 + R.461-9).
@@ -1119,7 +1159,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-IM-14-40ter-familial-belge-be', {
         displayLabel: 'Article 40ter — regroupement familial belge (Belgique)',
@@ -1743,7 +1785,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
-        }),
+                // F-163 SF-163-02b — propage le flag standalone (default false).
+        standaloneMode: ctx.standaloneMode ?? false,
+}),
       }],
       ['F-IM-09-aes-etudiant', {
         displayLabel: 'AES étudiant (FR)',

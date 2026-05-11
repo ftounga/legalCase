@@ -144,6 +144,8 @@ describe('DecisionToolsPanelComponent', () => {
       procedureChecks: [{ id: 'c1' }],
       aiQuestions: [{ id: 'q1' }],
       piecesManquantes: { any: 'thing' },
+      // F-163 SF-163-02a/b — standaloneMode propagé par défaut false depuis le panel.
+      standaloneMode: false,
     });
   });
 

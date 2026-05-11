@@ -139,6 +139,14 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   // Signals miroirs des inputs IA pour réactivité computed.
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -183,6 +191,8 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
 
   /** Alertes F-IA-03 — gate strict : seulement quand le formulaire est affiché. */
   coherenceAlerts = computed<Partial<Record<RpAlertField, RpCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     if (!this.isFrance()) return {};
     const alerts: Partial<Record<RpAlertField, RpCoherenceAlert>> = {};
@@ -236,11 +246,13 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
       this.showForm() &&
       !this.result()
     ) {
-      this.prefillFromAi();
+      if (!this.standaloneMode) this.prefillFromAi();
     }
   }
 
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId || !this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: (map) => this.sourceExplanations.set(map),
@@ -347,13 +359,18 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
       ancienneteContratMois: this.ancienneteContratMois()!,
     };
     this.analyzing.set(true);
-    this.service.analyze(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.analyzeStandalone(request)
+      : this.service.analyze(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.analyzing.set(false);
         this.snackBar.open('Référé prud\'homal analysé', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.analyzing.set(false);
@@ -431,6 +448,8 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
    * - n'écrase jamais une saisie manuelle de l'avocat
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     const ai = this.aiDataSignal();
     if (!ai) return;
     if (!this.isFrance()) return;
@@ -537,6 +556,20 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.result.set(r);
@@ -559,7 +592,7 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
       },
       error: () => {
         // 404 attendu si aucune analyse — on tente le pré-fill IA.
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
         this.loading.set(false);
       },
     });

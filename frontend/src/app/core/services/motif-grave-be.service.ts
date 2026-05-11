@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class MotifGraveBeService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-27-motif-grave-be';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class MotifGraveBeService {
   get(caseFileId: string): Observable<MotifGraveBeResponse> {
     return this.http.get<MotifGraveBeResponse>(
       `/api/v1/case-files/${caseFileId}/motif-grave-be`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: MotifGraveBeRequest): Observable<MotifGraveBeResponse> {
+    return this.http.post<MotifGraveBeResponse>(
+      `/api/v1/simulators/${MotifGraveBeService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }
