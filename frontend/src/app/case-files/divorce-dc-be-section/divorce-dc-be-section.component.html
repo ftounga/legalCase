@@ -1,0 +1,22 @@
+<section class="dcbe-section">
+  <header class="dcbe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dcbe-body">
+    <mat-icon class="dcbe-icon">handshake</mat-icon>
+    <span class="dcbe-title">DIVORCE PAR CONSENTEMENT MUTUEL — BELGIQUE</span>
+    <mat-icon class="dcbe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dcbe-body" class="dcbe-body">
+      <p class="dcbe-cadre">{{ cadreJuridique }}</p>
+      <ul class="dcbe-notes">
+        @for (n of notes; track n) {
+          <li>
+            <mat-icon class="dcbe-bullet">info</mat-icon>
+            <span>{{ n }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>
