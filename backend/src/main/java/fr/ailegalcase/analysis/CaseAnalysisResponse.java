@@ -793,7 +793,13 @@ public record CaseAnalysisResponse(
             boolean divorceDdiEnvisage,
             boolean cohabitationLegaleBeDetectee,
             boolean pacteSuccessoralEnvisage,
-            boolean kafalaRecueilDetecte) {
+            boolean kafalaRecueilDetecte,
+            // F-239 : champs string extraits par l'IA pour pré-fill outils décisionnels Famille
+            // Date de signature du PV d'acceptation (FR — divorce accepté art. 233-234 Cciv)
+            // OU de la convention préalable (BE — DC art. 1287+ CJ). Format ISO YYYY-MM-DD.
+            // Utilisé par F-FA-07 checklist divorce pour pré-cocher les étapes "Signature
+            // convention FR" + "Rédaction convention BE" (helper divorce-checklist-section-prefill-rules).
+            String dateAcceptationPV) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -842,6 +848,8 @@ public record CaseAnalysisResponse(
             private boolean cohabitationLegaleBeDetectee;
             private boolean pacteSuccessoralEnvisage;
             private boolean kafalaRecueilDetecte;
+            // F-239 : string fields
+            private String dateAcceptationPV;
 
             private Builder() {}
 
@@ -881,6 +889,7 @@ public record CaseAnalysisResponse(
             public Builder cohabitationLegaleBeDetectee(boolean v) { this.cohabitationLegaleBeDetectee = v; return this; }
             public Builder pacteSuccessoralEnvisage(boolean v) { this.pacteSuccessoralEnvisage = v; return this; }
             public Builder kafalaRecueilDetecte(boolean v) { this.kafalaRecueilDetecte = v; return this; }
+            public Builder dateAcceptationPV(String v) { this.dateAcceptationPV = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -899,7 +908,8 @@ public record CaseAnalysisResponse(
                         protectionMajeurEnvisagee, changementEtatCivilEnvisage, pmaGpaEnvisagee,
                         mediationFamilialePreSaisinePertinente,
                         divorceDcEnvisage, divorceDdiEnvisage, cohabitationLegaleBeDetectee,
-                        pacteSuccessoralEnvisage, kafalaRecueilDetecte);
+                        pacteSuccessoralEnvisage, kafalaRecueilDetecte,
+                        dateAcceptationPV);
             }
         }
     }
@@ -1944,6 +1954,19 @@ public record CaseAnalysisResponse(
     }
 
     /**
+     * F-239 : extrait une chaîne d'un nœud JSON, ou null si absent / vide /
+     * non textuel. Trim le résultat. Utilisé pour les champs string optionnels
+     * extraits par l'IA (ex: `date_acceptation_pv` au format YYYY-MM-DD).
+     */
+    private static String stringOrNull(JsonNode node, String field) {
+        if (node == null) return null;
+        JsonNode v = node.get(field);
+        if (v == null || v.isNull() || !v.isTextual()) return null;
+        String s = v.asText().trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /**
      * F-200 + F-202 : parseur des 30 flags Famille FR (F-200) + 5 flags Famille BE (F-202)
      * depuis la clé {@code famille_extracted_data} du JSON IA. Retourne {@code null} si la
      * clé est absente / non-objet (cas dossiers Travail / Immigration où l'IA n'émet pas
@@ -1992,12 +2015,15 @@ public record CaseAnalysisResponse(
         boolean cohabitationLegale = booleanOrFalse(node, "cohabitation_legale_be_detectee");
         boolean pacteSuccessoral = booleanOrFalse(node, "pacte_successoral_envisage");
         boolean kafalaRecueil = booleanOrFalse(node, "kafala_recueil_detecte");
+        // F-239 : extraction des champs string Famille pour pré-fill F-IA-04
+        String dateAcceptationPV = stringOrNull(node, "date_acceptation_pv");
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
                 && !su && !te && !don && !rh && !ps && !iss && !rs
                 && !pm && !cec && !pmg && !mfp
-                && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil) {
+                && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil
+                && dateAcceptationPV == null) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -2041,6 +2067,8 @@ public record CaseAnalysisResponse(
                 .cohabitationLegaleBeDetectee(cohabitationLegale)
                 .pacteSuccessoralEnvisage(pacteSuccessoral)
                 .kafalaRecueilDetecte(kafalaRecueil)
+                // F-239 : string fields
+                .dateAcceptationPV(dateAcceptationPV)
                 .build();
     }
 }
