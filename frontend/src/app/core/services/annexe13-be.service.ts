@@ -26,4 +26,23 @@ export class Annexe13BeService {
     return this.http.get<Annexe13BeResponse>(
       `/api/v1/case-files/${caseFileId}/annexe13-be`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-08-annexe13-be')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-08-annexe13-be';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  analyzeStandalone(request: Annexe13BeRequest): Observable<Annexe13BeResponse> {
+    return this.http.post<Annexe13BeResponse>(
+      `/api/v1/simulators/${Annexe13BeService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }

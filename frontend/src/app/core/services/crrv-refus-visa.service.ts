@@ -26,4 +26,23 @@ export class CrrvRefusVisaService {
     return this.http.get<CrrvRefusVisaResponse>(
       `/api/v1/case-files/${caseFileId}/crrv-refus-visa-analysis`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-23-crrv-refus-visa-fr')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-23-crrv-refus-visa-fr';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  analyzeStandalone(request: CrrvRefusVisaRequest): Observable<CrrvRefusVisaResponse> {
+    return this.http.post<CrrvRefusVisaResponse>(
+      `/api/v1/simulators/${CrrvRefusVisaService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }

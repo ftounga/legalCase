@@ -22,6 +22,15 @@
 
   @if (!collapsed()) {
     <div id="crrv-body" class="crrv-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
       @if (!isFrance()) {
         <div class="crrv-banner crrv-banner--info" role="note">
           <mat-icon>info_outline</mat-icon>

@@ -104,6 +104,21 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02d — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` / `load()` court-circuité.
+   *  - `analyze()` POSTe sur `/api/v1/simulators/F-IM-14-40ter-familial-belge-be/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   collapsed = signal(true);
   loading = signal(false);
   analyzing = signal(false);
@@ -141,6 +156,8 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
    * Pattern `CoherenceAlertBuilder` aligné sur annexe13-be / immigration-title-decision.
    */
   coherenceAlerts = computed<Partial<Record<IM14_40terAlertField, IM14_40terCoherenceAlert>>>(() => {
+    // F-163 SF-163-02d : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     const alerts: Partial<Record<IM14_40terAlertField, IM14_40terCoherenceAlert>> = {};
 
@@ -173,6 +190,19 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     if (this.isBelgium()) {
+      if (this.standaloneMode) {
+
+        // F-163 SF-163-02d : pas de dossier à interroger en standalone.
+
+        this.collapsed.set(false);
+
+        this.loading.set(false);
+
+        this.showForm.set(true);
+
+        return;
+
+      }
       this.load();
     }
   }
@@ -230,13 +260,23 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
       ...(dateDepot ? { dateDepotDemande: dateDepot } : {}),
     };
     this.analyzing.set(true);
-    this.service.analyze(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02d : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.analyzeStandalone(request)
+
+      : this.service.analyze(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.analyzing.set(false);
         this.snackBar.open('40ter familial Belge analysé', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02d : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.analyzing.set(false);

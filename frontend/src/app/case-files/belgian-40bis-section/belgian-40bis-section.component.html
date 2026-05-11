@@ -17,6 +17,15 @@
 
   @if (!collapsed()) {
     <div id="b40bis-body" class="b40bis-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
       @if (!isBelgium()) {
         <div class="b40bis-banner b40bis-banner--info" role="note">
           <mat-icon>info_outline</mat-icon>

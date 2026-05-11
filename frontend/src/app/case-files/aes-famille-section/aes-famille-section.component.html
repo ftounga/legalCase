@@ -13,6 +13,15 @@
 
   @if (!collapsed()) {
     <div id="aes-body" class="aes-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
       @if (workspaceCountry !== 'FRANCE') {
         <div class="aes-country-banner">
           <mat-icon>info_outline</mat-icon>

@@ -20,6 +20,15 @@
 
   @if (!collapsed()) {
     <div id="oqtf-sd-body" class="oqtf-sd-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
       @if (!isFrance()) {
         <div class="oqtf-sd-banner oqtf-sd-banner--info" role="note">
           <mat-icon>info_outline</mat-icon>

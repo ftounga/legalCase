@@ -95,6 +95,21 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02d — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` / `load()` court-circuité.
+   *  - `analyze()` POSTe sur `/api/v1/simulators/F-IM-21-jld-retention-fr/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
@@ -120,6 +135,8 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
   isFrance = computed<boolean>(() => this.workspaceCountry === 'FRANCE');
 
   coherenceAlerts = computed<Partial<Record<JldAlertField, JldCoherenceAlert>>>(() => {
+    // F-163 SF-163-02d : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     if (!this.isFrance()) return {};
     const alerts: Partial<Record<JldAlertField, JldCoherenceAlert>> = {};
@@ -148,6 +165,19 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    if (this.standaloneMode) {
+
+      // F-163 SF-163-02d : pas de dossier à interroger en standalone.
+
+      this.collapsed.set(false);
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      return;
+
+    }
     if (this.isFrance()) {
       this.load();
     }
@@ -205,13 +235,23 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
       ...(this.recoursForme() ? { dateRecours: this.dateRecours()! } : {}),
     };
     this.analyzing.set(true);
-    this.service.analyze(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02d : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.analyzeStandalone(request)
+
+      : this.service.analyze(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.analyzing.set(false);
         this.snackBar.open('Saisine JLD analysee', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02d : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.analyzing.set(false);

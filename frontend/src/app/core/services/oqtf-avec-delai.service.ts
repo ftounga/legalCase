@@ -26,4 +26,23 @@ export class OqtfAvecDelaiService {
     return this.http.get<OqtfAvecDelaiResponse>(
       `/api/v1/case-files/${caseFileId}/oqtf-avec-delai`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-08-oqtf-avec-delai-fr')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-08-oqtf-avec-delai-fr';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  analyzeStandalone(request: OqtfAvecDelaiRequest): Observable<OqtfAvecDelaiResponse> {
+    return this.http.post<OqtfAvecDelaiResponse>(
+      `/api/v1/simulators/${OqtfAvecDelaiService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }

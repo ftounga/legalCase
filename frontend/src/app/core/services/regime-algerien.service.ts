@@ -26,4 +26,23 @@ export class RegimeAlgerienService {
     return this.http.get<RegimeAlgerienResponse>(
       `/api/v1/case-files/${caseFileId}/regime-algerien-analysis`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-17-regime-algerien')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-17-regime-algerien';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: RegimeAlgerienRequest): Observable<RegimeAlgerienResponse> {
+    return this.http.post<RegimeAlgerienResponse>(
+      `/api/v1/simulators/${RegimeAlgerienService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }

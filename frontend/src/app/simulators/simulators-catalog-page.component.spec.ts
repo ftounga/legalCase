@@ -20,6 +20,10 @@ const REAL_TOOL_IDS = Array.from(
 const ID_OQTF = REAL_TOOL_IDS.find((id) => id === 'F-IM-08-oqtf-avec-delai-fr') ?? REAL_TOOL_IDS[0];
 const ID_LICENCIEMENT = REAL_TOOL_IDS.find((id) => id === 'F-DT-08-licenciement-validity') ?? REAL_TOOL_IDS[1];
 const ID_RUPTURE = REAL_TOOL_IDS.find((id) => id === 'F-DT-10-rupture-conv-validity') ?? REAL_TOOL_IDS[2];
+// F-163 SF-163-02d : OQTF est maintenant whitelisted standalone. Pour les tests de
+// rétrocompat (clic ouvre le dialog quand NON whitelisted), on utilise un tool_id
+// qui reste hors whitelist (F-IM-01 = checklist info-only, jamais dispatcher).
+const ID_NON_STANDALONE = REAL_TOOL_IDS.find((id) => id === 'F-IM-01-checklist-pieces') ?? REAL_TOOL_IDS[0];
 const ORPHAN_ID = 'F-XXX-tool-id-totalement-inconnu-orphelin';
 
 function buildResponse(toolIds: string[]): SimulatorsCatalogResponse {
@@ -244,7 +248,9 @@ describe('SimulatorsCatalogPageComponent — interaction dialog', () => {
       afterClosed: () => of(false),
     } as unknown as MatDialogRef<unknown>);
     const { fixture, component } = setupComponent(
-      of(buildResponse([ID_OQTF])),
+      // F-163 SF-163-02d : utiliser un tool_id NON whitelisted standalone pour
+      // déclencher le flux dialog rétrocompat (cf. ID_NON_STANDALONE).
+      of(buildResponse([ID_NON_STANDALONE])),
       { dialogOpen },
     );
     fixture.detectChanges();
@@ -291,14 +297,14 @@ describe('SimulatorsCatalogPageComponent — navigation runner (F-163 SF-163-02a
   }));
 
   it('onCardClick() ouvre le dialog si toolId NON whitelisted (rétrocompat)', fakeAsync(() => {
-    // ID_OQTF n'est PAS encore dans la whitelist standalone.
-    expect(STANDALONE_READY_TOOL_IDS.has(ID_OQTF)).toBe(false);
+    // F-163 SF-163-02d : utiliser un tool_id encore hors whitelist standalone.
+    expect(STANDALONE_READY_TOOL_IDS.has(ID_NON_STANDALONE)).toBe(false);
 
     const dialogOpen = jest.fn().mockReturnValue({
       afterClosed: () => of(false),
     } as unknown as MatDialogRef<unknown>);
     const { fixture, component } = setupComponent(
-      of(buildResponse([ID_OQTF])),
+      of(buildResponse([ID_NON_STANDALONE])),
       { dialogOpen },
     );
     fixture.detectChanges();

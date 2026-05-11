@@ -26,4 +26,23 @@ export class AesMetiersTensionService {
     return this.http.get<AesMetiersTensionResponse>(
       `/api/v1/case-files/${caseFileId}/aes-metiers-tension`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-09-aes-metiers-tension')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-09-aes-metiers-tension';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: AesMetiersTensionRequest): Observable<AesMetiersTensionResponse> {
+    return this.http.post<AesMetiersTensionResponse>(
+      `/api/v1/simulators/${AesMetiersTensionService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }

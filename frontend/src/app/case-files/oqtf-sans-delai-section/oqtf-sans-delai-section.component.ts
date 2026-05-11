@@ -117,6 +117,21 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+
+  /**
+   * F-163 SF-163-02d — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` / `load()` court-circuité.
+   *  - `analyze()` POSTe sur `/api/v1/simulators/F-IM-08-oqtf-sans-delai-fr/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   // SF-155-06 : signals miroirs (pattern canonique F-IM-05) pour que le
   // `coherenceAlerts` computed réagisse aux changements de procedureChecks /
   // aiQuestions / piecesManquantes post-mount.
@@ -165,6 +180,8 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   // `procedureChecksSignal` / `aiQuestionsSignal` / `piecesManquantesSignal`
   // restent utilisés par les builders pour les nouvelles sources.
   coherenceAlerts = computed<Partial<Record<OqtfSdAlertField, OqtfSdCoherenceAlert>>>(() => {
+    // F-163 SF-163-02d : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     if (!this.isFrance()) return {};
     const alerts: Partial<Record<OqtfSdAlertField, OqtfSdCoherenceAlert>> = {};
@@ -225,6 +242,19 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    if (this.standaloneMode) {
+
+      // F-163 SF-163-02d : pas de dossier à interroger en standalone.
+
+      this.collapsed.set(false);
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      return;
+
+    }
     if (this.isFrance()) {
       // SF-155-04-B2 : pré-fill IA au mount si aiData est déjà disponible.
       // Ne préempte pas le load() existant — prefillFromAi ne touche que
@@ -320,13 +350,23 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
         : {}),
     };
     this.analyzing.set(true);
-    this.service.analyze(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02d : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.analyzeStandalone(request)
+
+      : this.service.analyze(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.analyzing.set(false);
         this.snackBar.open('OQTF sans délai analysée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02d : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.analyzing.set(false);

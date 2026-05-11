@@ -22,4 +22,23 @@ export class ChangementStatutService {
     return this.http.get<ChangementStatutResponse>(
       `/api/v1/case-files/${caseFileId}/changement-statut-analysis`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-11-changement-statut')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-11-changement-statut';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: ChangementStatutRequest): Observable<ChangementStatutResponse> {
+    return this.http.post<ChangementStatutResponse>(
+      `/api/v1/simulators/${ChangementStatutService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }

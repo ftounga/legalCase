@@ -362,4 +362,37 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
     expect(component.dispositifLabel('UNKNOWN')).toBe('UNKNOWN');
     expect(component.dispositifLabel(null)).toBe('');
   });
+
+  // ---------------------------------------------------------------------------
+  // F-163 SF-163-02d — mode simulateur autonome
+  // ---------------------------------------------------------------------------
+  describe('F-163 SF-163-02d — mode standalone', () => {
+    const STANDALONE_URL_F163 = '/api/v1/simulators/F-IM-19-mineurs/calculate';
+
+    it('CA-02 : affiche la bannière 🧪 quand standaloneMode=true', () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).not.toBeNull();
+      expect(banner.textContent).toContain('Mode simulateur');
+    });
+
+    it('CA-02 : aucun GET vers /api/v1/case-files/... en standalone', () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const matches = httpMock.match((r: { url: string }) => r.url.includes('/api/v1/case-files/'));
+      expect(matches.length).toBe(0);
+    });
+
+    it('CA-04 : POST sur le dispatcher /api/v1/simulators/... en standalone', () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      try { (component as any).calculate(); } catch (_) { /* formValid */ }
+      const dispatcherReqs = httpMock.match((r: { url: string; method: string }) => r.url === STANDALONE_URL_F163 && r.method === 'POST');
+      const caseFileReqs = httpMock.match((r: { url: string; method: string }) => r.url.includes('/api/v1/case-files/') && r.method === 'POST');
+      // Aucun POST case-file ne doit partir en standalone.
+      expect(caseFileReqs.length).toBe(0);
+      dispatcherReqs.forEach((req: any) => req.flush({}));
+    });
+  });
 });
