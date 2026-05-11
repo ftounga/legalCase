@@ -53,6 +53,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { TransactionPrefillRules } from './transaction-section-prefill-rules';
 
 /**
  * SF-DT-31-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-31
@@ -148,33 +149,17 @@ export class TransactionSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'handshake';
 
   /**
-   * F-236 SF-236-02/05 : static parité runtime/static. Compte les champs que
-   * {@link prefillFromAi} poserait — 3 champs maximum (salaire brut mensuel,
-   * ancienneté dérivée de `dateEntree`, rupture préalable mappée depuis
-   * `motifLicenciement`).
+   * F-237 SF-237-02 : static parité runtime/static via helper partagé
+   * `TransactionPrefillRules`. Délégation triviale — la logique est dans
+   * `transaction-section-prefill-rules.ts` (module pur testé Jest 3-cas).
    *
-   * TODO F-236 follow-up : extraire la logique dans `TransactionPrefillRules`
-   * (helper partagé) une fois la migration vague Travail étendue à ce composant.
+   * Compte les champs que {@link prefillFromAi} poserait — 3 champs max
+   * (salaire brut mensuel, ancienneté dérivée de `dateEntree`, rupture
+   * préalable mappée depuis `motifLicenciement`).
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static getPrefillCount(input: { aiData?: any }): number {
-    const ai = input?.aiData;
-    if (!ai) return 0;
-    let n = 0;
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) n++;
-    if (typeof ai.dateEntree === 'string' && ISO_DATE_REGEX.test(ai.dateEntree)) {
-      const refDateStr = typeof ai.dateLicenciement === 'string' && ISO_DATE_REGEX.test(ai.dateLicenciement)
-        ? ai.dateLicenciement
-        : null;
-      const entree = new Date(ai.dateEntree);
-      const ref = refDateStr ? new Date(refDateStr) : new Date();
-      if (!isNaN(entree.getTime()) && !isNaN(ref.getTime()) && entree <= ref) {
-        const diffMs = ref.getTime() - entree.getTime();
-        const years = Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
-        if (years >= 0) n++;
-      }
-    }
-    if (mapAiMotifToRupturePrealable(ai.motifLicenciement) !== null) n++;
-    return n;
+    return TransactionPrefillRules.computePrefillCount(input);
   }
 
   @Input() caseFileId!: string;
@@ -285,39 +270,40 @@ export class TransactionSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Pré-remplit le form depuis `aiData`. N'écrase jamais une saisie avocat
+   * F-237 SF-237-02 : pré-remplit le form depuis `aiData` via le helper
+   * partagé `TransactionPrefillRules`. N'écrase jamais une saisie avocat
    * existante (la garde est faite par champ — provenance IA OK ou champ vide).
+   *
+   * Le helper est l'unique source de vérité — toute modification doit y
+   * être faite, le static `getPrefillCount` en bénéficie automatiquement.
    */
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
     if (!ai) return;
+    const helperInput = { aiData: ai };
 
     // 1. Salaire brut mensuel.
-    if (typeof ai.salaireBrutMensuel === 'number' && ai.salaireBrutMensuel > 0) {
+    const salaire = TransactionPrefillRules.computeSalaire(helperInput);
+    if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(ai.salaireBrutMensuel);
+        this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
       }
     }
 
     // 2. Ancienneté dérivée depuis dateEntree (et dateLicenciement si présente,
-    //    sinon aujourd'hui).
-    if (ai.dateEntree && ISO_DATE_REGEX.test(ai.dateEntree)) {
-      const refDateStr = ai.dateLicenciement && ISO_DATE_REGEX.test(ai.dateLicenciement)
-        ? ai.dateLicenciement
-        : null;
-      const anciennete = this.computeAncienneteAnnees(ai.dateEntree, refDateStr);
-      if (anciennete !== null) {
-        if (this.ancienneteAnnees() === null || this.provenanceAnciennete() === 'IA') {
-          this.ancienneteAnnees.set(anciennete);
-          this.provenanceAnciennete.set('IA');
-        }
+    //    sinon aujourd'hui — fallback identique au helper).
+    const anciennete = TransactionPrefillRules.computeAnciennete(helperInput);
+    if (anciennete !== null) {
+      if (this.ancienneteAnnees() === null || this.provenanceAnciennete() === 'IA') {
+        this.ancienneteAnnees.set(anciennete);
+        this.provenanceAnciennete.set('IA');
       }
     }
 
     // 3. Rupture préalable : mapping motifLicenciement → enum.
-    const mapped = mapAiMotifToRupturePrealable(ai.motifLicenciement);
-    if (mapped) {
+    const mapped = TransactionPrefillRules.computeRupture(helperInput);
+    if (mapped !== null) {
       if (this.rupturePrealable() === null || this.provenanceRupturePrealable() === 'IA') {
         this.rupturePrealable.set(mapped);
         this.provenanceRupturePrealable.set('IA');

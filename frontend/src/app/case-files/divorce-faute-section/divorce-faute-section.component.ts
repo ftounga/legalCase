@@ -45,6 +45,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { DivorceFautePrefillRules } from './divorce-faute-section-prefill-rules';
 
 /**
  * SF-FA-09-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -72,17 +73,6 @@ const DUREE_MARIAGE_DIVERGENCE_YEARS = 1;
 
 /** Regex ISO date YYYY-MM-DD (pour la date dépôt assignation). */
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-const VALID_FAUTE_CODES: ReadonlySet<string> = new Set<FauteCode>([
-  'ADULTERE',
-  'VIOLENCES',
-  'ABANDON',
-  'OUTRAGES',
-  'DEVOIR_ASSISTANCE',
-  'DEVOIR_FIDELITE',
-  'DEVOIR_COMMUNAUTE_VIE',
-  'AUTRE',
-]);
 
 /**
  * SF-FA-09-02 : outil décisionnel "Divorce pour faute" (FR uniquement).
@@ -117,29 +107,17 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'gavel';
 
   /**
-   * F-236 SF-236-02/05 : static parité runtime/static. Compte les champs que
-   * {@link prefillFromAi} poserait — 5 champs maximum (durée mariage, revenus
-   * demandeur, revenus défendeur, date dépôt assignation, fautes détectées).
+   * F-237 SF-237-02 : static parité runtime/static via helper partagé
+   * `DivorceFautePrefillRules`. Délégation triviale — la logique est dans
+   * `divorce-faute-section-prefill-rules.ts` (module pur testé Jest 3-cas).
    *
-   * TODO F-236 follow-up : extraire la logique dans `DivorceFautePrefillRules`
-   * (helper partagé) une fois la migration vague Famille étendue à ce composant.
+   * Compte les champs que {@link prefillFromAi} poserait — 5 champs max
+   * (durée mariage, revenus demandeur, revenus défendeur, date dépôt
+   * assignation, fautes détectées).
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static getPrefillCount(input: { aiData?: any }): number {
-    const ai = input?.aiData;
-    if (!ai) return 0;
-    let n = 0;
-    if (typeof ai.dureeMariageAnnees === 'number' && ai.dureeMariageAnnees > 0) n++;
-    if (typeof ai.revenusAnnuelsDemandeurEur === 'number' && ai.revenusAnnuelsDemandeurEur > 0) n++;
-    if (typeof ai.revenusAnnuelsDefendeurEur === 'number' && ai.revenusAnnuelsDefendeurEur > 0) n++;
-    if (typeof ai.dateDepotAssignation === 'string' && ai.dateDepotAssignation.length > 0) n++;
-    if (Array.isArray(ai.fautesDetectees) && ai.fautesDetectees.length > 0) {
-      const filtered = ai.fautesDetectees
-        .filter((f: unknown) => typeof f === 'string')
-        .map((f: string) => f.toUpperCase())
-        .filter((f: string) => VALID_FAUTE_CODES.has(f));
-      if (filtered.length > 0) n++;
-    }
-    return n;
+    return DivorceFautePrefillRules.computePrefillCount(input);
   }
 
   @Input() caseFileId!: string;
@@ -255,26 +233,30 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-FA-09-02 : pré-remplit le form depuis `aiData`. N'écrase jamais une
-   * saisie avocat existante (la garde est faite par champ — provenance IA OK
-   * ou champ encore vide).
+   * F-237 SF-237-02 : pré-remplit le form depuis `aiData` via le helper
+   * partagé `DivorceFautePrefillRules`. N'écrase jamais une saisie avocat
+   * existante (la garde est faite par champ — provenance IA OK ou champ vide).
+   *
+   * Le helper est l'unique source de vérité — toute modification doit y être
+   * faite, le static `getPrefillCount` en bénéficie automatiquement.
    */
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
     if (!ai) return;
+    const helperInput = { aiData: ai };
 
     // 1. Durée mariage (entier > 0).
-    const ageMariage = (ai as { dureeMariageAnnees?: number | null }).dureeMariageAnnees;
-    if (typeof ageMariage === 'number' && ageMariage > 0) {
+    const duree = DivorceFautePrefillRules.computeDureeMariage(helperInput);
+    if (duree !== null) {
       if (this.dureeMariageAnnees() === null || this.provenanceDureeMariage() === 'IA') {
-        this.dureeMariageAnnees.set(ageMariage);
+        this.dureeMariageAnnees.set(duree);
         this.provenanceDureeMariage.set('IA');
       }
     }
 
     // 2. Revenus annuels demandeur (> 0).
-    const revDem = (ai as { revenusAnnuelsDemandeurEur?: number | null }).revenusAnnuelsDemandeurEur;
-    if (typeof revDem === 'number' && revDem > 0) {
+    const revDem = DivorceFautePrefillRules.computeRevenusDemandeur(helperInput);
+    if (revDem !== null) {
       if (this.revenusAnnuelsDemandeurEur() === null || this.provenanceRevenusDemandeur() === 'IA') {
         this.revenusAnnuelsDemandeurEur.set(revDem);
         this.provenanceRevenusDemandeur.set('IA');
@@ -282,8 +264,8 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
     }
 
     // 3. Revenus annuels défendeur (> 0).
-    const revDef = (ai as { revenusAnnuelsDefendeurEur?: number | null }).revenusAnnuelsDefendeurEur;
-    if (typeof revDef === 'number' && revDef > 0) {
+    const revDef = DivorceFautePrefillRules.computeRevenusDefendeur(helperInput);
+    if (revDef !== null) {
       if (this.revenusAnnuelsDefendeurEur() === null || this.provenanceRevenusDefendeur() === 'IA') {
         this.revenusAnnuelsDefendeurEur.set(revDef);
         this.provenanceRevenusDefendeur.set('IA');
@@ -291,28 +273,22 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
     }
 
     // 4. Date dépôt assignation (ISO YYYY-MM-DD).
-    const dateDepot = (ai as { dateDepotAssignation?: string | null }).dateDepotAssignation;
-    if (typeof dateDepot === 'string' && dateDepot.length > 0) {
+    const dateDepot = DivorceFautePrefillRules.computeDateDepotAssignation(helperInput);
+    if (dateDepot !== null) {
       if (this.dateDepotAssignation() === null || this.provenanceDateDepot() === 'IA') {
         this.dateDepotAssignation.set(dateDepot);
         this.provenanceDateDepot.set('IA');
       }
     }
 
-    // 5. Fautes détectées par pipeline IA — no-op gracieux si absent.
+    // 5. Fautes détectées par pipeline IA — filtrage codes valides via helper.
     // F-236 SF-236-03 : `fautesDetectees` est actuellement déclaré sur
-    // `TravailExtractedData` (anomalie modèle backend — devra migrer vers
-    // `FamilleExtractedData` côté pipeline). Cast permissif jusqu'au fix.
-    const fautesIa = (ai as { fautesDetectees?: string[] | null }).fautesDetectees;
-    if (Array.isArray(fautesIa) && fautesIa.length > 0) {
-      const filtered = fautesIa
-        .map((f) => f?.toUpperCase())
-        .filter((f): f is FauteCode => !!f && VALID_FAUTE_CODES.has(f));
-      if (filtered.length > 0
-          && (this.fautesInvoquees().length === 0 || this.provenanceFautesInvoquees() === 'IA')) {
-        this.fautesInvoquees.set(filtered);
-        this.provenanceFautesInvoquees.set('IA');
-      }
+    // `TravailExtractedData` (anomalie modèle backend — cast permissif).
+    const fautes = DivorceFautePrefillRules.computeFautesDetectees(helperInput);
+    if (fautes !== null
+        && (this.fautesInvoquees().length === 0 || this.provenanceFautesInvoquees() === 'IA')) {
+      this.fautesInvoquees.set(fautes as FauteCode[]);
+      this.provenanceFautesInvoquees.set('IA');
     }
   }
 
