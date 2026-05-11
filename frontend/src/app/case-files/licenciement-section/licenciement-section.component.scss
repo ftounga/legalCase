@@ -15,6 +15,36 @@
 
 .lic-body { padding: 0 4px; }
 
+// F-163 SF-163-02a — Bannière mode simulateur autonome (palette navy/or).
+.standalone-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: rgba(#1A3A5C, 0.05);
+  border: 1px solid rgba(#1A3A5C, 0.18);
+  border-left: 4px solid #C9973A;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  color: #1A3A5C;
+
+  &__emoji {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  &__text {
+    font-size: 14px;
+    line-height: 1.4;
+
+    strong {
+      color: #1A3A5C;
+      font-weight: 600;
+    }
+  }
+}
+
 .loading-row { display: flex; align-items: center; gap: 8px; color: #6B7A8D; font-family: 'Inter', sans-serif; font-size: 14px; padding: 16px 0; }
 
 .lic-form {

@@ -1,0 +1,120 @@
+// F-163 / SF-163-02a — Page runner d'un simulateur autonome.
+// Charte : navy / or, Inter, palette du DESIGN_SYSTEM.md (alignée sur
+// simulators-catalog-page.component.scss).
+
+$navy: #1a3a5c;
+$or: #c9973a;
+$gris-bg: #f6f7fa;
+$gris-bord: #e1e5ec;
+$gris-text-secondaire: #6b7280;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.simulator-runner-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+  font-family: 'Inter', sans-serif;
+  color: $navy;
+}
+
+.runner-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  .back-link {
+    flex-shrink: 0;
+  }
+
+  .runner-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.45rem;
+    font-weight: 600;
+    margin: 0;
+    color: $navy;
+  }
+
+  .header-icon {
+    color: $or;
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+  }
+}
+
+.loading-block {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.banner {
+  display: flex;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  background: $gris-bg;
+  border: 1px solid $gris-bord;
+
+  > mat-icon {
+    flex-shrink: 0;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .banner-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .banner-title {
+      margin: 0;
+      font-weight: 600;
+      color: $navy;
+      font-size: 1.05rem;
+    }
+
+    .banner-text {
+      margin: 0;
+      color: $gris-text-secondaire;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  }
+}
+
+.banner-info {
+  background: rgba($navy, 0.04);
+  border-color: rgba($navy, 0.15);
+
+  > mat-icon {
+    color: $navy;
+  }
+}
+
+.banner-error {
+  background: rgba(#c0392b, 0.06);
+  border-color: rgba(#c0392b, 0.2);
+
+  > mat-icon {
+    color: #c0392b;
+  }
+}
+
+.runner-body {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid $gris-bord;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}

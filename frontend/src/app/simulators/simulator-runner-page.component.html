@@ -1,0 +1,68 @@
+<div class="simulator-runner-page">
+  <header class="runner-header">
+    <a mat-stroked-button color="primary" routerLink="/simulators" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      Catalogue
+    </a>
+    @if (entry()) {
+      <h1 class="runner-title">
+        <mat-icon class="header-icon">science</mat-icon>
+        {{ entry()!.displayLabel }}
+      </h1>
+    } @else {
+      <h1 class="runner-title">
+        <mat-icon class="header-icon">science</mat-icon>
+        Simulateur
+      </h1>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="loading-block">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  @if (!loading() && isNotFound()) {
+    <section class="banner banner-error" data-testid="banner-not-found">
+      <mat-icon>error_outline</mat-icon>
+      <div class="banner-content">
+        <p class="banner-title">Simulateur introuvable</p>
+        <p class="banner-text">
+          L'outil <strong>{{ toolId() }}</strong> n'existe pas dans le catalogue
+          des simulateurs.
+        </p>
+        <a mat-flat-button color="primary" routerLink="/simulators">
+          <mat-icon>arrow_back</mat-icon>
+          Retour au catalogue
+        </a>
+      </div>
+    </section>
+  }
+
+  @if (!loading() && !isNotFound() && entry() && !isStandaloneReady()) {
+    <section class="banner banner-info" data-testid="banner-not-ready">
+      <mat-icon>schedule</mat-icon>
+      <div class="banner-content">
+        <p class="banner-title">Disponible bientôt</p>
+        <p class="banner-text">
+          Cet outil ({{ entry()!.displayLabel }}) sera disponible en mode
+          simulateur dans une prochaine version. En attendant, vous pouvez
+          l'utiliser depuis un dossier client.
+        </p>
+        <a mat-stroked-button color="primary" routerLink="/simulators">
+          <mat-icon>arrow_back</mat-icon>
+          Retour au catalogue
+        </a>
+      </div>
+    </section>
+  }
+
+  @if (!loading() && isStandaloneReady() && componentInputs()) {
+    <section class="runner-body" data-testid="runner-body">
+      <ng-container
+        *ngComponentOutlet="entry()!.component; inputs: componentInputs()!"
+      ></ng-container>
+    </section>
+  }
+</div>
