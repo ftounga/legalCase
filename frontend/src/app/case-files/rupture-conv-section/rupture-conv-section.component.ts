@@ -129,6 +129,14 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
   @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   readonly criteres = CRITERES_FR;
 
   collapsed = signal(true);
@@ -149,6 +157,8 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   coherenceAlerts = computed<Partial<Record<RCAlertField, RCCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     const alerts: Partial<Record<RCAlertField, RCCoherenceAlert>> = {};
     const detections = this.aiDataSignal()?.detections;
@@ -256,6 +266,8 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   ) {}
 
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: map => this.sourceExplanations.set(map),
@@ -279,6 +291,20 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     this.loadSourceExplanations();
 
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.rcService.get(this.caseFileId).subscribe({
       next: resp => {
         this.result.set(resp);
@@ -291,7 +317,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
       error: () => {
         this.showForm.set(true);
         this.loading.set(false);
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
       },
     });
   }
@@ -305,7 +331,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
       // SF-155-17 : ré-appliquer le pré-fill quand `aiData` arrive avant
       // première résolution backend et que l'avocat n'a pas encore répondu.
       if (!changes['aiData'].firstChange && this.showForm() && !this.result()) {
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
       }
     }
     if (changes['procedureChecks']) {
@@ -340,15 +366,23 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
 
   analyze(): void {
     this.analyzing.set(true);
-    this.rcService.analyze(this.caseFileId, {
+    (this.standaloneMode
+      ? this.rcService.analyzeStandalone({
       country: 'FRANCE',
       reponses: this.reponses(),
-    }).subscribe({
+    })
+      : this.rcService.analyze(this.caseFileId, {
+      country: 'FRANCE',
+      reponses: this.reponses(),
+    }))
+      .subscribe({
       next: resp => {
         this.result.set(resp);
         this.showForm.set(false);
         this.analyzing.set(false);
-        this.refreshService?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.refreshService?.triggerRefresh();
       },
       error: () => {
         this.analyzing.set(false);
@@ -467,6 +501,8 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
    * Marque `provenanceReponses[code] = 'IA'` pour afficher le badge.
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     const detections = this.aiDataSignal()?.detections;
     if (!detections) return;
     const currentReponses = this.reponses();

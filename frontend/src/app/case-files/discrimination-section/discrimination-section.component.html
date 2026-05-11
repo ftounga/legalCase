@@ -13,6 +13,16 @@
 
   @if (!collapsed()) {
     <div id="discrim-body" class="discrim-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+
       @if (loading()) {
         <div class="discrim-loading">
           <mat-spinner diameter="28"></mat-spinner>

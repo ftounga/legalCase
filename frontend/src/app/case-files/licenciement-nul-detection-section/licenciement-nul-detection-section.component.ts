@@ -139,6 +139,14 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   // Snapshots signal des inputs IA pour réactivité des `computed`.
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -181,6 +189,8 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
    * SF-IA-03-12 : alertes masquées après calcul rendu).
    */
   coherenceAlerts = computed<Partial<Record<LNDAlertField, LNDCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     const alerts: Partial<Record<LNDAlertField, LNDCoherenceAlert>> = {};
     const salaireAlert = this.buildSalaireAlert();
@@ -234,11 +244,13 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
     // saisi manuellement et qu'aucun résultat n'est affiché.
     if (changes['aiData'] && !changes['aiData'].firstChange
         && this.showForm() && !this.result()) {
-      this.prefillFromAi();
+      if (!this.standaloneMode) this.prefillFromAi();
     }
   }
 
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId || !this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: (map) => this.sourceExplanations.set(map),
@@ -375,12 +387,17 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
       ancienneteAnnees: this.ancienneteAnnees(),
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.calculateStandalone(request)
+      : this.service.calculate(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.applyResult(r);
         this.calculating.set(false);
         this.snackBar.open('Détection licenciement nul calculée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.calculating.set(false);
@@ -392,6 +409,20 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.applyResult(r);
@@ -399,7 +430,7 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
       },
       error: () => {
         // 404 attendu si aucune analyse — on reste en mode formulaire.
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
         this.loading.set(false);
       },
     });
@@ -436,6 +467,8 @@ export class LicenciementNulDetectionSectionComponent implements OnInit, OnChang
    * (provenance === null indique modification manuelle).
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     const ai = this.aiDataSignal();
     if (!ai) return;
 

@@ -132,6 +132,14 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   // Snapshots signal pour que `computed` réagisse aux changements d'input.
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -175,6 +183,8 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
   // SF-DT-13-02 : alertes de cohérence F-IA-03 calculées dynamiquement via
   // le builder partagé. Gate strict `showForm()` (anti-bug SF-IA-03-12).
   coherenceAlerts = computed<Partial<Record<LicEcoAlertField, LicEcoCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     const alerts: Partial<Record<LicEcoAlertField, LicEcoCoherenceAlert>> = {};
     const motifAlert = this.buildMotifAlert();
@@ -223,7 +233,7 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
     // l'avocat a déjà saisi (provenance null sur champ rempli) ou si un
     // résultat persisté est présent (form masqué).
     if (changes['aiData'] && !changes['aiData'].firstChange && this.showForm() && !this.result()) {
-      this.prefillFromAi();
+      if (!this.standaloneMode) this.prefillFromAi();
     }
   }
 
@@ -240,6 +250,8 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
    * les saisit manuellement.
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     const ai = this.aiDataSignal();
     if (!ai) return;
 
@@ -264,6 +276,8 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
   }
 
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId || !this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: (map) => this.sourceExplanations.set(map),
@@ -542,12 +556,17 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
       dateNotification: this.dateNotification()!,
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.calculateStandalone(request)
+      : this.service.calculate(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.applyPersistedResult(r);
         this.calculating.set(false);
         this.snackBar.open('Risque de requalification analysé', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.calculating.set(false);
@@ -559,6 +578,20 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.applyPersistedResult(r);
@@ -566,7 +599,7 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
       },
       error: () => {
         // 404 attendu si aucune analyse — reste en mode formulaire.
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
         this.loading.set(false);
       },
     });

@@ -138,6 +138,14 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
   /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
   @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
@@ -174,6 +182,8 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   // Gate : uniquement en mode formulaire (pattern anti-bug SF-IA-03-12 —
   // ne pas afficher d'alertes après que le calcul est rendu).
   coherenceAlerts = computed<Partial<Record<HLNAlertField, HLNCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     const alerts: Partial<Record<HLNAlertField, HLNCoherenceAlert>> = {};
     const salaireAlert = this.buildSalaireAlert();
@@ -223,7 +233,7 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
     // manuellement (provenance devenue null) OU si un résultat persisté est
     // présent (form masqué).
     if (changes['aiData'] && !changes['aiData'].firstChange && this.showForm() && !this.result()) {
-      this.prefillFromAi();
+      if (!this.standaloneMode) this.prefillFromAi();
     }
   }
 
@@ -232,6 +242,8 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
    * saisie avocat existante (la garde est dans le call site).
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     const ai = this.aiDataSignal();
     if (!ai) return;
 
@@ -260,6 +272,8 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   }
 
   private loadSourceExplanations(): void {
+    // F-163 SF-163-02b : pas de dossier en standalone.
+    if (this.standaloneMode) return;
     if (!this.caseFileId || !this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: (map) => this.sourceExplanations.set(map),
@@ -449,13 +463,18 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
       motifNullite: this.motifNullite()!,
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.calculateStandalone(request)
+      : this.service.calculate(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Indemnité calculée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.calculating.set(false);
@@ -467,6 +486,20 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.result.set(r);
@@ -481,7 +514,7 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
       error: () => {
         // 404 attendu si aucune analyse — on reste en mode formulaire.
         // SF-155-04-A1 : fallback pré-fill IA uniquement ici (pas si GET 200).
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
         this.loading.set(false);
       },
     });

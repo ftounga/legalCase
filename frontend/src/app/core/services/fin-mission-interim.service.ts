@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class FinMissionInterimService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-18-fin-mission-interim';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class FinMissionInterimService {
   get(caseFileId: string): Observable<FinMissionInterimResponse> {
     return this.http.get<FinMissionInterimResponse>(
       `/api/v1/case-files/${caseFileId}/fin-mission-interim`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: FinMissionInterimRequest): Observable<FinMissionInterimResponse> {
+    return this.http.post<FinMissionInterimResponse>(
+      `/api/v1/simulators/${FinMissionInterimService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

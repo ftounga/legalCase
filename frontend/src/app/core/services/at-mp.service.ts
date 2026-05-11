@@ -10,6 +10,8 @@ import { AtMpRequest, AtMpResponse } from '../models/at-mp.model';
  */
 @Injectable({ providedIn: 'root' })
 export class AtMpService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-33-at-mp';
 
   constructor(private http: HttpClient) {}
 
@@ -21,5 +23,12 @@ export class AtMpService {
   get(caseFileId: string): Observable<AtMpResponse> {
     return this.http.get<AtMpResponse>(
       `/api/v1/case-files/${caseFileId}/at-mp-analysis`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: AtMpRequest): Observable<AtMpResponse> {
+    return this.http.post<AtMpResponse>(
+      `/api/v1/simulators/${AtMpService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

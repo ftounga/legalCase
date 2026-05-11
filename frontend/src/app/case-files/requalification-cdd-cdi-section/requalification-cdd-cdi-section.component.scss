@@ -416,3 +416,25 @@
   font-style: italic;
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
+
+
+// F-163 SF-163-02b — Bannière mode simulateur autonome (palette navy/or).
+.standalone-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: rgba(#1A3A5C, 0.05);
+  border: 1px solid rgba(#1A3A5C, 0.18);
+  border-left: 4px solid #C9973A;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  color: #1A3A5C;
+
+  &__emoji { font-size: 20px; line-height: 1; }
+  &__text {
+    font-size: 14px; line-height: 1.4;
+    strong { color: #1A3A5C; font-weight: 600; }
+  }
+}

@@ -11,6 +11,16 @@
 
   @if (!collapsed()) {
     <div id="td-body" class="td-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+
       @if (isBelgium()) {
         <!-- Gate pays : bannière info (pas de masquage silencieux — règle CLAUDE.md). -->
         <div class="td-country-notice">

@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class HeuresSupService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-19-heures-sup';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class HeuresSupService {
   get(caseFileId: string): Observable<HeuresSupResponse> {
     return this.http.get<HeuresSupResponse>(
       `/api/v1/case-files/${caseFileId}/heures-sup`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: HeuresSupRequest): Observable<HeuresSupResponse> {
+    return this.http.post<HeuresSupResponse>(
+      `/api/v1/simulators/${HeuresSupService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

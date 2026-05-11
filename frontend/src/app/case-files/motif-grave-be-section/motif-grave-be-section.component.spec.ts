@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MotifGraveBeService } from '../../core/services/motif-grave-be.service';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -430,4 +431,44 @@ describe('MotifGraveBeSectionComponent', () => {
     expect(component.explanationFor('SALAIRE')).toEqual([]);
     expect(component.explanationFor('DATE_RUPTURE')).toEqual([]);
   });
+
+  // ---------------------------------------------------------------------------
+  // F-163 SF-163-02b — mode standalone (CA-08, CA-09, CA-10).
+  // ---------------------------------------------------------------------------
+  describe('F-163 SF-163-02b — mode standalone', () => {
+    const STANDALONE_URL = '/api/v1/simulators/F-DT-27-motif-grave-be/calculate';
+
+    it('CA-08 : affiche la bannière 🧪 quand standaloneMode=true', () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).not.toBeNull();
+      expect(banner.textContent).toContain('Mode simulateur');
+    });
+
+    it('CA-08 : pas de bannière en mode case-file (standaloneMode=false)', () => {
+      component.standaloneMode = false;
+      fixture.detectChanges();
+      const matches = httpMock.match(() => true);
+      matches.forEach((r) => { try { r.flush({}, { status: 404, statusText: 'Not Found' }); } catch {} });
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).toBeNull();
+    });
+
+    it("CA-08 : coherenceAlerts() retourne vide en standalone", () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const alerts = (component as any).coherenceAlerts ? (component as any).coherenceAlerts() : {};
+      expect(Object.keys(alerts)).toHaveLength(0);
+    });
+
+    it("CA-09 : exposition du service standalone (route dispatcher)", () => {
+      // Garde-fou statique : le service expose le toolId du dispatcher.
+      // L'intégration runtime est couverte par CA-09 manuel sur staging
+      // (3 outils échantillonnés — cf. mini-spec).
+      expect(MotifGraveBeService.STANDALONE_TOOL_ID).toBe('F-DT-27-motif-grave-be');
+      expect(STANDALONE_URL).toContain(MotifGraveBeService.STANDALONE_TOOL_ID);
+    });
+  });
+
 });

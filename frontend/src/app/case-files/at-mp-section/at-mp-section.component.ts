@@ -125,6 +125,14 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  /**
+   * F-163 SF-163-02b — Mode simulateur autonome (hors dossier client).
+   * Quand `true` : bannière simulateur affichée, prefillFromAi() / coherenceAlerts /
+   * loadExisting() / triggerRefresh() court-circuités, POST routé vers le dispatcher
+   * générique /api/v1/simulators/{toolId}/calculate (SF-163-03).
+   */
+  @Input() standaloneMode: boolean = false;
+
   // Snapshots signal des inputs IA pour que `computed` réagisse.
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -176,6 +184,8 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
    * Gate : uniquement en mode formulaire ET dispositif AT.
    */
   coherenceAlerts = computed<Partial<Record<AtMpAlertField, AtMpCoherenceAlert>>>(() => {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return {} as any;
     if (!this.showForm()) return {};
     if (this.dispositif() !== 'RECONNAISSANCE_AT') return {};
     const alerts: Partial<Record<AtMpAlertField, AtMpCoherenceAlert>> = {};
@@ -222,7 +232,7 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
     // ET sans résultat persisté chargé.
     if (changes['aiData'] && !changes['aiData'].firstChange
         && this.isFrance() && this.showForm() && !this.result()) {
-      this.prefillFromAi();
+      if (!this.standaloneMode) this.prefillFromAi();
     }
   }
 
@@ -416,6 +426,8 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
    *   une `dateAccident` dédiée).
    */
   private prefillFromAi(): void {
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
     const ai = this.aiDataSignal();
     if (!ai) return;
 
@@ -457,13 +469,18 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
         break;
     }
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    (this.standaloneMode
+      ? this.service.calculateStandalone(request)
+      : this.service.calculate(this.caseFileId, request))
+      .subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Recevabilité AT/MP analysée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02b : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) this.dashboardRefresh?.triggerRefresh();
       },
       error: (err) => {
         this.calculating.set(false);
@@ -475,6 +492,20 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
 
   private load(): void {
     this.loading.set(true);
+    // F-163 SF-163-02b : en standalone, pas de dossier à interroger.
+
+    if (this.standaloneMode) {
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      if (this.collapsed && typeof (this.collapsed as any).set === 'function') this.collapsed.set(false);
+
+      return;
+
+    }
+
     this.service.get(this.caseFileId).subscribe({
       next: (r) => {
         this.result.set(r);
@@ -486,7 +517,7 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
       error: () => {
         // 404 attendu si aucune analyse — on reste en mode formulaire.
         // Fallback pré-fill IA uniquement ici (pas si GET 200).
-        this.prefillFromAi();
+        if (!this.standaloneMode) this.prefillFromAi();
         this.loading.set(false);
       },
     });

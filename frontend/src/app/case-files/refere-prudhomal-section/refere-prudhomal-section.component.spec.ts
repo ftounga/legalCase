@@ -1,4 +1,5 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReferePrudhomalService } from '../../core/services/refere-prudhomal.service';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -11,6 +12,7 @@ import { TravailExtractedData } from '../../core/models/case-analysis.model';
 describe('ReferePrudhomalSectionComponent', () => {
   let component: ReferePrudhomalSectionComponent;
   let httpMock: HttpTestingController;
+  let fixture: ComponentFixture<ReferePrudhomalSectionComponent>;
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
   let refreshSpy: jasmine.SpyObj<CaseDashboardRefreshService>;
 
@@ -61,7 +63,7 @@ describe('ReferePrudhomalSectionComponent', () => {
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(ReferePrudhomalSectionComponent);
+    fixture = TestBed.createComponent(ReferePrudhomalSectionComponent);
     component = fixture.componentInstance;
     component.caseFileId = 'case-1';
     component.workspaceCountry = 'FRANCE';
@@ -499,4 +501,44 @@ describe('ReferePrudhomalSectionComponent', () => {
     expect(component.alertBadgeLabel(alert)).toContain('Incohérence');
     expect(component.alertTooltip(alert)).toBeTruthy();
   });
+
+  // ---------------------------------------------------------------------------
+  // F-163 SF-163-02b — mode standalone (CA-08, CA-09, CA-10).
+  // ---------------------------------------------------------------------------
+  describe('F-163 SF-163-02b — mode standalone', () => {
+    const STANDALONE_URL = '/api/v1/simulators/F-DT-34-refere-prudhomal/calculate';
+
+    it('CA-08 : affiche la bannière 🧪 quand standaloneMode=true', () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).not.toBeNull();
+      expect(banner.textContent).toContain('Mode simulateur');
+    });
+
+    it('CA-08 : pas de bannière en mode case-file (standaloneMode=false)', () => {
+      component.standaloneMode = false;
+      fixture.detectChanges();
+      const matches = httpMock.match(() => true);
+      matches.forEach((r) => { try { r.flush({}, { status: 404, statusText: 'Not Found' }); } catch {} });
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).toBeNull();
+    });
+
+    it("CA-08 : coherenceAlerts() retourne vide en standalone", () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const alerts = (component as any).coherenceAlerts ? (component as any).coherenceAlerts() : {};
+      expect(Object.keys(alerts)).toHaveLength(0);
+    });
+
+    it("CA-09 : exposition du service standalone (route dispatcher)", () => {
+      // Garde-fou statique : le service expose le toolId du dispatcher.
+      // L'intégration runtime est couverte par CA-09 manuel sur staging
+      // (3 outils échantillonnés — cf. mini-spec).
+      expect(ReferePrudhomalService.STANDALONE_TOOL_ID).toBe('F-DT-34-refere-prudhomal');
+      expect(STANDALONE_URL).toContain(ReferePrudhomalService.STANDALONE_TOOL_ID);
+    });
+  });
+
 });

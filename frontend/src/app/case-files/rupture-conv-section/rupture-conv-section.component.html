@@ -15,6 +15,16 @@
 
   @if (!collapsed()) {
     <div id="td-body" class="td-body rc-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+
       <div class="legal-ref">
         <mat-icon>info</mat-icon>
         <span>Rupture conventionnelle individuelle — articles L1237-11 à L1237-16 du Code du travail.</span>

@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class RequalificationInterimCdiService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-23-requalification-interim-cdi';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class RequalificationInterimCdiService {
   get(caseFileId: string): Observable<RequalificationInterimCdiResponse> {
     return this.http.get<RequalificationInterimCdiResponse>(
       `/api/v1/case-files/${caseFileId}/requalification-interim-cdi`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: RequalificationInterimCdiRequest): Observable<RequalificationInterimCdiResponse> {
+    return this.http.post<RequalificationInterimCdiResponse>(
+      `/api/v1/simulators/${RequalificationInterimCdiService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

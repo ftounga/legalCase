@@ -17,6 +17,33 @@
 export const STANDALONE_READY_TOOL_IDS: ReadonlySet<string> = new Set<string>([
   // SF-163-02a — pilote (Travail FR).
   'F-DT-08-licenciement-validity',
+
+  // SF-163-02b — Travail FR (19).
+  'F-DT-10-rupture-conv-validity',
+  'F-DT-11-harcelement-licenciement-nul',
+  'F-DT-12-discrimination-dommages-interets',
+  'F-DT-13-licenciement-economique',
+  'F-DT-15-inaptitude',
+  'F-DT-16-licenciement-nul-detection',
+  'F-DT-17-indemnite-precarite-cdd',
+  'F-DT-18-fin-mission-interim',
+  'F-DT-19-heures-sup',
+  'F-DT-21-travail-dissimule',
+  'F-DT-22-requalification-cdd-cdi',
+  'F-DT-23-requalification-interim-cdi',
+  'F-DT-24-non-concurrence',
+  'F-DT-26-conges-payes-indemnite',
+  'F-DT-30-protection-rp',
+  'F-DT-31-transaction',
+  'F-DT-33-at-mp',
+  'F-DT-34-refere-prudhomal',
+  'F-DT-35-contestation-are-fr',
+
+  // SF-163-02b — Travail BE (3).
+  'F-DT-27-motif-grave-be',
+  'F-DT-28-avantages-conventionnels-be',
+  'F-DT-29-credit-temps-be',
+
   // SF-163-02c — Famille FR + BE.
   'F-FA-05-partage-immobilier',
   'F-FA-08-divorce-alteration',

@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class ReferePrudhomalService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-34-refere-prudhomal';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class ReferePrudhomalService {
   get(caseFileId: string): Observable<ReferePrudhomalResponse> {
     return this.http.get<ReferePrudhomalResponse>(
       `/api/v1/case-files/${caseFileId}/refere-prudhomal`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  analyzeStandalone(request: ReferePrudhomalRequest): Observable<ReferePrudhomalResponse> {
+    return this.http.post<ReferePrudhomalResponse>(
+      `/api/v1/simulators/${ReferePrudhomalService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

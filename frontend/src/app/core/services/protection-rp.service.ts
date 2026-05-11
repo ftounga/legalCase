@@ -10,6 +10,8 @@ import { ProtectionRpRequest, ProtectionRpResponse } from '../models/protection-
  */
 @Injectable({ providedIn: 'root' })
 export class ProtectionRpService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-30-protection-rp';
 
   constructor(private http: HttpClient) {}
 
@@ -21,5 +23,12 @@ export class ProtectionRpService {
   get(caseFileId: string): Observable<ProtectionRpResponse> {
     return this.http.get<ProtectionRpResponse>(
       `/api/v1/case-files/${caseFileId}/protection-rp-analysis`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: ProtectionRpRequest): Observable<ProtectionRpResponse> {
+    return this.http.post<ProtectionRpResponse>(
+      `/api/v1/simulators/${ProtectionRpService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

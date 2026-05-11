@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class LicenciementEconomiqueService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-13-licenciement-economique';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class LicenciementEconomiqueService {
   get(caseFileId: string): Observable<LicenciementEconomiqueResponse> {
     return this.http.get<LicenciementEconomiqueResponse>(
       `/api/v1/case-files/${caseFileId}/licenciement-economique`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: LicenciementEconomiqueRequest): Observable<LicenciementEconomiqueResponse> {
+    return this.http.post<LicenciementEconomiqueResponse>(
+      `/api/v1/simulators/${LicenciementEconomiqueService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }

@@ -38,7 +38,7 @@ describe('RuptureConvSectionComponent', () => {
   };
 
   beforeEach(async () => {
-    rcService = { get: jest.fn(), analyze: jest.fn() } as any;
+    rcService = { get: jest.fn(), analyze: jest.fn(), analyzeStandalone: jest.fn() } as any;
     snackBar = { open: jest.fn() } as any;
     refreshService = new CaseDashboardRefreshService();
     const sourceExplanationMock = { getForCaseFile: jest.fn().mockReturnValue(of(new Map())) };
@@ -233,5 +233,72 @@ describe('RuptureConvSectionComponent', () => {
     fixture.detectChanges();
     expect(component.showForm()).toBe(false);
     expect(Object.keys(component.coherenceAlerts()).length).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // F-163 SF-163-02b — mode standalone (CA-08, CA-09, CA-10).
+  // ---------------------------------------------------------------------------
+  describe('F-163 SF-163-02b — mode standalone', () => {
+    const STANDALONE_TOOL_ID = 'F-DT-10-rupture-conv-validity';
+
+    it('CA-08 : affiche la bannière 🧪 quand standaloneMode=true', () => {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).not.toBeNull();
+      expect(banner.textContent).toContain('Mode simulateur');
+      // En standalone, aucun GET case-file ne doit être appelé.
+      expect(rcService.get).not.toHaveBeenCalled();
+    });
+
+    it('CA-08 : pas de bannière en mode case-file (standaloneMode=false)', () => {
+      rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+      component.standaloneMode = false;
+      fixture.detectChanges();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).toBeNull();
+    });
+
+    it('CA-08 : coherenceAlerts() retourne {} en standalone même avec divergence', () => {
+      component.standaloneMode = true;
+      component.aiData = {
+        detections: { RC_CONSENTEMENT: { reponse: 'OUI' } },
+      };
+      fixture.detectChanges();
+      component.setReponse('RC_CONSENTEMENT', 'NON');
+      expect(component.coherenceAlerts()).toEqual({});
+    });
+
+    it('CA-09 : analyze() POST sur le dispatcher en standalone', () => {
+      rcService.analyzeStandalone.mockReturnValue(of(fakeResponse));
+      const triggerSpy = jest.spyOn(refreshService, 'triggerRefresh');
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      component.analyze();
+      expect(rcService.analyzeStandalone).toHaveBeenCalledWith({
+        country: 'FRANCE',
+        reponses: component.reponses(),
+      });
+      expect(rcService.analyze).not.toHaveBeenCalled();
+      expect(component.result()).toEqual(fakeResponse);
+      // CA-10 : triggerRefresh NON invoqué en standalone.
+      expect(triggerSpy).not.toHaveBeenCalled();
+    });
+
+    it('CA-09 : RuptureConvService.STANDALONE_TOOL_ID matche le dispatcher backend', () => {
+      expect(RuptureConvService.STANDALONE_TOOL_ID).toBe(STANDALONE_TOOL_ID);
+    });
+
+    it('CA-10 : analyze() en case-file appelle bien rcService.analyze + triggerRefresh', () => {
+      rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+      rcService.analyze.mockReturnValue(of(fakeResponse));
+      const triggerSpy = jest.spyOn(refreshService, 'triggerRefresh');
+      component.standaloneMode = false;
+      fixture.detectChanges();
+      component.analyze();
+      expect(rcService.analyze).toHaveBeenCalled();
+      expect(rcService.analyzeStandalone).not.toHaveBeenCalled();
+      expect(triggerSpy).toHaveBeenCalledTimes(1);
+    });
   });
 });

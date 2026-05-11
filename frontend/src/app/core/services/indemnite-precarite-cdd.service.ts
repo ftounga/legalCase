@@ -13,6 +13,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class IndemnitePrecariteCddService {
+  /** F-163 SF-163-02b — `toolId` du dispatcher backend. */
+  static readonly STANDALONE_TOOL_ID = 'F-DT-17-indemnite-precarite-cdd';
 
   constructor(private http: HttpClient) {}
 
@@ -25,5 +27,12 @@ export class IndemnitePrecariteCddService {
   get(caseFileId: string): Observable<IndemnitePrecariteCddResponse> {
     return this.http.get<IndemnitePrecariteCddResponse>(
       `/api/v1/case-files/${caseFileId}/cdd-indemnite-precarite`);
+  }
+  /** F-163 SF-163-02b — POST sur le dispatcher générique des simulateurs. */
+  calculateStandalone(request: IndemnitePrecariteCddRequest): Observable<IndemnitePrecariteCddResponse> {
+    return this.http.post<IndemnitePrecariteCddResponse>(
+      `/api/v1/simulators/${IndemnitePrecariteCddService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
   }
 }
