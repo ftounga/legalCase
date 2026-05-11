@@ -120,6 +120,21 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02d — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` / `load()` court-circuité.
+   *  - `analyze()` POSTe sur `/api/v1/simulators/F-IM-08-referes-admin-fr/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   // Signals miroirs des inputs IA pour réactivité computed.
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -160,6 +175,8 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
 
   /** Alertes F-IA-03 — gate strict : seulement quand le formulaire est affiché. */
   coherenceAlerts = computed<Partial<Record<RefereAlertField, RefereCoherenceAlert>>>(() => {
+    // F-163 SF-163-02d : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     if (!this.isFrance()) return {};
     const alerts: Partial<Record<RefereAlertField, RefereCoherenceAlert>> = {};
@@ -195,6 +212,19 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    if (this.standaloneMode) {
+
+      // F-163 SF-163-02d : pas de dossier à interroger en standalone.
+
+      this.collapsed.set(false);
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      return;
+
+    }
     if (this.isFrance()) {
       this.load();
       this.loadSourceExplanations();
@@ -309,13 +339,23 @@ export class ReferesAdminSectionComponent implements OnInit, OnChanges {
       demandeurDejaPrived: this.demandeurDejaPrived(),
     };
     this.analyzing.set(true);
-    this.service.analyze(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02d : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.analyzeStandalone(request)
+
+      : this.service.analyze(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.analyzing.set(false);
         this.snackBar.open('Référés administratifs analysés', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02d : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.analyzing.set(false);

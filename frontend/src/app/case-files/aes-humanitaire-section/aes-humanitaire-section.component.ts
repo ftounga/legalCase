@@ -119,6 +119,21 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02d — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` / `load()` court-circuité.
+   *  - `calculate()` POSTe sur `/api/v1/simulators/F-IM-09-aes-humanitaire/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   // Signals miroirs des inputs IA (réactivité post-mount, pattern canonique
   // F-155 SF-155-06).
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
@@ -159,6 +174,8 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
 
   // Alertes de cohérence F-IA-03 (computed).
   coherenceAlerts = computed<Partial<Record<AesHumanitaireAlertField, AesHumanitaireCoherenceAlert>>>(() => {
+    // F-163 SF-163-02d : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     if (!this.isFrance()) return {};
     const alerts: Partial<Record<AesHumanitaireAlertField, AesHumanitaireCoherenceAlert>> = {};
@@ -191,6 +208,19 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    if (this.standaloneMode) {
+
+      // F-163 SF-163-02d : pas de dossier à interroger en standalone.
+
+      this.collapsed.set(false);
+
+      this.loading.set(false);
+
+      this.showForm.set(true);
+
+      return;
+
+    }
     if (this.isFrance()) {
       this.load();
       this.loadSourceExplanations();
@@ -512,13 +542,23 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
       dateDepotDemande: this.dateDepotDemande(),
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02d : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.calculateStandalone(request)
+
+      : this.service.calculate(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Analyse AES humanitaire calculée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02d : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.calculating.set(false);

@@ -1,3 +1,6 @@
+/* F-163 SF-163-02d — bannière standalone partagée */
+@import '../../simulators/standalone-banner';
+
 // SF-IM-09-07 : palette navy/or classique. Pas de rouge dominant — pas
 // d'urgence < 72h (instruction L.435-2 = 6 mois, silence vaut rejet).
 // Verdict FAIBLE utilise --danger classique (pattern canonique non-gradé).

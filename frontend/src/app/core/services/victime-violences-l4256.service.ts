@@ -26,4 +26,23 @@ export class VictimeViolencesL4256Service {
     return this.http.get<VictimeViolencesL4256Response>(
       `/api/v1/case-files/${caseFileId}/victime-violences-l4256-analysis`);
   }
+  /**
+   * F-163 SF-163-02d — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-IM-24-victime-violences-l4256-fr')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-IM-24-victime-violences-l4256-fr';
+
+  /**
+   * F-163 SF-163-02d — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  analyzeStandalone(request: VictimeViolencesL4256Request): Observable<VictimeViolencesL4256Response> {
+    return this.http.post<VictimeViolencesL4256Response>(
+      `/api/v1/simulators/${VictimeViolencesL4256Service.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
+
 }
