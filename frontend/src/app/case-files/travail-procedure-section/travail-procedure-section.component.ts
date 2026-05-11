@@ -35,6 +35,7 @@ import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { TravailProcedurePrefillRules } from './travail-procedure-section-prefill-rules';
 
 /** SF-136-02 : champs d'alerte de cohérence F-IA-03. */
 export type TravailProcedureAlertField = 'TYPE_PROCEDURE';
@@ -89,32 +90,18 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'event';
 
   /**
-   * F-236 SF-236-02/05 : static parité runtime/static. Compte les champs que
-   * {@link prefillFromAi} poserait — 2 champs maximum :
+   * F-237 SF-237-02 : static parité runtime/static via helper partagé
+   * `TravailProcedurePrefillRules`. Délégation triviale — la logique est dans
+   * `travail-procedure-section-prefill-rules.ts` (module pur testé Jest 3-cas).
+   *
+   * Compte les champs que {@link prefillFromAi} poserait — 2 champs max :
    *   1. `typeProcedure` (depuis `procedureTravailDetectee`, gating pays
    *      via suffixe `_FR`/`_BE` vs `workspaceCountry`).
    *   2. `dateDeclencheur` (ISO YYYY-MM-DD).
-   *
-   * TODO F-236 follow-up : extraire dans `TravailProcedurePrefillRules` (helper
-   * partagé) une fois la migration vague Travail étendue à ce composant.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static getPrefillCount(input: { aiData?: any; workspaceCountry?: string }): number {
-    const ai = input?.aiData;
-    if (!ai) return 0;
-    let n = 0;
-    const detected = ai.procedureTravailDetectee;
-    if (typeof detected === 'string'
-        && TRAVAIL_PROCEDURE_CODES.has(detected as TravailProcedureCode)) {
-      const country = input?.workspaceCountry ?? 'FRANCE';
-      const isFrance = country === 'FRANCE';
-      const isFrCode = detected.endsWith('_FR');
-      if ((isFrance && isFrCode) || (!isFrance && !isFrCode)) n++;
-    }
-    if (typeof ai.dateDeclencheurProcedure === 'string'
-        && ISO_DATE_RE.test(ai.dateDeclencheurProcedure)) {
-      n++;
-    }
-    return n;
+    return TravailProcedurePrefillRules.computePrefillCount(input);
   }
 
   @Input() caseFileId!: string;
@@ -280,10 +267,15 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-136-02 : pré-remplissage depuis l'analyse IA. Le champ
-   * `procedureTravailDetectee` (et `dateDeclencheurProcedure`) n'existent
-   * pas encore dans `TravailExtractedData` — l'accès via cast est
-   * volontaire. No-op gracieux si non présent.
+   * F-237 SF-237-02 : pré-remplissage depuis l'analyse IA via le helper partagé
+   * `TravailProcedurePrefillRules`. No-op gracieux si `aiData` est absent.
+   *
+   * Note F-237 SF-237-02 : `procedureTravailDetectee` et `dateDeclencheurProcedure`
+   * ne sont pas encore déclarés sur `TravailExtractedData` — le helper accepte
+   * les casts permissifs via son type `TravailProcedureAiData`.
+   *
+   * Le helper est l'unique source de vérité — toute modification doit y être
+   * faite, le static `getPrefillCount` en bénéficie automatiquement.
    */
   private prefillFromAi(): void {
     const ai = this.aiData as (TravailExtractedData & {
@@ -291,25 +283,20 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
       dateDeclencheurProcedure?: string | null;
     }) | null | undefined;
     if (!ai) return;
+    const helperInput = {
+      aiData: ai,
+      workspaceCountry: this.workspaceCountry,
+    };
 
-    const detected = ai.procedureTravailDetectee;
-    if (typeof detected === 'string'
-        && TRAVAIL_PROCEDURE_CODES.has(detected as TravailProcedureCode)) {
-      // Gate pays : on n'applique que si le code est cohérent avec le workspace.
-      const isFrCode = detected.endsWith('_FR');
-      if ((this.isFrance() && isFrCode) || (!this.isFrance() && !isFrCode)) {
-        if (!this.typeProcedure()) {
-          this.typeProcedure.set(detected as TravailProcedureCode);
-          this.provenanceTypeProcedure.set('IA');
-        }
-      }
+    const code = TravailProcedurePrefillRules.computeTypeProcedure(helperInput);
+    if (code !== null && !this.typeProcedure()) {
+      this.typeProcedure.set(code);
+      this.provenanceTypeProcedure.set('IA');
     }
 
-    const date = ai.dateDeclencheurProcedure;
-    if (typeof date === 'string' && ISO_DATE_RE.test(date)) {
-      if (!this.dateDeclencheur()) {
-        this.dateDeclencheur.set(date);
-      }
+    const date = TravailProcedurePrefillRules.computeDateDeclencheur(helperInput);
+    if (date !== null && !this.dateDeclencheur()) {
+      this.dateDeclencheur.set(date);
     }
   }
 

@@ -26,6 +26,14 @@ export class LiquidationCommunauteSectionComponent implements OnInit, OnChanges 
   static readonly TOOL_LABEL = 'LIQUIDATION DE COMMUNAUTÉ';
   static readonly TOOL_ICON = 'account_balance';
 
+  /**
+   * F-237 SF-237-02 : wrapper d'affichage F-IA-04 exempté du helper PrefillRules.
+   * L'étiquette `PREFILL_COUNT_ALWAYS_ZERO = true` indique au test d'intégrité
+   * (`prefill-count-integrity.spec.ts`) qu'il vérifie uniquement
+   * `getPrefillCount({}) === 0`. Composant présentationnel pur : affiche
+   * l'inventaire `synthesis.liquidationCommunaute` (pas de formulaire pré-fillable).
+   */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }

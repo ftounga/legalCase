@@ -28,6 +28,14 @@ export class FourchettesJafSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'FOURCHETTES JURISPRUDENTIELLES JAF';
   static readonly TOOL_ICON = 'analytics';
 
+  /**
+   * F-237 SF-237-02 : wrapper d'affichage F-IA-04 exempté du helper PrefillRules.
+   * L'étiquette `PREFILL_COUNT_ALWAYS_ZERO = true` indique au test d'intégrité
+   * (`prefill-count-integrity.spec.ts`) qu'il vérifie uniquement
+   * `getPrefillCount({}) === 0`. Composant présentationnel pur : agrège les
+   * fourchettes jurisprudentielles de `synthesis`, pas de saisie ni pré-fill IA.
+   */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }

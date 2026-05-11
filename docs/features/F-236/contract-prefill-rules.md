@@ -496,10 +496,73 @@ Chaque vague livre :
 
 ---
 
-## 7 — Hors scope du contrat
+## 7 — Wrappers `count=0` — exemption par convention déclarative
 
-- Les composants `count=0` (wrappers informationnels) **n'ont pas de helper**. Ils
-  conservent l'implémentation `static getPrefillCount(): number { return 0; }` triviale.
+> Section ajoutée par F-237 SF-237-02 (2026-05-11) pour formaliser la
+> position des composants TOOL_REGISTRY qui ne supportent pas de pré-fill IA.
+
+Certains composants TOOL_REGISTRY ne supportent pas de pré-fill IA par design :
+
+  - **Composants informationnels** sans formulaire (`rupture-amiable-info-section`
+    rappel cadre juridique BE).
+  - **Wrappers d'affichage** qui exposent une donnée déjà calculée par le pipeline
+    et stockée dans `synthesis` (`pension-alimentaire-section`,
+    `prestation-compensatoire-section`, `fourchettes-jaf-section`,
+    `liquidation-communaute-section`, `divorce-cm-scoring-section`).
+  - **Wrappers info P1** sans composant de saisie complet encore livré
+    (`crrv-refus-visa-section`, `dublin-recours-section`, `jld-retention-section`,
+    `victime-violences-l4256-section`).
+  - **Composants à mécanique propriétaire** (`case-deadlines-section` — les
+    délais sont saisis manuellement ou détectés par un pipeline dédié, pas
+    par les champs `aiData` d'outil décisionnel).
+
+### 7.1 Convention : étiquette `PREFILL_COUNT_ALWAYS_ZERO = true`
+
+Ces composants sont **exemptés** de la règle "helper PrefillRules co-localisé
+obligatoire". Pour le signaler de façon déclarative et auditable, ils portent
+la propriété statique :
+
+```typescript
+export class FooSectionComponent {
+  static readonly TOOL_LABEL = '...';
+  static readonly TOOL_ICON = '...';
+
+  /**
+   * F-237 SF-237-02 : wrapper exempté du helper PrefillRules.
+   */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
+  static getPrefillCount(): number { return 0; }
+  // ...
+}
+```
+
+### 7.2 Conséquence côté test d'intégrité
+
+Le test `prefill-count-integrity.spec.ts` (F-237 SF-237-01) lit l'étiquette
+et :
+
+  - **NE recherche PAS** de fichier `<component>-prefill-rules.ts` co-localisé
+    pour ces composants (passe au composant suivant via `continue`).
+  - **Vérifie strictement** que `getPrefillCount({}) === 0` (cohérence de
+    l'étiquette — un wrapper étiqueté `ALWAYS_ZERO` doit effectivement
+    retourner 0).
+
+### 7.3 Quand utiliser ?
+
+Posez l'étiquette **uniquement si toutes les conditions sont vraies** :
+
+  - Le composant ne propose pas de formulaire à l'avocat.
+  - Aucun champ `aiData` n'est lu pour pré-fill.
+  - `getPrefillCount` retourne `0` en toutes circonstances.
+
+Si le composant lit ne serait-ce qu'un seul champ `aiData` pour pré-remplir
+un signal, il n'est **pas** un wrapper et doit livrer un helper `*-prefill-rules.ts`
+conforme aux §1-§6.
+
+---
+
+## 8 — Autres hors scope
+
 - La validation F-IA-03 (`coherenceAlerts`, `CoherenceAlertBuilder`) **n'est pas affectée**
   par F-236. Elle reste dans le composant Angular (signaux + `computed`).
 - Le pré-fill via `set inferredChecklistType()` (F-IM-01) est conservé — le helper
@@ -508,7 +571,8 @@ Chaque vague livre :
 ---
 
 **Référence canonique** : `immigration-title-decision-section` post-SF-236-02.
-**Garde-fou CI** : `DecisionToolPrefillIntegrityIT` (SF-236-05) — bloque tout merge si :
-- Un composant TOOL_REGISTRY n'a pas de helper.
+**Garde-fou CI** : `prefill-count-integrity.spec.ts` (F-236 SF-236-05 + F-237 SF-237-01 + SF-237-02) — bloque tout merge si :
+- Un composant TOOL_REGISTRY n'a pas de helper **et** n'est pas étiqueté `PREFILL_COUNT_ALWAYS_ZERO`.
+- Un composant étiqueté `PREFILL_COUNT_ALWAYS_ZERO = true` retourne autre chose que `0` sur `getPrefillCount({})`.
 - Un helper n'a pas de spec Jest.
-- Le `getPrefillCount` runtime diverge de `Rules.computePrefillCount`.
+- Le `getPrefillCount` runtime diverge de `Rules.computePrefillCount` sur la batterie de fixtures canoniques.
