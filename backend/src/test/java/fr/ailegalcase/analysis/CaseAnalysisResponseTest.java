@@ -1998,6 +1998,74 @@ class CaseAnalysisResponseTest {
         assertThat(f.successionEnvisagee()).isTrue();
     }
 
+    // F-239 — extraction du champ string `date_acceptation_pv`
+
+    @Test
+    void extractFamilleData_extractsDateAcceptationPV_whenPresentISOFormat() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "date_acceptation_pv": "2025-12-12"
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.divorceDcEnvisage()).isTrue();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-12-12");
+    }
+
+    @Test
+    void extractFamilleData_dateAcceptationPVNull_whenAbsent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_returnsRecord_whenOnlyDateAcceptationPVPresent() throws Exception {
+        // Garde-fou : si le seul champ peuplé est date_acceptation_pv (tous les flags false),
+        // le record DOIT quand même être construit (au lieu d'être null comme avant F-239).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "date_acceptation_pv": "2025-12-12"
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-12-12");
+        assertThat(f.divorceDcEnvisage()).isFalse();
+    }
+
+    @Test
+    void extractFamilleData_dateAcceptationPVNull_whenEmptyString() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "date_acceptation_pv": "   "
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isNull();
+    }
+
     // ===========================================================================
     // F-202 SF-202-01 — extractFamilleData : 5 flags Famille BE niveau 3
     // ===========================================================================
