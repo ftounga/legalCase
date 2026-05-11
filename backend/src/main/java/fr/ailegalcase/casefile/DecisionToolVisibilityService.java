@@ -47,19 +47,23 @@ public class DecisionToolVisibilityService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    // SF-238-03 : activations manuelles injectées dans contextual au runtime.
+    private final ManualToolActivationRepository manualToolActivationRepository;
 
     public DecisionToolVisibilityService(DecisionToolVisibilityRuleRepository ruleRepository,
                                          CaseFileRepository caseFileRepository,
                                          CaseAnalysisRepository caseAnalysisRepository,
                                          WorkspaceMemberRepository workspaceMemberRepository,
                                          CurrentUserResolver currentUserResolver,
-                                         ObjectMapper objectMapper) {
+                                         ObjectMapper objectMapper,
+                                         ManualToolActivationRepository manualToolActivationRepository) {
         this.ruleRepository = ruleRepository;
         this.caseFileRepository = caseFileRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.objectMapper = objectMapper;
+        this.manualToolActivationRepository = manualToolActivationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +82,33 @@ public class DecisionToolVisibilityService {
         List<DecisionToolVisibilityRule> rules = ruleRepository.findForDomainAndCountry(legalDomain, country);
         Map<String, Set<String>> detectedSituations = extractDetectedSituations(caseFileId);
 
-        return buildResponse(rules, detectedSituations);
+        VisibleToolSetResponse base = buildResponse(rules, detectedSituations);
+
+        // SF-238-03 : injecter les activations manuelles. Chaque tool_id actif :
+        //  - retiré de catalog,
+        //  - ajouté à contextual s'il n'y est pas déjà.
+        // alwaysOn n'est jamais impacté (déjà toujours visible).
+        Set<String> manuallyActivated = manualToolActivationRepository
+                .findByCaseFileIdAndDeactivatedAtIsNull(caseFileId)
+                .stream()
+                .map(ManualToolActivation::getToolId)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        if (manuallyActivated.isEmpty()) {
+            return base;
+        }
+
+        LinkedHashSet<String> contextual = new LinkedHashSet<>(base.contextual());
+        Set<String> alwaysOnSet = new HashSet<>(base.alwaysOn());
+        for (String toolId : manuallyActivated) {
+            if (!alwaysOnSet.contains(toolId)) {
+                contextual.add(toolId);
+            }
+        }
+        List<String> catalog = base.catalog().stream()
+                .filter(t -> !manuallyActivated.contains(t))
+                .collect(java.util.stream.Collectors.toList());
+
+        return new VisibleToolSetResponse(base.alwaysOn(), new ArrayList<>(contextual), catalog);
     }
 
     private CaseFile resolveCaseFile(UUID caseFileId, User user) {

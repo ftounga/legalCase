@@ -625,4 +625,110 @@ describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRe
 
     expect(component.visibility()!.alwaysOn).toEqual(['F-DT-08-licenciement-validity']);
   }));
+
+  // ── SF-238-01 — resolveDisplayLabel ────────────────────────────────────
+  describe('SF-238-01 — resolveDisplayLabel', () => {
+    it('returns the human displayLabel for a known tool', () => {
+      // F-DT-08-licenciement-validity → "Licenciement — validité (FR)"
+      const label = component.resolveDisplayLabel('F-DT-08-licenciement-validity');
+      expect(label).not.toBe('F-DT-08-licenciement-validity'); // pas le tool_id brut
+      expect(label.length).toBeGreaterThan(0);
+      expect(label).toMatch(/Licenciement|validité/i);
+    });
+
+    it('returns the toolId as fallback for an unknown tool (forward-compat)', () => {
+      expect(component.resolveDisplayLabel('F-XX-999-unknown')).toBe('F-XX-999-unknown');
+    });
+  });
+
+  // ── SF-238-02 — activation manuelle ────────────────────────────────────
+  describe('SF-238-02 — activation manuelle', () => {
+    const MANUAL_URL = `/api/v1/case-files/${CASE_FILE_ID}/decision-tools-visibility/manual-activations`;
+
+    it('POST manual-activations on chip click and triggers refresh on success', () => {
+      const refreshSpy = jest.spyOn(refreshService, 'triggerRefresh');
+      fixture.detectChanges();
+      httpMock.expectOne(API_URL).flush({
+        alwaysOn: [],
+        contextual: [],
+        catalog: ['F-DT-10-rupture-conv-validity'],
+      });
+
+      component.activateManually('F-DT-10-rupture-conv-validity');
+      expect(component.isActivating('F-DT-10-rupture-conv-validity')).toBe(true);
+
+      const req = httpMock.expectOne(MANUAL_URL);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ toolId: 'F-DT-10-rupture-conv-validity' });
+
+      req.flush({
+        id: '11111111-1111-1111-1111-111111111111',
+        toolId: 'F-DT-10-rupture-conv-validity',
+        activatedAt: '2026-05-11T10:00:00Z',
+      });
+
+      expect(component.isActivating('F-DT-10-rupture-conv-validity')).toBe(false);
+      expect(refreshSpy).toHaveBeenCalled();
+    });
+
+    it('shows snackbar on POST error and clears activating state', () => {
+      const snackBarMock = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+      fixture.detectChanges();
+      httpMock.expectOne(API_URL).flush({
+        alwaysOn: [],
+        contextual: [],
+        catalog: ['F-DT-10-rupture-conv-validity'],
+      });
+
+      component.activateManually('F-DT-10-rupture-conv-validity');
+      const req = httpMock.expectOne(MANUAL_URL);
+      req.flush('boom', { status: 500, statusText: 'Server Error' });
+
+      expect(component.isActivating('F-DT-10-rupture-conv-validity')).toBe(false);
+      expect(snackBarMock.open).toHaveBeenCalledWith(
+        expect.stringContaining('Activation impossible'),
+        'Fermer',
+        expect.objectContaining({ duration: 4000 }),
+      );
+    });
+
+    it('shows info snackbar on 409 (déjà activé) and triggers refresh', () => {
+      const snackBarMock = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+      const refreshSpy = jest.spyOn(refreshService, 'triggerRefresh');
+      fixture.detectChanges();
+      httpMock.expectOne(API_URL).flush({
+        alwaysOn: [],
+        contextual: [],
+        catalog: ['F-DT-10-rupture-conv-validity'],
+      });
+
+      component.activateManually('F-DT-10-rupture-conv-validity');
+      const req = httpMock.expectOne(MANUAL_URL);
+      req.flush('conflict', { status: 409, statusText: 'Conflict' });
+
+      expect(snackBarMock.open).toHaveBeenCalledWith(
+        expect.stringContaining('déjà activé'),
+        'Fermer',
+        expect.objectContaining({ duration: 3000 }),
+      );
+      expect(refreshSpy).toHaveBeenCalled();
+    });
+
+    it('ignores double-click while activation is in flight', () => {
+      fixture.detectChanges();
+      httpMock.expectOne(API_URL).flush({
+        alwaysOn: [],
+        contextual: [],
+        catalog: ['F-DT-10-rupture-conv-validity'],
+      });
+
+      component.activateManually('F-DT-10-rupture-conv-validity');
+      // 2e clic immédiat : doit être ignoré (pas de 2e POST).
+      component.activateManually('F-DT-10-rupture-conv-validity');
+
+      const reqs = httpMock.match(MANUAL_URL);
+      expect(reqs.length).toBe(1);
+      reqs[0].flush({ id: 'x', toolId: 'F-DT-10-rupture-conv-validity', activatedAt: '2026-05-11T10:00:00Z' });
+    });
+  });
 });

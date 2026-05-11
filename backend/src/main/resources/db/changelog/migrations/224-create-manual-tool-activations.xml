@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="224-create-manual-tool-activations" author="legalcase">
+        <comment>
+            SF-238-03 : table d'activations manuelles d'outils décisionnels par
+            l'avocat. Permet de basculer un outil du catalogue vers la grille
+            d'outils actifs (contextual) sans attendre que l'IA détecte la
+            situation déclencheuse.
+
+            Cycle de vie :
+              - création : deactivated_at = NULL (actif)
+              - désactivation : deactivated_at = now (redescend en catalog)
+
+            Contrainte d'unicité partielle : un seul enregistrement actif par
+            (case_file_id, tool_id). Postgres : index unique partiel WHERE
+            deactivated_at IS NULL. H2 : pas de partial index → la contrainte
+            est portée applicativement par le service (vérification SELECT
+            FIRST puis insert).
+
+            Isolation workspace : colonne workspace_id redondante avec
+            case_file.workspace_id pour faciliter les requêtes scope-tenant
+            et les audits.
+
+            Audit "Impact F-166 cross-C×D" : transversal (agnostique au
+            domaine et au pays — table orthogonale aux 6 cellules C×D).
+            Audit "exhaustivité droit national" : N/A (infrastructure).
+        </comment>
+
+        <createTable tableName="manual_tool_activations">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_manual_tool_activations_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="tool_id" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="activated_by" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_manual_tool_activations_user"
+                             referencedTableName="users"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="activated_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deactivated_at" type="timestamp with time zone">
+                <constraints nullable="true"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_manual_tool_activations_workspace"
+                             referencedTableName="workspaces"
+                             referencedColumnNames="id"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="manual_tool_activations"
+                     indexName="idx_manual_tool_activations_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <createIndex tableName="manual_tool_activations"
+                     indexName="idx_manual_tool_activations_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+
+        <!-- Index unique partiel : 1 activation active max par (case_file, tool).
+             Postgres uniquement (Liquibase n'expose pas partial index portable —
+             on bascule sur SQL natif). H2 n'a pas d'équivalent ; la contrainte
+             y est portée applicativement par le service (409 si déjà actif). -->
+        <sql dbms="postgresql">
+            CREATE UNIQUE INDEX uq_manual_tool_activations_active
+            ON manual_tool_activations (case_file_id, tool_id)
+            WHERE deactivated_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql dbms="postgresql">
+                DROP INDEX IF EXISTS uq_manual_tool_activations_active;
+            </sql>
+            <dropTable tableName="manual_tool_activations"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

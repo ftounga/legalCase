@@ -96,6 +96,19 @@
     gap: 8px;
   }
 
+  // SF-238-02 : chip cliquable — activation manuelle.
+  // Sémantique <button> pour accessibilité (tabindex + Enter/Space) — reset
+  // des styles natifs du navigateur.
+  button.catalog-chip {
+    font: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+
+    &:disabled {
+      pointer-events: none;
+    }
+  }
+
   .catalog-chip {
     display: inline-flex;
     align-items: center;
@@ -104,15 +117,36 @@
     border: 1px solid #d1d5db;
     border-radius: 16px;
     background: #f9fafb;
-    color: #6b7280;
+    color: #1c2b3a;
     font-family: 'Inter', sans-serif;
     font-size: 12px;
-    cursor: not-allowed;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+
+    &:hover:not(.is-loading) {
+      background: #f3f4f6;
+      border-color: #1c2b3a;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #c9a45a;
+      outline-offset: 2px;
+    }
+
+    &.is-loading {
+      cursor: progress;
+      opacity: 0.7;
+    }
 
     mat-icon {
       font-size: 14px;
       width: 14px;
       height: 14px;
+    }
+
+    mat-spinner {
+      // Force la couleur or pour cohérence design system pendant l'activation.
+      --mdc-circular-progress-active-indicator-color: #c9a45a;
     }
   }
 }
