@@ -26,4 +26,23 @@ export class RevisionsPostDivorceService {
     return this.http.get<RevisionsPostDivorceResponse>(
       `/api/v1/case-files/${caseFileId}/revisions-post-divorce`);
   }
+
+  /**
+   * F-163 SF-163-02c — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-FA-13-revisions-post-divorce')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-FA-13-revisions-post-divorce';
+
+  /**
+   * F-163 SF-163-02c — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: RevisionsPostDivorceRequest): Observable<RevisionsPostDivorceResponse> {
+    return this.http.post<RevisionsPostDivorceResponse>(
+      `/api/v1/simulators/${RevisionsPostDivorceService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
 }

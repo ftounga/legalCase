@@ -29,4 +29,23 @@ export class ChangementResidenceService {
     return this.http.get<ChangementResidenceResponse>(
       `/api/v1/case-files/${caseFileId}/changement-residence`);
   }
+
+  /**
+   * F-163 SF-163-02c — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-FA-19-changement-residence')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-FA-19-changement-residence';
+
+  /**
+   * F-163 SF-163-02c — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: ChangementResidenceRequest): Observable<ChangementResidenceResponse> {
+    return this.http.post<ChangementResidenceResponse>(
+      `/api/v1/simulators/${ChangementResidenceService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
 }

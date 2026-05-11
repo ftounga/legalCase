@@ -118,6 +118,21 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02c — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` court-circuité.
+   *  - `calculate()` POSTe sur `/api/v1/simulators/F-FA-11-desunion-irremediable-be/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   collapsed = signal(true);
   loading = signal(false);
   calculating = signal(false);
@@ -146,6 +161,8 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
 
   /** SF-FA-11-02 : alertes de cohérence F-IA-03 (gate showForm). */
   coherenceAlerts = computed<Partial<Record<DesUBeAlertField, DesUBeCoherenceAlert>>>(() => {
+    // F-163 SF-163-02c : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     const alerts: Partial<Record<DesUBeAlertField, DesUBeCoherenceAlert>> = {};
     const dateSepAlert = this.buildDateSeparationAlert();
@@ -175,6 +192,14 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+
+    if (this.standaloneMode) {
+      // F-163 SF-163-02c : pas de dossier à interroger en standalone.
+      this.collapsed.set(false);
+      this.loading.set(false);
+      this.showForm.set(true);
+      return;
+    }
     if (this.isBelgiumGate()) {
       this.load();
     }
@@ -191,7 +216,7 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
     // Ré-applique le prefill dès que aiData change avant première résolution
     // backend — ne JAMAIS écraser si un résultat persisté est déjà rendu.
     if (changes['aiData'] && !changes['aiData'].firstChange
-        && this.isBelgiumGate() && this.showForm() && !this.result()) {
+        && this.isBelgiumGate() && this.showForm() && !this.result() && !this.standaloneMode) {
       this.prefillFromAi();
     }
   }
@@ -470,7 +495,15 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
       dateAssignation: this.dateAssignation(),
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02c : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.calculateStandalone(request)
+
+      : this.service.calculate(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.applyResult(r);
@@ -478,7 +511,9 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
         this.calculating.set(false);
         this.snackBar.open('Analyse désunion irrémédiable enregistrée', 'OK',
           { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02c : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.calculating.set(false);

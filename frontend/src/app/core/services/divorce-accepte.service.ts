@@ -28,4 +28,23 @@ export class DivorceAccepteService {
       `/api/v1/case-files/${caseFileId}/divorce-accepte`,
     );
   }
+
+  /**
+   * F-163 SF-163-02c — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-FA-10-divorce-accepte')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-FA-10-divorce-accepte';
+
+  /**
+   * F-163 SF-163-02c — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: DivorceAccepteRequest): Observable<DivorceAccepteResponse> {
+    return this.http.post<DivorceAccepteResponse>(
+      `/api/v1/simulators/${DivorceAccepteService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
 }
