@@ -282,7 +282,13 @@ Recommandation : mise à jour du template `harcelement-licenciement-nul-section`
 
 ## 11. Interactions avec la gouvernance
 
-- **Règle CLAUDE.md** "Nouveau composant Angular décisionnel frontend sans scan de cohérence → REFUS" invoque ce skill.
+- **Règles CLAUDE.md** "Blocages automatiques" — 6 lignes distinctes (depuis SF-237-03) qui invoquent ce skill :
+  - Composant décisionnel sans référence au template canonique → REFUS
+  - Composant décisionnel sans checklist cohérence visuelle → REFUS
+  - Composant décisionnel sans pré-remplissage IA fonctionnel → REFUS (bug produit)
+  - Composant décisionnel sans validation IA au changement F-IA-03 → REFUS (bug produit)
+  - Composant décisionnel sans entrée `TOOL_REGISTRY` symétrique → REFUS
+  - Composant décisionnel sans `static getPrefillCount` + helper partagé → REFUS (garde-fou F-236 SF-236-05).
 - **Règle périodique** : tous les 5 nouveaux composants, lancer ce skill en mode PERIODIQUE et produire un rapport dans `docs/features/F-155/audit-YYYY-MM-DD.md`.
 - **Prérequis pré-merge** : chaque SF frontend décisionnelle doit référencer le template canonique dans sa mini-spec (section "Pattern de référence").
 
