@@ -1,14 +1,179 @@
-<div class="info-section" [class.collapsed]="collapsed()">
-  <div class="header" (click)="toggleCollapse()">
-    <mat-icon>mail</mat-icon>
-    <h3>{{ title }}</h3>
-    <mat-icon class="toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
-  </div>
-  <div class="body" *ngIf="!collapsed()">
-    <p>{{ description }}</p>
-    <p class="note">
-      <mat-icon class="note-icon">info</mat-icon>
-      Composant de saisie complet (formulaire, verdict, pré-fill IA) à livrer dans une SF ultérieure de F-208.
-    </p>
-  </div>
-</div>
+<section class="crrv-section">
+  <header class="crrv-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="crrv-body">
+    <mat-icon class="crrv-icon">mail</mat-icon>
+    <span class="crrv-title">CRRV RECOURS REFUS DE VISA (FR)</span>
+    @if (result()) {
+      <span class="crrv-chip"
+            [class.crrv-chip--danger]="result()!.statut === 'EXPIRE'"
+            [class.crrv-chip--warning]="result()!.statut === 'URGENT'"
+            [class.crrv-chip--success]="result()!.statut === 'RECOURS_FORME'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+      @if (result()!.statut === 'URGENT') {
+        <app-decisional-header-flag label="URGENT" icon="warning" variant="warning" />
+      }
+      @if (result()!.statut === 'EXPIRE') {
+        <app-decisional-header-flag label="EXPIRE" icon="error" variant="danger" />
+      }
+    }
+    <mat-icon class="crrv-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="crrv-body" class="crrv-body">
+      @if (!isFrance()) {
+        <div class="crrv-banner crrv-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="crrv-banner-content">
+            <div class="crrv-banner-title">CRRV - institution francaise uniquement</div>
+            <div class="crrv-banner-sub">
+              Pas d'equivalent BE - les refus de visa BE relevent directement du CCE.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="crrv-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="crrv-coherence-summary"
+                   [class.crrv-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incoherence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="crrv-form" (ngSubmit)="analyze()">
+              <div class="crrv-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification du refus consulaire</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationRefus()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationRefus" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Type de visa</mat-label>
+                <mat-select
+                    [ngModel]="typeVisa()"
+                    (ngModelChange)="typeVisa.set($event)"
+                    name="typeVisa" required>
+                  @for (t of typesVisa; track t.code) {
+                    <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="crrv-motif-field">
+                <mat-label>Motif du refus (200 caracteres max)</mat-label>
+                <textarea matInput rows="2" maxlength="200"
+                       [ngModel]="motifRefus()"
+                       (ngModelChange)="motifRefus.set($event || null)"
+                       name="motifRefus"></textarea>
+              </mat-form-field>
+
+              <div class="crrv-toggle-row crrv-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="onRecoursFormeChange($event)"
+                    name="recoursForme">
+                  Recours deja forme
+                </mat-slide-toggle>
+              </div>
+
+              @if (recoursForme()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du recours CRRV</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateNotificationRefus() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateRecours()"
+                         (ngModelChange)="dateRecours.set($event || null)"
+                         name="dateRecours" />
+                </mat-form-field>
+              }
+
+              <div class="crrv-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="crrv-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="crrv-banner-content">
+                  <div class="crrv-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  @if (showJoursRestants(result())) {
+                    <div class="crrv-jours-restants">
+                      <span class="crrv-jours-big">{{ result()!.joursRestants }}</span>
+                      <span class="crrv-jours-label">jour(s) restant(s) pour saisir la CRRV (2 mois)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="crrv-breakdown">
+                <li>
+                  <span class="crrv-bd-label">Expiration du recours CRRV (notif + 2 mois)</span>
+                  <span class="crrv-bd-value">{{ result()!.dateExpirationRecoursCrrv | date:'dd/MM/yyyy' }}</span>
+                </li>
+                <li>
+                  <span class="crrv-bd-label">Prealable obligatoire</span>
+                  <span class="crrv-bd-value">CRRV avant TA Nantes (R.312-3 CJA)</span>
+                </li>
+              </ul>
+
+              @if (result()!.messages?.length) {
+                <ul class="crrv-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="crrv-formule-block">
+                  <span class="crrv-formule-label">Formule</span>
+                  <span class="crrv-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="crrv-meta">
+                <span class="crrv-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

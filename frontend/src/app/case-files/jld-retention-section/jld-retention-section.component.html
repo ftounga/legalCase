@@ -1,14 +1,190 @@
-<div class="info-section" [class.collapsed]="collapsed()">
-  <div class="header" (click)="toggleCollapse()">
-    <mat-icon>gavel</mat-icon>
-    <h3>{{ title }}</h3>
-    <mat-icon class="toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
-  </div>
-  <div class="body" *ngIf="!collapsed()">
-    <p>{{ description }}</p>
-    <p class="note">
-      <mat-icon class="note-icon">info</mat-icon>
-      Composant de saisie complet (formulaire, verdict, pré-fill IA) à livrer dans une SF ultérieure de F-208.
-    </p>
-  </div>
-</div>
+<section class="jld-section">
+  <header class="jld-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="jld-body">
+    <mat-icon class="jld-icon">gavel</mat-icon>
+    <span class="jld-title">JLD RETENTION ADMINISTRATIVE (FR)</span>
+    @if (result()) {
+      <span class="jld-chip"
+            [class.jld-chip--danger]="result()!.statut === 'EXPIRE'"
+            [class.jld-chip--warning]="result()!.statut === 'URGENT'"
+            [class.jld-chip--success]="result()!.statut === 'RECOURS_FORME'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+      @if (result()!.statut === 'URGENT') {
+        <app-decisional-header-flag label="URGENT" icon="warning" variant="warning" />
+      }
+      @if (result()!.statut === 'EXPIRE') {
+        <app-decisional-header-flag label="EXPIRE" icon="error" variant="danger" />
+      }
+    }
+    <mat-icon class="jld-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="jld-body" class="jld-body">
+      @if (!isFrance()) {
+        <div class="jld-banner jld-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="jld-banner-content">
+            <div class="jld-banner-title">JLD retention - procedure francaise uniquement</div>
+            <div class="jld-banner-sub">
+              Pour la Belgique, voir la chambre du conseil (Loi 15/12/1980 art. 71+).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="jld-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="jld-coherence-summary"
+                   [class.jld-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incoherence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="jld-form" (ngSubmit)="analyze()">
+              <div class="jld-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification du placement en retention</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationPlacement()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationPlacement" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="jld-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif du placement</mat-label>
+                  <mat-select
+                      [ngModel]="motifPlacement()"
+                      (ngModelChange)="onMotifPlacementChange($event)"
+                      name="motifPlacement" required>
+                    @for (m of motifs; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifPlacement() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().MOTIF_PLACEMENT; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="jld-toggle-row jld-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="onRecoursFormeChange($event)"
+                    name="recoursForme">
+                  Recours / saisine deja effectue
+                </mat-slide-toggle>
+              </div>
+
+              @if (recoursForme()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de saisine / recours</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateNotificationPlacement() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateRecours()"
+                         (ngModelChange)="dateRecours.set($event || null)"
+                         name="dateRecours" />
+                </mat-form-field>
+              }
+
+              <div class="jld-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="jld-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="jld-banner-content">
+                  <div class="jld-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  @if (showJoursRestants(result())) {
+                    <div class="jld-jours-restants">
+                      <span class="jld-jours-big">{{ result()!.joursRestantsAvantSaisine }}</span>
+                      <span class="jld-jours-label">jour(s) restant(s) avant expiration de la saisine JLD (48h)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="jld-breakdown">
+                <li>
+                  <span class="jld-bd-label">Expiration de la saisine JLD (notification + 48 h)</span>
+                  <span class="jld-bd-value">{{ result()!.dateExpirationSaisineJld | date:'dd/MM/yyyy' }}</span>
+                </li>
+                <li>
+                  <span class="jld-bd-label">Audience JLD previsionnelle (J + 5)</span>
+                  <span class="jld-bd-value">{{ result()!.dateAudienceJld | date:'dd/MM/yyyy' }}</span>
+                </li>
+                @if (result()!.dateExpirationRecoursAppel) {
+                  <li>
+                    <span class="jld-bd-label">Expiration recours d'appel (24 h)</span>
+                    <span class="jld-bd-value">{{ result()!.dateExpirationRecoursAppel | date:'dd/MM/yyyy' }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.messages?.length) {
+                <ul class="jld-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="jld-formule-block">
+                  <span class="jld-formule-label">Formule</span>
+                  <span class="jld-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="jld-meta">
+                <span class="jld-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

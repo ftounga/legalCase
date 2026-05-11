@@ -1,14 +1,184 @@
-<div class="info-section" [class.collapsed]="collapsed()">
-  <div class="header" (click)="toggleCollapse()">
-    <mat-icon>flight_takeoff</mat-icon>
-    <h3>{{ title }}</h3>
-    <mat-icon class="toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
-  </div>
-  <div class="body" *ngIf="!collapsed()">
-    <p>{{ description }}</p>
-    <p class="note">
-      <mat-icon class="note-icon">info</mat-icon>
-      Composant de saisie complet (formulaire, verdict, pré-fill IA) à livrer dans une SF ultérieure de F-208.
-    </p>
-  </div>
-</div>
+<section class="dublin-section">
+  <header class="dublin-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dublin-body">
+    <mat-icon class="dublin-icon">flight_takeoff</mat-icon>
+    <span class="dublin-title">DUBLIN RECOURS 7J SUSPENSIF (FR)</span>
+    @if (result()) {
+      <span class="dublin-chip"
+            [class.dublin-chip--danger]="result()!.statut === 'EXPIRE'"
+            [class.dublin-chip--warning]="result()!.statut === 'URGENT'"
+            [class.dublin-chip--success]="result()!.statut === 'RECOURS_FORME'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+      @if (result()!.statut === 'URGENT') {
+        <app-decisional-header-flag label="URGENT" icon="warning" variant="warning" />
+      }
+      @if (result()!.statut === 'EXPIRE') {
+        <app-decisional-header-flag label="EXPIRE" icon="error" variant="danger" />
+      }
+    }
+    <mat-icon class="dublin-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dublin-body" class="dublin-body">
+      @if (!isFrance()) {
+        <div class="dublin-banner dublin-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="dublin-banner-content">
+            <div class="dublin-banner-title">Dublin recours - procedure francaise uniquement</div>
+            <div class="dublin-banner-sub">
+              Pour la Belgique, voir Loi 15/12/1980 art. 51/5 + CCE.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="dublin-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="dublin-coherence-summary"
+                   [class.dublin-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incoherence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="dublin-form" (ngSubmit)="analyze()">
+              <div class="dublin-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de la decision de transfert</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationDecisionTransfert()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationDecisionTransfert" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Etat membre responsable</mat-label>
+                <input matInput type="text"
+                       [ngModel]="etatMembreResponsable()"
+                       (ngModelChange)="etatMembreResponsable.set($event || null)"
+                       name="etatMembreResponsable"
+                       placeholder="Ex: ITALIE, ESPAGNE, DEUTSCHLAND..." />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Motif du transfert</mat-label>
+                <mat-select
+                    [ngModel]="motifTransfert()"
+                    (ngModelChange)="motifTransfert.set($event)"
+                    name="motifTransfert" required>
+                  @for (m of motifs; track m.code) {
+                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div class="dublin-toggle-row dublin-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="onRecoursFormeChange($event)"
+                    name="recoursForme">
+                  Recours deja forme
+                </mat-slide-toggle>
+              </div>
+
+              @if (recoursForme()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du recours</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateNotificationDecisionTransfert() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateRecours()"
+                         (ngModelChange)="dateRecours.set($event || null)"
+                         name="dateRecours" />
+                </mat-form-field>
+              }
+
+              <div class="dublin-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="dublin-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="dublin-banner-content">
+                  <div class="dublin-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  @if (showJoursRestants(result())) {
+                    <div class="dublin-jours-restants">
+                      <span class="dublin-jours-big">{{ result()!.joursRestants }}</span>
+                      <span class="dublin-jours-label">jour(s) restant(s) pour former le recours suspensif (7 j)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="dublin-breakdown">
+                <li>
+                  <span class="dublin-bd-label">Expiration du recours (notif + 7 j)</span>
+                  <span class="dublin-bd-value">{{ result()!.dateExpirationRecours | date:'dd/MM/yyyy' }}</span>
+                </li>
+                <li>
+                  <span class="dublin-bd-label">Limite transfert effectif (Dublin III art. 29 - 6 mois)</span>
+                  <span class="dublin-bd-value">{{ result()!.dateLimiteTransfertEffectif | date:'dd/MM/yyyy' }}</span>
+                </li>
+                <li>
+                  <span class="dublin-bd-label">Effet suspensif</span>
+                  <span class="dublin-bd-value dublin-effet-suspensif">{{ result()!.effetSuspensif }}</span>
+                </li>
+              </ul>
+
+              @if (result()!.messages?.length) {
+                <ul class="dublin-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="dublin-formule-block">
+                  <span class="dublin-formule-label">Formule</span>
+                  <span class="dublin-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="dublin-meta">
+                <span class="dublin-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
