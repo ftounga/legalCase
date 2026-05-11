@@ -112,6 +112,20 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
 
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
+  /**
+   * F-163 SF-163-02c — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` court-circuité.
+   *  - `calculate()` POSTe sur `/api/v1/simulators/F-FA-05-partage-immobilier/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -161,6 +175,8 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
    * VERIFIED), QUESTION_IA (aiQuestions answered "oui"), PIECE_MANQUANTE.
    */
   coherenceAlerts = computed<Partial<Record<PartageAlertField, PartageCoherenceAlert>>>(() => {
+    // F-163 SF-163-02c : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     const alerts: Partial<Record<PartageAlertField, PartageCoherenceAlert>> = {};
     const valeurAlert = this.buildValeurVenaleAlert();
@@ -207,6 +223,16 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+
+    if (this.standaloneMode) {
+      // F-163 SF-163-02c : pas de dossier à interroger, pas de pré-fill IA,
+      // pas d'explications de sources à charger.
+      this.collapsed.set(false);
+      this.loading.set(false);
+      this.showForm.set(true);
+      return;
+    }
+
     // SF-155-20 : pré-fill au mount si aiData déjà disponible (cas où
     // l'analyse IA est terminée avant l'ouverture de l'outil).
     this.prefillFromAi();
@@ -232,9 +258,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     }
     // SF-155-20 : ré-appliquer le pré-fill quand `aiData` arrive après mount
     // tant que l'avocat n'a pas saisi manuellement et qu'aucun résultat n'est
-    // affiché (form encore visible).
+    // affiché (form encore visible). F-163 SF-163-02c : bypass en standalone.
     if (changes['aiData'] && !changes['aiData'].firstChange
-        && this.showForm() && !this.result()) {
+        && this.showForm() && !this.result() && !this.standaloneMode) {
       this.prefillFromAi();
     }
   }
@@ -529,14 +555,27 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
 
   calculate(): void {
     this.calculating.set(true);
-    this.partageService.calculate(this.caseFileId, {
+    const payload = {
       country: this.country(),
       valeurVenale: this.valeurVenale(),
       capitalRestantDu: this.capitalRestantDu(),
       quotePartAttributaire: this.quotePartAttributaire() / 100,
       isDivorce: this.isDivorce(),
-    }).subscribe({
-      next: r => { this.result.set(r); this.showForm.set(false); this.calculating.set(false); this.refreshService?.triggerRefresh(); },
+    };
+    // F-163 SF-163-02c : en standalone, POST sur le dispatcher générique sans dossier.
+    const request$ = this.standaloneMode
+      ? this.partageService.calculateStandalone(payload)
+      : this.partageService.calculate(this.caseFileId, payload);
+    request$.subscribe({
+      next: r => {
+        this.result.set(r);
+        this.showForm.set(false);
+        this.calculating.set(false);
+        // F-163 SF-163-02c : pas de dashboard à rafraîchir en standalone.
+        if (!this.standaloneMode) {
+          this.refreshService?.triggerRefresh();
+        }
+      },
       error: () => { this.calculating.set(false); this.snackBar.open('Erreur lors du calcul', 'Fermer', { duration: 4000 }); },
     });
   }

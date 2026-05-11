@@ -144,6 +144,21 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02c — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` court-circuité.
+   *  - `calculate()` POSTe sur `/api/v1/simulators/F-FA-09-divorce-faute/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   collapsed = signal(true);
   loading = signal(false);
   calculating = signal(false);
@@ -174,6 +189,8 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   // SF-FA-09-02 / SF-155-10 : alertes de cohérence calculées dynamiquement via
   // le builder partagé. Gate strict `showForm()` (pattern anti-bug SF-IA-03-12).
   coherenceAlerts = computed<Partial<Record<DivorceFauteAlertField, DivorceFauteCoherenceAlert>>>(() => {
+    // F-163 SF-163-02c : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     const alerts: Partial<Record<DivorceFauteAlertField, DivorceFauteCoherenceAlert>> = {};
     const dem = this.buildRevenusAlert('REVENUS_DEMANDEUR');
@@ -210,6 +227,14 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+
+    if (this.standaloneMode) {
+      // F-163 SF-163-02c : pas de dossier à interroger en standalone.
+      this.collapsed.set(false);
+      this.loading.set(false);
+      this.showForm.set(true);
+      return;
+    }
     if (this.isFrance()) {
       this.load();
       this.loadSourceExplanations();
@@ -227,7 +252,7 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
     // Ré-appliquer le pré-fill quand `aiData` change après mount, sauf si
     // l'avocat a déjà saisi manuellement (provenance null sur un champ rempli)
     // ou si un résultat persisté est présent (form masqué).
-    if (changes['aiData'] && !changes['aiData'].firstChange && this.showForm() && !this.result()) {
+    if (changes['aiData'] && !changes['aiData'].firstChange && this.showForm() && !this.result() && !this.standaloneMode) {
       this.prefillFromAi();
     }
   }
@@ -644,13 +669,23 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
       dateDepotAssignation: this.dateDepotAssignation(),
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02c : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.calculateStandalone(request)
+
+      : this.service.calculate(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Analyse divorce pour faute calculée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02c : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.calculating.set(false);

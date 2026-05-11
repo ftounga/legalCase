@@ -12,6 +12,16 @@
   @if (!collapsed()) {
     <div id="desu-body" class="desu-body">
 
+
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
       @if (!isBelgiumGate()) {
         <!-- Gate workspaceCountry FR : bannière info redirigeant vers F-FA-08 / F-FA-10. -->
         <div class="desu-info-banner">

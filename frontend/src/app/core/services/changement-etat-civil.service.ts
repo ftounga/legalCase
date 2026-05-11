@@ -30,4 +30,23 @@ export class ChangementEtatCivilService {
     return this.http.get<ChangementEtatCivilResponse>(
       `/api/v1/case-files/${caseFileId}/changement-etat-civil`);
   }
+
+  /**
+   * F-163 SF-163-02c — `toolId` du dispatcher backend pour cet outil.
+   * Aligné sur `STANDALONE_READY_TOOL_IDS` et sur la clé
+   * `TOOL_REGISTRY.get('F-FA-26-changement-etat-civil')`.
+   */
+  static readonly STANDALONE_TOOL_ID = 'F-FA-26-changement-etat-civil';
+
+  /**
+   * F-163 SF-163-02c — POST sur le dispatcher générique des simulateurs
+   * (contrat figé par SF-163-03). Body identique à la requête case-file ;
+   * réponse identique. Aucune persistance côté backend.
+   */
+  calculateStandalone(request: ChangementEtatCivilRequest): Observable<ChangementEtatCivilResponse> {
+    return this.http.post<ChangementEtatCivilResponse>(
+      `/api/v1/simulators/${ChangementEtatCivilService.STANDALONE_TOOL_ID}/calculate`,
+      request,
+    );
+  }
 }

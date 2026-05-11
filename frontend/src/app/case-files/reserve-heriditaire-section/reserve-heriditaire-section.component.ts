@@ -120,6 +120,21 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
+
+  /**
+   * F-163 SF-163-02c — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité.
+   *  - `coherenceAlerts` retourne `{}`.
+   *  - `loadExisting()` court-circuité.
+   *  - `calculate()` POSTe sur `/api/v1/simulators/F-FA-24-reserve-heriditaire/calculate`.
+   *  - `triggerRefresh()` jamais invoqué.
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
   collapsed = signal(true);
   loading = signal(false);
   calculating = signal(false);
@@ -206,6 +221,8 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
   });
 
   coherenceAlerts = computed<Partial<Record<ReserveHereditaireAlertField, ReserveHereditaireCoherenceAlert>>>(() => {
+    // F-163 SF-163-02c : aucune source IA en standalone.
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     const alerts: Partial<Record<ReserveHereditaireAlertField, ReserveHereditaireCoherenceAlert>> = {};
     const c = this.buildConjointAlert();
@@ -247,6 +264,14 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+
+    if (this.standaloneMode) {
+      // F-163 SF-163-02c : pas de dossier à interroger en standalone.
+      this.collapsed.set(false);
+      this.loading.set(false);
+      this.showForm.set(true);
+      return;
+    }
     if (this.isFrance()) {
       this.load();
     }
@@ -261,7 +286,7 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
     if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
 
     if (changes['aiData'] && !changes['aiData'].firstChange
-        && this.isFrance() && this.showForm() && !this.result()) {
+        && this.isFrance() && this.showForm() && !this.result() && !this.standaloneMode) {
       this.prefillFromAi();
     }
   }
@@ -607,13 +632,23 @@ export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
       qualiteDuDemandeur: this.qualiteDuDemandeur()!,
     };
     this.calculating.set(true);
-    this.service.calculate(this.caseFileId, request).subscribe({
+    // F-163 SF-163-02c : en standalone, POST sur le dispatcher générique.
+
+    const request$ = this.standaloneMode
+
+      ? this.service.calculateStandalone(request)
+
+      : this.service.calculate(this.caseFileId, request);
+
+    request$.subscribe({
       next: (r) => {
         this.result.set(r);
         this.showForm.set(false);
         this.calculating.set(false);
         this.snackBar.open('Réserve héréditaire analysée', 'OK', { duration: 2500 });
-        this.dashboardRefresh?.triggerRefresh();
+        // F-163 SF-163-02c : pas de dashboard à rafraîchir en standalone.
+
+        if (!this.standaloneMode) { this.dashboardRefresh?.triggerRefresh(); }
       },
       error: (err) => {
         this.calculating.set(false);

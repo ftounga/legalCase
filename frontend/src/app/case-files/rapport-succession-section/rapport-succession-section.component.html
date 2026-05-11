@@ -15,6 +15,16 @@
 
   @if (!collapsed()) {
     <div id="rapport-succ-body" class="rapport-succ-body">
+
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
       @if (!isFrance()) {
         <div class="rapport-succ-banner rapport-succ-banner--info" role="note">
           <mat-icon>info_outline</mat-icon>

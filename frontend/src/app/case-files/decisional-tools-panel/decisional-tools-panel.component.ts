@@ -810,6 +810,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-15-recompenses', {
@@ -824,6 +826,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-06-calendrier-garde', {
@@ -1178,6 +1182,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // F-236 SF-236-03 : F-FA-09 est un outil **famille** — son `aiData` doit
@@ -1190,6 +1196,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.familleExtractedData,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-10-divorce-accepte', {
@@ -1202,6 +1210,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-12-mesures-provisoires', {
@@ -1226,6 +1236,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-FA-14-02 : ordonnance de protection FR (art. 515-9 Cciv).
@@ -1239,6 +1251,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-136-travail-procedure', {
@@ -1262,6 +1276,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-19-changement-residence', {
@@ -1274,6 +1290,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-19-desaccords-parentaux', {
@@ -1286,6 +1304,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-22-indivision', {
@@ -1336,6 +1356,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-FA-21-02 : séparation de corps + conversion divorce FR (art. 296+306 Cciv).
@@ -1349,6 +1371,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-11-02 : changement de statut CESEDA (FR uniquement,
@@ -1600,6 +1624,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-FA-24-10 : partage successoral FR.
@@ -1639,6 +1665,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // SF-IM-17-02 : régime algérien FR.
@@ -1711,6 +1739,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02c — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // F-210 SF-210-02 : médiation familiale obligatoire pré-saisine JAF (FR).
