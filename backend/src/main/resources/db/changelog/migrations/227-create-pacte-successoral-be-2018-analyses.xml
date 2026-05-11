@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="227-create-pacte-successoral-be-2018-analyses" author="legalcase">
+        <comment>
+            SF-211-04 : table dédiée à l'outil "Pacte successoral global belge 2018"
+            — Loi 31/07/2017 modifiant CC art. 1100/1+ (entrée en vigueur 01/09/2018).
+
+            Vérifie : signature ≥ 01/09/2018 ; acte authentique notarié (obligatoire,
+            sinon NUL) ; présence + accord de tous les héritiers réservataires ;
+            équilibre des donations rapportables. Verdict VALIDE / CONTESTABLE / NUL.
+
+            Outil single-country BELGIQUE. Équivalent FR : pacte successoral renforcé
+            (art. 1078-4+ CC FR — donation-partage transgénérationnelle ; RAAR art. 929
+            CC FR) — non couvert à ce jour, opportunité backlog hors F-211.
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement BE×Famille.
+            Audit "exhaustivité droit national BE" : couvre le pacte global BE.
+
+            Le seed `decision_tool_visibility_rules` est volontairement différé à une
+            SF F-211 frontend ultérieure (cf. SF-164-01 garde-fou).
+        </comment>
+
+        <createTable tableName="pacte_successoral_be_2018_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pacte_successoral_be_2018_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_signature_pacte" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="acte_authentique" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accord_tous_heritiers_reservataires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="equilibre_donations_rapportables" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="presence_tous_heritiers_reservataires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="pacte_successoral_be_2018_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_pacte_successoral_be_2018_analyses_case_file"/>
+
+        <createIndex tableName="pacte_successoral_be_2018_analyses"
+                     indexName="idx_pacte_successoral_be_2018_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="pacte_successoral_be_2018_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="225-create-divorce-ddi-be-analyses" author="legalcase">
+        <comment>
+            SF-211-02 : table dédiée à l'outil décisionnel "Divorce pour désunion
+            irrémédiable (DDI) belge — 3 voies" — CC art. 229 §§1, 2, 3 + Loi 27/04/2007.
+
+            Détermine la voie applicable :
+              §1 — constatation directe par juge (preuves de désunion)
+              §2 — commune après ≥ 6 mois de séparation
+              §3 — unilatérale après ≥ 1 an de séparation
+            Indique les jours restants si pas encore éligible aux voies temporelles.
+
+            Outil single-country BELGIQUE. Concept FR distinct (divorce-faute existant
+            dans F-FA-11 ; divorce-altération-lien-conjugal couvert par F-FA-05 généralisé).
+            En BE, le divorce-faute a été aboli en 2007 — seul subsiste DDI 3 voies.
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement BE×Famille.
+            Audit "exhaustivité droit national BE" : couvre les 3 voies DDI belges.
+
+            Le seed `decision_tool_visibility_rules` est volontairement différé à une
+            SF F-211 frontend ultérieure (cf. SF-164-01 garde-fou).
+        </comment>
+
+        <createTable tableName="divorce_ddi_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_divorce_ddi_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_separation" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nature_demande" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_desunion_disponibles" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="divorce_ddi_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_divorce_ddi_be_analyses_case_file"/>
+
+        <createIndex tableName="divorce_ddi_be_analyses"
+                     indexName="idx_divorce_ddi_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="divorce_ddi_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
