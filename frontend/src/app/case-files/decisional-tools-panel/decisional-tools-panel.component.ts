@@ -1871,8 +1871,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['divorce-dc-be', {
         displayLabel: 'Divorce par consentement mutuel (Belgique)',
         component: DivorceDcBeSectionComponent,
+        // F-243 : composant complet (form + pré-fill IA + validation F-IA-03).
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       // F-211 SF-211-02 : divorce désunion irrémédiable orientation 3 voies BE — CC 229 §§1/2/3.

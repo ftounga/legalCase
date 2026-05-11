@@ -1,22 +1,231 @@
-<section class="dcbe-section">
-  <header class="dcbe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
-          [attr.aria-expanded]="!collapsed()" aria-controls="dcbe-body">
-    <mat-icon class="dcbe-icon">handshake</mat-icon>
-    <span class="dcbe-title">DIVORCE PAR CONSENTEMENT MUTUEL — BELGIQUE</span>
-    <mat-icon class="dcbe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+<section class="dc-be-section">
+  <header class="dc-be-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dc-be-body">
+    <mat-icon class="dc-be-icon">handshake</mat-icon>
+    <span class="dc-be-title">DIVORCE CONSENTEMENT MUTUEL — CJ ART. 1287 BE</span>
+    @if (result()) {
+      <span class="dc-be-chip"
+            [class.dc-be-chip--ok]="result()!.verdict === 'RECEVABLE'"
+            [class.dc-be-chip--ko]="result()!.verdict === 'IRRECEVABLE'"
+            [class.dc-be-chip--neutral]="result()!.verdict === 'NON_CONCERNE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="dc-be-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
   </header>
 
   @if (!collapsed()) {
-    <div id="dcbe-body" class="dcbe-body">
-      <p class="dcbe-cadre">{{ cadreJuridique }}</p>
-      <ul class="dcbe-notes">
-        @for (n of notes; track n) {
-          <li>
-            <mat-icon class="dcbe-bullet">info</mat-icon>
-            <span>{{ n }}</span>
-          </li>
+    <div id="dc-be-body" class="dc-be-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="dc-be-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil Belgique uniquement (CJ art. 1287-1304 + Loi 27/04/2007). Pour la France, voir l'équivalent F-FA-07 (divorce par consentement mutuel notarié, art. 229-1+ Cciv).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="dc-be-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="dc-be-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="dc-be-form" (ngSubmit)="calculate()">
+            <div class="dc-be-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de signature de la convention préalable (art. 1287 CJ)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateSignatureConvention()"
+                       (ngModelChange)="onDateSignatureConventionChange($event)"
+                       name="dateSignatureConvention" required />
+              </mat-form-field>
+              @if (provenanceDateSignatureConvention() === 'IA') {
+                <span class="dc-be-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_SIGNATURE_CONVENTION; as alert) {
+                <span class="dc-be-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_SIGNATURE_CONVENTION')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="dc-be-field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Date d'audience d'homologation (optionnel — délai 3 mois)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateAudienceHomologation()"
+                       (ngModelChange)="onDateAudienceHomologationChange($event)"
+                       name="dateAudienceHomologation" />
+              </mat-form-field>
+              <span class="dc-be-field-hint">Doit être ≥ 90 jours après la signature (CJ art. 1289).</span>
+            </div>
+
+            <h4 class="dc-be-section-title">Contenu de la convention préalable</h4>
+            <p class="dc-be-section-help">CJ art. 1287-1294 : la convention DOIT couvrir les 4 volets ci-dessous pour être recevable.</p>
+
+            <div class="dc-be-field-row dc-be-full">
+              <mat-slide-toggle
+                  [ngModel]="conventionLogement()"
+                  (ngModelChange)="onConventionLogementChange($event)"
+                  name="conventionLogement">
+                Convention sur le logement familial (art. 1287 CJ)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="dc-be-field-row dc-be-full">
+              <mat-slide-toggle
+                  [ngModel]="conventionBiens()"
+                  (ngModelChange)="onConventionBiensChange($event)"
+                  name="conventionBiens">
+                Convention sur la liquidation des biens (art. 1287 CJ)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="dc-be-field-row dc-be-full">
+              <mat-slide-toggle
+                  [ngModel]="conventionGardeEnfants()"
+                  (ngModelChange)="onConventionGardeEnfantsChange($event)"
+                  name="conventionGardeEnfants">
+                Convention sur la garde et l'hébergement des enfants (art. 1288 CJ)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="dc-be-field-row dc-be-full">
+              <mat-slide-toggle
+                  [ngModel]="conventionContributions()"
+                  (ngModelChange)="onConventionContributionsChange($event)"
+                  name="conventionContributions">
+                Convention sur les contributions alimentaires (enfants + époux, art. 1288 CJ)
+              </mat-slide-toggle>
+            </div>
+
+            <h4 class="dc-be-section-title">Contexte</h4>
+
+            <div class="dc-be-field-row dc-be-full">
+              <mat-slide-toggle
+                  [ngModel]="enfantsMineursCommuns()"
+                  (ngModelChange)="onEnfantsMineursCommunsChange($event)"
+                  name="enfantsMineursCommuns">
+                Présence d'enfants mineurs communs
+              </mat-slide-toggle>
+            </div>
+
+            <div class="dc-be-field-row dc-be-full">
+              <mat-slide-toggle
+                  [ngModel]="epouxConsentent()"
+                  (ngModelChange)="onEpouxConsententChange($event)"
+                  name="epouxConsentent">
+                Les deux époux consentent à la procédure DC (CC art. 229 §1)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="dc-be-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la recevabilité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="dc-be-result">
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <div class="dc-be-cards-grid">
+              <div class="dc-be-card">
+                <span class="dc-be-card-label">Convention préalable</span>
+                <span class="dc-be-card-value">
+                  <mat-icon [class.dc-be-icon-ok]="result()!.conventionComplete"
+                            [class.dc-be-icon-ko]="!result()!.conventionComplete">
+                    {{ result()!.conventionComplete ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                  {{ result()!.conventionComplete ? '4 volets complets' : 'Convention incomplète' }}
+                </span>
+              </div>
+
+              <div class="dc-be-card">
+                <span class="dc-be-card-label">Délai de réflexion (3 mois min)</span>
+                <span class="dc-be-card-value dc-be-mono">
+                  @if (result()!.delaiReflexionJours >= 0) {
+                    <mat-icon [class.dc-be-icon-ok]="result()!.delaiReflexionRespecte"
+                              [class.dc-be-icon-ko]="!result()!.delaiReflexionRespecte">
+                      {{ result()!.delaiReflexionRespecte ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                    {{ result()!.delaiReflexionJours }} jours
+                  } @else {
+                    <mat-icon class="dc-be-icon-neutral">schedule</mat-icon>
+                    Audience non fixée
+                  }
+                </span>
+              </div>
+
+              <div class="dc-be-card">
+                <span class="dc-be-card-label">Consentement mutuel</span>
+                <span class="dc-be-card-value">
+                  <mat-icon [class.dc-be-icon-ok]="result()!.epouxConsentent"
+                            [class.dc-be-icon-ko]="!result()!.epouxConsentent">
+                    {{ result()!.epouxConsentent ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                  {{ result()!.epouxConsentent ? 'Les 2 époux consentent' : 'Pas de consentement' }}
+                </span>
+              </div>
+
+              @if (result()!.enfantsMineursCommuns) {
+                <div class="dc-be-card">
+                  <span class="dc-be-card-label">Enfants mineurs communs</span>
+                  <span class="dc-be-card-value">
+                    <mat-icon class="dc-be-icon-info">child_care</mat-icon>
+                    Audition possible (art. 1004/1 CJ)
+                  </span>
+                </div>
+              }
+            </div>
+
+            <div class="dc-be-meta">
+              <span class="dc-be-meta-formule">{{ result()!.formule }}</span>
+              <span class="dc-be-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="dc-be-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.motifsIrrecevabilite?.length) {
+              <div class="dc-be-motifs">
+                <span class="dc-be-motifs-label">Motifs d'irrecevabilité :</span>
+                <ul>
+                  @for (m of result()!.motifsIrrecevabilite; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
         }
-      </ul>
+      }
     </div>
   }
 </section>
