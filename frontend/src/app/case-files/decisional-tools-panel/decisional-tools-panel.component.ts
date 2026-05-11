@@ -899,10 +899,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // (DELETE par migration 191, restauré par migration 212). Wrapper qui
       // délègue au composant F-152 existant (présentationnel pur).
       ['F-152-divorce-consentement-scoring', {
-        displayLabel: 'Divorce par consentement mutuel — scoring (FR)',
+        displayLabel: 'Divorce par consentement mutuel — scoring (FR/BE)',
         component: DivorceCmScoringSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
+          // F-242 : propage le pays workspace pour adapter les libellés des 7 critères (FR/BE).
+          workspaceCountry: ctx.workspaceCountry ?? null,
         }),
       }],
       // F-198 SF-198-05 : restauration de F-153-fourchettes-jaf (DELETE par

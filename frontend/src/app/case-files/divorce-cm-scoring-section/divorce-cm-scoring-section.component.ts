@@ -41,6 +41,8 @@ export class DivorceCmScoringSectionComponent implements OnInit, OnChanges {
 
   @Input() synthesis: CaseAnalysisResult | null = null;
   @Input() forceExpanded = false;
+  /** F-242 : pays applicable du workspace (string `FR` ou `BE`) — propagé au child pour adapter les libellés des 7 critères. */
+  @Input() workspaceCountry: string | null = null;
 
   collapsed = signal(false);
 

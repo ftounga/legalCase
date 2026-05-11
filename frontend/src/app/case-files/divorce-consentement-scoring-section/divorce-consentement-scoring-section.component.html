@@ -4,12 +4,27 @@
     <mat-expansion-panel-header>
       <mat-panel-title>
         <mat-icon class="panel-icon panel-icon--dc">rule</mat-icon>
-        Validité du divorce par consentement mutuel
+        Validité du divorce par consentement mutuel{{ isBe() ? ' (droit belge)' : '' }}
       </mat-panel-title>
       <mat-panel-description>
         Score {{ s.score }}/100 · {{ verdictLabel(s.verdict) }}
       </mat-panel-description>
     </mat-expansion-panel-header>
+
+    @if (isBe()) {
+      <div class="dc-be-banner">
+        <mat-icon class="dc-be-banner-icon">info</mat-icon>
+        <div class="dc-be-banner-body">
+          <strong>Scoring calculé selon le droit FR (art. 229+ Cciv).</strong>
+          Le droit BE (Code judiciaire art. 1287-1304 + Loi 27/04/2007) prévoit notamment&nbsp;:
+          délai de réflexion <strong>3 mois</strong> au lieu de 15 jours (art. 1289 CJ, dispense si séparation ≥ 6 mois),
+          dépôt au <strong>greffe du tribunal de la famille</strong> au lieu du notaire (art. 1288 CJ),
+          représentation par avocats <strong>non obligatoire</strong>.
+          Les libellés ci-dessous sont adaptés au droit BE — une vérification manuelle des délais et du dépôt reste requise.
+          Un scoring BE natif est prévu dans une SF dédiée.
+        </div>
+      </div>
+    }
 
     <div class="dc-body">
       <div class="dc-gauge">
