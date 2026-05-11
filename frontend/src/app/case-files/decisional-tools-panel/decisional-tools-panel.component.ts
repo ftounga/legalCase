@@ -38,6 +38,8 @@ import {
   risquesValidesFor,
 } from './risque-badge.helper';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
+// SF-238-02 : service d'activation manuelle d'un outil depuis le catalogue.
+import { DecisionToolManualActivationService } from '../../core/services/decision-tool-manual-activation.service';
 import { DecisionalToolsProgressBannerComponent } from './decisional-tools-progress-banner.component';
 import { DecisionalToolsProgressService } from './decisional-tools-progress.service';
 import { getToolMetadata, getToolPrefillCount, PrefillCountInput } from './decision-tool.contract';
@@ -216,6 +218,17 @@ export interface DecisionToolContext {
 export interface DecisionToolRegistryEntry {
   component: Type<unknown>;
   inputs: (ctx: DecisionToolContext) => Record<string, unknown>;
+  /**
+   * SF-238-01 — libellé humain affiché dans le catalogue (chip cliquable).
+   * Conventions :
+   *   - FR : « Désunion irrémédiable (FR) », « Licenciement — Validité (FR) »
+   *   - BE : « Désunion irrémédiable (Belgique) », « Préavis (Belgique) »
+   *   - transversal (sans pays) : pas de suffixe
+   * Le garde-fou CI `DecisionToolDisplayLabelIntegrityIT` (SF-238-01) interdit :
+   *   1. tout `displayLabel` vide,
+   *   2. tout `displayLabel` qui contient le `tool_id` (anti copier-coller).
+   */
+  displayLabel: string;
 }
 
 /**
@@ -257,6 +270,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   // RisqueAlignmentService) — code réutilisé par <app-case-dashboard>.
   private readonly alignmentsLoader = inject(DecisionToolAlignmentsLoader);
   private readonly modalService = inject(DecisionToolModalService);
+  // SF-238-02 : activation manuelle d'un outil depuis le catalogue cliquable.
+  private readonly manualActivationService = inject(DecisionToolManualActivationService);
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
   private readonly vcr = inject(ViewContainerRef);
@@ -283,6 +298,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);
+
+  /**
+   * SF-238-02 — IDs des outils en cours d'activation manuelle. Chip → spinner +
+   * disabled tant que le POST est en vol. Vidé à la réception de la réponse
+   * (succès ou erreur).
+   */
+  readonly activatingToolIds = signal<ReadonlySet<string>>(new Set());
 
   /**
    * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec les
@@ -328,6 +350,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   static readonly TOOL_REGISTRY: ReadonlyMap<string, DecisionToolRegistryEntry> =
     new Map<string, DecisionToolRegistryEntry>([
       ['F-DT-04-fiche-prudhomale', {
+        displayLabel: 'Fiche prud\'homale (FR)',
         component: PrudhomeFicheSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -342,6 +365,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-06-requete-tribunal-travail', {
+        displayLabel: 'Requête tribunal du travail (BE)',
         component: TribunalTravailFicheSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -356,6 +380,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-07-anciennete-conges-prime', {
+        displayLabel: 'Ancienneté, congés et primes (FR)',
         component: AncienneteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -363,6 +388,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-08-licenciement-validity', {
+        displayLabel: 'Licenciement — validité (FR)',
         component: LicenciementSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -374,6 +400,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-09-comparateur-indemnites', {
+        displayLabel: 'Comparateur d\'indemnités (FR)',
         component: IndemniteComparatifSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -387,6 +414,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-10-rupture-conv-validity', {
+        displayLabel: 'Rupture conventionnelle — validité (FR)',
         component: RuptureConvSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -397,6 +425,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-132-rupture-conv-indemnite', {
+        displayLabel: 'Rupture conventionnelle — indemnité (FR)',
         component: RuptureConvIndemniteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -404,6 +433,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-11-harcelement-licenciement-nul', {
+        displayLabel: 'Harcèlement → licenciement nul (FR)',
         component: HarcelementLicenciementNulSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -419,6 +449,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-16-licenciement-nul-detection', {
+        displayLabel: 'Détection de licenciement nul (FR)',
         component: LicenciementNulDetectionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -433,6 +464,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-12-discrimination-dommages-interets', {
+        displayLabel: 'Discrimination — dommages-intérêts (FR)',
         component: DiscriminationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -449,6 +481,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-13-licenciement-economique', {
+        displayLabel: 'Licenciement économique (FR)',
         component: LicenciementEconomiqueSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -464,6 +497,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-15-inaptitude', {
+        displayLabel: 'Inaptitude — indemnités (FR)',
         component: InaptitudeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -476,6 +510,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-19-heures-sup', {
+        displayLabel: 'Heures supplémentaires (FR)',
         component: HeuresSupSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -488,6 +523,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-17-indemnite-precarite-cdd', {
+        displayLabel: 'Indemnité de précarité CDD (FR)',
         component: IndemnitePrecariteCddSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -500,6 +536,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-26-conges-payes-indemnite', {
+        displayLabel: 'Indemnité congés payés (FR)',
         component: CongesPayesSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -513,6 +550,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-18-fin-mission-interim', {
+        displayLabel: 'Fin de mission intérim (FR)',
         component: FinMissionInterimSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -525,6 +563,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-32-documents-fin-contrat', {
+        displayLabel: 'Documents de fin de contrat (FR)',
         component: DocumentsFinContratSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -538,6 +577,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-34-refere-prudhomal', {
+        displayLabel: 'Référé prud\'homal (FR)',
         component: ReferePrudhomalSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -553,6 +593,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-21-travail-dissimule', {
+        displayLabel: 'Travail dissimulé (FR)',
         component: TravailDissimuleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -565,6 +606,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-25-indemnite-preavis', {
+        displayLabel: 'Indemnité de préavis (FR)',
         component: IndemnitePreavisSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -579,6 +621,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-20-rappel-salaire', {
+        displayLabel: 'Rappel de salaire (FR)',
         component: RappelSalaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -592,6 +635,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-22-requalification-cdd-cdi', {
+        displayLabel: 'Requalification CDD en CDI (FR)',
         component: RequalificationCddCdiSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -606,6 +650,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-23-requalification-interim-cdi', {
+        displayLabel: 'Requalification intérim en CDI (FR)',
         component: RequalificationInterimCdiSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -621,6 +666,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-24-non-concurrence', {
+        displayLabel: 'Clause de non-concurrence (FR)',
         component: NonConcurrenceSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -639,6 +685,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-132-rupture-amiable-info', {
+        displayLabel: 'Rupture amiable — informations',
         component: RuptureAmiableInfoSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -652,6 +699,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-164-01 / DecisionToolVisibilityIntegrityIT).
       // SF-208-05 : composant complet F-IM-21 (formulaire + verdict + pre-fill IA + F-IA-03).
       ['F-IM-21-jld-retention-fr', {
+        displayLabel: 'JLD rétention administrative (FR)',
         component: JldRetentionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -664,6 +712,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-208-06 : composant complet F-IM-22.
       ['F-IM-22-dublin-recours-fr', {
+        displayLabel: 'Dublin — recours (FR)',
         component: DublinRecoursSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -676,6 +725,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-208-07 : composant complet F-IM-23.
       ['F-IM-23-crrv-refus-visa-fr', {
+        displayLabel: 'CRRV — refus de visa (FR)',
         component: CrrvRefusVisaSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -688,6 +738,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-208-08 : composant complet F-IM-24 (analyzer scoring 3 verdicts).
       ['F-IM-24-victime-violences-l4256-fr', {
+        displayLabel: 'Victime de violences — L.425-6 (FR)',
         component: VictimeViolencesL4256SectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -702,6 +753,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // (DELETE par migration 191, restauré par migration 212). Wrapper
       // présentationnel sur synthesis.prestationCompensatoireEstimate.
       ['F-FA-01-prestation-compensatoire', {
+        displayLabel: 'Prestation compensatoire (FR)',
         component: PrestationCompensatoireSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
@@ -711,6 +763,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // par migration 191, restauré par migration 212). Wrapper présentationnel
       // sur synthesis.pensionAlimentaireEstimate (incluant fourchette JAF F-153).
       ['F-FA-02-pension-alimentaire', {
+        displayLabel: 'Pension alimentaire (FR)',
         component: PensionAlimentaireSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
@@ -720,12 +773,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // par migration 191, restauré par migration 212). Wrapper présentationnel
       // sur synthesis.liquidationCommunaute.
       ['F-FA-04-liquidation-communaute', {
+        displayLabel: 'Liquidation de communauté (FR)',
         component: LiquidationCommunauteSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
         }),
       }],
       ['F-FA-05-partage-immobilier', {
+        displayLabel: 'Partage immobilier',
         component: PartageImmobilierSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -738,6 +793,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-15-recompenses', {
+        displayLabel: 'Récompenses entre époux (FR)',
         component: RecompensesSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -751,6 +807,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-06-calendrier-garde', {
+        displayLabel: 'Calendrier de garde',
         component: CalendrierGardeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -763,6 +820,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-07-checklist-divorce', {
+        displayLabel: 'Checklist divorce',
         component: DivorceChecklistSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -779,6 +837,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // (DELETE par migration 191, restauré par migration 212). Wrapper qui
       // délègue au composant F-152 existant (présentationnel pur).
       ['F-152-divorce-consentement-scoring', {
+        displayLabel: 'Divorce par consentement mutuel — scoring (FR)',
         component: DivorceCmScoringSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
@@ -788,12 +847,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // migration 191, restauré par migration 212). Wrapper qui agrège les
       // jurisprudenceRange p25/p50/p75 livrées par F-153.
       ['F-153-fourchettes-jaf', {
+        displayLabel: 'Fourchettes JAF (FR)',
         component: FourchettesJafSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
         }),
       }],
       ['F-IM-01-checklist-pieces', {
+        displayLabel: 'Checklist pièces immigration',
         component: ImmigrationChecklistSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -802,6 +863,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-05-arbre-decisionnel-titre', {
+        displayLabel: 'Arbre décisionnel titre de séjour (FR)',
         component: ImmigrationTitleDecisionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -819,6 +881,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-06-recours', {
+        displayLabel: 'Recours immigration (FR)',
         component: ImmigrationRecoursSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -836,6 +899,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-07-droit-au-travail', {
+        displayLabel: 'Droit au travail des étrangers (FR)',
         component: ImmigrationWorkRightSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -847,6 +911,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-08-oqtf-avec-delai-fr', {
+        displayLabel: 'OQTF avec délai (FR)',
         component: OqtfAvecDelaiSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -859,6 +924,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-08-oqtf-sans-delai-fr', {
+        displayLabel: 'OQTF sans délai (FR)',
         component: OqtfSansDelaiSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -871,6 +937,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-08-annexe13-be', {
+        displayLabel: 'Annexe 13 — OQT (Belgique)',
         component: Annexe13BeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -884,6 +951,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-IM-08-08 : référés administratifs L.521-1 / L.521-2 (FR uniquement).
       ['F-IM-08-referes-admin-fr', {
+        displayLabel: 'Référés administratifs OQTF (FR)',
         component: ReferesAdminSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -896,6 +964,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-DT-35-02 : contestation ARE / France Travail (FR uniquement).
       ['F-DT-35-contestation-are-fr', {
+        displayLabel: 'Contestation ARE Pôle emploi (FR)',
         component: ContestationAreSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -909,6 +978,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-27-motif-grave-be', {
+        displayLabel: 'Motif grave (Belgique)',
         component: MotifGraveBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -922,6 +992,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-DT-28-avantages-conventionnels-be', {
+        displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -938,6 +1009,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-DT-29-02 : crédit-temps / interruption de carrière BE
       // (CCT 103 + AR 29/10/1997). BE uniquement.
       ['F-DT-29-credit-temps-be', {
+        displayLabel: 'Crédit-temps (Belgique)',
         component: CreditTempsBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -956,6 +1028,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // L.1233-24-1 + L.1233-30 + L.1233-57-2 + L.1233-61 + L.1235-7-1).
       // tool_id aligné avec la migration 164.
       ['F-DT-14-pse-validite', {
+        displayLabel: 'PSE — validité (FR)',
         component: PseSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -973,6 +1046,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // art. L.2411-1 + L.2411-3 + L.2411-22 + L.2422-1 + R.2422-1 CT).
       // tool_id aligné avec la migration 166.
       ['F-DT-30-protection-rp', {
+        displayLabel: 'Protection représentant du personnel (FR)',
         component: ProtectionRpSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -992,6 +1066,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // 3 dispositifs : RECONNAISSANCE_AT / RECONNAISSANCE_MP / CONTESTATION_TAUX_IPP.
       // tool_id aligné avec la migration 175.
       ['F-DT-33-at-mp', {
+        displayLabel: 'AT/MP — accident et maladie pro (FR)',
         component: AtMpSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1007,6 +1082,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-14-40ter-familial-belge-be', {
+        displayLabel: 'Article 40ter — regroupement familial belge (Belgique)',
         component: Belgian40terSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1019,6 +1095,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-14-9bis-humanitaire-be', {
+        displayLabel: 'Article 9bis — humanitaire (Belgique)',
         component: Belgian9bisSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1027,6 +1104,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-14-9ter-medical-be', {
+        displayLabel: 'Article 9ter — médical (Belgique)',
         component: Belgian9terSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1035,6 +1113,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-14-40bis-cohabitant-ue-be', {
+        displayLabel: 'Article 40bis — cohabitant UE (Belgique)',
         component: BelgianCohabitantUeBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1046,6 +1125,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-09-aes-metiers-tension', {
+        displayLabel: 'AES métiers en tension (FR)',
         component: AesMetiersTensionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1057,6 +1137,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-09-aes-famille', {
+        displayLabel: 'AES familial (FR)',
         component: AesFamilleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1068,6 +1149,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-08-divorce-alteration', {
+        displayLabel: 'Divorce — altération du lien (FR)',
         component: DivorceAlterationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1082,6 +1164,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // pointer sur `familleExtractedData` (et non `travailExtractedData`,
       // erreur de mapping héritée). Cf. mini-spec F-236 § "F-FA-09 hotfix".
       ['F-FA-09-divorce-faute', {
+        displayLabel: 'Divorce pour faute (FR)',
         component: DivorceFauteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1090,6 +1173,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-10-divorce-accepte', {
+        displayLabel: 'Divorce accepté (FR)',
         component: DivorceAccepteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1101,6 +1185,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-12-mesures-provisoires', {
+        displayLabel: 'Mesures provisoires (FR)',
         component: MesuresProvisoiresSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1112,6 +1197,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-13-revisions-post-divorce', {
+        displayLabel: 'Révisions post-divorce (FR)',
         component: RevisionsPostDivorceSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1124,6 +1210,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-14-02 : ordonnance de protection FR (art. 515-9 Cciv).
       ['F-FA-14-ordonnance-protection', {
+        displayLabel: 'Ordonnance de protection (FR)',
         component: OrdonnanceProtectionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1135,6 +1222,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-136-travail-procedure', {
+        displayLabel: 'Procédure prud\'homale (FR)',
         component: TravailProcedureSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1145,6 +1233,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-19-autorite-parentale', {
+        displayLabel: 'Autorité parentale (FR)',
         component: AutoriteParentaleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1156,6 +1245,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-19-changement-residence', {
+        displayLabel: 'Changement de résidence de l\'enfant (FR)',
         component: ChangementResidenceSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1167,6 +1257,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-19-desaccords-parentaux', {
+        displayLabel: 'Désaccords parentaux (FR)',
         component: DesaccordsParentauxSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1178,6 +1269,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-22-indivision', {
+        displayLabel: 'Indivision (FR)',
         component: IndivisionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1189,6 +1281,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-20-pacs-dissolution', {
+        displayLabel: 'Dissolution de PACS (FR)',
         component: PacsDissolutionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1201,6 +1294,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-25-02 : majeurs protégés FR (art. 425-494 / 494-1 Cciv).
       ['F-FA-25-majeurs-proteges', {
+        displayLabel: 'Majeurs protégés (FR)',
         component: MajeursProtegesSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1213,6 +1307,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-26-02 : changement d'état civil FR (art. 60 / 61-1 / 61-5 Cciv).
       ['F-FA-26-changement-etat-civil', {
+        displayLabel: 'Changement d\'état civil (FR)',
         component: ChangementEtatCivilSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1225,6 +1320,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-21-02 : séparation de corps + conversion divorce FR (art. 296+306 Cciv).
       ['F-FA-21-separation-corps', {
+        displayLabel: 'Séparation de corps (FR)',
         component: SeparationCorpsSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1238,6 +1334,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-IM-11-02 : changement de statut CESEDA (FR uniquement,
       // art. L.421+ + R.5221). tool_id aligné migration 170.
       ['F-IM-11-changement-statut', {
+        displayLabel: 'Changement de statut (FR)',
         component: ChangementStatutSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1250,6 +1347,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-IM-13-02 : naturalisation française FR — 6 voies Cciv 21-15+.
       ['F-IM-13-naturalisation', {
+        displayLabel: 'Naturalisation (FR)',
         component: NaturalisationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1262,6 +1360,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-IM-19-02 : mineurs étrangers FR — MNA / L.435-3 / DCEM / TIR.
       ['F-IM-19-mineurs', {
+        displayLabel: 'Mineurs immigration (FR)',
         component: MineursImmigrationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1274,6 +1373,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-IM-20-02 : mesures d'éloignement avancées FR — Expulsion + IRTF + IAT.
       ['F-IM-20-mesures-eloignement', {
+        displayLabel: 'Mesures d\'éloignement (FR)',
         component: MesuresEloignementSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1286,6 +1386,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-IM-12-02 : asile avancé FR — Dublin III / accélérée / réexamen / apatridie / PS.
       ['F-IM-12-asile-avance', {
+        displayLabel: 'Asile avancé (FR)',
         component: AsileAvanceSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1299,6 +1400,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-17-02 : partage judiciaire FR (art. 840+ Cciv + 1364+ + 1366 CPC).
       // tool_id aligné avec la migration 169.
       ['F-FA-17-partage-judiciaire', {
+        displayLabel: 'Partage judiciaire (FR)',
         component: PartageJudiciaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1311,6 +1413,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-18-02 : reconnaissance paternelle FR (art. 316 + 332-335 + 372 Cciv).
       ['F-FA-18-reconnaissance-paternelle', {
+        displayLabel: 'Reconnaissance paternelle (FR)',
         component: ReconnaissancePaternelleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1324,6 +1427,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-18-04 : contestation de paternité FR (art. 332-335 + 311-1 + 321 + 372 Cciv).
       // tool_id aligné avec la migration 181.
       ['F-FA-18-contestation-paternite', {
+        displayLabel: 'Contestation de paternité (FR)',
         component: ContestationPaterniteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1337,6 +1441,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-18-06 : action en recherche de paternité FR
       // (art. 327 + 340 + 16-11 + 321 Cciv). tool_id aligné avec la migration 183.
       ['F-FA-18-recherche-paternite', {
+        displayLabel: 'Recherche de paternité (FR)',
         component: RecherchePaterniteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1350,6 +1455,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-18-08 : possession d'état FR (art. 311-1 + 311-2 + 317 Cciv).
       // tool_id aligné avec la migration 185.
       ['F-FA-18-possession-etat', {
+        displayLabel: 'Possession d\'état (FR)',
         component: PossessionEtatSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1367,6 +1473,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // Scoring niveau 5 (recevabilité) + bascule plénière → simple.
       // FR uniquement (BE = feature jumelle au backlog).
       ['F-FA-18-adoption', {
+        displayLabel: 'Adoption (FR)',
         component: AdoptionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1383,6 +1490,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
       ['F-FA-16-communaute-universelle', {
+        displayLabel: 'Communauté universelle (FR)',
         component: CommunauteUniverselleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1396,6 +1504,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-23-02 : ordonnance sur requête (mesures urgentes familiales)
       // FR + BE actifs (art. 493 + 497 CPC FR / art. 1025 et s. CJ BE).
       ['F-FA-23-ordonnance-requete', {
+        displayLabel: 'Ordonnance sur requête',
         component: OrdonnanceRequeteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1410,6 +1519,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // tool_id aligné avec la migration 179 (visibility ALWAYS_ON
       // DROIT_FAMILLE FRANCE priority 88).
       ['F-FA-24-devolution-legale', {
+        displayLabel: 'Dévolution légale (FR)',
         component: DevolutionLegaleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1422,6 +1532,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-27-02 : PMA / GPA / bioéthique FR.
       ['F-FA-27-pma-gpa', {
+        displayLabel: 'PMA / GPA — bioéthique (FR)',
         component: PmaGpaBioethiqueSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1434,6 +1545,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-24-04 : validité testament FR.
       ['F-FA-24-testament-validite', {
+        displayLabel: 'Testament — validité (FR)',
         component: TestamentValiditeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1446,6 +1558,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-24-06 : donation entre vifs FR.
       ['F-FA-24-donation', {
+        displayLabel: 'Donation (FR)',
         component: DonationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1458,6 +1571,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-24-08 : réserve héréditaire FR.
       ['F-FA-24-reserve-heriditaire', {
+        displayLabel: 'Réserve héréditaire (FR)',
         component: ReserveHeriditaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1470,6 +1584,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-24-10 : partage successoral FR.
       ['F-FA-24-partage-successoral', {
+        displayLabel: 'Partage successoral (FR)',
         component: PartageSuccessoralSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1482,6 +1597,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-24-12 : indivision successorale FR.
       ['F-FA-24-indivision-successorale', {
+        displayLabel: 'Indivision successorale (FR)',
         component: IndivisionSuccessoraleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1494,6 +1610,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-FA-24-14 : rapport à succession FR (art. 843-863 + 919 Cciv).
       ['F-FA-24-rapport-succession', {
+        displayLabel: 'Rapport à succession (FR)',
         component: RapportSuccessionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1506,6 +1623,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       // SF-IM-17-02 : régime algérien FR.
       ['F-IM-17-regime-algerien', {
+        displayLabel: 'Régime algérien (accord franco-algérien)',
         component: RegimeAlgerienSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1521,12 +1639,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // en DB sans entrée registry (régression silencieuse vague 2026-04-24).
       // ===================================================================
       ['F-DT-03-prescription-litige', {
+        displayLabel: 'Prescription du litige (FR)',
         component: CaseDeadlinesSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
         }),
       }],
       ['F-DT-31-transaction', {
+        displayLabel: 'Transaction (FR)',
         component: TransactionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1538,6 +1658,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-09-aes-etudiant', {
+        displayLabel: 'AES étudiant (FR)',
         component: AesEtudiantSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1549,6 +1670,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-IM-09-aes-humanitaire', {
+        displayLabel: 'AES humanitaire (FR)',
         component: AesHumanitaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1560,6 +1682,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       ['F-FA-11-desunion-irremediable-be', {
+        displayLabel: 'Désunion irrémédiable (Belgique)',
         component: DivorceDesunionBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1573,6 +1696,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // F-210 SF-210-02 : médiation familiale obligatoire pré-saisine JAF (FR).
       // Migration 218 — CONTEXTUAL trigger `mediation_familiale_pre_saisine_pertinente=true`.
       ['mediation-familiale-pre-saisine', {
+        displayLabel: 'Médiation familiale pré-saisine',
         component: MediationFamilialeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1586,6 +1710,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // F-210 SF-210-04 : acceptation / renonciation succession (FR — art. 768+).
       // Migration 219 — CONTEXTUAL trigger `succession_envisagee=true` (flag pivot F-200).
       ['acceptation-renonciation-succession', {
+        displayLabel: 'Acceptation / renonciation à succession',
         component: AcceptationRenonciationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
@@ -1830,6 +1955,92 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       return null;
     }
     return entry;
+  }
+
+  /**
+   * SF-238-01 — retourne le libellé humain affiché dans le chip du catalogue.
+   * Fallback sur le `tool_id` brut si le composant n'est pas (encore) enregistré
+   * (forward-compat). Le garde-fou CI `DecisionToolDisplayLabelIntegrityIT`
+   * interdit toute entrée TOOL_REGISTRY sans `displayLabel`, donc en pratique
+   * le fallback ne sert qu'aux `tool_id` orphelins en DB (qui sont eux-mêmes
+   * bloqués par `DecisionToolVisibilityIntegrityIT` SF-164-01).
+   */
+  resolveDisplayLabel(toolId: string): string {
+    return DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId)?.displayLabel ?? toolId;
+  }
+
+  /**
+   * SF-238-02 — indique si l'activation manuelle de cet outil est en vol.
+   * Utilisé par le template pour afficher le spinner et désactiver le chip.
+   */
+  isActivating(toolId: string): boolean {
+    return this.activatingToolIds().has(toolId);
+  }
+
+  /**
+   * SF-238-02 — déclenche l'activation manuelle d'un outil du catalogue :
+   *   1. ajoute le toolId à `activatingToolIds` (UI : spinner + disabled),
+   *   2. POST vers le backend (SF-238-03),
+   *   3. sur succès → triggerRefresh() pour re-fetch la visibilité (l'outil
+   *      migre catalog → contextual),
+   *   4. sur erreur → MatSnackBar (409 = info, autre = erreur générique),
+   *   5. retire le toolId de `activatingToolIds` dans tous les cas.
+   *
+   * Pas de blocage technique sur 409 (idempotent côté UX) : on déclenche un
+   * refresh quand même pour s'assurer que la vue reflète bien l'état serveur.
+   */
+  activateManually(toolId: string): void {
+    if (this.isActivating(toolId)) {
+      return; // anti double-clic
+    }
+    this.markActivating(toolId, true);
+    this.manualActivationService.activate(this.caseFileId, toolId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.markActivating(toolId, false);
+          // Déclenche le re-fetch de la visibilité → l'outil migre dans contextual.
+          if (this.refreshService) {
+            this.refreshService.triggerRefresh();
+          } else {
+            // Si pas d'orchestrateur, on relance directement le GET local.
+            this.loadVisibility(false);
+          }
+        },
+        error: (err) => {
+          this.markActivating(toolId, false);
+          if (err?.status === 409) {
+            this.snackBar.open(
+              'Outil déjà activé pour ce dossier.',
+              'Fermer',
+              { duration: 3000 }
+            );
+            // 409 = état déjà à jour côté serveur, on rafraîchit quand même
+            // pour cohérence visuelle.
+            if (this.refreshService) {
+              this.refreshService.triggerRefresh();
+            } else {
+              this.loadVisibility(false);
+            }
+            return;
+          }
+          this.snackBar.open(
+            'Activation impossible. Réessayez plus tard.',
+            'Fermer',
+            { duration: 4000 }
+          );
+        },
+      });
+  }
+
+  private markActivating(toolId: string, on: boolean): void {
+    const next = new Set(this.activatingToolIds());
+    if (on) {
+      next.add(toolId);
+    } else {
+      next.delete(toolId);
+    }
+    this.activatingToolIds.set(next);
   }
 
   resolvedAlwaysOn(): { toolId: string; entry: DecisionToolRegistryEntry }[] {

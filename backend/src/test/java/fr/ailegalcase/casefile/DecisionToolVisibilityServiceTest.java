@@ -37,6 +37,10 @@ class DecisionToolVisibilityServiceTest {
     @Mock private CaseAnalysisRepository caseAnalysisRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private CurrentUserResolver currentUserResolver;
+    // SF-238-03 : nouvelle dépendance pour injecter les activations manuelles
+    // dans `contextual` au runtime. Par défaut, retourne une liste vide
+    // (cf. setUp) — les tests existants ne sont pas impactés.
+    @Mock private ManualToolActivationRepository manualToolActivationRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -49,7 +53,17 @@ class DecisionToolVisibilityServiceTest {
     void setUp() {
         service = new DecisionToolVisibilityService(
                 ruleRepository, caseFileRepository, caseAnalysisRepository,
-                workspaceMemberRepository, currentUserResolver, objectMapper);
+                workspaceMemberRepository, currentUserResolver, objectMapper,
+                manualToolActivationRepository);
+        // SF-238-03 : par défaut, aucune activation manuelle — les tests
+        // existants ne sont pas modifiés par cette nouvelle couche. Avec
+        // Mockito strict stubs (`@MockitoSettings(strictness = STRICT_STUBS)`)
+        // ce stub n'est appelé que si le service le déclenche, donc on évite
+        // les UnnecessaryStubbingExceptions en utilisant `lenient()`.
+        org.mockito.Mockito.lenient()
+                .when(manualToolActivationRepository
+                        .findByCaseFileIdAndDeactivatedAtIsNull(any()))
+                .thenReturn(java.util.List.of());
     }
 
     // ────────────────────────────── Travail FR ──────────────────────────────
