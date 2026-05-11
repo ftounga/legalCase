@@ -568,4 +568,97 @@ describe('LicenciementSectionComponent', () => {
     expect(alert.expectedDisplay).toBe('OUI');
     expect(alert.reason).toContain('Analyse du dossier');
   });
+
+  // ---- F-163 SF-163-02a : mode simulateur autonome (CA-07 à CA-11) ----
+
+  describe('F-163 SF-163-02a — mode standalone', () => {
+    const STANDALONE_URL = '/api/v1/simulators/F-DT-08-licenciement-validity/calculate';
+
+    function initStandalone(): void {
+      component.standaloneMode = true;
+      fixture.detectChanges();
+      // En standalone, AUCUN GET case-file ni source-explanations ne doit
+      // être émis (vérifié via httpMock.verify() en afterEach).
+    }
+
+    it('CA-08 : affiche la bannière 🧪 quand standaloneMode=true', () => {
+      initStandalone();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).not.toBeNull();
+      expect(banner.textContent).toContain('Mode simulateur');
+    });
+
+    it('CA-08 : pas de bannière en mode case-file (standaloneMode=false par défaut)', () => {
+      initNoExisting();
+      const banner = fixture.nativeElement.querySelector('[data-testid="standalone-banner"]');
+      expect(banner).toBeNull();
+    });
+
+    it('CA-08 : ne fait AUCUN GET vers /api/v1/case-files/... en standalone', () => {
+      initStandalone();
+      // httpMock.verify() en afterEach détecterait toute requête non flushée.
+      // Vérifions explicitement qu'aucune requête vers l'URL case-file n'est posée.
+      const matches = httpMock.match((r) => r.url.includes('/api/v1/case-files/'));
+      expect(matches.length).toBe(0);
+    });
+
+    it('CA-08 : prefillFromAi() bypassé en standalone (aiData ignoré)', () => {
+      component.aiData = {
+        detections: { FR_CONVOCATION: { reponse: 'OUI', justification: 'IA' } },
+      };
+      initStandalone();
+      // Le formulaire reste à INCONNU (pas de pré-fill).
+      const form = component.criteresForm();
+      expect(form.find((c) => c.code === 'FR_CONVOCATION')?.reponse).toBe('INCONNU');
+      expect(component.isPrefilledByAi('FR_CONVOCATION')).toBe(false);
+    });
+
+    it('CA-08 : coherenceAlerts retourne {} en standalone même si avocat saisit une divergence', () => {
+      component.aiData = {
+        detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } },
+      };
+      initStandalone();
+      component.onReponseChange('FR_MOTIVATION', 'NON');
+      // En case-file ce serait une alerte CRITICAL ; en standalone : {}.
+      expect(component.coherenceAlerts()).toEqual({});
+      expect(component.alertsSummary().total).toBe(0);
+    });
+
+    it('CA-09 : analyze() POST sur le dispatcher /api/v1/simulators/.../calculate en standalone', () => {
+      initStandalone();
+      component.analyze();
+      const req = httpMock.expectOne((r) => r.url === STANDALONE_URL && r.method === 'POST');
+      expect(req.request.body.country).toBe('FRANCE');
+      req.flush(MOCK_RESPONSE);
+      expect(component.result()).toBeTruthy();
+      expect(component.showForm()).toBe(false);
+    });
+
+    it('CA-09 : analyze() en case-file reste sur /api/v1/case-files/{id}/licenciement', () => {
+      initNoExisting();
+      component.analyze();
+      const req = httpMock.expectOne((r) => r.url === API_URL && r.method === 'POST');
+      req.flush(MOCK_RESPONSE);
+    });
+
+    it('CA-08 : triggerRefresh() jamais invoqué en standalone', () => {
+      const triggerSpy = jest.fn();
+      (component as any).refreshService = { triggerRefresh: triggerSpy };
+      initStandalone();
+      component.analyze();
+      const req = httpMock.expectOne((r) => r.url === STANDALONE_URL && r.method === 'POST');
+      req.flush(MOCK_RESPONSE);
+      expect(triggerSpy).not.toHaveBeenCalled();
+    });
+
+    it('CA-10 : triggerRefresh() bien invoqué en case-file (mode standard inchangé)', () => {
+      const triggerSpy = jest.fn();
+      (component as any).refreshService = { triggerRefresh: triggerSpy };
+      initNoExisting();
+      component.analyze();
+      const req = httpMock.expectOne((r) => r.url === API_URL && r.method === 'POST');
+      req.flush(MOCK_RESPONSE);
+      expect(triggerSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

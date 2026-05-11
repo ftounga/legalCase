@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -29,6 +29,7 @@ import {
   SimulatorInfoDialogComponent,
   SimulatorInfoDialogData,
 } from './simulator-info-dialog.component';
+import { STANDALONE_READY_TOOL_IDS } from './standalone-ready-tools';
 
 interface DisplayTool {
   toolId: string;
@@ -79,6 +80,7 @@ export class SimulatorsCatalogPageComponent implements OnInit {
   private readonly service = inject(SimulatorsCatalogService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   readonly loading = signal(true);
   readonly error = signal(false);
@@ -191,6 +193,14 @@ export class SimulatorsCatalogPageComponent implements OnInit {
   }
 
   onCardClick(tool: DisplayTool): void {
+    // F-163 SF-163-02a : si l'outil a été refactoré pour supporter le mode
+    // simulateur autonome (whitelist `STANDALONE_READY_TOOL_IDS`), on navigue
+    // vers le runner `/simulators/:toolId` au lieu d'ouvrir le dialog
+    // pédagogique (qui reste le fallback pour les ~106 outils non refactorés).
+    if (STANDALONE_READY_TOOL_IDS.has(tool.toolId)) {
+      this.router.navigate(['/simulators', tool.toolId]);
+      return;
+    }
     const data: SimulatorInfoDialogData = { displayLabel: tool.displayLabel };
     this.dialog.open(SimulatorInfoDialogComponent, {
       data,

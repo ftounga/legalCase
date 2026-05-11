@@ -99,6 +99,12 @@ export const routes: Routes = [
           .then(m => m.SimulatorsCatalogPageComponent)
       },
       {
+        // F-163 SF-163-02a — runner d'un simulateur autonome. AuthGuard hérité.
+        path: 'simulators/:toolId',
+        loadComponent: () => import('./simulators/simulator-runner-page.component')
+          .then(m => m.SimulatorRunnerPageComponent)
+      },
+      {
         path: 'search',
         loadComponent: () => import('./search/search.component')
           .then(m => m.SearchComponent)

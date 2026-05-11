@@ -218,6 +218,17 @@ export interface DecisionToolContext {
    * {@link RisqueAlignment} (F-195).
    */
   aiQuestionsAlignment?: import('../../core/models/ai-question-alignment.model').AiQuestionAlignment[];
+  /**
+   * F-163 SF-163-02a — Mode simulateur autonome (hors dossier client).
+   * Propagé par `SimulatorRunnerPageComponent` au composant décisionnel via
+   * la closure `inputs(ctx)` du registre. Les composants qui ne le
+   * consomment pas (~106 outils non encore refactorés) ignorent ce flag.
+   * Quand `true` : le composant doit bypass `prefillFromAi()`,
+   * `coherenceAlerts`, `triggerRefresh()` et POSTer sur le dispatcher
+   * `/api/v1/simulators/{toolId}/calculate` au lieu de
+   * `/api/v1/case-files/{id}/...`. Default `false` (mode case-file scoped).
+   */
+  standaloneMode?: boolean;
 }
 
 export interface DecisionToolRegistryEntry {
@@ -402,6 +413,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02a — propage le flag standalone (default false) au
+          // composant pilote refactoré ; les autres entrées du registre
+          // l'ignorent tant que SF-163-02b/c/d ne les a pas refactorées.
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-DT-09-comparateur-indemnites', {

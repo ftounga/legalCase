@@ -3,13 +3,14 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 
 import { SimulatorsCatalogPageComponent } from './simulators-catalog-page.component';
 import { SimulatorsCatalogService } from '../core/services/simulators-catalog.service';
 import { SimulatorsCatalogResponse } from '../core/models/simulators-catalog.model';
 import { SimulatorInfoDialogComponent } from './simulator-info-dialog.component';
 import { DecisionToolsPanelComponent } from '../case-files/decisional-tools-panel/decisional-tools-panel.component';
+import { STANDALONE_READY_TOOL_IDS } from './standalone-ready-tools';
 
 // Récupère un échantillon de toolIds réels dans TOOL_REGISTRY pour les tests.
 // Ces 3 IDs existent à la date du 2026-05-11 (cf. seeds F-IA-04 / F-DT-* / F-IM-*).
@@ -260,6 +261,57 @@ describe('SimulatorsCatalogPageComponent — interaction dialog', () => {
         data: { displayLabel: tool.displayLabel },
       }),
     );
+  }));
+});
+
+describe('SimulatorsCatalogPageComponent — navigation runner (F-163 SF-163-02a)', () => {
+  it('onCardClick() navigue vers /simulators/:toolId si toolId whitelisted (CA-06 + CA-12 d)', fakeAsync(() => {
+    // F-DT-08 doit être dans la whitelist standalone.
+    expect(STANDALONE_READY_TOOL_IDS.has(ID_LICENCIEMENT)).toBe(true);
+
+    const dialogOpen = jest.fn();
+    const { fixture, component } = setupComponent(
+      of(buildResponse([ID_LICENCIEMENT])),
+      { dialogOpen },
+    );
+    fixture.detectChanges();
+    tick();
+
+    const router = TestBed.inject(Router);
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    const tool = component.availableTools().find((t) => t.toolId === ID_LICENCIEMENT)!;
+    expect(tool).toBeDefined();
+
+    component.onCardClick(tool);
+
+    // Navigation déclenchée, pas de dialog.
+    expect(navigateSpy).toHaveBeenCalledWith(['/simulators', ID_LICENCIEMENT]);
+    expect(dialogOpen).not.toHaveBeenCalled();
+  }));
+
+  it('onCardClick() ouvre le dialog si toolId NON whitelisted (rétrocompat)', fakeAsync(() => {
+    // ID_OQTF n'est PAS encore dans la whitelist standalone.
+    expect(STANDALONE_READY_TOOL_IDS.has(ID_OQTF)).toBe(false);
+
+    const dialogOpen = jest.fn().mockReturnValue({
+      afterClosed: () => of(false),
+    } as unknown as MatDialogRef<unknown>);
+    const { fixture, component } = setupComponent(
+      of(buildResponse([ID_OQTF])),
+      { dialogOpen },
+    );
+    fixture.detectChanges();
+    tick();
+
+    const router = TestBed.inject(Router);
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    const tool = component.availableTools()[0];
+    component.onCardClick(tool);
+
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(dialogOpen).toHaveBeenCalledTimes(1);
   }));
 });
 

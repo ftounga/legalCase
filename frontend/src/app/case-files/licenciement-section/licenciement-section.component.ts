@@ -115,6 +115,22 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   // F-177 SF-177-03 : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
+  /**
+   * F-163 SF-163-02a — Mode simulateur autonome (hors dossier client).
+   *
+   * Quand `true` :
+   *  - Bannière « 🧪 Mode simulateur » affichée en haut.
+   *  - `prefillFromAi()` court-circuité (pas d'`aiData` en standalone).
+   *  - `coherenceAlerts` retourne `{}` (gate `!standaloneMode`).
+   *  - `loadExisting()` court-circuité (pas de dossier à interroger).
+   *  - `analyze()` POSTe sur le dispatcher
+   *    `/api/v1/simulators/F-DT-08-licenciement-validity/calculate` au lieu
+   *    de `/api/v1/case-files/{id}/licenciement`.
+   *  - `triggerRefresh()` jamais invoqué (pas de dashboard à rafraîchir).
+   *
+   * Default `false` — mode case-file scoped inchangé.
+   */
+  @Input() standaloneMode: boolean = false;
 
   private hasSavedResult = false;
   private aiDataSignal = signal<LicenciementValidityDetection | null | undefined>(undefined);
@@ -174,6 +190,8 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
    * Gate anti-bug SF-IA-03-12 : aucune alerte si `showForm()=false`.
    */
   coherenceAlerts = computed<Record<string, LicenciementCoherenceAlert>>(() => {
+    // F-163 SF-163-02a : aucune source IA en standalone (pas de dossier).
+    if (this.standaloneMode) return {};
     if (!this.showForm()) return {};
     const detections = this.aiDataSignal()?.detections;
     const f96Index = this.buildF96Index(this.procedureChecksSignal());
@@ -388,6 +406,17 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+
+    if (this.standaloneMode) {
+      // F-163 SF-163-02a : pas de dossier à interroger, pas de pré-fill IA,
+      // pas d'explications de sources à charger. L'avocat saisit le
+      // formulaire from scratch et obtient un verdict in-memory.
+      this.collapsed.set(false);
+      this.loading.set(false);
+      this.showForm.set(true);
+      return;
+    }
+
     this.loadExisting();
     this.loadSourceExplanations();
   }
@@ -411,7 +440,9 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
 
     if (changes['aiData']) {
       this.aiDataSignal.set(this.aiData);
-      if (!changes['aiData'].firstChange) {
+      // F-163 SF-163-02a : pas de pré-fill en standalone, même si `aiData`
+      // changeait (le runner ne le fournit jamais, double-sécurité).
+      if (!changes['aiData'].firstChange && !this.standaloneMode) {
         this.prefillFromAi();
       }
     }
@@ -489,15 +520,24 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     for (const c of this.criteresForm()) {
       reponses[c.code] = c.reponse;
     }
-    this.licenciementService.analyze(this.caseFileId, {
+    const payload = {
       country: this.country(),
       reponses,
-    }).subscribe({
+    };
+    // F-163 SF-163-02a : en standalone, dispatcher générique sans dossier.
+    const request$ = this.standaloneMode
+      ? this.licenciementService.analyzeStandalone(payload)
+      : this.licenciementService.analyze(this.caseFileId, payload);
+
+    request$.subscribe({
       next: resp => {
         this.result.set(resp);
         this.showForm.set(false);
         this.analyzing.set(false);
-        this.refreshService?.triggerRefresh();
+        // F-163 SF-163-02a : pas de dashboard à rafraîchir en standalone.
+        if (!this.standaloneMode) {
+          this.refreshService?.triggerRefresh();
+        }
       },
       error: () => {
         this.analyzing.set(false);
