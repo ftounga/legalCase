@@ -1,0 +1,22 @@
+<section class="ddibe-section">
+  <header class="ddibe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ddibe-body">
+    <mat-icon class="ddibe-icon">rule</mat-icon>
+    <span class="ddibe-title">DIVORCE — DÉSUNION IRRÉMÉDIABLE 3 VOIES — BELGIQUE</span>
+    <mat-icon class="ddibe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ddibe-body" class="ddibe-body">
+      <p class="ddibe-cadre">{{ cadreJuridique }}</p>
+      <ul class="ddibe-notes">
+        @for (n of notes; track n) {
+          <li>
+            <mat-icon class="ddibe-bullet">info</mat-icon>
+            <span>{{ n }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>

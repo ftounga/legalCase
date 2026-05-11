@@ -155,6 +155,11 @@ import { FourchettesJafSectionComponent } from '../fourchettes-jaf-section/fourc
 // F-210 — 2 outils urgences procédurales Famille FR.
 import { MediationFamilialeSectionComponent } from '../mediation-familiale-section/mediation-familiale-section.component';
 import { AcceptationRenonciationSectionComponent } from '../acceptation-renonciation-section/acceptation-renonciation-section.component';
+// F-211 SF-211-05 — 4 wrappers informationnels Famille BE (backend mergé PR #942).
+import { DivorceDcBeSectionComponent } from '../divorce-dc-be-section/divorce-dc-be-section.component';
+import { DivorceDdiBeSectionComponent } from '../divorce-ddi-be-section/divorce-ddi-be-section.component';
+import { TribunalFamilleBeMesuresProvisoiresSectionComponent } from '../tribunal-famille-be-mesures-provisoires-section/tribunal-famille-be-mesures-provisoires-section.component';
+import { PacteSuccessoralBe2018SectionComponent } from '../pacte-successoral-be-2018-section/pacte-successoral-be-2018-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1721,6 +1726,47 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // ===================================================================
+      // F-211 SF-211-05 : 4 wrappers informationnels Famille BE (V1).
+      // Backend mergé PR #942 (SF-211-01/02/03/04) — endpoints opérationnels.
+      // Composants de saisie complets à livrer en SF ultérieures.
+      // ===================================================================
+      // F-211 SF-211-01 : divorce par consentement mutuel BE — CJ 1287+.
+      // Migration 228 — CONTEXTUAL trigger `divorce_dc_envisage=true`.
+      ['divorce-dc-be', {
+        displayLabel: 'Divorce par consentement mutuel (Belgique)',
+        component: DivorceDcBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      // F-211 SF-211-02 : divorce désunion irrémédiable orientation 3 voies BE — CC 229 §§1/2/3.
+      // Migration 228 — CONTEXTUAL trigger `divorce_ddi_envisage=true`.
+      ['divorce-ddi-3voies-be', {
+        displayLabel: 'Divorce — Désunion irrémédiable 3 voies (Belgique)',
+        component: DivorceDdiBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      // F-211 SF-211-03 : mesures provisoires Tribunal de la famille BE — CJ 1280.
+      // Migration 228 — ALWAYS_ON (mesures urgentes transversales).
+      ['tribunal-famille-be-mesures-prov', {
+        displayLabel: 'Mesures provisoires Tribunal de la famille (Belgique)',
+        component: TribunalFamilleBeMesuresProvisoiresSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      // F-211 SF-211-04 : pacte successoral 2018 BE — Loi 31/07/2017.
+      // Migration 228 — CONTEXTUAL trigger `pacte_successoral_envisage=true`.
+      ['pacte-successoral-be-2018', {
+        displayLabel: 'Pacte successoral 2018 (Belgique)',
+        component: PacteSuccessoralBe2018SectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
     ]);
 
   /**
@@ -1783,6 +1829,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-09-divorce-faute', 'VALIDITE'],
     ['F-FA-10-divorce-accepte', 'VALIDITE'],
     ['F-FA-11-desunion-irremediable-be', 'VALIDITE'],
+    // F-211 SF-211-05 : 3 outils Famille BE de validité (divorces + pacte successoral).
+    ['divorce-dc-be', 'VALIDITE'],
+    ['divorce-ddi-3voies-be', 'VALIDITE'],
+    ['pacte-successoral-be-2018', 'VALIDITE'],
     ['F-FA-18-contestation-paternite', 'VALIDITE'],
     ['F-FA-18-recherche-paternite', 'VALIDITE'],
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],
@@ -1797,6 +1847,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-33-at-mp', 'DELAIS'],
     ['F-DT-34-refere-prudhomal', 'DELAIS'],
     ['F-FA-12-mesures-provisoires', 'DELAIS'],
+    // F-211 SF-211-05 : mesures provisoires tribunal famille BE — délais procéduraux urgents.
+    ['tribunal-famille-be-mesures-prov', 'DELAIS'],
     ['F-FA-13-revisions-post-divorce', 'DELAIS'],
     ['F-FA-14-ordonnance-protection', 'DELAIS'],
     ['F-FA-23-ordonnance-requete', 'DELAIS'],

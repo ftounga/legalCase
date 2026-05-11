@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="228-seed-f211-famille-be-visibility-rules" author="legalcase">
+        <comment>
+            SF-211-05 — seeds `decision_tool_visibility_rules` pour les 4 outils
+            Famille BE livrés par F-211 SF-211-01/02/03/04 (backend, PR #942).
+
+            Sans ces 4 règles, les outils restent silencieusement masqués dans
+            le panel F-IA-04 (CLAUDE.md `feedback_pre_merge_visibility_seed_check`
+            symétrique — backend mergé sans visibility seed).
+
+            === 4 outils Famille BE ===
+
+            1. `divorce-dc-be` (CJ 1287+) — divorce par consentement mutuel BE.
+               Mode CONTEXTUAL trigger `divorce_dc_envisage=true`
+               (flag pivot existant SF-202-01 — extrait par le pipeline IA).
+
+            2. `divorce-ddi-3voies-be` (CC art. 229 §§1/2/3) — divorce DDI
+               orientation entre 3 voies. Mode CONTEXTUAL trigger
+               `divorce_ddi_envisage=true` (flag pivot existant SF-202-01).
+               Coexiste avec F-FA-11-desunion-irremediable-be (situation
+               différente : F-FA-11 = validation globale du DDI, F-FA-29 ici =
+               orientation entre les 3 voies §1/§2/§3).
+
+            3. `tribunal-famille-be-mesures-prov` (CJ art. 1280) — mesures
+               provisoires Tribunal de la famille BE. Mode ALWAYS_ON (mesures
+               urgentes transversales pertinentes pour toute procédure
+               familiale BE, indépendamment du type — DC, DDI, séparation).
+
+            4. `pacte-successoral-be-2018` (Loi 31/07/2017, entrée vigueur
+               01/09/2018) — pacte successoral BE. Mode CONTEXTUAL trigger
+               `pacte_successoral_envisage=true` (flag pivot existant SF-202-01).
+               Outil BE pur — aucun équivalent FR strict (CC FR art. 1130 al. 2
+               interdit la renonciation à succession non ouverte).
+
+            === Audit F-166 Country × Domain ===
+
+            Cellule BE × DROIT_FAMILLE seule impactée. Aucun conflit de mode
+            avec les outils existants (F-FA-07 ALWAYS_ON, F-FA-11/F-152
+            CONTEXTUAL, F-FA-23 ALWAYS_ON bipays). Tous les flags pivots sont
+            extraits par le pipeline IA (`DecisionToolVisibilityService` lignes
+            321-324 + `LegalDomainPromptBuilder` lignes 85-88).
+
+            === Garde-fous CI ===
+
+            - DecisionToolVisibilityIntegrityIT : extraction dynamique du
+              TOOL_REGISTRY frontend ; 4 entrées ajoutées par SF-211-05.
+            - DecisionToolDisplayLabelIntegrityIT : 4 displayLabel humains
+              fournis ("Divorce par consentement mutuel (Belgique)", etc.).
+            - prefill-count-integrity.spec.ts : 4 wrappers étiquetés
+              `PREFILL_COUNT_ALWAYS_ZERO=true` → `getPrefillCount({}) === 0`
+              vérifié strictement (branche d'exemption SF-237-01).
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee21100XXX (préfixe
+            'eeee21100' dédié F-211).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21100001', 'DROIT_FAMILLE', 'BELGIQUE', 'divorce-dc-be', 'CONTEXTUAL', 'divorce_dc_envisage', 'true', 75);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21100002', 'DROIT_FAMILLE', 'BELGIQUE', 'divorce-ddi-3voies-be', 'CONTEXTUAL', 'divorce_ddi_envisage', 'true', 75);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21100003', 'DROIT_FAMILLE', 'BELGIQUE', 'tribunal-famille-be-mesures-prov', 'ALWAYS_ON', NULL, NULL, 72);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21100004', 'DROIT_FAMILLE', 'BELGIQUE', 'pacte-successoral-be-2018', 'CONTEXTUAL', 'pacte_successoral_envisage', 'true', 75);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee21100%';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

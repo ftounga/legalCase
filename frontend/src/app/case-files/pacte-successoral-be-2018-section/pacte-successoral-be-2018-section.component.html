@@ -1,0 +1,22 @@
+<section class="psbe-section">
+  <header class="psbe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="psbe-body">
+    <mat-icon class="psbe-icon">description</mat-icon>
+    <span class="psbe-title">PACTE SUCCESSORAL 2018 — BELGIQUE</span>
+    <mat-icon class="psbe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="psbe-body" class="psbe-body">
+      <p class="psbe-cadre">{{ cadreJuridique }}</p>
+      <ul class="psbe-notes">
+        @for (n of notes; track n) {
+          <li>
+            <mat-icon class="psbe-bullet">info</mat-icon>
+            <span>{{ n }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>

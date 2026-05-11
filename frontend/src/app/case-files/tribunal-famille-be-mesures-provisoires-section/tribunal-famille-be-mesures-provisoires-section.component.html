@@ -1,0 +1,22 @@
+<section class="tfmpbe-section">
+  <header class="tfmpbe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="tfmpbe-body">
+    <mat-icon class="tfmpbe-icon">gavel</mat-icon>
+    <span class="tfmpbe-title">MESURES PROVISOIRES — TRIBUNAL DE LA FAMILLE (BE)</span>
+    <mat-icon class="tfmpbe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="tfmpbe-body" class="tfmpbe-body">
+      <p class="tfmpbe-cadre">{{ cadreJuridique }}</p>
+      <ul class="tfmpbe-notes">
+        @for (n of notes; track n) {
+          <li>
+            <mat-icon class="tfmpbe-bullet">info</mat-icon>
+            <span>{{ n }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>
