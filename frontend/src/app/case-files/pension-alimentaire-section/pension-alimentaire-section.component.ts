@@ -25,6 +25,15 @@ export class PensionAlimentaireSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'PENSION ALIMENTAIRE';
   static readonly TOOL_ICON = 'family_restroom';
 
+  /**
+   * F-237 SF-237-02 : wrapper d'affichage F-IA-04 exempté du helper PrefillRules.
+   * L'étiquette `PREFILL_COUNT_ALWAYS_ZERO = true` indique au test d'intégrité
+   * (`prefill-count-integrity.spec.ts`) qu'il vérifie uniquement
+   * `getPrefillCount({}) === 0`. Composant présentationnel pur : affiche la
+   * fourchette `synthesis.pensionAlimentaireEstimate` pré-calculée backend
+   * (pas de formulaire pré-fillable).
+   */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }

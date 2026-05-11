@@ -28,10 +28,15 @@ export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'event';
 
   /**
-   * F-236 SF-236-02/05 : wrapper informationnel — aucun pré-fill IA.
-   * Toujours 0 (les délais sont saisis manuellement ou détectés par le pipeline
-   * via {@code CaseDeadlineService}, pas via les champs IA outil).
+   * F-237 SF-237-02 : wrapper informationnel exempté du helper PrefillRules —
+   * l'étiquette déclarative `PREFILL_COUNT_ALWAYS_ZERO = true` signale au test
+   * d'intégrité (`prefill-count-integrity.spec.ts`) qu'il ne doit PAS chercher
+   * de fichier `*-prefill-rules.ts` co-localisé. Le test vérifie alors
+   * strictement que `getPrefillCount({}) === 0`. Aucun pré-fill IA possible :
+   * les délais sont saisis manuellement ou détectés par le pipeline via
+   * {@code CaseDeadlineService}, pas via les champs IA outil.
    */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }

@@ -24,10 +24,13 @@ export class RuptureAmiableInfoSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'handshake';
 
   /**
-   * F-177 SF-177-12 / F-236 SF-236-02 — outil informationnel pur (pas de
-   * formulaire, pas de pré-fill possible). Conservé pour cohérence avec
-   * le contrat unifié de tous les outils décisionnels.
+   * F-237 SF-237-02 : outil informationnel pur exempté du helper PrefillRules.
+   * L'étiquette `PREFILL_COUNT_ALWAYS_ZERO = true` indique au test d'intégrité
+   * (`prefill-count-integrity.spec.ts`) qu'il vérifie uniquement
+   * `getPrefillCount({}) === 0`. Pas de formulaire, pas de pré-fill possible
+   * (rupture amiable BE = négociation libre, pas de barème).
    */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }

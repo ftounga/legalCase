@@ -26,6 +26,15 @@ export class DivorceCmScoringSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'VALIDITÉ DIVORCE CONSENTEMENT MUTUEL';
   static readonly TOOL_ICON = 'verified';
 
+  /**
+   * F-237 SF-237-02 : wrapper d'affichage F-IA-04 exempté du helper PrefillRules.
+   * L'étiquette `PREFILL_COUNT_ALWAYS_ZERO = true` indique au test d'intégrité
+   * (`prefill-count-integrity.spec.ts`) qu'il vérifie uniquement
+   * `getPrefillCount({}) === 0`. Le composant délègue le rendu au composant
+   * `DivorceConsentementScoringSectionComponent` (présentationnel pur, pas de
+   * pré-fill IA propre — le scoring vient de `synthesis`).
+   */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }

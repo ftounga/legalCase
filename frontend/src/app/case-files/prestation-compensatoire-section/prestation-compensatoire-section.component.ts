@@ -27,7 +27,14 @@ export class PrestationCompensatoireSectionComponent implements OnInit, OnChange
   static readonly TOOL_LABEL = 'PRESTATION COMPENSATOIRE';
   static readonly TOOL_ICON = 'balance';
 
-  /** F-177 SF-177-12 — pas de pré-fill : composant lecture seule. */
+  /**
+   * F-237 SF-237-02 : wrapper d'affichage F-IA-04 exempté du helper PrefillRules.
+   * L'étiquette `PREFILL_COUNT_ALWAYS_ZERO = true` indique au test d'intégrité
+   * (`prefill-count-integrity.spec.ts`) qu'il vérifie uniquement
+   * `getPrefillCount({}) === 0`. Composant lecture seule : affiche la fourchette
+   * `synthesis.prestationCompensatoireEstimate` pré-calculée backend.
+   */
+  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
   static getPrefillCount(): number {
     return 0;
   }
