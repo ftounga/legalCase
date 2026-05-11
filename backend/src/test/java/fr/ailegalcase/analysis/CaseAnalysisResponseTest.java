@@ -2066,6 +2066,117 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateAcceptationPV()).isNull();
     }
 
+    // F-241 — nouveau nom neutre FR+BE `date_accord_initial_divorce`
+    //         + rétro-compat sur `date_acceptation_pv`
+    //         + fallback déterministe via timeline (cas LLM résistant Vermeersch BE 2026-05-11)
+
+    @Test
+    void extractFamilleData_extractsDateAccordInitialDivorce_whenNewKeyPresent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "date_accord_initial_divorce": "2025-12-12"
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-12-12");
+    }
+
+    @Test
+    void extractFamilleData_newKeyTakesPriorityOverLegacyKey() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "date_accord_initial_divorce": "2025-12-12",
+                    "date_acceptation_pv": "2024-01-01"
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-12-12");
+    }
+
+    @Test
+    void extractFamilleData_fallsBackToTimeline_whenBothKeysAbsentAndTimelineHasConventionSignature() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "timeline": [
+                    {"date": "2025-12-12", "evenement": "Signature de la convention préalable à divorce par consentement mutuel"}
+                  ],
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-12-12");
+    }
+
+    @Test
+    void extractFamilleData_fallsBackToTimeline_matchesPvAccordKeywords() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "timeline": [
+                    {"date": "2025-11-05", "evenement": "Signature du procès-verbal d'acceptation du principe de la rupture"}
+                  ],
+                  "famille_extracted_data": {
+                    "divorce_accepte_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-11-05");
+    }
+
+    @Test
+    void extractFamilleData_fallbackTimeline_ignoresEventsWithoutSignatureMarker() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "timeline": [
+                    {"date": "2025-01-01", "evenement": "Convention préalable rédigée mais non signée"},
+                    {"date": "2025-06-15", "evenement": "Audience d'introduction"}
+                  ],
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_fallbackTimeline_takesFirstMatch() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "timeline": [
+                    {"date": "2025-12-12", "evenement": "Signature de la convention préalable"},
+                    {"date": "2026-01-15", "evenement": "Nouvelle signature de l'accord modifié"}
+                  ],
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateAcceptationPV()).isEqualTo("2025-12-12");
+    }
+
     // ===========================================================================
     // F-202 SF-202-01 — extractFamilleData : 5 flags Famille BE niveau 3
     // ===========================================================================

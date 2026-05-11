@@ -1956,7 +1956,7 @@ public record CaseAnalysisResponse(
     /**
      * F-239 : extrait une chaîne d'un nœud JSON, ou null si absent / vide /
      * non textuel. Trim le résultat. Utilisé pour les champs string optionnels
-     * extraits par l'IA (ex: `date_acceptation_pv` au format YYYY-MM-DD).
+     * extraits par l'IA (ex: `date_accord_initial_divorce` au format YYYY-MM-DD).
      */
     private static String stringOrNull(JsonNode node, String field) {
         if (node == null) return null;
@@ -1964,6 +1964,54 @@ public record CaseAnalysisResponse(
         if (v == null || v.isNull() || !v.isTextual()) return null;
         String s = v.asText().trim();
         return s.isEmpty() ? null : s;
+    }
+
+    private static final java.util.regex.Pattern ISO_DATE_PATTERN =
+            java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
+    private static final java.util.regex.Pattern ISO_DATE_ANYWHERE_PATTERN =
+            java.util.regex.Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
+
+    /**
+     * F-241 : fallback déterministe pour extraire la date de signature de la
+     * convention/PV/accord initial de divorce depuis la `timeline` IA quand le
+     * LLM a omis de la peupler dans `famille_extracted_data.date_accord_initial_divorce`.
+     *
+     * <p>Heuristique : on cherche un événement timeline dont le libellé contient
+     * "signature" ou "signé" ET au moins un des mots-clés
+     * "convention" / "PV" / "procès-verbal" / "accord". Premier match → date.</p>
+     *
+     * <p>Filet de sécurité contre la résistance LLM constatée le 2026-05-11
+     * (cas Vermeersch BE — date 12/12/2025 présente dans timeline/faits/scoring
+     * mais `date_acceptation_pv` retourné null malgré prompt renforcé).</p>
+     */
+    static String extractDateAccordInitialDivorceFromTimeline(JsonNode root) {
+        JsonNode node = root.get("timeline");
+        if (node == null || !node.isArray()) return null;
+        for (JsonNode item : node) {
+            if (!item.isObject()) continue;
+            String date = item.has("date") ? item.get("date").asText("") : "";
+            String evenement = item.has("evenement") ? item.get("evenement").asText("") : "";
+            if (date.isEmpty() || evenement.isEmpty()) continue;
+            String norm = evenement.toLowerCase(java.util.Locale.ROOT);
+            // Exclusion explicite des marqueurs négatifs avant tout autre check.
+            if (norm.contains("non sign") || norm.contains("pas sign") || norm.contains("non-sign")) continue;
+            boolean hasSignatureMarker = norm.contains("signature") || norm.contains("signé")
+                    || norm.contains("signee");
+            if (!hasSignatureMarker) continue;
+            boolean hasDocMarker = norm.contains("convention") || norm.contains("pv")
+                    || norm.contains("procès-verbal") || norm.contains("proces-verbal")
+                    || norm.contains("accord");
+            if (!hasDocMarker) continue;
+            String trimmed = date.trim();
+            if (ISO_DATE_PATTERN.matcher(trimmed).matches()) {
+                return trimmed;
+            }
+            java.util.regex.Matcher m = ISO_DATE_ANYWHERE_PATTERN.matcher(trimmed);
+            if (m.find()) {
+                return m.group(1);
+            }
+        }
+        return null;
     }
 
     /**
@@ -2015,8 +2063,18 @@ public record CaseAnalysisResponse(
         boolean cohabitationLegale = booleanOrFalse(node, "cohabitation_legale_be_detectee");
         boolean pacteSuccessoral = booleanOrFalse(node, "pacte_successoral_envisage");
         boolean kafalaRecueil = booleanOrFalse(node, "kafala_recueil_detecte");
-        // F-239 : extraction des champs string Famille pour pré-fill F-IA-04
-        String dateAcceptationPV = stringOrNull(node, "date_acceptation_pv");
+        // F-239 + F-241 : extraction des champs string Famille pour pré-fill F-IA-04.
+        // F-241 — priorité au nouveau nom neutre FR+BE `date_accord_initial_divorce`,
+        // rétro-compat sur l'ancienne clé `date_acceptation_pv` (biais FR-PV),
+        // et fallback déterministe sur la timeline IA si le LLM a omis le champ
+        // (cas Vermeersch BE 2026-05-11 : LLM résistant malgré prompt renforcé).
+        String dateAcceptationPV = stringOrNull(node, "date_accord_initial_divorce");
+        if (dateAcceptationPV == null) {
+            dateAcceptationPV = stringOrNull(node, "date_acceptation_pv");
+        }
+        if (dateAcceptationPV == null) {
+            dateAcceptationPV = extractDateAccordInitialDivorceFromTimeline(root);
+        }
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
