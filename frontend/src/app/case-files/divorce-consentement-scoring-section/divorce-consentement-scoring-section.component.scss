@@ -123,3 +123,34 @@
   color: #6B7A8D;
   font-style: italic;
 }
+
+/* F-242 — bannière info pays BE */
+.dc-be-banner {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 16px;
+  padding: 12px 14px;
+  background: #FFF8E1;
+  border-left: 4px solid #E89F00;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5C4400;
+
+  .dc-be-banner-icon {
+    flex-shrink: 0;
+    color: #E89F00;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+
+  .dc-be-banner-body {
+    flex: 1;
+
+    strong {
+      color: #3D2C00;
+    }
+  }
+}
