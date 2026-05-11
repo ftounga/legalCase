@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="226-create-tribunal-famille-be-mesures-prov-analyses" author="legalcase">
+        <comment>
+            SF-211-03 : table dédiée à l'outil "Mesures provisoires Tribunal de la famille
+            belge" — CJ art. 1280 + art. 1253ter+.
+
+            Analyse le niveau d'urgence (violence familiale +3 / déplacement enfant +3 /
+            dilapidation patrimoine +2) et recommande les mesures applicables : résidence
+            séparée, contribution alimentaire provisoire, autorité parentale exclusive
+            temporaire. Verdict URGENT_REFERE / NORMAL_AUDIENCE / AUCUNE_MESURE.
+
+            Outil single-country BELGIQUE. Équivalent FR : art. 255 CC FR (mesures
+            provisoires divorce) couvert différemment par F-FA-05 généralisé — pas de
+            scoring d'urgence FR distinct dédié à ce jour.
+
+            Audit "Impact F-166 cross-C×D" : impacte uniquement BE×Famille (ALWAYS_ON
+            candidat — transversales aux situations familiales BE).
+            Audit "exhaustivité droit national BE" : couvre référé tribunal de la famille
+            BE.
+
+            Le seed `decision_tool_visibility_rules` est volontairement différé à une
+            SF F-211 frontend ultérieure (cf. SF-164-01 garde-fou).
+        </comment>
+
+        <createTable tableName="tribunal_famille_be_mesures_prov_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tribunal_famille_be_mp_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="violence_familiale" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deplacement_enfant_imminent" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dilapidation_patrimoine" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="besoin_residence_separee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="besoin_contribution_alimentaire" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="besoin_autorite_parentale_exclusive" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="tribunal_famille_be_mesures_prov_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_tribunal_famille_be_mp_analyses_case_file"/>
+
+        <createIndex tableName="tribunal_famille_be_mesures_prov_analyses"
+                     indexName="idx_tribunal_famille_be_mp_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="tribunal_famille_be_mesures_prov_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
