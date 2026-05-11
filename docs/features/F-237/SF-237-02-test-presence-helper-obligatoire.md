@@ -10,7 +10,7 @@
 
 ## Statut
 
-`draft`
+`done`
 
 ## Date de création
 

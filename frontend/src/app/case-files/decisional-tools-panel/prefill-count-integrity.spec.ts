@@ -277,40 +277,27 @@ function deriveFolderFromClassName(className: string): string {
 }
 
 /**
- * Composants sans fichier helper `*-prefill-rules.ts` sur master post-SF-236.
+ * F-237 SF-237-02 — Liste de tolérance VIDE.
  *
- * - 11 wrappers `count=0` (case-deadlines, jld-retention, dublin-recours,
- *   crrv-refus-visa, victime-violences-l4256, divorce-cm-scoring,
- *   fourchettes-jaf, liquidation-communaute, pension-alimentaire,
- *   prestation-compensatoire, rupture-amiable-info).
- * - 3 statics avec logique inline non extraite : divorce-faute-section,
- *   transaction-section, travail-procedure-section.
+ * État post SF-237-02 (mergée 2026-05-11) :
+ *  - Les 11 wrappers `count=0` (case-deadlines, jld-retention, dublin-recours,
+ *    crrv-refus-visa, victime-violences-l4256, divorce-cm-scoring,
+ *    fourchettes-jaf, liquidation-communaute, pension-alimentaire,
+ *    prestation-compensatoire, rupture-amiable-info) portent désormais
+ *    l'étiquette déclarative `static readonly PREFILL_COUNT_ALWAYS_ZERO = true;`
+ *    qui les exempte automatiquement du check helper (gardé par le bloc
+ *    `if (cls.PREFILL_COUNT_ALWAYS_ZERO === true) continue;` ci-dessous).
+ *  - Les 3 statics qui contenaient de la logique inline (divorce-faute-section,
+ *    transaction-section, travail-procedure-section) ont leur helper
+ *    extrait : `<component>-prefill-rules.ts` + `<component>-prefill-rules.spec.ts`.
  *
- * **TODO F-237 SF-237-02** : appliquer la convention déclarative
- * `static readonly PREFILL_COUNT_ALWAYS_ZERO = true;` sur les 11 wrappers,
- * extraire helpers pour les 3 restants, puis vider cette liste de tolérance.
+ * La règle est donc strictement appliquée à 100 % des composants TOOL_REGISTRY
+ * non étiquetés `PREFILL_COUNT_ALWAYS_ZERO`. Aucune dérogation tolérée.
  *
- * Tant que cette liste n'est pas vidée, ces composants sont exemptés du
- * check parité runtime/static car ils n'ont pas (encore) de helper.
+ * **REFUS** : tout ajout futur dans ce set sans extraction du helper
+ * correspondant doit être bloqué en review.
  */
-const TOLERATED_NO_HELPER: ReadonlySet<string> = new Set<string>([
-  // Wrappers retournant 0 (P1 — à marquer PREFILL_COUNT_ALWAYS_ZERO en SF-237-02)
-  'case-deadlines-section',
-  'crrv-refus-visa-section',
-  'divorce-cm-scoring-section',
-  'dublin-recours-section',
-  'fourchettes-jaf-section',
-  'jld-retention-section',
-  'liquidation-communaute-section',
-  'pension-alimentaire-section',
-  'prestation-compensatoire-section',
-  'rupture-amiable-info-section',
-  'victime-violences-l4256-section',
-  // Statics avec logique inline non extraite (P0 — à refactorer en SF-237-02)
-  'divorce-faute-section',
-  'transaction-section',
-  'travail-procedure-section',
-]);
+const TOLERATED_NO_HELPER: ReadonlySet<string> = new Set<string>();
 
 /**
  * Batterie de fixtures canoniques utilisées pour la parité comportementale.
