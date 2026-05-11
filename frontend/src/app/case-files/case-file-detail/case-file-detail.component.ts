@@ -1172,7 +1172,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         const previousVersion = this.lastCompletedSynthesisVersion();
         this.synthesis.set(result);
         if (result?.version !== undefined && result?.version !== null) {
-          if (previousVersion !== null && result.version !== previousVersion) {
+          // Déclencher refresh dashboard à toute nouvelle version, y compris la
+          // première (previousVersion === null). Le panel décisionnel a besoin
+          // de recharger sa visibilité dès que les flags IA (divorceDcEnvisage,
+          // etc.) sont extraits — sans quoi les outils CONTEXTUAL restent
+          // invisibles jusqu'au refresh manuel (cas Vermeersch BE 2026-05-11).
+          if (result.version !== previousVersion) {
             this.dashboardRefreshService.triggerRefresh();
           }
           this.lastCompletedSynthesisVersion.set(result.version);
