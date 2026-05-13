@@ -24,8 +24,11 @@ Lire ces documents avant toute réponse impliquant du code, une spec ou une déc
 
 ### Gouvernance détaillée
 13. `docs/governance/automatic-blockers.md` — tableau complet des 41 blocages automatiques (refus / motivations / cas historiques)
-14. `docs/DEVELOPMENT.md` — commandes de développement local (backend/frontend/H2/PostgreSQL)
-15. `docs/DEPLOYMENT.md` — commandes de déploiement cloud (staging/prod, kubectl, gh workflow)
+14. `docs/governance/transversal-concerns.md` — tableau détaillé des préoccupations transversales + smoke tests E2E
+15. `docs/governance/marketing-tasks-rules.md` — règles complètes de gouvernance des tâches marketing
+16. `docs/governance/backlog-sync.md` — modes de sync DB (auto cron / resync manuelle / gestion d'échec)
+17. `docs/DEVELOPMENT.md` — commandes de développement local (backend/frontend/H2/PostgreSQL)
+18. `docs/DEPLOYMENT.md` — commandes de déploiement cloud (staging/prod, kubectl, gh workflow)
 
 ---
 
@@ -98,26 +101,11 @@ Travailler sur une branche `feat/SF-XX-YY-nom-court` créée depuis `master` à 
 Respecter `project-governance/playbooks/coding-rules.md`.
 Toute décision technique non prévue dans la mini-spec est documentée dans la PR.
 
-#### Parallélisation backend / frontend (optionnelle)
+**Parallélisation backend / frontend** : autorisée si contrat API figé dans la mini-spec et branches isolées. Détails dans `project-governance/playbooks/feature-lifecycle.md` (Étape 4).
 
-Quand une feature comporte une subfeature backend et une subfeature frontend indépendantes (le frontend consomme une API exposée par le backend), les deux SF peuvent être développées **en parallèle** à condition que :
+**REFUS si** : deux SF sont lancées en parallèle sans que le contrat API soit présent explicitement dans la mini-spec backend.
 
-1. **Le contrat API est figé avant le dev dans la mini-spec** — chaque SF contient explicitement la section "Contrat API" avec :
-   - Méthode HTTP + URL exacte
-   - Schema du body de requête (champs, types, validation)
-   - Schema de la réponse (tous les champs retournés)
-   - Codes d'erreur et messages attendus
-   - Codes enum éventuels (valeurs exactes et cas d'emploi)
-2. **Chaque SF travaille sur sa propre branche** — `feat/SF-XX-YY-backend` et `feat/SF-XX-YY-frontend`, créées depuis `master` à jour.
-3. **Chaque SF produit une PR indépendante** — elles peuvent être mergées dans n'importe quel ordre, mais la frontend ne sera utilisable en production qu'après le merge du backend.
-4. **Les tests frontend utilisent un mock du service** — pas besoin d'attendre le backend mergé pour faire passer les tests unitaires Jest. L'intégration réelle (end-to-end) est validée après merge des deux PRs.
-5. **Les deux mini-specs se référencent mutuellement** — la SF frontend indique "contrat importé de SF-XX-YY-backend" pour traçabilité.
-
-**REFUS si** : deux SF sont lancées en parallèle sans que le contrat API soit présent explicitement dans la mini-spec backend — risque de divergence = dette de convergence immédiate.
-
-**REFUS si** : deux SF parallèles partagent la même branche Git — elles doivent être strictement isolées.
-
-Cette règle s'applique uniquement quand la parallélisation est **explicitement décidée**. Le mode sequentiel standard (SF backend mergée → SF frontend démarrée) reste le défaut.
+**REFUS si** : deux SF parallèles partagent la même branche Git.
 
 ---
 
@@ -160,13 +148,7 @@ Dès que l'utilisateur confirme le merge ("mergé", "PR mergée", ou équivalent
 
 ### Étape 7 — Sync backlog DB (automatique post-merge — F-178)
 
-Toute modification de `docs/PRODUCT_SPEC.md` ou `docs/MARKETING_BACKLOG.md` doit aboutir à une synchronisation des tables `backlog_features`, `backlog_subfeatures`, `backlog_marketing_tasks` consommées par l'écran super-admin `/super-admin/backlog` (F-178).
-
-**Mode normal — automatique** : tâche `@Scheduled` cron 5 min qui parse les 2 fichiers et upsert les tables. Audit dans `backlog_sync_runs` (timestamp, durée, count, success/error). **Aucun artefact obligatoire côté contributeur** — le merge sur master suffit.
-
-**Mode resync manuelle — opérationnel** : si une modification doit être visible immédiatement (démo, présentation, debug), cliquer **"Resync now"** dans l'écran `/super-admin/backlog` (super-admin only). L'écran affiche un indicateur de fraîcheur ("Synchronisé il y a X minutes") visible en haut.
-
-**Si la sync échoue répétitivement** (visible dans `backlog_sync_runs.success = false` sur plusieurs runs consécutifs) : ouvrir un ticket — ne pas éditer la DB à la main (les MD restent la source de vérité, la DB sera ré-écrasée au prochain cron réussi).
+Toute modification de `docs/PRODUCT_SPEC.md` ou `docs/MARKETING_BACKLOG.md` est synchronisée automatiquement (cron 5 min) vers les tables `backlog_features`, `backlog_subfeatures`, `backlog_marketing_tasks` consommées par `/super-admin/backlog`. Aucun artefact obligatoire côté contributeur. Détails (mode resync manuelle, audit, gestion d'échec) dans `docs/governance/backlog-sync.md`.
 
 **REFUS si** : édition directe des tables `backlog_*` sans passer par l'édition du fichier MD source. Les MD sont la source de vérité (Option A retenue F-178), la DB est un cache de lecture.
 
@@ -220,37 +202,20 @@ Référence : CLAUDE.md — Détection des demandes multi-features
 
 ## Préoccupations transversales — règle anti-régression
 
-Certaines modifications impactent silencieusement des composants existants qui n'ont pas été touchés.
-Ces **préoccupations transversales** doivent être traitées explicitement à chaque subfeature.
+Certaines modifications impactent silencieusement des composants existants. Ces **préoccupations transversales** doivent être traitées explicitement à chaque subfeature.
 
-### Déclencheurs obligatoires
+**Déclencheurs** (détail tableau + actions requises dans `docs/governance/transversal-concerns.md`) :
+- **Auth / Principal** — nouveau type d'auth, modification du Principal, changement de session
+- **Workspace context** — nouveau moyen de résoudre le workspace, changement de `workspace_id`
+- **Plans / limites** — nouveau plan, changement de quota, nouveau gate
+- **Navigation / routing** — nouvelle route, guard modifié, redirection ajoutée
+- **Outil décisionnel métier** — création/modification/observation sur calculator/analyzer/generator/decision engine. Inclut tout ajout backlog ou SF qui touche un outil existant. Appliquer l'invariant : un outil décisionnel = une situation métier.
 
-| Préoccupation | Exemples concrets | Action requise |
-|--------------|------------------|----------------|
-| **Auth / Principal** | Nouveau type d'auth, modification du Principal, changement de session | Lister tous les `@AuthenticationPrincipal` existants. Vérifier que chacun supporte le nouveau type. Ajouter test de non-régression. |
-| **Workspace context** | Nouveau moyen de résoudre le workspace, changement de `workspace_id` | Lister tous les composants qui résolvent le workspace. Vérifier leur comportement. |
-| **Plans / limites** | Nouveau plan, changement de quota, nouveau gate | Lister tous les appels à `PlanLimitService`. Vérifier les gates. |
-| **Navigation / routing** | Nouvelle route, guard modifié, redirection ajoutée | Vérifier tous les chemins de navigation existants. Lancer les smoke tests. |
-| **Outil décisionnel métier** | Création, modification ou observation concernant un outil décisionnel (calculator / analyzer / generator / decision engine côté backend ; section composant côté frontend). Inclut tout ajout backlog, toute SF qui touche un outil existant, toute observation de bug qui en mentionne un. | **Lister tous les outils décisionnels** (F-DT-07/08/09/10, F-IM-05/06/07, F-FA-05/06/07, etc.). **Scanner chacun** pour vérifier s'il contient un switch conditionnel sur un type métier, un pays ou un mode qui mélange plusieurs situations distinctes. **Classer** chaque outil : déjà séparé / multi-situations à scinder / paramétrage simple. **Appliquer l'invariant** : un outil décisionnel = une situation métier (pattern F-DT-08/F-DT-10). Si un autre outil présente le même pattern que celui à l'origine de la demande, l'inclure dans le périmètre ou ouvrir une feature jumelle au backlog. |
+**Règle de blocage automatique** :
+- Si une subfeature coche une préoccupation transversale dans sa mini-spec **sans liste de composants impactés** → BLOCAGE.
+- Si les smoke tests E2E échouent après l'implémentation → BLOCAGE avant push.
 
-### Règle de blocage automatique
-
-Si une subfeature coche une préoccupation transversale dans sa mini-spec **sans liste de composants impactés** → BLOCAGE.
-Si les smoke tests E2E échouent après l'implémentation → BLOCAGE avant push.
-
-### Suite de smoke tests E2E
-
-Les tests de non-régression automatiques sont dans `e2e/smoke/`.
-Lancer avant tout push touchant une préoccupation transversale :
-
-```bash
-cd e2e && npm test
-```
-
-Les smoke tests couvrent les chemins critiques d'intégration :
-- `auth.spec.ts` — login local, login OAuth, logout, redirect non-authentifié
-- `workspace.spec.ts` — switch workspace → rechargement des dossiers
-- `navigation.spec.ts` — invitation → /login, guards, redirections
+**Smoke tests E2E** : `cd e2e && npm test` avant tout push touchant une préoccupation transversale (auth, workspace, navigation).
 
 ---
 
@@ -306,34 +271,21 @@ Voir :
 
 ## Tâches marketing — règles de gouvernance
 
-### Règle 1 — Complétion
+Détail complet des 2 règles dans `docs/governance/marketing-tasks-rules.md`.
 
-Toute tâche du `docs/MARKETING_BACKLOG.md` suit cette règle :
-
-**Une tâche marketing n'est marquée `Terminé` que si elle est entièrement opérationnelle en production.**
-
-- Un email rédigé mais non branché dans le code → statut `Rédigé`, pas `Terminé`
-- Une page web rédigée mais non déployée → statut `Rédigé`, pas `Terminé`
-- Un document produit mais non publié/transmis → statut `Rédigé`, pas `Terminé`
-
-Quand une tâche marketing implique du code (email automatique, tracking, intégration), elle doit passer par la séquence de dev standard (mini-spec → dev → review → push) avant d'être marquée `Terminé`.
+**Règle 1 — Complétion** : une tâche marketing n'est marquée `Terminé` que si elle est entièrement opérationnelle en production (email branché, page déployée, document publié). Quand elle implique du code, elle passe par la séquence dev standard.
 
 **REFUS si** : une tâche marketing est marquée `Terminé` sans que le code correspondant soit implémenté et déployé.
 
-### Règle 2 — Contrôle de cohérence avant tout ajout au backlog marketing
-
-Avant d'ajouter une nouvelle tâche dans `docs/MARKETING_BACKLOG.md`, exécuter et **afficher dans la conversation** le contrôle suivant en 4 points :
-
-1. **Cohérence budgétaire** — la tâche entre-t-elle dans l'enveloppe marketing en vigueur (cadrage actif `docs/marketing/m71-budget-cadrage-2026h2.md` ou successeur) ? Si l'enveloppe doit être dépassée, l'ajout est conditionné à une décision d'arbitrage budgétaire explicite, et la tâche prérequise correspondante (cadrage / révision d'enveloppe) doit être créée d'abord.
-2. **Doublon avec une feature produit** — la capacité technique demandée n'est-elle pas déjà couverte par une feature livrée du `PRODUCT_SPEC.md` ? Exemples : ne pas demander Google Analytics si F-77 est `Terminée`, ne pas demander un tracking conversion Google Ads si F-119 est `Terminée`.
-3. **Doublon backlog (overlap > 30 %)** — scanner les sections M-XX existantes par thème (Site, Vidéo, Email, LinkedIn, Vente, Belgique, Stratégie acquisition, Mesure, Cadrage stratégique) pour vérifier qu'aucune tâche existante ne couvre déjà l'intention. Si oui, étendre la tâche existante plutôt qu'en créer une nouvelle (cf. règle "feedback_backlog_overlap_analysis").
-4. **Séquence stratégique** — la tâche met-elle la charrue avant les bœufs (par ex. engager un stand événementiel à 5 k € avant d'avoir tranché l'enveloppe globale et l'arbitrage entre canaux SEO/SEA/SDR/événements) ? Si oui, créer d'abord la tâche prérequise (cadrage budget, validation traction, etc.).
-
-Le contrôle doit produire un tableau visible dans la réponse (tâche proposée → verdict 4 points → action). Les tâches qui sortent du contrôle peuvent être marquées `Bloqué` si elles dépendent d'un arbitrage non encore tranché.
+**Règle 2 — Contrôle de cohérence avant tout ajout backlog** : afficher dans la conversation un tableau de verdict en 4 points avant d'ajouter une nouvelle tâche à `docs/MARKETING_BACKLOG.md` :
+1. Cohérence budgétaire (enveloppe M-71 ou successeur)
+2. Doublon avec une feature `PRODUCT_SPEC.md` livrée
+3. Doublon backlog (overlap > 30 %)
+4. Séquence stratégique (pas de charrue avant les bœufs)
 
 **REFUS si** : une nouvelle tâche est ajoutée à `MARKETING_BACKLOG.md` sans que ce contrôle ait été affiché dans la conversation.
 
-**REFUS si** : une tâche événementielle ou un canal d'acquisition payant > 1 000 € est ajoutée au backlog alors que le cadrage budget marketing en vigueur (M-71 ou successeur) n'a pas tranché l'enveloppe correspondante.
+**REFUS si** : une tâche événementielle ou un canal d'acquisition payant > 1 000 € est ajoutée alors que le cadrage budget marketing en vigueur (M-71 ou successeur) n'a pas tranché l'enveloppe correspondante.
 
 ---
 
