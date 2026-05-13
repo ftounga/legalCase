@@ -52,6 +52,9 @@
                   [extrait]="item.extrait"
                   [caseFileId]="caseFile()!.id" />
               }
+              <app-jurisprudence-deeplinks
+                [pointText]="item.texte"
+                [workspaceCountry]="workspaceCountry()" />
               @if (isLong(item.texte)) {
                 <button type="button" class="point-card__toggle" (click)="toggle(i)">
                   <mat-icon>{{ isExpanded(i) ? 'expand_less' : 'expand_more' }}</mat-icon>

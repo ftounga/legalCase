@@ -6,6 +6,7 @@ import { of } from 'rxjs';
 import { SynthesisPointsJuridiquesComponent } from './synthesis-points-juridiques.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { WorkspaceService } from '../../core/services/workspace.service';
 
 const CASE_FILE_ID = 'cf-1';
 
@@ -51,6 +52,9 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
     const caseFileService = jasmine.createSpyObj('CaseFileService', ['getById']);
     caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier test' }));
 
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ id: 'ws-1', country: 'FRANCE' }));
+
     await TestBed.configureTestingModule({
       imports: [SynthesisPointsJuridiquesComponent, NoopAnimationsModule, RouterTestingModule],
       providers: [
@@ -65,6 +69,7 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
         },
         { provide: CaseFileService, useValue: caseFileService },
         { provide: CaseAnalysisService, useValue: caseAnalysisService },
+        { provide: WorkspaceService, useValue: workspaceService },
       ],
     }).compileComponents();
 
@@ -130,5 +135,20 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
     expect(preview.endsWith('…')).toBe(true);
     expect(preview.length).toBeLessThanOrEqual(201);
     expect(component.preview('court')).toBe('court');
+  });
+
+  // U-7 : F-241 SF-241-01 — chaque point juridique rend le composant deeplinks jurispru.
+  it('U7: injects <app-jurisprudence-deeplinks> for each point card', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1)]));
+    caseAnalysisService.getByVersion.mockReturnValue(
+      of(makeAnalysis(1, [
+        { texte: 'Licenciement pour faute grave non motivé' },
+        { texte: 'Préavis non respecté par l\'employeur' },
+      ])),
+    );
+    fixture.detectChanges();
+
+    const deeplinkComponents = fixture.nativeElement.querySelectorAll('app-jurisprudence-deeplinks');
+    expect(deeplinkComponents.length).toBe(2);
   });
 });

@@ -1,0 +1,41 @@
+.jurispru-deeplinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+  &__label {
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.6);
+    font-weight: 500;
+    margin-right: 4px;
+  }
+
+  &__btn {
+    font-size: 0.85rem;
+    line-height: 1.2;
+    min-height: 32px;
+    padding: 0 12px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .jurispru-deeplinks {
+    gap: 6px;
+
+    &__label {
+      flex-basis: 100%;
+      margin-bottom: 4px;
+    }
+  }
+}

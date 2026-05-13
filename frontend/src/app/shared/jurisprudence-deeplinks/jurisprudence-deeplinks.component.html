@@ -1,0 +1,40 @@
+@if (hasContent()) {
+  <div class="jurispru-deeplinks">
+    <span class="jurispru-deeplinks__label">Rechercher la jurisprudence :</span>
+    <a
+      mat-stroked-button
+      class="jurispru-deeplinks__btn"
+      [href]="doctrineUrl()"
+      target="_blank"
+      rel="noopener noreferrer"
+      matTooltip="Rechercher dans Doctrine — votre abonnement requis"
+      data-testid="jurispru-deeplink-doctrine">
+      <mat-icon>search</mat-icon>
+      Doctrine
+    </a>
+    @if (!isBe()) {
+      <a
+        mat-stroked-button
+        class="jurispru-deeplinks__btn"
+        [href]="lexisPlusUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        matTooltip="Rechercher dans Lexis 360 Intelligence — votre abonnement requis"
+        data-testid="jurispru-deeplink-lexisplus">
+        <mat-icon>search</mat-icon>
+        Lexis+
+      </a>
+      <a
+        mat-stroked-button
+        class="jurispru-deeplinks__btn"
+        [href]="lextensoUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        matTooltip="Rechercher dans Lextenso — votre abonnement requis"
+        data-testid="jurispru-deeplink-lextenso">
+        <mat-icon>search</mat-icon>
+        Lextenso
+      </a>
+    }
+  </div>
+}
