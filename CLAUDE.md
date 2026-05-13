@@ -22,6 +22,11 @@ Lire ces documents avant toute réponse impliquant du code, une spec ou une déc
 11. `project-governance/checklists/review-checklist.md` — avant toute PR
 12. `project-governance/checklists/release-checklist.md` — avant tout merge
 
+### Gouvernance détaillée
+13. `docs/governance/automatic-blockers.md` — tableau complet des 41 blocages automatiques (refus / motivations / cas historiques)
+14. `docs/DEVELOPMENT.md` — commandes de développement local (backend/frontend/H2/PostgreSQL)
+15. `docs/DEPLOYMENT.md` — commandes de déploiement cloud (staging/prod, kubectl, gh workflow)
+
 ---
 
 ## Règles impératives
@@ -58,7 +63,7 @@ Ce cycle est non négociable. Chaque étape produit un artefact visible dans la 
 **Sans l'artefact de l'étape N, l'étape N+1 est refusée.**
 
 ```
-[1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge
+[1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge → [7] Sync backlog DB
 ```
 
 ### Étape 1 — Mini-spec (ARTEFACT : document SF-XX rempli)
@@ -169,51 +174,7 @@ Toute modification de `docs/PRODUCT_SPEC.md` ou `docs/MARKETING_BACKLOG.md` doit
 
 ## Blocages automatiques
 
-Ces situations déclenchent un refus immédiat. Répondre avec le format de refus standard.
-
-| Situation | Réponse |
-|-----------|---------|
-| Demande brute couvrant plusieurs features distinctes | REFUS — séparer les features avant tout découpage |
-| Demande de code sans mini-spec produite dans la conversation | REFUS — produire la mini-spec d'abord (`subfeature-template.md`) |
-| Demande de code sans critères d'acceptation dans la mini-spec | REFUS — compléter la mini-spec |
-| Demande de code sans plan de test dans la mini-spec | REFUS — compléter la mini-spec |
-| Mini-spec sans section "Analyse de cohérence transversale" remplie | REFUS — scanner les autres outils / pays / domaines / UI patterns d'abord, classer chaque cible applicable (intégrée / SF parallèle / backlog / non applicable avec justification) |
-| SF introduit un composant partagé / service / endpoint transversal / directive / DTO réutilisable sans section "Nouveau pattern UI ou service partagé" remplie | REFUS — scanner toutes les zones où le pattern pourrait être réutilisé (badges, tooltips, popovers, panneaux existants), identifier les patterns concurrents à harmoniser, classer chaque cible (harmonisation immédiate / SF parallèle / backlog / non applicable). Évite la *dette de convergence* (2 mécanismes similaires qui divergent dans le temps). |
-| Feature non découpée en subfeatures | REFUS — demander le découpage (`feature-splitter`) |
-| Subfeature estimée > 2 jours | REFUS — demander un redécoupage |
-| `git push` sans review checklist passée dans la conversation | REFUS — passer la review checklist d'abord |
-| Push sans release checklist produite dans la même réponse | REFUS — release checklist fait partie du même bloc que le push |
-| Démarrage d'une nouvelle subfeature sans release checklist passée pour la précédente | REFUS — produire la release checklist avant de continuer |
-| Merge confirmé sans mise à jour PRODUCT_SPEC.md si feature parente complète | REFUS — mettre à jour PRODUCT_SPEC.md d'abord |
-| Question ouverte non tranchée et bloquante | BLOCAGE — signaler, ne pas avancer |
-| Incohérence avec `ARCHITECTURE_CANONIQUE.md` | BLOCAGE — signaler la divergence |
-| Feature non référencée dans `PRODUCT_SPEC.md` | REFUS — ajouter la feature au PRODUCT_SPEC avant tout dev |
-| Traitement IA demandé de façon synchrone | REFUS — rappeler la règle async |
-| Accès données sans filtre `workspace_id` | REFUS — rappeler la règle d'isolation |
-| Composant frontend utilisant couleurs/polices hors `DESIGN_SYSTEM.md` | BLOCAGE — signaler la divergence |
-| Ecran produit sans header/layout conforme au design system | BLOCAGE — signaler la divergence |
-| Feature avec écran utilisateur marquée `Terminée` sans composant Angular implémenté | REFUS — implémenter les écrans manquants avant de marquer Terminée |
-| Subfeature backend mergée sans subfeature frontend planifiée (si la feature a une UI) | BLOCAGE — planifier et créer la subfeature frontend correspondante avant de continuer |
-| Merge d'une SF frontend qui consomme un endpoint API alors que la SF backend correspondante n'est NI mergée NI dans une PR ouverte avec tests verts | REFUS — la SF frontend ne sera pas utilisable en production sans le backend (404 en runtime). **Vérifier avant tout `gh pr merge` frontend** : (1) lister les endpoints consommés par les services Angular modifiés (`HttpClient.post`/`get`/`put`/`delete` sur `/api/v1/...`), (2) pour chaque endpoint, confirmer qu'une route Spring `@RequestMapping` existe sur master OU sur une PR ouverte mergeable. Si absent : implémenter la SF backend manquante d'abord, ou ne pas merger la frontend. **Motivation** : cas réel F-DT-29 le 2026-04-25 — SF-DT-29-02 frontend mergée (PR #624) consommait `/api/v1/case-files/{id}/credit-temps-be-analysis` qui n'existait pas. Cause racine : worktree backend SF-DT-29-01 de la vague 19 crashé sans commit, branche `feat/SF-DT-29-01-...` créée vide à master. Anomalie détectée seulement après merge ; correctif PR #626 implémenté rétroactivement le jour même. Symétrique de la règle ci-dessus (backend sans frontend planifié). |
-| Migration Liquibase qui INSERT/UPDATE dans `decision_tool_visibility_rules` un `tool_id` absent de `TOOL_REGISTRY` frontend (et de la liste `KNOWN_FRONTEND_TOOL_IDS` du test d'intégrité) | REFUS — l'outil sera silencieusement masqué en runtime (`resolveEntry()` retourne `null`, `console.warn`). **Vérifier avant tout merge backend** qui touche `decision_tool_visibility_rules` : (1) lister les `tool_id` ajoutés/modifiés ; (2) confirmer que chaque ID possède une entrée `TOOL_REGISTRY` dans `frontend/src/app/case-files/decisional-tools-panel/decisional-tools-panel.component.ts` (mergée OU dans une PR ouverte mergeable) ; (3) mettre à jour `KNOWN_FRONTEND_TOOL_IDS` dans `DecisionToolVisibilityIntegrityIT` pour que la CI passe. Le test échoue automatiquement si un `tool_id` est orphelin. **Motivation** : cas réel 2026-04-26 — 15 `tool_id` orphelins dans `decision_tool_visibility_rules` après les vagues de fin avril 2026 → panneau F-IA-04 quasi vide en staging sur dossier E-36 (ntounga@gmail.com), outils silencieusement masqués. Symétrique de la règle ci-dessus (frontend mergé sans backend). Garde-fou F-164 SF-164-01. |
-| Préoccupation transversale cochée sans liste de composants impactés dans la mini-spec | BLOCAGE — compléter l'analyse d'impact avant de continuer |
-| Smoke tests E2E échouent après implémentation d'une préoccupation transversale | BLOCAGE — corriger avant push |
-| Ajout backlog ou SF touchant un outil décisionnel métier sans scan systématique des autres outils décisionnels | REFUS — scanner tous les outils décisionnels existants, classer chacun (déjà séparé / multi-situations à scinder / paramétrage simple), inclure les cas jumeaux dans le périmètre ou ouvrir des features jumelles au backlog avant de continuer |
-| Mini-spec sans section **"Impact par domaine métier"** remplie | REFUS — pour chaque SF, répondre explicitement : cette feature est-elle sensible au domaine (droit du travail / immigration / famille) ? Si oui, comment elle se comporte sur les 3 — et sur les 2 pays (FR + BE) quand pertinent. Si transversale ("infrastructure, aucune adaptation par domaine"), le dire explicitement. Cette section **existe dans toute mini-spec**, même courte. Évite les biais où une feature hardcode implicitement le droit du travail (cas réel F-145 SF-145-01 : enum `DocumentPieceType` initial adapté uniquement droit du travail — correction via SF-145-09). |
-| SF livre un outil décisionnel de **niveau ≥ 5** (scoring / comparateur / détection d'événement) sans section **"Parité des domaines métier"** remplie | REFUS — à chaque scoring (niveau 5), comparateur (niveau 6) ou détection d'événement déclencheur (niveau 7) livré pour un domaine, lister explicitement si les 2 autres domaines ont l'équivalent. Si non : ouvrir une feature jumelle au backlog avec numéro dédié, ou justifier pourquoi le concept n'est pas pertinent sur cet autre domaine. **Motivation** : la règle "Impact par domaine métier" ci-dessus est préventive mais ne corrige pas l'asymétrie déjà créée. Historique : F-DT-08/09/10 livrées en avril 2026 pour le droit du travail seul, laissant Famille et Immigration 3 niveaux en retard — corrigé via F-150 à F-153 en avril 2026. Les 7 niveaux de profondeur : (1) Checklist, (2) Générateur de document, (3) Calculateur, (4) Arbre décisionnel, (5) Scoring / analyse validité, (6) Comparateur / fourchettes, (7) Détection événement déclencheur. |
-| Migration Liquibase qui INSERT une entry `legal_referentials` avec `is_system=true` sans la colonne `description` renseignée | REFUS — ajouter `description` (texte en langage avocat — ce que c'est, par quel outil c'est utilisé, comment l'ajuster). Seuls les 7 types à description riche native dans `value_json` (`LICENCIEMENT_CRITERES`, `RUPTURE_CONV_CRITERES`, `IMMIGRATION_TITLES`, `IMMIGRATION_RECOURS`, `IMMIGRATION_WORK_RIGHTS`, `DIVORCE_ETAPES`, `DIVORCE_PIECES`) en sont exemptés. Le test `LegalReferentialDescriptionIntegrityIT` échoue automatiquement en CI si la règle est violée (garde-fou F-140 SF-140-03). |
-| Modification d'un référentiel métier statique (classe `*Referentiel.java` sous `fr.ailegalcase.casefile` ou `fr.ailegalcase.referential`) **sans migration Liquibase accompagnant l'INSERT/UPDATE dans la table `legal_referentials`** | REFUS — la classe Java statique n'est qu'un **fallback**, la source de vérité est la table `legal_referentials` consommée par `LegalReferentialService`. Toute nouvelle entrée (type, code, mapping) ajoutée au Java DOIT être accompagnée d'une migration Liquibase correspondante (avec `description` SF-140-03 si non exempté). Divergence Java vs DB = bug silencieux en prod où la DB prime. Cas historique F-IM-01 SF-IM-01-04 2026-04-23 : 9 nouveaux types ajoutés en Java uniquement, seed DB oublié — rattrapé via migration 101. À chaque ajout de régime/code/type dans un référentiel : (1) Java fallback, (2) migration INSERT `legal_referentials`, (3) description obligatoire, (4) vérifier que l'UUID ne collisione pas avec les migrations existantes. |
-| Migration Liquibase qui INSERT un nouveau `referential_type` dans `legal_referentials` (`is_system=true`) **sans intégration UX dédiée côté frontend** (entrée `SECTION_LABELS` + branche `formatValue` + branche `sectionIcon` dans `frontend/src/app/referentials/referentials.component.ts` + éventuellement `buildForm` du edit dialog) | REFUS — l'écran "Guide & Barème" affichera un titre brut (code DB), une valeur en `JSON.stringify` et une icône générique `info` au lieu d'une UX adaptée. **Vérifier avant tout merge** : (1) ajouter le label humain français dans `SECTION_LABELS` ; (2) brancher `formatValue()` pour un rendu lisible (pas JSON brut) ; (3) brancher `sectionIcon()` avec une icône MatIcon pertinente ; (4) si la structure d'édition est complexe, étendre `buildForm()` du `ReferentialEditDialogComponent` ; (5) ajouter le type dans `KNOWN_FRONTEND_REFERENTIAL_TYPES` du test `LegalReferentialDescriptionIntegrityIT` (garde-fou F-225 SF-225-03). Le test échoue automatiquement en CI si la règle est violée. **Motivation** : cas réel des 5 types orphelins identifiés audit 2026-05-06 (CONVENTION_PREAVIS / TRAVAIL_PROCEDURE_JALONS / FAMILLE_PROCEDURE_JALONS / MAJEURS_PROTEGES_REGIMES / IM21_VALIDITY_CRITERES) — F-225 SF-225-01 a livré le rattrapage UX. |
-| Composant décisionnel frontend (`<app-XXX-section>` intégré au panel F-IA-04 via `TOOL_REGISTRY`) **sans référence explicite au template canonique** dans la mini-spec | REFUS — chaque nouveau composant décisionnel doit nommer le composant de référence (`immigration-title-decision-section` post-SF-177-12) et avoir passé la checklist du skill `ai-skills/frontend-coherence-audit.md` (§5 + §6, 19 items). Audit obligatoire tous les 5 nouveaux composants. **Motivation** : sans template canonique, chaque outil dérive en silo → dette de convergence (cas réel F-155 rétroactif sur 6 composants, fin 2026-04-24). |
-| Composant décisionnel frontend **sans checklist cohérence visuelle passée** (palette / datepicker / typographie / gate pays / refresh / snackbar) | REFUS — appliquer strictement : (1) palette statut navy/or/vert, **rouge réservé aux alertes critiques** ; (2) `<input type="date">` ou `datetime-local` selon précision — **pas** `MatDatepicker` ; (3) `JetBrains Mono` pour `baseJuridique` et `formule`, `Inter` pour le reste ; (4) gate `workspaceCountry` = **bannière info** si mismatch — pas de masquage silencieux ; (5) `CaseDashboardRefreshService.triggerRefresh()` invoqué dans `next:` du POST de validation (pattern SF-IA-02-03) ; (6) `MatSnackBar` pour les erreurs — **pas** d'`alert()` / `confirm()`. Pattern de référence : `immigration-title-decision-section`. Skill : `ai-skills/frontend-coherence-audit.md` §6. **Motivation** : dette de convergence visuelle observée fin 2026-04-24 sur 6 composants (palette, pickers, handling country) → F-155 rétroactif. |
-| Composant décisionnel frontend **sans pré-remplissage IA fonctionnel** (`@Input aiData?` + `prefillFromAi()` + signals provenance + badge `auto_awesome` + handlers reset) | REFUS — **FAIL, pas WARN** : c'est un **bug produit**, l'outil devient « encore un formulaire » au lieu d'un assistant. Vérifier : (1) `@Input() aiData?` typé strictement (`TravailExtractedData` / `ImmigrationExtractedData` / `FamilleExtractedData`) ; (2) `prefillFromAi()` invoqué dans `ngOnInit()` **ET** `ngOnChanges()` (cas où `aiData` arrive après la première résolution) ; (3) signal `provenance<Field> = signal<'IA'\|null>(null)` par champ pré-rempli ; (4) badge UI `auto_awesome` « Pré-rempli depuis l'analyse » à côté du champ ; (5) handler `onXxxChange()` qui remet la provenance à `null` au changement manuel. Pattern de référence : `immigration-title-decision-section.prefillFromAi()`. Skill : `ai-skills/frontend-coherence-audit.md` §6 items pré-fill. |
-| Composant décisionnel frontend **sans validation IA au changement F-IA-03** (`coherenceAlerts` computed + `<app-coherence-popover-trigger>` + helper partagé `CoherenceAlertBuilder`) | REFUS — **FAIL, pas WARN** : sans cette validation, l'avocat peut saisir une valeur en contradiction directe avec l'analyse IA sans alerte visuelle — **bug produit**. Vérifier : (1) `coherenceAlerts = computed<Partial<Record<FieldName, CoherenceAlert>>>()` croisant 4 sources IA (`aiData`, `procedureChecks` F-96, `aiQuestions`, `piecesManquantes`) ; (2) hiérarchie F-96 > Question IA > IA détection > Pièce manquante respectée, source `MULTI` si convergence ; (3) directive `<app-coherence-popover-trigger>` câblée sur chaque field concerné (affichage non bloquant) ; (4) helper partagé obligatoire `frontend/src/app/shared/coherence-popover/coherence-alert-builder.ts` — **pas** de définition locale ad hoc de l'interface `CoherenceAlert` (dette de convergence). Pattern de référence : `immigration-title-decision-section` (`buildMotifAlert`, `buildNationaliteAlert`, `coherenceAlerts`, `alertsSummary`). Skill : `ai-skills/frontend-coherence-audit.md` §6 items F-IA-03. |
-| Composant décisionnel frontend **sans entrée `TOOL_REGISTRY` symétrique aux autres outils** (inputs IA complets, constantes `TOOL_LABEL` / `TOOL_ICON`) | REFUS — l'outil ne sera pas correctement présenté dans le panel F-IA-04 et la validation F-IA-03 ne recevra pas les sources IA. Vérifier dans `frontend/src/app/case-files/decisional-tools-panel/decisional-tools-panel.component.ts` : (1) entrée `TOOL_REGISTRY` ajoutée avec `inputs: (ctx) => ({ caseFileId, workspaceCountry, aiData, procedureChecks, aiQuestions, piecesManquantes })` — **toutes** les sources IA nécessaires à F-IA-03 ; (2) constantes `TOOL_LABEL` et `TOOL_ICON` symétriques aux autres outils (pattern SF-177-03b/05/07) ; (3) `tool_id` présent dans `KNOWN_FRONTEND_TOOL_IDS` du test `DecisionToolVisibilityIntegrityIT` (garde-fou F-164 SF-164-01). |
-| Composant décisionnel frontend **sans `static getPrefillCount(input): number`** parité stricte avec `prefillFromAi()` runtime + tests Jest (0/M/N champs) | REFUS — sans cette méthode, le panel F-IA-04 affiche un badge `auto_awesome` faux ou absent AVANT instanciation du composant. Vérifier : (1) signature `static getPrefillCount(input: { aiData?, procedureChecks?, aiQuestions?, piecesManquantes?, triggerEvents?, workspaceCountry? }): number` ; (2) **parité stricte** runtime↔static via le helper partagé `<ComponentName>PrefillRules` — mêmes guards `typeof === 'string'`, mêmes mappings, mêmes conditions de pays (toute divergence = bug = badge faux) ; (3) tests Jest obligatoires : 0 champs (return 0), M champs partiels, N champs cas nominal. Pattern miroir `TOOL_LABEL` / `TOOL_ICON` (SF-177-03b/05/07, étendu SF-177-12). Pattern de référence : `immigration-title-decision-section`. Garde-fou F-236 SF-236-05 (`prefill-count-integrity.spec.ts`) — la CI échoue automatiquement. **Motivation** : audit 2026-05-10 — 79 composants sur 103 (77 %) en infraction. |
-| SF frontend décisionnelle mergée sans pré-remplissage IA fonctionnel **OU** sans validation F-IA-03 au changement | REFUS — ces 2 mécanismes sont la **différenciation produit** (vs "encore un formulaire") et l'articulation entre l'IA et les outils décisionnels. Sans pré-fill, l'avocat ressaisit ce que l'IA a déjà extrait. Sans validation F-IA-03, l'avocat peut saisir une valeur en contradiction directe avec l'analyse IA sans alerte visuelle. Ce n'est pas de la dette technique — c'est un bug produit. Toute SF qui livre un composant décisionnel frontend sans ces 2 mécanismes doit être corrigée en SF suivante immédiate avant toute nouvelle feature. Audit systématique obligatoire lors de tout audit périodique de cohérence frontend (règle des 5 composants). |
-| Migration Liquibase ou seed qui INSERT/UPDATE dans `decision_tool_visibility_rules` (mode `visibility` ou flag) **sans audit "Impact F-166 cross-C×D" rempli dans la mini-spec** | REFUS — toute modification du registre de visibilité doit être analysée croisée Country × Domain (FR×Travail, FR×Immigration, FR×Famille, BE×Travail, BE×Immigration, BE×Famille) avant merge. **Vérifier dans la mini-spec** : (1) la cellule par défaut visée (ALWAYS_ON / CONTEXTUAL / OFF) pour chaque combinaison C×D ; (2) l'impact concret sur le panel F-IA-04 dans chaque cellule (outil apparaît / disparaît / change de mode) ; (3) la cohérence avec les autres outils déjà présents dans la même cellule (effet d'accumulation, conflit de mode). **Motivation** : sans cet audit, on accumule silencieusement des outils ALWAYS_ON candidats CONTEXTUAL ou inversement, dérive du périmètre F-IA-04 et bruit visuel pour l'avocat. Symétrique des garde-fous F-164 SF-164-01 (orphelins frontend) et F-140 SF-140-03 (description). Garde-fou F-199 SF-199-02. |
-| Ajout d'une entrée seed `legal_referentials` ou `decision_tool_visibility_rules` avec `country='FR'` ou `country='BE'` **sans audit explicite "exhaustivité du droit national X-FR/BE" rempli dans la mini-spec** | REFUS — pour chaque entrée nationale ajoutée côté FR, l'équivalent BE doit avoir été vérifié (existe / pas pertinent — justifier) ; et inversement pour chaque entrée BE. **Vérifier dans la mini-spec** : (1) source juridique nationale (Code du travail FR / Code civil FR ; Code du travail BE / Code civil BE / régimes Bruxelles-Wallonie-Flandre) ; (2) équivalent dans l'autre pays — entrée jumelle simultanée OU justification explicite que le concept n'existe pas dans le droit national de l'autre pays ; (3) cohérence terminologique (libellés, codes, descriptions) avec les seeds existants déjà rapprochés FR↔BE. **Motivation** : éviter le biais où un outil ou un référentiel est implémenté pour 1 pays sans considérer l'équivalent dans l'autre, créant une asymétrie qu'il faudra rattraper rétroactivement (cas historique F-150 à F-153 pour les domaines, transposable au seed national). Couvre le seeding de l'invariant "Belgique never forget" (cf. mémoire `feedback_belgique_never_forget.md` : couverture exhaustive du droit belge attendue, pas miroir FR). Garde-fou F-199 SF-199-02. |
-| Composant Angular décisionnel frontend (entrée `TOOL_REGISTRY`) sans `static getPrefillCount(input): number` exposé OU avec `getPrefillCount` retournant NaN/Infinity/négatif | REFUS — l'avocat ne verra pas le badge `auto_awesome (+N)` du panel F-IA-04, ce qui invalide la promesse UX "outils décisionnels assistés par l'IA". **Vérifier avant tout merge** : (1) la méthode statique est exposée ; (2) elle reproduit fidèlement la logique de `prefillFromAi()` runtime via le helper partagé `<ComponentName>PrefillRules` ; (3) elle est testée Jest dans 3 cas (0/M/N champs). Le test `prefill-count-integrity.spec.ts` échoue automatiquement en CI si la règle est violée. **Motivation** : audit 2026-05-10 — 79 composants sur 103 (77 %) en infraction, badge silencieusement absent partout sauf 4 outils. Garde-fou F-236 SF-236-05. |
+41 situations qui déclenchent un refus immédiat — voir `docs/governance/automatic-blockers.md` pour le tableau complet avec motivations et cas historiques.
 
 **Format de refus standard :**
 ```
@@ -222,6 +183,15 @@ Motif : [raison précise]
 Artefact manquant : [ce qui doit être produit]
 Référence : [fichier de gouvernance concerné]
 ```
+
+**Index par thème** (voir `docs/governance/automatic-blockers.md` pour le détail) :
+- **Mini-spec incomplète** : 2, 3, 4, 5, 6, 24, 27, 28
+- **Découpage / process** : 1, 7, 8, 11, 26
+- **Checklists** : 9, 10, 12
+- **Architecture / cohérence transversale** : 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 39, 40
+- **Référentiels métier** : 29, 30, 31
+- **Composants décisionnels frontend** : 32, 33, 34, 35, 36, 37, 38, 41
+- **Tests E2E** : 25
 
 ---
 
@@ -326,195 +296,11 @@ Les smoke tests couvrent les chemins critiques d'intégration :
 
 ---
 
-## Commandes de développement
+## Commandes de développement et de déploiement
 
-### Démarrer le backend
-
-**Profil `dev` (H2 en mémoire — pas besoin de Docker)**
-```bash
-source .env.local
-cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-```
-- Port : 8080 | Base : H2 en mémoire (données perdues à chaque redémarrage)
-- Console H2 : http://localhost:8080/h2-console
-
-**Profil `local` (PostgreSQL + MinIO via docker compose)**
-```bash
-source .env.local
-cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-```
-- Port : 8080 | Base : PostgreSQL (données persistantes)
-- Requiert : `docker compose up -d`
-
-### Démarrer le frontend
-```bash
-source ~/.nvm/nvm.sh && nvm use 22
-cd frontend && npm start
-```
-- Port : 4200
-- Node 22 requis (géré via nvm)
-
-### Démarrer PostgreSQL (prod locale)
-```bash
-docker compose up -d
-```
-- Port : 5432
-- DB : `legalcasedb` / User : `legalcase` / Password : `legalcase`
-
-### Accès base de données H2 (dev uniquement)
-- URL : http://localhost:8080/h2-console
-- JDBC URL : `jdbc:h2:mem:legalcasedb`
-- Utilisateur : `sa` / Mot de passe : (vide)
-
-### Builder le backend sans tests
-```bash
-cd backend && ./mvnw clean package -DskipTests
-```
-
-### Builder le frontend
-```bash
-source ~/.nvm/nvm.sh && nvm use 22
-cd frontend && npm run build
-```
-
----
-
-## Commandes de déploiement cloud
-
-### Référence rapide — toutes les commandes
-
-| Intention | Commande naturelle |
-|-----------|-------------------|
-| Redémarrer l'appli en local (dev) | "Redémarre l'application en local" |
-| Redémarrer l'appli en local (local/postgres) | "Redémarre l'application en local avec PostgreSQL" |
-| Déployer en staging via CI/CD | "Lance le workflow de déploiement staging" |
-| Déployer en production via CI/CD | "Lance le workflow de déploiement production" |
-| Déployer manuellement en staging | "Déploie l'application en staging" |
-| Déployer manuellement en production | "Déploie l'application en production" |
-| Voir les pods en staging | "Montre l'état des pods en staging" |
-| Voir les pods en production | "Montre l'état des pods en production" |
-| Voir les logs du backend staging | "Montre les logs du backend en staging" |
-| Redémarrer le backend en staging | "Redémarre le backend en staging" |
-| Redémarrer le backend en production | "Redémarre le backend en production" |
-
----
-
-### Déployer en staging — via CI/CD (recommandé)
-
-Déclenche le workflow GitHub Actions backend ou frontend sur master :
-
-```bash
-# Déployer le backend en staging
-gh workflow run backend.yml --ref master
-
-# Déployer le frontend en staging
-gh workflow run frontend.yml --ref master
-
-# Suivre le déploiement en cours
-gh run list --workflow=backend.yml --limit=1
-gh run watch $(gh run list --workflow=backend.yml --limit=1 --json databaseId -q '.[0].databaseId')
-```
-
----
-
-### Déployer en production — via CI/CD (workflow dédié)
-
-Le déploiement production est `workflow_dispatch` uniquement — jamais automatique.
-Il requiert les tags exacts des images à déployer et la confirmation manuelle `PRODUCTION`.
-
-```bash
-# 1. Récupérer les SHAs actuellement en staging
-kubectl get deployment legalcase-backend -n staging \
-  -o jsonpath='{.spec.template.spec.containers[0].image}' | cut -d: -f2
-kubectl get deployment legalcase-frontend -n staging \
-  -o jsonpath='{.spec.template.spec.containers[0].image}' | cut -d: -f2
-
-# 2. Lancer le déploiement production avec les tags récupérés
-gh workflow run deploy-production.yml \
-  --ref master \
-  --field backend_tag=<SHA_BACKEND> \
-  --field frontend_tag=<SHA_FRONTEND> \
-  --field confirm=PRODUCTION
-
-# 3. Suivre le déploiement
-gh run list --workflow=deploy-production.yml --limit=1
-gh run watch $(gh run list --workflow=deploy-production.yml --limit=1 --json databaseId -q '.[0].databaseId')
-```
-
-> ⚠️ Ne jamais déployer en production sans avoir validé en staging d'abord.
-
----
-
-### Déployer manuellement en staging (sans CI/CD)
-
-Pour un correctif urgent sans passer par le pipeline :
-
-```bash
-# Mettre à jour kubeconfig
-aws eks update-kubeconfig --region eu-west-3 --name legalcase-shared
-
-# Appliquer les manifests kustomize
-kubectl apply -k k8s/overlays/staging/
-
-# Vérifier le rollout
-kubectl rollout status deployment/legalcase-backend -n staging --timeout=120s
-kubectl rollout status deployment/legalcase-frontend -n staging --timeout=60s
-```
-
----
-
-### Surveiller les pods
-
-```bash
-# État de tous les pods staging
-kubectl get pods -n staging
-
-# État de tous les pods production
-kubectl get pods -n production
-
-# Logs backend staging (30 dernières lignes)
-kubectl logs -n staging deployment/legalcase-backend --tail=30
-
-# Logs backend production
-kubectl logs -n production deployment/legalcase-backend --tail=30
-
-# Logs en temps réel
-kubectl logs -n staging deployment/legalcase-backend -f
-```
-
----
-
-### Redémarrer un service sur le cluster
-
-```bash
-# Redémarrer le backend en staging
-kubectl rollout restart deployment/legalcase-backend -n staging
-
-# Redémarrer le frontend en staging
-kubectl rollout restart deployment/legalcase-frontend -n staging
-
-# Redémarrer le backend en production
-kubectl rollout restart deployment/legalcase-backend -n production
-
-# Redémarrer tous les services en staging
-kubectl rollout restart deployment/legalcase-backend deployment/legalcase-frontend deployment/rabbitmq -n staging
-```
-
----
-
-### Vérifier la santé de l'application
-
-```bash
-# Health check staging
-curl -s https://staging.legalcase.ng-itconsulting.com/api/actuator/health
-
-# Health check production (quand déployé)
-curl -s https://legalcase.ng-itconsulting.com/api/actuator/health
-
-# Certificats TLS
-kubectl get certificate -n staging
-kubectl get certificate -n production
-```
+Voir :
+- `docs/DEVELOPMENT.md` — démarrer backend (H2 / PostgreSQL), frontend, builder
+- `docs/DEPLOYMENT.md` — déploiement staging / production via CI/CD, kubectl, monitoring
 
 ---
 
