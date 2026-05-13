@@ -9,17 +9,21 @@
 
 **Q : « Votre IA intègre-t-elle l'open data de la jurisprudence ? »**
 
-**Réponse courte :**
+**Réponse courte (à dire d'emblée, sans détour) :**
 
-> Non. Ce n'est pas mon couloir. Doctrine, Lexis Plus, Lefebvre couvrent ça très bien. Mon couloir, c'est l'aval : ce qu'on fait avec le dossier client une fois sur le bureau.
+> LegalCase ne remplacera jamais Doctrine, Lexis Plus ou Lextenso — ce n'est pas mon couloir. **Par contre j'ai livré ce matin un connecteur léger** : sous chaque point juridique de votre synthèse, vous avez 3 boutons — Doctrine, Lexis+, Lextenso. Vous cliquez, votre outil habituel s'ouvre dans un nouvel onglet avec la recherche déjà pré-remplie (mots-clés extraits du point, propres, sans les ‘le, la, dans, pour'). Vous gardez votre abonnement, votre outil, votre habitude — je vous fais gagner les 30 secondes de copier-coller × N points × N dossiers par jour. **Je vous le montre sur Dupont dans 8 minutes.**
 
-**Si elle creuse — « vous comptez l'intégrer ? » :**
+**Si elle creuse — « pourquoi pas une intégration plus poussée avec affichage des résultats dans LegalCase ? » :**
 
-> Cette question m'a été posée par 3 prospects cette semaine. Honnêtement : pas tant que le marché jurispru reste tenu par les éditeurs établis. Construire un produit jurispru qui rivalise avec Doctrine prendrait 2 ans. Mon angle, c'est plutôt de me concentrer sur ce que Doctrine ne fait pas — le travail sur le dossier individuel.
+> Honnêtement : parce que Doctrine, Lexis Plus, Lextenso ne donnent pas d'accès API à un solo founder comme moi. Et même si je l'obtenais, je deviendrais dépendant de leurs CGU, et je vous facturerais l'accès indirectement. Le connecteur en deeplink que je viens de livrer (votre outil s'ouvre dans un nouvel onglet avec la query pré-remplie) est techniquement simple, légal, compatible avec n'importe quel éditeur, sans lock-in inversé. Un import structuré des résultats jurispru dans LegalCase pour enrichir la synthèse, c'est tracé en backlog — je le ferai quand 5-10 utilisateurs me disent que c'est leur point dur.
 
-**Si elle insiste — « mais comment je fais pour citer mes arrêts dans mes conclusions ? » :**
+**Si elle demande — « ça marche aussi pour la Belgique ? » :**
 
-> Vous continuez à utiliser votre outil jurispru habituel. LegalCase ne remplace pas ça. LegalCase intervient AVANT et APRÈS la recherche jurispru : avant, il extrait les éléments du dossier qui orientent vos requêtes jurispru ; après, il intègre votre raisonnement juridique dans les conclusions générées.
+> Oui — si votre workspace est en Belgique, le bouton Doctrine pointe sur `doctrine.be`. Lexis+ et Lextenso n'ont pas d'offre BE pertinente en V1, donc seul Doctrine BE apparaît. Si vous travaillez sur de la jurisprudence belge spécifique, dites-le moi, on peut ajouter Strada Lex BE par exemple — 1 jour de dev.
+
+**Si elle pose la question du contre-positionnement — « mais alors quelle est votre place vis-à-vis de Doctrine ? » :**
+
+> Doctrine est un moteur de recherche jurispru. LegalCase est un hub orchestrateur de votre chaîne de travail : on lit le dossier → on identifie les questions juridiques → on calcule les indemnités / score de validité / etc. → on **expédie** la bonne requête Doctrine au bon moment → vous cliquez et Doctrine vous donne les arrêts → vous intégrez ça dans vos conclusions. Ce sont 2 outils complémentaires sur 2 segments différents de votre workflow. Pas concurrents.
 
 ---
 
@@ -70,15 +74,19 @@
 
 **Préemption proactive — à dire AVANT qu'elle ne le pense (en intro de la démo, Bloc 2 du script) :**
 
-> Je préempte une objection que j'ai entendue récemment : « c'est juste une application qui analyse et extrait des documents, j'en ai déjà une ». C'est exact sur la partie haute. Mais le différenciateur de LegalCase, ce n'est pas l'extraction de pièces — ça, c'est devenu un commun de marché. Le différenciateur, c'est ce qu'on fait avec les pièces une fois extraites : des outils décisionnels métier qui se pré-remplissent automatiquement.
+> Je préempte une objection que j'ai entendue récemment : « c'est juste une application qui analyse et extrait des documents, j'en ai déjà une ». C'est exact sur la partie haute pour le PDF lisible. Mais LegalCase apporte deux choses que votre OCR actuel ne fait pas :
+>
+> (1) **Legal Vision** — la capacité de lire ce qu'aucun OCR classique ne sait traiter correctement : captures iMessage et SMS managériaux avec qui parle / quand / quel ton / escalade détectée, photos téléphone (porte forcée, certificat médical), écritures manuscrites, vidéos courtes de scène. Pour quelqu'un qui fait du droit social et de l'immigration comme vous, ce sont les pièces du quotidien.
+>
+> (2) **Les outils décisionnels** qui se pré-remplissent automatiquement à partir de tout ce qui a été extrait — c'est ce que je vais vous montrer maintenant. Calculs d'indemnités, scoring de validité de licenciement, raisonnement juridique automatisé. Ce n'est pas de l'extraction, c'est ce qu'on fait avec.
 
 **Si elle ressort l'objection en fin de démo malgré la préemption :**
 
-> Je comprends la lecture, mais je voudrais qu'on reprenne précisément : ce que j'ai montré, l'outil F-DT-08 qui calcule un score de validité du licenciement en tenant compte de la procédure, des motifs, des courriers d'alerte, des refus de formation contestables — ça ne se fait pas dans un outil d'extraction de documents. Ça suppose un raisonnement juridique. C'est ce raisonnement automatisé qui distingue LegalCase. L'extraction est juste l'amont nécessaire.
+> Je comprends la lecture, mais je voudrais qu'on reprenne précisément : ce que j'ai montré, l'outil F-DT-08 qui calcule un score de validité du licenciement en tenant compte de la procédure, des motifs, des courriers d'alerte, des refus de formation contestables — ça ne se fait pas dans un outil d'extraction de documents. Et Legal Vision sur une capture SMS managérial ou une photo de scène — votre OCR actuel ne le traite pas non plus. Donc on parle de deux capacités complémentaires : extraction de base (commodity) + Legal Vision + outils décisionnels (différenciateur).
 
 **Question retour à lui poser :**
 
-> Concrètement, quel est l'outil que vous utilisez aujourd'hui pour extraire vos documents ? Et est-ce qu'il vous pré-remplit un calcul d'indemnité ou un score de validité ? Si oui, je suis preneur du nom — c'est utile à mon analyse marché. Si non, c'est exactement le gap que je couvre.
+> Concrètement, quel est l'outil que vous utilisez aujourd'hui pour extraire vos documents ? Et est-ce qu'il sait traiter une capture iMessage, une photo de carte d'identité étrangère, une vidéo de 30 secondes ? Et est-ce qu'il vous pré-remplit un calcul d'indemnité ou un score de validité ? Si oui à tout, je suis preneur du nom — c'est utile à mon analyse marché. Si non, c'est exactement le gap que je couvre.
 
 ---
 
@@ -143,13 +151,15 @@
 
 **Réponse :**
 
-> Trois différenciateurs clairs :
+> Quatre différenciateurs clairs :
 >
 > 1. **Outils décisionnels métier pré-remplis** — 92 outils par domaine et par pays (FR + BE), pas du généraliste. Harvey ou Doctrine font de l'IA généraliste sur du juridique. Moi je fais du spécialisé par situation métier (validité licenciement, comparateur indemnités, recours préfecture, prestation compensatoire…). Vous voyez la différence concrète sur l'écran.
 >
-> 2. **Souveraineté européenne** — hébergement Paris, pas de Cloud Act. Si vous prenez Harvey demain, vos pièces dossier passent par des serveurs US sans recours possible en cas de réquisition fédérale. Avec moi, vos données ne sortent jamais d'Europe.
+> 2. **Legal Vision — la capacité de lire les pièces que les OCR classiques ne traitent pas** : captures iMessage et SMS (qui parle, quand, dans quel ton, escalade détectée), photos téléphone (porte forcée, certificat médical), écritures manuscrites, vidéos de scène (60s max). **Aucun concurrent legaltech (Harvey, CoCounsel, Doctrine, Jimini, Luminance) n'ingère la vidéo en pièce de dossier.** Pour vous qui faites du droit social et de l'immigration, c'est précisément les pièces du quotidien : capture écran préfecture, SMS managériaux, photos visa, conversations whatsapp RH.
 >
-> 3. **Prix d'entrée 2-3× inférieur** — c'est ma phase d'entrée, je gagne votre confiance maintenant pour revaloriser plus tard tout en grandfathering les premiers clients.
+> 3. **Souveraineté européenne** — hébergement Paris, pas de Cloud Act. Si vous prenez Harvey demain, vos pièces dossier passent par des serveurs US sans recours possible en cas de réquisition fédérale. Avec moi, vos données ne sortent jamais d'Europe.
+>
+> 4. **Prix d'entrée 2-3× inférieur** — c'est ma phase d'entrée, je gagne votre confiance maintenant pour revaloriser plus tard tout en grandfathering les premiers clients.
 
 ---
 

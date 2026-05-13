@@ -25,6 +25,7 @@
 
 - [ ] **Confirmer la timezone** exacte avec Renversez par mail (Calendly affiche « Eastern Time » avec « Invitee Time Zone : Central European Time » — ambiguïté à lever)
 - [ ] **Cas Dupont pré-chargé dans TON compte démo** : 7 pièces uploadées + analyse lancée + résultats visibles (synthèse + outils décisionnels accessibles)
+- [ ] **F-241 boutons jurispru testés en pré-démo** : ouvrir page Points juridiques Dupont, cliquer sur Doctrine FR sur 1 point — vérifier que doctrine.fr ouvre la recherche pré-remplie correctement. **Si pattern d'URL changé côté Doctrine → fallback : ne pas cliquer en live, montrer juste les 3 boutons et expliquer.**
 - [ ] **Répétition du déroulé démo** sur ton propre écran (15 min) pour éviter surprises live
 - [ ] Synthèse Dupont en PDF prête à afficher si besoin (`test-data/synthese-dupont-licenciement-syntec-v2-2026-04-08.pdf`)
 - [ ] Outils décisionnels droit du travail testés : F-DT-08 (validité licenciement) et F-DT-09 (comparateur indemnités) — pré-remplis sur Dupont
@@ -66,15 +67,17 @@ Sur Mengue, tu lui as laissé piloter la conversation autour du droit pénal abs
 
 #### Q1 — Open data jurisprudence (1.5 min)
 
-> « Première question, jurisprudence open data : **LegalCase ne fait pas de recherche de jurisprudence**. Ce n'est pas mon couloir. Doctrine, Lexis Plus, Lefebvre couvrent très bien la jurispru.
+> « Première question, jurisprudence open data : **LegalCase ne remplacera jamais Doctrine, Lexis Plus ou Lextenso** — ce n'est pas mon couloir, et je ne prétendrai pas le contraire. **Par contre, j'ai livré ce matin un connecteur léger** qui va vous faire gagner du temps tous les jours : sous chaque point juridique de votre synthèse, vous avez **3 boutons — Doctrine, Lexis+, Lextenso**. Vous cliquez, votre outil habituel s'ouvre dans un nouvel onglet avec **la recherche déjà pré-remplie** — mots-clés extraits du point, propres, sans les ‘le, la, dans, pour'. Vous gardez votre abonnement, votre habitude, votre droit de citation. Je vous fais simplement gagner les 30 secondes de copier-coller × N points × N dossiers par jour. **Je vous le montre dans 8 minutes sur le cas Dupont.**
 >
-> Mon couloir, c'est **l'aval** : une fois que vous avez le dossier de votre client sur le bureau, qu'est-ce qu'on en fait. LegalCase prend les pièces, en sort une synthèse structurée, puis surtout pré-remplit des outils décisionnels — calcul d'indemnités prud'homales avec score de validité du licenciement, analyse de validité d'un titre de séjour, calcul de prestation compensatoire, recours préfecture, etc.
->
-> Donc oui, vous aurez toujours besoin de Doctrine pour citer un arrêt précis dans vos conclusions. Mais une fois la jurisprudence trouvée, LegalCase vous fait gagner les heures qui sont actuellement perdues à recalculer manuellement les barèmes, vérifier la validité d'une procédure, recroiser les pièces. »
+> Mon couloir, c'est **l'aval** : LegalCase prend les pièces, en sort une synthèse structurée, pré-remplit les outils décisionnels — calcul d'indemnités prud'homales avec score de validité, analyse de validité d'un titre de séjour, calcul de prestation compensatoire, recours préfecture. Et maintenant il vous expédie la bonne requête Doctrine au bon moment. C'est ce que j'appelle un hub orchestrateur, pas un concurrent. »
 
-**Si elle pousse** : *« vous envisagez d'intégrer la jurispru ? »*
+**Si elle pousse** : *« pourquoi pas une intégration plus poussée avec accès direct aux résultats dans LegalCase ? »*
 
-> « C'est une question que m'ont posée 3 prospects sur 3 cette semaine. Honnêtement : pas tant que le marché jurispru reste tenu par les éditeurs établis. Construire un produit jurispru qui rivalise avec Doctrine demanderait 2 ans d'investissement. Construire un outil décisionnel qui exploite ce que Doctrine ne fait pas — le travail à l'échelle du dossier individuel — c'est mon angle. »
+> « Honnêtement : Doctrine, Lexis Plus, Lextenso ne donnent pas d'accès API à un solo founder comme moi. Et même si je l'obtenais, je deviendrais dépendant de leurs CGU, et je vous facturerais l'accès indirectement. Le connecteur en deeplink que je viens de livrer (votre outil s'ouvre dans un nouvel onglet avec la query pré-remplie) est techniquement simple, légal, compatible avec n'importe quel éditeur, sans lock-in inversé. Et un import structuré des résultats jurispru dans LegalCase pour enrichir la synthèse, c'est tracé en backlog — je le ferai quand 5-10 utilisateurs me diront que c'est leur point dur. »
+
+**Si elle demande** : *« et le belge alors, c'est compatible ? »* (anticipation, elle n'est probablement pas BE mais le SAF a des membres BE)
+
+> « Oui — si votre workspace est en Belgique, le bouton Doctrine pointe sur `doctrine.be`. Lexis+ et Lextenso n'ont pas d'offre BE pertinente en V1, donc en BE seul Doctrine BE apparaît. Si vous travaillez sur de la jurisprudence belge spécifique, dites-le moi, on peut ajouter Strada Lex BE par exemple — 1 jour de dev. »
 
 #### Q2 — Prix et résiliation (2.5 min)
 
@@ -94,9 +97,15 @@ Sur Mengue, tu lui as laissé piloter la conversation autour du droit pénal abs
 
 **Phrase d'amorce critique :**
 
-> « Avant de vous montrer la démo, je préempte une objection que j'ai entendue récemment : *« c'est juste une application qui analyse et extrait des documents, j'en ai déjà une »*. C'est exact pour la partie haute. Mais le différenciateur de LegalCase, ce n'est pas l'extraction de pièces — ça, c'est devenu un commun de marché. Le différenciateur, c'est **ce qu'on fait avec les pièces une fois extraites** : des outils décisionnels métier qui se pré-remplissent automatiquement. C'est ça que vous allez voir maintenant. »
+> « Avant la démo, je préempte une objection que j'ai entendue récemment : *« c'est juste une application qui analyse et extrait des documents, j'en ai déjà une »*. C'est vrai pour le PDF lisible — l'OCR de base est devenu commodity. Mais LegalCase apporte **deux choses que votre OCR actuel ne fait pas, et qu'aucun concurrent legaltech ne fait** :
+>
+> Un — **Legal Vision** : capacité à lire les pièces que les OCR classiques ne traitent pas correctement. Captures iMessage avec qui parle, quand, dans quel ton, escalade détectée. Photos téléphone — porte forcée, certificat médical. Écritures manuscrites. Vidéos courtes de scène. **Aucun concurrent — Harvey, CoCounsel, Doctrine, Jimini, Luminance — ne traite la vidéo en pièce de dossier**. Pour vous qui faites du droit social et de l'immigration, c'est précisément les pièces du quotidien : capture écran préfecture, SMS managériaux, photos visa, conversations WhatsApp en arabe ou en chinois.
+>
+> Deux — **les outils décisionnels métier** qui se pré-remplissent automatiquement depuis tout ce qui a été extrait. Calculs d'indemnités, scoring de validité de licenciement, raisonnement juridique automatisé. Ce n'est pas de l'extraction, c'est ce qu'on fait avec.
+>
+> Ces deux capacités, je vais vous les montrer maintenant. »
 
-**Cette phrase évite à Renversez de finir la démo avec la même conclusion que Mengue.** Elle pose le cadre interprétatif avant qu'elle voit l'écran.
+**Cette phrase évite à Renversez de finir la démo avec la même conclusion que Mengue.** Elle pose le cadre interprétatif avant qu'elle voit l'écran ET cite explicitement les pièces non-PDF (SMS, photos, vidéos) qui parlent immédiatement à sa pratique.
 
 ### Bloc 3 — Démo sur cas réel — droit du travail (10–22 min — 12 minutes)
 
@@ -119,7 +128,9 @@ Sur Mengue, tu lui as laissé piloter la conversation autour du droit pénal abs
 
 3. **(13-16) Synthèse structurée** : faits-clés (chronologie 2018→2026), parties, salaire, ancienneté, motif déclaré, pièces présentes/manquantes. **Insister sur** : *« regardez ici — ‘Pièces manquantes : rapport d'audit qualité, plan de progrès individualisé annoncé le 10 octobre 2025 non produit'. Ça, c'est l'IA qui a lu les 7 documents et a remarqué que l'employeur fait référence à des éléments qu'il ne produit pas. Vous gagnez ce que vous mettriez 30 minutes à faire à la main. »*
 
-4. **(16-20) Outil décisionnel F-DT-08 — Validité du licenciement** : tu cliques sur l'outil. Il est déjà pré-rempli avec les critères Dupont. Tu montres :
+4. **(15-16) Boutons jurispru — réponse à sa Q1 « open data »** (livré ce matin) : *« Vous voyez la page Points juridiques ici » — cliquer sur un point ouvert, ex. ‘Licenciement pour insuffisance professionnelle non motivé par des éléments tangibles'. Sous le texte du point, montrer la ligne ‘Rechercher la jurisprudence : Doctrine | Lexis+ | Lextenso'. **Cliquer sur Doctrine** → un nouvel onglet s'ouvre sur doctrine.fr avec la recherche ‘licenciement insuffisance professionnelle motivé tangibles' pré-remplie. **Phrase clé** : « Voilà la réponse concrète à votre question open data. Je n'ai pas réinventé Doctrine, je vous évite simplement les 30 secondes de copier-coller — et je le fais aussi pour Lexis+ et Lextenso. Si je ne suis pas votre éditeur préféré, dites-le moi, j'ajoute. » Refermer l'onglet, revenir à LegalCase.*
+
+5. **(16-20) Outil décisionnel F-DT-08 — Validité du licenciement** : tu cliques sur l'outil. Il est déjà pré-rempli avec les critères Dupont. Tu montres :
    - **Type de licenciement** détecté : motif personnel non-disciplinaire (insuffisance pro)
    - **Procédure** : convocation OK, délai 5 jours ouvrables OK, entretien tenu OK, notification > 2 jours ouvrables OK ✓
    - **Caractère réel et sérieux** : ⚠️ alertes — refus de formation contestable (preuves dans pièce 07), retard projet sans réajustement délais formalisé, plan de progrès annoncé non mis en œuvre
@@ -128,7 +139,7 @@ Sur Mengue, tu lui as laissé piloter la conversation autour du droit pénal abs
 
    **Phrase clé à dire ici** : *« Ce que vous voyez, ce n'est pas un OCR — c'est un raisonnement juridique automatisé qui vous évite 1 à 2 heures de recoupement par dossier. »*
 
-5. **(20-22) Outil F-DT-09 — Comparateur indemnités** : pré-rempli aussi. Indemnité conventionnelle Syntec calculée (~7 000-9 000 € selon barème), barème Macron applicable (4-12 mois soit 16 800-50 400 €), indemnité préavis 3 mois (12 600 €). **« En 30 secondes, vous avez la fourchette pour vos conclusions. Là où aujourd'hui vous tapez les chiffres dans un Excel maison. »**
+6. **(20-22) Outil F-DT-09 — Comparateur indemnités** : pré-rempli aussi. Indemnité conventionnelle Syntec calculée (~7 000-9 000 € selon barème), barème Macron applicable (4-12 mois soit 16 800-50 400 €), indemnité préavis 3 mois (12 600 €). **« En 30 secondes, vous avez la fourchette pour vos conclusions. Là où aujourd'hui vous tapez les chiffres dans un Excel maison. »**
 
 ### Bloc 4 — Bridge immigration (22–25 min — 3 minutes)
 
