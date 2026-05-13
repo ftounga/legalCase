@@ -1359,33 +1359,35 @@ describe('CaseFileDetailComponent', () => {
       analysisDocuments: [],
     });
 
-    // U-CFD-124-01 : premier chargement → pas de refresh (dashboard charge seul via ngOnInit)
-    it('U-CFD-124-01 : premier chargement de synthèse → pas de triggerRefresh', () => {
+    // U-CFD-124-01 : premier chargement → triggerRefresh appelé (cas Vermeersch BE F-IA-04 2026-05-11 :
+    // le panel décisionnel doit recharger sa visibilité dès la première version pour que les outils
+    // CONTEXTUAL deviennent visibles immédiatement)
+    it('U-CFD-124-01 : premier chargement de synthèse → triggerRefresh appelé une fois', () => {
       const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
       caseAnalysisServiceSpy.getAnalysis.mockReturnValue(of(makeResult(1)));
 
       component.loadSynthesis('cf1');
 
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    // U-CFD-124-02 : nouvelle version après polling → triggerRefresh
-    it('U-CFD-124-02 : version change de 1 à 2 → triggerRefresh appelé', () => {
-      const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
-
-      // Premier load : version 1, pas de refresh
-      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(1)));
-      component.loadSynthesis('cf1');
-      expect(spy).not.toHaveBeenCalled();
-
-      // Deuxième load (ré-analyse terminée) : version 2 → refresh
-      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(2)));
-      component.loadSynthesis('cf1');
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    // U-CFD-124-03 : même version rechargée (polling tick) → pas de refresh répété
-    it('U-CFD-124-03 : même version rechargée 3 fois → triggerRefresh appelé 0 fois', () => {
+    // U-CFD-124-02 : nouvelle version après polling → triggerRefresh re-appelé
+    it('U-CFD-124-02 : version change de 1 à 2 → triggerRefresh appelé 2 fois (1 par version)', () => {
+      const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
+
+      // Premier load : version 1 → 1 refresh
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(1)));
+      component.loadSynthesis('cf1');
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      // Deuxième load (ré-analyse terminée) : version 2 → 2 refresh au total
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(2)));
+      component.loadSynthesis('cf1');
+      expect(spy).toHaveBeenCalledTimes(2);
+    });
+
+    // U-CFD-124-03 : même version rechargée (polling tick) → pas de refresh répété au-delà du 1er
+    it('U-CFD-124-03 : même version rechargée 3 fois → triggerRefresh appelé 1 seule fois (premier load)', () => {
       const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
 
       caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(5)));
@@ -1395,7 +1397,7 @@ describe('CaseFileDetailComponent', () => {
       caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(5)));
       component.loadSynthesis('cf1');
 
-      expect(spy).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     // U-CFD-124-04 : résultat null (pas d'analyse existante) → pas de refresh
@@ -1460,13 +1462,13 @@ describe('CaseFileDetailComponent', () => {
     });
 
     // T-CA-04 : tick polling DONE répété → triggerRefresh non re-appelé (déduplication via version)
-    it('T-CA-04 : tick polling DONE répété → triggerRefresh appelé une seule fois max', () => {
+    it('T-CA-04 : tick polling DONE répété → triggerRefresh non re-appelé (déduplication via version)', () => {
       const refreshSpy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
 
-      // Premier load synthèse hors polling → version 1 baseline (pas de refresh)
+      // Premier load synthèse hors polling → version 1 baseline (1 refresh, F-IA-04 Vermeersch)
       caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(1)));
       component.loadSynthesis('cf1');
-      expect(refreshSpy).not.toHaveBeenCalled();
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
 
       // Polling démarre (PROCESSING)
       analysisJobServiceSpy.getJobs.mockReturnValueOnce(of([
@@ -1475,7 +1477,7 @@ describe('CaseFileDetailComponent', () => {
       component.loadAnalysisJobs('cf1');
       refreshSpy.mockClear();
 
-      // Tick avec DONE + même version 1 → loadSynthesis appelé MAIS triggerRefresh non
+      // Tick avec DONE + même version 1 → loadSynthesis appelé MAIS triggerRefresh non re-déclenché
       analysisJobServiceSpy.getJobs.mockReturnValue(of([
         buildJob('CASE_ANALYSIS', 'DONE'),
         buildJob('QUESTION_GENERATION', 'DONE'),
