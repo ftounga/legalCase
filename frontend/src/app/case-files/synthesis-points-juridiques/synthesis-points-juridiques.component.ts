@@ -5,9 +5,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { WorkspaceService } from '../../core/services/workspace.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
+import { JurisprudenceDeeplinksComponent } from '../../shared/jurisprudence-deeplinks/jurisprudence-deeplinks.component';
 
 const PREVIEW_MAX_CHARS = 200;
 
@@ -20,7 +22,7 @@ const PREVIEW_MAX_CHARS = 200;
   standalone: true,
   imports: [
     RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule,
-    SourceRefComponent,
+    SourceRefComponent, JurisprudenceDeeplinksComponent,
   ],
   templateUrl: './synthesis-points-juridiques.component.html',
   styleUrl: './synthesis-points-juridiques.component.scss',
@@ -30,6 +32,7 @@ export class SynthesisPointsJuridiquesComponent implements OnInit {
   synthesis = signal<CaseAnalysisResult | null>(null);
   loading = signal(true);
   expandedIds = signal<Set<number>>(new Set());
+  workspaceCountry = signal<'FR' | 'BE'>('FR');
 
   private readonly sourceMap = computed(() => {
     const map = new Map<string, string>();
@@ -43,11 +46,17 @@ export class SynthesisPointsJuridiquesComponent implements OnInit {
     private route: ActivatedRoute,
     private caseFileService: CaseFileService,
     private caseAnalysisService: CaseAnalysisService,
+    private workspaceService: WorkspaceService,
   ) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
     const versionParam = this.route.snapshot.queryParamMap.get('version');
+
+    this.workspaceService.getCurrentWorkspace().subscribe({
+      next: ws => this.workspaceCountry.set(ws.country === 'BELGIQUE' ? 'BE' : 'FR'),
+      error: () => this.workspaceCountry.set('FR'),
+    });
 
     this.caseFileService.getById(id).subscribe({
       next: cf => {
