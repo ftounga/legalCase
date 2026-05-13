@@ -30,3 +30,9 @@ screenshoot
 # Landing page (artefact de démo, non versionné)
 /landing/
 e2e/screenshots/output/
+
+# Claude Code local (settings + worktrees agents)
+.claude/
+
+# Artefacts intermédiaires du motion designer (garder uniquement les rendus finaux)
+docs/marketing/demo-dossier-vision/resultat/_workdir/

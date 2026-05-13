@@ -1,0 +1,133 @@
+RECUEIL DES COURRIELS D'ALERTE ADRESSÉS PAR L'EMPLOYEUR
+Communiqué dans le cadre de la procédure de licenciement de Monsieur Thomas Dupont
+
+Trois courriels formels ont été adressés à Monsieur Dupont par sa hiérarchie au cours de l'année 2025, conformément à ce qui est mentionné dans la lettre de notification du licenciement du 15 janvier 2026.
+
+
+========================================================================
+COURRIEL N° 1 — 12 mai 2025
+========================================================================
+
+De : Alexandre Morel <alexandre.morel@datavision.fr>
+À : Thomas Dupont <thomas.dupont@datavision.fr>
+Cc : Sophie Renard <sophie.renard@datavision.fr>
+Date : Lundi 12 mai 2025, 14h17
+Objet : Suivi du projet « Refonte API Clients » — alerte sur les délais
+
+Thomas,
+
+Je reviens vers toi suite à notre point hebdomadaire de ce matin concernant le projet « Refonte API Clients » (P-2025-014).
+
+Le planning initial prévoyait :
+- Phase 1 (conception détaillée) : achevée le 28 février 2025
+- Phase 2 (développement modules cœur) : achevée le 15 avril 2025
+- Phase 3 (intégration et tests) : du 16 avril au 15 juin 2025
+- Livraison finale : 30 juin 2025
+
+À ce jour, nous sommes encore en Phase 2 sur les modules « Authentification » et « Gestion des permissions », alors que la Phase 3 aurait dû avoir débuté il y a près d'un mois. Le pourcentage d'avancement réel que tu as communiqué est de 62 %, contre une cible théorique de 85 % à cette date.
+
+Je te rappelle que ce projet conditionne le déploiement de la version 3.2 prévu pour le 15 juillet 2025, qui a déjà été annoncé à trois clients majeurs (TransitGlobal, RétaBox, Astoria Conseil). Tout retard supplémentaire entraînera des conséquences contractuelles que l'entreprise ne peut pas se permettre.
+
+Je te propose les actions suivantes pour reprendre la maîtrise du calendrier :
+1. Un point quotidien de 15 minutes à 9h30 jusqu'à fin mai pour identifier et lever les blocages
+2. Le rattachement temporaire de Yann Levrier (junior) pour absorber les tâches de tests
+3. Un atelier d'aide à la conception architecture la semaine du 19 mai si nécessaire
+
+Merci de me confirmer ta disponibilité pour démarrer dès demain matin.
+
+Cordialement,
+Alexandre Morel
+Directeur technique
+DataVision SAS
+
+
+========================================================================
+COURRIEL N° 2 — 8 juillet 2025
+========================================================================
+
+De : Alexandre Morel <alexandre.morel@datavision.fr>
+À : Thomas Dupont <thomas.dupont@datavision.fr>
+Cc : Sophie Renard <sophie.renard@datavision.fr>, Claire Lefèvre <claire.lefevre@datavision.fr>
+Date : Mardi 8 juillet 2025, 16h42
+Objet : Projet « Refonte API Clients » — situation au 30 juin et suite
+
+Thomas,
+
+Comme indiqué lors de notre réunion hebdomadaire du 7 juillet, le projet « Refonte API Clients » n'a pas pu être livré à la date prévue du 30 juin 2025. À cette date, le projet présentait encore les éléments suivants en suspens :
+
+- Module « Authentification » : 78 tests d'intégration sur 95 en succès. 17 tests en échec dont 9 sur les flux OAuth2.
+- Module « Gestion des permissions » : couverture de code à 41 %, en dessous du seuil minimum de 80 % défini par l'équipe.
+- Documentation API : 0 endpoint documenté sur les 34 nouveaux endpoints introduits.
+
+Cette situation a entraîné le report du déploiement v3.2 et un signalement officiel auprès des trois clients concernés, avec impact sur le SLA de TransitGlobal (pénalité de 2 800 € appliquée).
+
+Je tiens à te rappeler que les actions correctives que je t'avais proposées dans mon courriel du 12 mai (point quotidien, support junior, atelier conception) n'ont pas été menées à leur terme :
+- Les points quotidiens ont cessé après 3 jours
+- Yann Levrier a été réaffecté à un autre projet faute de coordination
+- L'atelier conception du 21 mai n'a pas eu lieu, tu avais indiqué que tu n'étais pas disponible
+
+Je te demande de bien vouloir me communiquer avant le 15 juillet 2025 :
+1. Un plan détaillé de finalisation des modules en suspens, avec dates engageantes
+2. Une analyse des causes profondes des retards, vue de ton côté
+3. Tes propositions concrètes pour éviter que ce type de situation se reproduise
+
+Sophie Renard (RH) sera également associée au suivi de cette situation à compter de cette semaine.
+
+Cordialement,
+Alexandre Morel
+Directeur technique
+DataVision SAS
+
+
+========================================================================
+COURRIEL N° 3 — 10 octobre 2025
+========================================================================
+
+De : Alexandre Morel <alexandre.morel@datavision.fr>
+À : Thomas Dupont <thomas.dupont@datavision.fr>
+Cc : Sophie Renard <sophie.renard@datavision.fr>, Claire Lefèvre <claire.lefevre@datavision.fr>
+Date : Vendredi 10 octobre 2025, 11h08
+Objet : Bilan trimestriel et situation préoccupante
+
+Thomas,
+
+Suite à notre entretien individuel du 5 septembre 2025, dont le compte rendu te sera transmis prochainement, je souhaite formaliser par écrit le bilan trimestriel de ta situation, qui demeure préoccupante.
+
+Sur la période juillet-septembre 2025 :
+- Le projet « Refonte API Clients » a été finalement livré le 15 septembre 2025, soit avec 11 semaines de retard sur le planning initial.
+- Tu as été affecté au projet « Tableau de bord analytique » (P-2025-028) le 1er septembre 2025, avec une cible de livraison au 30 novembre 2025. Au 30 septembre, l'avancement réel est de 18 % contre 33 % théorique.
+- L'audit qualité de septembre 2025 a relevé un taux de duplication de code de 34 % sur tes contributions, contre une moyenne d'équipe de 8 %. Le rapport complet est disponible auprès de Marc Vellaire (Quality Lead).
+- Tu as décliné la formation « Tests automatisés et intégration continue » que je te proposais le 2 septembre 2025.
+
+Je suis préoccupé par la trajectoire de ta performance sur cette année 2025. Je rappelle que les retards et la qualité de tes livrables impactent directement nos engagements client et la cohésion de l'équipe.
+
+Je te propose :
+1. Un entretien dédié avec Sophie Renard la semaine du 13 octobre pour faire le point RH
+2. Une mise en place d'un plan de progrès individualisé sur 8 semaines avec des objectifs hebdomadaires mesurables
+3. Une nouvelle proposition de formation, à définir ensemble en fonction des compétences à renforcer en priorité
+
+Je reste à ta disposition pour échanger.
+
+Cordialement,
+Alexandre Morel
+Directeur technique
+DataVision SAS
+
+
+========================================================================
+
+OBSERVATIONS DU CONSEIL DE M. DUPONT
+
+L'examen des trois courriels appelle plusieurs observations :
+
+1. Aucun de ces courriels ne contient l'expression « avertissement » au sens du règlement intérieur (article 12). Ils sont rédigés sous une forme de « point d'étape » et non comme des sanctions disciplinaires.
+
+2. Le courriel du 12 mai 2025 propose des mesures d'accompagnement (point quotidien, support junior, atelier) dont la mise en œuvre effective n'a pas été démontrée par l'employeur.
+
+3. Le courriel du 8 juillet 2025 demande à M. Dupont une « analyse des causes profondes des retards, vue de son côté ». La réponse écrite éventuelle de M. Dupont n'est pas produite au dossier — élément qui pourrait être déterminant.
+
+4. Le courriel du 10 octobre 2025 propose un « plan de progrès individualisé sur 8 semaines » qui n'a manifestement pas été mis en œuvre avant l'engagement de la procédure de licenciement (convocation du 20 décembre 2025, soit 10 semaines après).
+
+5. La mention d'une « cohésion de l'équipe » dans le courriel du 10 octobre, sans élément factuel circonstancié, pourrait être qualifiée de motif déguisé non démontré.
+
+À approfondir : demander à l'employeur la production des rapports d'audit qualité de juillet et octobre 2025, ainsi que la formalisation du plan de progrès individualisé annoncé le 10 octobre 2025.

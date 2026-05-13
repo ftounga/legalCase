@@ -1,0 +1,145 @@
+RECUEIL DES COURRIELS RELATIFS AUX FORMATIONS PROPOSÉES
+Communiqué dans le cadre de la procédure de licenciement de Monsieur Thomas Dupont
+
+Deux échanges de courriels relatifs à des formations proposées par l'employeur sont versés au dossier. L'employeur les qualifie de « refus de formation ». Le salarié conteste cette qualification.
+
+
+========================================================================
+FORMATION 1 — « Architecture logicielle et bonnes pratiques »
+========================================================================
+
+PROPOSITION DE L'EMPLOYEUR
+
+De : Sophie Renard <sophie.renard@datavision.fr>
+À : Thomas Dupont <thomas.dupont@datavision.fr>
+Cc : Alexandre Morel <alexandre.morel@datavision.fr>
+Date : Jeudi 10 avril 2025, 09h54
+Objet : Proposition de formation — « Architecture logicielle et bonnes pratiques » — TechAdvance
+
+Bonjour Thomas,
+
+Suite à l'échange entre Alexandre et toi sur tes besoins en montée en compétences sur les sujets architecture, nous souhaitons te proposer une inscription à la formation :
+
+   Intitulé : « Architecture logicielle et bonnes pratiques »
+   Organisme : TechAdvance Formation
+   Dates : du lundi 14 avril 2025 au vendredi 18 avril 2025
+   Lieu : 12 rue Bellecour, 69002 Lyon
+   Durée : 5 jours (35 heures)
+   Format : présentiel
+   Prise en charge : intégralement par l'entreprise via notre budget OPCO
+
+Cette formation est positionnée comme une remise à niveau sur les fondamentaux d'architecture qui constitueront un prérequis pour les projets que tu animeras en 2025-2026.
+
+Peux-tu me confirmer ton inscription d'ici mardi 12 avril en fin de journée ? L'organisme a besoin du retour pour finaliser la liste des participants.
+
+Cordialement,
+Sophie Renard
+Responsable Ressources Humaines
+DataVision SAS
+
+
+RÉPONSE DE MONSIEUR DUPONT
+
+De : Thomas Dupont <thomas.dupont@datavision.fr>
+À : Sophie Renard <sophie.renard@datavision.fr>
+Cc : Alexandre Morel <alexandre.morel@datavision.fr>
+Date : Lundi 14 avril 2025, 08h22
+Objet : Re : Proposition de formation — « Architecture logicielle et bonnes pratiques » — TechAdvance
+
+Bonjour Sophie,
+
+Merci pour cette proposition de formation. Je suis preneur sur le principe, l'intitulé correspond à des compétences que je souhaite consolider.
+
+Toutefois, les dates proposées (du 14 au 18 avril 2025) tombent exactement sur la semaine prévue pour la mise en production de la version 3.1 de notre plateforme (déploiement le 15 avril, hypercare jusqu'au 18 avril). J'ai été identifié par Alexandre comme la personne d'astreinte pour cette MEP en raison de mes développements sur le module Authentification.
+
+Serait-il possible de :
+- Demander un report sur la session suivante (mai ou juin 2025) ?
+- Ou d'organiser un swap d'astreinte avec un autre développeur si tu juges la formation prioritaire sur la MEP ?
+
+Je tiens à suivre cette formation, mais je ne peux pas être présent sur cette semaine sans risque pour la mise en production.
+
+Cordialement,
+Thomas Dupont
+
+
+PAS DE RÉPONSE TRACÉE DE L'EMPLOYEUR
+
+Aucun élément n'est produit par l'employeur au dossier concernant la suite donnée à cette demande de report. La formation n'a pas eu lieu pour Monsieur Dupont.
+
+Observation du conseil : la qualification de « refus de formation » est contestable. Le salarié a explicitement déclaré être preneur de la formation et a proposé des alternatives. C'est l'absence de réponse de l'employeur sur la demande de report qui a empêché le suivi de la formation.
+
+
+========================================================================
+FORMATION 2 — « Tests automatisés et intégration continue »
+========================================================================
+
+PROPOSITION DE L'EMPLOYEUR
+
+De : Alexandre Morel <alexandre.morel@datavision.fr>
+À : Thomas Dupont <thomas.dupont@datavision.fr>
+Cc : Sophie Renard <sophie.renard@datavision.fr>
+Date : Mardi 2 septembre 2025, 11h33
+Objet : Formation — « Tests automatisés et intégration continue »
+
+Thomas,
+
+Comme évoqué lors de notre entretien individuel du 5 septembre — pardon, je veux dire suite à notre échange informel de la semaine dernière — je te propose une inscription à la formation :
+
+   Intitulé : « Tests automatisés et intégration continue (CI/CD) »
+   Organisme : à définir (3 propositions sont en cours d'examen)
+   Dates : à définir, courant octobre-novembre 2025
+   Durée : 3 jours
+   Format : présentiel ou distanciel selon organisme retenu
+
+Tu serais d'accord pour suivre cette formation ?
+
+Merci de me dire si oui ou non, je dois remonter ta décision au service Formation pour la sélection finale de l'organisme.
+
+Alexandre
+
+
+RÉPONSE DE MONSIEUR DUPONT
+
+De : Thomas Dupont <thomas.dupont@datavision.fr>
+À : Alexandre Morel <alexandre.morel@datavision.fr>
+Cc : Sophie Renard <sophie.renard@datavision.fr>
+Date : Lundi 8 septembre 2025, 17h48
+Objet : Re : Formation — « Tests automatisés et intégration continue »
+
+Alexandre,
+
+Je suis intéressé par le sujet et j'imagine bien la valeur que peut apporter une formation sur CI/CD. Avant de m'engager, j'aurais besoin de quelques précisions :
+
+1. Quel est l'organisme finalement retenu et le programme détaillé ?
+2. La formation est-elle plutôt orientée Jenkins / GitLab CI / GitHub Actions ? Cela change beaucoup ce qu'elle m'apportera selon ce qu'on utilise effectivement chez nous.
+3. La durée de 3 jours sera-t-elle prise sur du temps de production ou des journées dédiées ?
+4. Quels objectifs concrets attendez-vous au retour de cette formation ?
+
+Je préfère poser ces questions en amont pour m'engager pleinement plutôt que de découvrir en arrivant que la formation ne correspond pas au besoin réel. Je suis aussi disposé à étudier d'autres pistes (autoformation accompagnée, mentorat interne) si elles s'avéraient plus efficaces.
+
+Pour info, je suis pleinement disponible pour rentrer sur ce sujet — c'est juste que je veux qu'on optimise le temps investi.
+
+Cordialement,
+Thomas
+
+
+PAS DE RÉPONSE TRACÉE DE L'EMPLOYEUR
+
+Aucun élément n'est produit par l'employeur au dossier concernant la suite donnée à la demande de précisions. La formation n'a pas eu lieu pour Monsieur Dupont. Dans la lettre de licenciement du 15 janvier 2026, l'employeur qualifie l'absence de suivi de cette formation de « refus déclin sans motif particulier ».
+
+
+========================================================================
+
+OBSERVATIONS DU CONSEIL DE M. DUPONT
+
+1. Dans les deux cas, le salarié a manifesté un intérêt explicite pour la formation proposée. À aucun moment il n'a opposé un refus de principe.
+
+2. Pour la formation d'avril 2025, le salarié a sollicité un report en raison d'une mise en production critique sur laquelle il avait été identifié comme personne d'astreinte. La demande de report n'a pas reçu de réponse de l'employeur.
+
+3. Pour la formation de septembre 2025, le salarié a sollicité des précisions raisonnables sur l'organisme, le contenu et le calendrier. Ces demandes n'ont pas reçu de réponse de l'employeur.
+
+4. L'article L. 6321-1 du Code du travail impose à l'employeur d'assurer l'adaptation des salariés à leur poste de travail et de veiller au maintien de leur capacité à occuper un emploi. La proposition d'une formation sans précision suffisante du contenu et sans suite donnée aux demandes de précisions du salarié pose la question du caractère sérieux et effectif de cette obligation.
+
+5. La qualification de ces deux situations comme « refus de formation » dans la lettre de licenciement du 15 janvier 2026 paraît juridiquement fragile et pourra être utilement contestée devant le Conseil de Prud'hommes.
+
+À approfondir : produire en demande la copie des deux mails de M. Dupont (14 avril et 8 septembre 2025) ainsi que l'absence de réponses, et solliciter la production par l'employeur de tout élément justifiant l'absence de suite donnée à ces demandes.

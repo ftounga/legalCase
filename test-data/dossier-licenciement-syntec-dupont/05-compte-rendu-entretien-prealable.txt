@@ -1,0 +1,108 @@
+COMPTE RENDU D'ENTRETIEN PRÉALABLE AU LICENCIEMENT
+
+Entreprise : DataVision SAS
+Date : 8 janvier 2026
+Heure de début : 10h00
+Heure de fin : 11h45
+Lieu : Salle de réunion « Bellecour » — 3e étage — 45 rue de la République, 69002 Lyon
+
+
+PERSONNES PRÉSENTES
+
+Représentants de l'employeur :
+- Madame Claire Lefèvre, Directrice Générale
+- Monsieur Alexandre Morel, Directeur technique
+- Madame Sophie Renard, Responsable Ressources Humaines
+
+Salarié :
+- Monsieur Thomas Dupont, Ingénieur développement senior
+
+Personne assistant le salarié :
+- Monsieur Julien Garnier, membre titulaire du Comité Social et Économique (CSE)
+
+
+RAPPEL DU MOTIF DE L'ENTRETIEN
+
+Madame Lefèvre ouvre l'entretien en rappelant que la convocation envoyée le 20 décembre 2025 par lettre recommandée n° 1A 198 765 432 1 indiquait que la mesure envisagée à l'égard de Monsieur Dupont était un licenciement, sans en préciser à ce stade le motif. Elle indique que la présente réunion a pour objet d'exposer les motifs de la mesure envisagée et de recueillir les observations du salarié.
+
+Elle précise que l'entretien ne préjuge en rien d'une décision finale, qui ne sera prise qu'après examen attentif des explications fournies par Monsieur Dupont.
+
+
+EXPOSÉ DES MOTIFS PAR L'EMPLOYEUR
+
+Monsieur Morel prend la parole et expose les trois motifs constituant, selon l'entreprise, une insuffisance professionnelle :
+
+1. Retards répétés et significatifs sur les projets confiés au cours de l'année 2025, notamment :
+   - Projet « Refonte API Clients » (P-2025-014) : livraison initialement prévue le 30 juin 2025, effectivement livrée le 15 septembre 2025, soit un retard de 11 semaines.
+   - Projet « Tableau de bord analytique » (P-2025-028) : confié le 1er septembre 2025 pour livraison le 30 novembre 2025, achevé à environ 40 % à la date prévue.
+
+2. Qualité de code insuffisante et non-respect des standards de l'entreprise, relevés lors des revues de code de mars à novembre 2025 :
+   - Absence systématique de tests unitaires sur les contributions, en contradiction avec la politique « test-first » adoptée par l'équipe depuis janvier 2024.
+   - Taux de duplication de code mesuré à 34 % sur les contributions de Monsieur Dupont, contre une moyenne d'équipe de 8 %.
+   - 17 manquements aux conventions de nommage et à la documentation technique relevés dans les pull requests entre avril et novembre 2025.
+
+3. Refus de suivre les formations proposées pour pallier les difficultés constatées :
+   - Formation « Architecture logicielle et bonnes pratiques » dispensée par TechAdvance, refusée par courriel du 14 avril 2025.
+   - Formation « Tests automatisés et intégration continue » refusée le 8 septembre 2025.
+
+Monsieur Morel rappelle qu'il a alerté Monsieur Dupont à plusieurs reprises, notamment par courriels formels les 12 mai, 8 juillet et 10 octobre 2025, ainsi que lors des entretiens individuels des 20 mars, 15 juin et 5 septembre 2025.
+
+
+OBSERVATIONS ET EXPLICATIONS DE MONSIEUR DUPONT
+
+Monsieur Dupont conteste l'analyse présentée par l'employeur. Ses observations principales sont les suivantes :
+
+1. Concernant les retards sur les projets
+
+Monsieur Dupont soutient que les retards sur le projet « Refonte API Clients » sont imputables à des modifications répétées du périmètre demandé par la direction produit, modifications qui n'ont pas été accompagnées d'un réajustement formel des délais. Il indique avoir alerté son responsable hiérarchique sur ces dérives par courriel du 18 mai 2025, sans qu'aucune réponse écrite ne lui ait été apportée.
+
+Concernant le projet « Tableau de bord analytique », il rappelle qu'il a été affecté à plusieurs reprises sur des tâches d'astreinte de production durant la période concernée (3 nuits d'astreinte en septembre 2025, 2 en octobre 2025, 4 en novembre 2025), ce qui a réduit sa capacité de production effective sans que cette charge ne soit prise en compte dans la planification du projet.
+
+2. Concernant la qualité du code
+
+Monsieur Dupont conteste les chiffres avancés. Il indique que le taux de duplication de 34 % cité concerne un module hérité d'un précédent collaborateur, dont il a repris la maintenance sans refonte préalable. Il demande la communication des rapports d'audit qualité de juillet et octobre 2025 pour pouvoir analyser de manière contradictoire les mesures effectuées.
+
+Concernant l'absence de tests unitaires, il rappelle que la politique « test-first » a été adoptée en janvier 2024 et qu'il a respecté cette politique sur les développements nouveaux. Les manquements concernent essentiellement la maintenance de modules anciens pour lesquels une couverture rétroactive n'avait pas été décidée par l'équipe.
+
+3. Concernant le refus de formation
+
+Monsieur Dupont conteste le caractère de refus. Il indique que la formation « Architecture logicielle » proposée le 10 avril 2025 était positionnée sur une semaine durant laquelle il était mobilisé sur une mise en production critique (déploiement v3.1 le 15 avril 2025), et qu'il avait demandé un report à une date ultérieure, demande qui n'a pas été suivie d'effet.
+
+Pour la formation « Tests automatisés » de septembre 2025, il indique avoir répondu qu'il souhaitait en discuter du contenu détaillé avant de s'engager, sa réponse ayant été interprétée à tort comme un refus.
+
+4. Observations complémentaires
+
+Monsieur Dupont rappelle qu'il a, à plusieurs reprises au cours de l'année 2025, alerté sa hiérarchie sur la charge de travail excessive qui pesait sur lui (3 projets simultanés au troisième trimestre 2025) sans qu'aucun aménagement n'ait été décidé.
+
+Il considère que l'évaluation de sa performance n'a pas tenu compte de manière équitable de la complexité des situations rencontrées et que la procédure engagée présente un caractère prédéterminé.
+
+
+INTERVENTION DE MONSIEUR JULIEN GARNIER (CSE)
+
+Monsieur Garnier intervient pour rappeler à l'employeur que :
+- La charge de travail des équipes techniques a fait l'objet d'une alerte formelle du CSE lors de la réunion ordinaire du 18 novembre 2025, alerte demeurée sans réponse écrite à ce jour.
+- La politique de formation continue de l'entreprise prévoit un délai de prévenance minimum de 4 semaines pour les inscriptions, délai qui n'aurait pas été respecté dans le cas de la formation d'avril 2025.
+- Il s'étonne que la procédure de licenciement soit engagée avant que les démarches d'accompagnement (entretiens RH, plan de progrès individualisé) n'aient été formellement épuisées.
+
+
+CLÔTURE
+
+Madame Lefèvre prend note des observations formulées par Monsieur Dupont et de l'intervention de Monsieur Garnier. Elle indique que ces éléments seront examinés attentivement avant toute décision finale.
+
+Elle rappelle que, conformément aux dispositions de l'article L. 1232-6 du Code du travail, l'employeur dispose d'un délai minimum de deux jours ouvrables après l'entretien préalable pour notifier sa décision, et qu'aucune décision ne sera communiquée avant l'expiration de ce délai.
+
+L'entretien est clos à 11h45.
+
+
+Compte rendu établi le 9 janvier 2026
+Par Madame Sophie Renard, Responsable Ressources Humaines
+
+Signatures :
+
+Pour l'employeur                            Pour le salarié
+Claire Lefèvre, Directrice Générale         Thomas Dupont
+(Signature)                                 (Signature avec mention « Lu, non approuvé sur les faits exposés »)
+
+                                            Pour le CSE
+                                            Julien Garnier
+                                            (Signature)
