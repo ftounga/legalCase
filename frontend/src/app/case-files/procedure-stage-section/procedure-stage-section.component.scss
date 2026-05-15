@@ -54,7 +54,7 @@
 .ps-display-row {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 
   dt {
     font-family: 'Inter', sans-serif;
@@ -99,7 +99,7 @@
 .ps-select {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--ds-border, #e6e1d4);
   border-radius: 8px;
   background: var(--ds-surface, #ffffff);
