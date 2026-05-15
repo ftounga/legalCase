@@ -1,0 +1,98 @@
+<mat-card class="procedure-stage-card">
+  <mat-card-content>
+    <div class="ps-header">
+      <span class="ps-title">
+        <mat-icon class="ps-title-icon">gavel</mat-icon>
+        Stade procédural
+      </span>
+      @if (!unavailable() && !editing()) {
+        <button mat-stroked-button class="ps-edit-btn" (click)="startEdit()">
+          <mat-icon>edit</mat-icon>
+          Modifier
+        </button>
+      }
+    </div>
+
+    @if (unavailable()) {
+      <p class="ps-unavailable">
+        Stade procédural temporairement indisponible. Rechargez la page pour réessayer.
+      </p>
+    } @else if (editing()) {
+      <!-- Édition : 3 sélecteurs natifs en cascade -->
+      <div class="ps-form">
+        <label class="ps-field">
+          <span class="ps-field-label">Juridiction</span>
+          <select class="ps-select"
+                  aria-label="Juridiction"
+                  [value]="formJurisdiction() ?? ''"
+                  (change)="onJurisdictionChange($any($event.target).value)">
+            <option value="">— Non renseignée —</option>
+            @for (j of options()?.jurisdictions ?? []; track j.code) {
+              <option [value]="j.code">{{ j.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="ps-field">
+          <span class="ps-field-label">Stade</span>
+          <select class="ps-select"
+                  aria-label="Stade"
+                  [disabled]="!formJurisdiction()"
+                  [value]="formStage() ?? ''"
+                  (change)="onStageChange($any($event.target).value)">
+            <option value="">— Non renseigné —</option>
+            @for (s of availableStages(); track s.code) {
+              <option [value]="s.code">{{ s.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="ps-field">
+          <span class="ps-field-label">Position</span>
+          <select class="ps-select"
+                  aria-label="Position"
+                  [disabled]="!formStage()"
+                  [value]="formPosition() ?? ''"
+                  (change)="onPositionChange($any($event.target).value)">
+            <option value="">— Non renseignée —</option>
+            @for (p of availablePositions(); track p.code) {
+              <option [value]="p.code">{{ p.label }}</option>
+            }
+          </select>
+        </label>
+
+        <div class="ps-form-actions">
+          <button mat-stroked-button (click)="cancelEdit()" [disabled]="saving()">
+            Annuler
+          </button>
+          <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
+            <mat-icon>save</mat-icon>
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    } @else if (hasValue()) {
+      <!-- Affichage : libellés humains -->
+      <dl class="ps-display">
+        <div class="ps-display-row">
+          <dt>Juridiction</dt>
+          <dd>{{ current()?.jurisdictionLabel ?? '—' }}</dd>
+        </div>
+        <div class="ps-display-row">
+          <dt>Stade</dt>
+          <dd>{{ current()?.stageLabel ?? '—' }}</dd>
+        </div>
+        <div class="ps-display-row">
+          <dt>Position</dt>
+          <dd>{{ current()?.positionLabel ?? '—' }}</dd>
+        </div>
+      </dl>
+    } @else {
+      <!-- État vide -->
+      <p class="ps-empty">
+        Aucun stade procédural renseigné. Cliquez sur « Modifier » pour préciser
+        la juridiction, le stade et la position du dossier.
+      </p>
+    }
+  </mat-card-content>
+</mat-card>

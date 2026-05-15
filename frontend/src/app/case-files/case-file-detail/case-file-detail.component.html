@@ -91,6 +91,13 @@
         </mat-card>
       }
 
+      <!-- F-243 SF-243-02 : encart stade procédural (juridiction / stade / position). -->
+      <app-procedure-stage-section
+        [caseFileId]="caseFile()!.id"
+        [legalDomain]="caseFile()!.legalDomain"
+        [workspaceCountry]="workspaceCountry()">
+      </app-procedure-stage-section>
+
       <section id="section-documents" class="td-section td-section--documents">
         <header class="td-header"
                 (click)="toggleDocsCollapsed()"
