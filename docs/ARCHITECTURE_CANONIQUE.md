@@ -458,7 +458,12 @@ created_by_user_id
 title  
 legal_domain  
 status  
-description
+description  
+procedure_jurisdiction  
+procedure_stage  
+procedure_position
+
+Champs procedure_* (F-243) : stade procédural du dossier — juridiction, stade et position juridique. Nullable. Nomenclature dans `ProcedureStageCatalog` (backend), variable selon domaine × pays.
 
 Valeurs legal_domain :
 
