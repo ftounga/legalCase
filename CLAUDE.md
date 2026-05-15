@@ -191,7 +191,7 @@ Toute modification de `docs/PRODUCT_SPEC.md` ou `docs/MARKETING_BACKLOG.md` est 
 
 ## Blocages automatiques
 
-41 situations qui déclenchent un refus immédiat — voir `docs/governance/automatic-blockers.md` pour le tableau complet avec motivations et cas historiques.
+42 situations qui déclenchent un refus immédiat — voir `docs/governance/automatic-blockers.md` pour le tableau complet avec motivations et cas historiques.
 
 **Format de refus standard :**
 ```
@@ -208,6 +208,7 @@ Référence : [fichier de gouvernance concerné]
 - **Architecture / cohérence transversale** : 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 39, 40
 - **Référentiels métier** : 29, 30, 31
 - **Composants décisionnels frontend** : 32, 33, 34, 35, 36, 37, 38, 41
+- **Cohérence écran** : 42
 - **Tests E2E** : 25
 
 ---

@@ -204,7 +204,8 @@ Cette skill produit l'**Étape 0 bis** du cycle obligatoire, placée après l'É
 
 ## Cas d'usage validés
 
-- 2026-05-15 — skill créée. Premier cas réel à compléter au premier passage.
+- 2026-05-15 — skill créée.
+- 2026-05-15 — **audit rétrospectif outils décisionnels du détail dossier** (premier cas réel) : `docs/audits/AUDIT-2026-05-15-ux-coherence-detail-dossier.md`. Verdict GO avec ajustements ; a révélé le split col-left/col-right de l'activité décisionnelle, l'absence d'état terminal et la surcharge de l'écran.
 
 ## Liens
 
