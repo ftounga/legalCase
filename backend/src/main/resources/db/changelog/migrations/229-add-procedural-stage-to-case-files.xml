@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- F-243 / SF-243-01 : stade procédural du dossier (juridiction + stade + position).
+         3 colonnes nullable VARCHAR(50) — codes du référentiel ProcedureStageCatalog. -->
+    <changeSet id="229-add-procedural-stage-to-case-files" author="system">
+        <addColumn tableName="case_files">
+            <column name="procedure_jurisdiction" type="VARCHAR(50)"/>
+            <column name="procedure_stage" type="VARCHAR(50)"/>
+            <column name="procedure_position" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
