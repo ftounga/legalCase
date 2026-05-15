@@ -49,6 +49,7 @@ import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
+import { ProcedureStageSectionComponent } from '../procedure-stage-section/procedure-stage-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
@@ -146,6 +147,7 @@ function isSupportedFileExtension(file: File): boolean {
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, MatMenuModule, MatTooltipModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
+    ProcedureStageSectionComponent,
     TimerWidgetComponent,
     CaseDashboardComponent, AnalysisPipelineComponent,
     DecisionToolsPanelComponent,
