@@ -66,7 +66,7 @@ Ce cycle est non négociable. Chaque étape produit un artefact visible dans la 
 **Sans l'artefact de l'étape N, l'étape N+1 est refusée.**
 
 ```
-[0] Cadrage cohérence → [1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge → [7] Sync backlog DB
+[0] Cadrage cohérence → [0 bis] Cohérence écran → [1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge → [7] Sync backlog DB
 ```
 
 ### Étape 0 — Cadrage cohérence (ARTEFACT : document SF-XX-00-coherence rempli)
@@ -83,6 +83,24 @@ Le document `docs/features/F-XX/SF-XX-00-coherence.md` :
 Cette étape se place **après l'ajout de la feature au `PRODUCT_SPEC.md` (statut `Backlog`)** et **avant la mini-spec**. Le verdict pilote le statut PRODUCT_SPEC (GO → `À faire` ; STOP → reste `Backlog` / passe `Bloqué`).
 
 **REFUS si** : la mini-spec (étape 1) démarre sans que `SF-XX-00-coherence.md` ait été produit et validé dans la conversation.
+
+---
+
+### Étape 0 bis — Cadrage cohérence écran (ARTEFACT : document SF-XX-00b-ux-coherence rempli)
+
+**Après l'étape 0 et avant la mini-spec**, pour toute feature à impact écran (qui ajoute ou déplace un élément visible sur un écran utilisateur), produire le document de cadrage de cohérence écran via la skill `ai-skills/screen-coherence-challenger.md`.
+
+Le document `docs/features/F-XX/SF-XX-00b-ux-coherence.md` :
+- reconstruit le parcours écran réel de l'avocat, de l'ouverture du dossier à l'état terminal du traitement
+- cartographie les écrans / zones existants sur ce parcours
+- challenge le placement, la lisibilité de la séquence, la charge de l'écran cible et l'état final / la continuité
+- rend un verdict GO / GO avec ajustements / STOP
+- liste les invariants anti-surcharge que la mini-spec devra respecter
+- enrichit le référentiel `docs/business/parcours-ecran-*.md`
+
+Cette étape ne se déclenche **que pour les features à impact écran** — une feature purement backend, un bugfix ou un refactor sans élément visible nouveau en est exemptée. Elle suppose un verdict d'étape 0 GO ou GO avec ajustements.
+
+**REFUS si** : la mini-spec (étape 1) démarre pour une feature à impact écran sans que `SF-XX-00b-ux-coherence.md` ait été produit et validé dans la conversation.
 
 ---
 
@@ -269,6 +287,8 @@ Certaines modifications impactent silencieusement des composants existants. Ces 
 - `ai-agents/docs/docs-agent.md` — cohérence documentaire
 
 ### Skills
+- `ai-skills/feature-coherence-challenger.md` — cadrage cohérence fonctionnelle (étape 0)
+- `ai-skills/screen-coherence-challenger.md` — cadrage cohérence écran (étape 0 bis)
 - `ai-skills/feature-splitter.md` — découper une feature en subfeatures
 - `ai-skills/story-writer.md` — rédiger une mini-spec
 - `ai-skills/test-case-generator.md` — générer un plan de test
