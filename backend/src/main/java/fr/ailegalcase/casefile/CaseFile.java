@@ -51,6 +51,18 @@ public class CaseFile {
     @Column
     private Instant deletedAt;
 
+    /** F-243 : stade procédural — code juridiction du référentiel {@code ProcedureStageCatalog}. Nullable. */
+    @Column(name = "procedure_jurisdiction", length = 50)
+    private String procedureJurisdiction;
+
+    /** F-243 : stade procédural — code stade rattaché à la juridiction. Nullable. */
+    @Column(name = "procedure_stage", length = 50)
+    private String procedureStage;
+
+    /** F-243 : stade procédural — code position juridique valide pour le stade. Nullable. */
+    @Column(name = "procedure_position", length = 50)
+    private String procedurePosition;
+
     @PrePersist
     void onPrePersist() {
         Instant now = Instant.now();
