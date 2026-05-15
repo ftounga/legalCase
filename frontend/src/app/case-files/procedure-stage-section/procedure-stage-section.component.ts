@@ -7,7 +7,6 @@ import {
   OnInit,
   signal
 } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -38,7 +37,7 @@ import {
 @Component({
   selector: 'app-procedure-stage-section',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule],
   templateUrl: './procedure-stage-section.component.html',
   styleUrl: './procedure-stage-section.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

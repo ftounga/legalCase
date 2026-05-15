@@ -67,6 +67,14 @@
               <p class="field-value description">{{ caseFile()!.description }}</p>
             </div>
           }
+
+          <!-- F-243 SF-243-02 : stade procédural — métadonnée d'identité du dossier,
+               intégrée à la detail-card (cf. cadrage écran SF-243-00b-ux-coherence). -->
+          <app-procedure-stage-section
+            [caseFileId]="caseFile()!.id"
+            [legalDomain]="caseFile()!.legalDomain"
+            [workspaceCountry]="workspaceCountry()">
+          </app-procedure-stage-section>
         </mat-card-content>
       </mat-card>
 
@@ -90,13 +98,6 @@
           </mat-card-content>
         </mat-card>
       }
-
-      <!-- F-243 SF-243-02 : encart stade procédural (juridiction / stade / position). -->
-      <app-procedure-stage-section
-        [caseFileId]="caseFile()!.id"
-        [legalDomain]="caseFile()!.legalDomain"
-        [workspaceCountry]="workspaceCountry()">
-      </app-procedure-stage-section>
 
       <section id="section-documents" class="td-section td-section--documents">
         <header class="td-header"
