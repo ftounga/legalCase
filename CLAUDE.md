@@ -66,8 +66,25 @@ Ce cycle est non négociable. Chaque étape produit un artefact visible dans la 
 **Sans l'artefact de l'étape N, l'étape N+1 est refusée.**
 
 ```
-[1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge → [7] Sync backlog DB
+[0] Cadrage cohérence → [1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge → [7] Sync backlog DB
 ```
+
+### Étape 0 — Cadrage cohérence (ARTEFACT : document SF-XX-00-coherence rempli)
+
+**Avant la mini-spec**, pour toute feature touchant un workflow utilisateur (hors bugfix / petit refactor), produire le document de cadrage de cohérence via la skill `ai-skills/feature-coherence-challenger.md`.
+
+Le document `docs/features/F-XX/SF-XX-00-coherence.md` :
+- reconstruit le workflow métier réel de l'utilisateur cible (avocat)
+- cartographie les features existantes du produit sur ce workflow
+- challenge la cohérence amont (les pré-requis fonctionnels existent-ils dans le produit ?) et aval (la sortie est-elle exploitable par les étapes suivantes ?)
+- rend un verdict GO / GO avec ajustements / STOP
+- liste les invariants anti-gadget que la mini-spec devra respecter
+
+Cette étape se place **après l'ajout de la feature au `PRODUCT_SPEC.md` (statut `Backlog`)** et **avant la mini-spec**. Le verdict pilote le statut PRODUCT_SPEC (GO → `À faire` ; STOP → reste `Backlog` / passe `Bloqué`).
+
+**REFUS si** : la mini-spec (étape 1) démarre sans que `SF-XX-00-coherence.md` ait été produit et validé dans la conversation.
+
+---
 
 ### Étape 1 — Mini-spec (ARTEFACT : document SF-XX rempli)
 
