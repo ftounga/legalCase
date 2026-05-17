@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="234-create-liquidation-partage-be-analyses" author="legalcase">
+        <comment>
+            SF-217-02 : table dédiée à l'outil décisionnel "Suivi de la procédure de
+            liquidation-partage post-divorce belge" (notaire commis — BELGIQUE).
+
+            Suit la séquence des 8 étapes de la procédure devant notaire-liquidateur
+            commis par le Tribunal de la famille (désignation, ouverture des
+            opérations, inventaire, projet de liquidation, notification du projet,
+            contredits, procès-verbal de dires, homologation) — fondements Code
+            judiciaire belge art. 1207 à 1224, art. 1218 pour les contredits.
+            Calcule le délai de contredits d'un mois et rend un verdict d'avancement
+            en 5 niveaux : PROCEDURE_NON_ENGAGEE / EN_COURS / DELAI_CONTREDITS_CRITIQUE
+            / EN_ATTENTE_HOMOLOGATION / CLOTUREE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI
+            et la ré-édition du formulaire sans recalcul (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-217-03 (migration 234) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 / SF-DT-36-02 :
+            un seed de visibilité ne doit pas exister sans son entrée frontend
+            (garde-fou DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="liquidation_partage_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_liquidation_partage_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="liquidation_partage_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_liquidation_partage_be_analyses_case_file"/>
+
+        <createIndex tableName="liquidation_partage_be_analyses"
+                     indexName="idx_liquidation_partage_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="liquidation_partage_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

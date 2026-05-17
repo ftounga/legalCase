@@ -173,7 +173,7 @@ Règle de statut : toutes les étapes antérieures à la dernière étape `true`
 ---
 
 ## Conformité F-IA-04
-- [x] **Non applicable au sens strict** — SF backend pure. La conformité F-IA-04 (TOOL_REGISTRY, pré-fill, F-IA-03, gate `workspaceCountry`) est portée par SF-217-03 frontend. Le seed `decision_tool_visibility_rules` est lui aussi porté par SF-217-03 (migration 234), couplé à l'entrée TOOL_REGISTRY dans le même lot — un seed sans entrée frontend ferait échouer le garde-fou `DecisionToolVisibilityIntegrityIT` (précédent SF-211-05 / SF-DT-36-02).
+- [x] **Non applicable au sens strict** — SF backend pure. La conformité F-IA-04 (TOOL_REGISTRY, pré-fill, F-IA-03, gate `workspaceCountry`) est portée par SF-217-03 frontend. Le seed `decision_tool_visibility_rules` est lui aussi porté par SF-217-03 (migration 235), couplé à l'entrée TOOL_REGISTRY dans le même lot — un seed sans entrée frontend ferait échouer le garde-fou `DecisionToolVisibilityIntegrityIT` (précédent SF-211-05 / SF-DT-36-02).
 
 ---
 
@@ -199,7 +199,7 @@ Règle de statut : toutes les étapes antérieures à la dernière étape `true`
 - Liquidation-partage successoral (`succession-be-partage-judiciaire` est un outil distinct — audit F-191 § 3.6, vague ultérieure).
 - Pré-fill IA depuis l'analyse (aucun flag pivot dédié extrait par le pipeline V1 — saisie manuelle ; documenté `PREFILL_COUNT_ALWAYS_ZERO` côté SF-217-03).
 - Réutilisation des Calculators FR (F-FA-17 liquidation-partage FR — procédure du notaire désigné distincte de la procédure belge du notaire commis).
-- Seed `decision_tool_visibility_rules` (porté par SF-217-03, migration 234).
+- Seed `decision_tool_visibility_rules` (porté par SF-217-03, migration 235).
 
 ---
 
@@ -215,10 +215,12 @@ Règle de statut : toutes les étapes antérieures à la dernière étape `true`
 | Table | Opération | Notes |
 |-------|-----------|-------|
 | `liquidation_partage_be_analyses` | CREATE + INSERT/UPDATE/SELECT | id (UUID), case_file_id (FK UNIQUE), country (VARCHAR), snapshot_data (TEXT JSON — inputs + résultat calculé), created_at, updated_at |
-| `decision_tool_visibility_rules` | INSERT (seed) | porté par SF-217-03 (migration 234), couplé à l'entrée TOOL_REGISTRY |
+| `decision_tool_visibility_rules` | INSERT (seed) | porté par SF-217-03 (migration 235), couplé à l'entrée TOOL_REGISTRY |
 
 ### Migration Liquibase
-- [x] Oui — `233-create-liquidation-partage-be-analyses.xml` (table seule ; le seed `decision_tool_visibility_rules` est porté par SF-217-03 — migration 234)
+- [x] Oui — `234-create-liquidation-partage-be-analyses.xml` (table seule ; le seed `decision_tool_visibility_rules` est porté par SF-217-03 — migration 235)
+
+> Note de renumérotation (2026-05-17) : la migration de cette SF était initialement numérotée `233`, numéro réservé à SF-217-01 (chantier parallèle). Renumérotée en `234` lors de la finalisation backend. Le seed `decision_tool_visibility_rules` de SF-217-03 glisse en conséquence de `234` à `235`.
 
 ### Classes backend (pattern `DivorceDcBe*` / `ProcedureNulliteLicenciement*`)
 `LiquidationPartageBeCalculator` (static), `LiquidationPartageBeInput`, `LiquidationPartageBeResult`, `LiquidationPartageBeRequest`, `LiquidationPartageBeResponse`, `LiquidationPartageBeAnalysis` (@Entity), `LiquidationPartageBeRepository`, `LiquidationPartageBeService`, `LiquidationPartageBeController`.
