@@ -1,0 +1,160 @@
+// F-98 / SF-98-01 — Section « Conclusions » du détail dossier.
+// Palette navy #1A3A5C / or #C9973A. Le rouge est réservé aux échecs.
+// Espacements multiples de 4px.
+
+$navy: #1a3a5c;
+$gold: #c9973a;
+
+.conclusions-section {
+  padding: 24px;
+  margin-top: 16px;
+}
+
+.cs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cs-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: $navy;
+}
+
+.cs-title-icon {
+  color: $gold;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+// ── Texte d'introduction des intrants ──────────────────────
+.cs-intro {
+  margin: 0 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #5a6473;
+}
+
+.cs-meta {
+  margin: 0 0 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #5a6473;
+}
+
+// ── Messages (guidant / muet) ──────────────────────────────
+.cs-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.cs-message-icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.cs-message--muted {
+  color: #5a6473;
+}
+
+.cs-message--guide {
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: rgba(26, 58, 92, 0.06);
+  color: $navy;
+
+  .cs-message-icon {
+    color: $navy;
+  }
+}
+
+.cs-message--error {
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: rgba(176, 0, 32, 0.07);
+  color: #8a1418;
+
+  .cs-message-icon {
+    color: #b00020;
+  }
+}
+
+// ── Indicateur de chargement / génération ──────────────────
+.cs-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: $navy;
+}
+
+// ── Bandeau de transparence (navy/or — JAMAIS rouge) ───────
+.cs-transparency-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border-left: 4px solid $gold;
+  background: rgba(26, 58, 92, 0.07);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: $navy;
+}
+
+.cs-transparency-icon {
+  flex-shrink: 0;
+  color: $gold;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+// ── Texte des conclusions (préformaté) ─────────────────────
+.cs-content {
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border-radius: 6px;
+  border: 1px solid #e6e1d4;
+  background: #fbfaf6;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1a2330;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+// ── Actions ────────────────────────────────────────────────
+.cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cs-btn-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}

@@ -581,6 +581,19 @@
             </app-case-dashboard>
           </div>
         </section>
+
+        <!-- F-98 SF-98-01 : section de génération du projet de conclusions,
+             placée juste après le tableau de bord décisionnel.
+             hasCompletedAnalysis est dérivé du signal `synthesis` (une synthèse
+             non nulle = au moins une analyse terminée). procedureStageComplete
+             n'est pas dérivable proprement ici (le stade procédural est chargé
+             par app-procedure-stage-section via son propre service, pas par ce
+             composant) : on ne le passe donc pas et on laisse le 409
+             STAGE_NOT_SET du backend piloter le message guidant. -->
+        <app-conclusions-section
+          [caseFileId]="caseFile()!.id"
+          [hasCompletedAnalysis]="synthesis() !== null">
+        </app-conclusions-section>
       </div>
     </section>
 
