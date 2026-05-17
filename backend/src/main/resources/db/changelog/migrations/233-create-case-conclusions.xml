@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="233-create-case-conclusions" author="legalcase">
+        <comment>
+            F-98 / SF-98-01 : table dédiée au projet de conclusions généré par IA pour
+            le Conseil de prud'hommes en bureau de jugement (fond), côté demandeur,
+            droit du travail (France).
+
+            Génération asynchrone (queue RabbitMQ case.conclusion) — le worker assemble
+            un prompt à partir de la synthèse, des pièces numérotées, des verdicts des
+            outils décisionnels et des pistes stratégiques retenues, puis appelle Claude
+            Sonnet et persiste le texte généré.
+
+            Relation 1:1 avec case_files (case_file_id UNIQUE) : régénérer = UPDATE de
+            la ligne existante, jamais de doublon. Le numéro 232 est réservé par
+            F-240 SF-240-01 (autre branche) — d'où 233.
+        </comment>
+
+        <createTable tableName="case_conclusions">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_case_conclusions_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_case_conclusions_workspace"
+                             referencedTableName="workspaces"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="text"/>
+            <column name="jurisdiction_code" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stage_code" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="position_code" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model_used" type="varchar(80)"/>
+            <column name="prompt_tokens" type="int"/>
+            <column name="completion_tokens" type="int"/>
+            <column name="generated_at" type="timestamp with time zone"/>
+            <column name="error_message" type="text"/>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="case_conclusions"
+                             columnNames="case_file_id"
+                             constraintName="uq_case_conclusions_case_file"/>
+
+        <createIndex tableName="case_conclusions"
+                     indexName="idx_case_conclusions_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <createIndex tableName="case_conclusions"
+                     indexName="idx_case_conclusions_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="case_conclusions"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

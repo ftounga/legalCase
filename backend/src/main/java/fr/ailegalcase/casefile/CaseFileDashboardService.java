@@ -369,6 +369,19 @@ public class CaseFileDashboardService {
     }
 
     /**
+     * F-98 SF-98-01 — Expose la liste agrégée des verdicts d'outils décisionnels
+     * remplis d'un dossier, pour réutilisation hors dashboard (générateur de
+     * conclusions). Lecture pure, sans contrôle d'accès : l'appelant
+     * ({@code CaseConclusionService}) a déjà validé l'isolation workspace.
+     *
+     * @param caseFileId identifiant du dossier
+     * @return les tiles décisionnelles du dossier (vide si aucun outil rempli)
+     */
+    public List<DashboardTile> assembleDecisionToolTiles(UUID caseFileId) {
+        return assembleTiles(caseFileId);
+    }
+
+    /**
      * F-167 SF-167-01 — Assemble la liste générique de {@link DashboardTile} pour
      * les 10 outils pilotes. Chaque mapper est exécuté en isolation : si un
      * repository échoue (ou si la désérialisation crashe), seule la tile
