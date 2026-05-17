@@ -22,9 +22,11 @@
             Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI
             sans recalcul (pattern F-DT-16).
 
-            Règle d'affichage F-IA-04 : CONTEXTUAL, DROIT_DU_TRAVAIL, FRANCE, déclenché
-            quand un licenciement est détecté (trigger_field=type_rupture, valeurs
-            LICENCIEMENT et LICENCIEMENT_ECONOMIQUE — pattern identique à F-DT-16).
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-DT-36-02 (migration 231) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 : un seed de
+            visibilité ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
         </comment>
 
         <createTable tableName="procedure_nullite_licenciement_analyses">
@@ -60,18 +62,7 @@
             <column name="case_file_id"/>
         </createIndex>
 
-        <sql splitStatements="true">
-INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
-VALUES ('f1a04001-0000-0000-0000-eeee20000361', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-36-procedure-nullite-licenciement', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 57);
-INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
-VALUES ('f1a04001-0000-0000-0000-eeee20000362', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-36-procedure-nullite-licenciement', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 57);
-        </sql>
-
         <rollback>
-            <sql splitStatements="true">
-DELETE FROM decision_tool_visibility_rules
-WHERE id IN ('f1a04001-0000-0000-0000-eeee20000361', 'f1a04001-0000-0000-0000-eeee20000362');
-            </sql>
             <dropTable tableName="procedure_nullite_licenciement_analyses"/>
         </rollback>
     </changeSet>
