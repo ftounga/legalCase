@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="236-add-versioning-to-case-conclusions" author="legalcase">
+        <comment>
+            F-98 / SF-98-52 : versioning des conclusions. La table case_conclusions
+            passe de 1:1 à 1:N par dossier — chaque génération crée une nouvelle
+            version (version_number incrémental).
+
+            - Suppression de la contrainte d'unicité uq_case_conclusions_case_file
+              (sur case_file_id seul) — incompatible avec plusieurs versions.
+            - Ajout version_number (INT NOT NULL) : les lignes existantes migrent
+              en version 1.
+            - Ajout lifecycle_status (VARCHAR(20) NOT NULL, défaut DRAFT) : cycle de
+              vie de la version (DRAFT / VALIDATED / DEPOSITED).
+            - Nouvelle contrainte d'unicité (case_file_id, version_number).
+        </comment>
+
+        <dropUniqueConstraint tableName="case_conclusions"
+                              constraintName="uq_case_conclusions_case_file"/>
+
+        <addColumn tableName="case_conclusions">
+            <column name="version_number" type="int" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="case_conclusions">
+            <column name="lifecycle_status" type="varchar(20)" defaultValue="DRAFT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addUniqueConstraint tableName="case_conclusions"
+                             columnNames="case_file_id, version_number"
+                             constraintName="uq_case_conclusions_case_file_version"/>
+
+        <rollback>
+            <dropUniqueConstraint tableName="case_conclusions"
+                                  constraintName="uq_case_conclusions_case_file_version"/>
+            <dropColumn tableName="case_conclusions" columnName="lifecycle_status"/>
+            <dropColumn tableName="case_conclusions" columnName="version_number"/>
+            <addUniqueConstraint tableName="case_conclusions"
+                                 columnNames="case_file_id"
+                                 constraintName="uq_case_conclusions_case_file"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

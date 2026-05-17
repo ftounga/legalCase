@@ -7,18 +7,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * F-98 / SF-98-01 — corps de la réponse {@code 200} du {@code GET .../conclusions}.
+ * F-98 / SF-98-01 + SF-98-52 — corps de la réponse {@code 200} des routes de
+ * lecture d'une version de conclusions ({@code GET .../conclusions},
+ * {@code GET .../conclusions/versions/{versionId}}, {@code PATCH .../lifecycle}).
  *
- * <p>Contrat API figé. Quand aucune ligne {@code case_conclusions} n'existe pour le
+ * <p>Contrat API figé. Quand aucune version {@code case_conclusions} n'existe pour le
  * dossier, le statut synthétique {@code NOT_GENERATED} est renvoyé et tous les champs
- * sauf {@code caseFileId} et {@code status} valent {@code null}.</p>
+ * sauf {@code caseFileId} et {@code status} valent {@code null} ({@code versionNumber}
+ * vaut {@code 0}).</p>
  *
- * @param status l'un de {@code NOT_GENERATED | PENDING | PROCESSING | DONE | FAILED}
+ * @param status          l'un de {@code NOT_GENERATED | PENDING | PROCESSING | DONE | FAILED}
+ * @param versionNumber   numéro de version (SF-98-52) ; {@code 0} si jamais généré
+ * @param lifecycleStatus cycle de vie de la version (SF-98-52) ; {@code null} si jamais généré
  */
 public record ConclusionResponse(
         UUID id,
         UUID caseFileId,
+        int versionNumber,
         String status,
+        String lifecycleStatus,
         String content,
         String jurisdictionLabel,
         String stageLabel,
@@ -34,15 +41,15 @@ public record ConclusionResponse(
 
     /** Réponse « jamais généré » — seuls {@code caseFileId} et {@code status} sont renseignés. */
     public static ConclusionResponse notGenerated(UUID caseFileId) {
-        return new ConclusionResponse(null, caseFileId, NOT_GENERATED,
+        return new ConclusionResponse(null, caseFileId, 0, NOT_GENERATED, null,
                 null, null, null, null, null, null, null, null, null);
     }
 
     /**
-     * Construit la réponse à partir d'une ligne persistée, en résolvant les libellés
+     * Construit la réponse à partir d'une version persistée, en résolvant les libellés
      * humains du stade procédural depuis {@link ProcedureStageCatalog}.
      *
-     * @param conclusion la ligne {@code case_conclusions}
+     * @param conclusion la version {@code case_conclusions}
      * @param domain     domaine du dossier ({@code legalDomain})
      * @param country    pays du workspace
      */
@@ -50,7 +57,9 @@ public record ConclusionResponse(
         return new ConclusionResponse(
                 conclusion.getId(),
                 conclusion.getCaseFile().getId(),
+                conclusion.getVersionNumber(),
                 conclusion.getStatus().name(),
+                conclusion.getLifecycleStatus().name(),
                 conclusion.getContent(),
                 ProcedureStageCatalog.jurisdictionLabel(domain, country, conclusion.getJurisdictionCode()),
                 ProcedureStageCatalog.stageLabel(domain, country, conclusion.getStageCode()),
@@ -72,7 +81,8 @@ public record ConclusionResponse(
             return from(conclusion, caseFile.getLegalDomain(), country);
         } catch (RuntimeException ex) {
             return new ConclusionResponse(
-                    conclusion.getId(), caseFile.getId(), conclusion.getStatus().name(),
+                    conclusion.getId(), caseFile.getId(), conclusion.getVersionNumber(),
+                    conclusion.getStatus().name(), conclusion.getLifecycleStatus().name(),
                     conclusion.getContent(), null, null, null,
                     conclusion.getModelUsed(), conclusion.getGeneratedAt(), conclusion.getErrorMessage(),
                     conclusion.getCreatedAt(), conclusion.getUpdatedAt());

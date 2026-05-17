@@ -20,7 +20,10 @@ public enum CaseConclusionGuardCode {
             + "droit du travail (France)."),
 
     /** Génération déjà PENDING ou PROCESSING pour ce dossier. */
-    ALREADY_GENERATING("Une génération est déjà en cours pour ce dossier.");
+    ALREADY_GENERATING("Une génération est déjà en cours pour ce dossier."),
+
+    /** Passage à VALIDATED/DEPOSITED d'une version dont la génération n'est pas DONE. */
+    LIFECYCLE_REQUIRES_DONE("Seule une version générée peut être validée ou déposée.");
 
     private final String message;
 

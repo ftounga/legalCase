@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
@@ -31,22 +32,26 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * F-98 / SF-98-01 — tests d'intégration de l'API du générateur de conclusions.
+ * F-98 / SF-98-01 + SF-98-52 — tests d'intégration de l'API du générateur de
+ * conclusions versionné.
  *
- * <p>Couvre : déclenchement 202 + ligne PENDING, les 4 gardes 409, GET avant/après
- * déclenchement, isolation workspace 404, rejet 401 sans authentification.</p>
+ * <p>Couvre : déclenchement 202 versionné, les gardes 409, GET = version la plus
+ * récente, liste des versions, détail d'une version, transitions de cycle de vie
+ * (409 non-DONE / 400 valeur inconnue), isolation workspace 404, rejet 401.</p>
  *
  * <p>Le worker {@code CaseConclusionService} est {@code @Profile({"local","prod"})} :
- * en profil de test il n'est pas chargé, donc après un POST la ligne reste
- * {@code PENDING} (le message RabbitMQ part dans le vide). C'est l'état attendu ici.</p>
+ * en profil de test il n'est pas chargé, donc après un POST la version reste
+ * {@code PENDING}. Les versions {@code DONE} sont posées directement en base.</p>
  */
 @SpringBootTest(properties = {
         "spring.security.oauth2.client.registration.google.client-id=test-google-id",
@@ -68,7 +73,6 @@ class CaseConclusionControllerIT {
     @MockBean RabbitTemplate rabbitTemplate;
 
     private OAuth2AuthenticationToken authA;
-    private OAuth2AuthenticationToken authB;
 
     /** Dossier travail FR / CPH / FOND / DEMANDEUR avec analyse DONE — workspace A. */
     private CaseFile supportedCf;
@@ -76,10 +80,12 @@ class CaseConclusionControllerIT {
     private CaseFile noStageCf;
     /** Dossier travail FR / CPH / FOND / DEMANDEUR sans analyse DONE — workspace A. */
     private CaseFile noAnalysisCf;
-    /** Dossier BE (combinaison non supportée) — workspace A. */
+    /** Dossier travail FR mais stade hors V1 — workspace A. */
     private CaseFile unsupportedCf;
     /** Dossier du workspace B (isolation). */
     private CaseFile otherWorkspaceCf;
+    /** Workspace A pour poser des versions directement en base. */
+    private Workspace wsA;
 
     @BeforeEach
     void setUp() {
@@ -88,7 +94,7 @@ class CaseConclusionControllerIT {
         // ── Workspace A — FRANCE / DROIT_DU_TRAVAIL ──────────────────────────
         User uA = save(new User(), u -> { u.setEmail("ccl-a-" + ts + "@ex.com"); u.setStatus("ACTIVE"); });
         saveAuth(uA, "g-ccl-a-" + ts);
-        Workspace wsA = saveWs(uA, "WSA " + ts, "DROIT_DU_TRAVAIL", "FRANCE");
+        wsA = saveWs(uA, "WSA " + ts, "DROIT_DU_TRAVAIL", "FRANCE");
         saveMember(uA, wsA);
         authA = buildAuth("g-ccl-a-" + ts, "ccl-a-" + ts + "@ex.com");
 
@@ -102,11 +108,7 @@ class CaseConclusionControllerIT {
 
         noAnalysisCf = saveCf(uA, wsA, "CF noanalysis " + ts, "DROIT_DU_TRAVAIL",
                 "CPH", "FOND", "DEMANDEUR");
-        // pas d'analyse DONE
 
-        // ── Workspace A — combinaison BE non supportée ───────────────────────
-        // Dossier travail dans workspace FR mais combinaison procédurale hors V1
-        // (stade REFERE). Le pays vient du workspace → on teste le stade ≠ FOND.
         unsupportedCf = saveCf(uA, wsA, "CF unsupported " + ts, "DROIT_DU_TRAVAIL",
                 "CPH", "REFERE", "DEMANDEUR");
         saveDoneAnalysis(unsupportedCf);
@@ -116,24 +118,43 @@ class CaseConclusionControllerIT {
         saveAuth(uB, "g-ccl-b-" + ts);
         Workspace wsB = saveWs(uB, "WSB " + ts, "DROIT_DU_TRAVAIL", "FRANCE");
         saveMember(uB, wsB);
-        authB = buildAuth("g-ccl-b-" + ts, "ccl-b-" + ts + "@ex.com");
         otherWorkspaceCf = saveCf(uB, wsB, "CF other " + ts, "DROIT_DU_TRAVAIL",
                 "CPH", "FOND", "DEMANDEUR");
         saveDoneAnalysis(otherWorkspaceCf);
     }
 
-    // ── POST nominal ─────────────────────────────────────────────────────────
+    // ── POST nominal versionné (CA2) ─────────────────────────────────────────
 
     @Test
-    void POST_generate_nominal_returns202AndCreatesPendingRow() throws Exception {
+    void POST_generate_nominal_returns202WithVersionOne() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/generate")
                         .with(authentication(authA)))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.versionNumber").value(1));
 
-        CaseConclusion row = caseConclusionRepository.findByCaseFileId(supportedCf.getId()).orElseThrow();
-        org.assertj.core.api.Assertions.assertThat(row.getStatus()).isEqualTo(CaseConclusionStatus.PENDING);
-        org.assertj.core.api.Assertions.assertThat(row.getJurisdictionCode()).isEqualTo("CPH");
+        List<CaseConclusion> versions = caseConclusionRepository
+                .findByCaseFileIdOrderByVersionNumberDesc(supportedCf.getId());
+        org.assertj.core.api.Assertions.assertThat(versions).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(versions.get(0).getVersionNumber()).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(versions.get(0).getStatus())
+                .isEqualTo(CaseConclusionStatus.PENDING);
+        org.assertj.core.api.Assertions.assertThat(versions.get(0).getLifecycleStatus())
+                .isEqualTo(ConclusionLifecycleStatus.DRAFT);
+    }
+
+    @Test
+    void POST_generate_secondVersion_afterPreviousDone_returnsVersionTwo() throws Exception {
+        // version 1 posée DONE en base (simule une génération terminée)
+        persistVersion(supportedCf, 1, CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(post("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/generate")
+                        .with(authentication(authA)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.versionNumber").value(2));
+
+        org.assertj.core.api.Assertions.assertThat(caseConclusionRepository
+                .findByCaseFileIdOrderByVersionNumberDesc(supportedCf.getId())).hasSize(2);
     }
 
     // ── POST gardes 409 ──────────────────────────────────────────────────────
@@ -164,18 +185,18 @@ class CaseConclusionControllerIT {
 
     @Test
     void POST_generate_alreadyGenerating_returns409() throws Exception {
-        // 1er déclenchement → ligne PENDING
+        // 1er déclenchement → version 1 PENDING (worker inactif en test)
         mockMvc.perform(post("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/generate")
                         .with(authentication(authA)))
                 .andExpect(status().isAccepted());
-        // 2e déclenchement (worker inactif en test → toujours PENDING) → 409
+        // 2e déclenchement → 409 : une version est PENDING
         mockMvc.perform(post("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/generate")
                         .with(authentication(authA)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("ALREADY_GENERATING"));
     }
 
-    // ── GET ──────────────────────────────────────────────────────────────────
+    // ── GET .../conclusions = version la plus récente (CA3) ──────────────────
 
     @Test
     void GET_conclusions_beforeGenerate_returnsNotGenerated() throws Exception {
@@ -188,21 +209,126 @@ class CaseConclusionControllerIT {
     }
 
     @Test
-    void GET_conclusions_afterGenerate_returnsPendingWithLabels() throws Exception {
-        mockMvc.perform(post("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/generate")
-                        .with(authentication(authA)))
-                .andExpect(status().isAccepted());
+    void GET_conclusions_returnsMostRecentVersion() throws Exception {
+        persistVersion(supportedCf, 1, CaseConclusionStatus.DONE, ConclusionLifecycleStatus.VALIDATED);
+        persistVersion(supportedCf, 2, CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
 
         mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
                         .with(authentication(authA)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING"))
-                .andExpect(jsonPath("$.jurisdictionLabel").value("Conseil de prud'hommes"))
-                .andExpect(jsonPath("$.stageLabel").value("Bureau de jugement (fond)"))
-                .andExpect(jsonPath("$.positionLabel").value("Demandeur (salarié)"));
+                .andExpect(jsonPath("$.versionNumber").value(2))
+                .andExpect(jsonPath("$.lifecycleStatus").value("DRAFT"))
+                .andExpect(jsonPath("$.jurisdictionLabel").value("Conseil de prud'hommes"));
     }
 
-    // ── isolation workspace ──────────────────────────────────────────────────
+    // ── GET .../conclusions/versions (CA4) ───────────────────────────────────
+
+    @Test
+    void GET_versions_returnsAllVersionsDescending() throws Exception {
+        persistVersion(supportedCf, 1, CaseConclusionStatus.DONE, ConclusionLifecycleStatus.VALIDATED);
+        persistVersion(supportedCf, 2, CaseConclusionStatus.PENDING, ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/versions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].versionNumber").value(2))
+                .andExpect(jsonPath("$[0].lifecycleStatus").value("DRAFT"))
+                .andExpect(jsonPath("$[1].versionNumber").value(1))
+                .andExpect(jsonPath("$[1].lifecycleStatus").value("VALIDATED"));
+    }
+
+    @Test
+    void GET_versions_noVersion_returnsEmptyList() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/versions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    // ── GET .../conclusions/versions/{versionId} (CA5) ───────────────────────
+
+    @Test
+    void GET_version_returnsFullDetail() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId())
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(v1.getId().toString()))
+                .andExpect(jsonPath("$.versionNumber").value(1))
+                .andExpect(jsonPath("$.status").value("DONE"))
+                .andExpect(jsonPath("$.lifecycleStatus").value("DRAFT"));
+    }
+
+    @Test
+    void GET_version_unknownVersion_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + UUID.randomUUID())
+                        .with(authentication(authA)))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── PATCH .../lifecycle (CA6) ────────────────────────────────────────────
+
+    @Test
+    void PATCH_lifecycle_doneVersionToValidated_returns200() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/lifecycle")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lifecycleStatus\":\"VALIDATED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lifecycleStatus").value("VALIDATED"));
+
+        org.assertj.core.api.Assertions.assertThat(caseConclusionRepository
+                        .findById(v1.getId()).orElseThrow().getLifecycleStatus())
+                .isEqualTo(ConclusionLifecycleStatus.VALIDATED);
+    }
+
+    @Test
+    void PATCH_lifecycle_nonDoneVersionToValidated_returns409() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.PENDING,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/lifecycle")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lifecycleStatus\":\"VALIDATED\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("LIFECYCLE_REQUIRES_DONE"));
+    }
+
+    @Test
+    void PATCH_lifecycle_unknownValue_returns400() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/lifecycle")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lifecycleStatus\":\"ARCHIVED\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void PATCH_lifecycle_unknownVersion_returns404() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + UUID.randomUUID() + "/lifecycle")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lifecycleStatus\":\"DRAFT\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── isolation workspace 404 (CA7) ────────────────────────────────────────
 
     @Test
     void POST_generate_otherWorkspace_returns404() throws Exception {
@@ -218,7 +344,43 @@ class CaseConclusionControllerIT {
                 .andExpect(status().isNotFound());
     }
 
-    // ── authentification ─────────────────────────────────────────────────────
+    @Test
+    void GET_versions_otherWorkspace_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + otherWorkspaceCf.getId() + "/conclusions/versions")
+                        .with(authentication(authA)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void GET_version_otherWorkspaceVersion_returns404() throws Exception {
+        // version réelle dans le workspace B
+        CaseConclusion otherVersion = persistVersion(otherWorkspaceCf, 1,
+                CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+        // l'avocat A demande cette version sur SON dossier → 404 (version pas rattachée)
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + otherVersion.getId())
+                        .with(authentication(authA)))
+                .andExpect(status().isNotFound());
+        // et sur le dossier de B → 404 (dossier hors workspace A)
+        mockMvc.perform(get("/api/v1/case-files/" + otherWorkspaceCf.getId()
+                        + "/conclusions/versions/" + otherVersion.getId())
+                        .with(authentication(authA)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void PATCH_lifecycle_otherWorkspace_returns404() throws Exception {
+        CaseConclusion otherVersion = persistVersion(otherWorkspaceCf, 1,
+                CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+        mockMvc.perform(patch("/api/v1/case-files/" + otherWorkspaceCf.getId()
+                        + "/conclusions/versions/" + otherVersion.getId() + "/lifecycle")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lifecycleStatus\":\"VALIDATED\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── authentification 401 ─────────────────────────────────────────────────
 
     @Test
     void POST_generate_withoutAuth_returns401() throws Exception {
@@ -229,6 +391,21 @@ class CaseConclusionControllerIT {
     @Test
     void GET_conclusions_withoutAuth_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void GET_versions_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions/versions"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void PATCH_lifecycle_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + UUID.randomUUID() + "/lifecycle")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lifecycleStatus\":\"DRAFT\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -290,6 +467,26 @@ class CaseConclusionControllerIT {
         analysis.setAnalysisStatus(AnalysisStatus.DONE);
         analysis.setAnalysisResult("{\"faits\": [], \"points_juridiques\": [], \"risques\": []}");
         caseAnalysisRepository.save(analysis);
+    }
+
+    /** Pose directement une version en base (le worker n'est pas chargé en test). */
+    private CaseConclusion persistVersion(CaseFile cf, int versionNumber,
+                                          CaseConclusionStatus status,
+                                          ConclusionLifecycleStatus lifecycle) {
+        CaseConclusion c = new CaseConclusion();
+        c.setCaseFile(cf);
+        c.setWorkspace(cf.getWorkspace());
+        c.setVersionNumber(versionNumber);
+        c.setStatus(status);
+        c.setLifecycleStatus(lifecycle);
+        c.setJurisdictionCode("CPH");
+        c.setStageCode("FOND");
+        c.setPositionCode("DEMANDEUR");
+        if (status == CaseConclusionStatus.DONE) {
+            c.setContent("Conclusions générées — version " + versionNumber);
+            c.setGeneratedAt(Instant.now());
+        }
+        return caseConclusionRepository.save(c);
     }
 
     private OAuth2AuthenticationToken buildAuth(String sub, String email) {

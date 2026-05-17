@@ -12,12 +12,16 @@ import java.util.UUID;
 /**
  * F-98 / SF-98-01 — projet de conclusions généré par IA pour un dossier.
  *
- * <p>Relation 1:1 avec {@link CaseFile} ({@code case_file_id} UNIQUE) : régénérer
- * réutilise la ligne (UPDATE), ne crée jamais de doublon. Le {@code workspace_id}
- * porte l'isolation multi-tenant et est contrôlé à chaque accès.</p>
+ * <p>SF-98-52 : relation <strong>1:N</strong> avec {@link CaseFile} — chaque
+ * génération produit une nouvelle version ({@code version_number} incrémental,
+ * unicité {@code (case_file_id, version_number)}). Le {@code workspace_id} porte
+ * l'isolation multi-tenant et est contrôlé à chaque accès.</p>
  *
  * <p>Les codes {@code jurisdictionCode}/{@code stageCode}/{@code positionCode} sont
  * un snapshot du stade procédural du dossier figé au déclenchement.</p>
+ *
+ * <p>{@code lifecycleStatus} ({@code DRAFT}/{@code VALIDATED}/{@code DEPOSITED})
+ * porte le cycle de vie de la version, distinct du {@code status} de génération IA.</p>
  */
 @Entity
 @Table(name = "case_conclusions")
@@ -30,16 +34,25 @@ public class CaseConclusion {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "case_file_id", nullable = false, unique = true)
+    @JoinColumn(name = "case_file_id", nullable = false)
     private CaseFile caseFile;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "workspace_id", nullable = false)
     private Workspace workspace;
 
+    /** Numéro de version, incrémental par dossier (unicité {@code (case_file_id, version_number)}). */
+    @Column(name = "version_number", nullable = false)
+    private int versionNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private CaseConclusionStatus status;
+
+    /** Cycle de vie de la version — brouillon / validé / déposé. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "lifecycle_status", nullable = false, length = 20)
+    private ConclusionLifecycleStatus lifecycleStatus;
 
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
