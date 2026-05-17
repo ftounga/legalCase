@@ -28,6 +28,7 @@ describe('ConclusionsSectionComponent', () => {
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
   const versionUrl = (id: string) => `${VERSIONS_URL}/${id}`;
   const lifecycleUrl = (id: string) => `${versionUrl(id)}/lifecycle`;
+  const contentUrl = (id: string) => `${versionUrl(id)}/content`;
 
   function response(
     overrides: Partial<ConclusionResponse> = {},
@@ -461,6 +462,175 @@ describe('ConclusionsSectionComponent', () => {
 
     component.ngOnDestroy();
   }));
+
+  // ---------------------------------------------------------------------------
+  // SF-98-49 — Éditeur de relecture
+  // ---------------------------------------------------------------------------
+
+  it('DONE + DRAFT → bouton « Modifier » visible', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    const editBtn = fixture.nativeElement.querySelector(
+      '[data-testid="edit-btn"]',
+    );
+    expect(editBtn).not.toBeNull();
+    expect(editBtn.textContent).toContain('Modifier');
+    expect(component.editable()).toBe(true);
+  });
+
+  it('DONE + VALIDATED → bouton « Modifier » masqué (lecture seule)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(
+      doneResponse({ lifecycleStatus: 'VALIDATED' }),
+      versionList(),
+    );
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="edit-btn"]'),
+    ).toBeNull();
+    expect(component.editable()).toBe(false);
+  });
+
+  it('DONE + DEPOSITED → bouton « Modifier » masqué (lecture seule)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(
+      doneResponse({ lifecycleStatus: 'DEPOSITED' }),
+      versionList(),
+    );
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="edit-btn"]'),
+    ).toBeNull();
+    expect(component.editable()).toBe(false);
+  });
+
+  it('clic « Modifier » → textarea pré-rempli avec le contenu courant', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    const editBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="edit-btn"]',
+    );
+    editBtn.click();
+    fixture.detectChanges();
+
+    const editor: HTMLTextAreaElement = fixture.nativeElement.querySelector(
+      '[data-testid="conclusions-editor"]',
+    );
+    expect(editor).not.toBeNull();
+    expect(editor.value).toBe('POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…');
+    expect(component.editing()).toBe(true);
+    // En édition, le bloc lecture seule disparaît.
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="conclusions-content"]'),
+    ).toBeNull();
+  });
+
+  it('« Enregistrer » → PATCH /content puis retour en lecture + rafraîchissement', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    component.startEditing();
+    component.onDraftInput('Texte révisé par l\'avocat.');
+    fixture.detectChanges();
+
+    const saveBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="save-btn"]',
+    );
+    saveBtn.click();
+
+    const req = httpMock.expectOne(contentUrl('conc-2'));
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ content: 'Texte révisé par l\'avocat.' });
+    req.flush(
+      doneResponse({
+        lifecycleStatus: 'DRAFT',
+        content: 'Texte révisé par l\'avocat.',
+      }),
+    );
+    // saveContent déclenche un refreshVersions best-effort.
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
+    fixture.detectChanges();
+
+    expect(component.editing()).toBe(false);
+    expect(component.savingContent()).toBe(false);
+    expect(component.conclusion()?.content).toBe('Texte révisé par l\'avocat.');
+    const content = fixture.nativeElement.querySelector(
+      '[data-testid="conclusions-content"]',
+    );
+    expect(content.textContent).toContain('Texte révisé par l\'avocat.');
+  });
+
+  it('« Enregistrer » → 409 affiche le message backend via snackbar', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    component.startEditing();
+    component.saveContent();
+    httpMock.expectOne(contentUrl('conc-2')).flush(
+      {
+        error: 'CONCLUSION_NOT_DRAFT',
+        message: 'Seul un brouillon peut être modifié.',
+      },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    expect(snackSpy.open).toHaveBeenCalledWith(
+      'Seul un brouillon peut être modifié.',
+      'Fermer',
+      jasmine.objectContaining({ panelClass: ['snack-error'] }),
+    );
+    expect(component.savingContent()).toBe(false);
+    // En cas d'échec, on reste en mode édition.
+    expect(component.editing()).toBe(true);
+  });
+
+  it('« Annuler » → restaure le texte sans appel serveur', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    component.startEditing();
+    component.onDraftInput('Modification non sauvegardée');
+    fixture.detectChanges();
+
+    const cancelBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="cancel-edit-btn"]',
+    );
+    cancelBtn.click();
+    fixture.detectChanges();
+
+    httpMock.expectNone(contentUrl('conc-2'));
+    expect(component.editing()).toBe(false);
+    const content = fixture.nativeElement.querySelector(
+      '[data-testid="conclusions-content"]',
+    );
+    // Le texte affiché reste le contenu original.
+    expect(content.textContent).toContain('FAITS ET PROCÉDURE');
+  });
+
+  it('changement de version pendant l\'édition → sort du mode édition', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    component.startEditing();
+    expect(component.editing()).toBe(true);
+
+    component.selectVersion('conc-1');
+    httpMock.expectOne(versionUrl('conc-1')).flush(
+      doneResponse({ id: 'conc-1', versionNumber: 1, lifecycleStatus: 'VALIDATED' }),
+    );
+
+    expect(component.editing()).toBe(false);
+  });
 
   it('GET initial en erreur → section indisponible + snackbar', () => {
     fixture.detectChanges();

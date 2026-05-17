@@ -138,28 +138,68 @@
           </p>
         }
 
-        <pre class="cs-content" data-testid="conclusions-content">{{ conclusion()?.content }}</pre>
+        <!-- ── Éditeur de relecture (SF-98-49) ─────────────────── -->
+        @if (editing()) {
+          <textarea class="cs-editor"
+                    data-testid="conclusions-editor"
+                    rows="18"
+                    [value]="draftContent()"
+                    [disabled]="savingContent()"
+                    (input)="onDraftInput($any($event.target).value)"
+                    aria-label="Texte du projet de conclusions"></textarea>
 
-        <div class="cs-actions">
-          <button mat-stroked-button
-                  data-testid="copy-btn"
-                  [disabled]="copying()"
-                  (click)="copy()">
-            <mat-icon>content_copy</mat-icon>
-            Copier
-          </button>
-          <button mat-stroked-button
-                  data-testid="regenerate-btn"
-                  [disabled]="generating()"
-                  (click)="generate()">
-            @if (generating()) {
-              <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
-            } @else {
-              <mat-icon>refresh</mat-icon>
+          <div class="cs-actions">
+            <button mat-flat-button color="primary"
+                    data-testid="save-btn"
+                    [disabled]="savingContent()"
+                    (click)="saveContent()">
+              @if (savingContent()) {
+                <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>save</mat-icon>
+              }
+              Enregistrer
+            </button>
+            <button mat-stroked-button
+                    data-testid="cancel-edit-btn"
+                    [disabled]="savingContent()"
+                    (click)="cancelEditing()">
+              <mat-icon>close</mat-icon>
+              Annuler
+            </button>
+          </div>
+        } @else {
+          <pre class="cs-content" data-testid="conclusions-content">{{ conclusion()?.content }}</pre>
+
+          <div class="cs-actions">
+            @if (editable()) {
+              <button mat-stroked-button
+                      data-testid="edit-btn"
+                      (click)="startEditing()">
+                <mat-icon>edit</mat-icon>
+                Modifier
+              </button>
             }
-            Régénérer
-          </button>
-        </div>
+            <button mat-stroked-button
+                    data-testid="copy-btn"
+                    [disabled]="copying()"
+                    (click)="copy()">
+              <mat-icon>content_copy</mat-icon>
+              Copier
+            </button>
+            <button mat-stroked-button
+                    data-testid="regenerate-btn"
+                    [disabled]="generating()"
+                    (click)="generate()">
+              @if (generating()) {
+                <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>refresh</mat-icon>
+              }
+              Régénérer
+            </button>
+          </div>
+        }
       }
 
       <!-- ── Échec ─────────────────────────────────────────────── -->
