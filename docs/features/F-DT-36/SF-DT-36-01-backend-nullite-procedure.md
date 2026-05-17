@@ -148,7 +148,7 @@ F-DT-08 (validité du licenciement) conserve la vérification **sommaire** du mo
 ---
 
 ## Conformité F-IA-04
-- [x] **Non applicable au sens strict** — SF backend pure. La conformité F-IA-04 (TOOL_REGISTRY, pré-fill, F-IA-03) est portée par SF-DT-36-02 frontend. Côté backend : l'outil expose un endpoint POST décisionnel + seed `decision_tool_visibility_rules` (ci-dessous).
+- [x] **Non applicable au sens strict** — SF backend pure. La conformité F-IA-04 (TOOL_REGISTRY, pré-fill, F-IA-03) est portée par SF-DT-36-02 frontend. Le seed `decision_tool_visibility_rules` est lui aussi porté par SF-DT-36-02 (migration 231), couplé à l'entrée TOOL_REGISTRY dans le même lot — un seed sans entrée frontend ferait échouer le garde-fou `DecisionToolVisibilityIntegrityIT` (précédent SF-211-05).
 
 ---
 
@@ -161,7 +161,6 @@ F-DT-08 (validité du licenciement) conserve la vérification **sommaire** du mo
 - [ ] `GET` renvoie le dernier résultat ou 404.
 - [ ] `400` si date mal formée, `403` workspace différent, `404` dossier inexistant, `422` domaine ≠ `DROIT_DU_TRAVAIL`, `401` non authentifié.
 - [ ] Isolation workspace testée.
-- [ ] Seed `decision_tool_visibility_rules` : `F-DT-36-procedure-nullite-licenciement`, `DROIT_DU_TRAVAIL` / `FRANCE`, `CONTEXTUAL`, déclenché par licenciement détecté.
 
 ---
 
@@ -187,10 +186,10 @@ F-DT-08 (validité du licenciement) conserve la vérification **sommaire** du mo
 | Table | Opération | Notes |
 |-------|-----------|-------|
 | `procedure_nullite_licenciement_analyses` | CREATE + INSERT/UPDATE/SELECT | id, case_file_id (FK unique), snapshot_data (TEXT JSON), country, created_at, updated_at |
-| `decision_tool_visibility_rules` | INSERT (seed) | entrée CONTEXTUAL F-DT-36 |
+| `decision_tool_visibility_rules` | INSERT (seed) | porté par SF-DT-36-02 (migration 231), couplé à l'entrée TOOL_REGISTRY |
 
 ### Migration Liquibase
-- [x] Oui — `230-create-procedure-nullite-licenciement-analyses.xml` (table + seed visibility rule)
+- [x] Oui — `230-create-procedure-nullite-licenciement-analyses.xml` (table seule ; le seed `decision_tool_visibility_rules` est porté par SF-DT-36-02 — migration 231)
 
 ### Classes backend (pattern F-DT-16)
 `ProcedureNulliteLicenciementCalculator` (static), `ProcedureNulliteLicenciementInput`, `ProcedureNulliteResult`, `ProcedureNulliteLicenciementRequest`, `ProcedureNulliteLicenciementResponse`, `ProcedureNulliteLicenciementAnalysis` (@Entity), `ProcedureNulliteLicenciementRepository`, `ProcedureNulliteLicenciementService`, `ProcedureNulliteLicenciementController`.

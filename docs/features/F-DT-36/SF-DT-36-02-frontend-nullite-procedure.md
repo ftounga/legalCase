@@ -86,7 +86,7 @@ Section frontend décisionnelle — les 5 blocs s'appliquent.
 - [x] `TOOL_LABEL` + `TOOL_ICON` symétriques.
 - [x] `static getPrefillCount()` retourne 0 (V1) — parité stricte avec `prefillFromAi()`.
 - [x] Tests Jest : cas 0 champ (return 0).
-- [x] `tool_id` ajouté à `KNOWN_FRONTEND_TOOL_IDS` du test `DecisionToolVisibilityIntegrityIT` ; cohérent avec le seed `decision_tool_visibility_rules` de SF-DT-36-01 (cf. mémoire `feedback_pre_merge_visibility_seed_check`).
+- [x] Le seed `decision_tool_visibility_rules` (migration `231-seed-f-dt-36-visibility-rules.xml`) est porté par **cette SF frontend** — couplé à l'entrée `TOOL_REGISTRY` dans le même lot, conformément au précédent SF-211-05. Le garde-fou `DecisionToolVisibilityIntegrityIT` extrait dynamiquement `TOOL_REGISTRY` (plus de liste hardcodée `KNOWN_FRONTEND_TOOL_IDS`) : seed + entrée frontend doivent être livrés ensemble (cf. mémoire `feedback_pre_merge_visibility_seed_check`).
 
 ### 5. Parité des domaines (niveau ≥ 5)
 - [x] Niveau du tool : **5** (scoring / analyse de validité — verdict de nullité).
@@ -128,6 +128,7 @@ Section frontend décisionnelle — les 5 blocs s'appliquent.
 - `ProcedureNulliteLicenciementService` (`core/services/`) — `calculate()`, `get()`.
 - `procedure-nullite-licenciement-section-prefill-rules.ts` — helper `getPrefillCount()`.
 - Entrée `TOOL_REGISTRY` dans `decisional-tools-panel.component.ts`.
+- Migration Liquibase `231-seed-f-dt-36-visibility-rules.xml` — seed `decision_tool_visibility_rules` (CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE, trigger `type_rupture`).
 
 ---
 
