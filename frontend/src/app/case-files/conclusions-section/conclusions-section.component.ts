@@ -11,13 +11,17 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import {
+  ConclusionLifecycleStatus,
   ConclusionResponse,
   ConclusionStatus,
+  ConclusionVersionSummary,
 } from '../../core/models/conclusion.model';
 
 /**
@@ -26,13 +30,31 @@ import {
  */
 const POLL_INTERVAL_MS = 3000;
 
+/** Libellés FR des états du cycle de vie d'une version (SF-98-52). */
+const LIFECYCLE_LABELS: Record<ConclusionLifecycleStatus, string> = {
+  DRAFT: 'Brouillon',
+  VALIDATED: 'Validé',
+  DEPOSITED: 'Déposé',
+};
+
+/** Ordre des états proposés dans le contrôle de cycle de vie. */
+const LIFECYCLE_ORDER: readonly ConclusionLifecycleStatus[] = [
+  'DRAFT',
+  'VALIDATED',
+  'DEPOSITED',
+];
+
 /**
- * F-98 / SF-98-01 — Section « Conclusions » du détail dossier.
+ * F-98 / SF-98-01 + SF-98-52 — Section « Conclusions » du détail dossier.
  *
  * Placée dans l'onglet Décision, juste après le tableau de bord décisionnel.
  * Permet à l'avocat de générer un projet de conclusions juridiques à partir
  * de la synthèse, du stade procédural, des outils décisionnels et des pistes
  * stratégiques du dossier.
+ *
+ * SF-98-52 : chaque génération crée une nouvelle version ; l'avocat dispose
+ * d'un sélecteur de version, d'un badge de cycle de vie (brouillon / validé /
+ * déposé) et d'un contrôle pour faire évoluer ce cycle de vie.
  *
  * Ce n'est PAS un outil décisionnel : pas de `TOOL_REGISTRY`, pas de panel
  * F-IA-04, pas de gate F-IA-03. C'est un générateur de document.
@@ -47,8 +69,10 @@ const POLL_INTERVAL_MS = 3000;
   imports: [
     MatButtonModule,
     MatCardModule,
+    MatFormFieldModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
   ],
   templateUrl: './conclusions-section.component.html',
   styleUrl: './conclusions-section.component.scss',
@@ -72,8 +96,12 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    */
   @Input() hasCompletedAnalysis?: boolean;
 
-  /** État courant des conclusions du dossier. */
+  /** Contenu de la version actuellement affichée. */
   readonly conclusion = signal<ConclusionResponse | null>(null);
+  /** Historique des versions du dossier (tri version décroissante). */
+  readonly versions = signal<ConclusionVersionSummary[]>([]);
+  /** Id de la version sélectionnée dans le sélecteur (null si aucune). */
+  readonly selectedVersionId = signal<string | null>(null);
   /** Chargement initial (GET au montage). */
   readonly loading = signal(true);
   /** Vrai si le GET initial a échoué — section indisponible. */
@@ -82,6 +110,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly generating = signal(false);
   /** Copie du texte dans le presse-papier en cours. */
   readonly copying = signal(false);
+  /** Changement de cycle de vie en cours (PATCH). */
+  readonly updatingLifecycle = signal(false);
+
+  /** Libellés des états de cycle de vie, exposés au template. */
+  readonly lifecycleLabels = LIFECYCLE_LABELS;
+  /** Ordre des états de cycle de vie, exposé au template. */
+  readonly lifecycleOptions = LIFECYCLE_ORDER;
 
   private readonly conclusionsService = inject(ConclusionsService);
   private readonly snackBar = inject(MatSnackBar);
@@ -94,6 +129,14 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly status = computed<ConclusionStatus>(
     () => this.conclusion()?.status ?? 'NOT_GENERATED',
   );
+
+  /** Cycle de vie de la version affichée (null tant qu'aucune version). */
+  readonly lifecycleStatus = computed<ConclusionLifecycleStatus | null>(
+    () => this.conclusion()?.lifecycleStatus ?? null,
+  );
+
+  /** Vrai s'il existe au moins une version générée pour le dossier. */
+  readonly hasVersions = computed<boolean>(() => this.versions().length > 0);
 
   /** Vrai si tous les pré-requis fonctionnels connus sont satisfaits. */
   readonly prerequisitesMet = computed<boolean>(
@@ -120,11 +163,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     this.conclusionsService.getConclusion(this.caseFileId).subscribe({
       next: (res) => {
         this.conclusion.set(res);
+        this.selectedVersionId.set(res.id);
         this.loading.set(false);
         if (res.status === 'PENDING' || res.status === 'PROCESSING') {
           this.startPolling();
         }
         this.cdr.markForCheck();
+        this.refreshVersions();
       },
       error: () => {
         this.loading.set(false);
@@ -145,7 +190,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   /**
    * Déclenche (ou relance) la génération du projet de conclusions.
-   * Sur succès `202`, démarre le polling de l'état.
+   * SF-98-52 : crée une nouvelle version. Sur succès `202`, démarre le
+   * polling et sélectionne la nouvelle version.
    */
   generate(): void {
     if (this.generating()) {
@@ -153,26 +199,32 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     }
     this.generating.set(true);
     this.conclusionsService.generate(this.caseFileId).subscribe({
-      next: () => {
+      next: (res) => {
         this.generating.set(false);
-        // Reflète immédiatement l'état PENDING en attendant le 1er poll.
-        const current = this.conclusion();
+        // Reflète immédiatement l'état PENDING de la nouvelle version en
+        // attendant le 1er poll. `id` est inconnu : on cible la dernière
+        // version via getConclusion (polling) qui renvoie le max.
         this.conclusion.set({
-          id: current?.id ?? null,
+          id: null,
           caseFileId: this.caseFileId,
           status: 'PENDING',
+          versionNumber: res.versionNumber,
+          lifecycleStatus: 'DRAFT',
           content: null,
-          jurisdictionLabel: current?.jurisdictionLabel ?? null,
-          stageLabel: current?.stageLabel ?? null,
-          positionLabel: current?.positionLabel ?? null,
+          jurisdictionLabel: null,
+          stageLabel: null,
+          positionLabel: null,
           modelUsed: null,
           generatedAt: null,
           errorMessage: null,
-          createdAt: current?.createdAt ?? null,
-          updatedAt: current?.updatedAt ?? null,
+          createdAt: null,
+          updatedAt: null,
         });
+        // La nouvelle version devient la version suivie par défaut.
+        this.selectedVersionId.set(null);
         this.startPolling();
         this.cdr.markForCheck();
+        this.refreshVersions();
       },
       error: (err) => {
         this.generating.set(false);
@@ -186,6 +238,71 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /**
+   * SF-98-52 — Change la version affichée.
+   * Recharge le contenu via `getVersion`. Pendant un polling actif
+   * (génération en cours), le changement de version est ignoré pour ne pas
+   * détourner le suivi de la version en cours de génération.
+   */
+  selectVersion(versionId: string): void {
+    if (versionId === this.selectedVersionId() || this.pollHandle !== null) {
+      return;
+    }
+    this.selectedVersionId.set(versionId);
+    this.conclusionsService.getVersion(this.caseFileId, versionId).subscribe({
+      next: (res) => {
+        this.conclusion.set(res);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.snackBar.open(
+          'Impossible de charger cette version des conclusions.',
+          'Fermer',
+          { duration: 4000, panelClass: ['snack-error'] },
+        );
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * SF-98-52 — Fait évoluer le cycle de vie de la version affichée.
+   * Sur `409`/`400`, affiche le message backend via la snackbar.
+   */
+  changeLifecycle(lifecycleStatus: ConclusionLifecycleStatus): void {
+    const current = this.conclusion();
+    if (
+      !current?.id ||
+      this.updatingLifecycle() ||
+      lifecycleStatus === current.lifecycleStatus
+    ) {
+      return;
+    }
+    const versionId = current.id;
+    this.updatingLifecycle.set(true);
+    this.conclusionsService
+      .updateLifecycle(this.caseFileId, versionId, lifecycleStatus)
+      .subscribe({
+        next: (res) => {
+          this.updatingLifecycle.set(false);
+          this.conclusion.set(res);
+          this.cdr.markForCheck();
+          this.refreshVersions();
+        },
+        error: (err) => {
+          this.updatingLifecycle.set(false);
+          const msg =
+            err?.error?.message ||
+            'Impossible de modifier le cycle de vie de cette version.';
+          this.snackBar.open(msg, 'Fermer', {
+            duration: 6000,
+            panelClass: ['snack-error'],
+          });
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   /** Copie le texte des conclusions dans le presse-papier. */
@@ -217,6 +334,31 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     );
   }
 
+  /** Libellé FR d'un cycle de vie (utilitaire template). */
+  lifecycleLabel(value: ConclusionLifecycleStatus | null): string {
+    return value ? LIFECYCLE_LABELS[value] : '';
+  }
+
+  /** Recharge l'historique des versions (best-effort, sans bloquer l'UI). */
+  private refreshVersions(): void {
+    this.conclusionsService.listVersions(this.caseFileId).subscribe({
+      next: (list) => {
+        this.versions.set(list);
+        // Tant qu'aucune version n'est explicitement sélectionnée, la plus
+        // récente (max version_number, tête de liste) est suivie par défaut.
+        if (this.selectedVersionId() === null && list.length > 0) {
+          this.selectedVersionId.set(list[0].id);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // L'historique est secondaire : un échec ne rend pas la section
+        // indisponible, on garde la version courante affichée.
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   /** Démarre le polling de l'état (idempotent). */
   private startPolling(): void {
     if (this.pollHandle !== null) {
@@ -239,7 +381,9 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.conclusion.set(res);
         if (res.status === 'DONE' || res.status === 'FAILED') {
+          this.selectedVersionId.set(res.id);
           this.stopPolling();
+          this.refreshVersions();
         }
         this.cdr.markForCheck();
       },

@@ -36,6 +36,69 @@ $gold: #c9973a;
   height: 22px;
 }
 
+// ── Sélecteur de version (SF-98-52) ────────────────────────
+.cs-version-field {
+  width: 220px;
+
+  // Champ de filtre compact dans l'en-tête : on neutralise la gouttière
+  // d'erreur native pour rester aligné avec le titre.
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+// ── Cycle de vie de la version (SF-98-52) ──────────────────
+.cs-lifecycle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cs-lifecycle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.cs-lifecycle-badge-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+// Brouillon : navy atténué. Validé : navy plein. Déposé : or.
+// Aucun rouge — états informatifs (cf. DESIGN_SYSTEM).
+.cs-lifecycle-badge--draft {
+  background: rgba(26, 58, 92, 0.08);
+  color: $navy;
+}
+
+.cs-lifecycle-badge--validated {
+  background: rgba(26, 58, 92, 0.16);
+  color: $navy;
+}
+
+.cs-lifecycle-badge--deposited {
+  background: rgba(201, 151, 58, 0.18);
+  color: #8a6420;
+}
+
+.cs-lifecycle-field {
+  width: 200px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
 // ── Texte d'introduction des intrants ──────────────────────
 .cs-intro {
   margin: 0 0 16px;
