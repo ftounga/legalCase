@@ -11,6 +11,7 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConclusionsSectionComponent } from './conclusions-section.component';
+import { DocxExportService } from '../../core/services/docx-export.service';
 import {
   ConclusionResponse,
   ConclusionVersionSummary,
@@ -21,6 +22,7 @@ describe('ConclusionsSectionComponent', () => {
   let fixture: ComponentFixture<ConclusionsSectionComponent>;
   let httpMock: HttpTestingController;
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
+  let docxSpy: jasmine.SpyObj<DocxExportService>;
 
   const CASE_ID = 'case-1';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
@@ -98,13 +100,17 @@ describe('ConclusionsSectionComponent', () => {
 
   beforeEach(async () => {
     snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+    docxSpy = jasmine.createSpyObj('DocxExportService', ['exportConclusion']);
     await TestBed.configureTestingModule({
       imports: [
         ConclusionsSectionComponent,
         HttpClientTestingModule,
         NoopAnimationsModule,
       ],
-      providers: [{ provide: MatSnackBar, useValue: snackSpy }],
+      providers: [
+        { provide: MatSnackBar, useValue: snackSpy },
+        { provide: DocxExportService, useValue: docxSpy },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ConclusionsSectionComponent);
@@ -640,5 +646,84 @@ describe('ConclusionsSectionComponent', () => {
     // Pas de listVersions sur échec du GET initial.
     expect(component.unavailable()).toBe(true);
     expect(snackSpy.open).toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-98-50 — Export Word des conclusions
+  // ---------------------------------------------------------------------------
+
+  it('DONE → bouton « Télécharger en Word » visible', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    const btn = fixture.nativeElement.querySelector(
+      '[data-testid="download-word-btn"]',
+    );
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toContain('Télécharger en Word');
+  });
+
+  it('NOT_GENERATED → bouton « Télécharger en Word » absent', () => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="download-word-btn"]'),
+    ).toBeNull();
+  });
+
+  it('FAILED → bouton « Télécharger en Word » absent', () => {
+    fixture.detectChanges();
+    flushInitialLoad(response({ status: 'FAILED', errorMessage: 'Timeout.' }));
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="download-word-btn"]'),
+    ).toBeNull();
+  });
+
+  it('clic « Télécharger en Word » → appelle DocxExportService.exportConclusion', () => {
+    component.caseTitle = 'Affaire Dupont';
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="download-word-btn"]',
+    );
+    btn.click();
+
+    expect(docxSpy.exportConclusion).toHaveBeenCalledWith(
+      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
+      'Affaire Dupont',
+      2,
+    );
+  });
+
+  it('downloadWord → ignoré si la version n\'est pas DONE', () => {
+    fixture.detectChanges();
+    flushInitialLoad(response({ status: 'FAILED' }));
+    fixture.detectChanges();
+
+    component.downloadWord();
+    expect(docxSpy.exportConclusion).not.toHaveBeenCalled();
+  });
+
+  it('downloadWord → échec de génération affiche une snackbar d\'erreur', () => {
+    docxSpy.exportConclusion.and.throwError('boom');
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.downloadWord();
+
+    expect(snackSpy.open).toHaveBeenCalledWith(
+      'Erreur lors de la génération du document Word.',
+      'Fermer',
+      jasmine.objectContaining({ panelClass: ['snack-error'] }),
+    );
   });
 });

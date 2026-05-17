@@ -144,13 +144,99 @@ export class DocxExportService {
     if (!title) {
       return `synthese-v${synthesis.version}.docx`;
     }
-    const slug = title
+    return `${this.slugify(title)}-synthese-v${synthesis.version}.docx`;
+  }
+
+  /**
+   * F-98 / SF-98-50 \u2014 Exporte une version de conclusions au format `.docx`.
+   *
+   * Construit un `Document` `docx` \u00e0 partir du `content` texte de la version :
+   * les lignes d'en-t\u00eate de section (enti\u00e8rement en MAJUSCULES, courtes \u2014 type
+   * `POUR`, `CONTRE`, `FAITS ET PROC\u00c9DURE`, `DISCUSSION`, `PAR CES MOTIFS`)
+   * sont rendues en titres ; les autres lignes en paragraphes. Les lignes vides
+   * sont pr\u00e9serv\u00e9es comme paragraphes vides pour conserver l'a\u00e9ration du texte.
+   *
+   * R\u00e9utilise le pattern F-95 : import dynamique de `docx`, g\u00e9n\u00e9ration d'un
+   * blob via `Packer`, t\u00e9l\u00e9chargement d\u00e9clench\u00e9 par un `<a download>`. Un \u00e9chec
+   * (import ou packing) affiche une `MatSnackBar` d'erreur, sans t\u00e9l\u00e9chargement.
+   *
+   * @param content        texte de la version de conclusions.
+   * @param caseTitle      titre du dossier \u2014 sert au nommage du fichier.
+   * @param versionNumber  num\u00e9ro de la version export\u00e9e.
+   */
+  exportConclusion(content: string, caseTitle: string, versionNumber: number): void {
+    import('docx').then(({ Document, Packer, Paragraph, HeadingLevel }) => {
+      const lines = (content ?? '').split('\n');
+      const children = lines.map((line) =>
+        this.isSectionHeading(line)
+          ? new Paragraph({ text: line.trim(), heading: HeadingLevel.HEADING_1 })
+          : new Paragraph({ text: line }),
+      );
+
+      const doc = new Document({
+        sections: [{ children }],
+      });
+
+      Packer.toBlob(doc).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = this.buildConclusionFileName(caseTitle, versionNumber);
+        a.click();
+        URL.revokeObjectURL(url);
+      }).catch(() => {
+        this.snackBar.open('Erreur lors de la g\u00e9n\u00e9ration du document Word.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      });
+    }).catch(() => {
+      this.snackBar.open('Erreur lors de la g\u00e9n\u00e9ration du document Word.', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      });
+    });
+  }
+
+  /**
+   * Nom de fichier d'une version de conclusions :
+   * `{slug-du-dossier}-conclusions-v{N}.docx` (fallback `conclusions-vN.docx`
+   * si le titre est vide). R\u00e9utilise le m\u00eame slug que `buildFileName`.
+   */
+  buildConclusionFileName(caseTitle: string, versionNumber: number): string {
+    const title = caseTitle?.trim() || '';
+    if (!title) {
+      return `conclusions-v${versionNumber}.docx`;
+    }
+    return `${this.slugify(title)}-conclusions-v${versionNumber}.docx`;
+  }
+
+  /**
+   * Vrai si la ligne est un en-t\u00eate de section : une fois les espaces et la
+   * ponctuation retir\u00e9s, elle ne contient que des lettres en MAJUSCULES, au
+   * moins une lettre, et reste courte (\u2264 60 caract\u00e8res). Robuste pour la
+   * structure produite par `CaseConclusionPromptBuilder` (`POUR`, `CONTRE`,
+   * `FAITS ET PROC\u00c9DURE`, `DISCUSSION`, `PAR CES MOTIFS`\u2026).
+   */
+  private isSectionHeading(line: string): boolean {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.length > 60) {
+      return false;
+    }
+    // Garde uniquement les lettres (Unicode) pour comparer casse et pr\u00e9sence.
+    const letters = trimmed.replace(/[^\p{L}]/gu, '');
+    if (letters.length === 0) {
+      return false;
+    }
+    return letters === letters.toUpperCase() && letters !== letters.toLowerCase();
+  }
+
+  /** Slug ASCII minuscule, accents retir\u00e9s, tronqu\u00e9 \u00e0 40 caract\u00e8res. */
+  private slugify(value: string): string {
+    return value
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 40);
-    return `${slug}-synthese-v${synthesis.version}.docx`;
   }
 }
