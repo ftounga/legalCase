@@ -6,7 +6,7 @@
 ## Feature parente
 `F-241` — Connecteur jurispru léger — deeplinks Doctrine / Lexis Plus / Lextenso + queries IA pré-formulées
 
-## Statut `draft` · Date `2026-05-13` · Branche `feat/SF-241-01-jurispru-connector`
+## Statut `done` (mergé — PR #974, 2026-05-13) · Date `2026-05-13` · Branche `feat/SF-241-01-jurispru-connector`
 
 ---
 
