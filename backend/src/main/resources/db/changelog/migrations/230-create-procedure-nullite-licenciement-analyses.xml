@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="230-create-procedure-nullite-licenciement-analyses" author="legalcase">
+        <comment>
+            SF-DT-36-01 : table dédiée à l'outil décisionnel "Analyse des nullités de
+            procédure de licenciement" (vices de forme côté employeur — FRANCE).
+
+            Analyse les 10 critères de vice de procédure (absence/délai de convocation,
+            absence d'entretien préalable, notification prématurée, absence/non-motivation
+            de la lettre, motivation insuffisante, faute grave sans procédure, procédure
+            CSE collective, procédure conventionnelle) — fondements L.1232-2, L.1232-6,
+            L.1235-2, L.1234-9, L.1332-2, L.1233-8 et s. Verdict en 3 niveaux :
+            NULLITE_AVEREE / NULLITE_PROBABLE / PROCEDURE_REGULIERE.
+
+            Outil single-country FRANCE — pendant BE = feature jumelle backlog.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI
+            sans recalcul (pattern F-DT-16).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-DT-36-02 (migration 231) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 : un seed de
+            visibilité ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="procedure_nullite_licenciement_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_procedure_nullite_licenciement_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="procedure_nullite_licenciement_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_procedure_nullite_licenciement_analyses_case_file"/>
+
+        <createIndex tableName="procedure_nullite_licenciement_analyses"
+                     indexName="idx_procedure_nullite_licenciement_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="procedure_nullite_licenciement_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
