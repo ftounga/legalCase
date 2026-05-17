@@ -4,6 +4,24 @@
       <mat-icon class="cs-title-icon">description</mat-icon>
       Projet de conclusions
     </span>
+
+    <!-- ── Sélecteur de version (SF-98-52) ─────────────────────── -->
+    @if (!loading() && !unavailable() && hasVersions()) {
+      <mat-form-field appearance="outline" class="cs-version-field"
+                      data-testid="version-select-field">
+        <mat-label>Version</mat-label>
+        <mat-select [value]="selectedVersionId()"
+                    data-testid="version-select"
+                    [disabled]="generating()"
+                    (selectionChange)="selectVersion($event.value)">
+          @for (v of versions(); track v.id) {
+            <mat-option [value]="v.id" [attr.data-testid]="'version-option-' + v.id">
+              Version {{ v.versionNumber }} — {{ lifecycleLabel(v.lifecycleStatus) }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
   </div>
 
   @if (loading()) {
@@ -78,6 +96,39 @@
             avant tout dépôt.
           </span>
         </div>
+
+        <!-- ── Cycle de vie de la version (SF-98-52) ───────────── -->
+        @if (lifecycleStatus()) {
+          <div class="cs-lifecycle">
+            <span class="cs-lifecycle-badge"
+                  [class.cs-lifecycle-badge--draft]="lifecycleStatus() === 'DRAFT'"
+                  [class.cs-lifecycle-badge--validated]="lifecycleStatus() === 'VALIDATED'"
+                  [class.cs-lifecycle-badge--deposited]="lifecycleStatus() === 'DEPOSITED'"
+                  data-testid="lifecycle-badge">
+              <mat-icon class="cs-lifecycle-badge-icon">flag</mat-icon>
+              {{ lifecycleLabel(lifecycleStatus()) }}
+            </span>
+
+            <mat-form-field appearance="outline" class="cs-lifecycle-field"
+                            data-testid="lifecycle-select-field">
+              <mat-label>Cycle de vie</mat-label>
+              <mat-select [value]="lifecycleStatus()"
+                          data-testid="lifecycle-select"
+                          [disabled]="updatingLifecycle()"
+                          (selectionChange)="changeLifecycle($event.value)">
+                @for (opt of lifecycleOptions; track opt) {
+                  <mat-option [value]="opt" [attr.data-testid]="'lifecycle-option-' + opt">
+                    {{ lifecycleLabels[opt] }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            @if (updatingLifecycle()) {
+              <mat-spinner diameter="18" data-testid="lifecycle-spinner"></mat-spinner>
+            }
+          </div>
+        }
 
         @if (conclusion()?.jurisdictionLabel || conclusion()?.stageLabel || conclusion()?.positionLabel) {
           <p class="cs-meta">

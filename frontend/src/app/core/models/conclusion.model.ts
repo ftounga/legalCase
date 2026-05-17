@@ -20,15 +20,29 @@ export type ConclusionStatus =
   | 'FAILED';
 
 /**
+ * F-98 / SF-98-52 — Cycle de vie d'une version de conclusions.
+ *
+ * `DRAFT` (brouillon) à la création ; l'avocat peut faire évoluer vers
+ * `VALIDATED` (validé) puis `DEPOSITED` (déposé), avec retours possibles.
+ * Le passage à `VALIDATED`/`DEPOSITED` exige une génération `DONE`.
+ */
+export type ConclusionLifecycleStatus = 'DRAFT' | 'VALIDATED' | 'DEPOSITED';
+
+/**
  * Corps de la réponse `GET /api/v1/case-files/{id}/conclusions`.
  *
  * Quand `status === 'NOT_GENERATED'`, tous les champs sauf `caseFileId` et
  * `status` valent `null`.
+ *
+ * SF-98-52 : ajout de `versionNumber` + `lifecycleStatus` (champs additifs,
+ * rétrocompatibles).
  */
 export interface ConclusionResponse {
   id: string | null;
   caseFileId: string;
   status: ConclusionStatus;
+  versionNumber: number | null;
+  lifecycleStatus: ConclusionLifecycleStatus | null;
   content: string | null;
   jurisdictionLabel: string | null;
   stageLabel: string | null;
@@ -41,9 +55,27 @@ export interface ConclusionResponse {
 }
 
 /**
+ * F-98 / SF-98-52 — Résumé d'une version de conclusions.
+ *
+ * Corps de chaque élément de la réponse
+ * `GET /api/v1/case-files/{id}/conclusions/versions`.
+ */
+export interface ConclusionVersionSummary {
+  id: string;
+  versionNumber: number;
+  lifecycleStatus: ConclusionLifecycleStatus;
+  status: ConclusionStatus;
+  generatedAt: string | null;
+  createdAt: string | null;
+}
+
+/**
  * Corps de la réponse `POST /api/v1/case-files/{id}/conclusions/generate`
  * (`202`).
+ *
+ * SF-98-52 : ajout de `versionNumber` (numéro de la version créée).
  */
 export interface ConclusionGenerationResponse {
   status: ConclusionStatus;
+  versionNumber: number;
 }

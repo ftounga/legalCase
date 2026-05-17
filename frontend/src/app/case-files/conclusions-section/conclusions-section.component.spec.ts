@@ -11,7 +11,10 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConclusionsSectionComponent } from './conclusions-section.component';
-import { ConclusionResponse } from '../../core/models/conclusion.model';
+import {
+  ConclusionResponse,
+  ConclusionVersionSummary,
+} from '../../core/models/conclusion.model';
 
 describe('ConclusionsSectionComponent', () => {
   let component: ConclusionsSectionComponent;
@@ -22,6 +25,9 @@ describe('ConclusionsSectionComponent', () => {
   const CASE_ID = 'case-1';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
   const GENERATE_URL = `/api/v1/case-files/${CASE_ID}/conclusions/generate`;
+  const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
+  const versionUrl = (id: string) => `${VERSIONS_URL}/${id}`;
+  const lifecycleUrl = (id: string) => `${versionUrl(id)}/lifecycle`;
 
   function response(
     overrides: Partial<ConclusionResponse> = {},
@@ -30,6 +36,8 @@ describe('ConclusionsSectionComponent', () => {
       id: null,
       caseFileId: CASE_ID,
       status: 'NOT_GENERATED',
+      versionNumber: null,
+      lifecycleStatus: null,
       content: null,
       jurisdictionLabel: null,
       stageLabel: null,
@@ -43,17 +51,48 @@ describe('ConclusionsSectionComponent', () => {
     };
   }
 
-  function doneResponse(): ConclusionResponse {
+  function doneResponse(
+    overrides: Partial<ConclusionResponse> = {},
+  ): ConclusionResponse {
     return response({
-      id: 'conc-1',
+      id: 'conc-2',
       status: 'DONE',
+      versionNumber: 2,
+      lifecycleStatus: 'DRAFT',
       content: 'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
       jurisdictionLabel: 'Conseil de prud\'hommes',
       stageLabel: 'Bureau de jugement (fond)',
       positionLabel: 'Demandeur (salarié)',
       modelUsed: 'claude-sonnet-4-6',
       generatedAt: '2026-05-18T10:00:00Z',
+      ...overrides,
     });
+  }
+
+  function versionSummary(
+    overrides: Partial<ConclusionVersionSummary> = {},
+  ): ConclusionVersionSummary {
+    return {
+      id: 'conc-2',
+      versionNumber: 2,
+      lifecycleStatus: 'DRAFT',
+      status: 'DONE',
+      generatedAt: '2026-05-18T10:00:00Z',
+      createdAt: '2026-05-18T09:55:00Z',
+      ...overrides,
+    };
+  }
+
+  /** Liste type : v2 (la plus récente, en tête) puis v1. */
+  function versionList(): ConclusionVersionSummary[] {
+    return [
+      versionSummary({ id: 'conc-2', versionNumber: 2 }),
+      versionSummary({
+        id: 'conc-1',
+        versionNumber: 1,
+        lifecycleStatus: 'VALIDATED',
+      }),
+    ];
   }
 
   beforeEach(async () => {
@@ -75,15 +114,30 @@ describe('ConclusionsSectionComponent', () => {
 
   afterEach(() => httpMock.verify());
 
+  /**
+   * Sert le GET initial des conclusions PUIS le `listVersions` best-effort
+   * qui suit toujours (SF-98-52). `versions` vaut `[]` par défaut.
+   */
+  function flushInitialLoad(
+    conclusion: ConclusionResponse = response(),
+    versions: ConclusionVersionSummary[] = [],
+  ): void {
+    httpMock.expectOne(GET_URL).flush(conclusion);
+    httpMock.expectOne(VERSIONS_URL).flush(versions);
+  }
+
   // ---------------------------------------------------------------------------
   // Montage + GET initial
   // ---------------------------------------------------------------------------
 
-  it('montage → GET /conclusions déclenché', () => {
+  it('montage → GET /conclusions + GET /versions déclenchés', () => {
     fixture.detectChanges();
     const req = httpMock.expectOne(GET_URL);
     expect(req.request.method).toBe('GET');
     req.flush(response());
+    const versReq = httpMock.expectOne(VERSIONS_URL);
+    expect(versReq.request.method).toBe('GET');
+    versReq.flush([]);
     expect(component.loading()).toBe(false);
   });
 
@@ -94,7 +148,7 @@ describe('ConclusionsSectionComponent', () => {
   it('NOT_GENERATED + pré-requis OK → bouton « Générer » actif visible', () => {
     component.hasCompletedAnalysis = true;
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(response());
+    flushInitialLoad();
     fixture.detectChanges();
 
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
@@ -108,7 +162,7 @@ describe('ConclusionsSectionComponent', () => {
   it('pré-requis manquant (analyse) → message guidant + bouton désactivé', () => {
     component.hasCompletedAnalysis = false;
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(response());
+    flushInitialLoad();
     fixture.detectChanges();
 
     const message = fixture.nativeElement.querySelector(
@@ -126,7 +180,7 @@ describe('ConclusionsSectionComponent', () => {
   it('pré-requis manquant (stade) → message guidant stade procédural', () => {
     component.procedureStageComplete = false;
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(response());
+    flushInitialLoad();
     fixture.detectChanges();
 
     const message = fixture.nativeElement.querySelector(
@@ -141,7 +195,7 @@ describe('ConclusionsSectionComponent', () => {
 
   it('DONE → bandeau de transparence + texte des conclusions affichés', () => {
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(doneResponse());
+    flushInitialLoad(doneResponse(), versionList());
     fixture.detectChanges();
 
     const banner = fixture.nativeElement.querySelector(
@@ -165,7 +219,7 @@ describe('ConclusionsSectionComponent', () => {
     Object.assign(navigator, { clipboard: { writeText: writeSpy } });
 
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(doneResponse());
+    flushInitialLoad(doneResponse(), versionList());
     fixture.detectChanges();
 
     const copyBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
@@ -181,13 +235,136 @@ describe('ConclusionsSectionComponent', () => {
   }));
 
   // ---------------------------------------------------------------------------
+  // SF-98-52 — Sélecteur de version
+  // ---------------------------------------------------------------------------
+
+  it('DONE avec versions → sélecteur de version affiché, dernière sélectionnée', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector(
+      '[data-testid="version-select"]',
+    );
+    expect(select).not.toBeNull();
+    // La version la plus récente (conc-2 = v2) est sélectionnée par défaut.
+    expect(component.selectedVersionId()).toBe('conc-2');
+    expect(component.versions().length).toBe(2);
+  });
+
+  it('changement de version → recharge le contenu via getVersion', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    // L'avocat sélectionne la version 1.
+    component.selectVersion('conc-1');
+    const req = httpMock.expectOne(versionUrl('conc-1'));
+    expect(req.request.method).toBe('GET');
+    req.flush(
+      doneResponse({
+        id: 'conc-1',
+        versionNumber: 1,
+        lifecycleStatus: 'VALIDATED',
+        content: 'Contenu version 1',
+      }),
+    );
+
+    expect(component.selectedVersionId()).toBe('conc-1');
+    expect(component.conclusion()?.content).toBe('Contenu version 1');
+    expect(component.conclusion()?.versionNumber).toBe(1);
+  });
+
+  it('sélectionner la version déjà affichée → aucun appel réseau', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.selectVersion('conc-2');
+    httpMock.expectNone(versionUrl('conc-2'));
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-98-52 — Badge de cycle de vie
+  // ---------------------------------------------------------------------------
+
+  it('DONE → badge de cycle de vie affiché avec le libellé FR', () => {
+    fixture.detectChanges();
+    flushInitialLoad(
+      doneResponse({ lifecycleStatus: 'VALIDATED' }),
+      versionList(),
+    );
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector(
+      '[data-testid="lifecycle-badge"]',
+    );
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toContain('Validé');
+    // Badge informatif — jamais rouge.
+    expect(badge.className).not.toContain('error');
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-98-52 — Changement de cycle de vie
+  // ---------------------------------------------------------------------------
+
+  it('changeLifecycle → PATCH lifecycle puis met à jour le contenu', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.changeLifecycle('VALIDATED');
+    const req = httpMock.expectOne(lifecycleUrl('conc-2'));
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ lifecycleStatus: 'VALIDATED' });
+    req.flush(doneResponse({ lifecycleStatus: 'VALIDATED' }));
+    // Le PATCH déclenche un refreshVersions best-effort.
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+    expect(component.lifecycleStatus()).toBe('VALIDATED');
+    expect(component.updatingLifecycle()).toBe(false);
+  });
+
+  it('changeLifecycle → 409 affiche le message backend via snackbar', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.changeLifecycle('DEPOSITED');
+    httpMock.expectOne(lifecycleUrl('conc-2')).flush(
+      {
+        error: 'CONCLUSION_NOT_DONE',
+        message: 'Seule une version générée peut être validée ou déposée.',
+      },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    expect(snackSpy.open).toHaveBeenCalledWith(
+      'Seule une version générée peut être validée ou déposée.',
+      'Fermer',
+      jasmine.objectContaining({ panelClass: ['snack-error'] }),
+    );
+    expect(component.updatingLifecycle()).toBe(false);
+  });
+
+  it('changeLifecycle vers l\'état courant → aucun appel réseau', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ lifecycleStatus: 'DRAFT' }), versionList());
+    fixture.detectChanges();
+
+    component.changeLifecycle('DRAFT');
+    httpMock.expectNone(lifecycleUrl('conc-2'));
+  });
+
+  // ---------------------------------------------------------------------------
   // Génération + polling
   // ---------------------------------------------------------------------------
 
   it('clic « Générer » → POST puis polling jusqu\'à DONE', fakeAsync(() => {
     component.hasCompletedAnalysis = true;
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(response());
+    flushInitialLoad();
     fixture.detectChanges();
 
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
@@ -197,18 +374,22 @@ describe('ConclusionsSectionComponent', () => {
 
     const postReq = httpMock.expectOne(GENERATE_URL);
     expect(postReq.request.method).toBe('POST');
-    postReq.flush({ status: 'PENDING' });
+    postReq.flush({ status: 'PENDING', versionNumber: 1 });
+    // generate() relance un refreshVersions best-effort.
+    httpMock.expectOne(VERSIONS_URL).flush([]);
 
     expect(component.status()).toBe('PENDING');
+    expect(component.conclusion()?.versionNumber).toBe(1);
 
     // 1er tour de polling (3 s) → toujours PROCESSING
     tick(3000);
     httpMock.expectOne(GET_URL).flush(response({ status: 'PROCESSING' }));
     expect(component.status()).toBe('PROCESSING');
 
-    // 2e tour de polling → DONE → le polling s'arrête
+    // 2e tour de polling → DONE → le polling s'arrête + refreshVersions
     tick(3000);
     httpMock.expectOne(GET_URL).flush(doneResponse());
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
     expect(component.status()).toBe('DONE');
 
     // Plus aucun appel après DONE.
@@ -221,7 +402,7 @@ describe('ConclusionsSectionComponent', () => {
   it('erreur 409 → message backend affiché via snackbar', () => {
     component.hasCompletedAnalysis = true;
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(response());
+    flushInitialLoad();
 
     component.generate();
     httpMock.expectOne(GENERATE_URL).flush(
@@ -243,9 +424,9 @@ describe('ConclusionsSectionComponent', () => {
 
   it('FAILED → message d\'échec + bouton « Réessayer »', () => {
     fixture.detectChanges();
-    httpMock
-      .expectOne(GET_URL)
-      .flush(response({ status: 'FAILED', errorMessage: 'Timeout IA.' }));
+    flushInitialLoad(
+      response({ status: 'FAILED', errorMessage: 'Timeout IA.' }),
+    );
     fixture.detectChanges();
 
     const failed = fixture.nativeElement.querySelector(
@@ -265,7 +446,7 @@ describe('ConclusionsSectionComponent', () => {
 
   it('montage en PROCESSING → indicateur « Génération en cours » + polling', fakeAsync(() => {
     fixture.detectChanges();
-    httpMock.expectOne(GET_URL).flush(response({ status: 'PROCESSING' }));
+    flushInitialLoad(response({ status: 'PROCESSING' }));
     fixture.detectChanges();
 
     const indicator = fixture.nativeElement.querySelector(
@@ -275,6 +456,7 @@ describe('ConclusionsSectionComponent', () => {
 
     tick(3000);
     httpMock.expectOne(GET_URL).flush(doneResponse());
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
     expect(component.status()).toBe('DONE');
 
     component.ngOnDestroy();
@@ -285,6 +467,7 @@ describe('ConclusionsSectionComponent', () => {
     httpMock
       .expectOne(GET_URL)
       .flush({}, { status: 500, statusText: 'Server Error' });
+    // Pas de listVersions sur échec du GET initial.
     expect(component.unavailable()).toBe(true);
     expect(snackSpy.open).toHaveBeenCalled();
   });
