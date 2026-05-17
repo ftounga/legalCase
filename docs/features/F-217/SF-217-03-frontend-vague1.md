@@ -30,7 +30,7 @@ Ajouter dans le panel des outils décisionnels du dossier les 2 sections de la V
 
 ### Cas nominal
 
-1. Sur un dossier Famille **BE**, les 2 sections apparaissent dans `app-decisional-tools-panel` en mode `ALWAYS_ON` (visibilité gérée par F-IA-04 — seed migration 234 livré par cette SF).
+1. Sur un dossier Famille **BE**, les 2 sections apparaissent dans `app-decisional-tools-panel` en mode `ALWAYS_ON` (visibilité gérée par F-IA-04 — seed migration 235 livré par cette SF).
 2. **Régime de communauté légale** : l'avocat renseigne la date de mariage, la présence d'un contrat de mariage, et ajoute les biens / dettes via des listes dynamiques (ajout / suppression de lignes, chaque ligne portant ses critères de qualification). Clic « Analyser » → `POST` → affichage du verdict (`COMMUNAUTE_LEGALE_APPLICABLE` / `REGIME_CONVENTIONNEL_DETECTE` / `QUALIFICATION_INCOMPLETE`), de la liste des biens qualifiés (qualification + mode de gestion + fondement + explication), des dettes qualifiées et de la synthèse de composition.
 3. **Liquidation-partage** : l'avocat renseigne l'avancement des 8 étapes (cases + dates). Clic « Analyser » → `POST` → affichage du verdict (`PROCEDURE_NON_ENGAGEE` / `EN_COURS` / `DELAI_CONTREDITS_CRITIQUE` / `EN_ATTENTE_HOMOLOGATION` / `CLOTUREE`), de la checklist d'étapes (statut + fondement), des délais (échéance + jours restants + statut) et de la prochaine étape.
 4. À la réouverture du dossier, le dernier résultat de chaque outil (`GET`) est rechargé ; l'avocat peut ré-éditer et recalculer (la Response ré-expose les inputs — leçon F-DT-36).
@@ -124,7 +124,7 @@ SF frontend décisionnelle livrant 2 sections — les 5 blocs s'appliquent aux d
 - [ ] Le dernier résultat de chaque outil est rechargé à l'ouverture (`GET`) et le formulaire est ré-éditable (inputs ré-exposés par la Response).
 - [ ] Erreur backend → `MatSnackBar`, formulaire conservé.
 - [ ] `triggerRefresh()` appelé après chaque calcul.
-- [ ] Migration `234-seed-f217-vague1-visibility-rules.xml` ajoute 2 INSERT dans `decision_tool_visibility_rules` (`ALWAYS_ON`, `DROIT_FAMILLE` / `BELGIQUE`).
+- [ ] Migration `235-seed-f217-vague1-visibility-rules.xml` ajoute 2 INSERT dans `decision_tool_visibility_rules` (`ALWAYS_ON`, `DROIT_FAMILLE` / `BELGIQUE`).
 - [ ] `getPrefillCount()` retourne 0 pour les 2 outils.
 - [ ] Tests Jest verts (services mockés). `DecisionToolVisibilityIntegrityIT`, `DecisionToolDisplayLabelIntegrityIT`, `prefill-count-integrity.spec.ts` passent.
 
@@ -150,10 +150,10 @@ SF frontend décisionnelle livrant 2 sections — les 5 blocs s'appliquent aux d
 - 2 entrées `TOOL_REGISTRY` + 2 entrées `THEME_BY_TOOL_ID` dans `decisional-tools-panel.component.ts`.
 
 ### Migration Liquibase
-- [x] Oui — `234-seed-f217-vague1-visibility-rules.xml` — 2 INSERT dans `decision_tool_visibility_rules` :
+- [x] Oui — `235-seed-f217-vague1-visibility-rules.xml` — 2 INSERT dans `decision_tool_visibility_rules` :
   - `regime-mat-be-communaute-legale` : `layer = ALWAYS_ON`, `legal_domain = DROIT_FAMILLE`, `country = BELGIQUE`, `trigger_field = NULL`, `trigger_value = NULL` — toute analyse de dossier de couple marié belge porte une qualification de régime (cf. `SF-217-00-coherence.md` : situation toujours pertinente, pas de flag IA requis).
   - `liquidation-partage-be` : `layer = ALWAYS_ON`, `legal_domain = DROIT_FAMILLE`, `country = BELGIQUE`, `trigger_field = NULL`, `trigger_value = NULL` — **confirmé `ALWAYS_ON`** : toute dissolution du couple appelle une liquidation-partage du patrimoine, l'outil est pertinent dès qu'un dossier Famille BE est ouvert (cohérent avec `tribunal-famille-be-mesures-prov` `ALWAYS_ON` de F-211).
-  - Numéro `234` = numéro libre suivant après le plus haut existant (`231-seed-f-dt-36-visibility-rules.xml` ; `232` et `233` réservés aux migrations de table de SF-217-01 / SF-217-02). UUID namespace dédié F-217 : `f1a04001-0000-0000-0000-eeee21700XXX`.
+  - Numéro `235` = numéro libre suivant (`232`=F-240, `233`=SF-217-01, `234`=SF-217-02 déjà pris). UUID namespace dédié F-217 : `f1a04001-0000-0000-0000-eeee21700XXX`.
   - Rollback : `DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee21700%'`.
 
 ---

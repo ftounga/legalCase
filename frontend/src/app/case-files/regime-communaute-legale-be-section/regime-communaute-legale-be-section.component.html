@@ -1,0 +1,346 @@
+<section class="rcl-section">
+  <header class="rcl-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rcl-body">
+    <mat-icon class="rcl-icon">account_balance</mat-icon>
+    <span class="rcl-title">RÉGIME DE COMMUNAUTÉ LÉGALE — CC LIVRE 3 BE</span>
+    @if (result()) {
+      <span class="rcl-chip-summary"
+            [class.rcl-chip-summary--ok]="result()!.verdict === 'COMMUNAUTE_LEGALE_APPLICABLE'"
+            [class.rcl-chip-summary--medium]="result()!.verdict === 'REGIME_CONVENTIONNEL_DETECTE'"
+            [class.rcl-chip-summary--ko]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ result()!.syntheseComposition.nbBiensCommuns }} commun(s) ·
+        {{ result()!.syntheseComposition.nbBiensPropres }} propre(s)
+      </span>
+    }
+    <mat-icon class="rcl-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rcl-body" class="rcl-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="rcl-country-banner" data-testid="rcl-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — régime de communauté légale (Code civil, Livre 3, loi du 22/07/2018). L'équivalent français (communauté réduite aux acquêts) repose sur des mécanismes distincts et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="rcl-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="rcl-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="rcl-form" (ngSubmit)="calculate()">
+            <!-- Bloc situation matrimoniale -->
+            <div class="rcl-block rcl-full">
+              <span class="rcl-block-label">Situation matrimoniale</span>
+
+              <div class="rcl-field-with-alert">
+                <mat-form-field appearance="outline" class="rcl-inline-field">
+                  <mat-label>Date de mariage</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateMariage()"
+                         (ngModelChange)="dateMariage.set($event || null)"
+                         name="dateMariage" required />
+                </mat-form-field>
+                @if (coherenceAlerts().DATE_MARIAGE; as alert) {
+                  <span class="rcl-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="rcl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="contratMariageSigne()"
+                    (ngModelChange)="contratMariageSigne.set($event)"
+                    name="contratMariageSigne">
+                  Un contrat de mariage a été signé
+                </mat-slide-toggle>
+              </div>
+              @if (contratMariageSigne()) {
+                <p class="rcl-block-hint">
+                  Le régime conventionnel peut déroger à la qualification légale : la composition ci-dessous est fournie à titre indicatif, à confronter au contrat.
+                </p>
+              }
+            </div>
+
+            <!-- Liste dynamique des biens -->
+            <div class="rcl-block rcl-full">
+              <div class="rcl-block-head">
+                <span class="rcl-block-label">Biens du patrimoine</span>
+                <button mat-stroked-button type="button" (click)="addBien()" data-testid="rcl-add-bien">
+                  <mat-icon>add</mat-icon> Ajouter un bien
+                </button>
+              </div>
+
+              @if (biens().length === 0) {
+                <p class="rcl-block-hint">Ajoutez au moins un bien pour lancer l'analyse.</p>
+              }
+
+              @for (bien of biens(); track $index) {
+                <div class="rcl-item-card" data-testid="rcl-bien-row">
+                  <div class="rcl-item-head">
+                    <mat-form-field appearance="outline" class="rcl-item-libelle">
+                      <mat-label>Libellé du bien</mat-label>
+                      <input matInput maxlength="200"
+                             [ngModel]="bien.libelle"
+                             (ngModelChange)="updateBien($index, { libelle: $event })"
+                             [name]="'bienLibelle' + $index" />
+                    </mat-form-field>
+                    <button mat-icon-button type="button" (click)="removeBien($index)"
+                            data-testid="rcl-remove-bien" aria-label="Supprimer ce bien">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="rcl-item-categorie">
+                    <mat-label>Catégorie</mat-label>
+                    <mat-select [ngModel]="bien.categorie"
+                                (ngModelChange)="updateBien($index, { categorie: $event })"
+                                [name]="'bienCategorie' + $index">
+                      @for (opt of categorieOptions; track opt.value) {
+                        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="bien.acquisAvantMariage"
+                        (ngModelChange)="updateBien($index, { acquisAvantMariage: $event })"
+                        [name]="'bienAcquisAvantMariage' + $index">
+                      Acquis avant le mariage
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="bien.acquisParDonationOuSuccession"
+                        (ngModelChange)="updateBien($index, { acquisParDonationOuSuccession: $event })"
+                        [name]="'bienDonationSuccession' + $index">
+                      Reçu par donation ou succession
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="bien.financeParFondsPropres"
+                        (ngModelChange)="updateBien($index, { financeParFondsPropres: $event })"
+                        [name]="'bienFondsPropres' + $index">
+                      Financé par des fonds propres
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="bien.affectationProfessionnelle"
+                        (ngModelChange)="updateBien($index, { affectationProfessionnelle: $event })"
+                        [name]="'bienAffectationPro' + $index">
+                      Affecté à la profession d'un époux
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="bien.outilDeTravailPersonnel"
+                        (ngModelChange)="updateBien($index, { outilDeTravailPersonnel: $event })"
+                        [name]="'bienOutilTravail' + $index">
+                      Outil de travail strictement personnel
+                    </mat-slide-toggle>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="rcl-comment-field">
+                    <mat-label>Commentaire (optionnel)</mat-label>
+                    <textarea matInput rows="2" maxlength="1000"
+                              [ngModel]="bien.commentaire"
+                              (ngModelChange)="updateBien($index, { commentaire: $event || null })"
+                              [name]="'bienCommentaire' + $index"></textarea>
+                  </mat-form-field>
+                </div>
+              }
+            </div>
+
+            <!-- Liste dynamique des dettes -->
+            <div class="rcl-block rcl-full">
+              <div class="rcl-block-head">
+                <span class="rcl-block-label">Dettes du patrimoine (optionnel)</span>
+                <button mat-stroked-button type="button" (click)="addDette()" data-testid="rcl-add-dette">
+                  <mat-icon>add</mat-icon> Ajouter une dette
+                </button>
+              </div>
+
+              @for (dette of dettes(); track $index) {
+                <div class="rcl-item-card" data-testid="rcl-dette-row">
+                  <div class="rcl-item-head">
+                    <mat-form-field appearance="outline" class="rcl-item-libelle">
+                      <mat-label>Libellé de la dette</mat-label>
+                      <input matInput maxlength="200"
+                             [ngModel]="dette.libelle"
+                             (ngModelChange)="updateDette($index, { libelle: $event })"
+                             [name]="'detteLibelle' + $index" />
+                    </mat-form-field>
+                    <button mat-icon-button type="button" (click)="removeDette($index)"
+                            data-testid="rcl-remove-dette" aria-label="Supprimer cette dette">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="dette.anterieureAuMariage"
+                        (ngModelChange)="updateDette($index, { anterieureAuMariage: $event })"
+                        [name]="'detteAnterieure' + $index">
+                      Antérieure au mariage
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="dette.contracteeDansLInteretDuMenage"
+                        (ngModelChange)="updateDette($index, { contracteeDansLInteretDuMenage: $event })"
+                        [name]="'detteInteretMenage' + $index">
+                      Contractée dans l'intérêt du ménage
+                    </mat-slide-toggle>
+                  </div>
+                  <div class="rcl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="dette.contracteeParUnSeulEpoux"
+                        (ngModelChange)="updateDette($index, { contracteeParUnSeulEpoux: $event })"
+                        [name]="'detteUnSeulEpoux' + $index">
+                      Contractée par un seul époux
+                    </mat-slide-toggle>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="rcl-comment-field">
+                    <mat-label>Commentaire (optionnel)</mat-label>
+                    <textarea matInput rows="2" maxlength="1000"
+                              [ngModel]="dette.commentaire"
+                              (ngModelChange)="updateDette($index, { commentaire: $event || null })"
+                              [name]="'detteCommentaire' + $index"></textarea>
+                  </mat-form-field>
+                </div>
+              }
+            </div>
+
+            <div class="rcl-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="rcl-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la composition</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="rcl-result">
+            <!-- Bannière verdict — rouge réservé à QUALIFICATION_INCOMPLETE -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Synthèse de composition -->
+            <div class="rcl-synthese-grid">
+              <div class="rcl-synthese-card">
+                <span class="rcl-synthese-value">{{ result()!.syntheseComposition.nbBiensCommuns }}</span>
+                <span class="rcl-synthese-label">Biens communs</span>
+              </div>
+              <div class="rcl-synthese-card">
+                <span class="rcl-synthese-value">{{ result()!.syntheseComposition.nbBiensPropres }}</span>
+                <span class="rcl-synthese-label">Biens propres</span>
+              </div>
+              <div class="rcl-synthese-card">
+                <span class="rcl-synthese-value">{{ result()!.syntheseComposition.nbBiensMixtesAvecRecompense }}</span>
+                <span class="rcl-synthese-label">Biens mixtes (récompense)</span>
+              </div>
+              <div class="rcl-synthese-card">
+                <span class="rcl-synthese-value">{{ result()!.syntheseComposition.nbDettesCommunes }}</span>
+                <span class="rcl-synthese-label">Dettes communes</span>
+              </div>
+              <div class="rcl-synthese-card">
+                <span class="rcl-synthese-value">{{ result()!.syntheseComposition.nbDettesPropres }}</span>
+                <span class="rcl-synthese-label">Dettes propres</span>
+              </div>
+            </div>
+
+            <!-- Biens qualifiés -->
+            @if (result()!.biensQualifies.length) {
+              <div class="rcl-list-block">
+                <span class="rcl-list-label">Biens qualifiés</span>
+                <ul class="rcl-list">
+                  @for (bien of result()!.biensQualifies; track bien.libelle) {
+                    <li class="rcl-item" data-testid="rcl-bien-qualifie">
+                      <div class="rcl-item-row">
+                        <span class="rcl-item-libelle-text">{{ bien.libelle }}</span>
+                        <span [class]="qualificationBienClass(bien.qualification)">
+                          {{ qualificationBienLabel(bien.qualification) }}
+                        </span>
+                        <span class="rcl-mode-gestion">{{ modeGestionLabel(bien.modeGestion) }}</span>
+                      </div>
+                      <span class="rcl-item-fondement">{{ bien.fondement }}</span>
+                      <span class="rcl-item-explication">{{ bien.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Dettes qualifiées -->
+            @if (result()!.dettesQualifiees.length) {
+              <div class="rcl-list-block">
+                <span class="rcl-list-label">Dettes qualifiées</span>
+                <ul class="rcl-list">
+                  @for (dette of result()!.dettesQualifiees; track dette.libelle) {
+                    <li class="rcl-item" data-testid="rcl-dette-qualifiee">
+                      <div class="rcl-item-row">
+                        <span class="rcl-item-libelle-text">{{ dette.libelle }}</span>
+                        <span [class]="qualificationDetteClass(dette.qualification)">
+                          {{ qualificationDetteLabel(dette.qualification) }}
+                        </span>
+                      </div>
+                      <span class="rcl-item-fondement">{{ dette.fondement }}</span>
+                      <span class="rcl-item-explication">{{ dette.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="rcl-bases-block">
+                <span class="rcl-bases-label">Bases juridiques</span>
+                <div class="rcl-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="rcl-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="rcl-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="rcl-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

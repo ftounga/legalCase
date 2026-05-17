@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="235-seed-f217-vague1-visibility-rules" author="legalcase">
+        <comment>
+            F-217 SF-217-03 — seed `decision_tool_visibility_rules` pour les 2
+            outils décisionnels de la Vague 1 Famille BE :
+              - `regime-mat-be-communaute-legale` (CC Livre 3, loi 22/07/2018) —
+                tables d'analyse créées par SF-217-01 (migration 233).
+              - `liquidation-partage-be` (CJ art. 1207 et s. / 1218) — tables
+                d'analyse créées par SF-217-02 (migration 234).
+
+            Le seed est porté par la SF frontend — et non par les SF backend —
+            pour rester couplé aux entrées TOOL_REGISTRY livrées dans le même
+            lot (decisional-tools-panel.component.ts). Précédents : SF-211-05
+            (migration 228), SF-DT-36-02 (migration 231). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode ALWAYS_ON, DROIT_FAMILLE / BELGIQUE pour les 2 outils : toute
+            analyse d'un dossier de couple marié belge mobilise la
+            qualification du régime, et toute dissolution appelle une
+            liquidation-partage du patrimoine — ce sont des situations
+            *toujours pertinentes*, pas des situations à détecter (cf.
+            SF-217-00-coherence.md ajustement n° 1, pattern `F-FA-06` /
+            `tribunal-famille-be-mesures-prov` ALWAYS_ON de F-211). Pas de flag
+            pivot IA requis. priority 70.
+
+            Numéro 235 = numéro libre suivant (232=F-240, 233=SF-217-01,
+            234=SF-217-02 déjà pris). UUID namespace dédié F-217 :
+            f1a04001-0000-0000-0000-eeee21700XXX.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700001', 'DROIT_FAMILLE', 'BELGIQUE', 'regime-mat-be-communaute-legale', 'ALWAYS_ON', NULL, NULL, 70);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700002', 'DROIT_FAMILLE', 'BELGIQUE', 'liquidation-partage-be', 'ALWAYS_ON', NULL, NULL, 70);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN ('f1a04001-0000-0000-0000-eeee21700001', 'f1a04001-0000-0000-0000-eeee21700002');
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
