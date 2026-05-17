@@ -355,6 +355,113 @@ class CaseConclusionCommandServiceTest {
                 .hasMessageContaining("400");
     }
 
+    // ── updateContent (SF-98-49) ─────────────────────────────────────────────
+
+    @Test
+    void updateContent_doneDraftVersion_updatesContentAndReturnsResponse() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ConclusionResponse response = service.updateContent(
+                ctx.caseFileId, v1.getId(), "Texte révisé par l'avocat", null, null, null);
+
+        assertThat(response.content()).isEqualTo("Texte révisé par l'avocat");
+        assertThat(v1.getContent()).isEqualTo("Texte révisé par l'avocat");
+        verify(caseConclusionRepository).save(v1);
+    }
+
+    @Test
+    void updateContent_nonDoneVersion_throws409ContentRequiresDone() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setStatus(CaseConclusionStatus.PENDING); // pas DONE
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateContent(
+                ctx.caseFileId, v1.getId(), "Texte révisé", null, null, null))
+                .isInstanceOf(CaseConclusionGuardException.class)
+                .extracting(e -> ((CaseConclusionGuardException) e).getCode())
+                .isEqualTo(CaseConclusionGuardCode.CONTENT_REQUIRES_DONE);
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateContent_validatedVersion_throws409ContentNotEditable() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setLifecycleStatus(ConclusionLifecycleStatus.VALIDATED);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateContent(
+                ctx.caseFileId, v1.getId(), "Texte révisé", null, null, null))
+                .isInstanceOf(CaseConclusionGuardException.class)
+                .extracting(e -> ((CaseConclusionGuardException) e).getCode())
+                .isEqualTo(CaseConclusionGuardCode.CONTENT_NOT_EDITABLE);
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateContent_depositedVersion_throws409ContentNotEditable() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setLifecycleStatus(ConclusionLifecycleStatus.DEPOSITED);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateContent(
+                ctx.caseFileId, v1.getId(), "Texte révisé", null, null, null))
+                .isInstanceOf(CaseConclusionGuardException.class)
+                .extracting(e -> ((CaseConclusionGuardException) e).getCode())
+                .isEqualTo(CaseConclusionGuardCode.CONTENT_NOT_EDITABLE);
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateContent_blankContent_throws400() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateContent(
+                ctx.caseFileId, v1.getId(), "   ", null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateContent_nullContent_throws400() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateContent(
+                ctx.caseFileId, v1.getId(), null, null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateContent_unknownVersion_throws404() {
+        Ctx ctx = supportedCase();
+        UUID versionId = UUID.randomUUID();
+        when(caseConclusionRepository.findByIdAndCaseFileId(versionId, ctx.caseFileId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateContent(
+                ctx.caseFileId, versionId, "Texte révisé", null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+    }
+
     // ── fixtures ─────────────────────────────────────────────────────────────
 
     private record Ctx(UUID caseFileId, CaseFile caseFile, Workspace workspace) {

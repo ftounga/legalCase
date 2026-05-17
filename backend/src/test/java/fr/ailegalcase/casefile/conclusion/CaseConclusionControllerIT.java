@@ -328,6 +328,98 @@ class CaseConclusionControllerIT {
                 .andExpect(status().isNotFound());
     }
 
+    // ── PATCH .../content (SF-98-49) ─────────────────────────────────────────
+
+    @Test
+    void PATCH_content_doneDraftVersion_returns200AndPersists() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/content")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Texte révisé par l'avocat\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Texte révisé par l'avocat"));
+
+        org.assertj.core.api.Assertions.assertThat(caseConclusionRepository
+                        .findById(v1.getId()).orElseThrow().getContent())
+                .isEqualTo("Texte révisé par l'avocat");
+    }
+
+    @Test
+    void PATCH_content_nonDoneVersion_returns409() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.PENDING,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/content")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Texte révisé\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("CONTENT_REQUIRES_DONE"));
+    }
+
+    @Test
+    void PATCH_content_validatedVersion_returns409() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.VALIDATED);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/content")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Texte révisé\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("CONTENT_NOT_EDITABLE"));
+    }
+
+    @Test
+    void PATCH_content_blankContent_returns400() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId() + "/content")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"   \"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void PATCH_content_unknownVersion_returns404() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + UUID.randomUUID() + "/content")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Texte révisé\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void PATCH_content_otherWorkspace_returns404() throws Exception {
+        CaseConclusion otherVersion = persistVersion(otherWorkspaceCf, 1,
+                CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+        mockMvc.perform(patch("/api/v1/case-files/" + otherWorkspaceCf.getId()
+                        + "/conclusions/versions/" + otherVersion.getId() + "/content")
+                        .with(authentication(authA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Texte révisé\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void PATCH_content_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + UUID.randomUUID() + "/content")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Texte révisé\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // ── isolation workspace 404 (CA7) ────────────────────────────────────────
 
     @Test
