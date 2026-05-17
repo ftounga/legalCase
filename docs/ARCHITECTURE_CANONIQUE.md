@@ -304,6 +304,7 @@ document_pieces
 chunk_analyses
 document_analyses
 case_analyses
+case_conclusions
 ai_questions
 ai_question_answers
 analysis_documents
