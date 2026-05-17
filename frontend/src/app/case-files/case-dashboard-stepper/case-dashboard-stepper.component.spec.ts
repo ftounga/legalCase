@@ -13,6 +13,7 @@ describe('CaseDashboardStepperComponent', () => {
     status: 'pending',
     detail: null,
     anchorId: 'section-documents',
+    tabIndex: 0,
     ...overrides,
   });
 
@@ -54,33 +55,43 @@ describe('CaseDashboardStepperComponent', () => {
     expect(component.stepIcon('in_progress')).toBe('pending');
   });
 
-  // SF101-U-05
-  it('should scroll to anchorId when step is pending with anchorId', () => {
-    const mockEl = { scrollIntoView: jest.fn() };
-    jest.spyOn(document, 'getElementById').mockReturnValue(mockEl as unknown as HTMLElement);
+  // SF101-U-05 (adapté F-244 SF-244-01) — une étape avec tabIndex émet stepActivated
+  it('should emit stepActivated when step is pending with a tabIndex', () => {
+    const emitted: { tabIndex: number; anchorId: string | null }[] = [];
+    component.stepActivated.subscribe(e => emitted.push(e));
 
-    component.onStepClick(makeStep({ status: 'pending', anchorId: 'section-documents' }));
+    component.onStepClick(makeStep({ status: 'pending', tabIndex: 0, anchorId: 'section-documents' }));
 
-    expect(document.getElementById).toHaveBeenCalledWith('section-documents');
-    expect(mockEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(emitted).toEqual([{ tabIndex: 0, anchorId: 'section-documents' }]);
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
   // SF101-U-06
-  it('should navigate to synthesis when step is pending without anchorId', () => {
-    component.onStepClick(makeStep({ status: 'pending', anchorId: null }));
+  it('should navigate to synthesis when step is pending without anchorId nor tabIndex', () => {
+    component.onStepClick(makeStep({ status: 'pending', anchorId: null, tabIndex: null }));
 
     expect(router.navigate).toHaveBeenCalledWith(['/case-files', 'case-123', 'synthesis']);
   });
 
   // SF101-U-07
   it('should do nothing when clicking a done step', () => {
+    const emitted: unknown[] = [];
+    component.stepActivated.subscribe(e => emitted.push(e));
+
+    component.onStepClick(makeStep({ status: 'done', tabIndex: 0, anchorId: 'section-documents' }));
+
+    expect(emitted).toEqual([]);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  // F-244 SF-244-01 — étape sans tabIndex mais avec anchorId : scroll d'ancre direct
+  it('should scroll to anchorId when step has anchorId but no tabIndex', () => {
     const mockEl = { scrollIntoView: jest.fn() };
     jest.spyOn(document, 'getElementById').mockReturnValue(mockEl as unknown as HTMLElement);
 
-    component.onStepClick(makeStep({ status: 'done', anchorId: 'section-documents' }));
+    component.onStepClick(makeStep({ status: 'pending', tabIndex: null, anchorId: 'section-documents' }));
 
-    expect(mockEl.scrollIntoView).not.toHaveBeenCalled();
+    expect(mockEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
