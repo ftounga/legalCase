@@ -14,8 +14,20 @@ import java.util.Set;
  * <p>Analyse les 10 critères de vice de forme côté employeur (absence / délai de
  * convocation, absence d'entretien préalable, notification prématurée, absence /
  * non-motivation de la lettre, motivation insuffisante, faute grave sans procédure,
- * procédure CSE d'un licenciement collectif, procédure conventionnelle), calcule un
- * score de nullité 0-100 et rend un verdict en 3 niveaux.</p>
+ * procédure CSE d'un licenciement collectif, procédure conventionnelle), rend un
+ * verdict en 3 niveaux <b>piloté par la gravité</b> des vices détectés, et calcule
+ * un score 0-100 servant d'indicateur secondaire d'ampleur du cumul.</p>
+ *
+ * <p><b>Logique du verdict</b> : juridiquement, un seul vice substantiel avéré suffit
+ * à caractériser l'irrégularité de la procédure. Le verdict est donc dérivé de la
+ * gravité (≥ 1 vice AVERE → nullité avérée), non d'un seuil de score additif. Le
+ * score n'est qu'un indicateur d'ampleur affiché à titre informatif.</p>
+ *
+ * <p><b>Gravité des vices</b> : 8 vices reposent sur des faits objectifs (dates,
+ * absence d'acte) → gravité AVERE. 2 vices reposent sur une appréciation à confirmer
+ * par pièce — la suffisance de la motivation (appréciation du juge) et le non-respect
+ * de la procédure conventionnelle (dépend de la clause exacte de la CCN) → gravité
+ * PROBABLE. Un dossier ne comportant que ces vices rend le verdict NULLITE_PROBABLE.</p>
  *
  * <p><b>Pays</b> : FRANCE uniquement. La nullité de procédure belge repose sur des
  * mécaniques distinctes (Loi 1978 + CCT 109) et fera l'objet d'une feature jumelle.</p>
@@ -26,11 +38,11 @@ import java.util.Set;
  */
 public final class ProcedureNulliteLicenciementCalculator {
 
-    /** Verdict d'analyse des vices de procédure dérivé du score. */
+    /** Verdict d'analyse des vices de procédure, piloté par la gravité des vices. */
     public enum Verdict {
-        NULLITE_AVEREE,        // score >= 60 — au moins un vice avéré grave
-        NULLITE_PROBABLE,      // 25-59 — vices probables, pièces à confirmer
-        PROCEDURE_REGULIERE    // < 25 — aucun vice
+        NULLITE_AVEREE,        // au moins un vice de gravité AVERE
+        NULLITE_PROBABLE,      // aucun vice AVERE mais au moins un vice PROBABLE
+        PROCEDURE_REGULIERE    // aucun vice détecté
     }
 
     /** Gravité d'un vice détecté. */
@@ -67,12 +79,10 @@ public final class ProcedureNulliteLicenciementCalculator {
     /** Délai minimal entre entretien et notification du licenciement (L.1232-6). */
     private static final int DELAI_NOTIFICATION_JOURS_OUVRABLES = 2;
 
-    /** Pondération des vices : vice grave = 30, vice modéré = 20. */
+    /** Pondération des vices pour le score indicatif : vice grave = 30, vice modéré = 20. */
     private static final int POIDS_VICE_GRAVE = 30;
     private static final int POIDS_VICE_MODERE = 20;
 
-    private static final int SEUIL_NULLITE_AVEREE = 60;
-    private static final int SEUIL_NULLITE_PROBABLE = 25;
     private static final int SCORE_MAX = 100;
 
     private ProcedureNulliteLicenciementCalculator() {}
@@ -102,7 +112,7 @@ public final class ProcedureNulliteLicenciementCalculator {
 
         List<ViceDetecte> vices = detecterVices(input);
         int score = scorePour(vices);
-        Verdict verdict = verdictPour(score);
+        Verdict verdict = verdictPour(vices);
 
         List<String> bases = basesJuridiques(vices);
         List<String> messages = construireMessages(input, vices, verdict);
@@ -229,6 +239,8 @@ public final class ProcedureNulliteLicenciementCalculator {
 
         // 7 — MOTIVATION_INSUFFISANTE (L.1232-6, L.1235-2) :
         //     lettreMotivee = true ET motivationSuffisante = false
+        //     Gravité PROBABLE : la suffisance de la motivation relève de
+        //     l'appréciation du juge du fond — à confirmer.
         if (Boolean.TRUE.equals(in.lettreMotivee())
                 && Boolean.FALSE.equals(in.motivationSuffisante())) {
             codes.add(CodeVice.MOTIVATION_INSUFFISANTE);
@@ -236,9 +248,10 @@ public final class ProcedureNulliteLicenciementCalculator {
                     CodeVice.MOTIVATION_INSUFFISANTE,
                     "Motivation de la lettre insuffisante",
                     "Art. L.1232-6 et L.1235-2 C. trav.",
-                    Gravite.AVERE,
+                    Gravite.PROBABLE,
                     "Une lettre dont les motifs sont imprécis ou non matériellement "
-                            + "vérifiables rend le licenciement sans cause réelle et sérieuse."));
+                            + "vérifiables peut rendre le licenciement sans cause réelle et "
+                            + "sérieuse — appréciation soumise au juge du fond."));
         }
 
         // 8 — ABSENCE_CONVOCATION_MOTIF_GRAVE (L.1234-9, L.1332-2) :
@@ -273,6 +286,8 @@ public final class ProcedureNulliteLicenciementCalculator {
 
         // 10 — CONVENTION_COLLECTIVE_NON_RESPECTEE (clause de la CCN) :
         //      CCN applicable ET procédure conventionnelle non respectée
+        //      Gravité PROBABLE : l'existence et la portée de la procédure
+        //      conventionnelle dépendent de la clause exacte de la CCN — à vérifier.
         if (Boolean.TRUE.equals(in.conventionCollectiveApplicable())
                 && Boolean.FALSE.equals(in.conventionCollectiveRespectee())) {
             codes.add(CodeVice.CONVENTION_COLLECTIVE_NON_RESPECTEE);
@@ -280,7 +295,7 @@ public final class ProcedureNulliteLicenciementCalculator {
                     CodeVice.CONVENTION_COLLECTIVE_NON_RESPECTEE,
                     "Procédure conventionnelle non respectée",
                     "Clause de la convention collective applicable",
-                    Gravite.AVERE,
+                    Gravite.PROBABLE,
                     "La convention collective applicable peut imposer une procédure "
                             + "préalable (entretien disciplinaire, saisine d'une commission "
                             + "paritaire…). Son non-respect prive le licenciement de cause "
@@ -291,8 +306,9 @@ public final class ProcedureNulliteLicenciementCalculator {
     }
 
     /**
-     * Score = somme pondérée des vices. Vice grave (gravité AVERE) = 30, vice
-     * modéré (gravité PROBABLE) = 20. Plafonné à 100.
+     * Score indicatif = somme pondérée des vices. Vice grave (gravité AVERE) = 30,
+     * vice modéré (gravité PROBABLE) = 20. Plafonné à 100. Sert uniquement à jauger
+     * l'ampleur du cumul de vices — il ne pilote pas le verdict.
      */
     private static int scorePour(List<ViceDetecte> vices) {
         int score = 0;
@@ -302,9 +318,18 @@ public final class ProcedureNulliteLicenciementCalculator {
         return Math.min(SCORE_MAX, score);
     }
 
-    private static Verdict verdictPour(int score) {
-        if (score >= SEUIL_NULLITE_AVEREE) return Verdict.NULLITE_AVEREE;
-        if (score >= SEUIL_NULLITE_PROBABLE) return Verdict.NULLITE_PROBABLE;
+    /**
+     * Verdict piloté par la gravité des vices, non par un seuil de score additif.
+     * Juridiquement, un seul vice substantiel avéré suffit à caractériser
+     * l'irrégularité : un unique vice AVERE rend donc le verdict NULLITE_AVEREE.
+     */
+    private static Verdict verdictPour(List<ViceDetecte> vices) {
+        if (vices.stream().anyMatch(v -> v.gravite() == Gravite.AVERE)) {
+            return Verdict.NULLITE_AVEREE;
+        }
+        if (!vices.isEmpty()) {
+            return Verdict.NULLITE_PROBABLE;
+        }
         return Verdict.PROCEDURE_REGULIERE;
     }
 

@@ -1,6 +1,7 @@
 package fr.ailegalcase.casefile;
 
 import fr.ailegalcase.casefile.ProcedureNulliteLicenciementCalculator.CodeVice;
+import fr.ailegalcase.casefile.ProcedureNulliteLicenciementCalculator.Gravite;
 import fr.ailegalcase.casefile.ProcedureNulliteLicenciementCalculator.Verdict;
 import fr.ailegalcase.casefile.ProcedureNulliteLicenciementCalculator.ViceDetecte;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,9 @@ class ProcedureNulliteLicenciementCalculatorTest {
         var r = ProcedureNulliteLicenciementCalculator.compute(in, "FRANCE");
         assertThat(codes(r)).containsExactly(CodeVice.ABSENCE_CONVOCATION);
         assertThat(r.scoreNullite()).isEqualTo(30);
-        assertThat(r.verdict()).isEqualTo(Verdict.NULLITE_PROBABLE);
+        // Un unique vice AVERE suffit à caractériser la nullité avérée — le verdict
+        // est piloté par la gravité, non par un seuil de score.
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLITE_AVEREE);
         assertThat(r.basesJuridiques()).contains("Art. L.1232-2 C. trav.");
     }
 
@@ -113,6 +116,12 @@ class ProcedureNulliteLicenciementCalculatorTest {
         var r = ProcedureNulliteLicenciementCalculator.compute(in, "FRANCE");
         assertThat(codes(r)).containsExactly(CodeVice.MOTIVATION_INSUFFISANTE);
         assertThat(r.basesJuridiques()).contains("Art. L.1232-6 et L.1235-2 C. trav.");
+        // Vice d'appréciation (suffisance de la motivation) → gravité PROBABLE :
+        // seul, il rend le verdict NULLITE_PROBABLE et non NULLITE_AVEREE.
+        assertThat(r.vicesDetectes()).singleElement()
+                .extracting(ViceDetecte::gravite).isEqualTo(Gravite.PROBABLE);
+        assertThat(r.scoreNullite()).isEqualTo(20);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLITE_PROBABLE);
     }
 
     @Test
@@ -148,6 +157,10 @@ class ProcedureNulliteLicenciementCalculatorTest {
                 .build();
         var r = ProcedureNulliteLicenciementCalculator.compute(in, "FRANCE");
         assertThat(codes(r)).containsExactly(CodeVice.CONVENTION_COLLECTIVE_NON_RESPECTEE);
+        // Vice dépendant de la clause exacte de la CCN → gravité PROBABLE.
+        assertThat(r.vicesDetectes()).singleElement()
+                .extracting(ViceDetecte::gravite).isEqualTo(Gravite.PROBABLE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLITE_PROBABLE);
     }
 
     // --- Délais ouvrables avec week-ends ---
@@ -204,6 +217,22 @@ class ProcedureNulliteLicenciementCalculatorTest {
         assertThat(codes(r)).containsExactlyInAnyOrder(
                 CodeVice.ABSENCE_LETTRE, CodeVice.LETTRE_NON_MOTIVEE);
         assertThat(r.scoreNullite()).isEqualTo(60);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLITE_AVEREE);
+    }
+
+    @Test
+    void compute_viceAvereEtViceProbable_nulliteAveree() {
+        // ABSENCE_CONVOCATION (AVERE) + MOTIVATION_INSUFFISANTE (PROBABLE) :
+        // la présence d'un seul vice AVERE prime → verdict NULLITE_AVEREE.
+        var in = procedureReguliere()
+                .convocationEnvoyee(false)
+                .lettreMotivee(true)
+                .motivationSuffisante(false)
+                .build();
+        var r = ProcedureNulliteLicenciementCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).containsExactlyInAnyOrder(
+                CodeVice.ABSENCE_CONVOCATION, CodeVice.MOTIVATION_INSUFFISANTE);
+        assertThat(r.scoreNullite()).isEqualTo(50);
         assertThat(r.verdict()).isEqualTo(Verdict.NULLITE_AVEREE);
     }
 

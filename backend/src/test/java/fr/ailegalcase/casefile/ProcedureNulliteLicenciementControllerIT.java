@@ -116,6 +116,23 @@ class ProcedureNulliteLicenciementControllerIT {
     }
 
     @Test
+    void POST_viceProbable_returns200_nulliteProbable() throws Exception {
+        // Motivation jugée insuffisante : vice d'appréciation (gravité PROBABLE)
+        // → verdict NULLITE_PROBABLE.
+        Map<String, Object> body = procedureReguliere();
+        body.put("motivationSuffisante", false);
+        mockMvc.perform(post(url(travailFrCf.getId()))
+                        .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verdict").value("NULLITE_PROBABLE"))
+                .andExpect(jsonPath("$.scoreNullite").value(20))
+                .andExpect(jsonPath("$.vicesDetectes.length()").value(1))
+                .andExpect(jsonPath("$.vicesDetectes[0].code").value("MOTIVATION_INSUFFISANTE"))
+                .andExpect(jsonPath("$.vicesDetectes[0].gravite").value("PROBABLE"));
+    }
+
+    @Test
     void POST_recalcul_ecraseResultatPrecedent() throws Exception {
         Map<String, Object> body1 = procedureReguliere();
         body1.put("convocationEnvoyee", false);
