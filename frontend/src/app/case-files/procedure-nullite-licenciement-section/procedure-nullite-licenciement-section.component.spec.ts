@@ -20,6 +20,23 @@ describe('ProcedureNulliteLicenciementSectionComponent', () => {
       : ProcedureNulliteLicenciementResponse {
     return {
       caseFileId: 'case-1',
+      // Snapshot d'inputs ré-exposé par la réponse (ré-édition du formulaire).
+      convocationEnvoyee: true,
+      dateConvocationPresentee: '2025-01-06',
+      dateEntretienPrealable: '2025-01-13',
+      entretienTenu: true,
+      dateNotificationLicenciement: '2025-01-17',
+      lettreLicenciementEcrite: true,
+      lettreMotivee: true,
+      motivationSuffisante: verdict === 'PROCEDURE_REGULIERE',
+      motivationCommentaire: verdict === 'PROCEDURE_REGULIERE' ? null : 'Motif vague',
+      licenciementPourMotifGrave: false,
+      licenciementCollectif: false,
+      procedureCseRespectee: null,
+      conventionCollectiveApplicable: false,
+      conventionCollectiveRespectee: true,
+      conventionCollectiveCommentaire: null,
+      // Champs calculés.
       verdict,
       scoreNullite: verdict === 'NULLITE_AVEREE' ? 70 : verdict === 'NULLITE_PROBABLE' ? 45 : 0,
       vicesDetectes: verdict === 'PROCEDURE_REGULIERE' ? [] : [
@@ -33,6 +50,7 @@ describe('ProcedureNulliteLicenciementSectionComponent', () => {
       ],
       basesJuridiques: ['Art. L.1232-2 C. trav.', 'Art. L.1232-6 C. trav.'],
       messages: ['Vérifier la disponibilité de la lettre de convocation au dossier.'],
+      country: 'FRANCE',
       calculatedAt: '2026-05-17T10:00:00Z',
     };
   }
@@ -84,6 +102,32 @@ describe('ProcedureNulliteLicenciementSectionComponent', () => {
     httpMock.expectOne(BASE_URL).flush(response('NULLITE_PROBABLE'));
     expect(component.result()!.verdict).toBe('NULLITE_PROBABLE');
     expect(component.showForm()).toBe(false);
+  });
+
+  it('GET 200 → formulaire ré-hydraté depuis le snapshot d\'inputs (ré-édition)', () => {
+    component.ngOnInit();
+    const r = response('NULLITE_PROBABLE');
+    r.convocationEnvoyee = false;
+    r.dateEntretienPrealable = '2025-02-20';
+    r.entretienTenu = false;
+    r.lettreMotivee = false;
+    r.motivationCommentaire = 'Commentaire repris';
+    r.licenciementCollectif = true;
+    r.procedureCseRespectee = false;
+    httpMock.expectOne(BASE_URL).flush(r);
+
+    expect(component.convocationEnvoyee()).toBe(false);
+    expect(component.dateEntretienPrealable()).toBe('2025-02-20');
+    expect(component.entretienTenu()).toBe(false);
+    expect(component.lettreMotivee()).toBe(false);
+    expect(component.motivationCommentaire()).toBe('Commentaire repris');
+    expect(component.licenciementCollectif()).toBe(true);
+    expect(component.procedureCseRespectee()).toBe(false);
+
+    // Ré-édition : le formulaire rouvre avec les valeurs rechargées.
+    component.editMode();
+    expect(component.showForm()).toBe(true);
+    expect(component.dateEntretienPrealable()).toBe('2025-02-20');
   });
 
   it('GET 404 → reste en mode formulaire, pas de result', () => {

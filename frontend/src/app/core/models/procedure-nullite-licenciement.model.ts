@@ -59,14 +59,21 @@ export interface ProcedureNulliteVice {
 }
 
 /**
- * Réponse de l'endpoint POST / GET — verdict + vices + bases juridiques.
+ * Réponse de l'endpoint POST / GET.
+ *
+ * Ré-expose l'intégralité du snapshot d'inputs (hérité de
+ * `ProcedureNulliteLicenciementRequest`) pour permettre la ré-édition du
+ * formulaire après rechargement, **plus** les champs calculés (verdict, score,
+ * vices, bases juridiques).
  */
-export interface ProcedureNulliteLicenciementResponse {
+export interface ProcedureNulliteLicenciementResponse
+  extends ProcedureNulliteLicenciementRequest {
   caseFileId: string;
   verdict: ProcedureNulliteVerdict;
   scoreNullite: number;
   vicesDetectes: ProcedureNulliteVice[];
   basesJuridiques: string[];
   messages: string[];
+  country: string;
   calculatedAt: string;
 }

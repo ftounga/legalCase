@@ -311,7 +311,31 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
 
   private applyResult(r: ProcedureNulliteLicenciementResponse): void {
     this.result.set(r);
+    this.hydrateForm(r);
     this.showForm.set(false);
+  }
+
+  /**
+   * Ré-injecte le snapshot d'inputs de la réponse dans les champs du
+   * formulaire — sans quoi un clic « Modifier » repartirait des valeurs par
+   * défaut au lieu des dernières valeurs saisies.
+   */
+  private hydrateForm(r: ProcedureNulliteLicenciementResponse): void {
+    this.convocationEnvoyee.set(r.convocationEnvoyee);
+    this.dateConvocationPresentee.set(r.dateConvocationPresentee);
+    this.dateEntretienPrealable.set(r.dateEntretienPrealable);
+    this.entretienTenu.set(r.entretienTenu);
+    this.dateNotificationLicenciement.set(r.dateNotificationLicenciement);
+    this.lettreLicenciementEcrite.set(r.lettreLicenciementEcrite);
+    this.lettreMotivee.set(r.lettreMotivee);
+    this.motivationSuffisante.set(r.motivationSuffisante);
+    this.motivationCommentaire.set(r.motivationCommentaire);
+    this.licenciementPourMotifGrave.set(r.licenciementPourMotifGrave);
+    this.licenciementCollectif.set(r.licenciementCollectif);
+    this.procedureCseRespectee.set(r.procedureCseRespectee ?? true);
+    this.conventionCollectiveApplicable.set(r.conventionCollectiveApplicable);
+    this.conventionCollectiveRespectee.set(r.conventionCollectiveRespectee);
+    this.conventionCollectiveCommentaire.set(r.conventionCollectiveCommentaire);
   }
 
   // ---------------------------------------------------------------------------
