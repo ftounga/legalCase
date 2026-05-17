@@ -443,6 +443,30 @@ Règles :
 - Le token est généré côté backend (UUID aléatoire), passé en query param lors du login OAuth.
 - Après acceptation, `status → ACCEPTED` et l'utilisateur est ajouté en tant que member.
 
+## user_consent_acceptance
+
+F-240 SF-240-01 — traçabilité des acceptations contractuelles (click-wrap CGU / politique de confidentialité / CGV / DPA). Table d'audit append-only : un consentement est immuable, jamais supprimé ni dédupliqué (valeur de preuve RGPD).
+
+id (UUID PK)
+user_id (UUID, non nullable, FK → users)
+consent_type (VARCHAR(32), non nullable — SIGNUP_TERMS / PRIVACY_POLICY / PAYMENT_TERMS / DPA_DOWNLOAD ; contrainte CHECK chk_consent_type)
+version (VARCHAR(64), non nullable — version du document accepté, format libre côté frontend)
+accepted_at (TIMESTAMP, non nullable, défaut CURRENT_TIMESTAMP — tient lieu de timestamp de création)
+acceptance_ip (VARCHAR(45), non nullable — IPv4/IPv6, extraite de X-Forwarded-For ou RemoteAddr)
+acceptance_user_agent (VARCHAR(500), non nullable)
+workspace_id (UUID, nullable, FK → workspaces — NULL si l'acceptation précède la création du workspace, ex. SIGNUP_TERMS)
+
+Index :
+idx_consent_user_type (user_id, consent_type)
+idx_consent_workspace (workspace_id)
+
+Règles :
+- Table append-only : pas de soft-delete, pas de déduplication — chaque acceptation est une ligne distincte (un même utilisateur peut ré-accepter, ex. à chaque souscription de plan).
+- `consent_type` en VARCHAR + CHECK applicatif (pas d'enum JPA) — extensible sans migration de schéma.
+- Pas de filtre `workspace_id` standard : le consentement précède parfois le workspace. L'endpoint POST n'écrit que pour l'utilisateur authentifié courant — aucune fuite cross-user.
+- Aucun endpoint de lecture ni de révocation en V1.
+- Migration : 232-create-user-consent-acceptance.xml
+
 ---
 
 # 11 — Tables métier
