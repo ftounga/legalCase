@@ -1,0 +1,141 @@
+<mat-card class="conclusions-section">
+  <div class="cs-header">
+    <span class="cs-title">
+      <mat-icon class="cs-title-icon">description</mat-icon>
+      Projet de conclusions
+    </span>
+  </div>
+
+  @if (loading()) {
+    <div class="cs-loading">
+      <mat-spinner diameter="22"></mat-spinner>
+      <span>Chargement…</span>
+    </div>
+  } @else if (unavailable()) {
+    <p class="cs-message cs-message--muted">
+      Conclusions temporairement indisponibles. Rechargez la page pour réessayer.
+    </p>
+  } @else {
+
+    @switch (status()) {
+
+      <!-- ── Jamais généré ─────────────────────────────────────── -->
+      @case ('NOT_GENERATED') {
+        @if (prerequisitesMet()) {
+          <p class="cs-intro">
+            Ce projet s'appuie sur la synthèse, le stade procédural, les outils
+            décisionnels et les pistes stratégiques du dossier.
+          </p>
+          <div class="cs-actions">
+            <button mat-flat-button color="primary"
+                    data-testid="generate-btn"
+                    [disabled]="generating()"
+                    (click)="generate()">
+              @if (generating()) {
+                <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>auto_fix_high</mat-icon>
+              }
+              Générer le projet de conclusions
+            </button>
+          </div>
+        } @else {
+          <p class="cs-message cs-message--guide" data-testid="prerequisite-message">
+            <mat-icon class="cs-message-icon">info</mat-icon>
+            <span>{{ missingPrerequisiteMessage() }}</span>
+          </p>
+          <div class="cs-actions">
+            <button mat-flat-button color="primary"
+                    data-testid="generate-btn"
+                    [disabled]="true">
+              <mat-icon>auto_fix_high</mat-icon>
+              Générer le projet de conclusions
+            </button>
+          </div>
+        }
+      }
+
+      <!-- ── Génération en cours ───────────────────────────────── -->
+      @case ('PENDING') {
+        <div class="cs-loading" data-testid="generating-indicator">
+          <mat-spinner diameter="22"></mat-spinner>
+          <span>Génération en cours…</span>
+        </div>
+      }
+      @case ('PROCESSING') {
+        <div class="cs-loading" data-testid="generating-indicator">
+          <mat-spinner diameter="22"></mat-spinner>
+          <span>Génération en cours…</span>
+        </div>
+      }
+
+      <!-- ── Terminé ───────────────────────────────────────────── -->
+      @case ('DONE') {
+        <div class="cs-transparency-banner" data-testid="transparency-banner">
+          <mat-icon class="cs-transparency-icon">verified_user</mat-icon>
+          <span>
+            Projet généré automatiquement — relecture par l'avocat obligatoire
+            avant tout dépôt.
+          </span>
+        </div>
+
+        @if (conclusion()?.jurisdictionLabel || conclusion()?.stageLabel || conclusion()?.positionLabel) {
+          <p class="cs-meta">
+            {{ conclusion()?.jurisdictionLabel }}
+            @if (conclusion()?.stageLabel) { · {{ conclusion()?.stageLabel }} }
+            @if (conclusion()?.positionLabel) { · {{ conclusion()?.positionLabel }} }
+          </p>
+        }
+
+        <pre class="cs-content" data-testid="conclusions-content">{{ conclusion()?.content }}</pre>
+
+        <div class="cs-actions">
+          <button mat-stroked-button
+                  data-testid="copy-btn"
+                  [disabled]="copying()"
+                  (click)="copy()">
+            <mat-icon>content_copy</mat-icon>
+            Copier
+          </button>
+          <button mat-stroked-button
+                  data-testid="regenerate-btn"
+                  [disabled]="generating()"
+                  (click)="generate()">
+            @if (generating()) {
+              <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>refresh</mat-icon>
+            }
+            Régénérer
+          </button>
+        </div>
+      }
+
+      <!-- ── Échec ─────────────────────────────────────────────── -->
+      @case ('FAILED') {
+        <p class="cs-message cs-message--error" data-testid="failed-message">
+          <mat-icon class="cs-message-icon">error_outline</mat-icon>
+          <span>
+            La génération du projet de conclusions a échoué.
+            @if (conclusion()?.errorMessage) {
+              {{ conclusion()?.errorMessage }}
+            }
+          </span>
+        </p>
+        <div class="cs-actions">
+          <button mat-flat-button color="primary"
+                  data-testid="retry-btn"
+                  [disabled]="generating()"
+                  (click)="generate()">
+            @if (generating()) {
+              <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>refresh</mat-icon>
+            }
+            Réessayer
+          </button>
+        </div>
+      }
+    }
+  }
+</mat-card>
