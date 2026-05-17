@@ -188,6 +188,12 @@
               Copier
             </button>
             <button mat-stroked-button
+                    data-testid="download-word-btn"
+                    (click)="downloadWord()">
+              <mat-icon>description</mat-icon>
+              Télécharger en Word
+            </button>
+            <button mat-stroked-button
                     data-testid="regenerate-btn"
                     [disabled]="generating()"
                     (click)="generate()">

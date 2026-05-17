@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConclusionsService } from '../../core/services/conclusions.service';
+import { DocxExportService } from '../../core/services/docx-export.service';
 import {
   ConclusionLifecycleStatus,
   ConclusionResponse,
@@ -96,6 +97,13 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
    */
   @Input() hasCompletedAnalysis?: boolean;
 
+  /**
+   * SF-98-50 — Titre du dossier, utilisé pour nommer le fichier `.docx`
+   * exporté (`{slug}-conclusions-v{N}.docx`). Optionnel : si absent, le
+   * service retombe sur `conclusions-v{N}.docx`.
+   */
+  @Input() caseTitle?: string;
+
   /** Contenu de la version actuellement affichée. */
   readonly conclusion = signal<ConclusionResponse | null>(null);
   /** Historique des versions du dossier (tri version décroissante). */
@@ -125,6 +133,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly lifecycleOptions = LIFECYCLE_ORDER;
 
   private readonly conclusionsService = inject(ConclusionsService);
+  private readonly docxExportService = inject(DocxExportService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -351,6 +360,35 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     );
+  }
+
+  /**
+   * SF-98-50 — Télécharge la version affichée au format Word `.docx`.
+   *
+   * Disponible uniquement quand la version est `DONE` (donc avec un `content`).
+   * Délègue la construction du document et le déclenchement du téléchargement
+   * au `DocxExportService` (réutilise le pattern client-side F-95). En cas
+   * d'échec de génération, le service affiche lui-même une `MatSnackBar`
+   * d'erreur ; une erreur synchrone inattendue est captée ici par sécurité.
+   */
+  downloadWord(): void {
+    const current = this.conclusion();
+    if (current?.status !== 'DONE' || !current.content) {
+      return;
+    }
+    try {
+      this.docxExportService.exportConclusion(
+        current.content,
+        this.caseTitle ?? '',
+        current.versionNumber ?? 0,
+      );
+    } catch {
+      this.snackBar.open(
+        'Erreur lors de la génération du document Word.',
+        'Fermer',
+        { duration: 4000, panelClass: ['snack-error'] },
+      );
+    }
   }
 
   /**
