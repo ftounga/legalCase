@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="232-create-user-consent-acceptance" author="legalcase">
+        <comment>
+            F-240 SF-240-01 : table d'audit des acceptations contractuelles
+            (click-wrap CGU / politique de confidentialité / CGV de paiement /
+            téléchargement DPA). Une ligne immuable par acceptation, conservée
+            comme preuve RGPD (pas de soft-delete, pas de déduplication).
+
+            consent_type est un VARCHAR avec contrainte CHECK applicative plutôt
+            qu'un enum JPA, pour rester extensible (ex. MSA_SIGNED via F-134) en
+            n'altérant que la contrainte CHECK le moment venu.
+
+            workspace_id est NULLABLE : SIGNUP_TERMS est accepté avant la création
+            du workspace. Les acceptations postérieures (PAYMENT_TERMS, DPA_DOWNLOAD)
+            le renseignent automatiquement via le workspace primary de l'utilisateur.
+
+            acceptance_ip en VARCHAR(45) plutôt que le type INET PostgreSQL : H2
+            (profil dev) ne supporte pas INET. 45 chars couvrent IPv6 + zone id.
+        </comment>
+
+        <createTable tableName="user_consent_acceptance">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_user_consent_acceptance_user"
+                             referencedTableName="users"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="consent_type" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accepted_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="acceptance_ip" type="varchar(45)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="acceptance_user_agent" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="true"
+                             foreignKeyName="fk_user_consent_acceptance_workspace"
+                             referencedTableName="workspaces"
+                             referencedColumnNames="id"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE user_consent_acceptance
+            ADD CONSTRAINT chk_user_consent_acceptance_type
+            CHECK (consent_type IN ('SIGNUP_TERMS', 'PRIVACY_POLICY', 'PAYMENT_TERMS', 'DPA_DOWNLOAD'))
+        </sql>
+
+        <createIndex tableName="user_consent_acceptance"
+                     indexName="idx_consent_user_type">
+            <column name="user_id"/>
+            <column name="consent_type"/>
+        </createIndex>
+
+        <createIndex tableName="user_consent_acceptance"
+                     indexName="idx_consent_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="user_consent_acceptance"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -73,7 +73,7 @@ L'utilisateur authentifié déclenche depuis le frontend une acceptation (case �
 - [x] **Modèle TypeScript / API exposée** : le contrat API ci-dessous est figé pour SF-240-02/03/04.
 - [x] **Record / DTO backend** : `ConsentAcceptanceRequest`, `ConsentAcceptanceResponse`.
 - [x] **Service / logique métier** : `ConsentAcceptanceService` (validation, persistance, propagation workspace_id).
-- [x] **Entité JPA + schéma DB** : entité `UserConsentAcceptance` + migration 229.
+- [x] **Entité JPA + schéma DB** : entité `UserConsentAcceptance` + migration 232.
 - [x] **Tests existants** : pas de table préexistante à étendre — nouvelle infrastructure.
 
 ### Cas spécifique : nouveau pattern UI ou service partagé
@@ -135,7 +135,7 @@ Cette SF introduit un **endpoint transversal** consommé par 3 SF parallèles (S
 - [ ] **CA-07** : un même utilisateur peut accepter le même `consentType` plusieurs fois — chaque acceptation est conservée comme ligne distincte (audit trail).
 - [ ] **CA-08** : l'IP est résolue depuis `X-Forwarded-For` (premier élément si liste séparée par virgule) avec fallback sur `request.getRemoteAddr()`.
 - [ ] **CA-09** : isolation workspace — bien que la table n'utilise pas un filtre `workspace_id` standard (le consent précède parfois le workspace), aucune fuite d'information transverse n'est possible car le endpoint ne fait que de l'écriture pour l'utilisateur authentifié courant.
-- [ ] **CA-10** : la migration Liquibase 229 s'exécute proprement sur H2 (profil `dev`) et PostgreSQL (profil `local` + prod) sans collision de numéro.
+- [ ] **CA-10** : la migration Liquibase 232 s'exécute proprement sur H2 (profil `dev`) et PostgreSQL (profil `local` + prod) sans collision de numéro.
 
 ---
 
@@ -245,7 +245,7 @@ Content-Type: application/json
 
 ### Migration Liquibase
 
-- [x] Oui — `229-create-user-consent-acceptance.xml`
+- [x] Oui — `232-create-user-consent-acceptance.xml` (229/230/231 déjà utilisées — numéro réaligné au 2026-05-17)
 
 ```sql
 CREATE TABLE user_consent_acceptance (
