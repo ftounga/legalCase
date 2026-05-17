@@ -161,6 +161,9 @@ import { DivorceDcBeSectionComponent } from '../divorce-dc-be-section/divorce-dc
 import { DivorceDdiBeSectionComponent } from '../divorce-ddi-be-section/divorce-ddi-be-section.component';
 import { TribunalFamilleBeMesuresProvisoiresSectionComponent } from '../tribunal-famille-be-mesures-provisoires-section/tribunal-famille-be-mesures-provisoires-section.component';
 import { PacteSuccessoralBe2018SectionComponent } from '../pacte-successoral-be-2018-section/pacte-successoral-be-2018-section.component';
+// F-217 SF-217-03 — 2 sections décisionnelles Vague 1 Famille BE (backends mergés PR #983 / #982).
+import { RegimeCommunauteLegaleBeSectionComponent } from '../regime-communaute-legale-be-section/regime-communaute-legale-be-section.component';
+import { LiquidationPartageBeSectionComponent } from '../liquidation-partage-be-section/liquidation-partage-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1926,6 +1929,40 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
         }),
       }],
+      // F-217 SF-217-03 : régime de communauté légale BE — CC Livre 3, loi 22/07/2018.
+      // Migration 235 — ALWAYS_ON (toute analyse d'un dossier de couple marié
+      // belge mobilise la qualification du régime). Backend SF-217-01 (PR #983).
+      ['regime-mat-be-communaute-legale', {
+        displayLabel: 'Régime de communauté légale (Belgique)',
+        component: RegimeCommunauteLegaleBeSectionComponent,
+        // Composant complet (form + listes dynamiques + validation F-IA-03).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // F-217 SF-217-03 : liquidation-partage post-divorce BE — CJ art. 1207+ / 1218.
+      // Migration 235 — ALWAYS_ON (toute dissolution du couple appelle une
+      // liquidation-partage du patrimoine). Backend SF-217-02 (PR #982).
+      ['liquidation-partage-be', {
+        displayLabel: 'Liquidation-partage post-divorce (Belgique)',
+        component: LiquidationPartageBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
     ]);
 
   /**
@@ -1993,6 +2030,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['divorce-dc-be', 'VALIDITE'],
     ['divorce-ddi-3voies-be', 'VALIDITE'],
     ['pacte-successoral-be-2018', 'VALIDITE'],
+    // F-217 SF-217-03 : qualification de la composition du patrimoine.
+    ['regime-mat-be-communaute-legale', 'VALIDITE'],
     ['F-FA-18-contestation-paternite', 'VALIDITE'],
     ['F-FA-18-recherche-paternite', 'VALIDITE'],
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],
@@ -2009,6 +2048,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-12-mesures-provisoires', 'DELAIS'],
     // F-211 SF-211-05 : mesures provisoires tribunal famille BE — délais procéduraux urgents.
     ['tribunal-famille-be-mesures-prov', 'DELAIS'],
+    // F-217 SF-217-03 : procédure à délais (délai de contredits CJ art. 1218).
+    ['liquidation-partage-be', 'DELAIS'],
     ['F-FA-13-revisions-post-divorce', 'DELAIS'],
     ['F-FA-14-ordonnance-protection', 'DELAIS'],
     ['F-FA-23-ordonnance-requete', 'DELAIS'],

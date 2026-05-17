@@ -1,0 +1,498 @@
+/**
+ * F-217 SF-217-03 : styles outil "Régime de communauté légale (Belgique)".
+ * Aligné sur le template canonique `procedure-nullite-licenciement-section`.
+ *
+ * Palette : navy/or/rouge. Rouge réservé au verdict QUALIFICATION_INCOMPLETE
+ * et à la qualification INDETERMINE. Inter pour le texte courant, JetBrains
+ * Mono pour `fondement` / bases juridiques. Espacements multiples de 4px.
+ */
+
+.rcl-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.rcl-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.rcl-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.rcl-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.rcl-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--ko {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.rcl-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rcl-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.rcl-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.rcl-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form
+.rcl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.rcl-full {
+  width: 100%;
+}
+
+.rcl-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.rcl-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.rcl-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rcl-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.rcl-block-hint {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.rcl-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.rcl-inline-field {
+  width: 100%;
+  max-width: 320px;
+}
+
+.rcl-comment-field {
+  max-width: 100%;
+}
+
+.rcl-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rcl-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+// Carte d'un item (bien / dette) dans la liste dynamique
+.rcl-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+}
+
+.rcl-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rcl-item-libelle {
+  flex: 1;
+}
+
+.rcl-item-categorie {
+  width: 100%;
+  max-width: 240px;
+}
+
+.rcl-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+
+.rcl-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rcl-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Navy — COMMUNAUTE_LEGALE_APPLICABLE.
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Or — REGIME_CONVENTIONNEL_DETECTE.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+
+  // Rouge — réservé à QUALIFICATION_INCOMPLETE.
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+// Synthèse de composition — grille de compteurs.
+.rcl-synthese-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rcl-synthese-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 110px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: rgba(26, 35, 48, 0.02);
+}
+
+.rcl-synthese-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1A3A5C;
+}
+
+.rcl-synthese-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  text-align: center;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Listes de biens / dettes qualifiés
+.rcl-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcl-list-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rcl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcl-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+}
+
+.rcl-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rcl-item-libelle-text {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.rcl-qualif {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &--commun {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--propre {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--mixte {
+    background: rgba(201, 165, 75, 0.10);
+    color: #8a6a16;
+  }
+  // Rouge — réservé à la qualification INDETERMINE.
+  &--indetermine {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.rcl-mode-gestion {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rcl-item-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rcl-item-explication {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+}
+
+// Bases juridiques
+.rcl-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcl-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rcl-bases-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rcl-base-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(26, 35, 48, 0.05);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rcl-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.rcl-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}

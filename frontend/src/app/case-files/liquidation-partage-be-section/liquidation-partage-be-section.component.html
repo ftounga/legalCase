@@ -1,0 +1,289 @@
+<section class="lpb-section">
+  <header class="lpb-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="lpb-body">
+    <mat-icon class="lpb-icon">gavel</mat-icon>
+    <span class="lpb-title">LIQUIDATION-PARTAGE POST-DIVORCE — CJ ART. 1207+ BE</span>
+    @if (result()) {
+      <span class="lpb-chip-summary"
+            [class.lpb-chip-summary--ok]="result()!.verdict === 'PROCEDURE_NON_ENGAGEE' || result()!.verdict === 'EN_COURS' || result()!.verdict === 'CLOTUREE'"
+            [class.lpb-chip-summary--medium]="result()!.verdict === 'EN_ATTENTE_HOMOLOGATION'"
+            [class.lpb-chip-summary--ko]="result()!.verdict === 'DELAI_CONTREDITS_CRITIQUE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="lpb-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="lpb-body" class="lpb-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="lpb-country-banner" data-testid="lpb-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — liquidation-partage post-divorce par notaire commis (Code judiciaire, art. 1207 et s. / 1218). La procédure française de partage repose sur des mécanismes distincts et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="lpb-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="lpb-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="lpb-form" (ngSubmit)="calculate()">
+            <p class="lpb-block-hint">
+              Renseignez l'avancement de la procédure de liquidation-partage. Une date n'est requise que si l'étape correspondante est cochée.
+            </p>
+
+            <!-- Étape 1 — Désignation du notaire -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="notaireDesigne()"
+                    (ngModelChange)="onNotaireChange($event)"
+                    name="notaireDesigne">
+                  1. Notaire commis désigné
+                </mat-slide-toggle>
+              </div>
+              @if (notaireDesigne()) {
+                <mat-form-field appearance="outline" class="lpb-inline-field">
+                  <mat-label>Date de désignation du notaire</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDesignationNotaire()"
+                         (ngModelChange)="dateDesignationNotaire.set($event || null)"
+                         name="dateDesignationNotaire" />
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Étape 2 — Ouverture des opérations -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="operationsOuvertes()"
+                    (ngModelChange)="onOperationsChange($event)"
+                    name="operationsOuvertes">
+                  2. Opérations de liquidation-partage ouvertes
+                </mat-slide-toggle>
+              </div>
+              @if (operationsOuvertes()) {
+                <mat-form-field appearance="outline" class="lpb-inline-field">
+                  <mat-label>Date d'ouverture des opérations</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateOuvertureOperations()"
+                         (ngModelChange)="dateOuvertureOperations.set($event || null)"
+                         name="dateOuvertureOperations" />
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Étape 3 — Inventaire -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="inventaireEtabli()"
+                    (ngModelChange)="inventaireEtabli.set($event)"
+                    name="inventaireEtabli">
+                  3. Inventaire des biens établi
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Étape 4 + 5 — Projet de liquidation + notification -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="projetLiquidationEtabli()"
+                    (ngModelChange)="onProjetLiquidationChange($event)"
+                    name="projetLiquidationEtabli">
+                  4. Projet de liquidation-partage établi et notifié
+                </mat-slide-toggle>
+              </div>
+              @if (projetLiquidationEtabli()) {
+                <div class="lpb-field-with-alert">
+                  <mat-form-field appearance="outline" class="lpb-inline-field">
+                    <mat-label>Date de notification du projet</mat-label>
+                    <input matInput type="date"
+                           [ngModel]="dateNotificationProjet()"
+                           (ngModelChange)="dateNotificationProjet.set($event || null)"
+                           name="dateNotificationProjet" />
+                  </mat-form-field>
+                  @if (coherenceAlerts().DATE_NOTIFICATION_PROJET; as alert) {
+                    <span class="lpb-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+                <p class="lpb-block-hint">
+                  La notification du projet fait courir le délai d'un mois pour déposer des contredits (CJ art. 1218).
+                </p>
+              }
+            </div>
+
+            <!-- Étape 6 — Contredits -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="contreditsDeposes()"
+                    (ngModelChange)="contreditsDeposes.set($event)"
+                    name="contreditsDeposes">
+                  5. Contredits déposés sur le projet
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Étape 7 — Procès-verbal de dires -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="procesVerbalDiresEtabli()"
+                    (ngModelChange)="procesVerbalDiresEtabli.set($event)"
+                    name="procesVerbalDiresEtabli">
+                  6. Procès-verbal des dires et difficultés établi
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Étape 8 — Homologation -->
+            <div class="lpb-step-card">
+              <div class="lpb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="homologationDemandee()"
+                    (ngModelChange)="onHomologationChange($event)"
+                    name="homologationDemandee">
+                  7. Homologation par le Tribunal de la famille
+                </mat-slide-toggle>
+              </div>
+              @if (homologationDemandee()) {
+                <mat-form-field appearance="outline" class="lpb-inline-field">
+                  <mat-label>Date d'homologation</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateHomologation()"
+                         (ngModelChange)="dateHomologation.set($event || null)"
+                         name="dateHomologation" />
+                </mat-form-field>
+              }
+            </div>
+
+            <mat-form-field appearance="outline" class="lpb-comment-field">
+              <mat-label>Commentaire (optionnel)</mat-label>
+              <textarea matInput rows="2" maxlength="1000"
+                        [ngModel]="commentaire()"
+                        (ngModelChange)="commentaire.set($event || null)"
+                        name="commentaire"></textarea>
+            </mat-form-field>
+
+            <div class="lpb-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="lpb-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'avancement</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="lpb-result">
+            <!-- Bannière verdict — rouge réservé à DELAI_CONTREDITS_CRITIQUE -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Prochaine étape -->
+            @if (result()!.prochaineEtape) {
+              <div class="lpb-next-step" data-testid="lpb-next-step">
+                <mat-icon>arrow_forward</mat-icon>
+                <span><strong>Prochaine étape :</strong> {{ result()!.prochaineEtape }}</span>
+              </div>
+            }
+
+            <!-- Checklist des étapes -->
+            @if (result()!.etapes.length) {
+              <div class="lpb-list-block">
+                <span class="lpb-list-label">Séquence procédurale</span>
+                <ul class="lpb-list">
+                  @for (etape of result()!.etapes; track etape.code) {
+                    <li class="lpb-etape-item" data-testid="lpb-etape-row">
+                      <mat-icon [class]="etapeStatutClass(etape.statut)">{{ etapeStatutIcon(etape.statut) }}</mat-icon>
+                      <div class="lpb-etape-body">
+                        <div class="lpb-etape-row">
+                          <span class="lpb-etape-libelle">{{ etape.ordre }}. {{ etape.libelle }}</span>
+                          <span [class]="etapeStatutClass(etape.statut) + ' lpb-etape-badge'">{{ etapeStatutLabel(etape.statut) }}</span>
+                        </div>
+                        <span class="lpb-etape-fondement">{{ etape.fondement }}</span>
+                        <span class="lpb-etape-explication">{{ etape.explication }}</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Délais procéduraux -->
+            @if (result()!.delais.length) {
+              <div class="lpb-list-block">
+                <span class="lpb-list-label">Délais procéduraux</span>
+                <ul class="lpb-list">
+                  @for (delai of result()!.delais; track delai.code) {
+                    <li class="lpb-delai-item" data-testid="lpb-delai-row">
+                      <div class="lpb-etape-row">
+                        <span class="lpb-etape-libelle">{{ delai.libelle }}</span>
+                        <span [class]="delaiStatutClass(delai.statut)">{{ delaiStatutLabel(delai.statut) }}</span>
+                      </div>
+                      <span class="lpb-etape-fondement">{{ delai.fondement }}</span>
+                      <div class="lpb-delai-meta">
+                        @if (delai.dateEcheance) {
+                          <span>Échéance : {{ delai.dateEcheance }}</span>
+                        }
+                        @if (delai.joursRestants !== null) {
+                          <span>{{ delai.joursRestants }} jour(s) restant(s)</span>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="lpb-bases-block">
+                <span class="lpb-bases-label">Bases juridiques</span>
+                <div class="lpb-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="lpb-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="lpb-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="lpb-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

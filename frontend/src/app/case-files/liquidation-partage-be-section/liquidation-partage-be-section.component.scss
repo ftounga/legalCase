@@ -1,0 +1,483 @@
+/**
+ * F-217 SF-217-03 : styles outil "Liquidation-partage post-divorce (Belgique)".
+ * Aligné sur le template canonique `regime-communaute-legale-be-section`.
+ *
+ * Palette : navy/or/rouge. Rouge réservé au verdict DELAI_CONTREDITS_CRITIQUE
+ * et au statut de délai CRITIQUE / DEPASSE. Inter pour le texte courant,
+ * JetBrains Mono pour `fondement` / bases juridiques. Espacements ×4px.
+ */
+
+.lpb-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.lpb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.lpb-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.lpb-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.lpb-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--ko {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.lpb-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lpb-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.lpb-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.lpb-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form
+.lpb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.lpb-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.lpb-step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.lpb-block-hint {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.lpb-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.lpb-inline-field {
+  width: 100%;
+  max-width: 320px;
+}
+
+.lpb-comment-field {
+  max-width: 100%;
+}
+
+.lpb-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lpb-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.lpb-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+
+.lpb-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lpb-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Navy — PROCEDURE_NON_ENGAGEE / EN_COURS / CLOTUREE.
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Or — EN_ATTENTE_HOMOLOGATION.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+
+  // Rouge — réservé à DELAI_CONTREDITS_CRITIQUE.
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.lpb-next-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(26, 58, 92, 0.05);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Listes étapes / délais
+.lpb-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lpb-list-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lpb-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lpb-etape-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+}
+
+.lpb-delai-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+}
+
+.lpb-etape-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.lpb-etape-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lpb-etape-libelle {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.lpb-etape-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lpb-etape-explication {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+}
+
+// Picto de statut d'étape (mat-icon).
+.lpb-etape-statut {
+  flex-shrink: 0;
+
+  &--faite { color: #1A3A5C; }
+  &--encours { color: #c9a54b; }
+  &--avenir { color: var(--ds-text-secondary, #6a7485); }
+}
+
+// Badge texte de statut d'étape.
+.lpb-etape-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.lpb-etape-statut--faite {
+    background: rgba(26, 58, 92, 0.10);
+  }
+  &.lpb-etape-statut--encours {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &.lpb-etape-statut--avenir {
+    background: rgba(26, 35, 48, 0.05);
+  }
+}
+
+.lpb-delai-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Chip de statut de délai. Rouge réservé à CRITIQUE / DEPASSE.
+.lpb-delai-chip {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--danger {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+  &--neutral {
+    background: rgba(26, 35, 48, 0.05);
+    color: var(--ds-text-secondary, #6a7485);
+  }
+}
+
+// Bases juridiques
+.lpb-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lpb-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lpb-bases-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lpb-base-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(26, 35, 48, 0.05);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lpb-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.lpb-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
