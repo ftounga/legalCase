@@ -1340,6 +1340,58 @@ idx_immigration_work_rights_case_file
 
 ---
 
+## regime_communaute_legale_be_analyses
+
+F-217 SF-217-01 — analyse de l'outil décisionnel « régime matrimonial communauté légale BE » (droit de la famille belge), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé (qualification des biens et des dettes en propres / communs) sous forme JSON TEXT (compatible H2 + PostgreSQL).
+
+```
+regime_communaute_legale_be_analyses
+  id              UUID PK
+  case_file_id    UUID FK → case_files(id)  UNIQUE
+  snapshot_data   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  country         VARCHAR(20) NOT NULL
+  created_at      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_regime_communaute_legale_be_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_regime_communaute_legale_be_analyses_case_file
+
+Migration : 233-create-regime-communaute-legale-be-analyses.xml
+
+---
+
+## liquidation_partage_be_analyses
+
+F-217 SF-217-02 — analyse de l'outil décisionnel « liquidation-partage BE » (droit de la famille belge), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé (liquidation-partage post-divorce, méthode Renard, délais du Code judiciaire) sous forme JSON TEXT (compatible H2 + PostgreSQL).
+
+```
+liquidation_partage_be_analyses
+  id              UUID PK
+  case_file_id    UUID FK → case_files(id)  UNIQUE
+  snapshot_data   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  country         VARCHAR(20) NOT NULL
+  created_at      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_liquidation_partage_be_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_liquidation_partage_be_analyses_case_file
+
+Migration : 234-create-liquidation-partage-be-analyses.xml
+
+---
+
 ## prudhome_fiches
 
 Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).
