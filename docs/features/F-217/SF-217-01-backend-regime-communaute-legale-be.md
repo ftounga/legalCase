@@ -253,7 +253,7 @@ Réponse `200` — `RegimeCommunauteLegaleBeResponse` : **ré-expose l'intégral
 | `decision_tool_visibility_rules` | INSERT (seed) | porté par SF-217-03 (migration 232), couplé à l'entrée TOOL_REGISTRY |
 
 ### Migration Liquibase
-- [x] Oui — `232-create-regime-communaute-legale-be-analyses.xml` (table seule ; le seed `decision_tool_visibility_rules` est porté par SF-217-03 — migration 234)
+- [x] Oui — `233-create-regime-communaute-legale-be-analyses.xml` (table seule ; le seed `decision_tool_visibility_rules` est porté par SF-217-03 — migration distincte). Renumérotée de 232 → 233 : le n° 232 a été pris par F-240 (mergée entre-temps).
 
 ### Classes backend (pattern `DivorceDcBe*` / `ProcedureNulliteLicenciement*`)
 `RegimeCommunauteLegaleBeCalculator` (static), `RegimeCommunauteLegaleBeInput`, `RegimeCommunauteLegaleBeResult`, `RegimeCommunauteLegaleBeRequest`, `RegimeCommunauteLegaleBeResponse`, `RegimeCommunauteLegaleBeAnalysis` (@Entity), `RegimeCommunauteLegaleBeRepository`, `RegimeCommunauteLegaleBeService`, `RegimeCommunauteLegaleBeController`.

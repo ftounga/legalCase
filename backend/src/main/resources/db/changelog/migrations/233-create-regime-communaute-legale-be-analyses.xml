@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="233-create-regime-communaute-legale-be-analyses" author="legalcase">
+        <comment>
+            SF-217-01 : table dédiée à l'outil décisionnel "Analyseur du régime de
+            communauté légale belge" (composition du patrimoine du couple marié —
+            BELGIQUE, Livre 3 du Code civil, loi du 22/07/2018).
+
+            Qualifie chaque bien (COMMUN / PROPRE / MIXTE_RECOMPENSE / INDETERMINE),
+            son mode de gestion (GESTION_CONCURRENTE / GESTION_EXCLUSIVE / COGESTION)
+            et chaque dette (DETTE_COMMUNE / DETTE_PROPRE / DETTE_PROPRE_AVEC_RECOURS).
+            Verdict en 3 niveaux : COMMUNAUTE_LEGALE_APPLICABLE /
+            REGIME_CONVENTIONNEL_DETECTE / QUALIFICATION_INCOMPLETE.
+
+            Outil single-country BELGIQUE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution
+            et la ré-édition du formulaire UI sans recalcul (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-217-03 (migration 234) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 : un seed de
+            visibilité ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="regime_communaute_legale_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_regime_communaute_legale_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="regime_communaute_legale_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_regime_communaute_legale_be_analyses_case_file"/>
+
+        <createIndex tableName="regime_communaute_legale_be_analyses"
+                     indexName="idx_regime_communaute_legale_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="regime_communaute_legale_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
