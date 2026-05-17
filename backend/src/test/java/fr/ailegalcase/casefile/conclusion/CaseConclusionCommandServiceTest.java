@@ -14,18 +14,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * F-98 / SF-98-01 — tests unitaires du déclenchement de génération de conclusions :
- * nominal + les 4 gardes 409 + isolation workspace.
+ * F-98 / SF-98-01 + SF-98-52 — tests unitaires du déclenchement de génération de
+ * conclusions versionnées : nominal versionné (v1 → v2 → v3), les 4 gardes 409,
+ * isolation workspace, transitions de cycle de vie + gardes 409/400.
  */
 class CaseConclusionCommandServiceTest {
 
@@ -40,14 +43,17 @@ class CaseConclusionCommandServiceTest {
             caseFileRepository, caseConclusionRepository, caseAnalysisRepository,
             currentUserResolver, workspaceMemberRepository, rabbitTemplate);
 
-    // ── nominal ──────────────────────────────────────────────────────────────
+    // ── génération versionnée (CA2, CA9) ─────────────────────────────────────
 
     @Test
-    void triggerGeneration_nominal_createsPendingRowAndPublishesMessage() {
+    void triggerGeneration_firstVersion_createsVersionOneDraftPending() {
         Ctx ctx = supportedCase();
-        when(caseConclusionRepository.findByCaseFileId(ctx.caseFileId)).thenReturn(Optional.empty());
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.empty());
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(new CaseAnalysis()));
+        when(caseConclusionRepository.existsByCaseFileIdAndStatusIn(eq(ctx.caseFileId), any()))
+                .thenReturn(false);
         when(caseConclusionRepository.save(any())).thenAnswer(inv -> {
             CaseConclusion c = inv.getArgument(0);
             if (c.getId() == null) {
@@ -59,12 +65,16 @@ class CaseConclusionCommandServiceTest {
         ConclusionGenerationResponse response = service.triggerGeneration(ctx.caseFileId, null, null, null);
 
         assertThat(response.status()).isEqualTo("PENDING");
+        assertThat(response.versionNumber()).isEqualTo(1);
         var captor = org.mockito.ArgumentCaptor.forClass(CaseConclusion.class);
         verify(caseConclusionRepository).save(captor.capture());
-        assertThat(captor.getValue().getStatus()).isEqualTo(CaseConclusionStatus.PENDING);
-        assertThat(captor.getValue().getJurisdictionCode()).isEqualTo("CPH");
-        assertThat(captor.getValue().getStageCode()).isEqualTo("FOND");
-        assertThat(captor.getValue().getPositionCode()).isEqualTo("DEMANDEUR");
+        CaseConclusion saved = captor.getValue();
+        assertThat(saved.getVersionNumber()).isEqualTo(1);
+        assertThat(saved.getStatus()).isEqualTo(CaseConclusionStatus.PENDING);
+        assertThat(saved.getLifecycleStatus()).isEqualTo(ConclusionLifecycleStatus.DRAFT);
+        assertThat(saved.getJurisdictionCode()).isEqualTo("CPH");
+        assertThat(saved.getStageCode()).isEqualTo("FOND");
+        assertThat(saved.getPositionCode()).isEqualTo("DEMANDEUR");
         verify(rabbitTemplate).convertAndSend(
                 eq(CaseConclusionRabbitMQConfig.CASE_CONCLUSION_EXCHANGE),
                 eq(CaseConclusionRabbitMQConfig.CASE_CONCLUSION_ROUTING_KEY),
@@ -72,23 +82,34 @@ class CaseConclusionCommandServiceTest {
     }
 
     @Test
-    void triggerGeneration_regenerate_reusesRowAndPurgesPreviousResult() {
+    void triggerGeneration_existingVersions_createsNextVersionWithoutTouchingPrevious() {
         Ctx ctx = supportedCase();
-        CaseConclusion existing = new CaseConclusion();
-        existing.setId(UUID.randomUUID());
-        existing.setStatus(CaseConclusionStatus.DONE);
-        existing.setContent("ancien texte");
-        existing.setErrorMessage(null);
-        when(caseConclusionRepository.findByCaseFileId(ctx.caseFileId)).thenReturn(Optional.of(existing));
+        CaseConclusion v2 = new CaseConclusion();
+        v2.setId(UUID.randomUUID());
+        v2.setVersionNumber(2);
+        v2.setStatus(CaseConclusionStatus.DONE);
+        v2.setContent("texte v2");
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v2));
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(new CaseAnalysis()));
+        when(caseConclusionRepository.existsByCaseFileIdAndStatusIn(eq(ctx.caseFileId), any()))
+                .thenReturn(false);
         when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.triggerGeneration(ctx.caseFileId, null, null, null);
+        ConclusionGenerationResponse response = service.triggerGeneration(ctx.caseFileId, null, null, null);
 
-        assertThat(existing.getStatus()).isEqualTo(CaseConclusionStatus.PENDING);
-        assertThat(existing.getContent()).isNull();
-        verify(rabbitTemplate).convertAndSend(anyString(), anyString(), any(CaseConclusionMessage.class));
+        assertThat(response.versionNumber()).isEqualTo(3);
+        var captor = org.mockito.ArgumentCaptor.forClass(CaseConclusion.class);
+        verify(caseConclusionRepository).save(captor.capture());
+        CaseConclusion saved = captor.getValue();
+        assertThat(saved.getVersionNumber()).isEqualTo(3);
+        assertThat(saved.getStatus()).isEqualTo(CaseConclusionStatus.PENDING);
+        assertThat(saved.getLifecycleStatus()).isEqualTo(ConclusionLifecycleStatus.DRAFT);
+        // version précédente intacte
+        assertThat(v2.getVersionNumber()).isEqualTo(2);
+        assertThat(v2.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        assertThat(v2.getContent()).isEqualTo("texte v2");
     }
 
     // ── gardes 409 ───────────────────────────────────────────────────────────
@@ -131,7 +152,6 @@ class CaseConclusionCommandServiceTest {
     @Test
     void triggerGeneration_noDoneAnalysis_throwsAnalysisNotReady() {
         Ctx ctx = supportedCase();
-        when(caseConclusionRepository.findByCaseFileId(ctx.caseFileId)).thenReturn(Optional.empty());
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.empty());
 
@@ -143,14 +163,12 @@ class CaseConclusionCommandServiceTest {
     }
 
     @Test
-    void triggerGeneration_generationAlreadyRunning_throwsAlreadyGenerating() {
+    void triggerGeneration_versionAlreadyGenerating_throwsAlreadyGenerating() {
         Ctx ctx = supportedCase();
-        CaseConclusion processing = new CaseConclusion();
-        processing.setId(UUID.randomUUID());
-        processing.setStatus(CaseConclusionStatus.PROCESSING);
-        when(caseConclusionRepository.findByCaseFileId(ctx.caseFileId)).thenReturn(Optional.of(processing));
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(new CaseAnalysis()));
+        when(caseConclusionRepository.existsByCaseFileIdAndStatusIn(eq(ctx.caseFileId), any()))
+                .thenReturn(true);
 
         assertThatThrownBy(() -> service.triggerGeneration(ctx.caseFileId, null, null, null))
                 .isInstanceOf(CaseConclusionGuardException.class)
@@ -175,15 +193,166 @@ class CaseConclusionCommandServiceTest {
     }
 
     @Test
-    void getConclusion_noRow_returnsNotGenerated() {
+    void getConclusion_noVersion_returnsNotGenerated() {
         Ctx ctx = supportedCase();
-        when(caseConclusionRepository.findByCaseFileId(ctx.caseFileId)).thenReturn(Optional.empty());
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.empty());
 
         ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
 
         assertThat(response.status()).isEqualTo(ConclusionResponse.NOT_GENERATED);
         assertThat(response.caseFileId()).isEqualTo(ctx.caseFileId);
         assertThat(response.content()).isNull();
+        assertThat(response.versionNumber()).isZero();
+    }
+
+    @Test
+    void getConclusion_returnsMostRecentVersion() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v3 = doneVersion(ctx, 3);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v3));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.versionNumber()).isEqualTo(3);
+        assertThat(response.status()).isEqualTo("DONE");
+        assertThat(response.lifecycleStatus()).isEqualTo("DRAFT");
+    }
+
+    // ── listVersions (CA4) ───────────────────────────────────────────────────
+
+    @Test
+    void listVersions_returnsSummariesVersionDescending() {
+        Ctx ctx = supportedCase();
+        when(caseConclusionRepository.findByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(List.of(doneVersion(ctx, 2), doneVersion(ctx, 1)));
+
+        List<ConclusionVersionSummary> versions = service.listVersions(ctx.caseFileId, null, null, null);
+
+        assertThat(versions).hasSize(2);
+        assertThat(versions.get(0).versionNumber()).isEqualTo(2);
+        assertThat(versions.get(1).versionNumber()).isEqualTo(1);
+        assertThat(versions.get(0).lifecycleStatus()).isEqualTo("DRAFT");
+    }
+
+    // ── getVersion (CA5) ─────────────────────────────────────────────────────
+
+    @Test
+    void getVersion_unknownVersion_throws404() {
+        Ctx ctx = supportedCase();
+        UUID versionId = UUID.randomUUID();
+        when(caseConclusionRepository.findByIdAndCaseFileId(versionId, ctx.caseFileId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getVersion(ctx.caseFileId, versionId, null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+    }
+
+    // ── updateLifecycle (CA6) ────────────────────────────────────────────────
+
+    @Test
+    void updateLifecycle_doneVersionToValidated_succeeds() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ConclusionResponse response = service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), "VALIDATED", null, null, null);
+
+        assertThat(response.lifecycleStatus()).isEqualTo("VALIDATED");
+        assertThat(v1.getLifecycleStatus()).isEqualTo(ConclusionLifecycleStatus.VALIDATED);
+    }
+
+    @Test
+    void updateLifecycle_validatedBackToDraft_succeeds() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setLifecycleStatus(ConclusionLifecycleStatus.VALIDATED);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ConclusionResponse response = service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), "DRAFT", null, null, null);
+
+        assertThat(response.lifecycleStatus()).isEqualTo("DRAFT");
+    }
+
+    @Test
+    void updateLifecycle_nonDoneVersionToValidated_throws409() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setStatus(CaseConclusionStatus.PENDING); // pas DONE
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), "VALIDATED", null, null, null))
+                .isInstanceOf(CaseConclusionGuardException.class)
+                .extracting(e -> ((CaseConclusionGuardException) e).getCode())
+                .isEqualTo(CaseConclusionGuardCode.LIFECYCLE_REQUIRES_DONE);
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateLifecycle_nonDoneVersionToDeposited_throws409() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setStatus(CaseConclusionStatus.FAILED); // pas DONE
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), "DEPOSITED", null, null, null))
+                .isInstanceOf(CaseConclusionGuardException.class)
+                .extracting(e -> ((CaseConclusionGuardException) e).getCode())
+                .isEqualTo(CaseConclusionGuardCode.LIFECYCLE_REQUIRES_DONE);
+    }
+
+    @Test
+    void updateLifecycle_nonDoneVersionToDraft_succeeds() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setStatus(CaseConclusionStatus.PENDING);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ConclusionResponse response = service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), "DRAFT", null, null, null);
+
+        assertThat(response.lifecycleStatus()).isEqualTo("DRAFT");
+    }
+
+    @Test
+    void updateLifecycle_unknownValue_throws400() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), "ARCHIVED", null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+        verify(caseConclusionRepository, never()).save(any());
+    }
+
+    @Test
+    void updateLifecycle_nullValue_throws400() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        assertThatThrownBy(() -> service.updateLifecycle(
+                ctx.caseFileId, v1.getId(), null, null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
     }
 
     // ── fixtures ─────────────────────────────────────────────────────────────
@@ -218,5 +387,21 @@ class CaseConclusionCommandServiceTest {
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(caseFile));
 
         return new Ctx(caseFileId, caseFile, workspace);
+    }
+
+    /** Version DONE / DRAFT au numéro donné, rattachée au dossier du contexte. */
+    private CaseConclusion doneVersion(Ctx ctx, int versionNumber) {
+        CaseConclusion c = new CaseConclusion();
+        c.setId(UUID.randomUUID());
+        c.setCaseFile(ctx.caseFile);
+        c.setWorkspace(ctx.workspace);
+        c.setVersionNumber(versionNumber);
+        c.setStatus(CaseConclusionStatus.DONE);
+        c.setLifecycleStatus(ConclusionLifecycleStatus.DRAFT);
+        c.setJurisdictionCode("CPH");
+        c.setStageCode("FOND");
+        c.setPositionCode("DEMANDEUR");
+        c.setContent("texte v" + versionNumber);
+        return c;
     }
 }
