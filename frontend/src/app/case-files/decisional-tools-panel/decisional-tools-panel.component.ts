@@ -66,6 +66,7 @@ import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 import { LicenciementNulDetectionSectionComponent } from '../licenciement-nul-detection-section/licenciement-nul-detection-section.component';
+import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nullite-licenciement-section/procedure-nullite-licenciement-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
@@ -488,6 +489,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
                 // F-163 SF-163-02b — propage le flag standalone (default false).
         standaloneMode: ctx.standaloneMode ?? false,
 }),
+      }],
+      ['F-DT-36-procedure-nullite-licenciement', {
+        displayLabel: 'Nullité de procédure de licenciement (FR)',
+        component: ProcedureNulliteLicenciementSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-36-02 : pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+          // Validation F-IA-03 sur 3 champs croisables (DATE_ENTRETIEN,
+          // MOTIVATION, ENTRETIEN_TENU) via F-96 / questions IA / pièces.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02b — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
       }],
       ['F-DT-12-discrimination-dommages-interets', {
         displayLabel: 'Discrimination — dommages-intérêts (FR)',
@@ -1961,6 +1979,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-13-licenciement-economique', 'VALIDITE'],
     ['F-DT-14-pse-validite', 'VALIDITE'],
     ['F-DT-16-licenciement-nul-detection', 'VALIDITE'],
+    ['F-DT-36-procedure-nullite-licenciement', 'VALIDITE'],
     ['F-DT-22-requalification-cdd-cdi', 'VALIDITE'],
     ['F-DT-23-requalification-interim-cdi', 'VALIDITE'],
     ['F-DT-24-non-concurrence', 'VALIDITE'],

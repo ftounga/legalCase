@@ -1,0 +1,313 @@
+<section class="pnl-section">
+  <header class="pnl-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pnl-body">
+    <mat-icon class="pnl-icon">gavel</mat-icon>
+    <span class="pnl-title">NULLITÉ DE PROCÉDURE DE LICENCIEMENT</span>
+    @if (result()) {
+      <span class="pnl-chip-summary"
+            [class.pnl-chip-summary--ok]="result()!.verdict === 'PROCEDURE_REGULIERE'"
+            [class.pnl-chip-summary--medium]="result()!.verdict === 'NULLITE_PROBABLE'"
+            [class.pnl-chip-summary--ko]="result()!.verdict === 'NULLITE_AVEREE'">
+        {{ result()!.scoreNullite }}/100 · {{ result()!.vicesDetectes.length }} vice(s)
+      </span>
+    }
+    <mat-icon class="pnl-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pnl-body" class="pnl-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="pnl-country-banner" data-testid="pnl-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (procédure de licenciement art. L.1232-2 et s. Code du travail). Le pendant Belgique (loi du 3 juillet 1978 / CCT 109) est planifié séparément.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="pnl-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="pnl-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="pnl-form" (ngSubmit)="calculate()">
+            <!-- Bloc convocation -->
+            <div class="pnl-block pnl-full">
+              <span class="pnl-block-label">Convocation à l'entretien préalable</span>
+
+              <div class="pnl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="convocationEnvoyee()"
+                    (ngModelChange)="onConvocationEnvoyeeChange($event)"
+                    name="convocationEnvoyee">
+                  Convocation à l'entretien préalable envoyée (L.1232-2)
+                </mat-slide-toggle>
+              </div>
+
+              @if (convocationEnvoyee()) {
+                <mat-form-field appearance="outline" class="pnl-inset-field">
+                  <mat-label>Date de présentation de la convocation</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateConvocationPresentee()"
+                         (ngModelChange)="dateConvocationPresentee.set($event || null)"
+                         name="dateConvocationPresentee" />
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc entretien -->
+            <div class="pnl-block pnl-full">
+              <span class="pnl-block-label">Entretien préalable</span>
+
+              <div class="pnl-field-with-alert">
+                <div class="pnl-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="entretienTenu()"
+                      (ngModelChange)="onEntretienTenuChange($event)"
+                      name="entretienTenu">
+                    Entretien préalable effectivement tenu (L.1232-2)
+                  </mat-slide-toggle>
+                </div>
+                @if (coherenceAlerts().ENTRETIEN_TENU; as alert) {
+                  <span class="pnl-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              @if (entretienTenu()) {
+                <div class="pnl-field-with-alert">
+                  <mat-form-field appearance="outline" class="pnl-inset-field">
+                    <mat-label>Date de l'entretien préalable</mat-label>
+                    <input matInput type="date"
+                           [ngModel]="dateEntretienPrealable()"
+                           (ngModelChange)="dateEntretienPrealable.set($event || null)"
+                           name="dateEntretienPrealable" />
+                  </mat-form-field>
+                  @if (coherenceAlerts().DATE_ENTRETIEN; as alert) {
+                    <span class="pnl-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Bloc lettre de licenciement -->
+            <div class="pnl-block pnl-full">
+              <span class="pnl-block-label">Lettre de licenciement</span>
+
+              <mat-form-field appearance="outline" class="pnl-inline-field">
+                <mat-label>Date de notification du licenciement</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateNotificationLicenciement()"
+                       (ngModelChange)="dateNotificationLicenciement.set($event || null)"
+                       name="dateNotificationLicenciement" />
+              </mat-form-field>
+
+              <div class="pnl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="lettreLicenciementEcrite()"
+                    (ngModelChange)="onLettreEcriteChange($event)"
+                    name="lettreLicenciementEcrite">
+                  Lettre de licenciement écrite (L.1232-6)
+                </mat-slide-toggle>
+              </div>
+
+              @if (lettreLicenciementEcrite()) {
+                <div class="pnl-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="lettreMotivee()"
+                      (ngModelChange)="onLettreMotiveeChange($event)"
+                      name="lettreMotivee">
+                    Lettre énonçant les motifs du licenciement (L.1232-6)
+                  </mat-slide-toggle>
+                </div>
+              }
+
+              @if (lettreLicenciementEcrite() && lettreMotivee()) {
+                <div class="pnl-field-with-alert">
+                  <div class="pnl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="motivationSuffisante()"
+                        (ngModelChange)="motivationSuffisante.set($event)"
+                        name="motivationSuffisante">
+                      Motivation suffisante et matériellement vérifiable (L.1235-2)
+                    </mat-slide-toggle>
+                  </div>
+                  @if (coherenceAlerts().MOTIVATION; as alert) {
+                    <span class="pnl-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+
+                @if (!motivationSuffisante()) {
+                  <mat-form-field appearance="outline" class="pnl-inset-field pnl-comment-field">
+                    <mat-label>Commentaire sur la motivation (optionnel)</mat-label>
+                    <textarea matInput rows="2" maxlength="1000"
+                              [ngModel]="motivationCommentaire()"
+                              (ngModelChange)="motivationCommentaire.set($event || null)"
+                              name="motivationCommentaire"></textarea>
+                  </mat-form-field>
+                }
+              }
+            </div>
+
+            <!-- Bloc contexte -->
+            <div class="pnl-block pnl-full">
+              <span class="pnl-block-label">Contexte du licenciement</span>
+
+              <div class="pnl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="licenciementPourMotifGrave()"
+                    (ngModelChange)="licenciementPourMotifGrave.set($event)"
+                    name="licenciementPourMotifGrave">
+                  Licenciement pour faute grave ou lourde
+                </mat-slide-toggle>
+              </div>
+
+              <div class="pnl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="licenciementCollectif()"
+                    (ngModelChange)="onLicenciementCollectifChange($event)"
+                    name="licenciementCollectif">
+                  Licenciement collectif (économique)
+                </mat-slide-toggle>
+              </div>
+
+              @if (licenciementCollectif()) {
+                <div class="pnl-toggle-row pnl-inset-toggle">
+                  <mat-slide-toggle
+                      [ngModel]="procedureCseRespectee()"
+                      (ngModelChange)="procedureCseRespectee.set($event)"
+                      name="procedureCseRespectee">
+                    Procédure d'information / consultation du CSE respectée (L.1233-8 et s.)
+                  </mat-slide-toggle>
+                </div>
+              }
+
+              <div class="pnl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="conventionCollectiveApplicable()"
+                    (ngModelChange)="onConventionApplicableChange($event)"
+                    name="conventionCollectiveApplicable">
+                  Une convention collective avec procédure conventionnelle s'applique
+                </mat-slide-toggle>
+              </div>
+
+              @if (conventionCollectiveApplicable()) {
+                <div class="pnl-toggle-row pnl-inset-toggle">
+                  <mat-slide-toggle
+                      [ngModel]="conventionCollectiveRespectee()"
+                      (ngModelChange)="conventionCollectiveRespectee.set($event)"
+                      name="conventionCollectiveRespectee">
+                    Procédure conventionnelle (commission paritaire, préalable disciplinaire…) respectée
+                  </mat-slide-toggle>
+                </div>
+
+                @if (!conventionCollectiveRespectee()) {
+                  <mat-form-field appearance="outline" class="pnl-inset-field pnl-comment-field">
+                    <mat-label>Commentaire convention collective (optionnel)</mat-label>
+                    <textarea matInput rows="2" maxlength="1000"
+                              [ngModel]="conventionCollectiveCommentaire()"
+                              (ngModelChange)="conventionCollectiveCommentaire.set($event || null)"
+                              name="conventionCollectiveCommentaire"></textarea>
+                  </mat-form-field>
+                }
+              }
+            </div>
+
+            <div class="pnl-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la procédure</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="pnl-result">
+            <!-- Bannière verdict — rouge réservé à NULLITE_AVEREE -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+              <span class="pnl-verdict-score">Score : {{ result()!.scoreNullite }}/100</span>
+            </div>
+
+            <!-- Liste des vices détectés -->
+            @if (result()!.vicesDetectes.length > 0) {
+              <div class="pnl-vices-block">
+                <span class="pnl-vices-label">
+                  {{ result()!.vicesDetectes.length }} vice(s) de procédure détecté(s)
+                </span>
+                <ul class="pnl-vices-list">
+                  @for (vice of result()!.vicesDetectes; track vice.code) {
+                    <li class="pnl-vice">
+                      <div class="pnl-vice-head">
+                        <span class="pnl-vice-libelle">{{ vice.libelle }}</span>
+                        <span [class]="viceGraviteClass(vice.gravite)">
+                          {{ viceGraviteLabel(vice.gravite) }}
+                        </span>
+                      </div>
+                      <span class="pnl-vice-fondement">{{ vice.fondement }}</span>
+                      <span class="pnl-vice-explication">{{ vice.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else {
+              <div class="pnl-no-vice">
+                <mat-icon>check_circle</mat-icon>
+                <span>Aucun vice de procédure détecté sur la base des éléments saisis. La procédure de licenciement apparaît régulière.</span>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="pnl-bases-block">
+                <span class="pnl-bases-label">Bases juridiques</span>
+                <div class="pnl-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="pnl-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="pnl-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="pnl-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
