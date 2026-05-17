@@ -210,6 +210,33 @@ $gold: #c9973a;
   overflow-x: auto;
 }
 
+// ── Éditeur de relecture (SF-98-49) ────────────────────────
+.cs-editor {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border-radius: 6px;
+  border: 1px solid $navy;
+  background: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1a2330;
+  resize: vertical;
+
+  &:focus {
+    outline: 2px solid rgba(201, 151, 58, 0.5);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    background: #f4f3ef;
+    color: #5a6473;
+  }
+}
+
 // ── Actions ────────────────────────────────────────────────
 .cs-actions {
   display: flex;

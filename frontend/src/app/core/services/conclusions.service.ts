@@ -20,6 +20,7 @@ import {
  *  - `GET   /api/v1/case-files/{id}/conclusions/versions` → historique
  *  - `GET   /api/v1/case-files/{id}/conclusions/versions/{versionId}` → une version
  *  - `PATCH /api/v1/case-files/{id}/conclusions/versions/{versionId}/lifecycle`
+ *  - `PATCH /api/v1/case-files/{id}/conclusions/versions/{versionId}/content` (SF-98-49)
  */
 @Injectable({ providedIn: 'root' })
 export class ConclusionsService {
@@ -77,6 +78,23 @@ export class ConclusionsService {
     return this.http.patch<ConclusionResponse>(
       `/api/v1/case-files/${caseFileId}/conclusions/versions/${versionId}/lifecycle`,
       { lifecycleStatus },
+    );
+  }
+
+  /**
+   * SF-98-49 — Met à jour le texte d'une version de conclusions.
+   * Modification réservée à une version au statut de génération `DONE` et au
+   * cycle de vie `DRAFT` : le backend renvoie `409` pour une version non
+   * générée ou `VALIDATED`/`DEPOSITED`, `400` si `content` est vide.
+   */
+  updateContent(
+    caseFileId: string,
+    versionId: string,
+    content: string,
+  ): Observable<ConclusionResponse> {
+    return this.http.patch<ConclusionResponse>(
+      `/api/v1/case-files/${caseFileId}/conclusions/versions/${versionId}/content`,
+      { content },
     );
   }
 }

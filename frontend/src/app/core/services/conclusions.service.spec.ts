@@ -20,6 +20,7 @@ describe('ConclusionsService', () => {
   const VERSIONS_URL = `/api/v1/case-files/${CASE_ID}/conclusions/versions`;
   const VERSION_URL = `${VERSIONS_URL}/${VERSION_ID}`;
   const LIFECYCLE_URL = `${VERSION_URL}/lifecycle`;
+  const CONTENT_URL = `${VERSION_URL}/content`;
 
   function doneResponse(): ConclusionResponse {
     return {
@@ -124,5 +125,25 @@ describe('ConclusionsService', () => {
     req.flush({ ...doneResponse(), lifecycleStatus: 'VALIDATED' });
 
     expect(received!.lifecycleStatus).toBe('VALIDATED');
+  });
+
+  // ── SF-98-49 — éditeur de relecture ─────────────────────────────────────
+
+  it('updateContent → PATCH sur /content avec le corps {content}', () => {
+    let received: ConclusionResponse | undefined;
+    const newText = 'POUR : M. X\n\nTexte révisé par l\'avocat.';
+    service
+      .updateContent(CASE_ID, VERSION_ID, newText)
+      .subscribe((res) => (received = res));
+
+    const req = httpMock.expectOne(CONTENT_URL);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.url).toBe(
+      `/api/v1/case-files/${CASE_ID}/conclusions/versions/${VERSION_ID}/content`,
+    );
+    expect(req.request.body).toEqual({ content: newText });
+    req.flush({ ...doneResponse(), content: newText });
+
+    expect(received!.content).toBe(newText);
   });
 });

@@ -112,6 +112,12 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   readonly copying = signal(false);
   /** Changement de cycle de vie en cours (PATCH). */
   readonly updatingLifecycle = signal(false);
+  /** SF-98-49 — Vrai quand l'avocat est en mode édition du texte. */
+  readonly editing = signal(false);
+  /** SF-98-49 — Texte en cours d'édition (lié au `textarea`). */
+  readonly draftContent = signal('');
+  /** SF-98-49 — Enregistrement du texte édité en cours (PATCH). */
+  readonly savingContent = signal(false);
 
   /** Libellés des états de cycle de vie, exposés au template. */
   readonly lifecycleLabels = LIFECYCLE_LABELS;
@@ -137,6 +143,15 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   /** Vrai s'il existe au moins une version générée pour le dossier. */
   readonly hasVersions = computed<boolean>(() => this.versions().length > 0);
+
+  /**
+   * SF-98-49 — Vrai si la version affichée est éditable : génération `DONE`
+   * ET cycle de vie `DRAFT`. Une version `VALIDATED`/`DEPOSITED` est figée.
+   */
+  readonly editable = computed<boolean>(() => {
+    const c = this.conclusion();
+    return !!c && c.status === 'DONE' && c.lifecycleStatus === 'DRAFT';
+  });
 
   /** Vrai si tous les pré-requis fonctionnels connus sont satisfaits. */
   readonly prerequisitesMet = computed<boolean>(
@@ -250,6 +265,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     if (versionId === this.selectedVersionId() || this.pollHandle !== null) {
       return;
     }
+    // Changer de version sort du mode édition sans appel serveur.
+    this.editing.set(false);
     this.selectedVersionId.set(versionId);
     this.conclusionsService.getVersion(this.caseFileId, versionId).subscribe({
       next: (res) => {
@@ -287,6 +304,8 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.updatingLifecycle.set(false);
+          // Sortir d'un brouillon (validation/dépôt) ferme le mode édition.
+          this.editing.set(false);
           this.conclusion.set(res);
           this.cdr.markForCheck();
           this.refreshVersions();
@@ -332,6 +351,72 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     );
+  }
+
+  /**
+   * SF-98-49 — Passe la version affichée en mode édition.
+   * Pré-remplit le brouillon avec le texte courant. Ignoré si la version
+   * n'est pas éditable (`DONE` + `DRAFT`).
+   */
+  startEditing(): void {
+    if (!this.editable() || this.editing()) {
+      return;
+    }
+    this.draftContent.set(this.conclusion()?.content ?? '');
+    this.editing.set(true);
+  }
+
+  /**
+   * SF-98-49 — Annule l'édition : ferme le mode édition et oublie le
+   * brouillon. Aucun appel serveur — le texte affiché reste inchangé.
+   */
+  cancelEditing(): void {
+    this.editing.set(false);
+    this.draftContent.set('');
+  }
+
+  /** SF-98-49 — Met à jour le brouillon depuis le `textarea`. */
+  onDraftInput(value: string): void {
+    this.draftContent.set(value);
+  }
+
+  /**
+   * SF-98-49 — Enregistre le texte édité via `PATCH .../content`.
+   * Sur succès, met à jour la version affichée, repasse en lecture et
+   * rafraîchit l'historique des versions. Les erreurs `409`/`400` du backend
+   * sont remontées via la snackbar.
+   */
+  saveContent(): void {
+    const current = this.conclusion();
+    if (!current?.id || this.savingContent()) {
+      return;
+    }
+    const versionId = current.id;
+    const content = this.draftContent();
+    this.savingContent.set(true);
+    this.conclusionsService
+      .updateContent(this.caseFileId, versionId, content)
+      .subscribe({
+        next: (res) => {
+          this.savingContent.set(false);
+          this.editing.set(false);
+          this.draftContent.set('');
+          this.conclusion.set(res);
+          this.cdr.markForCheck();
+          this.refreshVersions();
+        },
+        error: (err) => {
+          this.savingContent.set(false);
+          const msg =
+            err?.error?.message ||
+            'Impossible d\'enregistrer les modifications.';
+          this.snackBar.open(msg, 'Fermer', {
+            duration: 6000,
+            panelClass: ['snack-error'],
+          });
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   /** Libellé FR d'un cycle de vie (utilitaire template). */
