@@ -62,7 +62,7 @@ Les deux moitiés d'une même activité (saisir une simulation / lire son verdic
 
 L'écran détail dossier est un hôte **défendable** : l'avocat y travaille déjà. Mais deux défauts :
 
-- **Défaut 1 — activité décisionnelle coupée en deux.** La saisie (outils, col-left) et le résultat (verdicts, col-right) sont visuellement disjoints. L'avocat renseigne un outil à gauche, le verdict s'actualise à droite, **hors de son champ de vision**. Le couplage cause → effet est illisible.
+- **Défaut 1 — couplage saisie → verdict fragile.** Le découpage *colonne d'entrée (outils, col-left) / colonne de sortie (verdicts, col-right)* est un modèle **défendable** : le tableau de bord en lecture seule joue un rôle de *scoreboard* persistant pendant que l'avocat travaille les outils. Mais le pattern ne tient qu'à deux conditions, **non garanties aujourd'hui** : (a) **alignement vertical** — outils (bas col-left) et tableau de bord (bas col-right) doivent être à la même hauteur, or col-left est souvent bien plus haute (section Documents volumineuse), ce qui sort le verdict du champ de vision ; (b) **découvrabilité du lien** — rien ne signale que remplir un outil à gauche met à jour le tableau à droite.
 - **Défaut 2 — la synthèse est sur un autre écran.** Réponse directe à la question « faut-il que ce soit accessible depuis la synthèse ? » : aujourd'hui ce n'est **pas** le cas. Les outils (étape 7) et la synthèse (étape 4) ne sont pas « au même endroit ». Le contrôle de cohérence F-IA-03 (étape 9 : croiser saisie ↔ preuves) force un aller-retour entre deux écrans.
 
 ## Challenge lisibilité de la séquence
@@ -92,11 +92,15 @@ Question centrale de l'utilisateur : « après que les dashboards sont calculés
 
 ## Ajustements IA requis
 
-1. **Réunir l'activité décisionnelle.** Outils (saisie) et tableau de bord (verdicts) contigus — même colonne, idéalement un « espace décisionnel » unifié. Supprimer le split col-left / col-right.
+1. **Fiabiliser le couplage saisie → verdict.** Conserver le découpage colonne d'entrée / colonne de sortie (modèle *scoreboard*). Garantir (a) l'alignement vertical des outils et du tableau de bord pour que le verdict reste dans le champ de vision pendant la saisie, et (b) un signal explicite du lien outil → tableau de bord (retour visuel à la mise à jour). Ne pas fusionner les deux blocs.
 2. **Rendre la séquence lisible.** Étendre le `case-dashboard-stepper` à Synthèse → Outils décisionnels → Tableau de bord → Conclusions, ou numéroter les blocs de traitement. Le stepper doit refléter le parcours réel.
 3. **Reconnecter synthèse et outils.** Point d'entrée explicite synthèse ↔ outils dans les deux sens, pour que F-IA-03 ne force pas un aller-retour aveugle.
 4. **Donner un état terminal.** Le tableau de bord doit mener à l'action terminale : « générer les conclusions » (F-98) et/ou « clôturer le dossier ».
-5. **Plafonner la charge.** Tout nouveau bloc décisionnel passe par un onglet / écran dédié, jamais empilé sur `/case-files/:id`.
+5. **Plafonner la charge et structurer en onglets.** L'écran (~16 régions) est saturé. Deux volets :
+   - **(A) Règle plafond** — aucun nouveau bloc primaire autonome sur `/case-files/:id` sans en retirer ou regrouper un autre.
+   - **(B) Regroupement structurel** — remplacer la page à scroll unique par des onglets par phase du parcours : Dossier (métadonnées, documents) / Analyse (pipeline, lien synthèse, questions) / Décision (outils + tableau de bord) / Suivi (échéances, notes). L'onglet « Décision » héberge le duo outils + tableau de bord, agencement col-left / col-right conservé (cf. ajustement 1).
+   - **Sous-règle pré-remplissage IA** — un onglet fermé ne doit pas masquer le travail de l'IA. L'onglet « Décision » porte un badge agrégé `auto_awesome` égal à la somme des `getPrefillCount()` des outils visibles ; si ce total > 0 au retour de l'analyse, l'onglet est mis en avant (pastille ou pré-sélection). Le badge se met à jour via `CaseDashboardRefreshService.triggerRefresh()` (+ `markForCheck()` si le composant est en OnPush). Le `case-dashboard-stepper` étendu (ajustement 2) porte le même compteur sur son étape « Outils décisionnels ».
+   - **Compromis assumé** — les onglets sacrifient la vue « tout en un seul scroll ». Si cette vue d'ensemble est jugée nécessaire : sections repliables plutôt qu'onglets, ou un onglet « Vue d'ensemble ».
 
 Ces ajustements doivent être triés au backlog `PRODUCT_SPEC.md` (validation requise avant dev) — ils ne sont pas créés ici. Candidat naturel : une feature « refonte IA de l'espace décisionnel du dossier ».
 
@@ -107,6 +111,7 @@ Ces ajustements doivent être triés au backlog `PRODUCT_SPEC.md` (validation re
 - La saisie d'un outil et son verdict restent visibles ensemble — pas de couplage cause → effet hors champ de vision.
 - Tout bloc du parcours de traitement déclare sa position dans la séquence (stepper ou numérotation) — pas de bloc « hors séquence ».
 - Tout bloc terminal (tableau de bord, conclusions) expose l'étape suivante ou l'action de clôture — pas de cul-de-sac.
+- Un onglet ou une section repliable ne doit jamais masquer un signal de pré-remplissage IA : tout compteur de prefill (`getPrefillCount()`) remonte au niveau du conteneur (onglet, stepper). L'avocat doit voir que l'IA a travaillé pour lui sans avoir à ouvrir le conteneur.
 
 ## Décision finale
 
