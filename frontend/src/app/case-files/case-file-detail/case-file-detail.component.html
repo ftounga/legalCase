@@ -45,527 +45,560 @@
 
   <app-case-dashboard-stepper
     [steps]="dashboardSteps()"
-    [caseFileId]="caseFile()!.id">
+    [caseFileId]="caseFile()!.id"
+    (stepActivated)="onStepActivated($event)">
   </app-case-dashboard-stepper>
 
-  <div class="detail-grid" [@listStagger]="3">
-    <!-- Colonne gauche : infos + documents -->
-    <div class="col-left" @fadeInUp>
-      <mat-card class="detail-card">
-        <mat-card-content>
-          <div class="detail-field">
-            <span class="field-label">Domaine juridique</span>
-            <span class="field-value">{{ caseFile()!.legalDomain }}</span>
-          </div>
-          <div class="detail-field">
-            <span class="field-label">Créé le</span>
-            <span class="field-value">{{ caseFile()!.createdAt | date:'dd/MM/yyyy à HH:mm' }}</span>
-          </div>
-          @if (caseFile()!.description) {
-            <div class="detail-field">
-              <span class="field-label">Description</span>
-              <p class="field-value description">{{ caseFile()!.description }}</p>
-            </div>
-          }
+  <!-- SF-171-02 : bandeau quota persistant — hors onglets (F-244 SF-244-01),
+       reste visible quel que soit l'onglet actif. -->
+  <app-quota-error-banner></app-quota-error-banner>
 
-          <!-- F-243 SF-243-02 : stade procédural — métadonnée d'identité du dossier,
-               intégrée à la detail-card (cf. cadrage écran SF-243-00b-ux-coherence). -->
-          <app-procedure-stage-section
-            [caseFileId]="caseFile()!.id"
-            [legalDomain]="caseFile()!.legalDomain"
-            [workspaceCountry]="workspaceCountry()">
-          </app-procedure-stage-section>
-        </mat-card-content>
-      </mat-card>
+  <!-- F-244 SF-244-01 : structure en 4 onglets par phase du parcours.
+       Onglets en état UI (selectedTabIndex), non routés.
+       Le mat-tab-group ne porte QUE la barre d'onglets (4 mat-tab sans contenu) ;
+       les 4 panneaux de contenu sont rendus ci-dessous de façon NON-LAZY
+       (montés dès l'ouverture du dossier, masqués via [hidden]) afin de ne pas
+       casser le suivi d'analyse SSE/polling quand l'avocat n'est pas sur
+       l'onglet Analyse. Material ne monte le contenu d'un <mat-tab> que lorsqu'il
+       devient actif : ce contenu ne peut donc pas vivre dans le <mat-tab>. -->
+  <mat-tab-group
+    class="case-detail-tabs"
+    [selectedIndex]="selectedTabIndex()"
+    (selectedIndexChange)="selectedTabIndex.set($event)">
+    <mat-tab label="Dossier"></mat-tab>
+    <mat-tab label="Analyse"></mat-tab>
+    <mat-tab label="Décision"></mat-tab>
+    <mat-tab label="Suivi"></mat-tab>
+  </mat-tab-group>
 
-      @if (stats()) {
-        <mat-card class="stats-card">
+  <div class="case-detail-tab-bodies">
+
+    <!-- Onglet 1 : Dossier -->
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 0" data-tab-panel="dossier">
+      <div class="tab-panel-inner" [@listStagger]="3">
+        <mat-card class="detail-card" @fadeInUp>
           <mat-card-content>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-label">Documents</span>
-                <span class="stat-value">{{ stats()!.documentCount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Analyses terminées</span>
-                <span class="stat-value">{{ stats()!.analysisCount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Tokens consommés</span>
-                <span class="stat-value">{{ stats()!.totalTokens | number:'1.0-0' }}</span>
-              </div>
+            <div class="detail-field">
+              <span class="field-label">Domaine juridique</span>
+              <span class="field-value">{{ caseFile()!.legalDomain }}</span>
             </div>
+            <div class="detail-field">
+              <span class="field-label">Créé le</span>
+              <span class="field-value">{{ caseFile()!.createdAt | date:'dd/MM/yyyy à HH:mm' }}</span>
+            </div>
+            @if (caseFile()!.description) {
+              <div class="detail-field">
+                <span class="field-label">Description</span>
+                <p class="field-value description">{{ caseFile()!.description }}</p>
+              </div>
+            }
+
+            <!-- F-243 SF-243-02 : stade procédural — métadonnée d'identité du dossier,
+                 intégrée à la detail-card (cf. cadrage écran SF-243-00b-ux-coherence). -->
+            <app-procedure-stage-section
+              [caseFileId]="caseFile()!.id"
+              [legalDomain]="caseFile()!.legalDomain"
+              [workspaceCountry]="workspaceCountry()">
+            </app-procedure-stage-section>
           </mat-card-content>
         </mat-card>
-      }
 
-      <section id="section-documents" class="td-section td-section--documents">
-        <header class="td-header"
-                (click)="toggleDocsCollapsed()"
-                (keydown.enter)="toggleDocsCollapsed()"
-                tabindex="0" role="button"
-                [attr.aria-expanded]="!docsCollapsed()"
-                aria-controls="section-documents-body">
-          <mat-icon class="td-icon">folder</mat-icon>
-          <span class="td-title">DOCUMENTS</span>
-          @if (documents().length > 0) {
-            <span class="td-chip">{{ documents().length }} document{{ documents().length > 1 ? 's' : '' }}</span>
-          }
-          <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp4,.mov" multiple hidden (change)="onFileSelected($event)">
-          <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn"
-                  (click)="triggerUpload(); $event.stopPropagation()"
-                  [disabled]="!canUpload()">
-            <mat-icon>add</mat-icon>
-            Ajouter des documents
-          </button>
-          <mat-icon class="td-toggle">{{ docsCollapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
-        </header>
-
-        @if (!docsCollapsed()) {
-        <div id="section-documents-body" class="td-body">
-
-      <!-- SF-122-05 : bandeau retry OCR si ≥ 1 doc FAILED éligible -->
-      @if (ocrRetryPreview(); as preview) {
-        @if (preview.failedDocsCount > 0) {
-          <div class="ocr-retry-banner">
-            <mat-icon class="ocr-retry-icon">autorenew</mat-icon>
-            <div class="ocr-retry-message">
-              <strong>{{ preview.failedDocsCount }} document(s) non analysable(s)</strong> — extractions échouées sur scans ou OCR.
-              <span class="ocr-retry-meta">~{{ preview.estimatedPages }} page(s) · quota restant : {{ preview.monthlyRemaining + preview.packsRemaining }}</span>
-            </div>
-            <button mat-raised-button color="accent"
-                    [disabled]="!preview.canRetry || ocrRetryInProgress()"
-                    (click)="triggerOcrRetry()"
-                    [matTooltip]="preview.canRetry ? '' : 'Quota OCR insuffisant — achetez un pack OCR dans Abonnement'"
-                    matTooltipPosition="above">
-              @if (ocrRetryInProgress()) {
-                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-              } @else {
-                <mat-icon>play_arrow</mat-icon>
-              }
-              Relancer avec OCR
-            </button>
-          </div>
-        }
-      }
-
-      @if (pendingFiles().length > 0) {
-        <div class="pending-files">
-          <div class="pending-files-list">
-            @for (file of pendingFiles(); track file.name) {
-              <div class="pending-file-row">
-                <!-- SF-230-02 : aperçu vignette pour images natives, sinon icône + placeholder HEIC. -->
-                @if (pendingThumbnails().get(file.name); as thumbUrl) {
-                  <img class="pending-file-thumb"
-                       [src]="thumbUrl"
-                       [alt]="'Aperçu de ' + file.name"
-                       width="48"
-                       height="48">
-                } @else if (isHeicPendingFile(file)) {
-                  <div class="pending-file-thumb pending-file-thumb--heic"
-                       [attr.aria-label]="'Image HEIC ' + file.name"
-                       title="Image HEIC — sera traitée à l'upload">
-                    <mat-icon class="pending-file-thumb-icon">image</mat-icon>
-                    <span class="pending-file-thumb-label">HEIC</span>
-                  </div>
-                } @else {
-                  <mat-icon class="pending-file-icon">insert_drive_file</mat-icon>
-                }
-                <div class="pending-file-info">
-                  <div class="pending-file-top">
-                    <span class="pending-file-name">{{ file.name }}</span>
-                    <span class="pending-file-size">{{ formatSize(file.size) }}</span>
-                    @if (isHeicPendingFile(file)) {
-                      <span class="pending-file-heic-hint">Image HEIC — sera traitée à l'upload</span>
-                    }
-                    @if (!uploading()) {
-                      <button mat-icon-button (click)="removePendingFile(file)" title="Retirer">
-                        <mat-icon>close</mat-icon>
-                      </button>
-                    }
-                  </div>
-                  @if (uploading()) {
-                    <mat-progress-bar
-                      class="file-upload-bar"
-                      mode="determinate"
-                      [value]="fileUploadProgresses().get(file.name) ?? 0">
-                    </mat-progress-bar>
-                  }
+        @if (stats()) {
+          <mat-card class="stats-card" @fadeInUp>
+            <mat-card-content>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">Documents</span>
+                  <span class="stat-value">{{ stats()!.documentCount }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Analyses terminées</span>
+                  <span class="stat-value">{{ stats()!.analysisCount }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Tokens consommés</span>
+                  <span class="stat-value">{{ stats()!.totalTokens | number:'1.0-0' }}</span>
                 </div>
               </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <section id="section-documents" class="td-section td-section--documents">
+          <header class="td-header"
+                  (click)="toggleDocsCollapsed()"
+                  (keydown.enter)="toggleDocsCollapsed()"
+                  tabindex="0" role="button"
+                  [attr.aria-expanded]="!docsCollapsed()"
+                  aria-controls="section-documents-body">
+            <mat-icon class="td-icon">folder</mat-icon>
+            <span class="td-title">DOCUMENTS</span>
+            @if (documents().length > 0) {
+              <span class="td-chip">{{ documents().length }} document{{ documents().length > 1 ? 's' : '' }}</span>
             }
-          </div>
-          <!-- SF-122-07 + SF-122-03 : bloc Options OCR (2 checkboxes groupées) -->
-          <div class="ocr-options-group">
-            <div class="ocr-options-title">⚙️ Options OCR</div>
+            <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp4,.mov" multiple hidden (change)="onFileSelected($event)">
+            <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn"
+                    (click)="triggerUpload(); $event.stopPropagation()"
+                    [disabled]="!canUpload()">
+              <mat-icon>add</mat-icon>
+              Ajouter des documents
+            </button>
+            <mat-icon class="td-toggle">{{ docsCollapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+          </header>
 
-            <label class="ocr-toggle"
-                   matTooltip="Si décoché, les PDF scannés ne seront pas analysés par OCR et ne consommeront pas de quota. Vous pourrez toujours activer l'OCR plus tard via le bouton 'Relancer avec OCR'."
-                   matTooltipPosition="above">
-              <input type="checkbox"
-                     [checked]="ocrEnabled()"
-                     (change)="ocrEnabled.set(!ocrEnabled())"
-                     [disabled]="uploading()">
-              <span>Activer l'OCR si le document est un scan</span>
-              <span class="ocr-hint">(recommandé, consomme votre quota OCR)</span>
-            </label>
+          @if (!docsCollapsed()) {
+          <div id="section-documents-body" class="td-body">
 
-            <label class="ocr-toggle ocr-toggle-sub"
-                   [class.disabled]="!ocrEnabled()"
-                   [matTooltip]="ocrFormsTooltip()"
-                   matTooltipPosition="above">
-              <input type="checkbox"
-                     [checked]="ocrFormsMode()"
-                     (change)="ocrFormsMode.set(!ocrFormsMode())"
-                     [disabled]="uploading() || !ocrEnabled()">
-              <span>Analyse approfondie formulaire administratif</span>
-              <span class="ocr-hint">(CERFA, préfecture — ×3 quota)</span>
-            </label>
-          </div>
-          <button mat-raised-button color="accent" (click)="uploadPendingFiles()" [disabled]="!canSubmitUpload()" class="upload-submit-btn">
-            @if (uploading()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              <mat-icon>cloud_upload</mat-icon>
-            }
-            Uploader les documents ({{ pendingFiles().length }})
-          </button>
-        </div>
-      }
+        <!-- SF-122-05 : bandeau retry OCR si ≥ 1 doc FAILED éligible -->
+        @if (ocrRetryPreview(); as preview) {
+          @if (preview.failedDocsCount > 0) {
+            <div class="ocr-retry-banner">
+              <mat-icon class="ocr-retry-icon">autorenew</mat-icon>
+              <div class="ocr-retry-message">
+                <strong>{{ preview.failedDocsCount }} document(s) non analysable(s)</strong> — extractions échouées sur scans ou OCR.
+                <span class="ocr-retry-meta">~{{ preview.estimatedPages }} page(s) · quota restant : {{ preview.monthlyRemaining + preview.packsRemaining }}</span>
+              </div>
+              <button mat-raised-button color="accent"
+                      [disabled]="!preview.canRetry || ocrRetryInProgress()"
+                      (click)="triggerOcrRetry()"
+                      [matTooltip]="preview.canRetry ? '' : 'Quota OCR insuffisant — achetez un pack OCR dans Abonnement'"
+                      matTooltipPosition="above">
+                @if (ocrRetryInProgress()) {
+                  <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                } @else {
+                  <mat-icon>play_arrow</mat-icon>
+                }
+                Relancer avec OCR
+              </button>
+            </div>
+          }
+        }
 
-      @if (visionPendingCount() > 0) {
-        <div class="vision-banner" role="status" aria-live="polite">
-          <mat-spinner diameter="18"></mat-spinner>
-          <div class="vision-banner-body">
-            <strong>Analyse visuelle en cours</strong>
-            sur {{ visionPendingCount() }} pièce{{ visionPendingCount() > 1 ? 's' : '' }}…
-            LegalCase Vision complète les descriptions en arrière-plan. Vous pouvez continuer à travailler.
-          </div>
-        </div>
-      }
-
-      @if (documents().length === 0) {
-        <div class="empty-docs">
-          <mat-icon class="empty-icon">folder_open</mat-icon>
-          <p>Aucun document dans ce dossier.</p>
-        </div>
-      } @else {
-        <mat-card class="docs-card">
-          <table mat-table [dataSource]="documents()" class="docs-table" [@listStagger]="documents().length">
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Nom</th>
-              <td mat-cell *matCellDef="let doc">
-                <span class="doc-name-cell">
-                  {{ doc.originalFilename }}
-                  @if (outdatedDocuments().includes(doc)) {
-                    <span class="badge-not-included">Non inclus</span>
+        @if (pendingFiles().length > 0) {
+          <div class="pending-files">
+            <div class="pending-files-list">
+              @for (file of pendingFiles(); track file.name) {
+                <div class="pending-file-row">
+                  <!-- SF-230-02 : aperçu vignette pour images natives, sinon icône + placeholder HEIC. -->
+                  @if (pendingThumbnails().get(file.name); as thumbUrl) {
+                    <img class="pending-file-thumb"
+                         [src]="thumbUrl"
+                         [alt]="'Aperçu de ' + file.name"
+                         width="48"
+                         height="48">
+                  } @else if (isHeicPendingFile(file)) {
+                    <div class="pending-file-thumb pending-file-thumb--heic"
+                         [attr.aria-label]="'Image HEIC ' + file.name"
+                         title="Image HEIC — sera traitée à l'upload">
+                      <mat-icon class="pending-file-thumb-icon">image</mat-icon>
+                      <span class="pending-file-thumb-label">HEIC</span>
+                    </div>
+                  } @else {
+                    <mat-icon class="pending-file-icon">insert_drive_file</mat-icon>
                   }
-                  @if (doc.extractionStatus === 'FAILED') {
-                    <span class="badge-extraction-failed"
-                          [matTooltip]="extractionFailureLabel(doc.failureReason)"
-                          matTooltipPosition="above">
-                      <mat-icon class="badge-icon">warning_amber</mat-icon>
-                      Non analysable
-                    </span>
-                  }
-                  @if (doc.ocrRunning) {
-                    <span class="badge-ocr-running"
-                          matTooltip="Document scanné détecté — reconnaissance de texte en cours (AWS Textract)"
-                          matTooltipPosition="above">
-                      <mat-icon class="badge-icon badge-icon--spinning">sync</mat-icon>
-                      OCR en cours
-                    </span>
-                  } @else if (doc.ocrExtracted) {
-                    <span class="chip-ocr"
-                          matTooltip="Texte reconnu par OCR (document scanné)"
-                          matTooltipPosition="above">
-                      OCR
-                    </span>
-                  }
-                  @switch (documentVisionState(doc)) {
-                    @case ('PENDING') {
-                      <span class="badge-vision badge-vision--pending"
-                            matTooltip="LegalCase Vision analyse les pièces visuelles en arrière-plan"
-                            matTooltipPosition="above">
-                        <mat-icon class="badge-icon badge-icon--spinning">sync</mat-icon>
-                        Vision…
-                      </span>
-                    }
-                    @case ('DONE') {
-                      <span class="badge-vision badge-vision--done"
-                            matTooltip="Les pièces visuelles ont été enrichies par LegalCase Vision"
-                            matTooltipPosition="above">
-                        <mat-icon class="badge-icon">visibility</mat-icon>
-                        Vision
-                      </span>
-                    }
-                  }
-                </span>
-                @if (doc.pieces && doc.pieces.length > 0) {
-                  <div class="piece-chips">
-                    @for (piece of doc.pieces; track piece.id) {
-                      <button type="button"
-                              class="piece-chip"
-                              [attr.data-type]="piece.type"
-                              [matTooltip]="(piece.label ?? documentPieceTypeLabel(piece.type)) + ' · p. ' + piece.pageStart + (piece.pageStart !== piece.pageEnd ? '-' + piece.pageEnd : '')"
-                              matTooltipPosition="above"
-                              (click)="openPreview(doc, piece.id); $event.stopPropagation()">
-                        <mat-icon class="piece-chip-icon">{{ documentPieceTypeIcon(piece.type) }}</mat-icon>
-                        <span class="piece-chip-label">{{ documentPieceTypeLabel(piece.type) }}</span>
-                      </button>
+                  <div class="pending-file-info">
+                    <div class="pending-file-top">
+                      <span class="pending-file-name">{{ file.name }}</span>
+                      <span class="pending-file-size">{{ formatSize(file.size) }}</span>
+                      @if (isHeicPendingFile(file)) {
+                        <span class="pending-file-heic-hint">Image HEIC — sera traitée à l'upload</span>
+                      }
+                      @if (!uploading()) {
+                        <button mat-icon-button (click)="removePendingFile(file)" title="Retirer">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      }
+                    </div>
+                    @if (uploading()) {
+                      <mat-progress-bar
+                        class="file-upload-bar"
+                        mode="determinate"
+                        [value]="fileUploadProgresses().get(file.name) ?? 0">
+                      </mat-progress-bar>
                     }
                   </div>
-                }
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Type</th>
-              <td mat-cell *matCellDef="let doc">
-                <span class="type-badge">{{ doc.contentType.split('/')[1] | uppercase }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="size">
-              <th mat-header-cell *matHeaderCellDef>Taille</th>
-              <td mat-cell *matCellDef="let doc">{{ formatSize(doc.fileSize) }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef>Ajouté le</th>
-              <td mat-cell *matCellDef="let doc">{{ doc.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="preview">
-              <th mat-header-cell *matHeaderCellDef>Aperçu</th>
-              <td mat-cell *matCellDef="let doc">
-                <button mat-icon-button title="Aperçu du document"
-                  [disabled]="!canPreviewDocument(doc)"
-                  (click)="openPreview(doc)">
-                  <mat-icon>visibility</mat-icon>
-                </button>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let doc" class="actions-cell">
-                <a mat-icon-button [href]="downloadUrl(doc)" target="_blank" title="Télécharger">
-                  <mat-icon>download</mat-icon>
-                </a>
-                <button mat-icon-button color="warn" title="Supprimer"
-                  [disabled]="!canDeleteDocument() || deletingDocId() === doc.id"
-                  (click)="deleteDocument(doc)">
-                  @if (deletingDocId() === doc.id) {
-                    <mat-spinner diameter="18"></mat-spinner>
-                  } @else {
-                    <mat-icon>delete</mat-icon>
-                  }
-                </button>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: docColumns;" [attr.id]="'doc-' + row.id"></tr>
-          </table>
-        </mat-card>
-      }
-        </div>
-        }
-      </section>
-
-      <!-- F-184 SF-184-02 : remontée des 3 blocs ex-bottom-sections dans col-left
-           pour combler le trou visuel apparu après SF-184-01. -->
-      <div id="section-deadlines">
-        <app-case-deadlines-section [caseFileId]="caseFile()!.id">
-        </app-case-deadlines-section>
-      </div>
-
-      <app-case-notes-section
-        [caseFileId]="caseFile()!.id"
-        [currentUserEmail]="authService.currentUser()?.email ?? null">
-      </app-case-notes-section>
-
-      <app-decisional-tools-panel
-        [caseFileId]="caseFile()!.id"
-        [synthesis]="synthesis()"
-        [workspaceCountry]="workspaceCountry()"
-        [caseFileTitle]="caseFile()!.title"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [streamingSectionsReceived]="streamingProgress().received"
-        [streamingSectionsExpected]="streamingProgress().expected"
-        [typeLitigeOverride]="typeLitigeOverride()">
-      </app-decisional-tools-panel>
-    </div>
-
-    <!-- Colonne droite : analyse -->
-    <div class="col-right" @fadeInUp>
-      <!-- SF-171-02 : bandeau quota persistant (lit QuotaErrorStateService). -->
-      <app-quota-error-banner></app-quota-error-banner>
-
-      <div id="section-analyse" class="section-header section-header--first">
-        <h2 class="section-title">Analyse du dossier</h2>
-        @if (fullAnalysisRunning()) {
-          <div class="analyze-running">
-            <mat-spinner diameter="20"></mat-spinner>
-            <span>Analyse en cours…</span>
-          </div>
-        } @else if (enrichedAnalysisRunning()) {
-          <div class="analyze-running">
-            <mat-spinner diameter="20"></mat-spinner>
-            <span>Re-synthèse enrichie en cours…</span>
-          </div>
-        } @else if (docAnalysisRunning()) {
-          <div class="analyze-running">
-            <mat-spinner diameter="20"></mat-spinner>
-            <span>Analyse des documents…</span>
-          </div>
-        } @else if (reAnalyzing()) {
-          <div class="analyze-running">
-            <mat-spinner diameter="20"></mat-spinner>
-            <span>Enrichissement en cours…</span>
-          </div>
-        } @else if (canAnalyze()) {
-          <div class="analyze-action-group">
-            <button mat-raised-button color="accent" data-tour-target="analyze-btn"
-                    (click)="onAnalysisButtonClick()"
-                    [disabled]="analyzing() || reAnalyzing() || analysisQuotaBlocked()"
-                    [matTooltip]="analysisQuotaBlocked() ? analysisQuotaTooltip : ''"
-                    [matTooltipDisabled]="!analysisQuotaBlocked()">
-              <mat-icon>auto_fix_high</mat-icon>
-              {{ analysisButtonLabel() }}
-            </button>
-            @if (canEnrichSynthesis()) {
-              <button mat-icon-button [matMenuTriggerFor]="analysisMenu"
-                      aria-label="Autres actions d'analyse"
-                      [disabled]="analyzing() || reAnalyzing() || analysisQuotaBlocked()">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #analysisMenu="matMenu">
-                <button mat-menu-item (click)="onFullReanalysisClick()">
-                  <mat-icon>refresh</mat-icon>
-                  <span>Nouvelle analyse complète depuis zéro</span>
-                </button>
-              </mat-menu>
-            }
-          </div>
-        }
-      </div>
-
-      @if (documents().length > 0 || visibleJobs().length > 0 || uploading()) {
-        <app-analysis-pipeline
-          [jobs]="analysisJobs()"
-          [uploading]="uploading()"
-          [uploadProgress]="overallUploadProgress()"
-          [documentsCount]="documents().length">
-        </app-analysis-pipeline>
-      } @else {
-        <div class="analysis-placeholder">
-          <mat-icon class="placeholder-icon">psychology</mat-icon>
-          <p>Ajoutez des documents, puis cliquez sur "Analyser le dossier".</p>
-        </div>
-      }
-
-      @if (caseAnalysisRunning() || synthesis()) {
-        <div class="section-header">
-          <h2 class="section-title">Synthèse</h2>
-          @if (caseAnalysisRunning()) {
-            <!-- F-185 SF-185-01 — pendant le streaming, on propose le lien vers la synthèse partielle. -->
-            <div class="synthesis-actions">
-              <a mat-raised-button color="primary" data-tour-target="synthesis-link" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
-                <mat-icon>summarize</mat-icon>
-                Voir la synthèse (en cours…)
-              </a>
-              <div class="analyze-running">
-                <mat-spinner diameter="18"></mat-spinner>
-                <span>Génération en cours</span>
-              </div>
+                </div>
+              }
             </div>
-          } @else {
-            <div class="synthesis-actions">
-              <a mat-raised-button color="primary" data-tour-target="synthesis-link" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
-                <mat-icon>summarize</mat-icon>
-                Voir la synthèse
-              </a>
-              <button mat-stroked-button (click)="openShareDialog()">
-                <mat-icon>share</mat-icon>
-                Partager
+            <!-- SF-122-07 + SF-122-03 : bloc Options OCR (2 checkboxes groupées) -->
+            <div class="ocr-options-group">
+              <div class="ocr-options-title">⚙️ Options OCR</div>
+
+              <label class="ocr-toggle"
+                     matTooltip="Si décoché, les PDF scannés ne seront pas analysés par OCR et ne consommeront pas de quota. Vous pourrez toujours activer l'OCR plus tard via le bouton 'Relancer avec OCR'."
+                     matTooltipPosition="above">
+                <input type="checkbox"
+                       [checked]="ocrEnabled()"
+                       (change)="ocrEnabled.set(!ocrEnabled())"
+                       [disabled]="uploading()">
+                <span>Activer l'OCR si le document est un scan</span>
+                <span class="ocr-hint">(recommandé, consomme votre quota OCR)</span>
+              </label>
+
+              <label class="ocr-toggle ocr-toggle-sub"
+                     [class.disabled]="!ocrEnabled()"
+                     [matTooltip]="ocrFormsTooltip()"
+                     matTooltipPosition="above">
+                <input type="checkbox"
+                       [checked]="ocrFormsMode()"
+                       (change)="ocrFormsMode.set(!ocrFormsMode())"
+                       [disabled]="uploading() || !ocrEnabled()">
+                <span>Analyse approfondie formulaire administratif</span>
+                <span class="ocr-hint">(CERFA, préfecture — ×3 quota)</span>
+              </label>
+            </div>
+            <button mat-raised-button color="accent" (click)="uploadPendingFiles()" [disabled]="!canSubmitUpload()" class="upload-submit-btn">
+              @if (uploading()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>cloud_upload</mat-icon>
+              }
+              Uploader les documents ({{ pendingFiles().length }})
+            </button>
+          </div>
+        }
+
+        @if (visionPendingCount() > 0) {
+          <div class="vision-banner" role="status" aria-live="polite">
+            <mat-spinner diameter="18"></mat-spinner>
+            <div class="vision-banner-body">
+              <strong>Analyse visuelle en cours</strong>
+              sur {{ visionPendingCount() }} pièce{{ visionPendingCount() > 1 ? 's' : '' }}…
+              LegalCase Vision complète les descriptions en arrière-plan. Vous pouvez continuer à travailler.
+            </div>
+          </div>
+        }
+
+        @if (documents().length === 0) {
+          <div class="empty-docs">
+            <mat-icon class="empty-icon">folder_open</mat-icon>
+            <p>Aucun document dans ce dossier.</p>
+          </div>
+        } @else {
+          <mat-card class="docs-card">
+            <table mat-table [dataSource]="documents()" class="docs-table" [@listStagger]="documents().length">
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Nom</th>
+                <td mat-cell *matCellDef="let doc">
+                  <span class="doc-name-cell">
+                    {{ doc.originalFilename }}
+                    @if (outdatedDocuments().includes(doc)) {
+                      <span class="badge-not-included">Non inclus</span>
+                    }
+                    @if (doc.extractionStatus === 'FAILED') {
+                      <span class="badge-extraction-failed"
+                            [matTooltip]="extractionFailureLabel(doc.failureReason)"
+                            matTooltipPosition="above">
+                        <mat-icon class="badge-icon">warning_amber</mat-icon>
+                        Non analysable
+                      </span>
+                    }
+                    @if (doc.ocrRunning) {
+                      <span class="badge-ocr-running"
+                            matTooltip="Document scanné détecté — reconnaissance de texte en cours (AWS Textract)"
+                            matTooltipPosition="above">
+                        <mat-icon class="badge-icon badge-icon--spinning">sync</mat-icon>
+                        OCR en cours
+                      </span>
+                    } @else if (doc.ocrExtracted) {
+                      <span class="chip-ocr"
+                            matTooltip="Texte reconnu par OCR (document scanné)"
+                            matTooltipPosition="above">
+                        OCR
+                      </span>
+                    }
+                    @switch (documentVisionState(doc)) {
+                      @case ('PENDING') {
+                        <span class="badge-vision badge-vision--pending"
+                              matTooltip="LegalCase Vision analyse les pièces visuelles en arrière-plan"
+                              matTooltipPosition="above">
+                          <mat-icon class="badge-icon badge-icon--spinning">sync</mat-icon>
+                          Vision…
+                        </span>
+                      }
+                      @case ('DONE') {
+                        <span class="badge-vision badge-vision--done"
+                              matTooltip="Les pièces visuelles ont été enrichies par LegalCase Vision"
+                              matTooltipPosition="above">
+                          <mat-icon class="badge-icon">visibility</mat-icon>
+                          Vision
+                        </span>
+                      }
+                    }
+                  </span>
+                  @if (doc.pieces && doc.pieces.length > 0) {
+                    <div class="piece-chips">
+                      @for (piece of doc.pieces; track piece.id) {
+                        <button type="button"
+                                class="piece-chip"
+                                [attr.data-type]="piece.type"
+                                [matTooltip]="(piece.label ?? documentPieceTypeLabel(piece.type)) + ' · p. ' + piece.pageStart + (piece.pageStart !== piece.pageEnd ? '-' + piece.pageEnd : '')"
+                                matTooltipPosition="above"
+                                (click)="openPreview(doc, piece.id); $event.stopPropagation()">
+                          <mat-icon class="piece-chip-icon">{{ documentPieceTypeIcon(piece.type) }}</mat-icon>
+                          <span class="piece-chip-label">{{ documentPieceTypeLabel(piece.type) }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>Type</th>
+                <td mat-cell *matCellDef="let doc">
+                  <span class="type-badge">{{ doc.contentType.split('/')[1] | uppercase }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="size">
+                <th mat-header-cell *matHeaderCellDef>Taille</th>
+                <td mat-cell *matCellDef="let doc">{{ formatSize(doc.fileSize) }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef>Ajouté le</th>
+                <td mat-cell *matCellDef="let doc">{{ doc.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="preview">
+                <th mat-header-cell *matHeaderCellDef>Aperçu</th>
+                <td mat-cell *matCellDef="let doc">
+                  <button mat-icon-button title="Aperçu du document"
+                    [disabled]="!canPreviewDocument(doc)"
+                    (click)="openPreview(doc)">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let doc" class="actions-cell">
+                  <a mat-icon-button [href]="downloadUrl(doc)" target="_blank" title="Télécharger">
+                    <mat-icon>download</mat-icon>
+                  </a>
+                  <button mat-icon-button color="warn" title="Supprimer"
+                    [disabled]="!canDeleteDocument() || deletingDocId() === doc.id"
+                    (click)="deleteDocument(doc)">
+                    @if (deletingDocId() === doc.id) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <mat-icon>delete</mat-icon>
+                    }
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: docColumns;" [attr.id]="'doc-' + row.id"></tr>
+            </table>
+          </mat-card>
+        }
+          </div>
+          }
+        </section>
+      </div>
+    </section>
+
+    <!-- Onglet 2 : Analyse -->
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 1" data-tab-panel="analyse">
+      <div class="tab-panel-inner">
+        <div id="section-analyse" class="section-header section-header--first">
+          <h2 class="section-title">Analyse du dossier</h2>
+          @if (fullAnalysisRunning()) {
+            <div class="analyze-running">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Analyse en cours…</span>
+            </div>
+          } @else if (enrichedAnalysisRunning()) {
+            <div class="analyze-running">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Re-synthèse enrichie en cours…</span>
+            </div>
+          } @else if (docAnalysisRunning()) {
+            <div class="analyze-running">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Analyse des documents…</span>
+            </div>
+          } @else if (reAnalyzing()) {
+            <div class="analyze-running">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Enrichissement en cours…</span>
+            </div>
+          } @else if (canAnalyze()) {
+            <div class="analyze-action-group">
+              <button mat-raised-button color="accent" data-tour-target="analyze-btn"
+                      (click)="onAnalysisButtonClick()"
+                      [disabled]="analyzing() || reAnalyzing() || analysisQuotaBlocked()"
+                      [matTooltip]="analysisQuotaBlocked() ? analysisQuotaTooltip : ''"
+                      [matTooltipDisabled]="!analysisQuotaBlocked()">
+                <mat-icon>auto_fix_high</mat-icon>
+                {{ analysisButtonLabel() }}
               </button>
-              @if (canCompare()) {
-                <a mat-stroked-button [routerLink]="['/case-files', caseFile()!.id, 'diff']">
-                  <mat-icon>compare_arrows</mat-icon>
-                  Comparer des analyses
-                </a>
+              @if (canEnrichSynthesis()) {
+                <button mat-icon-button [matMenuTriggerFor]="analysisMenu"
+                        aria-label="Autres actions d'analyse"
+                        [disabled]="analyzing() || reAnalyzing() || analysisQuotaBlocked()">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #analysisMenu="matMenu">
+                  <button mat-menu-item (click)="onFullReanalysisClick()">
+                    <mat-icon>refresh</mat-icon>
+                    <span>Nouvelle analyse complète depuis zéro</span>
+                  </button>
+                </mat-menu>
               }
             </div>
           }
         </div>
-        @if (!caseAnalysisRunning()) {
-          @if (outdatedDocuments().length > 0 && deletedSinceLastAnalysis()) {
-            <div class="synthesis-outdated">
-              <mat-icon class="outdated-icon">warning</mat-icon>
-              <span>Des documents ont été ajoutés et/ou supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
-            </div>
-          } @else if (outdatedDocuments().length > 0) {
-            <div class="synthesis-outdated">
-              <mat-icon class="outdated-icon">warning</mat-icon>
-              <span>Cette synthèse ne prend pas en compte {{ outdatedDocuments().length }} document(s) récent(s). Relancez une analyse pour la mettre à jour.</span>
-            </div>
-          } @else if (deletedSinceLastAnalysis()) {
-            <div class="synthesis-outdated">
-              <mat-icon class="outdated-icon">warning</mat-icon>
-              <span>Des documents ont été supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
-            </div>
-          }
-        }
-      }
 
-      @if (questionGenerationRunning() || questions().length > 0) {
-        @if (questionGenerationRunning()) {
-          <div class="questions-generating">
-            <mat-spinner diameter="20"></mat-spinner>
-            <span>Génération des questions complémentaires…</span>
-          </div>
+        @if (documents().length > 0 || visibleJobs().length > 0 || uploading()) {
+          <app-analysis-pipeline
+            [jobs]="analysisJobs()"
+            [uploading]="uploading()"
+            [uploadProgress]="overallUploadProgress()"
+            [documentsCount]="documents().length">
+          </app-analysis-pipeline>
         } @else {
-          <a class="questions-banner" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
-            <mat-icon>quiz</mat-icon>
-            {{ pendingQuestionsCount() }} question(s) complémentaire(s) en attente de réponse
-            <mat-icon class="banner-arrow">chevron_right</mat-icon>
-          </a>
+          <div class="analysis-placeholder">
+            <mat-icon class="placeholder-icon">psychology</mat-icon>
+            <p>Ajoutez des documents, puis cliquez sur "Analyser le dossier".</p>
+          </div>
         }
-      }
 
-      @if (fullAnalysisRunning()) {
-        <div class="global-analysis-spinner">
-          <mat-spinner diameter="28"></mat-spinner>
-          <span>Analyse complète en cours…</span>
-        </div>
-      }
-
-      <!-- F-184 SF-184-01 : tableau de bord décisionnel repositionné dans col-right
-           juste sous le bandeau questions, en carte premium (Option B). -->
-      <section class="decisional-summary-panel">
-        <header class="decisional-summary-panel__header">
-          <span class="decisional-summary-panel__title">Tableau de bord décisionnel</span>
-          @if (dash.verdictsCount() > 0) {
-            <span class="decisional-summary-panel__count" data-testid="verdicts-count-badge">
-              {{ dash.verdictsCount() }} verdict(s) disponible(s)
-            </span>
+        @if (caseAnalysisRunning() || synthesis()) {
+          <div class="section-header">
+            <h2 class="section-title">Synthèse</h2>
+            @if (caseAnalysisRunning()) {
+              <!-- F-185 SF-185-01 — pendant le streaming, on propose le lien vers la synthèse partielle. -->
+              <div class="synthesis-actions">
+                <a mat-raised-button color="primary" data-tour-target="synthesis-link" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+                  <mat-icon>summarize</mat-icon>
+                  Voir la synthèse (en cours…)
+                </a>
+                <div class="analyze-running">
+                  <mat-spinner diameter="18"></mat-spinner>
+                  <span>Génération en cours</span>
+                </div>
+              </div>
+            } @else {
+              <div class="synthesis-actions">
+                <a mat-raised-button color="primary" data-tour-target="synthesis-link" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+                  <mat-icon>summarize</mat-icon>
+                  Voir la synthèse
+                </a>
+                <button mat-stroked-button (click)="openShareDialog()">
+                  <mat-icon>share</mat-icon>
+                  Partager
+                </button>
+                @if (canCompare()) {
+                  <a mat-stroked-button [routerLink]="['/case-files', caseFile()!.id, 'diff']">
+                    <mat-icon>compare_arrows</mat-icon>
+                    Comparer des analyses
+                  </a>
+                }
+              </div>
+            }
+          </div>
+          @if (!caseAnalysisRunning()) {
+            @if (outdatedDocuments().length > 0 && deletedSinceLastAnalysis()) {
+              <div class="synthesis-outdated">
+                <mat-icon class="outdated-icon">warning</mat-icon>
+                <span>Des documents ont été ajoutés et/ou supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
+              </div>
+            } @else if (outdatedDocuments().length > 0) {
+              <div class="synthesis-outdated">
+                <mat-icon class="outdated-icon">warning</mat-icon>
+                <span>Cette synthèse ne prend pas en compte {{ outdatedDocuments().length }} document(s) récent(s). Relancez une analyse pour la mettre à jour.</span>
+              </div>
+            } @else if (deletedSinceLastAnalysis()) {
+              <div class="synthesis-outdated">
+                <mat-icon class="outdated-icon">warning</mat-icon>
+                <span>Des documents ont été supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
+              </div>
+            }
           }
-        </header>
-        <div class="decisional-summary-panel__body">
-          <app-case-dashboard
-            #dash
-            [caseFileId]="caseFile()!.id"
-            [synthesis]="synthesis()"
-            [workspaceCountry]="workspaceCountry()"
-            [procedureChecks]="procedureChecks()"
-            [aiQuestions]="questions()">
-          </app-case-dashboard>
+        }
+
+        @if (questionGenerationRunning() || questions().length > 0) {
+          @if (questionGenerationRunning()) {
+            <div class="questions-generating">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Génération des questions complémentaires…</span>
+            </div>
+          } @else {
+            <a class="questions-banner" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+              <mat-icon>quiz</mat-icon>
+              {{ pendingQuestionsCount() }} question(s) complémentaire(s) en attente de réponse
+              <mat-icon class="banner-arrow">chevron_right</mat-icon>
+            </a>
+          }
+        }
+
+        @if (fullAnalysisRunning()) {
+          <div class="global-analysis-spinner">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Analyse complète en cours…</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Onglet 3 : Décision -->
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 2" data-tab-panel="decision">
+      <div class="tab-panel-inner">
+        <app-decisional-tools-panel
+          [caseFileId]="caseFile()!.id"
+          [synthesis]="synthesis()"
+          [workspaceCountry]="workspaceCountry()"
+          [caseFileTitle]="caseFile()!.title"
+          [procedureChecks]="procedureChecks()"
+          [aiQuestions]="questions()"
+          [streamingSectionsReceived]="streamingProgress().received"
+          [streamingSectionsExpected]="streamingProgress().expected"
+          [typeLitigeOverride]="typeLitigeOverride()">
+        </app-decisional-tools-panel>
+
+        <!-- F-184 SF-184-01 : tableau de bord décisionnel en carte premium (Option B). -->
+        <section class="decisional-summary-panel">
+          <header class="decisional-summary-panel__header">
+            <span class="decisional-summary-panel__title">Tableau de bord décisionnel</span>
+            @if (dash.verdictsCount() > 0) {
+              <span class="decisional-summary-panel__count" data-testid="verdicts-count-badge">
+                {{ dash.verdictsCount() }} verdict(s) disponible(s)
+              </span>
+            }
+          </header>
+          <div class="decisional-summary-panel__body">
+            <app-case-dashboard
+              #dash
+              [caseFileId]="caseFile()!.id"
+              [synthesis]="synthesis()"
+              [workspaceCountry]="workspaceCountry()"
+              [procedureChecks]="procedureChecks()"
+              [aiQuestions]="questions()">
+            </app-case-dashboard>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Onglet 4 : Suivi -->
+    <section class="tab-panel" [hidden]="selectedTabIndex() !== 3" data-tab-panel="suivi">
+      <div class="tab-panel-inner">
+        <div id="section-deadlines">
+          <app-case-deadlines-section [caseFileId]="caseFile()!.id">
+          </app-case-deadlines-section>
         </div>
-      </section>
-    </div>
+
+        <app-case-notes-section
+          [caseFileId]="caseFile()!.id"
+          [currentUserEmail]="authService.currentUser()?.email ?? null">
+        </app-case-notes-section>
+      </div>
+    </section>
+
   </div>
 
 } @else {

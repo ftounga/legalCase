@@ -47,16 +47,48 @@
   margin-left: auto;
 }
 
-/* Layout 2 colonnes */
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-xl);
-  align-items: start;
+/* F-244 SF-244-01 : structure en onglets (mat-tab-group) — remplace l'ancienne
+   grille 2 colonnes. Style sobre conforme au design system (navy / or). */
+.case-detail-tabs {
+  margin-top: var(--spacing-lg);
 
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
+  ::ng-deep .mat-mdc-tab-header {
+    border-bottom: 1px solid var(--color-divider);
+    margin-bottom: var(--spacing-md);
   }
+
+  ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--color-text-secondary);
+  }
+
+  ::ng-deep .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+    color: #1A3A5C;
+  }
+
+  /* Indicateur d'onglet actif en or (accent design system). */
+  ::ng-deep .mat-mdc-tab .mdc-tab-indicator__content--underline {
+    border-color: #C9973A;
+  }
+}
+
+/* Conteneur des 4 panneaux d'onglet — rendus non-lazy, masqués via [hidden]. */
+.case-detail-tab-bodies {
+  margin-top: var(--spacing-md);
+}
+
+/* Contenu d'un onglet : empilement vertical des blocs déplacés.
+   [hidden] masque le panneau inactif sans le détacher du DOM. */
+.tab-panel[hidden] {
+  display: none;
+}
+
+.tab-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: var(--spacing-sm);
 }
 
 @media (max-width: 767px) {
@@ -83,13 +115,6 @@
     display: none;
   }
 
-}
-
-.col-left,
-.col-right {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
 }
 
 /* Carte infos */
@@ -901,9 +926,9 @@
 }
 
 /* F-184 SF-184-01 — Carte premium tableau de bord décisionnel (Option B).
-   Wrapper local à la page dossier ; s'insère dans col-right sous le bandeau
-   questions complémentaires. Pas de réutilisation prévue ailleurs (extraction
-   en composant dédié possible plus tard si besoin émerge). */
+   F-244 SF-244-01 — wrapper local à la page dossier, désormais dans l'onglet
+   « Décision », sous le panel d'outils décisionnels. Pas de réutilisation prévue
+   ailleurs (extraction en composant dédié possible plus tard si besoin émerge). */
 .decisional-summary-panel {
   margin-top: 16px;
   background: #FFFFFF;

@@ -14,6 +14,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
 import { FullReanalysisConfirmDialogComponent, FullReanalysisConfirmResult } from './full-reanalysis-confirm-dialog.component';
@@ -53,7 +54,7 @@ import { ProcedureStageSectionComponent } from '../procedure-stage-section/proce
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
-import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
+import { CaseDashboardStepperComponent, DashboardStep, StepActivation } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
@@ -138,6 +139,17 @@ function isSupportedFileExtension(file: File): boolean {
   return (ALLOWED_FILE_EXTENSIONS as readonly string[]).includes(fileExtension(file.name));
 }
 
+/**
+ * F-244 SF-244-01 — index des 4 onglets (`mat-tab-group`) du détail dossier.
+ * Onglets en état UI (signal `selectedTabIndex`), non routés. Le `case-dashboard-stepper`
+ * et le scroll par query param `?section=` s'appuient sur ces constantes pour basculer
+ * sur le bon onglet avant de scroller vers une ancre.
+ */
+export const TAB_DOSSIER = 0;
+export const TAB_ANALYSE = 1;
+export const TAB_DECISION = 2;
+export const TAB_SUIVI = 3;
+
 @Component({
   selector: 'app-case-file-detail',
   standalone: true,
@@ -145,7 +157,7 @@ function isSupportedFileExtension(file: File): boolean {
     RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
-    MatDialogModule, MatMenuModule, MatTooltipModule, ShareDialogComponent, CaseNotesSectionComponent,
+    MatDialogModule, MatMenuModule, MatTooltipModule, MatTabsModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
     ProcedureStageSectionComponent,
     TimerWidgetComponent,
@@ -179,6 +191,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // Le toggle manuel reste possible intra-session pour gagner de l'espace vertical sur dossiers riches,
   // mais aucun état n'est sauvegardé entre rechargements.
   readonly docsCollapsed = signal(false);
+  /**
+   * F-244 SF-244-01 — onglet actif du `mat-tab-group` (Dossier / Analyse /
+   * Décision / Suivi). État UI pur, non routé : réinitialisé à `TAB_DOSSIER`
+   * à chaque ouverture de dossier. Piloté par le clic d'étape du
+   * `case-dashboard-stepper` et par le query param `?section=`.
+   */
+  readonly selectedTabIndex = signal(TAB_DOSSIER);
   currentMemberRole = signal<string | null>(null);
   workspaceCountry = signal<string>('FRANCE');
   /**
@@ -326,6 +345,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const pendingAiDeadlines = dl.filter(d => d.source === 'AI' && d.aiStatus === 'PENDING').length;
     const piecesCount = syn?.piecesManquantes?.length ?? 0;
 
+    // F-244 SF-244-01 — chaque étape déclare l'onglet contenant son bloc cible
+    // (cf. TAB_*). `tabIndex: null` → étape navigant vers la route synthèse.
     return [
       {
         id: 'documents',
@@ -333,6 +354,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         status: docs.length > 0 ? 'done' : 'pending',
         detail: docs.length > 0 ? `${docs.length} document${docs.length > 1 ? 's' : ''}` : null,
         anchorId: 'section-documents',
+        tabIndex: TAB_DOSSIER,
       },
       {
         id: 'analyse',
@@ -340,6 +362,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         status: this.fullAnalysisRunning() ? 'in_progress' : syn !== null ? 'done' : 'pending',
         detail: this.fullAnalysisRunning() ? 'En cours…' : syn !== null ? 'Terminée' : null,
         anchorId: 'section-analyse',
+        tabIndex: TAB_ANALYSE,
       },
       {
         id: 'questions',
@@ -347,6 +370,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         status: syn === null ? 'pending' : (qs.length > 0 && pendingQuestions === 0) ? 'done' : 'pending',
         detail: syn !== null && pendingQuestions > 0 ? `${pendingQuestions} en attente` : null,
         anchorId: null,
+        tabIndex: null,
       },
       {
         id: 'delais',
@@ -354,6 +378,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         status: syn === null ? 'pending' : pendingAiDeadlines > 0 ? 'in_progress' : 'done',
         detail: pendingAiDeadlines > 0 ? `${pendingAiDeadlines} proposition${pendingAiDeadlines > 1 ? 's' : ''} IA en attente` : null,
         anchorId: 'section-deadlines',
+        tabIndex: TAB_SUIVI,
       },
       {
         id: 'pieces',
@@ -361,6 +386,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         status: syn === null ? 'pending' : piecesCount === 0 ? 'done' : 'pending',
         detail: piecesCount > 0 ? `${piecesCount} identifiée${piecesCount > 1 ? 's' : ''}` : null,
         anchorId: null,
+        tabIndex: null,
       },
     ];
   });
@@ -490,16 +516,22 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       const section = params.get('section');
       const doc = params.get('doc');
       // Priorité au document précis si présent (highlight ligne), sinon la section.
+      // F-244 SF-244-01 — les sections étant désormais réparties en onglets,
+      // on bascule d'abord sur le bon onglet avant de scroller vers l'ancre.
       if (doc) {
-        this.scrollAndHighlight('doc-' + doc);
+        this.selectedTabIndex.set(TAB_DOSSIER);
+        setTimeout(() => this.scrollAndHighlight('doc-' + doc), 0);
         return;
       }
       if (!section) return;
-      const anchorId = section === 'documents' ? 'section-documents'
-                     : section === 'analyse' ? 'section-analyse'
-                     : section === 'deadlines' ? 'section-deadlines'
-                     : null;
-      if (anchorId) this.scrollAndHighlight(anchorId);
+      const target = section === 'documents' ? { tab: TAB_DOSSIER, anchor: 'section-documents' }
+                   : section === 'analyse' ? { tab: TAB_ANALYSE, anchor: 'section-analyse' }
+                   : section === 'deadlines' ? { tab: TAB_SUIVI, anchor: 'section-deadlines' }
+                   : null;
+      if (target) {
+        this.selectedTabIndex.set(target.tab);
+        setTimeout(() => this.scrollAndHighlight(target.anchor), 0);
+      }
     });
 
     // SF-171-02 : reset du state quota au switch de workspace.
@@ -600,6 +632,21 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   toggleDocsCollapsed(): void {
     this.docsCollapsed.set(!this.docsCollapsed());
+  }
+
+  /**
+   * F-244 SF-244-01 — handler du clic d'étape du `case-dashboard-stepper`.
+   * Bascule d'abord sur l'onglet contenant le bloc cible, puis scrolle vers
+   * l'ancre une fois le contenu de l'onglet visible (le scroll d'ancre seul ne
+   * suffit plus depuis le passage en onglets). Le scroll est différé d'un tick
+   * pour laisser le `mat-tab-group` afficher le panneau cible.
+   */
+  onStepActivated(activation: StepActivation): void {
+    this.selectedTabIndex.set(activation.tabIndex);
+    if (activation.anchorId) {
+      const anchorId = activation.anchorId;
+      setTimeout(() => this.scrollAndHighlight(anchorId), 0);
+    }
   }
 
   /** SF-IA-03-19 : scroll + highlight pulse 2s sur une section. Retry 3× car le rendu est async. */

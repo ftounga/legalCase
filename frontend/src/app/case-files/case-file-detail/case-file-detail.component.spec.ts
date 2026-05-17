@@ -1149,50 +1149,133 @@ describe('CaseFileDetailComponent', () => {
     expect(panel).not.toBeNull();
   });
 
-  it('SF-184-01 T-04 (adapté SF-184-02): tableau de bord décisionnel rendu dans col-right (carte premium)', () => {
+  it('SF-184-01 T-04 (adapté F-244 SF-244-01): tableau de bord décisionnel rendu dans l\'onglet Décision (carte premium)', () => {
     fixture.detectChanges();
     const dashboard = fixture.nativeElement.querySelector('app-case-dashboard');
     expect(dashboard).not.toBeNull();
     // Doit être enveloppé dans le wrapper premium SF-184-01.
     const wrapper = dashboard.closest('.decisional-summary-panel');
     expect(wrapper).not.toBeNull();
-    // Ce wrapper doit être à l'intérieur de col-right.
-    expect(wrapper.closest('.col-right')).not.toBeNull();
-    // SF-184-02 : le conteneur .bottom-sections n'existe plus, le wrapper ne peut donc
-    // pas y être imbriqué.
+    // F-244 SF-244-01 : le wrapper vit désormais dans le panneau d'onglet « Décision ».
+    expect(wrapper.closest('[data-tab-panel="decision"]')).not.toBeNull();
+    // L'ancienne grille 2 colonnes a disparu.
+    expect(wrapper.closest('.col-right')).toBeNull();
     expect(wrapper.closest('.bottom-sections')).toBeNull();
   });
 
-  it('SF-184-02 T-01: Délais + Notes + Outils décisionnels remontés dans col-left, .bottom-sections supprimé', () => {
+  it('SF-184-02 T-01 (adapté F-244 SF-244-01): Délais + Notes dans l\'onglet Suivi, Outils décisionnels dans l\'onglet Décision', () => {
     fixture.detectChanges();
 
-    // Le conteneur .bottom-sections n'existe plus dans le DOM.
-    const bottomSections = fixture.nativeElement.querySelector('.bottom-sections');
-    expect(bottomSections).toBeNull();
+    // Les anciens conteneurs de layout n'existent plus.
+    expect(fixture.nativeElement.querySelector('.bottom-sections')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.detail-grid')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.col-left')).toBeNull();
 
-    // Les 3 composants ex-bottom-sections sont maintenant dans .col-left.
-    const colLeft = fixture.nativeElement.querySelector('.col-left');
-    expect(colLeft).not.toBeNull();
-
-    const deadlines = colLeft.querySelector('app-case-deadlines-section');
-    const notes = colLeft.querySelector('app-case-notes-section');
-    const tools = colLeft.querySelector('app-decisional-tools-panel');
+    // Délais + Notes → onglet Suivi.
+    const suivi = fixture.nativeElement.querySelector('[data-tab-panel="suivi"]');
+    expect(suivi).not.toBeNull();
+    const deadlines = suivi.querySelector('app-case-deadlines-section');
+    const notes = suivi.querySelector('app-case-notes-section');
     expect(deadlines).not.toBeNull();
     expect(notes).not.toBeNull();
-    expect(tools).not.toBeNull();
 
-    // Ordre vertical : DOCUMENTS (section) → Délais → Notes → Outils décisionnels.
-    const docsSection = colLeft.querySelector('.td-section--documents');
-    expect(docsSection).not.toBeNull();
-    const colLeftChildren = Array.from(colLeft.children) as HTMLElement[];
-    const idxDocs = colLeftChildren.findIndex(c => c.contains(docsSection));
-    const idxDeadlines = colLeftChildren.findIndex(c => c.contains(deadlines));
-    const idxNotes = colLeftChildren.findIndex(c => c.contains(notes));
-    const idxTools = colLeftChildren.findIndex(c => c.contains(tools));
-    expect(idxDocs).toBeGreaterThanOrEqual(0);
-    expect(idxDeadlines).toBeGreaterThan(idxDocs);
-    expect(idxNotes).toBeGreaterThan(idxDeadlines);
-    expect(idxTools).toBeGreaterThan(idxNotes);
+    // Outils décisionnels → onglet Décision.
+    const decision = fixture.nativeElement.querySelector('[data-tab-panel="decision"]');
+    expect(decision).not.toBeNull();
+    expect(decision.querySelector('app-decisional-tools-panel')).not.toBeNull();
+  });
+
+  // ----- F-244 SF-244-01 : structure en 4 onglets -----
+
+  describe('F-244 SF-244-01 structure en onglets', () => {
+    it('SF-244-01-T01: 4 onglets rendus avec les bons libellés', () => {
+      fixture.detectChanges();
+      const labels = Array.from(
+        fixture.nativeElement.querySelectorAll('.mat-mdc-tab .mdc-tab__text-label')
+      ).map((el: any) => el.textContent.trim());
+      expect(labels).toEqual(['Dossier', 'Analyse', 'Décision', 'Suivi']);
+    });
+
+    it('SF-244-01-T02: un sélecteur représentatif présent dans chaque onglet', () => {
+      fixture.detectChanges();
+      const dossier = fixture.nativeElement.querySelector('[data-tab-panel="dossier"]');
+      const analyse = fixture.nativeElement.querySelector('[data-tab-panel="analyse"]');
+      const decision = fixture.nativeElement.querySelector('[data-tab-panel="decision"]');
+      const suivi = fixture.nativeElement.querySelector('[data-tab-panel="suivi"]');
+
+      // Onglet Dossier : section Documents.
+      expect(dossier.querySelector('#section-documents')).not.toBeNull();
+      expect(dossier.querySelector('.detail-card')).not.toBeNull();
+      // Onglet Analyse : section Analyse + pipeline.
+      expect(analyse.querySelector('#section-analyse')).not.toBeNull();
+      expect(analyse.querySelector('app-analysis-pipeline')).not.toBeNull();
+      // Onglet Décision : panel outils + tableau de bord.
+      expect(decision.querySelector('app-decisional-tools-panel')).not.toBeNull();
+      expect(decision.querySelector('app-case-dashboard')).not.toBeNull();
+      // Onglet Suivi : délais + notes.
+      expect(suivi.querySelector('app-case-deadlines-section')).not.toBeNull();
+      expect(suivi.querySelector('app-case-notes-section')).not.toBeNull();
+    });
+
+    it('SF-244-01-T03: en-tête (titre + stepper + quota banner) rendu hors du mat-tab-group', () => {
+      fixture.detectChanges();
+      const tabGroup = fixture.nativeElement.querySelector('mat-tab-group');
+      expect(tabGroup).not.toBeNull();
+
+      const title = fixture.nativeElement.querySelector('.page-title');
+      const stepper = fixture.nativeElement.querySelector('app-case-dashboard-stepper');
+      const timer = fixture.nativeElement.querySelector('app-timer-widget');
+      const quotaBanner = fixture.nativeElement.querySelector('app-quota-error-banner');
+      expect(title.closest('mat-tab-group')).toBeNull();
+      expect(stepper.closest('mat-tab-group')).toBeNull();
+      expect(timer.closest('mat-tab-group')).toBeNull();
+      expect(quotaBanner.closest('mat-tab-group')).toBeNull();
+    });
+
+    it('SF-244-01-T04: selectedTabIndex vaut 0 (Dossier) à l\'initialisation', () => {
+      fixture.detectChanges();
+      expect(component.selectedTabIndex()).toBe(0);
+    });
+
+    it('SF-244-01-T05: clic d\'étape stepper → selectedTabIndex mis à jour', () => {
+      fixture.detectChanges();
+      // Étape « Délais légaux » → onglet Suivi (index 3).
+      component.onStepActivated({ tabIndex: 3, anchorId: 'section-deadlines' });
+      expect(component.selectedTabIndex()).toBe(3);
+      // Étape « Analyse » → onglet Analyse (index 1).
+      component.onStepActivated({ tabIndex: 1, anchorId: 'section-analyse' });
+      expect(component.selectedTabIndex()).toBe(1);
+    });
+
+    it('SF-244-01-T06: .detail-grid / .bottom-sections absents du DOM', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.detail-grid')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.bottom-sections')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.col-left')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.col-right')).toBeNull();
+    });
+
+    it('SF-244-01-T07: dossier sans document → onglets rendus, empty state Documents affiché', () => {
+      documentServiceSpy.list.mockReturnValue(of([]));
+      const freshFixture = TestBed.createComponent(CaseFileDetailComponent);
+      freshFixture.detectChanges();
+
+      // Les 4 panneaux d'onglet sont rendus malgré l'absence de document.
+      expect(freshFixture.nativeElement.querySelector('[data-tab-panel="dossier"]')).not.toBeNull();
+      expect(freshFixture.nativeElement.querySelector('[data-tab-panel="analyse"]')).not.toBeNull();
+      expect(freshFixture.nativeElement.querySelector('[data-tab-panel="decision"]')).not.toBeNull();
+      expect(freshFixture.nativeElement.querySelector('[data-tab-panel="suivi"]')).not.toBeNull();
+      // Empty state Documents présent.
+      expect(freshFixture.nativeElement.querySelector('.empty-docs')).not.toBeNull();
+    });
+
+    it('SF-244-01-T08: les 4 panneaux sont montés au DOM dès l\'ouverture (rendu non-lazy)', () => {
+      fixture.detectChanges();
+      // Le tableau de bord (onglet 2, inactif) doit être monté même si Dossier est actif.
+      expect(component.selectedTabIndex()).toBe(0);
+      expect(fixture.nativeElement.querySelector('app-case-dashboard')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('app-analysis-pipeline')).not.toBeNull();
+    });
   });
 
   // ----- SF-125-01 : bouton d'analyse contextuel -----

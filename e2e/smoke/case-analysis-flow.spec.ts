@@ -53,6 +53,11 @@ test.describe('Parcours métier — analyse IA complète', () => {
     // Attendre que le document apparaisse dans la liste
     await expect(page.getByText('test-contrat-travail.pdf')).toBeVisible({ timeout: 15_000 });
 
+    // ── 3bis. Basculer sur l'onglet « Analyse » ──
+    // F-244 SF-244-01 : depuis la structure en onglets, le bouton d'analyse et
+    // le lien synthèse vivent dans l'onglet « Analyse » (masqué par défaut).
+    await page.getByRole('tab', { name: 'Analyse' }).click();
+
     // ── 4. Lancer l'analyse ──
     const analyzeBtn = page.getByRole('button', { name: /analyser le dossier/i });
     await expect(analyzeBtn).toBeEnabled({ timeout: 10_000 });
