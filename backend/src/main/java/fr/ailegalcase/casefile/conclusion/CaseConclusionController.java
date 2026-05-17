@@ -32,6 +32,8 @@ import java.util.UUID;
  *       ; {@code 404} ; {@code 401}.</li>
  *   <li>{@code PATCH .../conclusions/versions/{versionId}/lifecycle} → {@code 200 ConclusionResponse}
  *       ; {@code 400} ; {@code 409} ; {@code 404} ; {@code 401}.</li>
+ *   <li>{@code PATCH .../conclusions/versions/{versionId}/content} → {@code 200 ConclusionResponse}
+ *       ; {@code 400} ; {@code 409} ; {@code 404} ; {@code 401} (SF-98-49).</li>
  * </ul>
  * Le controller ne porte aucune logique métier : il délègue à
  * {@link CaseConclusionCommandService}.</p>
@@ -93,6 +95,18 @@ public class CaseConclusionController {
             Principal principal) {
         return caseConclusionCommandService.updateLifecycle(
                 caseFileId, versionId, request != null ? request.lifecycleStatus() : null,
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @PatchMapping("/versions/{versionId}/content")
+    public ConclusionResponse updateContent(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID versionId,
+            @RequestBody ContentUpdateRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return caseConclusionCommandService.updateContent(
+                caseFileId, versionId, request != null ? request.content() : null,
                 oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

@@ -23,7 +23,13 @@ public enum CaseConclusionGuardCode {
     ALREADY_GENERATING("Une génération est déjà en cours pour ce dossier."),
 
     /** Passage à VALIDATED/DEPOSITED d'une version dont la génération n'est pas DONE. */
-    LIFECYCLE_REQUIRES_DONE("Seule une version générée peut être validée ou déposée.");
+    LIFECYCLE_REQUIRES_DONE("Seule une version générée peut être validée ou déposée."),
+
+    /** Édition du contenu d'une version dont la génération n'est pas DONE (SF-98-49). */
+    CONTENT_REQUIRES_DONE("La version n'est pas encore générée."),
+
+    /** Édition du contenu d'une version VALIDATED/DEPOSITED — seul un brouillon est modifiable (SF-98-49). */
+    CONTENT_NOT_EDITABLE("Seul un brouillon peut être modifié.");
 
     private final String message;
 

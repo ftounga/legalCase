@@ -231,6 +231,49 @@ public class CaseConclusionCommandService {
         return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry());
     }
 
+    /**
+     * Met à jour le texte ({@code content}) d'une version de conclusions en brouillon (SF-98-49).
+     *
+     * <p>Édition autorisée uniquement quand la génération est {@code DONE} <strong>et</strong>
+     * le cycle de vie {@code DRAFT} — une version {@code VALIDATED}/{@code DEPOSITED} est figée
+     * (l'avocat la repasse d'abord en {@code DRAFT} via {@code updateLifecycle}).</p>
+     *
+     * @throws ResponseStatusException      {@code 400} si {@code content} est vide / absent ;
+     *                                      {@code 404} si dossier / version inconnu ou autre workspace
+     * @throws CaseConclusionGuardException {@code 409} si la génération n'est pas {@code DONE}
+     *                                      ({@code CONTENT_REQUIRES_DONE}) ou si la version est
+     *                                      {@code VALIDATED}/{@code DEPOSITED} ({@code CONTENT_NOT_EDITABLE})
+     */
+    @Transactional
+    public ConclusionResponse updateContent(UUID caseFileId, UUID versionId, String content,
+                                            OidcUser oidcUser, String provider, Principal principal) {
+        Workspace workspace = resolveWorkspace(oidcUser, provider, principal);
+        CaseFile caseFile = resolveCaseFileInWorkspace(caseFileId, workspace);
+        CaseConclusion version = resolveVersion(caseFileId, versionId);
+
+        // Garde 400 — le texte ne peut pas être vidé.
+        if (content == null || content.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le champ content est requis.");
+        }
+
+        // Garde 409 — la génération doit être terminée.
+        if (version.getStatus() != CaseConclusionStatus.DONE) {
+            throw new CaseConclusionGuardException(CaseConclusionGuardCode.CONTENT_REQUIRES_DONE);
+        }
+
+        // Garde 409 — seul un brouillon est modifiable.
+        if (version.getLifecycleStatus() != ConclusionLifecycleStatus.DRAFT) {
+            throw new CaseConclusionGuardException(CaseConclusionGuardCode.CONTENT_NOT_EDITABLE);
+        }
+
+        version.setContent(content);
+        version = caseConclusionRepository.save(version);
+        log.info("Conclusion content updated — conclusion={}, version={}",
+                versionId, version.getVersionNumber());
+        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry());
+    }
+
     /** Convertit la valeur de cycle de vie reçue, ou {@code 400} si inconnue / nulle. */
     private static ConclusionLifecycleStatus parseLifecycle(String value) {
         if (value == null || value.isBlank()) {
