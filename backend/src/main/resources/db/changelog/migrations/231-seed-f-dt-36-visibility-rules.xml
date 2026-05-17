@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="231-seed-f-dt-36-visibility-rules" author="legalcase">
+        <comment>
+            SF-DT-36-02 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Analyse des nullités de procédure de licenciement"
+            (F-DT-36, FRANCE), table créée par SF-DT-36-01 (migration 230).
+
+            Le seed est porté par la SF frontend — et non par la SF backend —
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-211-05
+            (migration 228). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît que
+            si un licenciement est détecté dans le dossier — trigger
+            `type_rupture` valeurs LICENCIEMENT et LICENCIEMENT_ECONOMIQUE
+            (pattern identique à F-DT-16). priority 57.
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20000036X.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000361', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-36-procedure-nullite-licenciement', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 57);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000362', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-36-procedure-nullite-licenciement', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 57);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN ('f1a04001-0000-0000-0000-eeee20000361', 'f1a04001-0000-0000-0000-eeee20000362');
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
