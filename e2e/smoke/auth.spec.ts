@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginLocal, logout, TEST_USER } from '../helpers/auth.helper';
+import { loginLocal, logout, submitLoginForm, TEST_USER } from '../helpers/auth.helper';
 
 /**
  * Smoke tests — Authentification
@@ -17,7 +17,7 @@ import { loginLocal, logout, TEST_USER } from '../helpers/auth.helper';
 test.describe('Auth — chemins critiques', () => {
 
   test('la page /login charge avec le formulaire et le bouton Google', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login/');
     await expect(page).toHaveURL(/\/login/);
     // Heading principal visible (layout split-screen, plus de tabs)
     await expect(page.getByRole('heading', { name: /bienvenue/i })).toBeVisible();
@@ -38,10 +38,8 @@ test.describe('Auth — chemins critiques', () => {
   });
 
   test('login local invalide → message d\'erreur affiché', async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel('Email').fill(TEST_USER.email);
-    await page.getByLabel('Mot de passe').fill('mauvais-mot-de-passe');
-    await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+    await page.goto('/login/');
+    await submitLoginForm(page, TEST_USER.email, 'mauvais-mot-de-passe');
     // Reste sur /login et affiche une erreur
     await expect(page).toHaveURL(/\/login/);
     await expect(

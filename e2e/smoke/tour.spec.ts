@@ -39,11 +39,11 @@ test.describe('Product tour — carte flottante', () => {
     await expect(title).toContainText('Bienvenue');
   });
 
-  // E-03 : Bouton "Suivant" → étape 1, élément [data-tour-target="new-dossier-btn"] a la classe tour-highlight
+  // E-03 : Bouton "Suivant" → étape 1, élément [data-tour-target="new-dossier-btn"] a la classe tour-spotlight
   test('E-03: clic "Suivant" → étape 1, new-dossier-btn surligné', async ({ page }) => {
     await page.locator('button', { hasText: 'Suivant' }).click();
     const highlighted = page.locator('[data-tour-target="new-dossier-btn"]');
-    await expect(highlighted).toHaveClass(/tour-highlight/);
+    await expect(highlighted).toHaveClass(/tour-spotlight/);
   });
 
   // E-04 : Bouton "Passer" → carte disparaît

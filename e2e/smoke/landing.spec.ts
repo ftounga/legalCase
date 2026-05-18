@@ -38,8 +38,8 @@ test.describe('Landing V3 — repositionnement F-158', () => {
 
   test('section OCR + Vision présente', async ({ page }) => {
     await page.goto('/');
-    const ocrCard = page.locator('.ocr-vision-card__badge', { hasText: 'OCR Textract' });
-    const visionCard = page.locator('.ocr-vision-card__badge', { hasText: 'Claude Vision' });
+    const ocrCard = page.locator('.ocr-vision-card__badge', { hasText: 'Legal OCR' });
+    const visionCard = page.locator('.ocr-vision-card__badge', { hasText: 'Legal Vision' });
     await ocrCard.scrollIntoViewIfNeeded();
     await expect(ocrCard).toBeVisible();
     await expect(visionCard).toBeVisible();
