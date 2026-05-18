@@ -69,8 +69,10 @@ export type VVL4256CoherenceAlert = CoherenceAlert<VVL4256AlertField>;
 export class VictimeViolencesL4256SectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'VICTIME VIOLENCES L.425-6 (FR)';
   static readonly TOOL_ICON = 'shield';
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
 
+  // SF-246-04 : le pré-fill IA est désormais effectif (1 champ : dateOrdonnanceProtection
+  // ← aiData.dateOrdonnanceProtectionJaf). L'étiquette PREFILL_COUNT_ALWAYS_ZERO a donc
+  // été retirée — getPrefillCount délègue au helper VictimeViolencesL4256PrefillRules.
   static getPrefillCount(input: PrefillCountInput): number {
     return VictimeViolencesL4256PrefillRules.computePrefillCount(input);
   }
@@ -273,7 +275,15 @@ export class VictimeViolencesL4256SectionComponent implements OnInit, OnChanges 
     return `${prefix} (${alert.expectedDisplay})`;
   }
 
+  /**
+   * SF-246-04 : pré-remplit `dateOrdonnanceProtection` depuis la date de
+   * l'ordonnance de protection JAF extraite par l'IA. Parité stricte avec
+   * `getPrefillCount()` — même garde `workspaceCountry === 'FRANCE'` et même
+   * validation `ISO_DATE_RE` (via le helper). No-op si non-FR, si la date IA
+   * est absente / non ISO, ou si le champ est déjà saisi.
+   */
   private prefillFromAi(): void {
+    if (!this.isFrance()) return;
     const input: PrefillCountInput = {
       aiData: this.aiData,
       workspaceCountry: this.workspaceCountry,

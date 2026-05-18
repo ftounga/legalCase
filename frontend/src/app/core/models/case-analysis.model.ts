@@ -367,6 +367,12 @@ export interface ImmigrationExtractedData {
    * (cf. SF-197-01).
    */
   typeProcedureAvocatOverride?: string | null;
+  /**
+   * SF-246-04 : date de l'ordonnance de protection JAF (Cciv 515-9) pour
+   * pré-fill de l'outil F-IM-24 (victime de violences L.425-6). FR uniquement
+   * — dossier BE : null.
+   */
+  dateOrdonnanceProtectionJaf?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

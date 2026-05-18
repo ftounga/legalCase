@@ -562,7 +562,10 @@ public record CaseAnalysisResponse(
             // nationalité bilatérale (F-IM-17 régime franco-algérien). Nullable —
             // dossiers où l'IA n'identifie pas la nationalité ou non-immigration : null.
             // Distinct de nationaliteUe (booléen UE vs pays tiers).
-            String nationalite) {
+            String nationalite,
+            // SF-246-04 : date de l'ordonnance de protection JAF (Cciv 515-9) pour pré-fill F-IM-24
+            // victime de violences L.425-6. Immigration FRANCE uniquement, nullable — dossier BE : null.
+            String dateOrdonnanceProtectionJaf) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -606,7 +609,8 @@ public record CaseAnalysisResponse(
                     .regroupement40bisDetecte(regroupement40bisDetecte)
                     .regroupement40terDetecte(regroupement40terDetecte)
                     .oqtAnnexe13Detectee(oqtAnnexe13Detectee)
-                    .nationalite(nationalite);
+                    .nationalite(nationalite)
+                    .dateOrdonnanceProtectionJaf(dateOrdonnanceProtectionJaf);
         }
 
         public static final class Builder {
@@ -643,6 +647,7 @@ public record CaseAnalysisResponse(
             private boolean regroupement40terDetecte;
             private boolean oqtAnnexe13Detectee;
             private String nationalite;
+            private String dateOrdonnanceProtectionJaf;
 
             private Builder() {}
 
@@ -679,6 +684,7 @@ public record CaseAnalysisResponse(
             public Builder regroupement40terDetecte(boolean v) { this.regroupement40terDetecte = v; return this; }
             public Builder oqtAnnexe13Detectee(boolean v) { this.oqtAnnexe13Detectee = v; return this; }
             public Builder nationalite(String v) { this.nationalite = v; return this; }
+            public Builder dateOrdonnanceProtectionJaf(String v) { this.dateOrdonnanceProtectionJaf = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -694,7 +700,7 @@ public record CaseAnalysisResponse(
                         naturalisationEnvisageeDetectee, clientMineurDetecte, mesureEloignementDetectee,
                         procedure9bisEnvisagee, procedure9terMedicaleDetectee,
                         regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
-                        nationalite);
+                        nationalite, dateOrdonnanceProtectionJaf);
             }
         }
     }
@@ -1829,6 +1835,10 @@ public record CaseAnalysisResponse(
         // DecisionToolVisibilityService pour activer F-IM-17 et autres outils
         // décisionnels conditionnés à un régime national bilatéral.
         String nationalite = textOrNull(root, "nationalite");
+        // SF-246-04 : date de l'ordonnance de protection JAF (Cciv 515-9) — Immigration FR uniquement,
+        // pré-fill F-IM-24 victime de violences L.425-6. Texte brut conservé : le pré-fill front
+        // rejette tout format non ISO via ISO_DATE_RE.
+        String dateOrdonnanceProtectionJaf = textOrNull(root, "date_ordonnance_protection_jaf");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -1841,7 +1851,8 @@ public record CaseAnalysisResponse(
                 && !clientMineur && !mesureEloignement
                 && !procedure9bis && !procedure9ter && !regroupement40bis
                 && !regroupement40ter && !oqtAnnexe13
-                && nationalite == null) return null;
+                && nationalite == null
+                && dateOrdonnanceProtectionJaf == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -1882,6 +1893,8 @@ public record CaseAnalysisResponse(
                 .oqtAnnexe13Detectee(oqtAnnexe13)
                 // F-235 : nationalite (texte libre)
                 .nationalite(nationalite)
+                // SF-246-04 : date ordonnance de protection JAF (pré-fill F-IM-24)
+                .dateOrdonnanceProtectionJaf(dateOrdonnanceProtectionJaf)
                 .build();
     }
 
