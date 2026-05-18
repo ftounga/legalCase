@@ -166,8 +166,9 @@ import { PacteSuccessoralBe2018SectionComponent } from '../pacte-successoral-be-
 // F-217 SF-217-03 — 2 sections décisionnelles Vague 1 Famille BE (backends mergés PR #983 / #982).
 import { RegimeCommunauteLegaleBeSectionComponent } from '../regime-communaute-legale-be-section/regime-communaute-legale-be-section.component';
 import { LiquidationPartageBeSectionComponent } from '../liquidation-partage-be-section/liquidation-partage-be-section.component';
-// F-217 SF-217-05 — section décisionnelle Vague 2 Famille BE — Enfants (backend mergé PR #993).
+// F-217 SF-217-05 / SF-217-07 — sections décisionnelles Vague 2 Famille BE — Enfants (backends mergés PR #993 / #995).
 import { AutoriteParentaleBeSectionComponent } from '../autorite-parentale-be-section/autorite-parentale-be-section.component';
+import { ContributionAlimentaireEnfantsBeSectionComponent } from '../contribution-alimentaire-enfants-be-section/contribution-alimentaire-enfants-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1999,6 +2000,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // F-217 SF-217-07 : contribution alimentaire des enfants BE — méthode
+      // Renard, CC art. 203 / 203bis. Migration 240 — ALWAYS_ON (question
+      // systématique de tout dossier Famille BE avec enfant). Backend
+      // SF-217-06 (PR #995).
+      ['contribution-alimentaire-enfants-be', {
+        displayLabel: 'Contribution alimentaire des enfants (Belgique)',
+        component: ContributionAlimentaireEnfantsBeSectionComponent,
+        // Composant complet (form + verdict + montant + détail Renard).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
     ]);
 
   /**
@@ -2044,6 +2061,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-01-prestation-compensatoire', 'INDEMNITES'],
     ['F-FA-02-pension-alimentaire', 'INDEMNITES'],
     ['F-153-fourchettes-jaf', 'INDEMNITES'],
+    // F-217 SF-217-07 : contribution alimentaire des enfants BE — chiffre une créance.
+    ['contribution-alimentaire-enfants-be', 'INDEMNITES'],
 
     // ── Validité & contestation ────────────────────────────────────────
     ['F-DT-08-licenciement-validity', 'VALIDITE'],

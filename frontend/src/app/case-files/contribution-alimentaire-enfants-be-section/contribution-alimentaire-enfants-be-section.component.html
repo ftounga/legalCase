@@ -1,0 +1,232 @@
+<section class="cae-section">
+  <header class="cae-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cae-body">
+    <mat-icon class="cae-icon">savings</mat-icon>
+    <span class="cae-title">CONTRIBUTION ALIMENTAIRE ENFANTS — MÉTHODE RENARD BE</span>
+    @if (result()) {
+      <span class="cae-chip"
+            [class.cae-chip--ok]="result()!.verdict !== 'DONNEES_INSUFFISANTES'"
+            [class.cae-chip--medium]="result()!.verdict === 'DONNEES_INSUFFISANTES'">
+        @if (result()!.verdict === 'CONTRIBUTION_DUE') {
+          {{ result()!.contributionMensuelleNette }} € / mois
+        } @else {
+          {{ verdictBannerLabel(result()!.verdict) }}
+        }
+      </span>
+    }
+    <mat-icon class="cae-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cae-body" class="cae-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="cae-country-banner" data-testid="cae-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — contribution alimentaire des enfants selon la méthode Renard (Code civil, art. 203 / 203bis). Le barème JAF français repose sur une méthode distincte et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cae-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="cae-form" (ngSubmit)="calculate()">
+            <h4 class="cae-section-title">Enfants concernés</h4>
+
+            <div class="cae-field-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Nombre d'enfants</mat-label>
+                <input matInput type="number" min="1" max="12"
+                       [ngModel]="nombreEnfants()"
+                       (ngModelChange)="nombreEnfants.set($event)"
+                       name="nombreEnfants" required />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Tranche d'âge</mat-label>
+                <mat-select
+                    [ngModel]="trancheAgeEnfants()"
+                    (ngModelChange)="trancheAgeEnfants.set($event)"
+                    name="trancheAgeEnfants">
+                  @for (opt of trancheAgeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <h4 class="cae-section-title">Revenus des parents</h4>
+            <p class="cae-section-help">La contribution est répartie au prorata des revenus (CC art. 203 §1).</p>
+
+            <div class="cae-field-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Revenu mensuel net — Parent 1 (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="revenuMensuelParent1()"
+                       (ngModelChange)="revenuMensuelParent1.set($event)"
+                       name="revenuMensuelParent1" required />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Revenu mensuel net — Parent 2 (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="revenuMensuelParent2()"
+                       (ngModelChange)="revenuMensuelParent2.set($event)"
+                       name="revenuMensuelParent2" required />
+              </mat-form-field>
+            </div>
+
+            <h4 class="cae-section-title">Coût de l'enfant et hébergement</h4>
+            <p class="cae-section-help">Laissez le coût global vide pour appliquer un forfait par tranche d'âge.</p>
+
+            <div class="cae-field-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Coût mensuel global des enfants (€, optionnel)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="coutMensuelGlobalEnfants()"
+                       (ngModelChange)="coutMensuelGlobalEnfants.set($event)"
+                       name="coutMensuelGlobalEnfants" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Allocations familiales mensuelles (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="allocationsFamilialesMensuelles()"
+                       (ngModelChange)="allocationsFamilialesMensuelles.set($event)"
+                       name="allocationsFamilialesMensuelles" />
+              </mat-form-field>
+            </div>
+
+            <div class="cae-field-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Nuits d'hébergement / an — Parent 1</mat-label>
+                <input matInput type="number" min="0" max="365"
+                       [ngModel]="nuitsHebergementParent1()"
+                       (ngModelChange)="nuitsHebergementParent1.set($event)"
+                       name="nuitsHebergementParent1" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Nuits d'hébergement / an — Parent 2</mat-label>
+                <input matInput type="number" min="0" max="365"
+                       [ngModel]="nuitsHebergementParent2()"
+                       (ngModelChange)="nuitsHebergementParent2.set($event)"
+                       name="nuitsHebergementParent2" />
+              </mat-form-field>
+            </div>
+
+            <div class="cae-field-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Frais extraordinaires mensuels (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="fraisExtraordinairesMensuels()"
+                       (ngModelChange)="fraisExtraordinairesMensuels.set($event)"
+                       name="fraisExtraordinairesMensuels" />
+              </mat-form-field>
+            </div>
+
+            <div class="cae-field-full">
+              <mat-form-field appearance="outline">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire" maxlength="1000"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="cae-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Estimer la contribution</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cae-result">
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            @if (result()!.verdict === 'CONTRIBUTION_DUE') {
+              <div class="cae-montant">
+                <span class="cae-montant-label">Contribution mensuelle nette</span>
+                <span class="cae-montant-value">{{ result()!.contributionMensuelleNette }} €</span>
+                <span class="cae-montant-debiteur">
+                  due par {{ parentDebiteurLabel(result()!.parentDebiteur) }}
+                </span>
+              </div>
+            }
+
+            <div class="cae-cards-grid">
+              <div class="cae-card">
+                <span class="cae-card-label">Coût retenu</span>
+                <span class="cae-card-value">{{ result()!.coutMensuelRetenu }} €</span>
+              </div>
+              <div class="cae-card">
+                <span class="cae-card-label">Coût net après allocations</span>
+                <span class="cae-card-value">{{ result()!.coutNetApresAllocations }} €</span>
+              </div>
+              <div class="cae-card">
+                <span class="cae-card-label">Quote-part Parent 1 / 2</span>
+                <span class="cae-card-value">
+                  {{ result()!.quotePartParent1Pct }} % / {{ result()!.quotePartParent2Pct }} %
+                </span>
+              </div>
+              @if (result()!.fraisExtraordinairesQuotePartParent1 > 0 || result()!.fraisExtraordinairesQuotePartParent2 > 0) {
+                <div class="cae-card">
+                  <span class="cae-card-label">Frais extraordinaires P1 / P2</span>
+                  <span class="cae-card-value">
+                    {{ result()!.fraisExtraordinairesQuotePartParent1 }} € / {{ result()!.fraisExtraordinairesQuotePartParent2 }} €
+                  </span>
+                </div>
+              }
+            </div>
+
+            @if (result()!.detailCalcul?.length) {
+              <div class="cae-detail">
+                <span class="cae-detail-label">Détail du calcul (méthode Renard)</span>
+                <ul>
+                  @for (d of result()!.detailCalcul; track d) {
+                    <li>{{ d }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="cae-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="cae-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.basesJuridiques?.length) {
+              <div class="cae-bases">
+                <span class="cae-bases-label">Bases juridiques :</span>
+                <ul>
+                  @for (b of result()!.basesJuridiques; track b) {
+                    <li class="cae-base" [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
