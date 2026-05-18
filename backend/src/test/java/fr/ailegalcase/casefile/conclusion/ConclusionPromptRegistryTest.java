@@ -42,9 +42,16 @@ class ConclusionPromptRegistryTest {
             ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
             "CPH", "FOND", "DEFENDEUR");
 
+    /**
+     * Combinaison <strong>volontairement jamais enregistrée</strong> par la matrice F-98 :
+     * le bureau de conciliation et d'orientation (BCO) est un stade de conciliation, pas un
+     * stade de rédaction de conclusions — aucune cellule F-98 ne le couvre, à 53/53 comme
+     * aujourd'hui. À utiliser comme combinaison « inconnue » stable des tests du registre
+     * (ne jamais y mettre une combinaison réelle de la matrice : elle finirait couverte).
+     */
     private static final CombinationKey UNKNOWN_KEY = new CombinationKey(
-            ProcedureStageCatalog.DROIT_FAMILLE, ProcedureStageCatalog.FRANCE,
-            "JAF", "DIVORCE_FOND", "DEMANDEUR");
+            ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
+            "CPH", "BCO", "DEMANDEUR");
 
     @Test
     void supports_knownCombination_isTrue() {
