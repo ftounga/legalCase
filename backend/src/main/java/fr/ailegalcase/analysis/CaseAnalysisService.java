@@ -110,6 +110,7 @@ public class CaseAnalysisService {
     private final SourceExplanationGenerator sourceExplanationGenerator;
     private final SourceExplanationService sourceExplanationService;
     private final PiecesPromptContext piecesPromptContext;
+    private final JurisprudenceVerificationService jurisprudenceVerificationService;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -130,7 +131,8 @@ public class CaseAnalysisService {
                                CaseDeadlineService caseDeadlineService,
                                SourceExplanationGenerator sourceExplanationGenerator,
                                SourceExplanationService sourceExplanationService,
-                               PiecesPromptContext piecesPromptContext) {
+                               PiecesPromptContext piecesPromptContext,
+                               JurisprudenceVerificationService jurisprudenceVerificationService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.documentExtractionRepository = documentExtractionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
@@ -148,6 +150,7 @@ public class CaseAnalysisService {
         this.sourceExplanationGenerator = sourceExplanationGenerator;
         this.sourceExplanationService = sourceExplanationService;
         this.piecesPromptContext = piecesPromptContext;
+        this.jurisprudenceVerificationService = jurisprudenceVerificationService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -371,6 +374,15 @@ public class CaseAnalysisService {
                 });
             } catch (Exception e) {
                 log.warn("Fail-open: source explanation generation failed for analysis {}: {}",
+                        analysis.getId(), e.getMessage());
+            }
+            // F-179 SF-179-01 : vérification des références jurisprudentielles citées
+            // dans les documents uploadés (existence + fidélité). Post-traitement
+            // fail-open : une exception laisse l'analyse DONE.
+            try {
+                jurisprudenceVerificationService.verifyForAnalysis(analysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: jurisprudence verification failed for analysis {}: {}",
                         analysis.getId(), e.getMessage());
             }
         }

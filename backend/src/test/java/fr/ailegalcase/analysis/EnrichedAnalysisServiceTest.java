@@ -65,6 +65,8 @@ class EnrichedAnalysisServiceTest {
             mock(AiQuestionAlignmentService.class);
     private final TypeLitigeOverrideService typeLitigeOverrideService =
             mock(TypeLitigeOverrideService.class);
+    private final JurisprudenceVerificationService jurisprudenceVerificationService =
+            mock(JurisprudenceVerificationService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -78,6 +80,7 @@ class EnrichedAnalysisServiceTest {
             typeLitigeOverrideService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
+            jurisprudenceVerificationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
     @BeforeEach

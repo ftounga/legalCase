@@ -147,6 +147,7 @@ public class EnrichedAnalysisService {
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
     private final SourceExplanationService sourceExplanationService;
+    private final JurisprudenceVerificationService jurisprudenceVerificationService;
     private final fr.ailegalcase.document.DocumentRepository documentRepository;
     private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository;
     private final PiecesPromptContext piecesPromptContext;
@@ -186,6 +187,7 @@ public class EnrichedAnalysisService {
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
                                    SourceExplanationService sourceExplanationService,
+                                   JurisprudenceVerificationService jurisprudenceVerificationService,
                                    fr.ailegalcase.document.DocumentRepository documentRepository,
                                    fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository,
                                    PiecesPromptContext piecesPromptContext) {
@@ -215,6 +217,7 @@ public class EnrichedAnalysisService {
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
         this.sourceExplanationService = sourceExplanationService;
+        this.jurisprudenceVerificationService = jurisprudenceVerificationService;
         this.documentRepository = documentRepository;
         this.documentExtractionRepository = documentExtractionRepository;
         this.piecesPromptContext = piecesPromptContext;
@@ -575,6 +578,15 @@ public class EnrichedAnalysisService {
                 });
             } catch (Exception e) {
                 log.warn("Fail-open: enriched source explanation generation failed for analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-179 SF-179-01 : vérification des références jurisprudentielles citées
+            // dans les documents — post-traitement fail-open, symétrique de
+            // CaseAnalysisService.finalizeCaseAnalysis.
+            try {
+                jurisprudenceVerificationService.verifyForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: enriched jurisprudence verification failed for analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
         }
