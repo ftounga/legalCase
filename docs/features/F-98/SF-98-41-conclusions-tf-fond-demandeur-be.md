@@ -9,7 +9,7 @@
 `F-98` — Génération de courrier / conclusions
 
 ## Statut
-`ready`
+`done` — livrée 2026-05-18.
 
 ## Date de création
 2026-05-18
