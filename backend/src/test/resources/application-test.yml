@@ -1,0 +1,50 @@
+# Profil de test — F-245 SF-245-01.
+#
+# Base H2 mémoire ISOLÉE : nom `legalcase-test` distinct du `legalcasedb` du
+# profil `dev`, pour que `mvnw verify` ne dépende jamais d'une base partagée
+# avec le dev local. Le profil `test` est forcé pour surefire ET failsafe via
+# pom.xml (spring.profiles.active=test).
+#
+# Le nettoyage inter-test est assuré par DatabaseCleanupExtension (TRUNCATE de
+# toutes les tables avant chaque test) — voir
+# docs/features/F-245/SF-245-01-isolation-harnais-it.md.
+spring:
+  datasource:
+    url: jdbc:h2:mem:legalcase-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+
+anthropic:
+  api-key: test-anthropic-key
+
+storage:
+  s3:
+    endpoint: http://localhost:9000
+    access-key: minio
+    secret-key: minio123
+    bucket: legalcase-test
+    path-style-access: true
+
+# Niveaux de log identiques au profil `dev` : le LoggerContext logback est
+# global à la JVM, abaisser le niveau ici masquerait des événements attendus
+# par des tests qui capturent les logs sans fixer eux-mêmes le niveau
+# (ex. PipelineRecoveryRunnerTest, assertion sur un log INFO).
+logging:
+  level:
+    fr.ailegalcase: DEBUG
+    liquibase: INFO
