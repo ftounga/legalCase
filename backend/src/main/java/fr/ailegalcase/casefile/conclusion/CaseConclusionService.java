@@ -16,6 +16,9 @@ import fr.ailegalcase.document.Document;
 import fr.ailegalcase.document.DocumentPiece;
 import fr.ailegalcase.document.DocumentPieceRepository;
 import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.stylelearning.StyleCorpusDocument;
+import fr.ailegalcase.stylelearning.StyleCorpusDocumentStatus;
+import fr.ailegalcase.stylelearning.StyleCorpusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -60,6 +63,7 @@ public class CaseConclusionService {
     private final CaseFileDashboardService caseFileDashboardService;
     private final CaseConclusionPromptBuilder promptBuilder;
     private final AnthropicService anthropicService;
+    private final StyleCorpusRepository styleCorpusRepository;
 
     /** Auto-référence pour franchir le proxy transactionnel depuis le listener. */
     @Lazy
@@ -73,7 +77,8 @@ public class CaseConclusionService {
                                  DocumentPieceRepository documentPieceRepository,
                                  CaseFileDashboardService caseFileDashboardService,
                                  CaseConclusionPromptBuilder promptBuilder,
-                                 AnthropicService anthropicService) {
+                                 AnthropicService anthropicService,
+                                 StyleCorpusRepository styleCorpusRepository) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
@@ -82,6 +87,7 @@ public class CaseConclusionService {
         this.caseFileDashboardService = caseFileDashboardService;
         this.promptBuilder = promptBuilder;
         this.anthropicService = anthropicService;
+        this.styleCorpusRepository = styleCorpusRepository;
     }
 
     @RabbitListener(queues = CaseConclusionRabbitMQConfig.CASE_CONCLUSION_QUEUE, concurrency = "2")
@@ -120,7 +126,7 @@ public class CaseConclusionService {
             failure = e;
         }
 
-        self.finalize(caseConclusionId, result, failure);
+        self.finalize(caseConclusionId, result, failure, prepared.styleApplied());
     }
 
     /**
@@ -164,17 +170,52 @@ public class CaseConclusionService {
                         loadDecisionToolTiles(caseFileId),
                         loadRetainedStrategies(caseFileId));
 
-        String systemPrompt = promptBuilder.buildSystemPrompt();
+        List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
+        String systemPrompt = promptBuilder.buildSystemPrompt(styleSignatures);
         String userMessage = promptBuilder.buildUserMessage(input);
-        return new PreparedConclusion(systemPrompt, userMessage);
+        return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty());
+    }
+
+    /**
+     * F-98 / SF-98-47 — signatures de style exploitables du workspace : documents du
+     * corpus de style {@code active = true} ET {@code status = DONE}, dont la
+     * {@code styleSignature} est renseignée.
+     *
+     * <p><strong>Fail-open</strong> : si la lecture du corpus de style échoue, la
+     * génération se poursuit en mode générique (aucune signature) — l'exception n'est
+     * jamais propagée, seulement journalisée en avertissement.</p>
+     *
+     * @return les descriptions de style actives (jamais {@code null} ; vide si aucune
+     *         signature exploitable ou en cas d'échec de lecture)
+     */
+    private List<String> loadActiveStyleSignatures(UUID workspaceId) {
+        try {
+            List<String> signatures = new ArrayList<>();
+            for (StyleCorpusDocument document : styleCorpusRepository
+                    .findByWorkspaceIdAndActiveTrueAndStatus(workspaceId, StyleCorpusDocumentStatus.DONE)) {
+                String signature = document.getStyleSignature();
+                if (signature != null && !signature.isBlank()) {
+                    signatures.add(signature);
+                }
+            }
+            return signatures;
+        } catch (RuntimeException ex) {
+            log.warn("Lecture des signatures de style indisponible pour workspace {} — "
+                    + "génération générique : {}", workspaceId, ex.getMessage());
+            return List.of();
+        }
     }
 
     /**
      * Phase 3 — persiste le résultat : {@code DONE} (content + tokens + modèle) si
      * l'appel IA a réussi, {@code FAILED} (errorMessage) sinon.
+     *
+     * @param styleApplied SF-98-47 — vrai si la génération a adopté au moins une
+     *                     signature de style active du workspace
      */
     @Transactional
-    public void finalize(UUID caseConclusionId, AnthropicResult result, Exception failure) {
+    public void finalize(UUID caseConclusionId, AnthropicResult result, Exception failure,
+                         boolean styleApplied) {
         CaseConclusion conclusion = caseConclusionRepository.findById(caseConclusionId).orElse(null);
         if (conclusion == null) {
             log.warn("Conclusion {} introuvable à la finalisation — résultat perdu", caseConclusionId);
@@ -196,6 +237,7 @@ public class CaseConclusionService {
         conclusion.setModelUsed(result.modelUsed());
         conclusion.setPromptTokens(result.promptTokens());
         conclusion.setCompletionTokens(result.completionTokens());
+        conclusion.setStyleApplied(styleApplied);
         conclusion.setGeneratedAt(Instant.now());
         conclusion.setErrorMessage(null);
         caseConclusionRepository.save(conclusion);
@@ -283,7 +325,12 @@ public class CaseConclusionService {
         return value.length() <= max ? value : value.substring(0, max);
     }
 
-    /** Données prêtes pour l'appel IA, produites par {@link #prepare}. */
-    record PreparedConclusion(String systemPrompt, String userMessage) {
+    /**
+     * Données prêtes pour l'appel IA, produites par {@link #prepare}.
+     *
+     * @param styleApplied SF-98-47 — vrai si le prompt système intègre une consigne
+     *                     d'adaptation au style appris du cabinet
+     */
+    record PreparedConclusion(String systemPrompt, String userMessage, boolean styleApplied) {
     }
 }

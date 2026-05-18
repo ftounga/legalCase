@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="247-add-style-applied-to-case-conclusions" author="legalcase">
+        <comment>
+            F-98 / SF-98-47 : style mimicking. La génération de conclusions adopte
+            le style rédactionnel appris du cabinet (signatures de style produites
+            par SF-98-46).
+
+            - Ajout style_applied (BOOLEAN NOT NULL, défaut false) : trace si la
+              version générée a bénéficié d'au moins une signature de style active.
+              Les lignes existantes migrent à false (génération générique).
+        </comment>
+
+        <addColumn tableName="case_conclusions">
+            <column name="style_applied" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="case_conclusions" columnName="style_applied"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

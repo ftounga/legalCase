@@ -221,6 +221,54 @@ class CaseConclusionControllerIT {
                 .andExpect(jsonPath("$.jurisdictionLabel").value("Conseil de prud'hommes"));
     }
 
+    // ── SF-98-47 — styleApplied reflété dans ConclusionResponse ──────────────
+
+    @Test
+    void GET_conclusions_reflectsStyleAppliedTrue() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        v1.setStyleApplied(true);
+        caseConclusionRepository.save(v1);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.styleApplied").value(true));
+    }
+
+    @Test
+    void GET_conclusions_reflectsStyleAppliedFalseByDefault() throws Exception {
+        persistVersion(supportedCf, 1, CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.styleApplied").value(false));
+    }
+
+    @Test
+    void GET_conclusions_beforeGenerate_styleAppliedFalse() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("NOT_GENERATED"))
+                .andExpect(jsonPath("$.styleApplied").value(false));
+    }
+
+    @Test
+    void GET_version_reflectsStyleApplied() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        v1.setStyleApplied(true);
+        caseConclusionRepository.save(v1);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId())
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.styleApplied").value(true));
+    }
+
     // ── GET .../conclusions/versions (CA4) ───────────────────────────────────
 
     @Test

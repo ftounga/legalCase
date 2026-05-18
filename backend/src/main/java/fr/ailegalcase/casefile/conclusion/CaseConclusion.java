@@ -69,6 +69,14 @@ public class CaseConclusion {
     @Column(name = "model_used", length = 80)
     private String modelUsed;
 
+    /**
+     * F-98 / SF-98-47 — vrai si la génération a adopté le style rédactionnel appris
+     * du cabinet (au moins une signature de style active utilisée). Défaut {@code false}
+     * (génération générique, comportement SF-98-01).
+     */
+    @Column(name = "style_applied", nullable = false)
+    private boolean styleApplied;
+
     @Column(name = "prompt_tokens")
     private Integer promptTokens;
 
