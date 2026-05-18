@@ -570,12 +570,22 @@
         <!-- F-244 SF-244-02 : bandeau de couplage — explicite que renseigner un
              outil (colonne de saisie, gauche) met à jour le tableau de bord
              (colonne de verdict, droite). Signal de découvrabilité du couplage
-             saisie → verdict (audit screen-coherence-challenger, ajustement 1). -->
+             saisie → verdict (audit screen-coherence-challenger, ajustement 1).
+             F-244 SF-244-04 : lien « Voir la synthèse » — point d'entrée du
+             sens outils → synthèse (reconnexion bidirectionnelle, ajustement 3). -->
         <div class="decision-coupling-hint" role="note">
           <mat-icon class="decision-coupling-hint__icon">sync_alt</mat-icon>
           <span class="decision-coupling-hint__text">
             Renseignez les outils à gauche : le tableau de bord à droite consolide leurs verdicts en temps réel.
           </span>
+          @if (synthesis()) {
+            <a class="decision-coupling-hint__link"
+               data-testid="decision-to-synthesis-link"
+               [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+              <mat-icon class="decision-coupling-hint__link-icon">summarize</mat-icon>
+              Voir la synthèse
+            </a>
+          }
         </div>
 
         <!-- F-244 SF-244-02 : espace décisionnel en 2 colonnes alignées —

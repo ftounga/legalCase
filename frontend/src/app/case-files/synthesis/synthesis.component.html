@@ -36,6 +36,19 @@
         <mat-icon>arrow_back</mat-icon>
         Retour au dossier
       </a>
+      <!-- F-244 SF-244-04 : point d'entrée synthèse → outils décisionnels.
+           Ouvre le détail dossier directement sur l'onglet « Décision »
+           scrollé sur le panel d'outils (via ?section=decision). Reconnexion
+           bidirectionnelle synthèse ↔ outils (audit, ajustement 3). -->
+      <a mat-stroked-button
+         class="tools-btn"
+         data-testid="synthesis-to-tools-link"
+         [routerLink]="['/case-files', caseFile()!.id]"
+         [queryParams]="{ section: 'decision' }"
+         matTooltip="Ouvrir les outils décisionnels du dossier">
+        <mat-icon>build</mat-icon>
+        Outils décisionnels
+      </a>
       <button mat-stroked-button
               class="export-btn"
               [disabled]="!synthesis()"

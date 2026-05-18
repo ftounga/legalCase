@@ -575,8 +575,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         return;
       }
       if (!section) return;
+      // F-244 SF-244-04 — `?section=decision` ouvre le détail dossier sur
+      // l'onglet « Décision » scrollé sur le panel d'outils : point d'entrée
+      // depuis l'écran synthèse (reconnexion synthèse → outils).
       const target = section === 'documents' ? { tab: TAB_DOSSIER, anchor: 'section-documents' }
                    : section === 'analyse' ? { tab: TAB_ANALYSE, anchor: 'section-analyse' }
+                   : section === 'decision' ? { tab: TAB_DECISION, anchor: 'section-outils-decisionnels' }
                    : section === 'deadlines' ? { tab: TAB_SUIVI, anchor: 'section-deadlines' }
                    : null;
       if (target) {
