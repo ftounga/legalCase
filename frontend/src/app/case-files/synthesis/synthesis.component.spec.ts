@@ -14,6 +14,7 @@ import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
+import { JurisprudenceCheckService } from '../../core/services/jurisprudence-check.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
 import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
@@ -179,6 +180,8 @@ describe('SynthesisComponent', () => {
         { provide: GlobalAnalysisNotificationService, useValue: { track: jest.fn(), events$: NEVER } },
         // F-229 SF-229-01 — stub du service de navigation des badges F-162.
         { provide: BadgeNavigationService, useValue: badgeNavigationMock },
+        // F-179 SF-179-03 — stub du service de vérification de jurisprudence.
+        { provide: JurisprudenceCheckService, useValue: { getChecks: jest.fn().mockReturnValue(of({ checks: [] })) } },
       ]
     }).compileComponents();
 

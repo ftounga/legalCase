@@ -1,0 +1,171 @@
+// F-179 SF-179-03 — section « Jurisprudences citées ».
+// Palette DESIGN_SYSTEM : navy/or principal, rouge réservé SUSPECT, gris UNCERTAIN.
+
+.jc-panel {
+  margin-top: 16px;
+}
+
+.panel-icon--jc {
+  color: #2B5494;
+  margin-right: 8px;
+}
+
+.jc-uncertain-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: #F5F6FA;
+  border-left: 4px solid #6B7A8D;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #1A3A5C;
+
+  &__icon {
+    color: #6B7A8D;
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.jc-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &__doc {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A3A5C;
+  }
+
+  &__doc-icon {
+    color: #6B7A8D;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.jc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.jc-item {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 6px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // SF-179-04 — mise en évidence d'un arrêt suspect.
+  &--alert {
+    border-left: 4px solid #C0392B;
+    background: #FCF3F2;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+.jc-reference {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.jc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &__icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &--verified {
+    background: #E8F1E9;
+    color: #2E7D32;
+  }
+
+  &--suspect {
+    background: #FCE8E6;
+    color: #C0392B;
+  }
+
+  &--not-found {
+    background: #EEF0F3;
+    color: #5A6675;
+  }
+
+  &--uncertain {
+    background: #F5F6FA;
+    color: #6B7A8D;
+  }
+}
+
+.jc-explication {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #3A4A5C;
+  line-height: 1.4;
+}
+
+.jc-position {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #3A4A5C;
+  line-height: 1.4;
+
+  &__label {
+    font-weight: 600;
+    color: #1A3A5C;
+  }
+}
+
+.jc-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2B5494;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &__icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+}

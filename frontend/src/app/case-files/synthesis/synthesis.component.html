@@ -366,6 +366,11 @@
         </mat-expansion-panel>
       }
 
+      <!-- F-179 SF-179-03 — section « Jurisprudences citées » : placée après les
+           risques, avant les questions ouvertes. Panneau conditionnel (ne s'affiche
+           que si des références ont été détectées). -->
+      <app-jurisprudence-citations-section [checks]="jurisprudenceChecks()" />
+
       @if (immigrationTriggerEvents.length > 0) {
         <app-immigration-events-section [events]="immigrationTriggerEvents" />
       }

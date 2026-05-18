@@ -1,0 +1,64 @@
+@if (totalCount() > 0) {
+  <mat-expansion-panel class="jc-panel" id="section-jurisprudence-citations">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon class="panel-icon panel-icon--jc">gavel</mat-icon>
+        Jurisprudences citées
+      </mat-panel-title>
+      <mat-panel-description>{{ summary() }}</mat-panel-description>
+    </mat-expansion-panel-header>
+
+    @if (allUncertain()) {
+      <div class="jc-uncertain-banner">
+        <mat-icon class="jc-uncertain-banner__icon">info</mat-icon>
+        <span>
+          La vérification automatique n'a pas pu conclure sur les références
+          détectées. Vérifiez-les manuellement (Légifrance / Juridat).
+        </span>
+      </div>
+    }
+
+    @for (group of groups(); track group.documentName) {
+      <div class="jc-group">
+        <h4 class="jc-group__doc">
+          <mat-icon class="jc-group__doc-icon">description</mat-icon>
+          {{ group.documentName }}
+        </h4>
+        <ul class="jc-list">
+          @for (check of group.checks; track check.id) {
+            <li class="jc-item" [class.jc-item--alert]="isAlert(check)">
+              <div class="jc-item__head">
+                <span class="jc-badge" [class]="statutClass(check.statut)">
+                  <mat-icon class="jc-badge__icon">{{ statutIcon(check.statut) }}</mat-icon>
+                  {{ statutLabel(check.statut) }}
+                </span>
+                <span class="jc-reference">{{ check.reference }}</span>
+              </div>
+
+              @if (check.explication) {
+                <p class="jc-explication">{{ check.explication }}</p>
+              }
+
+              @if (check.positionAlleguee) {
+                <p class="jc-position">
+                  <span class="jc-position__label">Position alléguée :</span>
+                  {{ check.positionAlleguee }}
+                </p>
+              }
+
+              @if (check.sourceUrl) {
+                <a class="jc-source-link"
+                   [href]="check.sourceUrl"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                  <mat-icon class="jc-source-link__icon">open_in_new</mat-icon>
+                  Consulter la source
+                </a>
+              }
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </mat-expansion-panel>
+}
