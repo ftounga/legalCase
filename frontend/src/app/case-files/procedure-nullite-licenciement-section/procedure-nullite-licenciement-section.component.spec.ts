@@ -6,6 +6,7 @@ import { ProcedureNulliteLicenciementSectionComponent } from './procedure-nullit
 import { ProcedureNulliteLicenciementResponse } from '../../core/models/procedure-nullite-licenciement.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { TravailExtractedData } from '../../core/models/case-analysis.model';
 
 describe('ProcedureNulliteLicenciementSectionComponent', () => {
   let component: ProcedureNulliteLicenciementSectionComponent;
@@ -15,6 +16,18 @@ describe('ProcedureNulliteLicenciementSectionComponent', () => {
   let refreshSpy: jasmine.SpyObj<CaseDashboardRefreshService>;
 
   const BASE_URL = '/api/v1/case-files/case-1/procedure-nullite-licenciement';
+
+  /** SF-246-01 : fixture IA complète — les 8 champs pré-remplissables F-DT-36. */
+  const FULL_AI_DATA: TravailExtractedData = {
+    convocationEntretienDetectee: true,
+    dateConvocationEntretienDetectee: '2026-02-10',
+    dateEntretienPrealableDetectee: '2026-02-18',
+    entretienPrealableTenuDetected: { reponse: 'OUI', justification: 'PV produit' },
+    dateLicenciement: '2026-02-25',
+    lettreLicenciementEcriteDetectee: true,
+    lettreLicenciementMotiveeDetected: { reponse: 'NON', justification: 'Motif vague' },
+    motivationLettreSuffisanteDetected: { reponse: 'NON', justification: 'Pas de fait' },
+  };
 
   function response(verdict: ProcedureNulliteLicenciementResponse['verdict'])
       : ProcedureNulliteLicenciementResponse {
@@ -271,15 +284,115 @@ describe('ProcedureNulliteLicenciementSectionComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // getPrefillCount = 0 (PREFILL_COUNT_ALWAYS_ZERO)
+  // SF-246-01 — pré-fill IA + getPrefillCount
   // ---------------------------------------------------------------------------
 
-  it('getPrefillCount() retourne 0 (V1 — aucun flag procédural extrait)', () => {
+  it('getPrefillCount() cas 0 — input vide retourne 0', () => {
     expect(ProcedureNulliteLicenciementSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('getPrefillCount() cas partiel — 3 champs renseignés retourne 3', () => {
     expect(ProcedureNulliteLicenciementSectionComponent.getPrefillCount({
-      aiData: { salaireBrutMensuel: 2500 },
+      aiData: {
+        convocationEntretienDetectee: true,
+        dateConvocationEntretienDetectee: '2026-02-10',
+        dateLicenciement: '2026-02-25',
+      },
+      workspaceCountry: 'FRANCE',
+    })).toBe(3);
+  });
+
+  it('getPrefillCount() cas nominal — 8 champs retourne 8', () => {
+    expect(ProcedureNulliteLicenciementSectionComponent.getPrefillCount({
+      aiData: FULL_AI_DATA,
+      workspaceCountry: 'FRANCE',
+    })).toBe(8);
+  });
+
+  it('getPrefillCount() BELGIQUE retourne 0', () => {
+    expect(ProcedureNulliteLicenciementSectionComponent.getPrefillCount({
+      aiData: FULL_AI_DATA,
+      workspaceCountry: 'BELGIQUE',
     })).toBe(0);
-    expect(ProcedureNulliteLicenciementSectionComponent.PREFILL_COUNT_ALWAYS_ZERO).toBe(true);
+  });
+
+  it('prefillFromAi : 8 champs renseignés + badges de provenance présents', () => {
+    component.aiData = FULL_AI_DATA;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.convocationEnvoyee()).toBe(true);
+    expect(component.dateConvocationPresentee()).toBe('2026-02-10');
+    expect(component.dateEntretienPrealable()).toBe('2026-02-18');
+    expect(component.entretienTenu()).toBe(true);
+    expect(component.dateNotificationLicenciement()).toBe('2026-02-25');
+    expect(component.lettreLicenciementEcrite()).toBe(true);
+    expect(component.lettreMotivee()).toBe(false);
+    expect(component.motivationSuffisante()).toBe(false);
+    // Badges de provenance des 6 champs instrumentés.
+    expect(component.provenanceDateConvocation()).toBe('IA');
+    expect(component.provenanceDateEntretien()).toBe('IA');
+    expect(component.provenanceEntretienTenu()).toBe('IA');
+    expect(component.provenanceDateNotification()).toBe('IA');
+    expect(component.provenanceLettreMotivee()).toBe('IA');
+    expect(component.provenanceMotivationSuffisante()).toBe('IA');
+  });
+
+  it('prefillFromAi : parité stricte getPrefillCount ↔ champs pré-remplis', () => {
+    component.aiData = FULL_AI_DATA;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    const count = ProcedureNulliteLicenciementSectionComponent.getPrefillCount({
+      aiData: FULL_AI_DATA,
+      workspaceCountry: 'FRANCE',
+    });
+    // 6 champs avec badge IA + 2 booléens factuels sans badge (convocation, lettre écrite).
+    const badged = [
+      component.provenanceDateConvocation(),
+      component.provenanceDateEntretien(),
+      component.provenanceEntretienTenu(),
+      component.provenanceDateNotification(),
+      component.provenanceLettreMotivee(),
+      component.provenanceMotivationSuffisante(),
+    ].filter((p) => p === 'IA').length;
+    expect(badged + 2).toBe(count);
+  });
+
+  it('prefillFromAi : no-op gracieux si aiData absent (getPrefillCount = 0)', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expect(component.provenanceDateConvocation()).toBeNull();
+    expect(component.provenanceEntretienTenu()).toBeNull();
+  });
+
+  it('prefillFromAi : dossier BELGIQUE → aucun champ pré-rempli', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiData = FULL_AI_DATA;
+    component.ngOnInit();
+    // Pas de GET en BE (outil FR-only).
+    expect(component.provenanceDateConvocation()).toBeNull();
+    expect(component.provenanceEntretienTenu()).toBeNull();
+    expect(component.dateConvocationPresentee()).toBeNull();
+  });
+
+  it('onDateConvocationChange efface le badge IA', () => {
+    component.provenanceDateConvocation.set('IA');
+    component.onDateConvocationChange('2026-03-01');
+    expect(component.dateConvocationPresentee()).toBe('2026-03-01');
+    expect(component.provenanceDateConvocation()).toBeNull();
+  });
+
+  it('onEntretienTenuChange efface le badge IA', () => {
+    component.provenanceEntretienTenu.set('IA');
+    component.onEntretienTenuChange(false);
+    expect(component.provenanceEntretienTenu()).toBeNull();
+  });
+
+  it('onMotivationSuffisanteChange efface le badge IA', () => {
+    component.provenanceMotivationSuffisante.set('IA');
+    component.onMotivationSuffisanteChange(true);
+    expect(component.provenanceMotivationSuffisante()).toBeNull();
   });
 
   // ---------------------------------------------------------------------------
@@ -369,5 +482,27 @@ describe('ProcedureNulliteLicenciementSectionComponent', () => {
     component.onLicenciementCollectifChange(false);
     expect(component.licenciementCollectif()).toBe(false);
     expect(component.procedureCseRespectee()).toBe(true);
+  });
+
+  it('coherenceAlerts.DATE_ENTRETIEN lève une alerte IA si entretien antérieur à convocation', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    // Incohérence chronologique : entretien le 10/02, convocation présentée le 18/02.
+    component.dateConvocationPresentee.set('2026-02-18');
+    component.dateEntretienPrealable.set('2026-02-10');
+    const alert = component.coherenceAlerts().DATE_ENTRETIEN;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.expectedDisplay).toBe('Date incohérente');
+  });
+
+  it('coherenceAlerts.DATE_ENTRETIEN absente si chronologie cohérente', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    component.dateConvocationPresentee.set('2026-02-10');
+    component.dateEntretienPrealable.set('2026-02-18');
+    expect(component.coherenceAlerts().DATE_ENTRETIEN).toBeUndefined();
   });
 });

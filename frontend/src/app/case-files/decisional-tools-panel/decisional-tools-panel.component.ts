@@ -522,7 +522,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          // SF-DT-36-02 : pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+          // SF-246-01 : pré-fill IA réel (8 champs procéduraux extraits dans
+          // travailExtractedData.procedure_licenciement_detection, FR uniquement).
           // Validation F-IA-03 sur 3 champs croisables (DATE_ENTRETIEN,
           // MOTIVATION, ENTRETIEN_TENU) via F-96 / questions IA / pièces.
           aiData: ctx.synthesis?.travailExtractedData,

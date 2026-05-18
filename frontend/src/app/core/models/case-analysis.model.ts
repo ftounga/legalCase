@@ -315,6 +315,18 @@ export interface TravailExtractedData {
    * (cf. SF-197-01).
    */
   typeLitigeAvocatOverride?: string | null;
+  /**
+   * SF-246-01 : flags procéduraux du licenciement pour pré-fill F-DT-36
+   * (nullité de procédure, FR uniquement). Tous nullables — restent `null` pour
+   * un dossier travail belge (concept procédural FR sans équivalent BE direct).
+   */
+  convocationEntretienDetectee?: boolean | null;
+  dateConvocationEntretienDetectee?: string | null;
+  dateEntretienPrealableDetectee?: string | null;
+  entretienPrealableTenuDetected?: DetectedAnswer | null;
+  lettreLicenciementEcriteDetectee?: boolean | null;
+  lettreLicenciementMotiveeDetected?: DetectedAnswer | null;
+  motivationLettreSuffisanteDetected?: DetectedAnswer | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
