@@ -76,11 +76,13 @@ class CaseConclusionControllerIT {
 
     /** Dossier travail FR / CPH / FOND / DEMANDEUR avec analyse DONE — workspace A. */
     private CaseFile supportedCf;
+    /** Dossier travail FR / CPH / FOND / DEFENDEUR avec analyse DONE — workspace A (SF-98-02). */
+    private CaseFile supportedDefendeurCf;
     /** Dossier sans stade procédural — workspace A. */
     private CaseFile noStageCf;
     /** Dossier travail FR / CPH / FOND / DEMANDEUR sans analyse DONE — workspace A. */
     private CaseFile noAnalysisCf;
-    /** Dossier travail FR mais stade hors V1 — workspace A. */
+    /** Dossier dont la combinaison procédurale n'a aucune cellule F-98 — workspace A. */
     private CaseFile unsupportedCf;
     /** Dossier du workspace B (isolation). */
     private CaseFile otherWorkspaceCf;
@@ -102,6 +104,10 @@ class CaseConclusionControllerIT {
                 "CPH", "FOND", "DEMANDEUR");
         saveDoneAnalysis(supportedCf);
 
+        supportedDefendeurCf = saveCf(uA, wsA, "CF defendeur " + ts, "DROIT_DU_TRAVAIL",
+                "CPH", "FOND", "DEFENDEUR");
+        saveDoneAnalysis(supportedDefendeurCf);
+
         noStageCf = saveCf(uA, wsA, "CF nostage " + ts, "DROIT_DU_TRAVAIL",
                 null, null, null);
         saveDoneAnalysis(noStageCf);
@@ -109,8 +115,9 @@ class CaseConclusionControllerIT {
         noAnalysisCf = saveCf(uA, wsA, "CF noanalysis " + ts, "DROIT_DU_TRAVAIL",
                 "CPH", "FOND", "DEMANDEUR");
 
-        unsupportedCf = saveCf(uA, wsA, "CF unsupported " + ts, "DROIT_DU_TRAVAIL",
-                "CPH", "REFERE", "DEMANDEUR");
+        // Combinaison réellement hors registre (aucune cellule F-98) — droit de la famille.
+        unsupportedCf = saveCf(uA, wsA, "CF unsupported " + ts, "DROIT_FAMILLE",
+                "JAF", "DIVORCE_FOND", "DEMANDEUR");
         saveDoneAnalysis(unsupportedCf);
 
         // ── Workspace B (isolation) ──────────────────────────────────────────
@@ -155,6 +162,21 @@ class CaseConclusionControllerIT {
 
         org.assertj.core.api.Assertions.assertThat(caseConclusionRepository
                 .findByCaseFileIdOrderByVersionNumberDesc(supportedCf.getId())).hasSize(2);
+    }
+
+    @Test
+    void POST_generate_defendeurCombination_returns202() throws Exception {
+        mockMvc.perform(post("/api/v1/case-files/" + supportedDefendeurCf.getId() + "/conclusions/generate")
+                        .with(authentication(authA)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.versionNumber").value(1));
+
+        List<CaseConclusion> versions = caseConclusionRepository
+                .findByCaseFileIdOrderByVersionNumberDesc(supportedDefendeurCf.getId());
+        org.assertj.core.api.Assertions.assertThat(versions).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(versions.get(0).getPositionCode())
+                .isEqualTo("DEFENDEUR");
     }
 
     // ── POST gardes 409 ──────────────────────────────────────────────────────

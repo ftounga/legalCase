@@ -5,7 +5,6 @@ import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
-import fr.ailegalcase.casefile.ProcedureStageCatalog;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -37,13 +36,6 @@ public class CaseConclusionCommandService {
 
     private static final Logger log = LoggerFactory.getLogger(CaseConclusionCommandService.class);
 
-    /** Combinaison procédurale couverte par la V1 (une seule cellule de la matrice F-98). */
-    private static final String SUPPORTED_DOMAIN = ProcedureStageCatalog.DROIT_DU_TRAVAIL;
-    private static final String SUPPORTED_COUNTRY = ProcedureStageCatalog.FRANCE;
-    private static final String SUPPORTED_JURISDICTION = "CPH";
-    private static final String SUPPORTED_STAGE = "FOND";
-    private static final String SUPPORTED_POSITION = "DEMANDEUR";
-
     /** Statuts de génération en cours — bloquent un nouveau déclenchement (garde ALREADY_GENERATING). */
     private static final EnumSet<CaseConclusionStatus> IN_PROGRESS_STATUSES =
             EnumSet.of(CaseConclusionStatus.PENDING, CaseConclusionStatus.PROCESSING);
@@ -54,19 +46,22 @@ public class CaseConclusionCommandService {
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final ConclusionPromptRegistry promptRegistry;
 
     public CaseConclusionCommandService(CaseFileRepository caseFileRepository,
                                         CaseConclusionRepository caseConclusionRepository,
                                         CaseAnalysisRepository caseAnalysisRepository,
                                         CurrentUserResolver currentUserResolver,
                                         WorkspaceMemberRepository workspaceMemberRepository,
-                                        RabbitTemplate rabbitTemplate) {
+                                        RabbitTemplate rabbitTemplate,
+                                        ConclusionPromptRegistry promptRegistry) {
         this.caseFileRepository = caseFileRepository;
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.promptRegistry = promptRegistry;
     }
 
     /**
@@ -97,13 +92,10 @@ public class CaseConclusionCommandService {
             throw new CaseConclusionGuardException(CaseConclusionGuardCode.STAGE_NOT_SET);
         }
 
-        // Garde 2 — combinaison couverte par la V1.
-        boolean supported = SUPPORTED_DOMAIN.equals(caseFile.getLegalDomain())
-                && SUPPORTED_COUNTRY.equals(workspace.getCountry())
-                && SUPPORTED_JURISDICTION.equals(jurisdiction)
-                && SUPPORTED_STAGE.equals(stage)
-                && SUPPORTED_POSITION.equals(position);
-        if (!supported) {
+        // Garde 2 — combinaison couverte par une cellule de la matrice F-98.
+        CombinationKey key = new CombinationKey(caseFile.getLegalDomain(), workspace.getCountry(),
+                jurisdiction, stage, position);
+        if (!promptRegistry.supports(key)) {
             throw new CaseConclusionGuardException(CaseConclusionGuardCode.COMBINATION_NOT_SUPPORTED);
         }
 

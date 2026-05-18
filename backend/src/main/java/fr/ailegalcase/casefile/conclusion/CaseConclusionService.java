@@ -171,7 +171,9 @@ public class CaseConclusionService {
                         loadRetainedStrategies(caseFileId));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
-        String systemPrompt = promptBuilder.buildSystemPrompt(styleSignatures);
+        CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
+                conclusion.getStageCode(), conclusion.getPositionCode());
+        String systemPrompt = promptBuilder.buildSystemPrompt(key, styleSignatures);
         String userMessage = promptBuilder.buildUserMessage(input);
         return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty());
     }

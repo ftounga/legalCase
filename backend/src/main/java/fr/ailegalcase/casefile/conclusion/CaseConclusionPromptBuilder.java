@@ -10,40 +10,23 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * F-98 / SF-98-01 — assemble le prompt système et le message utilisateur du
- * générateur de conclusions CPH bureau de jugement (fond), FR, demandeur, droit
- * du travail.
+ * F-98 — assemble le prompt système et le message utilisateur du générateur de
+ * conclusions.
  *
  * <p>Le prompt système porte les instructions de rédaction (stables, donc cachables
  * par {@code AnthropicService.analyzeWithSystemCache}). Le message utilisateur porte
  * les données du dossier : stade procédural, synthèse, pièces numérotées, verdicts des
  * outils décisionnels et pistes stratégiques retenues.</p>
  *
- * <p>Conçu pour être étendu cellule par cellule par les SF-98-02→45 (un prompt système
- * distinct par combinaison juridiction/stade/position/domaine/pays).</p>
+ * <p>Le prompt système de base dépend de la cellule de matrice
+ * ({@link CombinationKey}) : il est fourni par le {@link ConclusionPromptProvider}
+ * correspondant, résolu via {@link ConclusionPromptRegistry}. La consigne de style
+ * F-98-47 est appliquée par-dessus, identiquement pour toutes les cellules.</p>
  */
 @Component
 public class CaseConclusionPromptBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(CaseConclusionPromptBuilder.class);
-
-    /**
-     * Prompt système — CPH / bureau de jugement (fond) / demandeur (salarié) / droit du
-     * travail FR. Instructions de rédaction stables (cachables).
-     */
-    static final String SYSTEM_PROMPT = """
-            Tu es l'avocat du demandeur (salarié) devant le Conseil de prud'hommes, en bureau de jugement.
-            Rédige un PROJET DE CONCLUSIONS structuré :
-            - en-tête (POUR [demandeur] / CONTRE [défendeur]),
-            - FAITS ET PROCÉDURE,
-            - DISCUSSION (moyens en droit, un paragraphe argumenté par moyen),
-            - PAR CES MOTIFS (dispositif avec demandes chiffrées).
-            Cite les pièces par leur numéro (Pièce n° X).
-            Appuie chaque moyen sur les verdicts des outils décisionnels fournis et sur la stratégie retenue.
-            Reprends les montants exacts des calculs fournis — n'invente aucun chiffre.
-            Style sobre, juridique, en français.
-            Ce n'est qu'un projet : il sera relu par l'avocat.
-            """;
 
     /**
      * F-98 / SF-98-47 — en-tête de la consigne d'adaptation de style, injectée au prompt
@@ -53,38 +36,40 @@ public class CaseConclusionPromptBuilder {
             "Adopte le style rédactionnel suivant, appris des conclusions de l'avocat :";
 
     private final ObjectMapper objectMapper;
+    private final ConclusionPromptRegistry promptRegistry;
 
-    public CaseConclusionPromptBuilder(ObjectMapper objectMapper) {
+    public CaseConclusionPromptBuilder(ObjectMapper objectMapper,
+                                       ConclusionPromptRegistry promptRegistry) {
         this.objectMapper = objectMapper;
+        this.promptRegistry = promptRegistry;
     }
 
     /**
-     * @return le prompt système (instructions de rédaction, cachable). Variante sans
-     *         style — équivalente à {@code buildSystemPrompt(List.of())}.
-     */
-    public String buildSystemPrompt() {
-        return buildSystemPrompt(List.of());
-    }
-
-    /**
-     * F-98 / SF-98-47 — assemble le prompt système en y intégrant, le cas échéant, une
-     * consigne d'adaptation au style rédactionnel appris du cabinet.
+     * F-98 / SF-98-47 — assemble le prompt système de la cellule {@code key} en y
+     * intégrant, le cas échéant, une consigne d'adaptation au style rédactionnel appris
+     * du cabinet.
      *
-     * <p>Quand {@code styleSignatures} contient au moins une description de style non
-     * vide, le prompt système reprend ces descriptions sous une consigne « adopte le
-     * style rédactionnel suivant... ». Sans signature exploitable, le prompt système
-     * reste strictement identique au comportement SF-98-01 (génération générique).</p>
+     * <p>Le prompt de base provient de la cellule de matrice correspondant à {@code key}
+     * (registre {@link ConclusionPromptRegistry}). Quand {@code styleSignatures} contient
+     * au moins une description de style non vide, le prompt système reprend ces
+     * descriptions sous une consigne « adopte le style rédactionnel suivant... ». Sans
+     * signature exploitable, le prompt système est le prompt de base seul.</p>
      *
+     * @param key             cellule de matrice du dossier (jamais {@code null})
      * @param styleSignatures descriptions de style actives du workspace (jamais
      *                        {@code null} ; les entrées {@code null} / vides sont ignorées)
      * @return le prompt système, enrichi de la consigne de style si applicable
+     * @throws IllegalStateException si aucune cellule ne couvre {@code key}
      */
-    public String buildSystemPrompt(List<String> styleSignatures) {
+    public String buildSystemPrompt(CombinationKey key, List<String> styleSignatures) {
+        String basePrompt = promptRegistry.systemPrompt(key)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Aucun provider de prompt pour la combinaison " + key));
         List<String> usable = sanitizeSignatures(styleSignatures);
         if (usable.isEmpty()) {
-            return SYSTEM_PROMPT;
+            return basePrompt;
         }
-        StringBuilder sb = new StringBuilder(SYSTEM_PROMPT);
+        StringBuilder sb = new StringBuilder(basePrompt);
         sb.append('\n').append(STYLE_INSTRUCTION_HEADER).append('\n');
         for (String signature : usable) {
             sb.append("- ").append(signature.strip()).append('\n');

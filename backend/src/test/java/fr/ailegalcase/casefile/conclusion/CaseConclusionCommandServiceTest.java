@@ -40,9 +40,13 @@ class CaseConclusionCommandServiceTest {
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
 
+    /** Registre réel avec les 2 cellules CPH/FOND livrées (demandeur + défendeur). */
+    private final ConclusionPromptRegistry promptRegistry = new ConclusionPromptRegistry(List.of(
+            new CphFondDemandeurPromptProvider(), new CphFondDefendeurPromptProvider()));
+
     private final CaseConclusionCommandService service = new CaseConclusionCommandService(
             caseFileRepository, caseConclusionRepository, caseAnalysisRepository,
-            currentUserResolver, workspaceMemberRepository, rabbitTemplate);
+            currentUserResolver, workspaceMemberRepository, rabbitTemplate, promptRegistry);
 
     // ── génération versionnée (CA2, CA9) ─────────────────────────────────────
 
@@ -128,9 +132,40 @@ class CaseConclusionCommandServiceTest {
     }
 
     @Test
+    void triggerGeneration_defendeurCombination_isSupported() {
+        Ctx ctx = supportedCase();
+        ctx.caseFile.setProcedurePosition("DEFENDEUR"); // cellule SF-98-02
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.empty());
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(new CaseAnalysis()));
+        when(caseConclusionRepository.existsByCaseFileIdAndStatusIn(eq(ctx.caseFileId), any()))
+                .thenReturn(false);
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> {
+            CaseConclusion c = inv.getArgument(0);
+            if (c.getId() == null) {
+                c.setId(UUID.randomUUID());
+            }
+            return c;
+        });
+
+        ConclusionGenerationResponse response = service.triggerGeneration(ctx.caseFileId, null, null, null);
+
+        assertThat(response.status()).isEqualTo("PENDING");
+        var captor = org.mockito.ArgumentCaptor.forClass(CaseConclusion.class);
+        verify(caseConclusionRepository).save(captor.capture());
+        assertThat(captor.getValue().getPositionCode()).isEqualTo("DEFENDEUR");
+        verify(rabbitTemplate).convertAndSend(anyString(), anyString(), any(CaseConclusionMessage.class));
+    }
+
+    @Test
     void triggerGeneration_unsupportedCombination_throwsCombinationNotSupported() {
         Ctx ctx = supportedCase();
-        ctx.caseFile.setProcedureStage("REFERE"); // hors FOND
+        // Combinaison réellement hors registre — droit de la famille (aucune cellule F-98).
+        ctx.caseFile.setLegalDomain("DROIT_FAMILLE");
+        ctx.caseFile.setProcedureJurisdiction("JAF");
+        ctx.caseFile.setProcedureStage("DIVORCE_FOND");
+        ctx.caseFile.setProcedurePosition("DEMANDEUR");
 
         assertThatThrownBy(() -> service.triggerGeneration(ctx.caseFileId, null, null, null))
                 .isInstanceOf(CaseConclusionGuardException.class)
@@ -142,7 +177,7 @@ class CaseConclusionCommandServiceTest {
     @Test
     void triggerGeneration_unsupportedCountry_throwsCombinationNotSupported() {
         Ctx ctx = supportedCase();
-        ctx.workspace.setCountry("BELGIQUE");
+        ctx.workspace.setCountry("BELGIQUE"); // aucune cellule F-98 pour la Belgique
 
         assertThatThrownBy(() -> service.triggerGeneration(ctx.caseFileId, null, null, null))
                 .isInstanceOf(CaseConclusionGuardException.class)
