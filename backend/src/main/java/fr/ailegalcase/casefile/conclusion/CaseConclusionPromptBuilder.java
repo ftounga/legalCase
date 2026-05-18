@@ -35,6 +35,20 @@ public class CaseConclusionPromptBuilder {
     static final String STYLE_INSTRUCTION_HEADER =
             "Adopte le style rédactionnel suivant, appris des conclusions de l'avocat :";
 
+    /**
+     * F-242 / SF-242-01 — garde anti-hallucination transverse sur la jurisprudence,
+     * appliquée à toutes les cellules de matrice (symétrique du « n'invente aucun
+     * chiffre » des prompts de base). L'IA ne doit citer que les références qui lui ont
+     * été explicitement fournies dans la section JURISPRUDENCE À L'APPUI.
+     */
+    static final String JURISPRUDENCE_GUARD =
+            "Garde jurisprudence : ne cite aucune référence de jurisprudence (arrêt, "
+                    + "décision, numéro de pourvoi) qui ne figure pas dans la section "
+                    + "« JURISPRUDENCE À L'APPUI » du message. Si cette section contient des "
+                    + "références, appuie-toi exclusivement sur celles-ci ; si elle indique "
+                    + "qu'aucune référence n'est fournie, n'invente aucun arrêt ni aucune "
+                    + "décision de justice.";
+
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
 
@@ -65,14 +79,15 @@ public class CaseConclusionPromptBuilder {
         String basePrompt = promptRegistry.systemPrompt(key)
                 .orElseThrow(() -> new IllegalStateException(
                         "Aucun provider de prompt pour la combinaison " + key));
-        List<String> usable = sanitizeSignatures(styleSignatures);
-        if (usable.isEmpty()) {
-            return basePrompt;
-        }
+        // F-242 — garde anti-hallucination jurisprudence, appliquée à toutes les cellules.
         StringBuilder sb = new StringBuilder(basePrompt);
-        sb.append('\n').append(STYLE_INSTRUCTION_HEADER).append('\n');
-        for (String signature : usable) {
-            sb.append("- ").append(signature.strip()).append('\n');
+        sb.append('\n').append(JURISPRUDENCE_GUARD).append('\n');
+        List<String> usable = sanitizeSignatures(styleSignatures);
+        if (!usable.isEmpty()) {
+            sb.append(STYLE_INSTRUCTION_HEADER).append('\n');
+            for (String signature : usable) {
+                sb.append("- ").append(signature.strip()).append('\n');
+            }
         }
         return sb.toString();
     }
@@ -150,7 +165,49 @@ public class CaseConclusionPromptBuilder {
             }
         }
 
+        appendJurisprudenceCitations(sb, input.jurisprudenceCitations());
+
         return sb.toString();
+    }
+
+    /**
+     * F-242 / SF-242-01 — ajoute la section des citations de jurisprudence d'appui,
+     * regroupées par point juridique : pour chaque point, son texte (snapshot) puis ses
+     * références numérotées avec leur portée. L'ordre des points suit l'ordre d'arrivée
+     * des citations (déjà trié par index de point juridique côté repository).
+     *
+     * <p>Sans citation, la section indique explicitement l'absence de référence — pour
+     * que la garde anti-hallucination du prompt système soit sans ambiguïté.</p>
+     */
+    private void appendJurisprudenceCitations(
+            StringBuilder sb,
+            List<ConclusionPromptInput.JurisprudenceCitationForPrompt> citations) {
+        sb.append("\n=== JURISPRUDENCE À L'APPUI ===\n");
+        if (citations == null || citations.isEmpty()) {
+            sb.append("Aucune référence de jurisprudence fournie.\n");
+            return;
+        }
+        // Regroupement par point juridique (index + snapshot du texte), ordre d'arrivée préservé.
+        java.util.Map<String, List<ConclusionPromptInput.JurisprudenceCitationForPrompt>> byPoint =
+                new java.util.LinkedHashMap<>();
+        for (ConclusionPromptInput.JurisprudenceCitationForPrompt c : citations) {
+            if (c == null) {
+                continue;
+            }
+            String groupKey = c.pointJuridiqueIndex() + "|" + nullSafe(c.pointJuridiqueTexte());
+            byPoint.computeIfAbsent(groupKey, k -> new java.util.ArrayList<>()).add(c);
+        }
+        for (List<ConclusionPromptInput.JurisprudenceCitationForPrompt> group : byPoint.values()) {
+            ConclusionPromptInput.JurisprudenceCitationForPrompt first = group.get(0);
+            sb.append("\nPoint juridique : ").append(nullSafe(first.pointJuridiqueTexte())).append('\n');
+            for (ConclusionPromptInput.JurisprudenceCitationForPrompt c : group) {
+                sb.append("  - ").append(nullSafe(c.reference()));
+                if (c.portee() != null && !c.portee().isBlank()) {
+                    sb.append(" — Portée : ").append(c.portee().strip());
+                }
+                sb.append('\n');
+            }
+        }
     }
 
     /**
@@ -205,14 +262,16 @@ public class CaseConclusionPromptBuilder {
     /**
      * F-98 / SF-98-01 — agrégat des intrants du dossier pour la construction du prompt.
      *
-     * @param caseTitle          intitulé du dossier
-     * @param jurisdictionLabel  libellé humain de la juridiction
-     * @param stageLabel         libellé humain du stade
-     * @param positionLabel      libellé humain de la position
-     * @param analysisResultJson JSON brut de la synthèse {@code DONE} la plus récente
-     * @param pieces             pièces numérotées du dossier (ordre stable)
-     * @param toolTiles          verdicts des outils décisionnels remplis
-     * @param retainedStrategies pistes stratégiques au statut {@code RETAINED}
+     * @param caseTitle               intitulé du dossier
+     * @param jurisdictionLabel       libellé humain de la juridiction
+     * @param stageLabel              libellé humain du stade
+     * @param positionLabel           libellé humain de la position
+     * @param analysisResultJson      JSON brut de la synthèse {@code DONE} la plus récente
+     * @param pieces                  pièces numérotées du dossier (ordre stable)
+     * @param toolTiles               verdicts des outils décisionnels remplis
+     * @param retainedStrategies      pistes stratégiques au statut {@code RETAINED}
+     * @param jurisprudenceCitations  F-242 — citations de jurisprudence d'appui saisies
+     *                                par l'avocat (ordre stable par point juridique)
      */
     public record ConclusionPromptInput(
             String caseTitle,
@@ -222,7 +281,8 @@ public class CaseConclusionPromptBuilder {
             String analysisResultJson,
             List<NumberedPiece> pieces,
             List<DashboardTile> toolTiles,
-            List<RetainedStrategy> retainedStrategies) {
+            List<RetainedStrategy> retainedStrategies,
+            List<JurisprudenceCitationForPrompt> jurisprudenceCitations) {
 
         /** Pièce numérotée du dossier. */
         public record NumberedPiece(int number, String label, String type) {
@@ -230,6 +290,22 @@ public class CaseConclusionPromptBuilder {
 
         /** Piste stratégique retenue par l'avocat. */
         public record RetainedStrategy(String texte, String baseJuridique) {
+        }
+
+        /**
+         * F-242 / SF-242-01 — citation de jurisprudence d'appui rattachée à un point
+         * juridique de la synthèse.
+         *
+         * @param pointJuridiqueIndex index du point juridique dans la synthèse
+         * @param pointJuridiqueTexte snapshot du texte du point juridique
+         * @param reference           libellé de la référence
+         * @param portee              ligne de portée ({@code null} si non renseignée)
+         */
+        public record JurisprudenceCitationForPrompt(
+                int pointJuridiqueIndex,
+                String pointJuridiqueTexte,
+                String reference,
+                String portee) {
         }
     }
 }

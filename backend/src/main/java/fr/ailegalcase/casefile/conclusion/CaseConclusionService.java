@@ -12,6 +12,8 @@ import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileDashboardService;
 import fr.ailegalcase.casefile.DashboardTile;
 import fr.ailegalcase.casefile.ProcedureStageCatalog;
+import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitation;
+import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository;
 import fr.ailegalcase.document.Document;
 import fr.ailegalcase.document.DocumentPiece;
 import fr.ailegalcase.document.DocumentPieceRepository;
@@ -64,6 +66,7 @@ public class CaseConclusionService {
     private final CaseConclusionPromptBuilder promptBuilder;
     private final AnthropicService anthropicService;
     private final StyleCorpusRepository styleCorpusRepository;
+    private final JurisprudenceCitationRepository jurisprudenceCitationRepository;
 
     /** Auto-référence pour franchir le proxy transactionnel depuis le listener. */
     @Lazy
@@ -78,7 +81,8 @@ public class CaseConclusionService {
                                  CaseFileDashboardService caseFileDashboardService,
                                  CaseConclusionPromptBuilder promptBuilder,
                                  AnthropicService anthropicService,
-                                 StyleCorpusRepository styleCorpusRepository) {
+                                 StyleCorpusRepository styleCorpusRepository,
+                                 JurisprudenceCitationRepository jurisprudenceCitationRepository) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
@@ -88,6 +92,7 @@ public class CaseConclusionService {
         this.promptBuilder = promptBuilder;
         this.anthropicService = anthropicService;
         this.styleCorpusRepository = styleCorpusRepository;
+        this.jurisprudenceCitationRepository = jurisprudenceCitationRepository;
     }
 
     @RabbitListener(queues = CaseConclusionRabbitMQConfig.CASE_CONCLUSION_QUEUE, concurrency = "2")
@@ -168,7 +173,8 @@ public class CaseConclusionService {
                         loadLatestAnalysisResult(caseFileId),
                         loadNumberedPieces(caseFileId),
                         loadDecisionToolTiles(caseFileId),
-                        loadRetainedStrategies(caseFileId));
+                        loadRetainedStrategies(caseFileId),
+                        loadJurisprudenceCitations(caseFileId));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
         CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
@@ -310,6 +316,36 @@ public class CaseConclusionService {
                     option.getTexte(), option.getBaseJuridique()));
         }
         return retained;
+    }
+
+    /**
+     * F-242 / SF-242-01 — citations de jurisprudence d'appui du dossier, triées par
+     * point juridique (ordre stable garanti par le repository).
+     *
+     * <p><strong>Fail-open</strong> : si la lecture des citations échoue, la génération
+     * se poursuit sans la section jurisprudence — l'exception n'est jamais propagée,
+     * seulement journalisée.</p>
+     */
+    private List<CaseConclusionPromptBuilder.ConclusionPromptInput.JurisprudenceCitationForPrompt>
+            loadJurisprudenceCitations(UUID caseFileId) {
+        try {
+            List<CaseConclusionPromptBuilder.ConclusionPromptInput.JurisprudenceCitationForPrompt>
+                    citations = new ArrayList<>();
+            for (JurisprudenceCitation citation : jurisprudenceCitationRepository
+                    .findByCaseFileIdOrderByPointJuridiqueIndexAscCreatedAtAsc(caseFileId)) {
+                citations.add(
+                        new CaseConclusionPromptBuilder.ConclusionPromptInput.JurisprudenceCitationForPrompt(
+                                citation.getPointJuridiqueIndex(),
+                                citation.getPointJuridiqueTexte(),
+                                citation.getReference(),
+                                citation.getPortee()));
+            }
+            return citations;
+        } catch (RuntimeException ex) {
+            log.warn("Lecture des citations de jurisprudence indisponible pour caseFile {} — "
+                    + "génération sans section jurisprudence : {}", caseFileId, ex.getMessage());
+            return List.of();
+        }
     }
 
     private static String labelSafe(java.util.function.Supplier<String> supplier) {
