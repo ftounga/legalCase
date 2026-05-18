@@ -33,6 +33,21 @@
                   {{ statutLabel(check.statut) }}
                 </span>
                 <span class="jc-reference">{{ check.reference }}</span>
+                <!-- F-179 SF-179-04 — alerte de cohérence sur un arrêt SUSPECT
+                     (esprit F-IA-03) : badge + popover confrontant la position
+                     alléguée à la réalité de l'arrêt. -->
+                @if (isAlert(check)) {
+                  <span class="jc-alert"
+                        tabindex="0"
+                        role="img"
+                        [attr.aria-label]="alertTooltip(check)"
+                        [matTooltip]="alertTooltip(check)"
+                        matTooltipClass="jc-alert-tooltip"
+                        matTooltipPosition="above">
+                    <mat-icon class="jc-alert__icon">error_outline</mat-icon>
+                    Citation à vérifier
+                  </span>
+                }
               </div>
 
               @if (check.explication) {
