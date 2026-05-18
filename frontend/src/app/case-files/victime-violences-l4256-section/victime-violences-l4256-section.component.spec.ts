@@ -63,15 +63,60 @@ describe('VictimeViolencesL4256SectionComponent', () => {
     expect(VictimeViolencesL4256SectionComponent.TOOL_ICON).toBe('shield');
   });
 
-  it('static getPrefillCount returns 0 (no IA signal V1)', () => {
+  // SF-246-04 : pré-fill IA effectif sur dateOrdonnanceProtection.
+  it('static getPrefillCount returns 0 when no IA date signal', () => {
     expect(VictimeViolencesL4256SectionComponent.getPrefillCount({})).toBe(0);
     expect(VictimeViolencesL4256SectionComponent.getPrefillCount({
       aiData: { dateNotificationOqtf: '2026-04-01' },
     })).toBe(0);
+  });
+
+  it('static getPrefillCount returns 1 when a valid ISO ordonnance date is detected (FR)', () => {
     expect(VictimeViolencesL4256SectionComponent.getPrefillCount({
-      aiData: { dateNotificationOqtf: '2026-04-01' },
+      aiData: { dateOrdonnanceProtectionJaf: '2026-01-15' },
+      workspaceCountry: 'FRANCE',
+    })).toBe(1);
+  });
+
+  it('static getPrefillCount returns 0 for BELGIQUE even with a valid date', () => {
+    expect(VictimeViolencesL4256SectionComponent.getPrefillCount({
+      aiData: { dateOrdonnanceProtectionJaf: '2026-01-15' },
       workspaceCountry: 'BELGIQUE',
     })).toBe(0);
+  });
+
+  it('prefillFromAi : valid IA date prefills dateOrdonnanceProtection + sets provenance + parity with getPrefillCount', () => {
+    component.aiData = { dateOrdonnanceProtectionJaf: '2026-01-15' };
+    component.ngOnInit();
+    flush404();
+    expect(component.dateOrdonnanceProtection()).toBe('2026-01-15');
+    expect(component.provenanceDateOrdonnance()).toBe('IA');
+    // Parité stricte : 1 champ pré-rempli ⇔ getPrefillCount = 1.
+    expect(VictimeViolencesL4256SectionComponent.getPrefillCount({
+      aiData: component.aiData,
+      workspaceCountry: 'FRANCE',
+    })).toBe(1);
+  });
+
+  it('prefillFromAi : non-ISO IA date is rejected, no prefill (parity with getPrefillCount = 0)', () => {
+    component.aiData = { dateOrdonnanceProtectionJaf: '15/01/2026' };
+    component.ngOnInit();
+    flush404();
+    expect(component.dateOrdonnanceProtection()).toBeNull();
+    expect(component.provenanceDateOrdonnance()).toBeNull();
+    expect(VictimeViolencesL4256SectionComponent.getPrefillCount({
+      aiData: component.aiData,
+      workspaceCountry: 'FRANCE',
+    })).toBe(0);
+  });
+
+  it('prefillFromAi : no-op on BELGIQUE workspace even with a valid IA date', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiData = { dateOrdonnanceProtectionJaf: '2026-01-15' };
+    component.ngOnInit();
+    httpMock.expectNone(BASE_URL);
+    expect(component.dateOrdonnanceProtection()).toBeNull();
+    expect(component.provenanceDateOrdonnance()).toBeNull();
   });
 
   it('FRANCE -> GET', () => {

@@ -610,6 +610,78 @@ class CaseAnalysisResponseTest {
         assertThat(im.typeRecoursCode()).isEqualTo("RECOURS_CNDA");
     }
 
+    // SF-246-04 : date_ordonnance_protection_jaf — cas nominal présent → champ renseigné.
+    @Test
+    void from_immigrationDateOrdonnanceProtectionJaf_present_isParsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_ordonnance_protection_jaf": "2026-01-15"
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        var im = response.immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateOrdonnanceProtectionJaf()).isEqualTo("2026-01-15");
+    }
+
+    // SF-246-04 : champ absent → dateOrdonnanceProtectionJaf null, pas d'exception.
+    @Test
+    void from_immigrationDateOrdonnanceProtectionJaf_absent_isNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_procedure_detectee": "RECOURS_CNDA"
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        var im = response.immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateOrdonnanceProtectionJaf()).isNull();
+    }
+
+    // SF-246-04 : si SEUL date_ordonnance_protection_jaf est présent, le record
+    // immigration n'est pas null (le champ participe au test de non-nullité global).
+    @Test
+    void from_immigrationDateOrdonnanceProtectionJaf_onlyField_recordNotNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_ordonnance_protection_jaf": "2026-01-15"
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.immigrationExtractedData()).isNotNull();
+    }
+
+    // SF-246-04 — invariant cadrage §5.1.6 : fixture multi-dates concurrentes →
+    // chaque date est attribuée au bon champ, aucune confusion.
+    @Test
+    void from_immigrationMultiDates_noConfusionBetweenOrdonnanceAndOtherDates() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_ordonnance_protection_jaf": "2026-01-15",
+                  "date_expiration_titre": "2026-06-30",
+                  "date_depot_procedure": "2026-02-01"
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        var im = response.immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateOrdonnanceProtectionJaf()).isEqualTo("2026-01-15");
+        assertThat(im.dateExpirationTitre()).isEqualTo("2026-06-30");
+        assertThat(im.dateDepotProcedure()).isEqualTo("2026-02-01");
+    }
+
+    // SF-246-04 : prompt immigration mentionne la clé date_ordonnance_protection_jaf
+    // et la distinction d'avec date_expiration_titre / date_depot_procedure.
+    @Test
+    void immigrationPrompt_mentionsDateOrdonnanceProtectionJaf() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        assertThat(instruction)
+                .contains("date_ordonnance_protection_jaf")
+                .contains("juge aux affaires familiales")
+                .contains("date_expiration_titre")
+                .contains("date_depot_procedure");
+    }
+
     // SF-IA-03-13 : détection validité rupture conventionnelle
     @Test
     void from_ruptureConvValidityDetection_parses6Criteria() {

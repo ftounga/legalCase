@@ -114,6 +114,24 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("FR");
     }
 
+    // SF-246-04 : champ IA date_ordonnance_protection_jaf documenté dans le prompt immigration
+    // pour le pré-fill de F-IM-24 (victime de violences L.425-6).
+    @Test
+    void domainSpecificInstruction_immigration_mentionsDateOrdonnanceProtectionJaf() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        // Clé JSON attendue dans la réponse IA
+        assertThat(instruction).contains("date_ordonnance_protection_jaf");
+        // Définition juridique sans ambiguïté (juge aux affaires familiales, Cciv 515-9)
+        assertThat(instruction).contains("juge aux affaires familiales");
+        assertThat(instruction).contains("515-9");
+        // Distinction explicite d'avec les deux dates concurrentes
+        assertThat(instruction).contains("date_expiration_titre");
+        assertThat(instruction).contains("date_depot_procedure");
+        // FRANCE uniquement + ancrage SF
+        assertThat(instruction).containsIgnoringCase("BELGE");
+        assertThat(instruction).contains("SF-246-04");
+    }
+
     // SF-172-01 : élargissement détection événements immigration FR aux faits imminents documentés.
     // C1 — la phrase de biais conservateur a été supprimée du prompt trigger_events.
     // C2 — la nouvelle règle d'inclusion forward-looking est présente, avec la notion de preuve documentaire.
