@@ -1393,6 +1393,118 @@ Migration : 234-create-liquidation-partage-be-analyses.xml
 
 ---
 
+## autorite_parentale_be_analyses
+
+F-217 SF-217-04 — analyse de l'outil décisionnel « autorité parentale BE » (Code civil belge art. 374-375 — autorité conjointe / exclusive, déchéance), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé sous forme JSON TEXT.
+
+```
+autorite_parentale_be_analyses
+  id              UUID PK
+  case_file_id    UUID FK → case_files(id)  UNIQUE
+  snapshot_data   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  country         VARCHAR(20) NOT NULL
+  created_at      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_autorite_parentale_be_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_autorite_parentale_be_analyses_case_file
+
+Migration : 237-create-autorite-parentale-be-analyses.xml
+
+---
+
+## contribution_alimentaire_enfants_be_analyses
+
+F-217 SF-217-06 — analyse de l'outil décisionnel « contribution alimentaire pour enfants BE » (méthode Renard, Code civil belge art. 203 / 203bis), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé (estimation indicative) sous forme JSON TEXT.
+
+```
+contribution_alimentaire_enfants_be_analyses
+  id              UUID PK
+  case_file_id    UUID FK → case_files(id)  UNIQUE
+  snapshot_data   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  country         VARCHAR(20) NOT NULL
+  created_at      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_contribution_alimentaire_enfants_be_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_contribution_alimentaire_enfants_be_analyses_case_file
+
+Migration : 239-create-contribution-alimentaire-enfants-be-analyses.xml
+
+---
+
+## contribution_conjoint_be_analyses
+
+F-217 SF-217-08 — analyse de l'outil décisionnel « pension alimentaire entre ex-époux BE » (Code civil belge art. 301), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé (estimation indicative) sous forme JSON TEXT.
+
+```
+contribution_conjoint_be_analyses
+  id              UUID PK
+  case_file_id    UUID FK → case_files(id)  UNIQUE
+  snapshot_data   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  country         VARCHAR(20) NOT NULL
+  created_at      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_contribution_conjoint_be_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_contribution_conjoint_be_analyses_case_file
+
+Migration : 241-create-contribution-conjoint-be-analyses.xml
+
+---
+
+## jurisprudence_checks
+
+F-179 — vérifications de la jurisprudence citée dans les documents uploadés d'un dossier (typiquement les conclusions adverses). Une ligne = une référence jurisprudentielle détectée, vérifiée par Claude Sonnet quant à son existence réelle et à la fidélité de la position alléguée. Produite en post-traitement de `CaseAnalysisService`.
+
+```
+jurisprudence_checks
+  id                 UUID PK
+  case_file_id       UUID NOT NULL FK → case_files(id)
+  case_analysis_id   UUID NOT NULL FK → case_analyses(id)
+  workspace_id       UUID NOT NULL FK → workspaces(id)   -- isolation workspace
+  document_name      VARCHAR(500) NOT NULL
+  reference          VARCHAR(500) NOT NULL    -- ex. « Cass. soc. 12/10/2022 n°21-12345 »
+  statut             VARCHAR(20) NOT NULL     -- VERIFIED / SUSPECT / NOT_FOUND / UNCERTAIN
+  explication        TEXT
+  position_alleguee  TEXT
+  source_url         VARCHAR(1000)
+  claude_confidence  VARCHAR(10)
+  web_search_used    BOOLEAN NOT NULL DEFAULT false
+  created_at         TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Index :
+
+idx_jurisprudence_checks_case_analysis (case_analysis_id)
+idx_jurisprudence_checks_case_file (case_file_id)
+
+Règles :
+- 4 statuts : `VERIFIED` (existence + position fidèles), `SUSPECT` (arrêt réel mais position alléguée incohérente — mauvaise foi adverse), `NOT_FOUND` (introuvable même après web search), `UNCERTAIN` (knowledge gap Claude + web search en échec — vérification manuelle requise).
+- Isolation workspace stricte via `workspace_id`. La lecture filtre sur la dernière `case_analyses` DONE du dossier.
+
+Migration : 245-create-jurisprudence-checks.xml
+
+---
+
 ## prudhome_fiches
 
 Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).
