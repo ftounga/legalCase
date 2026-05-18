@@ -93,6 +93,39 @@
   color: #1A3A5C;
 }
 
+// SF-179-04 — badge d'alerte de cohérence sur un arrêt suspect.
+.jc-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+  background: #C0392B;
+  color: #FFFFFF;
+
+  &__icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #1A3A5C;
+    outline-offset: 1px;
+  }
+}
+
+// Popover d'alerte multiligne (position alléguée vs réalité de l'arrêt).
+::ng-deep .jc-alert-tooltip {
+  white-space: pre-line;
+  font-size: 12px;
+  max-width: 320px;
+}
+
 .jc-badge {
   display: inline-flex;
   align-items: center;

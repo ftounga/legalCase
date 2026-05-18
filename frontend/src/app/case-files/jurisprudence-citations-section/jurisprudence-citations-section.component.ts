@@ -112,4 +112,25 @@ export class JurisprudenceCitationsSectionComponent {
   isAlert(check: JurisprudenceCheck): boolean {
     return check.statut === 'SUSPECT';
   }
+
+  /**
+   * SF-179-04 — message du popover d'alerte de cohérence sur un arrêt SUSPECT :
+   * confronte la position alléguée par le document à la réalité de l'arrêt
+   * (explication backend). Esprit F-IA-03 : signaler une incohérence entre une
+   * source citée et son contenu réel.
+   */
+  alertTooltip(check: JurisprudenceCheck): string {
+    const parts: string[] = [
+      'Position alléguée incohérente avec le contenu réel de l\'arrêt.',
+    ];
+    if (check.positionAlleguee) {
+      parts.push(`Alléguée : ${check.positionAlleguee}`);
+    }
+    if (check.explication) {
+      parts.push(`Réalité : ${check.explication}`);
+    } else {
+      parts.push('Arrêt réel mais position alléguée à vérifier.');
+    }
+    return parts.join('\n');
+  }
 }

@@ -108,4 +108,44 @@ describe('JurisprudenceCitationsSectionComponent', () => {
     expect(component.isAlert(check({ statut: 'NOT_FOUND' }))).toBe(false);
     expect(component.isAlert(check({ statut: 'UNCERTAIN' }))).toBe(false);
   });
+
+  // ---- SF-179-04 : alerte de cohérence sur arrêt SUSPECT ----
+
+  it('renders a coherence alert badge only on SUSPECT checks', () => {
+    component.checks = [
+      check({ id: '1', statut: 'SUSPECT' }),
+      check({ id: '2', statut: 'VERIFIED' }),
+      check({ id: '3', statut: 'UNCERTAIN' }),
+    ];
+    fixture.detectChanges();
+    const alerts = fixture.nativeElement.querySelectorAll('.jc-alert');
+    expect(alerts.length).toBe(1);
+  });
+
+  it('builds an alert tooltip confronting position and reality', () => {
+    const tooltip = component.alertTooltip(
+      check({
+        statut: 'SUSPECT',
+        positionAlleguee: 'Fonde la nullité du licenciement.',
+        explication: 'L\'arrêt concerne en réalité la prescription.',
+      }),
+    );
+    expect(tooltip).toContain('incohérente');
+    expect(tooltip).toContain('Alléguée : Fonde la nullité du licenciement.');
+    expect(tooltip).toContain('Réalité : L\'arrêt concerne en réalité la prescription.');
+  });
+
+  it('falls back to a generic message when explication is missing', () => {
+    const tooltip = component.alertTooltip(
+      check({ statut: 'SUSPECT', positionAlleguee: 'X', explication: null }),
+    );
+    expect(tooltip).toContain('à vérifier');
+  });
+
+  it('marks SUSPECT items with the alert CSS class', () => {
+    component.checks = [check({ id: '1', statut: 'SUSPECT' })];
+    fixture.detectChanges();
+    const item = fixture.nativeElement.querySelector('.jc-item');
+    expect(item.classList).toContain('jc-item--alert');
+  });
 });
