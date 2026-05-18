@@ -126,4 +126,26 @@ describe('CaseDashboardStepperComponent', () => {
     const detail = fixture.nativeElement.querySelector('.step-detail');
     expect(detail).toBeNull();
   });
+
+  // ----- F-244 SF-244-03 : badge prefill auto_awesome sur une étape -----
+
+  it('SF-244-03: should render auto_awesome badge when step.prefillCount > 0', () => {
+    component.steps = [makeStep({ id: 'outils', label: 'Outils décisionnels', prefillCount: 4 })];
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('[data-testid="step-prefill-badge"]');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toContain('4');
+  });
+
+  it('SF-244-03: should not render prefill badge when prefillCount is 0', () => {
+    component.steps = [makeStep({ id: 'outils', prefillCount: 0 })];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="step-prefill-badge"]')).toBeNull();
+  });
+
+  it('SF-244-03: should not render prefill badge when prefillCount is absent', () => {
+    component.steps = [makeStep({ id: 'documents' })];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="step-prefill-badge"]')).toBeNull();
+  });
 });

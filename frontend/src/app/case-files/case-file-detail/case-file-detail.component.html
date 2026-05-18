@@ -585,7 +585,9 @@
         <div class="decision-space">
 
           <!-- Colonne de saisie -->
-          <div class="decision-space__input">
+          <!-- F-244 SF-244-03 : ancre cible de l'étape « Outils décisionnels »
+               du case-dashboard-stepper. -->
+          <div class="decision-space__input" id="section-outils-decisionnels">
             <app-decisional-tools-panel
               [caseFileId]="caseFile()!.id"
               [synthesis]="synthesis()"
@@ -602,8 +604,10 @@
 
           <!-- Colonne de verdict (sticky) -->
           <div class="decision-space__verdict">
-            <!-- F-184 SF-184-01 : tableau de bord décisionnel en carte premium (Option B). -->
-            <section class="decisional-summary-panel">
+            <!-- F-184 SF-184-01 : tableau de bord décisionnel en carte premium (Option B).
+                 F-244 SF-244-03 : id = ancre cible de l'étape « Tableau de bord
+                 décisionnel » du case-dashboard-stepper. -->
+            <section class="decisional-summary-panel" id="section-tableau-bord">
               <header class="decisional-summary-panel__header">
                 <span class="decisional-summary-panel__title">Tableau de bord décisionnel</span>
                 @if (dash.verdictsCount() > 0) {

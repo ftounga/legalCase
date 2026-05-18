@@ -1137,10 +1137,62 @@ describe('CaseFileDetailComponent', () => {
     expect(component.deadlines()).toEqual([]);
   });
 
-  it('SF101-C-13: stepper rendu dans le DOM avec 5 étapes', () => {
+  it('SF101-C-13 (adapté F-244 SF-244-03): stepper rendu dans le DOM', () => {
     fixture.detectChanges();
     const stepper = fixture.nativeElement.querySelector('app-case-dashboard-stepper');
     expect(stepper).not.toBeNull();
+  });
+
+  // ----- F-244 SF-244-03 : stepper étendu (Synthèse / Outils / Tableau de bord) -----
+
+  describe('F-244 SF-244-03 stepper étendu', () => {
+    it('SF-244-03-T01: dashboardSteps() retourne 8 étapes dans l\'ordre du parcours', () => {
+      fixture.detectChanges();
+      const ids = component.dashboardSteps().map(s => s.id);
+      expect(ids).toEqual([
+        'documents', 'analyse', 'synthese', 'questions',
+        'outils', 'tableau-bord', 'delais', 'pieces',
+      ]);
+    });
+
+    it('SF-244-03-T02: étape Synthèse done si synthèse présente, pending sinon', () => {
+      fixture.detectChanges();
+      // Pas de synthèse → pending.
+      expect(component.dashboardSteps().find(s => s.id === 'synthese')!.status).toBe('pending');
+      // Synthèse présente → done.
+      component.synthesis.set({
+        id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+        timeline: [], faits: [], pointsJuridiques: [], risques: [],
+        questionsOuvertes: [], piecesManquantes: [],
+        riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z',
+      });
+      expect(component.dashboardSteps().find(s => s.id === 'synthese')!.status).toBe('done');
+    });
+
+    it('SF-244-03-T03: étapes Outils et Tableau de bord pointent l\'onglet Décision', () => {
+      fixture.detectChanges();
+      const outils = component.dashboardSteps().find(s => s.id === 'outils')!;
+      const tableau = component.dashboardSteps().find(s => s.id === 'tableau-bord')!;
+      expect(outils.tabIndex).toBe(2);
+      expect(outils.anchorId).toBe('section-outils-decisionnels');
+      expect(tableau.tabIndex).toBe(2);
+      expect(tableau.anchorId).toBe('section-tableau-bord');
+    });
+
+    it('SF-244-03-T04: étape Outils porte prefillCount = decisionPrefillTotal', () => {
+      fixture.detectChanges();
+      component.onDecisionPrefillTotalChange(5);
+      const outils = component.dashboardSteps().find(s => s.id === 'outils')!;
+      expect(outils.prefillCount).toBe(5);
+      expect(outils.detail).toBe('5 champs pré-remplis');
+    });
+
+    it('SF-244-03-T05: ancres section-outils-decisionnels et section-tableau-bord présentes', () => {
+      fixture.detectChanges();
+      const decision = fixture.nativeElement.querySelector('[data-tab-panel="decision"]');
+      expect(decision.querySelector('#section-outils-decisionnels')).not.toBeNull();
+      expect(decision.querySelector('#section-tableau-bord')).not.toBeNull();
+    });
   });
 
   it('SF-IA-04-03: panel décisionnel monté une fois le dossier chargé', () => {

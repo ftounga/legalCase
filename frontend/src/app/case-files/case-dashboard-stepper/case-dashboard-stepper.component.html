@@ -11,7 +11,20 @@
     >
       <mat-icon class="step-icon">{{ stepIcon(step.status) }}</mat-icon>
       <div class="step-content">
-        <span class="step-label">{{ step.label }}</span>
+        <span class="step-label">
+          {{ step.label }}
+          <!-- F-244 SF-244-03 : badge auto_awesome — total de champs pré-remplis
+               par l'IA sur l'étape (« Outils décisionnels »). La séquence du
+               parcours ne masque pas le travail de l'IA. -->
+          @if ((step.prefillCount ?? 0) > 0) {
+            <span class="step-prefill-badge"
+                  data-testid="step-prefill-badge"
+                  [title]="step.prefillCount + ' champ(s) pré-rempli(s) par l\'analyse'">
+              <mat-icon class="step-prefill-badge__icon">auto_awesome</mat-icon>
+              {{ step.prefillCount }}
+            </span>
+          }
+        </span>
         @if (step.detail) {
           <span class="step-detail">{{ step.detail }}</span>
         }

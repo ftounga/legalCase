@@ -358,6 +358,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
     // F-244 SF-244-01 — chaque étape déclare l'onglet contenant son bloc cible
     // (cf. TAB_*). `tabIndex: null` → étape navigant vers la route synthèse.
+    // F-244 SF-244-03 — le stepper couvre désormais la séquence complète du
+    // parcours : Documents → Analyse → Synthèse → Questions → Outils
+    // décisionnels → Tableau de bord → Délais → Pièces manquantes (l'audit
+    // pointait l'omission de Synthèse / Outils / Tableau de bord).
+    const prefillTotal = this.decisionPrefillTotal();
     return [
       {
         id: 'documents',
@@ -376,12 +381,47 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         tabIndex: TAB_ANALYSE,
       },
       {
+        // F-244 SF-244-03 — étape Synthèse : navigue vers la route synthèse
+        // dédiée (tabIndex + anchorId null → navigation gérée par le stepper).
+        id: 'synthese',
+        label: 'Synthèse',
+        status: this.fullAnalysisRunning() ? 'in_progress' : syn !== null ? 'done' : 'pending',
+        detail: syn !== null ? 'Disponible' : null,
+        anchorId: null,
+        tabIndex: null,
+      },
+      {
         id: 'questions',
         label: 'Questions complémentaires',
         status: syn === null ? 'pending' : (qs.length > 0 && pendingQuestions === 0) ? 'done' : 'pending',
         detail: syn !== null && pendingQuestions > 0 ? `${pendingQuestions} en attente` : null,
         anchorId: null,
         tabIndex: null,
+      },
+      {
+        // F-244 SF-244-03 — étape Outils décisionnels : point d'entrée navigable
+        // vers l'onglet Décision. Reste `pending` (donc cliquable) une fois la
+        // synthèse disponible — pas de critère objectif de complétion. Porte le
+        // badge prefill agrégé (decisionPrefillTotal, partagé avec SF-244-02).
+        id: 'outils',
+        label: 'Outils décisionnels',
+        status: 'pending',
+        detail: prefillTotal > 0
+          ? `${prefillTotal} champ${prefillTotal > 1 ? 's' : ''} pré-rempli${prefillTotal > 1 ? 's' : ''}`
+          : null,
+        anchorId: 'section-outils-decisionnels',
+        tabIndex: TAB_DECISION,
+        prefillCount: prefillTotal,
+      },
+      {
+        // F-244 SF-244-03 — étape Tableau de bord : point d'entrée navigable
+        // vers la carte tableau de bord de l'onglet Décision.
+        id: 'tableau-bord',
+        label: 'Tableau de bord décisionnel',
+        status: 'pending',
+        detail: null,
+        anchorId: 'section-tableau-bord',
+        tabIndex: TAB_DECISION,
       },
       {
         id: 'delais',
