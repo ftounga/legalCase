@@ -41,7 +41,7 @@ ne touche aucun fichier partagé avec SF-246-01 / SF-246-02 → elle reste plein
 
 ## Statut
 
-`draft`
+`ready`
 
 ## Date de création
 

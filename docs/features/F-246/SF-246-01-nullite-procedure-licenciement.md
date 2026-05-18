@@ -15,7 +15,7 @@
 
 ## Statut
 
-`draft`
+`ready`
 
 ## Date de création
 
