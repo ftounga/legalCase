@@ -187,7 +187,18 @@ public record CaseAnalysisResponse(
             boolean cseConsultationDemandee,
             boolean irpElectionDemandee,
             boolean inspectionTravailSaisie,
-            boolean mediationJudiciaireEnvisagee) {
+            boolean mediationJudiciaireEnvisagee,
+            // SF-246-01 : 6 champs IA procéduraux pour pré-fill F-DT-36 (nullité de
+            // procédure de licenciement, Travail FR uniquement, nullables). La nullité
+            // de procédure FR (entretien préalable, délai 5 j ouvrables, lettre motivée)
+            // n'a pas d'équivalent direct côté BE — ces champs restent null pour la BE.
+            Boolean convocationEntretienDetectee,
+            String dateConvocationEntretienDetectee,
+            String dateEntretienPrealableDetectee,
+            DetectedAnswer entretienPrealableTenuDetected,
+            Boolean lettreLicenciementEcriteDetectee,
+            DetectedAnswer lettreLicenciementMotiveeDetected,
+            DetectedAnswer motivationLettreSuffisanteDetected) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -260,7 +271,14 @@ public record CaseAnalysisResponse(
                     .cseConsultationDemandee(cseConsultationDemandee)
                     .irpElectionDemandee(irpElectionDemandee)
                     .inspectionTravailSaisie(inspectionTravailSaisie)
-                    .mediationJudiciaireEnvisagee(mediationJudiciaireEnvisagee);
+                    .mediationJudiciaireEnvisagee(mediationJudiciaireEnvisagee)
+                    .convocationEntretienDetectee(convocationEntretienDetectee)
+                    .dateConvocationEntretienDetectee(dateConvocationEntretienDetectee)
+                    .dateEntretienPrealableDetectee(dateEntretienPrealableDetectee)
+                    .entretienPrealableTenuDetected(entretienPrealableTenuDetected)
+                    .lettreLicenciementEcriteDetectee(lettreLicenciementEcriteDetectee)
+                    .lettreLicenciementMotiveeDetected(lettreLicenciementMotiveeDetected)
+                    .motivationLettreSuffisanteDetected(motivationLettreSuffisanteDetected);
         }
 
         public static final class Builder {
@@ -323,6 +341,13 @@ public record CaseAnalysisResponse(
             private boolean irpElectionDemandee;
             private boolean inspectionTravailSaisie;
             private boolean mediationJudiciaireEnvisagee;
+            private Boolean convocationEntretienDetectee;
+            private String dateConvocationEntretienDetectee;
+            private String dateEntretienPrealableDetectee;
+            private DetectedAnswer entretienPrealableTenuDetected;
+            private Boolean lettreLicenciementEcriteDetectee;
+            private DetectedAnswer lettreLicenciementMotiveeDetected;
+            private DetectedAnswer motivationLettreSuffisanteDetected;
 
             private Builder() {}
 
@@ -385,6 +410,13 @@ public record CaseAnalysisResponse(
             public Builder irpElectionDemandee(boolean v) { this.irpElectionDemandee = v; return this; }
             public Builder inspectionTravailSaisie(boolean v) { this.inspectionTravailSaisie = v; return this; }
             public Builder mediationJudiciaireEnvisagee(boolean v) { this.mediationJudiciaireEnvisagee = v; return this; }
+            public Builder convocationEntretienDetectee(Boolean v) { this.convocationEntretienDetectee = v; return this; }
+            public Builder dateConvocationEntretienDetectee(String v) { this.dateConvocationEntretienDetectee = v; return this; }
+            public Builder dateEntretienPrealableDetectee(String v) { this.dateEntretienPrealableDetectee = v; return this; }
+            public Builder entretienPrealableTenuDetected(DetectedAnswer v) { this.entretienPrealableTenuDetected = v; return this; }
+            public Builder lettreLicenciementEcriteDetectee(Boolean v) { this.lettreLicenciementEcriteDetectee = v; return this; }
+            public Builder lettreLicenciementMotiveeDetected(DetectedAnswer v) { this.lettreLicenciementMotiveeDetected = v; return this; }
+            public Builder motivationLettreSuffisanteDetected(DetectedAnswer v) { this.motivationLettreSuffisanteDetected = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -411,7 +443,11 @@ public record CaseAnalysisResponse(
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
                         entretienPreavisObtenu, cseConsultationDemandee, irpElectionDemandee,
-                        inspectionTravailSaisie, mediationJudiciaireEnvisagee);
+                        inspectionTravailSaisie, mediationJudiciaireEnvisagee,
+                        convocationEntretienDetectee, dateConvocationEntretienDetectee,
+                        dateEntretienPrealableDetectee, entretienPrealableTenuDetected,
+                        lettreLicenciementEcriteDetectee, lettreLicenciementMotiveeDetected,
+                        motivationLettreSuffisanteDetected);
             }
         }
     }
@@ -1569,6 +1605,10 @@ public record CaseAnalysisResponse(
         JsonNode node = root.get("travail_extracted_data");
         if (node == null || !node.isObject()) return null;
         try {
+            // SF-246-01 : sous-objet procédural pour pré-fill F-DT-36. Peut être absent
+            // (dossier sans pièces de licenciement, dossier BE) → tous les champs null.
+            JsonNode procedure = node.get("procedure_licenciement_detection");
+            boolean hasProcedure = procedure != null && procedure.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -1637,6 +1677,16 @@ public record CaseAnalysisResponse(
                     .irpElectionDemandee(booleanOrFalse(node, "irp_election_demandee"))
                     .inspectionTravailSaisie(booleanOrFalse(node, "inspection_travail_saisie"))
                     .mediationJudiciaireEnvisagee(booleanOrFalse(node, "mediation_judiciaire_envisagee"))
+                    // SF-246-01 : 6 champs procéduraux pour pré-fill F-DT-36 — booléens via
+                    // booleanOrNull(), dates ISO validées (fail-open → null si non ISO),
+                    // appréciations via extractDetectedAnswer(). Tous null si sous-objet absent.
+                    .convocationEntretienDetectee(hasProcedure ? booleanOrNull(procedure, "convocation_entretien_detectee") : null)
+                    .dateConvocationEntretienDetectee(hasProcedure ? isoDateOrNull(procedure, "date_convocation_entretien") : null)
+                    .dateEntretienPrealableDetectee(hasProcedure ? isoDateOrNull(procedure, "date_entretien_prealable") : null)
+                    .entretienPrealableTenuDetected(hasProcedure ? extractDetectedAnswer(procedure.get("entretien_prealable_tenu")) : null)
+                    .lettreLicenciementEcriteDetectee(hasProcedure ? booleanOrNull(procedure, "lettre_licenciement_ecrite") : null)
+                    .lettreLicenciementMotiveeDetected(hasProcedure ? extractDetectedAnswer(procedure.get("lettre_licenciement_motivee")) : null)
+                    .motivationLettreSuffisanteDetected(hasProcedure ? extractDetectedAnswer(procedure.get("motivation_lettre_suffisante")) : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }
@@ -1983,6 +2033,19 @@ public record CaseAnalysisResponse(
             java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
     private static final java.util.regex.Pattern ISO_DATE_ANYWHERE_PATTERN =
             java.util.regex.Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
+
+    /**
+     * SF-246-01 : extrait une date au format ISO strict {@code YYYY-MM-DD}, ou
+     * {@code null} si absente, non textuelle ou non conforme (fail-open). Garantit
+     * qu'une date renvoyée par le LLM dans un format inattendu ne pré-remplit pas
+     * un champ date du formulaire F-DT-36.
+     */
+    private static String isoDateOrNull(JsonNode node, String field) {
+        String raw = textOrNull(node, field);
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        return ISO_DATE_PATTERN.matcher(trimmed).matches() ? trimmed : null;
+    }
 
     /**
      * F-241 : fallback déterministe pour extraire la date de signature de la

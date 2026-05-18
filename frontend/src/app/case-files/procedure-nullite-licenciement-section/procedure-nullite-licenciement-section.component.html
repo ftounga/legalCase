@@ -54,9 +54,14 @@
                   <mat-label>Date de présentation de la convocation</mat-label>
                   <input matInput type="date"
                          [ngModel]="dateConvocationPresentee()"
-                         (ngModelChange)="dateConvocationPresentee.set($event || null)"
+                         (ngModelChange)="onDateConvocationChange($event)"
                          name="dateConvocationPresentee" />
                 </mat-form-field>
+                @if (provenanceDateConvocation() === 'IA') {
+                  <span class="pnl-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
               }
             </div>
 
@@ -73,6 +78,11 @@
                     Entretien préalable effectivement tenu (L.1232-2)
                   </mat-slide-toggle>
                 </div>
+                @if (provenanceEntretienTenu() === 'IA') {
+                  <span class="pnl-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
                 @if (coherenceAlerts().ENTRETIEN_TENU; as alert) {
                   <span class="pnl-coherence-badge"
                         [appCoherencePopover]="[]"
@@ -89,9 +99,14 @@
                     <mat-label>Date de l'entretien préalable</mat-label>
                     <input matInput type="date"
                            [ngModel]="dateEntretienPrealable()"
-                           (ngModelChange)="dateEntretienPrealable.set($event || null)"
+                           (ngModelChange)="onDateEntretienChange($event)"
                            name="dateEntretienPrealable" />
                   </mat-form-field>
+                  @if (provenanceDateEntretien() === 'IA') {
+                    <span class="pnl-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
                   @if (coherenceAlerts().DATE_ENTRETIEN; as alert) {
                     <span class="pnl-coherence-badge"
                           [appCoherencePopover]="[]"
@@ -112,9 +127,14 @@
                 <mat-label>Date de notification du licenciement</mat-label>
                 <input matInput type="date"
                        [ngModel]="dateNotificationLicenciement()"
-                       (ngModelChange)="dateNotificationLicenciement.set($event || null)"
+                       (ngModelChange)="onDateNotificationChange($event)"
                        name="dateNotificationLicenciement" />
               </mat-form-field>
+              @if (provenanceDateNotification() === 'IA') {
+                <span class="pnl-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
 
               <div class="pnl-toggle-row">
                 <mat-slide-toggle
@@ -126,13 +146,20 @@
               </div>
 
               @if (lettreLicenciementEcrite()) {
-                <div class="pnl-toggle-row">
-                  <mat-slide-toggle
-                      [ngModel]="lettreMotivee()"
-                      (ngModelChange)="onLettreMotiveeChange($event)"
-                      name="lettreMotivee">
-                    Lettre énonçant les motifs du licenciement (L.1232-6)
-                  </mat-slide-toggle>
+                <div class="pnl-field-with-alert">
+                  <div class="pnl-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="lettreMotivee()"
+                        (ngModelChange)="onLettreMotiveeChange($event)"
+                        name="lettreMotivee">
+                      Lettre énonçant les motifs du licenciement (L.1232-6)
+                    </mat-slide-toggle>
+                  </div>
+                  @if (provenanceLettreMotivee() === 'IA') {
+                    <span class="pnl-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
                 </div>
               }
 
@@ -141,11 +168,16 @@
                   <div class="pnl-toggle-row">
                     <mat-slide-toggle
                         [ngModel]="motivationSuffisante()"
-                        (ngModelChange)="motivationSuffisante.set($event)"
+                        (ngModelChange)="onMotivationSuffisanteChange($event)"
                         name="motivationSuffisante">
                       Motivation suffisante et matériellement vérifiable (L.1235-2)
                     </mat-slide-toggle>
                   </div>
+                  @if (provenanceMotivationSuffisante() === 'IA') {
+                    <span class="pnl-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
                   @if (coherenceAlerts().MOTIVATION; as alert) {
                     <span class="pnl-coherence-badge"
                           [appCoherencePopover]="[]"

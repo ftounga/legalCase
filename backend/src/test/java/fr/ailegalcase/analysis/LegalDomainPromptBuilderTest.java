@@ -280,4 +280,32 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("F-205");
         assertThat(instruction).contains("23 flags FR DOIVENT rester false");
     }
+
+    // SF-246-01 : prompt Travail enrichi du sous-objet procedure_licenciement_detection
+    // (pré-fill F-DT-36, nullité de procédure de licenciement, FR uniquement).
+    @Test
+    void domainSpecificInstruction_travail_containsProcedureLicenciementDetectionKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        // Le conteneur lui-même
+        assertThat(instruction).contains("procedure_licenciement_detection");
+        // Les 7 clés du sous-objet
+        assertThat(instruction).contains("convocation_entretien_detectee");
+        assertThat(instruction).contains("date_convocation_entretien");
+        assertThat(instruction).contains("date_entretien_prealable");
+        assertThat(instruction).contains("entretien_prealable_tenu");
+        assertThat(instruction).contains("lettre_licenciement_ecrite");
+        assertThat(instruction).contains("lettre_licenciement_motivee");
+        assertThat(instruction).contains("motivation_lettre_suffisante");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_procedureLicenciement_explicitlyExcludeBE() {
+        // Le sous-objet procédural est FR uniquement — null / omis pour la BE.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("procedure_licenciement_detection");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+        // Ancrage juridique procédural FR
+        assertThat(instruction).contains("L.1232-2");
+        assertThat(instruction).contains("L.1235-2");
+    }
 }

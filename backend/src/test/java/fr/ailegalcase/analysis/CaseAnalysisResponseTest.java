@@ -2365,4 +2365,161 @@ class CaseAnalysisResponseTest {
         assertThat(f.pacteSuccessoralEnvisage()).isFalse();
         assertThat(f.kafalaRecueilDetecte()).isFalse();
     }
+
+    // ========================================================================
+    // SF-246-01 : pré-fill IA F-DT-36 — bloc procedure_licenciement_detection
+    // ========================================================================
+
+    @Test
+    void from_travailExtractedData_procedureLicenciement_complet_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_licenciement_detection": {
+                      "convocation_entretien_detectee": true,
+                      "date_convocation_entretien": "2026-02-10",
+                      "date_entretien_prealable": "2026-02-18",
+                      "entretien_prealable_tenu": {
+                        "reponse": "OUI",
+                        "justification": "PV d'entretien daté du 18/02 produit aux pièces"
+                      },
+                      "lettre_licenciement_ecrite": true,
+                      "lettre_licenciement_motivee": {
+                        "reponse": "NON",
+                        "justification": "Lettre du 25/02 mentionne uniquement 'motif personnel'"
+                      },
+                      "motivation_lettre_suffisante": {
+                        "reponse": "NON",
+                        "justification": "Aucun fait precis date n'est articule"
+                      }
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.convocationEntretienDetectee()).isTrue();
+        assertThat(t.dateConvocationEntretienDetectee()).isEqualTo("2026-02-10");
+        assertThat(t.dateEntretienPrealableDetectee()).isEqualTo("2026-02-18");
+        assertThat(t.entretienPrealableTenuDetected()).isNotNull();
+        assertThat(t.entretienPrealableTenuDetected().reponse()).isEqualTo("OUI");
+        assertThat(t.entretienPrealableTenuDetected().justification()).contains("PV d'entretien");
+        assertThat(t.lettreLicenciementEcriteDetectee()).isTrue();
+        assertThat(t.lettreLicenciementMotiveeDetected()).isNotNull();
+        assertThat(t.lettreLicenciementMotiveeDetected().reponse()).isEqualTo("NON");
+        assertThat(t.motivationLettreSuffisanteDetected()).isNotNull();
+        assertThat(t.motivationLettreSuffisanteDetected().reponse()).isEqualTo("NON");
+    }
+
+    @Test
+    void from_travailExtractedData_procedureLicenciement_sousObjetAbsent_tousNull() {
+        // Bloc procedure_licenciement_detection absent → 6 champs null, pas d'exception.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "salaire_brut_mensuel": 3200
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.convocationEntretienDetectee()).isNull();
+        assertThat(t.dateConvocationEntretienDetectee()).isNull();
+        assertThat(t.dateEntretienPrealableDetectee()).isNull();
+        assertThat(t.entretienPrealableTenuDetected()).isNull();
+        assertThat(t.lettreLicenciementEcriteDetectee()).isNull();
+        assertThat(t.lettreLicenciementMotiveeDetected()).isNull();
+        assertThat(t.motivationLettreSuffisanteDetected()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_procedureLicenciement_reponseHorsEnumeration_normaliseeInconnu() {
+        // Réponse hors {OUI, NON} → normalizeReponse() la ramène à INCONNU (canonique,
+        // cohérent avec reclassement_respecte_detected). Côté front, INCONNU = non pré-rempli.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_licenciement_detection": {
+                      "entretien_prealable_tenu": {
+                        "reponse": "PEUT-ETRE",
+                        "justification": "ambigu"
+                      }
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.entretienPrealableTenuDetected()).isNotNull();
+        assertThat(t.entretienPrealableTenuDetected().reponse()).isEqualTo("INCONNU");
+        assertThat(t.entretienPrealableTenuDetected().justification()).isEqualTo("ambigu");
+    }
+
+    @Test
+    void from_travailExtractedData_procedureLicenciement_dateNonIso_failOpenNull() {
+        // Date au format non ISO → champ null (fail-open), pas de pré-fill.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_licenciement_detection": {
+                      "date_convocation_entretien": "10/02/2026",
+                      "date_entretien_prealable": "le 18 fevrier"
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.dateConvocationEntretienDetectee()).isNull();
+        assertThat(t.dateEntretienPrealableDetectee()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_procedureLicenciement_multiDates_aucuneConfusion() {
+        // Invariant cadrage §5.1.6 : 3 dates concurrentes → chaque champ reçoit la sienne.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "date_licenciement": "2026-02-25",
+                    "procedure_licenciement_detection": {
+                      "date_convocation_entretien": "2026-02-10",
+                      "date_entretien_prealable": "2026-02-18"
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.dateConvocationEntretienDetectee()).isEqualTo("2026-02-10");
+        assertThat(t.dateEntretienPrealableDetectee()).isEqualTo("2026-02-18");
+        assertThat(t.dateLicenciement()).isEqualTo("2026-02-25");
+    }
+
+    @Test
+    void from_travailExtractedData_procedureLicenciement_justificationTronqueeA500() {
+        String longJustification = "A".repeat(600);
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_licenciement_detection": {
+                      "motivation_lettre_suffisante": {
+                        "reponse": "NON",
+                        "justification": "%s"
+                      }
+                    }
+                  }
+                }
+                """.formatted(longJustification));
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.motivationLettreSuffisanteDetected()).isNotNull();
+        assertThat(t.motivationLettreSuffisanteDetected().justification()).hasSize(500);
+    }
 }

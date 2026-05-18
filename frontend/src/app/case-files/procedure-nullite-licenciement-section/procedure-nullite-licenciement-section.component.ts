@@ -65,7 +65,9 @@ const F96_CODE_ENTRETIEN_TENU = 'DT36_ENTRETIEN_TENU';
  * - Verdict : NULLITE_AVEREE (rouge) / NULLITE_PROBABLE (or) /
  *   PROCEDURE_REGULIERE (navy). Rouge réservé à `NULLITE_AVEREE`.
  * - Liste des vices : libellé + fondement (JetBrains Mono) + explication.
- * - Pré-fill IA : V1 = 0 champ (`PREFILL_COUNT_ALWAYS_ZERO`).
+ * - Pré-fill IA (SF-246-01) : 8 champs renseignés depuis le sous-objet
+ *   `procedure_licenciement_detection` de la synthèse (FR uniquement) — délégué
+ *   au helper partagé `ProcedureNulliteLicenciementSectionPrefillRules`.
  * - Validation F-IA-03 sur 3 fields croisables (DATE_ENTRETIEN, MOTIVATION,
  *   ENTRETIEN_TENU).
  * - Refresh dashboard F-IA-02 + MatSnackBar erreurs.
@@ -90,14 +92,12 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
   static readonly TOOL_ICON = 'gavel';
 
   /**
-   * F-236 SF-236-01 / F-237 SF-237-01 — délègue au helper partagé.
-   * V1 : aucun flag procédural extrait par l'IA → toujours 0
-   * (`PREFILL_COUNT_ALWAYS_ZERO`).
+   * F-236 SF-236-01 / F-237 SF-237-01 / SF-246-01 — délègue au helper partagé.
+   * Parité stricte avec `prefillFromAi()` : mêmes mappings, même gate
+   * `workspaceCountry === 'FRANCE'`.
    */
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
-
   static getPrefillCount(input: {
-    aiData?: unknown;
+    aiData?: TravailExtractedData | null;
     procedureChecks?: unknown[];
     aiQuestions?: unknown[];
     piecesManquantes?: unknown[];
@@ -106,6 +106,7 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
   }): number {
     return ProcedureNulliteLicenciementSectionPrefillRules.computePrefillCount({
       aiData: input.aiData,
+      workspaceCountry: input.workspaceCountry,
     });
   }
 
@@ -148,6 +149,18 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
   conventionCollectiveApplicable = signal<boolean>(false);
   conventionCollectiveRespectee = signal<boolean>(true);
   conventionCollectiveCommentaire = signal<string | null>(null);
+
+  /**
+   * SF-246-01 : provenance IA par champ pré-rempli. `'IA'` tant que la valeur
+   * provient de l'analyse ; remis à `null` dès qu'un handler `onXxxChange()`
+   * détecte une modification manuelle (le badge `auto_awesome` disparaît).
+   */
+  provenanceDateConvocation = signal<'IA' | null>(null);
+  provenanceDateEntretien = signal<'IA' | null>(null);
+  provenanceEntretienTenu = signal<'IA' | null>(null);
+  provenanceDateNotification = signal<'IA' | null>(null);
+  provenanceLettreMotivee = signal<'IA' | null>(null);
+  provenanceMotivationSuffisante = signal<'IA' | null>(null);
 
   /**
    * Coherence alerts F-IA-03 — gate `showForm()` strict (alertes masquées
@@ -197,12 +210,70 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
   }
 
   /**
-   * Pré-fill IA — V1 : aucun flag procédural dédié n'est extrait par le
-   * pipeline (`PREFILL_COUNT_ALWAYS_ZERO`). No-op assumé et documenté ;
-   * l'extension IA est une SF ultérieure.
+   * Pré-fill IA (SF-246-01) — renseigne les 8 champs procéduraux détectables
+   * depuis le sous-objet `procedure_licenciement_detection` de la synthèse.
+   *
+   * Parité stricte avec `getPrefillCount()` : mêmes mappings, même gate
+   * `workspaceCountry === 'FRANCE'`. Délègue les calculs au helper partagé.
+   * No-op gracieux si `aiData` absent ou dossier BE. N'écrase pas une saisie
+   * avocat (provenance `null` AVEC valeur modifiée = modification manuelle).
    */
   private prefillFromAi(): void {
-    // V1 : aucun champ pré-rempli — parité stricte avec getPrefillCount() = 0.
+    // F-163 SF-163-02b : aucune source IA en standalone.
+    if (this.standaloneMode) return;
+    const ai = this.aiData;
+    if (!ai) return;
+
+    const rules = ProcedureNulliteLicenciementSectionPrefillRules;
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
+    // --- Booléens factuels (sans badge — pas de signal de provenance dédié) ---
+    const convocation = rules.computeConvocationEnvoyee(ruleInput);
+    if (convocation !== null) this.convocationEnvoyee.set(convocation);
+
+    const lettreEcrite = rules.computeLettreEcrite(ruleInput);
+    if (lettreEcrite !== null) this.lettreLicenciementEcrite.set(lettreEcrite);
+
+    // --- Dates pré-remplies avec badge de provenance ---
+    const dateConvocation = rules.computeDateConvocation(ruleInput);
+    if (dateConvocation
+        && (this.dateConvocationPresentee() === null || this.provenanceDateConvocation() === 'IA')) {
+      this.dateConvocationPresentee.set(dateConvocation);
+      this.provenanceDateConvocation.set('IA');
+    }
+
+    const dateEntretien = rules.computeDateEntretien(ruleInput);
+    if (dateEntretien
+        && (this.dateEntretienPrealable() === null || this.provenanceDateEntretien() === 'IA')) {
+      this.dateEntretienPrealable.set(dateEntretien);
+      this.provenanceDateEntretien.set('IA');
+    }
+
+    const dateNotification = rules.computeDateNotification(ruleInput);
+    if (dateNotification
+        && (this.dateNotificationLicenciement() === null || this.provenanceDateNotification() === 'IA')) {
+      this.dateNotificationLicenciement.set(dateNotification);
+      this.provenanceDateNotification.set('IA');
+    }
+
+    // --- Appréciations OUI/NON pré-remplies avec badge de provenance ---
+    const entretienTenu = rules.computeEntretienTenu(ruleInput);
+    if (entretienTenu !== null) {
+      this.entretienTenu.set(entretienTenu);
+      this.provenanceEntretienTenu.set('IA');
+    }
+
+    const lettreMotivee = rules.computeLettreMotivee(ruleInput);
+    if (lettreMotivee !== null) {
+      this.lettreMotivee.set(lettreMotivee);
+      this.provenanceLettreMotivee.set('IA');
+    }
+
+    const motivationSuffisante = rules.computeMotivationSuffisante(ruleInput);
+    if (motivationSuffisante !== null) {
+      this.motivationSuffisante.set(motivationSuffisante);
+      this.provenanceMotivationSuffisante.set('IA');
+    }
   }
 
   toggleCollapse(): void {
@@ -222,29 +293,62 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
     return this.workspaceCountry === 'FRANCE';
   }
 
-  // --- Handlers ---
+  // --- Handlers — toute modification manuelle efface le badge IA du champ ---
 
   onConvocationEnvoyeeChange(value: boolean): void {
     this.convocationEnvoyee.set(value);
-    if (!value) this.dateConvocationPresentee.set(null);
+    if (!value) {
+      this.dateConvocationPresentee.set(null);
+      this.provenanceDateConvocation.set(null);
+    }
+  }
+
+  onDateConvocationChange(value: string | null): void {
+    this.dateConvocationPresentee.set(value || null);
+    this.provenanceDateConvocation.set(null);
   }
 
   onEntretienTenuChange(value: boolean): void {
     this.entretienTenu.set(value);
-    if (!value) this.dateEntretienPrealable.set(null);
+    this.provenanceEntretienTenu.set(null);
+    if (!value) {
+      this.dateEntretienPrealable.set(null);
+      this.provenanceDateEntretien.set(null);
+    }
+  }
+
+  onDateEntretienChange(value: string | null): void {
+    this.dateEntretienPrealable.set(value || null);
+    this.provenanceDateEntretien.set(null);
+  }
+
+  onDateNotificationChange(value: string | null): void {
+    this.dateNotificationLicenciement.set(value || null);
+    this.provenanceDateNotification.set(null);
   }
 
   onLettreEcriteChange(value: boolean): void {
     this.lettreLicenciementEcrite.set(value);
     if (!value) {
       this.lettreMotivee.set(false);
+      this.provenanceLettreMotivee.set(null);
       this.motivationSuffisante.set(false);
+      this.provenanceMotivationSuffisante.set(null);
     }
   }
 
   onLettreMotiveeChange(value: boolean): void {
     this.lettreMotivee.set(value);
-    if (!value) this.motivationSuffisante.set(false);
+    this.provenanceLettreMotivee.set(null);
+    if (!value) {
+      this.motivationSuffisante.set(false);
+      this.provenanceMotivationSuffisante.set(null);
+    }
+  }
+
+  onMotivationSuffisanteChange(value: boolean): void {
+    this.motivationSuffisante.set(value);
+    this.provenanceMotivationSuffisante.set(null);
   }
 
   onLicenciementCollectifChange(value: boolean): void {
@@ -336,17 +440,38 @@ export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnC
     this.conventionCollectiveApplicable.set(r.conventionCollectiveApplicable);
     this.conventionCollectiveRespectee.set(r.conventionCollectiveRespectee);
     this.conventionCollectiveCommentaire.set(r.conventionCollectiveCommentaire);
+    // SF-246-01 : valeurs persistées = saisie avocat — jamais de badge IA.
+    this.provenanceDateConvocation.set(null);
+    this.provenanceDateEntretien.set(null);
+    this.provenanceEntretienTenu.set(null);
+    this.provenanceDateNotification.set(null);
+    this.provenanceLettreMotivee.set(null);
+    this.provenanceMotivationSuffisante.set(null);
   }
 
   // ---------------------------------------------------------------------------
   // Builders d'alertes F-IA-03 (un par field croisable)
   // ---------------------------------------------------------------------------
 
-  /** Date d'entretien préalable — divergence stricte F-96 / question IA. */
+  /**
+   * Date d'entretien préalable — divergence stricte F-96 / question IA, plus
+   * (SF-246-01) une incohérence chronologique IA : un entretien préalable ne
+   * peut se tenir avant la présentation de la convocation.
+   */
   private buildDateEntretienAlert(): PNLCoherenceAlert | null {
     const user = this.dateEntretienPrealable();
     if (!user) return null;
     const builder = CoherenceAlertBuilder.forField<PNLAlertField>('DATE_ENTRETIEN');
+    // SF-246-01 : incohérence chronologique détectée sur les champs pré-remplis
+    // (entretien antérieur à la convocation = impossible). Source IA, ajoutée en
+    // premier pour fixer l'expectedDisplay canonique.
+    const convocation = this.dateConvocationPresentee();
+    if (convocation && user < convocation) {
+      builder.addSource('IA', {
+        expectedDisplay: 'Date incohérente',
+        reason: `Incohérence : l'entretien préalable (${user}) ne peut être antérieur à la présentation de la convocation (${convocation}).`,
+      });
+    }
     for (const chk of this.procedureChecksSignal()) {
       if (chk.critereCode?.toUpperCase() !== F96_CODE_DATE_ENTRETIEN) continue;
       const ev = chk.expectedValue?.trim();
