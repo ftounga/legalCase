@@ -166,6 +166,8 @@ import { PacteSuccessoralBe2018SectionComponent } from '../pacte-successoral-be-
 // F-217 SF-217-03 — 2 sections décisionnelles Vague 1 Famille BE (backends mergés PR #983 / #982).
 import { RegimeCommunauteLegaleBeSectionComponent } from '../regime-communaute-legale-be-section/regime-communaute-legale-be-section.component';
 import { LiquidationPartageBeSectionComponent } from '../liquidation-partage-be-section/liquidation-partage-be-section.component';
+// F-217 SF-217-05 — section décisionnelle Vague 2 Famille BE — Enfants (backend mergé PR #993).
+import { AutoriteParentaleBeSectionComponent } from '../autorite-parentale-be-section/autorite-parentale-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1982,6 +1984,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // F-217 SF-217-05 : autorité parentale BE — CC art. 374-375.
+      // Migration 238 — ALWAYS_ON (question systématique de tout dossier
+      // Famille BE avec enfant). Backend SF-217-04 (PR #993).
+      ['autorite-parentale-be', {
+        displayLabel: 'Autorité parentale (Belgique)',
+        component: AutoriteParentaleBeSectionComponent,
+        // Composant complet (form + verdict + voie procédurale).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
     ]);
 
   /**
@@ -2051,6 +2068,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['pacte-successoral-be-2018', 'VALIDITE'],
     // F-217 SF-217-03 : qualification de la composition du patrimoine.
     ['regime-mat-be-communaute-legale', 'VALIDITE'],
+    // F-217 SF-217-05 : autorité parentale BE — qualification / orientation procédurale.
+    ['autorite-parentale-be', 'VALIDITE'],
     ['F-FA-18-contestation-paternite', 'VALIDITE'],
     ['F-FA-18-recherche-paternite', 'VALIDITE'],
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],

@@ -1,0 +1,306 @@
+/**
+ * SF-217-05 : styles outil "Autorité parentale (Belgique)".
+ * Aligné sur le template canonique `regime-communaute-legale-be-section`.
+ *
+ * Palette : navy/or/rouge. Rouge réservé au verdict AUTORITE_EXCLUSIVE_NON_FONDEE.
+ * Inter pour le texte courant, JetBrains Mono pour `fondement` / bases
+ * juridiques. Espacements multiples de 4px.
+ */
+
+.ap-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.ap-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.ap-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.ap-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.ap-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--ko {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.ap-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.ap-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.ap-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.ap-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form
+.ap-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.ap-full {
+  width: 100%;
+}
+
+.ap-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.ap-section-title {
+  margin: 8px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.ap-section-help {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.ap-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+// Résultat
+.ap-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ap-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+
+  // Navy — AUTORITE_CONJOINTE / AUTORITE_EXCLUSIVE_FONDEE.
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Or — QUALIFICATION_INCOMPLETE.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+
+  // Rouge — réservé à AUTORITE_EXCLUSIVE_NON_FONDEE.
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.ap-voie {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.ap-voie-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.ap-voie-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.ap-facteurs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ap-facteurs-label,
+.ap-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.ap-facteurs ul,
+.ap-bases ul,
+.ap-messages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ap-facteur {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-left: 4px solid #6a7485;
+  border-radius: 6px;
+  background: rgba(26, 35, 48, 0.02);
+
+  &--exclusive {
+    border-left-color: #c9a54b;
+  }
+}
+
+.ap-facteur-libelle {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.ap-facteur-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: #8a6a16;
+}
+
+.ap-facteur-explication {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.ap-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ap-messages li {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+  padding-left: 12px;
+  border-left: 2px solid var(--ds-accent-gold, #c9a54b);
+}
+
+.ap-bases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ap-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
