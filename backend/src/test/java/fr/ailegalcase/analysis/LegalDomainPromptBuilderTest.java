@@ -308,4 +308,36 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("L.1232-2");
         assertThat(instruction).contains("L.1235-2");
     }
+
+    // SF-246-02 : prompt Travail enrichi du sous-objet clause_non_concurrence_detail
+    // (pré-fill F-DT-24, validité de la clause de non-concurrence, FR uniquement).
+    @Test
+    void domainSpecificInstruction_travail_containsClauseNonConcurrenceDetailKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        // Le conteneur lui-même
+        assertThat(instruction).contains("clause_non_concurrence_detail");
+        // Les 3 clés du sous-objet
+        assertThat(instruction).contains("duree_mois");
+        assertThat(instruction).contains("zone_geographique");
+        assertThat(instruction).contains("contrepartie_montant_mensuel_eur");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_clauseNonConcurrence_imposeConversionEnEurosMensuels() {
+        // L'instruction impose la conversion %→€ via salaire_brut_mensuel.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("clause_non_concurrence_detail");
+        assertThat(instruction).contains("RÈGLE DE CONVERSION OBLIGATOIRE");
+        assertThat(instruction).contains("POURCENTAGE");
+        assertThat(instruction).contains("salaire_brut_mensuel");
+        assertThat(instruction).contains("EUROS BRUTS");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_clauseNonConcurrence_explicitlyExcludeBE() {
+        // Le sous-objet est FR uniquement — null / omis pour la BE (régime CCT 1bis).
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("clause_non_concurrence_detail");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+    }
 }

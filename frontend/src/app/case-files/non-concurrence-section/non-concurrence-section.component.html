@@ -59,6 +59,11 @@
                   name="clausePresenteContrat">
                 Clause de non-concurrence présente dans le contrat de travail
               </mat-slide-toggle>
+              @if (provenanceClausePresente() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
             </div>
 
             <!-- Critère 1 : Territoire -->
@@ -69,6 +74,11 @@
                   name="limiteTerritoireDefini">
                 Critère 1 — Limitation territoriale définie (Cass. soc. 10/07/2002)
               </mat-slide-toggle>
+              @if (provenanceLimiteTerritoire() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
               @if (limiteTerritoireDefini()) {
                 <mat-form-field appearance="outline" class="nc-pair-detail">
                   <mat-label>Description du territoire visé</mat-label>
@@ -78,6 +88,19 @@
                             name="territoireDescription" required></textarea>
                   <mat-hint>Ex. : "départements 75, 92, 93, 94" — territoire suffisamment circonscrit pour ne pas empêcher le salarié d'exercer.</mat-hint>
                 </mat-form-field>
+                @if (provenanceTerritoire() === 'IA') {
+                  <span class="nc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().ZONE_GEOGRAPHIQUE; as alert) {
+                  <span class="nc-coherence-badge"
+                        [appCoherencePopover]="explanationFor('ZONE_GEOGRAPHIQUE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               }
             </div>
 
@@ -89,6 +112,11 @@
                   name="limiteDureeDefinie">
                 Critère 2 — Limitation dans le temps (Cass. soc. 10/07/2002)
               </mat-slide-toggle>
+              @if (provenanceLimiteDuree() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
               @if (limiteDureeDefinie()) {
                 <mat-form-field appearance="outline" class="nc-pair-detail">
                   <mat-label>Durée d'application (mois)</mat-label>
@@ -98,6 +126,19 @@
                          name="dureeMois" required />
                   <mat-hint>Durée jurisprudentielle usuelle 12 à 24 mois selon le secteur.</mat-hint>
                 </mat-form-field>
+                @if (provenanceDureeMois() === 'IA') {
+                  <span class="nc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DUREE_CLAUSE; as alert) {
+                  <span class="nc-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DUREE_CLAUSE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               }
             </div>
 
@@ -129,6 +170,11 @@
                   name="contrepartieFinancierePresente">
                 Critère 4 — Contrepartie financière prévue (Cass. soc. 10/07/2002)
               </mat-slide-toggle>
+              @if (provenanceContrepartiePresente() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
               @if (contrepartieFinancierePresente()) {
                 <mat-form-field appearance="outline" class="nc-pair-detail">
                   <mat-label>Montant mensuel de la contrepartie (€)</mat-label>
@@ -138,6 +184,19 @@
                          name="contrepartieMontantMensuelEur" required />
                   <mat-hint>La contrepartie doit être proportionnée — usage 25 à 33 % du salaire selon les secteurs et la durée d'interdiction.</mat-hint>
                 </mat-form-field>
+                @if (provenanceContrepartieMontant() === 'IA') {
+                  <span class="nc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().CONTREPARTIE; as alert) {
+                  <span class="nc-coherence-badge"
+                        [appCoherencePopover]="explanationFor('CONTREPARTIE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               }
             </div>
 
