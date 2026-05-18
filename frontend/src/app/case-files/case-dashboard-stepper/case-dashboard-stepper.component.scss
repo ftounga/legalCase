@@ -60,6 +60,31 @@
   font-weight: 500;
   font-size: 13px;
   line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* F-244 SF-244-03 : badge auto_awesome du stepper — total de champs
+   pré-remplis IA sur l'étape « Outils décisionnels ». Or accent (#C9973A),
+   cohérent avec le badge d'onglet « Décision » (SF-244-02). */
+.step-prefill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px 0 4px;
+  border-radius: 999px;
+  background: rgba(201, 151, 58, 0.16);
+  color: #C9973A;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+
+  &__icon {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .step-detail {

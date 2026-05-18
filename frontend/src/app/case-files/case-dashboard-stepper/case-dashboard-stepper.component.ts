@@ -15,6 +15,13 @@ export interface DashboardStep {
    * vers une route séparée (synthèse).
    */
   tabIndex: number | null;
+  /**
+   * F-244 SF-244-03 — nombre de champs pré-remplis par l'IA associés à cette
+   * étape (étape « Outils décisionnels »). Quand `> 0`, le stepper affiche un
+   * badge `auto_awesome` : la séquence du parcours ne masque pas le travail de
+   * l'IA. `null`/`0`/absent pour les étapes sans pré-fill.
+   */
+  prefillCount?: number | null;
 }
 
 /** F-244 SF-244-01 — payload émis au clic d'étape : onglet à activer + ancre à scroller. */
