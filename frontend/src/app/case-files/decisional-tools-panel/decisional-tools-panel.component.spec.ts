@@ -91,6 +91,49 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.isEmpty()).toBe(true);
   });
 
+  // ── F-244 SF-244-02 — @Output prefillTotalChange (badge agrégé onglet) ──
+
+  it('SF-244-02: prefillTotalChange émet 0 quand aucun outil visible', () => {
+    const emitted: number[] = [];
+    component.prefillTotalChange.subscribe(n => emitted.push(n));
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
+
+    expect(emitted.length).toBeGreaterThan(0);
+    expect(emitted[emitted.length - 1]).toBe(0);
+  });
+
+  it('SF-244-02: prefillTotalChange émet la somme des prefillCountFor des outils résolus', () => {
+    const emitted: number[] = [];
+    component.prefillTotalChange.subscribe(n => emitted.push(n));
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-07-anciennete-conges-prime', 'F-DT-04-fiche-prudhomale'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: [],
+    });
+
+    const resolved = [...component.resolvedAlwaysOn(), ...component.resolvedContextual()];
+    const expectedTotal = resolved.reduce(
+      (sum, item) => sum + (component.prefillCountFor(item.toolId) ?? 0), 0);
+    expect(emitted[emitted.length - 1]).toBe(expectedTotal);
+  });
+
+  it('SF-244-02: prefillTotalChange ré-émet après un changement de synthesis', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-07-anciennete-conges-prime'],
+      contextual: [],
+      catalog: [],
+    });
+    const emitSpy = jest.spyOn(component.prefillTotalChange, 'emit');
+    component.synthesis = { travailExtractedData: { ancienneteAnnees: 5 } };
+    component.ngOnChanges({
+      synthesis: { previousValue: null, currentValue: component.synthesis, firstChange: false, isFirstChange: () => false },
+    });
+    expect(emitSpy).toHaveBeenCalled();
+  });
+
   it('skips unknown tool_id with a console warning', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     fixture.detectChanges();

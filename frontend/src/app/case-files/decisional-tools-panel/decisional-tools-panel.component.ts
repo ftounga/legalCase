@@ -1,10 +1,12 @@
 import {
   Component,
   DestroyRef,
+  EventEmitter,
   Input,
   OnChanges,
   OnInit,
   Optional,
+  Output,
   SimpleChanges,
   Type,
   ViewContainerRef,
@@ -315,6 +317,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
    * refresh côté frontend après PUT (cohérence F-176 stricte).
    */
   @Input() typeLitigeOverride: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null = null;
+
+  /**
+   * F-244 SF-244-02 — Total agrégé des champs pré-remplis par l'IA sur
+   * l'ensemble des outils visibles (always-on ∪ contextual) = somme des
+   * `getPrefillCount()` exposés par chaque composant outil.
+   *
+   * <p>Émis par le parent `case-file-detail` qui le porte en badge
+   * `auto_awesome` sur l'onglet « Décision » du `mat-tab-group` : un onglet
+   * fermé ne doit pas masquer le travail de l'IA (sous-règle anti-surcharge,
+   * audit `screen-coherence-challenger` 2026-05-15, ajustement 5).</p>
+   *
+   * <p>Ré-émis à chaque chargement de la visibilité (`loadVisibility`), à
+   * chaque émission `CaseDashboardRefreshService.refresh$` (fin de run
+   * d'analyse) et à chaque changement de `synthesis` (les compteurs de
+   * pré-fill dépendent de la synthèse IA).</p>
+   */
+  @Output() prefillTotalChange = new EventEmitter<number>();
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);
@@ -2148,6 +2167,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       this.loadVisibility(true);
       this.loadAlignments();
     }
+    // F-244 SF-244-02 — les compteurs de pré-fill dépendent de `synthesis` ;
+    // tout changement de cette entrée (post-analyse, override) doit ré-émettre
+    // le total agrégé pour rafraîchir le badge de l'onglet « Décision ».
+    if (changes['synthesis'] && !changes['synthesis'].firstChange) {
+      this.emitPrefillTotal();
+    }
+  }
+
+  /**
+   * F-244 SF-244-02 — Calcule la somme des `getPrefillCount()` de tous les
+   * outils visibles (always-on ∪ contextual) et l'émet via
+   * `prefillTotalChange`. Les outils non instrumentés (`getPrefillCount`
+   * absent) comptent 0 — `prefillCountFor` retourne alors `null`, neutralisé
+   * en 0 ici (forward-compat).
+   */
+  private emitPrefillTotal(): void {
+    const all = [...this.resolvedAlwaysOn(), ...this.resolvedContextual()];
+    const total = all.reduce((sum, item) => sum + (this.prefillCountFor(item.toolId) ?? 0), 0);
+    this.prefillTotalChange.emit(total);
   }
 
   /**
@@ -2187,10 +2225,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         this.visibility.set(result);
         this.loading.set(false);
         this.recordPrefillSnapshot();
+        // F-244 SF-244-02 — la liste des outils visibles vient de changer :
+        // ré-émettre le total de pré-fill pour le badge de l'onglet « Décision ».
+        this.emitPrefillTotal();
       },
       error: () => {
         this.loading.set(false);
         this.visibility.set({ alwaysOn: [], contextual: [], catalog: [] });
+        // F-244 SF-244-02 — visibilité vide → aucun outil pré-remplissable.
+        this.emitPrefillTotal();
         this.snackBar.open(
           'Impossible de charger les outils du dossier. Réessayez plus tard.',
           'Fermer',
