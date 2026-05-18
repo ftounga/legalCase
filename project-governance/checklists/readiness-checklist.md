@@ -37,6 +37,15 @@ Si un item est rouge → résoudre avant de commencer.
 
 ---
 
+## Pré-remplissage IA des outils décisionnels — BLOQUANT
+
+- [ ] **Outil décisionnel à champs saisissables** : la section « Champs IA à extraire (pré-remplissage) » du `subfeature-template.md` est remplie — chaque champ saisissable que l'IA doit pré-remplir est listé avec son type et son champ source du record `*ExtractedData` — ou la case « Aucun pré-remplissage » est cochée avec justification explicite.
+- [ ] Pour chaque champ date / valeur à pré-remplir, l'extension du contrat backend (record `*ExtractedData` de `CaseAnalysisResponse.java`) **et** du prompt (`LegalDomainPromptBuilder`) est explicitement dans le périmètre de la SF (ou d'une SF backend préalable identifiée et démarrable).
+
+> Si la section « Champs IA à extraire » est vide ou incomplète pour une SF qui crée/modifie un outil décisionnel à champs saisissables, ou si un champ date/valeur à pré-remplir n'a pas son extension backend (record + prompt) couverte → la subfeature n'est pas `ready`. Un pattern frontend de pré-fill ne sert à rien si le champ n'existe ni dans le record `*ExtractedData` ni dans le prompt : l'IA ne l'extrait jamais (cf. F-246 — diagnostic 2026-05-18 ; addendum §8 de `docs/features/F-155/audit-prefill-ia-2026-04-24.md`).
+
+---
+
 ## Analyse d'impact — préoccupations transversales
 
 - [ ] La section "Analyse d'impact" du `subfeature-template.md` est remplie

@@ -215,6 +215,34 @@ Si la subfeature introduit un composant partagé (`shared/`), un service applica
 
 ---
 
+## Champs IA à extraire (pré-remplissage)
+
+> Section **obligatoire** pour toute SF qui **crée ou modifie un outil décisionnel à champs saisissables**
+> (formulaire avec champs date / valeur / texte / booléen renseignables par l'avocat).
+>
+> Motivation : le pré-remplissage IA n'est effectif que si le champ existe dans **toute la chaîne** —
+> record `*ExtractedData` de `CaseAnalysisResponse.java` → prompt `LegalDomainPromptBuilder` → extracteur /
+> parsing → DTO frontend → `prefillFromAi()`. Un pattern frontend canonique (F-155) ne sert à rien si le
+> champ n'est ni dans le record backend ni dans le prompt : l'IA ne l'extrait jamais (cf. diagnostic
+> 2026-05-18, F-246 ; addendum §8 de `docs/features/F-155/audit-prefill-ia-2026-04-24.md`).
+>
+> Si la SF ne crée ni ne modifie d'outil décisionnel à champs saisissables (SF backend pure hors pré-fill,
+> SF infrastructure, SF documentaire, SF marketing), cocher la case « Aucun pré-remplissage » ci-dessous
+> **avec une justification explicite**.
+>
+> - [ ] **Aucun pré-remplissage** — justification : […]
+
+> Sinon, lister **chaque champ saisissable** que l'analyse IA doit extraire et pré-remplir :
+
+| Champ du formulaire | Type | Champ source du record `*ExtractedData` | Extension requise |
+|---------------------|------|------------------------------------------|-------------------|
+| [ex: dureeClauseMois] | date / nombre / texte / booléen | [ex: `TravailExtractedData.dureeNonConcurrenceMois`] | [ ] record + [ ] prompt `LegalDomainPromptBuilder` + [ ] extracteur + [ ] DTO frontend — ou « déjà présent » |
+| [...] | | | |
+
+- [ ] Pour chaque champ date / valeur à pré-remplir non encore présent dans la chaîne, l'extension du record `*ExtractedData` **et** du prompt `LegalDomainPromptBuilder` est explicitement dans le périmètre de cette SF (ou d'une SF backend préalable identifiée).
+
+---
+
 ## Critères d'acceptation
 
 > Chaque critère est vérifiable. Pas d'ambiguïté.
