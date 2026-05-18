@@ -49,10 +49,16 @@ import {
 } from './non-concurrence-section-prefill-rules';
 
 /**
- * SF-DT-24-02 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
- * F-DT-24 (clause de non-concurrence).
+ * SF-DT-24-02 / SF-246-02 : champs d'alerte de cohérence F-IA-03 exposés par
+ * l'outil F-DT-24 (clause de non-concurrence). SF-246-02 ajoute les alertes
+ * `DUREE_CLAUSE`, `CONTREPARTIE` et `ZONE_GEOGRAPHIQUE` aux côtés de
+ * `SALAIRE_MENSUEL` (SF-DT-24-02).
  */
-export type NonConcurrenceAlertField = 'SALAIRE_MENSUEL';
+export type NonConcurrenceAlertField =
+  | 'SALAIRE_MENSUEL'
+  | 'DUREE_CLAUSE'
+  | 'CONTREPARTIE'
+  | 'ZONE_GEOGRAPHIQUE';
 
 export type NonConcurrenceAlertSource = CoherenceAlertSource;
 export type NonConcurrenceCoherenceAlert = CoherenceAlert<NonConcurrenceAlertField>;
@@ -60,6 +66,7 @@ export type NonConcurrenceCoherenceAlert = CoherenceAlert<NonConcurrenceAlertFie
 /**
  * Seuil d'écart relatif (10 %) au-delà duquel on déclenche une alerte sur
  * le salaire mensuel — aligné avec F-DT-17 / F-DT-21 / F-DT-22 / F-DT-23.
+ * SF-246-02 : même seuil appliqué à la durée de clause et à la contrepartie.
  */
 const SALAIRE_DIVERGENCE_RATIO = 0.10;
 
@@ -161,6 +168,16 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
   datePriseEffet = signal<string | null>(null);
 
   provenanceSalaire = signal<'IA' | null>(null);
+  // SF-246-02 : provenance IA par champ pré-rempli. `'IA'` tant que la valeur
+  // provient de l'analyse ; remis à `null` dès qu'un handler `onXxxChange()`
+  // signale une modification manuelle (masque le badge `auto_awesome`).
+  provenanceClausePresente = signal<'IA' | null>(null);
+  provenanceDureeMois = signal<'IA' | null>(null);
+  provenanceLimiteDuree = signal<'IA' | null>(null);
+  provenanceTerritoire = signal<'IA' | null>(null);
+  provenanceLimiteTerritoire = signal<'IA' | null>(null);
+  provenanceContrepartieMontant = signal<'IA' | null>(null);
+  provenanceContrepartiePresente = signal<'IA' | null>(null);
 
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
@@ -173,6 +190,13 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
     const alerts: Partial<Record<NonConcurrenceAlertField, NonConcurrenceCoherenceAlert>> = {};
     const salaireAlert = this.buildSalaireAlert();
     if (salaireAlert) alerts.SALAIRE_MENSUEL = salaireAlert;
+    // SF-246-02 : alertes F-IA-03 sur les champs de la clause de non-concurrence.
+    const dureeAlert = this.buildDureeAlert();
+    if (dureeAlert) alerts.DUREE_CLAUSE = dureeAlert;
+    const contrepartieAlert = this.buildContrepartieAlert();
+    if (contrepartieAlert) alerts.CONTREPARTIE = contrepartieAlert;
+    const zoneAlert = this.buildZoneAlert();
+    if (zoneAlert) alerts.ZONE_GEOGRAPHIQUE = zoneAlert;
     return alerts;
   });
 
@@ -220,8 +244,10 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-DT-24-02 : pré-remplit `salaireMensuelBrutEur` depuis l'analyse IA.
-   * N'écrase jamais une saisie manuelle (provenance null sur un champ rempli).
+   * SF-DT-24-02 / SF-246-02 : pré-remplit les 8 champs de la clause de
+   * non-concurrence depuis l'analyse IA. N'écrase jamais une saisie manuelle
+   * (provenance `null` sur un champ déjà rempli). Parité stricte avec
+   * `getPrefillCount()` : mêmes guards, mêmes mappings, même gate FR.
    */
   private prefillFromAi(): void {
     // F-163 SF-163-02b : aucune source IA en standalone.
@@ -230,17 +256,79 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
     if (!ai) return;
     if (!this.isFrance()) return;
 
-    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const salaire = NonConcurrenceSectionPrefillRules.computeSalaireMensuelBrutEur({
-      aiData: ai, workspaceCountry: this.workspaceCountry,
-    });
-    if (salaire !== null) {
-      if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
-        this.salaireMensuelBrutEur.set(salaire);
-        this.provenanceSalaire.set('IA');
-      }
+    const input = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
+    // --- Salaire mensuel brut (SF-DT-24-02, pré-fill existant) ---
+    const salaire = NonConcurrenceSectionPrefillRules.computeSalaireMensuelBrutEur(input);
+    if (salaire !== null
+        && (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA')) {
+      this.salaireMensuelBrutEur.set(salaire);
+      this.provenanceSalaire.set('IA');
+    }
+
+    // --- Clause présente au contrat (mappé depuis le flag F-166) ---
+    const clausePresente = NonConcurrenceSectionPrefillRules.computeClausePresenteContrat(input);
+    if (clausePresente !== null && this.canPrefillClausePresente()) {
+      this.clausePresenteContrat.set(clausePresente);
+      this.provenanceClausePresente.set('IA');
+    }
+
+    // --- Durée de la clause + booléen dérivé limiteDureeDefinie ---
+    const dureeMois = NonConcurrenceSectionPrefillRules.computeDureeMois(input);
+    if (dureeMois !== null
+        && (this.dureeMois() === null || this.provenanceDureeMois() === 'IA')) {
+      this.dureeMois.set(dureeMois);
+      this.provenanceDureeMois.set('IA');
+    }
+    const limiteDuree = NonConcurrenceSectionPrefillRules.computeLimiteDureeDefinie(input);
+    if (limiteDuree !== null
+        && (!this.limiteDureeDefinie() || this.provenanceLimiteDuree() === 'IA')) {
+      this.limiteDureeDefinie.set(limiteDuree);
+      this.provenanceLimiteDuree.set('IA');
+    }
+
+    // --- Zone géographique + booléen dérivé limiteTerritoireDefini ---
+    const territoire = NonConcurrenceSectionPrefillRules.computeTerritoireDescription(input);
+    if (territoire !== null
+        && (this.territoireDescription().trim().length === 0 || this.provenanceTerritoire() === 'IA')) {
+      this.territoireDescription.set(territoire);
+      this.provenanceTerritoire.set('IA');
+    }
+    const limiteTerritoire = NonConcurrenceSectionPrefillRules.computeLimiteTerritoireDefini(input);
+    if (limiteTerritoire !== null
+        && (!this.limiteTerritoireDefini() || this.provenanceLimiteTerritoire() === 'IA')) {
+      this.limiteTerritoireDefini.set(limiteTerritoire);
+      this.provenanceLimiteTerritoire.set('IA');
+    }
+
+    // --- Contrepartie financière + booléen dérivé contrepartieFinancierePresente ---
+    const contrepartie = NonConcurrenceSectionPrefillRules.computeContrepartieMontantEur(input);
+    if (contrepartie !== null
+        && (this.contrepartieMontantMensuelEur() === null || this.provenanceContrepartieMontant() === 'IA')) {
+      this.contrepartieMontantMensuelEur.set(contrepartie);
+      this.provenanceContrepartieMontant.set('IA');
+    }
+    const contrepartiePresente = NonConcurrenceSectionPrefillRules.computeContrepartieFinancierePresente(input);
+    if (contrepartiePresente !== null
+        && (!this.contrepartieFinancierePresente() || this.provenanceContrepartiePresente() === 'IA')) {
+      this.contrepartieFinancierePresente.set(contrepartiePresente);
+      this.provenanceContrepartiePresente.set('IA');
     }
   }
+
+  /**
+   * SF-246-02 : `clausePresenteContrat` est initialisé à `true` à la création
+   * du composant. On ne le considère pré-remplissable par l'IA que si l'avocat
+   * n'y a pas encore touché — modélisé par la provenance : pré-fill autorisé
+   * tant que le champ n'a pas été modifié manuellement (provenance `IA` ou,
+   * au premier passage, valeur encore à son défaut non touchée).
+   */
+  private canPrefillClausePresente(): boolean {
+    return this.provenanceClausePresente() === 'IA' || !this.clausePresenteTouchedByUser;
+  }
+
+  /** SF-246-02 : passe à `true` dès que l'avocat modifie `clausePresenteContrat`. */
+  private clausePresenteTouchedByUser = false;
 
   private loadSourceExplanations(): void {
     // F-163 SF-163-02b : pas de dossier en standalone.
@@ -253,7 +341,14 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
   }
 
   explanationFor(field: NonConcurrenceAlertField): SourceExplanation[] {
-    const key = field === 'SALAIRE_MENSUEL' ? 'salaire_brut_mensuel' : '';
+    const key = (() => {
+      switch (field) {
+        case 'SALAIRE_MENSUEL': return 'salaire_brut_mensuel';
+        case 'DUREE_CLAUSE': return 'duree_mois';
+        case 'CONTREPARTIE': return 'contrepartie_montant_mensuel_eur';
+        case 'ZONE_GEOGRAPHIQUE': return 'zone_geographique';
+      }
+    })();
     return this.sourceExplanations().get(key) ?? [];
   }
 
@@ -344,6 +439,116 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
     return null;
   }
 
+  /**
+   * SF-246-02 : alerte durée de clause — écart relatif > 10 % entre la durée
+   * saisie par l'avocat et la durée détectée par l'IA. Multi-sources : IA + F96
+   * (`DT24_DUREE`) + QUESTION_IA + PIECE_MANQUANTE.
+   */
+  private buildDureeAlert(): NonConcurrenceCoherenceAlert | null {
+    const aiDuree = this.aiDataSignal()?.nonConcurrenceDureeMois;
+    const userDuree = this.dureeMois();
+    if (typeof aiDuree !== 'number' || aiDuree <= 0) return null;
+    if (typeof userDuree !== 'number' || userDuree <= 0) return null;
+    const ratio = Math.abs(userDuree - aiDuree) / aiDuree;
+    if (ratio <= SALAIRE_DIVERGENCE_RATIO) return null;
+
+    const display = `${aiDuree} mois`;
+    const builder = CoherenceAlertBuilder.forField<NonConcurrenceAlertField>('DUREE_CLAUSE')
+      .addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : durée de clause ~${display}`,
+      });
+    this.addF96AndQuestion(builder, ['DT24_DUREE', 'DUREE_CLAUSE'], display);
+    const piece = this.findPieceManquante(['DT24_DUREE', 'DUREE_CLAUSE', 'CONTRAT_TRAVAIL']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-246-02 : alerte contrepartie — écart relatif > 10 % entre le montant
+   * mensuel saisi et le montant détecté par l'IA. Multi-sources comme la durée.
+   */
+  private buildContrepartieAlert(): NonConcurrenceCoherenceAlert | null {
+    const aiMontant = this.aiDataSignal()?.nonConcurrenceContrepartieMontantEur;
+    const userMontant = this.contrepartieMontantMensuelEur();
+    if (typeof aiMontant !== 'number' || aiMontant <= 0) return null;
+    if (typeof userMontant !== 'number' || userMontant <= 0) return null;
+    const ratio = Math.abs(userMontant - aiMontant) / aiMontant;
+    if (ratio <= SALAIRE_DIVERGENCE_RATIO) return null;
+
+    const display = `${aiMontant.toLocaleString('fr-FR')} €`;
+    const builder = CoherenceAlertBuilder.forField<NonConcurrenceAlertField>('CONTREPARTIE')
+      .addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : contrepartie mensuelle ~${display}`,
+      });
+    this.addF96AndQuestion(builder, ['DT24_CONTREPARTIE', 'CONTREPARTIE'], display);
+    const piece = this.findPieceManquante(['DT24_CONTREPARTIE', 'CONTREPARTIE', 'CONTRAT_TRAVAIL']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-246-02 : alerte zone géographique — la zone saisie diffère
+   * textuellement (comparaison insensible casse/espaces) de la zone détectée
+   * par l'IA. Multi-sources comme la durée.
+   */
+  private buildZoneAlert(): NonConcurrenceCoherenceAlert | null {
+    const aiZone = this.aiDataSignal()?.nonConcurrenceZoneGeographique;
+    const userZone = this.territoireDescription();
+    if (typeof aiZone !== 'string' || aiZone.trim().length === 0) return null;
+    if (typeof userZone !== 'string' || userZone.trim().length === 0) return null;
+    const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (norm(aiZone) === norm(userZone)) return null;
+
+    const display = aiZone.trim();
+    const builder = CoherenceAlertBuilder.forField<NonConcurrenceAlertField>('ZONE_GEOGRAPHIQUE')
+      .addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : zone géographique « ${display} »`,
+      });
+    this.addF96AndQuestion(builder, ['DT24_ZONE', 'ZONE_GEOGRAPHIQUE'], display);
+    const piece = this.findPieceManquante(['DT24_ZONE', 'ZONE_GEOGRAPHIQUE', 'CONTRAT_TRAVAIL']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-246-02 : ajoute les contributors F96 et QUESTION_IA à un builder
+   * d'alerte si la checklist procédurale ou une question complémentaire
+   * confirme la valeur IA. Factorise le pattern commun aux 3 nouvelles alertes.
+   */
+  private addF96AndQuestion(
+    builder: CoherenceAlertBuilder<NonConcurrenceAlertField>,
+    codes: string[],
+    display: string,
+  ): void {
+    const norm = new Set(codes.map((c) => c.toUpperCase()));
+    for (const chk of this.procedureChecksSignal()) {
+      const code = chk.critereCode?.toUpperCase();
+      if (!code || !norm.has(code) || !chk.expectedValue) continue;
+      builder.addSource('F96', {
+        expectedDisplay: display,
+        reason: `Checklist procédurale : valeur attendue ${chk.expectedValue}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+    for (const q of this.aiQuestionsSignal()) {
+      const code = q.critereCode?.toUpperCase();
+      if (!code || !norm.has(code) || !q.expectedValue) continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: display,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Form handlers
   // ---------------------------------------------------------------------------
@@ -382,24 +587,37 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
 
   onClausePresenteContratChange(value: boolean): void {
     this.clausePresenteContrat.set(!!value);
+    // SF-246-02 : modification manuelle — coupe le pré-fill IA et masque le badge.
+    this.clausePresenteTouchedByUser = true;
+    this.provenanceClausePresente.set(null);
   }
 
   onLimiteTerritoireDefiniChange(value: boolean): void {
     this.limiteTerritoireDefini.set(!!value);
-    if (!value) this.territoireDescription.set('');
+    if (!value) {
+      this.territoireDescription.set('');
+      this.provenanceTerritoire.set(null);
+    }
+    this.provenanceLimiteTerritoire.set(null);
   }
 
   onTerritoireDescriptionChange(value: string): void {
     this.territoireDescription.set(value ?? '');
+    this.provenanceTerritoire.set(null);
   }
 
   onLimiteDureeDefinieChange(value: boolean): void {
     this.limiteDureeDefinie.set(!!value);
-    if (!value) this.dureeMois.set(null);
+    if (!value) {
+      this.dureeMois.set(null);
+      this.provenanceDureeMois.set(null);
+    }
+    this.provenanceLimiteDuree.set(null);
   }
 
   onDureeMoisChange(value: number | null): void {
     this.dureeMois.set(value);
+    this.provenanceDureeMois.set(null);
   }
 
   onLimiteObjetDefiniChange(value: boolean): void {
@@ -413,11 +631,16 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
 
   onContrepartieFinancierePresenteChange(value: boolean): void {
     this.contrepartieFinancierePresente.set(!!value);
-    if (!value) this.contrepartieMontantMensuelEur.set(null);
+    if (!value) {
+      this.contrepartieMontantMensuelEur.set(null);
+      this.provenanceContrepartieMontant.set(null);
+    }
+    this.provenanceContrepartiePresente.set(null);
   }
 
   onContrepartieMontantChange(value: number | null): void {
     this.contrepartieMontantMensuelEur.set(value);
+    this.provenanceContrepartieMontant.set(null);
   }
 
   onSalaireChange(value: number | null): void {
@@ -550,6 +773,15 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
     this.datePriseEffet.set(r.datePriseEffet);
     // Valeurs persistées = saisie avocat — jamais de badge IA.
     this.provenanceSalaire.set(null);
+    // SF-246-02 : idem pour les 7 champs de la clause de non-concurrence.
+    this.provenanceClausePresente.set(null);
+    this.provenanceDureeMois.set(null);
+    this.provenanceLimiteDuree.set(null);
+    this.provenanceTerritoire.set(null);
+    this.provenanceLimiteTerritoire.set(null);
+    this.provenanceContrepartieMontant.set(null);
+    this.provenanceContrepartiePresente.set(null);
+    this.clausePresenteTouchedByUser = true;
     this.showForm.set(false);
   }
 }

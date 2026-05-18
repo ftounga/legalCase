@@ -427,6 +427,154 @@ describe('NonConcurrenceSectionComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // SF-246-02 : pré-fill IA étendu (8 champs clause de non-concurrence)
+  // ---------------------------------------------------------------------------
+
+  const FULL_NC_AI: TravailExtractedData = {
+    salaireBrutMensuel: 3000,
+    clauseNonConcurrenceDetectee: true,
+    nonConcurrenceDureeMois: 24,
+    nonConcurrenceZoneGeographique: 'France métropolitaine',
+    nonConcurrenceContrepartieMontantEur: 900,
+  } as TravailExtractedData;
+
+  function mountWith(ai: TravailExtractedData | null): void {
+    component.aiData = ai;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    flushSourceExplanations();
+  }
+
+  it('SF-246-02 : clause complète → 8 champs pré-remplis + badges', () => {
+    mountWith(FULL_NC_AI);
+
+    expect(component.salaireMensuelBrutEur()).toBe(3000);
+    expect(component.provenanceSalaire()).toBe('IA');
+    expect(component.clausePresenteContrat()).toBe(true);
+    expect(component.provenanceClausePresente()).toBe('IA');
+    expect(component.dureeMois()).toBe(24);
+    expect(component.provenanceDureeMois()).toBe('IA');
+    expect(component.limiteDureeDefinie()).toBe(true);
+    expect(component.provenanceLimiteDuree()).toBe('IA');
+    expect(component.territoireDescription()).toBe('France métropolitaine');
+    expect(component.provenanceTerritoire()).toBe('IA');
+    expect(component.limiteTerritoireDefini()).toBe(true);
+    expect(component.provenanceLimiteTerritoire()).toBe('IA');
+    expect(component.contrepartieMontantMensuelEur()).toBe(900);
+    expect(component.provenanceContrepartieMontant()).toBe('IA');
+    expect(component.contrepartieFinancierePresente()).toBe(true);
+    expect(component.provenanceContrepartiePresente()).toBe('IA');
+  });
+
+  it('SF-246-02 : getPrefillCount statique en parité — 8 sur clause complète', () => {
+    expect(NonConcurrenceSectionComponent.getPrefillCount({
+      aiData: FULL_NC_AI, workspaceCountry: 'FRANCE',
+    })).toBe(8);
+  });
+
+  it('SF-246-02 : getPrefillCount statique — 0 pour la Belgique', () => {
+    expect(NonConcurrenceSectionComponent.getPrefillCount({
+      aiData: FULL_NC_AI, workspaceCountry: 'BELGIQUE',
+    })).toBe(0);
+  });
+
+  it('SF-246-02 : champs partiels (durée + salaire seuls) → 3 pré-remplis', () => {
+    // salaire + durée + booléen dérivé limiteDuree = 3.
+    const partial = {
+      salaireBrutMensuel: 2500,
+      nonConcurrenceDureeMois: 12,
+    } as TravailExtractedData;
+    expect(NonConcurrenceSectionComponent.getPrefillCount({
+      aiData: partial, workspaceCountry: 'FRANCE',
+    })).toBe(3);
+  });
+
+  it('SF-246-02 : parité runtime ↔ getPrefillCount sur clause complète', () => {
+    mountWith(FULL_NC_AI);
+    let runtimeCount = 0;
+    if (component.provenanceSalaire() === 'IA') runtimeCount++;
+    if (component.provenanceClausePresente() === 'IA') runtimeCount++;
+    if (component.provenanceDureeMois() === 'IA') runtimeCount++;
+    if (component.provenanceLimiteDuree() === 'IA') runtimeCount++;
+    if (component.provenanceTerritoire() === 'IA') runtimeCount++;
+    if (component.provenanceLimiteTerritoire() === 'IA') runtimeCount++;
+    if (component.provenanceContrepartieMontant() === 'IA') runtimeCount++;
+    if (component.provenanceContrepartiePresente() === 'IA') runtimeCount++;
+    expect(runtimeCount).toBe(NonConcurrenceSectionComponent.getPrefillCount({
+      aiData: FULL_NC_AI, workspaceCountry: 'FRANCE',
+    }));
+  });
+
+  it('SF-246-02 : durée aberrante (> 600) → durée non pré-remplie', () => {
+    mountWith({
+      nonConcurrenceDureeMois: 720,
+      nonConcurrenceZoneGeographique: 'Lyon',
+    } as TravailExtractedData);
+    expect(component.dureeMois()).toBeNull();
+    expect(component.provenanceDureeMois()).toBeNull();
+    expect(component.territoireDescription()).toBe('Lyon');
+  });
+
+  it('SF-246-02 : modification manuelle de la durée efface le badge IA', () => {
+    mountWith(FULL_NC_AI);
+    expect(component.provenanceDureeMois()).toBe('IA');
+    component.onDureeMoisChange(18);
+    expect(component.dureeMois()).toBe(18);
+    expect(component.provenanceDureeMois()).toBeNull();
+  });
+
+  it('SF-246-02 : modification manuelle de la zone efface le badge IA', () => {
+    mountWith(FULL_NC_AI);
+    expect(component.provenanceTerritoire()).toBe('IA');
+    component.onTerritoireDescriptionChange('Paris intra-muros');
+    expect(component.provenanceTerritoire()).toBeNull();
+  });
+
+  it('SF-246-02 : modification manuelle de la contrepartie efface le badge IA', () => {
+    mountWith(FULL_NC_AI);
+    expect(component.provenanceContrepartieMontant()).toBe('IA');
+    component.onContrepartieMontantChange(1100);
+    expect(component.provenanceContrepartieMontant()).toBeNull();
+  });
+
+  it('SF-246-02 : alerte DUREE_CLAUSE si durée saisie diverge > 10 % de l\'IA', () => {
+    mountWith(FULL_NC_AI);
+    component.onDureeMoisChange(36); // 36 vs 24 → écart 50 %
+    const alerts = component.coherenceAlerts();
+    expect(alerts.DUREE_CLAUSE).toBeDefined();
+    expect(alerts.DUREE_CLAUSE!.field).toBe('DUREE_CLAUSE');
+    expect(alerts.DUREE_CLAUSE!.expectedDisplay).toContain('mois');
+  });
+
+  it('SF-246-02 : alerte CONTREPARTIE si montant saisi diverge > 10 % de l\'IA', () => {
+    mountWith(FULL_NC_AI);
+    component.onContrepartieMontantChange(1500); // 1500 vs 900
+    expect(component.coherenceAlerts().CONTREPARTIE).toBeDefined();
+  });
+
+  it('SF-246-02 : alerte ZONE_GEOGRAPHIQUE si zone saisie diffère de l\'IA', () => {
+    mountWith(FULL_NC_AI);
+    component.onTerritoireDescriptionChange('Région PACA');
+    expect(component.coherenceAlerts().ZONE_GEOGRAPHIQUE).toBeDefined();
+  });
+
+  it('SF-246-02 : pas d\'alerte ZONE si zone identique (casse/espaces ignorés)', () => {
+    mountWith(FULL_NC_AI);
+    component.onTerritoireDescriptionChange('  france  MÉTROPOLITAINE ');
+    expect(component.coherenceAlerts().ZONE_GEOGRAPHIQUE).toBeUndefined();
+  });
+
+  it('SF-246-02 : aiData sans bloc clause → pré-fill no-op gracieux (salaire seul)', () => {
+    mountWith({ salaireBrutMensuel: 2800 } as TravailExtractedData);
+    expect(component.salaireMensuelBrutEur()).toBe(2800);
+    expect(component.dureeMois()).toBeNull();
+    expect(component.provenanceDureeMois()).toBeNull();
+    expect(component.territoireDescription()).toBe('');
+    expect(component.provenanceTerritoire()).toBeNull();
+    expect(component.contrepartieMontantMensuelEur()).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
   // Specifics F-DT-24
   // ---------------------------------------------------------------------------
 

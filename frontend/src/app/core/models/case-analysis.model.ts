@@ -327,6 +327,21 @@ export interface TravailExtractedData {
   lettreLicenciementEcriteDetectee?: boolean | null;
   lettreLicenciementMotiveeDetected?: DetectedAnswer | null;
   motivationLettreSuffisanteDetected?: DetectedAnswer | null;
+  /**
+   * SF-246-02 : flag de visibilité F-166 — `true` si une clause de non-concurrence
+   * est textuellement présente au contrat de travail produit aux pièces. Réutilisé
+   * par F-DT-24 comme pré-fill du booléen `clausePresenteContrat`. Travail FR.
+   */
+  clauseNonConcurrenceDetectee?: boolean | null;
+  /**
+   * SF-246-02 : détail de la clause de non-concurrence pour pré-fill F-DT-24
+   * (FR uniquement). Durée en mois (`[0, 600]`), zone géographique en texte libre
+   * (≤ 500 car.), contrepartie en euros bruts mensuels (`> 0`). Tous nullables —
+   * restent `null` pour un dossier travail belge (régime CCT 1bis distinct).
+   */
+  nonConcurrenceDureeMois?: number | null;
+  nonConcurrenceZoneGeographique?: string | null;
+  nonConcurrenceContrepartieMontantEur?: number | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

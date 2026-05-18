@@ -2522,4 +2522,167 @@ class CaseAnalysisResponseTest {
         assertThat(t.motivationLettreSuffisanteDetected()).isNotNull();
         assertThat(t.motivationLettreSuffisanteDetected().justification()).hasSize(500);
     }
+
+    // ========================================================================
+    // SF-246-02 : pré-fill IA F-DT-24 — bloc clause_non_concurrence_detail
+    // ========================================================================
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_complet_parsed() {
+        // Cas nominal : sous-objet complet → 3 champs renseignés.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": {
+                      "duree_mois": 24,
+                      "zone_geographique": "France métropolitaine",
+                      "contrepartie_montant_mensuel_eur": 900.0
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDureeMois()).isEqualTo(24);
+        assertThat(t.nonConcurrenceZoneGeographique()).isEqualTo("France métropolitaine");
+        assertThat(t.nonConcurrenceContrepartieMontantEur()).isEqualTo(900.0);
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_sousObjetAbsent_tousNull() {
+        // Sous-objet clause_non_concurrence_detail absent → 3 champs null, pas d'exception.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "salaire_brut_mensuel": 3200
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDureeMois()).isNull();
+        assertThat(t.nonConcurrenceZoneGeographique()).isNull();
+        assertThat(t.nonConcurrenceContrepartieMontantEur()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_dureeNegativeOuAberrante_null() {
+        // Garde de plage [0, 600] : durée négative ou > 600 mois → null.
+        CaseAnalysis negative = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "duree_mois": -3 }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(negative).travailExtractedData()
+                .nonConcurrenceDureeMois()).isNull();
+
+        CaseAnalysis tooLarge = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "duree_mois": 720 }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(tooLarge).travailExtractedData()
+                .nonConcurrenceDureeMois()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_contrepartieNonPositive_null() {
+        // Contrepartie ≤ 0 → null (invariant : montant non fiable reste null, jamais 0).
+        CaseAnalysis zero = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "contrepartie_montant_mensuel_eur": 0 }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(zero).travailExtractedData()
+                .nonConcurrenceContrepartieMontantEur()).isNull();
+
+        CaseAnalysis negative = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "contrepartie_montant_mensuel_eur": -100 }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(negative).travailExtractedData()
+                .nonConcurrenceContrepartieMontantEur()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_zoneTronqueeA500() {
+        // Zone géographique > 500 caractères → tronquée à 500.
+        String longZone = "Z".repeat(700);
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "zone_geographique": "%s" }
+                  }
+                }
+                """.formatted(longZone));
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceZoneGeographique()).hasSize(500);
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_zoneVide_null() {
+        // Zone vide ou blanche → null.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "zone_geographique": "   " }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceZoneGeographique()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_champsPartiels_autresChampsRenseignes() {
+        // Clause présente mais durée non chiffrée → durée null, zone + contrepartie OK.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": {
+                      "zone_geographique": "Région Île-de-France",
+                      "contrepartie_montant_mensuel_eur": 1200.5
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDureeMois()).isNull();
+        assertThat(t.nonConcurrenceZoneGeographique()).isEqualTo("Région Île-de-France");
+        assertThat(t.nonConcurrenceContrepartieMontantEur()).isEqualTo(1200.5);
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_dureeTexte_null() {
+        // duree_mois en texte (ex. "vingt-quatre") → null (node non numérique).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "duree_mois": "vingt-quatre" }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDureeMois()).isNull();
+    }
 }

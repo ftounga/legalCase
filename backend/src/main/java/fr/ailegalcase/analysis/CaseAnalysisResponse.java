@@ -198,7 +198,15 @@ public record CaseAnalysisResponse(
             DetectedAnswer entretienPrealableTenuDetected,
             Boolean lettreLicenciementEcriteDetectee,
             DetectedAnswer lettreLicenciementMotiveeDetected,
-            DetectedAnswer motivationLettreSuffisanteDetected) {
+            DetectedAnswer motivationLettreSuffisanteDetected,
+            // SF-246-02 : 3 champs IA pour pré-fill F-DT-24 clause de non-concurrence
+            // (Travail FR uniquement, nullables). Durée bornée [0, 600] mois, zone
+            // géographique tronquée à 500 car., contrepartie en euros bruts mensuels
+            // (> 0). La clause de non-concurrence BE (CCT 1bis) relève d'un régime
+            // distinct — ces champs restent null pour un dossier travail belge.
+            Integer nonConcurrenceDureeMois,
+            String nonConcurrenceZoneGeographique,
+            Double nonConcurrenceContrepartieMontantEur) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -278,7 +286,10 @@ public record CaseAnalysisResponse(
                     .entretienPrealableTenuDetected(entretienPrealableTenuDetected)
                     .lettreLicenciementEcriteDetectee(lettreLicenciementEcriteDetectee)
                     .lettreLicenciementMotiveeDetected(lettreLicenciementMotiveeDetected)
-                    .motivationLettreSuffisanteDetected(motivationLettreSuffisanteDetected);
+                    .motivationLettreSuffisanteDetected(motivationLettreSuffisanteDetected)
+                    .nonConcurrenceDureeMois(nonConcurrenceDureeMois)
+                    .nonConcurrenceZoneGeographique(nonConcurrenceZoneGeographique)
+                    .nonConcurrenceContrepartieMontantEur(nonConcurrenceContrepartieMontantEur);
         }
 
         public static final class Builder {
@@ -348,6 +359,9 @@ public record CaseAnalysisResponse(
             private Boolean lettreLicenciementEcriteDetectee;
             private DetectedAnswer lettreLicenciementMotiveeDetected;
             private DetectedAnswer motivationLettreSuffisanteDetected;
+            private Integer nonConcurrenceDureeMois;
+            private String nonConcurrenceZoneGeographique;
+            private Double nonConcurrenceContrepartieMontantEur;
 
             private Builder() {}
 
@@ -417,6 +431,9 @@ public record CaseAnalysisResponse(
             public Builder lettreLicenciementEcriteDetectee(Boolean v) { this.lettreLicenciementEcriteDetectee = v; return this; }
             public Builder lettreLicenciementMotiveeDetected(DetectedAnswer v) { this.lettreLicenciementMotiveeDetected = v; return this; }
             public Builder motivationLettreSuffisanteDetected(DetectedAnswer v) { this.motivationLettreSuffisanteDetected = v; return this; }
+            public Builder nonConcurrenceDureeMois(Integer v) { this.nonConcurrenceDureeMois = v; return this; }
+            public Builder nonConcurrenceZoneGeographique(String v) { this.nonConcurrenceZoneGeographique = v; return this; }
+            public Builder nonConcurrenceContrepartieMontantEur(Double v) { this.nonConcurrenceContrepartieMontantEur = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -447,7 +464,9 @@ public record CaseAnalysisResponse(
                         convocationEntretienDetectee, dateConvocationEntretienDetectee,
                         dateEntretienPrealableDetectee, entretienPrealableTenuDetected,
                         lettreLicenciementEcriteDetectee, lettreLicenciementMotiveeDetected,
-                        motivationLettreSuffisanteDetected);
+                        motivationLettreSuffisanteDetected,
+                        nonConcurrenceDureeMois, nonConcurrenceZoneGeographique,
+                        nonConcurrenceContrepartieMontantEur);
             }
         }
     }
@@ -547,6 +566,16 @@ public record CaseAnalysisResponse(
             java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$");
 
     static final int MAX_JUSTIFICATION_LENGTH = 500;
+
+    /**
+     * SF-246-02 : durée maximale plausible d'une clause de non-concurrence en mois
+     * (50 ans). Au-delà, la valeur est jugée aberrante par {@code boundedIntOrNull}
+     * et ramenée à {@code null} — invariant mini-spec « garde de plage [0, 600] ».
+     */
+    static final int MAX_NON_CONCURRENCE_DUREE_MOIS = 600;
+
+    /** SF-246-02 : longueur maximale de la zone géographique de la clause de non-concurrence. */
+    static final int MAX_NON_CONCURRENCE_ZONE_LENGTH = 500;
 
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
@@ -1609,6 +1638,10 @@ public record CaseAnalysisResponse(
             // (dossier sans pièces de licenciement, dossier BE) → tous les champs null.
             JsonNode procedure = node.get("procedure_licenciement_detection");
             boolean hasProcedure = procedure != null && procedure.isObject();
+            // SF-246-02 : sous-objet détail de la clause de non-concurrence pour pré-fill
+            // F-DT-24. Peut être absent (clause non détectée, dossier BE) → 3 champs null.
+            JsonNode clauseNc = node.get("clause_non_concurrence_detail");
+            boolean hasClauseNc = clauseNc != null && clauseNc.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -1687,6 +1720,12 @@ public record CaseAnalysisResponse(
                     .lettreLicenciementEcriteDetectee(hasProcedure ? booleanOrNull(procedure, "lettre_licenciement_ecrite") : null)
                     .lettreLicenciementMotiveeDetected(hasProcedure ? extractDetectedAnswer(procedure.get("lettre_licenciement_motivee")) : null)
                     .motivationLettreSuffisanteDetected(hasProcedure ? extractDetectedAnswer(procedure.get("motivation_lettre_suffisante")) : null)
+                    // SF-246-02 : 3 champs IA pour pré-fill F-DT-24 — durée bornée [0, 600]
+                    // mois, zone tronquée à 500 car., contrepartie strictement positive.
+                    // Tous null si sous-objet clause_non_concurrence_detail absent.
+                    .nonConcurrenceDureeMois(hasClauseNc ? boundedIntOrNull(clauseNc, "duree_mois", 0, MAX_NON_CONCURRENCE_DUREE_MOIS) : null)
+                    .nonConcurrenceZoneGeographique(hasClauseNc ? truncatedTextOrNull(clauseNc, "zone_geographique", MAX_NON_CONCURRENCE_ZONE_LENGTH) : null)
+                    .nonConcurrenceContrepartieMontantEur(hasClauseNc ? positiveDoubleOrNull(clauseNc, "contrepartie_montant_mensuel_eur") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }
@@ -1992,6 +2031,39 @@ public record CaseAnalysisResponse(
 
     private static Integer intOrNull(JsonNode node, String field) {
         return node.has(field) && !node.get(field).isNull() ? node.get(field).intValue() : null;
+    }
+
+    /**
+     * SF-246-02 : entier borné à {@code [min, max]} inclus. Retourne {@code null} si
+     * le champ est absent, null, non numérique, ou hors plage (garde anti-valeur
+     * aberrante — ex. durée de clause de non-concurrence négative ou {@literal >} 600 mois).
+     */
+    private static Integer boundedIntOrNull(JsonNode node, String field, int min, int max) {
+        if (!node.has(field) || node.get(field).isNull() || !node.get(field).isNumber()) return null;
+        int v = node.get(field).intValue();
+        return v >= min && v <= max ? v : null;
+    }
+
+    /**
+     * SF-246-02 : double strictement positif. Retourne {@code null} si le champ est
+     * absent, null, non numérique, ou {@literal <=} 0 (invariant cadrage §5.2 — un
+     * montant non identifié de façon fiable reste null, jamais 0).
+     */
+    private static Double positiveDoubleOrNull(JsonNode node, String field) {
+        if (!node.has(field) || node.get(field).isNull() || !node.get(field).isNumber()) return null;
+        double v = node.get(field).doubleValue();
+        return v > 0 ? v : null;
+    }
+
+    /**
+     * SF-246-02 : texte trimmé et tronqué à {@code maxLength} caractères. Retourne
+     * {@code null} si le champ est absent, null, non textuel ou vide après trim.
+     */
+    private static String truncatedTextOrNull(JsonNode node, String field, int maxLength) {
+        if (!node.has(field) || node.get(field).isNull() || !node.get(field).isTextual()) return null;
+        String s = node.get(field).asText().trim();
+        if (s.isEmpty()) return null;
+        return s.length() > maxLength ? s.substring(0, maxLength) : s;
     }
 
     private static Boolean booleanOrNull(JsonNode node, String field) {
