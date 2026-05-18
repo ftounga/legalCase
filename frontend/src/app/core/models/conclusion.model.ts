@@ -41,6 +41,12 @@ export type ConclusionLifecycleStatus = 'DRAFT' | 'VALIDATED' | 'DEPOSITED';
  * Quand `true`, la version a été générée en appliquant le corpus de style du
  * cabinet. Absent ou `false` ⇒ aucune adaptation de style (dégradation propre
  * tant que SF-98-47 n'est pas déployée).
+ *
+ * SF-98-53 : ajout de `stale` (optionnel) — calculé à la lecture par le
+ * backend. Quand `true`, une analyse du dossier a évolué depuis la génération
+ * de cette version : elle est potentiellement périmée. Absent ou `false` ⇒
+ * rien à signaler (dégradation propre tant que SF-98-53 backend n'est pas
+ * déployé).
  */
 export interface ConclusionResponse {
   id: string | null;
@@ -59,6 +65,11 @@ export interface ConclusionResponse {
   updatedAt: string | null;
   /** SF-98-48/47 — vrai si le style du cabinet a été appliqué. Optionnel. */
   styleApplied?: boolean;
+  /**
+   * SF-98-53 — vrai si la version est potentiellement périmée (l'analyse du
+   * dossier a évolué depuis sa génération). Calculé par le backend. Optionnel.
+   */
+  stale?: boolean;
 }
 
 /**

@@ -168,6 +168,15 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
   );
 
   /**
+   * SF-98-53 — Vrai si la version affichée est potentiellement périmée :
+   * l'analyse du dossier a évolué depuis sa génération. `stale` est calculé
+   * à la lecture par le backend ; absent ou `false` ⇒ rien à signaler
+   * (dégradation propre tant que SF-98-53 backend n'est pas déployé). Le
+   * bandeau d'avertissement n'est rendu que dans le cas `DONE` (cf. template).
+   */
+  readonly stale = computed<boolean>(() => this.conclusion()?.stale === true);
+
+  /**
    * SF-98-49 — Vrai si la version affichée est éditable : génération `DONE`
    * ET cycle de vie `DRAFT`. Une version `VALIDATED`/`DEPOSITED` est figée.
    */
