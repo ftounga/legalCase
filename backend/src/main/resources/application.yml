@@ -181,6 +181,14 @@ anthropic:
   api-key: ${ANTHROPIC_API_KEY:change-me}
   model-fast: ${ANTHROPIC_MODEL_FAST:claude-haiku-4-5-20251001}
 
+# F-179 SF-179-02 — fallback web search de vérification de jurisprudence.
+jurisprudence:
+  web-search:
+    legifrance-base-url: ${JURISPRUDENCE_LEGIFRANCE_URL:https://www.legifrance.gouv.fr}
+    juridat-base-url: ${JURISPRUDENCE_JURIDAT_URL:https://juportal.be}
+    timeout-ms: ${JURISPRUDENCE_WEB_SEARCH_TIMEOUT_MS:8000}
+    max-searches-per-case: ${JURISPRUDENCE_WEB_SEARCH_MAX_PER_CASE:10}
+
 blog:
   ia:
     budget:

@@ -97,19 +97,30 @@ public class JurisprudenceVerificationService {
               lui. Si aucun document ne cite de jurisprudence, renvoie {"checks": []}.
             """;
 
+    /** Plafond de recherches web par dossier (garde-fou coût / rate limit). */
+    static final int DEFAULT_MAX_WEB_SEARCHES_PER_CASE = 10;
+
     private final DocumentRepository documentRepository;
     private final DocumentExtractionRepository documentExtractionRepository;
     private final JurisprudenceCheckRepository jurisprudenceCheckRepository;
     private final AnthropicService anthropicService;
+    private final WebSearchService webSearchService;
+    private final int maxWebSearchesPerCase;
 
-    public JurisprudenceVerificationService(DocumentRepository documentRepository,
-                                            DocumentExtractionRepository documentExtractionRepository,
-                                            JurisprudenceCheckRepository jurisprudenceCheckRepository,
-                                            AnthropicService anthropicService) {
+    public JurisprudenceVerificationService(
+            DocumentRepository documentRepository,
+            DocumentExtractionRepository documentExtractionRepository,
+            JurisprudenceCheckRepository jurisprudenceCheckRepository,
+            AnthropicService anthropicService,
+            WebSearchService webSearchService,
+            @org.springframework.beans.factory.annotation.Value(
+                    "${jurisprudence.web-search.max-searches-per-case:10}") int maxWebSearchesPerCase) {
         this.documentRepository = documentRepository;
         this.documentExtractionRepository = documentExtractionRepository;
         this.jurisprudenceCheckRepository = jurisprudenceCheckRepository;
         this.anthropicService = anthropicService;
+        this.webSearchService = webSearchService;
+        this.maxWebSearchesPerCase = maxWebSearchesPerCase;
     }
 
     /**
@@ -169,10 +180,119 @@ public class JurisprudenceVerificationService {
             jurisprudenceCheckRepository.saveAll(checks);
             log.info("F-179: {} jurisprudence check(s) persisted for caseFile {}",
                     checks.size(), caseFileId);
+
+            // F-179 SF-179-02 — fallback web search Légifrance / Juridat sur les
+            // checks incertains. Tout le bloc est fail-open : une exception laisse
+            // les checks dans leur état issu de la vérification Sonnet.
+            try {
+                enrichWithWebSearch(checks, caseFile);
+            } catch (Exception e) {
+                log.warn("F-179: web search enrichment fail-open for caseFile {} — {}",
+                        caseFileId, e.getMessage());
+            }
         } catch (Exception e) {
             log.warn("F-179: verifyForAnalysis fail-open for analysis {} — {}",
                     analysis.getId(), e.getMessage());
         }
+    }
+
+    // ---- fallback web search (SF-179-02) ----
+
+    /**
+     * Pour les checks incertains, tente une recherche web publique pour
+     * confirmer l'existence de l'arrêt. Met à jour {@code statut} /
+     * {@code sourceUrl} / {@code webSearchUsed} et re-persiste les checks
+     * modifiés. Le web search statue UNIQUEMENT sur l'existence : un check
+     * {@code SUSPECT} (position détournée) n'est jamais re-jugé.
+     */
+    private void enrichWithWebSearch(List<JurisprudenceCheck> checks, CaseFile caseFile) {
+        if (webSearchService == null || checks.isEmpty()) {
+            return;
+        }
+        String workspaceCountry = caseFile.getWorkspace() != null
+                ? caseFile.getWorkspace().getCountry() : null;
+        int budget = maxWebSearchesPerCase > 0
+                ? maxWebSearchesPerCase : DEFAULT_MAX_WEB_SEARCHES_PER_CASE;
+        int used = 0;
+        List<JurisprudenceCheck> updated = new ArrayList<>();
+
+        for (JurisprudenceCheck check : checks) {
+            if (used >= budget) {
+                break;
+            }
+            if (!shouldWebSearch(check)) {
+                continue;
+            }
+            used++;
+            String country = deduceCountry(check.getReference(), workspaceCountry);
+            WebSearchResult res = webSearchService.searchJurisprudence(check.getReference(), country);
+            check.setWebSearchUsed(true);
+            switch (res.outcome()) {
+                case FOUND -> {
+                    // Existence confirmée — promotion en VERIFIED si le statut
+                    // initial était incertain. La fidélité reste hors champ du
+                    // web search : un SUSPECT n'arrive jamais ici (cf. shouldWebSearch).
+                    check.setStatut(JurisprudenceCheckStatus.VERIFIED);
+                    check.setSourceUrl(res.sourceUrl());
+                }
+                case NOT_FOUND -> check.setStatut(JurisprudenceCheckStatus.NOT_FOUND);
+                case UNCERTAIN -> check.setStatut(JurisprudenceCheckStatus.UNCERTAIN);
+            }
+            updated.add(check);
+        }
+        if (!updated.isEmpty()) {
+            jurisprudenceCheckRepository.saveAll(updated);
+            log.info("F-179: web search enriched {} jurisprudence check(s) ({} searches used)",
+                    updated.size(), used);
+        }
+    }
+
+    /**
+     * Un check est web-searché si son statut justifie une vérification
+     * complémentaire : {@code UNCERTAIN} systématiquement, {@code NOT_FOUND}
+     * uniquement si la confiance Claude n'est pas {@code HIGH} (un faux
+     * {@code NOT_FOUND} discréditerait l'outil). {@code VERIFIED} et
+     * {@code SUSPECT} ne sont jamais web-searchés.
+     */
+    static boolean shouldWebSearch(JurisprudenceCheck check) {
+        JurisprudenceCheckStatus statut = check.getStatut();
+        if (statut == JurisprudenceCheckStatus.UNCERTAIN) {
+            return true;
+        }
+        if (statut == JurisprudenceCheckStatus.NOT_FOUND) {
+            return !"HIGH".equalsIgnoreCase(check.getClaudeConfidence());
+        }
+        return false;
+    }
+
+    /**
+     * Déduit le pays cible du web search à partir du format de la référence.
+     * Les marqueurs belges l'emportent ; sinon repli sur le pays du workspace ;
+     * à défaut {@code FRANCE}.
+     */
+    static String deduceCountry(String reference, String workspaceCountry) {
+        if (reference != null) {
+            String lower = reference.toLowerCase(java.util.Locale.ROOT);
+            boolean belgianFormat = lower.contains("trib. trav.")
+                    || lower.contains("tribunal du travail")
+                    || lower.contains("cour const")
+                    || lower.contains("c. const")
+                    || lower.contains("grondwettelijk")
+                    || lower.contains(" be ")
+                    || lower.contains("belg");
+            if (belgianFormat) {
+                return "BELGIQUE";
+            }
+            // Formats clairement français.
+            if (lower.contains("cass. soc") || lower.contains("conseil d")
+                    || lower.startsWith("ce ") || lower.contains("cons. const")) {
+                return "FRANCE";
+            }
+        }
+        if (workspaceCountry != null && !workspaceCountry.isBlank()) {
+            return workspaceCountry;
+        }
+        return "FRANCE";
     }
 
     // ---- chargement du texte ----
