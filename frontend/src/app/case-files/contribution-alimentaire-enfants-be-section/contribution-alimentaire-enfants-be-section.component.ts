@@ -44,8 +44,8 @@ interface TrancheAgeOption {
  * Pattern de référence : `regime-communaute-legale-be-section` (F-217 SF-217-03).
  *
  * - Form : nombre d'enfants, tranche d'âge (select), revenus des deux parents,
- *   coût mensuel global (optionnel — forfait sinon), nuits d'hébergement,
- *   allocations familiales, frais extraordinaires.
+ *   coût mensuel global (optionnel — modèle Renard indexé sur les revenus sinon),
+ *   nuits d'hébergement, allocations familiales, frais extraordinaires.
  * - Verdict 3 niveaux : CONTRIBUTION_DUE (navy) / CONTRIBUTION_EQUILIBREE
  *   (navy) / DONNEES_INSUFFISANTES (or).
  * - Affichage : montant mensuel net, détail du calcul Renard, frais
