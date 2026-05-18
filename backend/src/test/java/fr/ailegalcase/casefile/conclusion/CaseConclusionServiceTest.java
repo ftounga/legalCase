@@ -11,6 +11,9 @@ import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileDashboardService;
 import fr.ailegalcase.document.DocumentPieceRepository;
 import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.stylelearning.StyleCorpusDocument;
+import fr.ailegalcase.stylelearning.StyleCorpusDocumentStatus;
+import fr.ailegalcase.stylelearning.StyleCorpusRepository;
 import fr.ailegalcase.workspace.Workspace;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
 
 /**
@@ -38,13 +43,14 @@ class CaseConclusionServiceTest {
     private final DocumentPieceRepository documentPieceRepository = mock(DocumentPieceRepository.class);
     private final CaseFileDashboardService caseFileDashboardService = mock(CaseFileDashboardService.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
+    private final StyleCorpusRepository styleCorpusRepository = mock(StyleCorpusRepository.class);
     private final CaseConclusionPromptBuilder promptBuilder =
             new CaseConclusionPromptBuilder(new ObjectMapper());
 
     private final CaseConclusionService service = new CaseConclusionService(
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
             documentRepository, documentPieceRepository, caseFileDashboardService,
-            promptBuilder, anthropicService);
+            promptBuilder, anthropicService, styleCorpusRepository);
 
     @BeforeEach
     void wireSelf() {
@@ -75,6 +81,8 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getCompletionTokens()).isEqualTo(3400);
         assertThat(conclusion.getGeneratedAt()).isNotNull();
         assertThat(conclusion.getErrorMessage()).isNull();
+        // sans corpus de style stubé → génération générique
+        assertThat(conclusion.isStyleApplied()).isFalse();
     }
 
     @Test
@@ -126,6 +134,86 @@ class CaseConclusionServiceTest {
         service.generate(conclusionId);
 
         verify(anthropicService, never()).analyzeWithSystemCache(any(), any(), anyInt());
+    }
+
+    // ── SF-98-47 — style mimicking ───────────────────────────────────────────
+
+    @Test
+    void generate_withActiveStyleSignatures_marksStyleApplied() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        UUID workspaceId = conclusion.getWorkspace().getId();
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(
+                workspaceId, StyleCorpusDocumentStatus.DONE))
+                .thenReturn(List.of(styleDocument("Phrases courtes, registre assertif.")));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        assertThat(conclusion.isStyleApplied()).isTrue();
+        verify(anthropicService).analyzeWithSystemCache(
+                contains("Adopte le style rédactionnel suivant"), any(), anyInt());
+    }
+
+    @Test
+    void generate_noActiveStyleSignature_marksStyleNotApplied() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        assertThat(conclusion.isStyleApplied()).isFalse();
+        verify(anthropicService).analyzeWithSystemCache(
+                argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
+    }
+
+    @Test
+    void generate_styleCorpusReadFails_failsOpenWithoutStyle() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenThrow(new RuntimeException("style_corpus_documents indisponible"));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        // fail-open : génération générique aboutie, style_applied = false
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        assertThat(conclusion.isStyleApplied()).isFalse();
+        verify(anthropicService).analyzeWithSystemCache(
+                argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
+    }
+
+    /** Stubs communs aux scénarios de génération aboutie (hors corpus de style et IA). */
+    private void stubGenerationStubs(UUID conclusionId, CaseConclusion conclusion) {
+        when(caseConclusionRepository.findById(conclusionId)).thenReturn(Optional.of(conclusion));
+        when(caseConclusionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
+        when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
+    }
+
+    private StyleCorpusDocument styleDocument(String signature) {
+        StyleCorpusDocument doc = new StyleCorpusDocument();
+        doc.setStatus(StyleCorpusDocumentStatus.DONE);
+        doc.setActive(true);
+        doc.setStyleSignature(signature);
+        return doc;
     }
 
     private CaseConclusion pendingConclusion(UUID id) {

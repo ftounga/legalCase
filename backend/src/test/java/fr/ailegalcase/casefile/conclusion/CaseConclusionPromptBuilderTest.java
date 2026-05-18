@@ -29,6 +29,39 @@ class CaseConclusionPromptBuilderTest {
         assertThat(system).contains("Pièce n°");
     }
 
+    // ── SF-98-47 — consigne d'adaptation de style ────────────────────────────
+
+    @Test
+    void buildSystemPrompt_withStyleSignatures_includesStyleInstruction() {
+        String system = builder.buildSystemPrompt(List.of(
+                "Phrases courtes, registre assertif, transitions « En conséquence ».",
+                "Argumentation faits puis droit, paragraphes denses."));
+
+        assertThat(system).contains("avocat du demandeur");
+        assertThat(system).contains("Adopte le style rédactionnel suivant");
+        assertThat(system).contains("Phrases courtes, registre assertif");
+        assertThat(system).contains("Argumentation faits puis droit");
+    }
+
+    @Test
+    void buildSystemPrompt_withoutStyleSignatures_isUnchanged() {
+        String generic = builder.buildSystemPrompt();
+
+        assertThat(builder.buildSystemPrompt(List.of())).isEqualTo(generic);
+        assertThat(builder.buildSystemPrompt(null)).isEqualTo(generic);
+        assertThat(generic).doesNotContain("Adopte le style rédactionnel suivant");
+    }
+
+    @Test
+    void buildSystemPrompt_blankSignaturesOnly_isUnchanged() {
+        String generic = builder.buildSystemPrompt();
+
+        String result = builder.buildSystemPrompt(java.util.Arrays.asList(null, "", "   "));
+
+        assertThat(result).isEqualTo(generic);
+        assertThat(result).doesNotContain("Adopte le style rédactionnel suivant");
+    }
+
     @Test
     void buildUserMessage_containsAllInputs() {
         String analysisJson = """

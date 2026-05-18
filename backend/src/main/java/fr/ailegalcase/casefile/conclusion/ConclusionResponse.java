@@ -19,6 +19,9 @@ import java.util.UUID;
  * @param status          l'un de {@code NOT_GENERATED | PENDING | PROCESSING | DONE | FAILED}
  * @param versionNumber   numéro de version (SF-98-52) ; {@code 0} si jamais généré
  * @param lifecycleStatus cycle de vie de la version (SF-98-52) ; {@code null} si jamais généré
+ * @param styleApplied    SF-98-47 — vrai si la génération a adopté le style appris du
+ *                        cabinet ; {@code false} pour une génération générique ou
+ *                        quand aucune version n'existe ({@code NOT_GENERATED})
  */
 public record ConclusionResponse(
         UUID id,
@@ -31,6 +34,7 @@ public record ConclusionResponse(
         String stageLabel,
         String positionLabel,
         String modelUsed,
+        boolean styleApplied,
         Instant generatedAt,
         String errorMessage,
         Instant createdAt,
@@ -42,7 +46,7 @@ public record ConclusionResponse(
     /** Réponse « jamais généré » — seuls {@code caseFileId} et {@code status} sont renseignés. */
     public static ConclusionResponse notGenerated(UUID caseFileId) {
         return new ConclusionResponse(null, caseFileId, 0, NOT_GENERATED, null,
-                null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, false, null, null, null, null);
     }
 
     /**
@@ -65,6 +69,7 @@ public record ConclusionResponse(
                 ProcedureStageCatalog.stageLabel(domain, country, conclusion.getStageCode()),
                 ProcedureStageCatalog.positionLabel(domain, country, conclusion.getPositionCode()),
                 conclusion.getModelUsed(),
+                conclusion.isStyleApplied(),
                 conclusion.getGeneratedAt(),
                 conclusion.getErrorMessage(),
                 conclusion.getCreatedAt(),
@@ -84,7 +89,8 @@ public record ConclusionResponse(
                     conclusion.getId(), caseFile.getId(), conclusion.getVersionNumber(),
                     conclusion.getStatus().name(), conclusion.getLifecycleStatus().name(),
                     conclusion.getContent(), null, null, null,
-                    conclusion.getModelUsed(), conclusion.getGeneratedAt(), conclusion.getErrorMessage(),
+                    conclusion.getModelUsed(), conclusion.isStyleApplied(),
+                    conclusion.getGeneratedAt(), conclusion.getErrorMessage(),
                     conclusion.getCreatedAt(), conclusion.getUpdatedAt());
         }
     }

@@ -45,15 +45,65 @@ public class CaseConclusionPromptBuilder {
             Ce n'est qu'un projet : il sera relu par l'avocat.
             """;
 
+    /**
+     * F-98 / SF-98-47 — en-tête de la consigne d'adaptation de style, injectée au prompt
+     * système quand le cabinet dispose d'au moins une signature de style active.
+     */
+    static final String STYLE_INSTRUCTION_HEADER =
+            "Adopte le style rédactionnel suivant, appris des conclusions de l'avocat :";
+
     private final ObjectMapper objectMapper;
 
     public CaseConclusionPromptBuilder(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
-    /** @return le prompt système (instructions de rédaction, cachable). */
+    /**
+     * @return le prompt système (instructions de rédaction, cachable). Variante sans
+     *         style — équivalente à {@code buildSystemPrompt(List.of())}.
+     */
     public String buildSystemPrompt() {
-        return SYSTEM_PROMPT;
+        return buildSystemPrompt(List.of());
+    }
+
+    /**
+     * F-98 / SF-98-47 — assemble le prompt système en y intégrant, le cas échéant, une
+     * consigne d'adaptation au style rédactionnel appris du cabinet.
+     *
+     * <p>Quand {@code styleSignatures} contient au moins une description de style non
+     * vide, le prompt système reprend ces descriptions sous une consigne « adopte le
+     * style rédactionnel suivant... ». Sans signature exploitable, le prompt système
+     * reste strictement identique au comportement SF-98-01 (génération générique).</p>
+     *
+     * @param styleSignatures descriptions de style actives du workspace (jamais
+     *                        {@code null} ; les entrées {@code null} / vides sont ignorées)
+     * @return le prompt système, enrichi de la consigne de style si applicable
+     */
+    public String buildSystemPrompt(List<String> styleSignatures) {
+        List<String> usable = sanitizeSignatures(styleSignatures);
+        if (usable.isEmpty()) {
+            return SYSTEM_PROMPT;
+        }
+        StringBuilder sb = new StringBuilder(SYSTEM_PROMPT);
+        sb.append('\n').append(STYLE_INSTRUCTION_HEADER).append('\n');
+        for (String signature : usable) {
+            sb.append("- ").append(signature.strip()).append('\n');
+        }
+        return sb.toString();
+    }
+
+    /** Filtre les signatures de style exploitables (non nulles, non vides). */
+    private static List<String> sanitizeSignatures(List<String> styleSignatures) {
+        if (styleSignatures == null || styleSignatures.isEmpty()) {
+            return List.of();
+        }
+        List<String> usable = new java.util.ArrayList<>();
+        for (String signature : styleSignatures) {
+            if (signature != null && !signature.isBlank()) {
+                usable.add(signature);
+            }
+        }
+        return usable;
     }
 
     /**
