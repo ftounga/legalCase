@@ -118,7 +118,7 @@ Réponse `200` — `ContributionConjointBeResponse` : **ré-expose l'intégralit
     "Divorce pour désunion irrémédiable : une pension peut être accordée par le Tribunal de la famille (CC art. 301 §1).",
     "Durée maximale légale de la pension = durée du mariage : 18 ans = 216 mois (CC art. 301 §4).",
     "Besoin du créancier estimé : écart de revenus 3600,00 € − 900,00 € = 2700,00 €.",
-    "Montant indicatif retenu = min(besoin, plafond du tiers des revenus du débiteur 1200,00 €) : 900,00 €."
+    "Montant indicatif retenu = min(besoin, plafond légal du tiers des revenus du débiteur 1200,00 € — CC art. 301 §3) : 900,00 €."
   ],
   "basesJuridiques": [
     "CC art. 301 §1 (pension alimentaire après divorce pour désunion irrémédiable)",
@@ -162,8 +162,9 @@ Réponse `200` — `ContributionConjointBeResponse` : **ré-expose l'intégralit
 > ⚠️ **Validation juridique requise** : CC art. 301 (§§1 à 4 — pension alimentaire après
 > divorce, faute grave, montant, durée) reflète l'état du droit connu du modèle et est
 > **à valider par un avocat belge avant mise en production**. Le plafond du tiers des
-> revenus du débiteur est une règle jurisprudentielle de référence, à confirmer. Le
-> contenu juridique est centralisé dans le Calculator (source unique de vérité).
+> revenus du débiteur est une **règle légale** codifiée à l'art. 301 §3 du Code civil belge
+> (la pension ne peut excéder le tiers des revenus du conjoint débiteur). Le contenu
+> juridique est centralisé dans le Calculator (source unique de vérité).
 
 ### Détermination du verdict (figée dans le Calculator)
 
@@ -184,7 +185,8 @@ Réponse `200` — `ContributionConjointBeResponse` : **ré-expose l'intégralit
 - **Durée maximale** = `dureeMariageAnnees × 12` mois (CC art. 301 §4 — la pension ne peut
   excéder la durée du mariage).
 - **Besoin estimé** = `max(0, revenuMensuelDebiteur − revenuMensuelCreancier)`.
-- **Plafond du tiers** = `revenuMensuelDebiteur / 3` (règle jurisprudentielle de référence).
+- **Plafond du tiers** = `revenuMensuelDebiteur / 3` (règle légale — CC art. 301 §3 : la
+  pension ne peut excéder le tiers des revenus du conjoint débiteur).
 - **Montant mensuel indicatif** = `min(besoin estimé, plafond du tiers)`, arrondi à 2
   décimales (`RoundingMode.HALF_UP`).
 - Un message signale que `degradationEconomiqueLieeAuMariage` renforce l'argumentaire
@@ -313,7 +315,7 @@ valent 0 (et `plafondTiersRevenusDebiteur` est tout de même calculé pour infor
 - Persistance par snapshot JSON (`snapshot_data`) — aligné Vague 1 F-217.
 - Aucune réutilisation du Calculator FR : la pension belge (CC art. 301) diffère de la
   prestation compensatoire française (`feedback_belgique_never_forget`).
-- Le plafond du tiers des revenus du débiteur est une règle jurisprudentielle de référence :
+- Le plafond du tiers des revenus du débiteur est une **règle légale** (CC art. 301 §3) :
   il est centralisé dans le Calculator et **signalé pour validation par un avocat belge**.
   Le résultat est qualifié d'« estimation indicative » — le TF apprécie souverainement.
 </content>

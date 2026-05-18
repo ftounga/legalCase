@@ -120,7 +120,7 @@ Réponse `200` — `AutoriteParentaleBeResponse` : **ré-expose l'intégralité 
   "basesJuridiques": [
     "CC art. 374 §1 (autorité parentale exercée conjointement par les père et mère)",
     "CC art. 374 §1 al. 2 (le Tribunal de la famille peut confier l'exercice exclusif à un parent)",
-    "CC art. 375 (déchéance de l'autorité parentale — cas extrêmes)"
+    "CC art. 375 (ouverture de la tutelle — impossibilité durable d'exercer l'autorité parentale)"
   ],
   "messages": [
     "L'autorité parentale conjointe est le principe (CC art. 374 §1) : elle se maintient même après séparation, indépendamment du mode d'hébergement.",
@@ -168,9 +168,11 @@ Réponse `200` — `AutoriteParentaleBeResponse` : **ré-expose l'intégralité 
 ## Règles de l'arbre décisionnel
 
 > ⚠️ **Validation juridique requise** : les articles CC art. 374-375 (autorité parentale,
-> dérogation à l'exercice conjoint, déchéance) reflètent l'état du droit connu du modèle et
-> sont **à valider par un avocat belge avant mise en production**. Le contenu juridique
-> (articles, règles, libellés) est centralisé dans le Calculator (source unique de vérité).
+> dérogation à l'exercice conjoint, ouverture de la tutelle) reflètent l'état du droit connu
+> du modèle et sont **à valider par un avocat belge avant mise en production**. La déchéance
+> de l'autorité parentale relève, elle, de la loi du 8 avril 1965 relative à la protection
+> de la jeunesse (art. 32 et s.) — hors scope de cet outil. Le contenu juridique (articles,
+> règles, libellés) est centralisé dans le Calculator (source unique de vérité).
 
 ### Détermination du verdict (figée dans le Calculator)
 
@@ -191,7 +193,7 @@ Réponse `200` — `AutoriteParentaleBeResponse` : **ré-expose l'intégralité 
 |---------------|--------------|--------------------|------------------------|
 | `desinteretDurableParent` | `DESINTERET_DURABLE` | true | CC art. 374 §1 al. 2 |
 | `miseEnDangerEnfant` | `MISE_EN_DANGER` | true | CC art. 374 §1 al. 2 (intérêt de l'enfant) |
-| `incapaciteParent` | `INCAPACITE_PARENT` | true | CC art. 374 §1 al. 2 / art. 375 |
+| `incapaciteParent` | `INCAPACITE_PARENT` | true | CC art. 374 §1 al. 2 ; art. 375 (ouverture de la tutelle si impossibilité durable d'exercer) |
 | `accordParentalExiste` | `ACCORD_PARENTAL` | false | CC art. 374 §1 (accord homologué par le TF) |
 | `decisionJudiciaireAnterieure` | `DECISION_ANTERIEURE` | false | CC art. 387bis (révision de toute décision dans l'intérêt de l'enfant) |
 
@@ -231,8 +233,10 @@ pour information et n'influent pas le verdict.
 - Hébergement égalitaire — recevabilité du mode (`hebergement-egalitaire-be` — reporté F-223 ;
   le mode d'hébergement n'est qu'un input contextuel ici).
 - Désaccords parentaux ponctuels (scolarité, santé) — outil distinct reporté F-223.
-- Déchéance de l'autorité parentale au sens de l'art. 375 (procédure pénale/protection —
-  hors scope, mentionnée dans les bases juridiques uniquement).
+- Déchéance de l'autorité parentale (loi du 8 avril 1965 sur la protection de la jeunesse,
+  art. 32 et s. — procédure devant le Tribunal de la famille / juridiction de la jeunesse) :
+  hors scope. À ne pas confondre avec l'art. 375 CC (ouverture de la tutelle), mentionné
+  dans les bases juridiques.
 - Réutilisation du Calculator FR `F-FA-19` (autorité parentale FR — mécanisme distinct).
 - Pré-fill IA depuis l'analyse (aucun flag pivot dédié extrait par le pipeline V1 —
   documenté `PREFILL_COUNT_ALWAYS_ZERO` côté SF-217-05).
