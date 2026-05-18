@@ -15,7 +15,11 @@ import java.util.Set;
  * <b>exclusive</b> ne peut être confiée à un parent que par décision du Tribunal
  * de la famille, dans l'intérêt de l'enfant, et suppose un motif grave
  * caractérisé (désintérêt durable, mise en danger, incapacité — CC art. 374 §1
- * al. 2 / art. 375).</p>
+ * al. 2). L'art. 375 vise, lui, l'<b>ouverture de la tutelle</b> lorsque les deux
+ * parents sont décédés, inconnus ou dans l'impossibilité durable d'exercer
+ * l'autorité parentale (à ne pas confondre avec la déchéance de l'autorité
+ * parentale, régie par la loi du 8 avril 1965 relative à la protection de la
+ * jeunesse, art. 32 et s.).</p>
  *
  * <p><b>Pays</b> : BELGIQUE uniquement. L'autorité parentale française repose sur
  * des mécaniques distinctes (F-FA-19) — pas de réutilisation possible.</p>
@@ -173,7 +177,8 @@ public final class AutoriteParentaleBeCalculator {
             facteurs.add(new Facteur(
                     FacteurCode.INCAPACITE_PARENT,
                     "Incapacité d'un parent à exercer l'autorité parentale",
-                    "CC art. 374 §1 al. 2 et art. 375 (incapacité — dérogation, déchéance)",
+                    "CC art. 374 §1 al. 2 (dérogation à l'exercice conjoint) ; CC art. 375 "
+                            + "(ouverture de la tutelle en cas d'impossibilité durable d'exercer)",
                     true,
                     "L'incapacité durable d'un parent (état de santé, éloignement, situation personnelle) "
                             + "peut justifier l'exercice exclusif de l'autorité parentale par l'autre parent."));
@@ -205,7 +210,7 @@ public final class AutoriteParentaleBeCalculator {
         if (verdict == Verdict.AUTORITE_EXCLUSIVE_FONDEE
                 || verdict == Verdict.AUTORITE_EXCLUSIVE_NON_FONDEE) {
             bases.add("CC art. 374 §1 al. 2 (le Tribunal de la famille peut confier l'exercice exclusif à un parent)");
-            bases.add("CC art. 375 (déchéance de l'autorité parentale — cas extrêmes)");
+            bases.add("CC art. 375 (ouverture de la tutelle — impossibilité durable d'exercer l'autorité parentale)");
         }
         if (verdict == Verdict.QUALIFICATION_INCOMPLETE) {
             bases.add("CC Livre 2 (établissement de la filiation — préalable à l'autorité parentale)");

@@ -20,17 +20,21 @@ import java.util.Locale;
  *   <li>la durée de la pension ne peut excéder la durée du mariage
  *       (CC art. 301 §4) ;</li>
  *   <li>le montant couvre l'état de besoin et reste plafonné au tiers des
- *       revenus du débiteur (règle jurisprudentielle de référence).</li>
+ *       revenus du débiteur (règle légale — CC art. 301 §3).</li>
  * </ul>
  *
  * <p><b>Pays</b> : BELGIQUE uniquement. La pension belge (révisable, plafonnée
  * en durée) est juridiquement distincte de la prestation compensatoire française
  * (capital forfaitaire — F-FA-01) — pas de réutilisation possible.</p>
  *
- * <p><b>Validation juridique requise</b> : CC art. 301 (§§1-4) et le plafond du
- * tiers des revenus du débiteur reflètent l'état du droit connu du modèle et
- * doivent être relus par un avocat belge avant mise en production. Le contenu
- * juridique est centralisé ici (source unique de vérité).</p>
+ * <p>Le plafond du tiers des revenus du débiteur est une <b>règle légale</b>
+ * codifiée à l'art. 301 §3 du Code civil belge (la pension ne peut excéder le
+ * tiers des revenus du conjoint débiteur) — il ne s'agit pas d'une simple
+ * orientation jurisprudentielle.</p>
+ *
+ * <p><b>Validation juridique requise</b> : CC art. 301 (§§1-4) reflète l'état du
+ * droit connu du modèle et doit être relu par un avocat belge avant mise en
+ * production. Le contenu juridique est centralisé ici (source unique de vérité).</p>
  */
 public final class ContributionConjointBeCalculator {
 
@@ -150,8 +154,8 @@ public final class ContributionConjointBeCalculator {
         detail.add("Besoin du créancier estimé : écart de revenus "
                 + money(revenuDebiteur) + " € − " + money(revenuCreancier) + " € = "
                 + money(besoin) + " €.");
-        detail.add("Montant indicatif retenu = min(besoin, plafond du tiers des revenus du "
-                + "débiteur " + plafondTiers + " €) : " + montant + " €.");
+        detail.add("Montant indicatif retenu = min(besoin, plafond légal du tiers des revenus "
+                + "du débiteur " + plafondTiers + " € — CC art. 301 §3) : " + montant + " €.");
 
         List<String> messages = construireMessages(Verdict.PENSION_DUE, motifs);
         if (Boolean.TRUE.equals(input.degradationEconomiqueLieeAuMariage())) {
