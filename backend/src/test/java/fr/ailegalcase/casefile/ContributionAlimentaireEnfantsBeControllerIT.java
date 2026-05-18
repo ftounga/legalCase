@@ -94,7 +94,8 @@ class ContributionAlimentaireEnfantsBeControllerIT {
                         .content(objectMapper.writeValueAsString(reference())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verdict").value("CONTRIBUTION_DUE"))
-                .andExpect(jsonPath("$.coutMensuelRetenu").value(700.00))
+                // Modèle Renard : coef 6-11 (0,2032) × revenuBase (2800+1900+340=5040) × 2 enfants.
+                .andExpect(jsonPath("$.coutMensuelRetenu").value(2048.26))
                 .andExpect(jsonPath("$.country").value("BELGIQUE"))
                 .andExpect(jsonPath("$.calculatedAt").exists());
     }

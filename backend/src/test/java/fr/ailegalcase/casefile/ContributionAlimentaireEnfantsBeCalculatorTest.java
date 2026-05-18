@@ -8,7 +8,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * SF-217-06 : tests unitaires de {@link ContributionAlimentaireEnfantsBeCalculator}.
+ * SF-217-06 / SF-217-10 : tests unitaires de
+ * {@link ContributionAlimentaireEnfantsBeCalculator}.
+ *
+ * <p>SF-217-10 : le coût de l'enfant suit désormais le <b>vrai modèle Renard</b>
+ * — coefficient statistique d'âge × revenus cumulés des parents (allocations
+ * incluses dans l'assiette), et non plus un forfait fixe.</p>
  */
 class ContributionAlimentaireEnfantsBeCalculatorTest {
 
@@ -26,6 +31,96 @@ class ContributionAlimentaireEnfantsBeCalculatorTest {
                 null, null);
     }
 
+    // --- Coût de l'enfant : modèle Renard indexé sur les revenus (SF-217-10) ---
+
+    @Test
+    void compute_coutRenard_indexeSurRevenus() {
+        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(1, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "2000", "2000", null, 182, 183, null, null),
+                "BELGIQUE");
+        // Coefficient 6-11 = 0,2032 ; revenuBase = 2000 + 2000 + 0 = 4000.
+        // Coût = 0,2032 × 4000 × 1 = 812,80.
+        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("812.80");
+    }
+
+    @Test
+    void compute_coutRenard_inclutAllocationsDansAssiette() {
+        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(1, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "2000", "2000", null, 182, 183, "200", null),
+                "BELGIQUE");
+        // revenuBase = 2000 + 2000 + 200 = 4200 ; coût = 0,2032 × 4200 = 853,44.
+        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("853.44");
+        // Coût net = coût Renard - allocations = 853,44 - 200 = 653,44.
+        assertThat(r.coutNetApresAllocations()).isEqualByComparingTo("653.44");
+    }
+
+    @Test
+    void compute_coutRenard_proportionnelAuxRevenus() {
+        ContributionAlimentaireEnfantsBeResult bas = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(1, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "1500", "1500", null, 182, 183, null, null),
+                "BELGIQUE");
+        ContributionAlimentaireEnfantsBeResult haut = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(1, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "3000", "3000", null, 182, 183, null, null),
+                "BELGIQUE");
+        // Revenus doublés → coût doublé (cœur de la correction Renard).
+        assertThat(haut.coutMensuelRetenu())
+                .isEqualByComparingTo(bas.coutMensuelRetenu().multiply(new BigDecimal("2")));
+    }
+
+    @Test
+    void compute_coutRenard_sommeParNombreEnfants() {
+        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(3, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "2000", "2000", null, 182, 183, null, null),
+                "BELGIQUE");
+        // 0,2032 × 4000 × 3 enfants = 2438,40.
+        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("2438.40");
+    }
+
+    @Test
+    void compute_coefficientParTranche_appliqueLaTableRenard() {
+        assertThat(coutUnEnfant(ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_0_5))
+                .isEqualByComparingTo("636.40");   // 0,1591 × 4000
+        assertThat(coutUnEnfant(ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11))
+                .isEqualByComparingTo("812.80");   // 0,2032 × 4000
+        assertThat(coutUnEnfant(ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_12_17))
+                .isEqualByComparingTo("989.60");   // 0,2474 × 4000
+        assertThat(coutUnEnfant(ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_18_PLUS))
+                .isEqualByComparingTo("1078.00");  // 0,2695 × 4000
+    }
+
+    private BigDecimal coutUnEnfant(ContributionAlimentaireEnfantsBeCalculator.TrancheAge tranche) {
+        return ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(1, tranche, "2000", "2000", null, 182, 183, null, null),
+                "BELGIQUE").coutMensuelRetenu();
+    }
+
+    @Test
+    void compute_coutExplicite_primeSurLeModeleRenard() {
+        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(2, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "3000", "2000", "1100", 100, 265, null, null),
+                "BELGIQUE");
+        // Coût global explicite → retenu tel quel, le modèle Renard n'est pas appliqué.
+        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("1100.00");
+    }
+
+    @Test
+    void compute_detail_neMentionnePasForfait() {
+        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
+                input(2, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
+                        "2800", "1900", null, 110, 255, "340", "80"),
+                "BELGIQUE");
+        assertThat(r.detailCalcul()).noneMatch(d -> d.toLowerCase().contains("forfait"));
+        assertThat(r.detailCalcul()).anyMatch(d -> d.contains("modèle Renard"));
+    }
+
+    // --- Répartition / verdict (parties préservées de SF-217-06) ---
+
     @Test
     void compute_deuxEnfants_hebergementDesequilibre_contributionDue() {
         ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
@@ -35,34 +130,11 @@ class ContributionAlimentaireEnfantsBeCalculatorTest {
 
         assertThat(r.verdict())
                 .isEqualTo(ContributionAlimentaireEnfantsBeCalculator.Verdict.CONTRIBUTION_DUE);
-        // Forfait 350 × 2 = 700.
-        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("700.00");
-        // Coût net = 700 - 340 = 360.
-        assertThat(r.coutNetApresAllocations()).isEqualByComparingTo("360.00");
         // Parent 1 a un revenu plus élevé mais moins de nuits → il est débiteur.
         assertThat(r.parentDebiteur())
                 .isEqualTo(ContributionAlimentaireEnfantsBeCalculator.ParentDebiteur.PARENT_1);
         assertThat(r.contributionMensuelleNette()).isGreaterThan(BigDecimal.ZERO);
         assertThat(r.country()).isEqualTo("BELGIQUE");
-    }
-
-    @Test
-    void compute_coutForfaitaire_appliqueParTrancheAge() {
-        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
-                input(1, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_12_17,
-                        "2000", "2000", null, 182, 183, null, null),
-                "BELGIQUE");
-        // Forfait 420 × 1 enfant.
-        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("420.00");
-    }
-
-    @Test
-    void compute_coutExplicite_estUtiliseTelQuel() {
-        ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
-                input(2, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_6_11,
-                        "3000", "2000", "1100", 100, 265, null, null),
-                "BELGIQUE");
-        assertThat(r.coutMensuelRetenu()).isEqualByComparingTo("1100.00");
     }
 
     @Test
@@ -91,11 +163,12 @@ class ContributionAlimentaireEnfantsBeCalculatorTest {
 
     @Test
     void compute_allocationsSuperieuresAuCout_coutNetPlafonneAZero() {
+        // Coût Renard 0-5 = 0,1591 × revenuBase. revenuBase = 700 + 600 + 800 = 2100
+        // → coût = 0,1591 × 2100 = 334,11 ; allocations 800 → coût net plancher 0.
         ContributionAlimentaireEnfantsBeResult r = ContributionAlimentaireEnfantsBeCalculator.compute(
                 input(1, ContributionAlimentaireEnfantsBeCalculator.TrancheAge.ENFANT_0_5,
-                        "2000", "1500", null, 182, 183, "500", null),
+                        "700", "600", null, 182, 183, "800", null),
                 "BELGIQUE");
-        // Forfait 280, allocations 500 → coût net plancher 0.
         assertThat(r.coutNetApresAllocations()).isEqualByComparingTo("0.00");
     }
 
@@ -128,7 +201,10 @@ class ContributionAlimentaireEnfantsBeCalculatorTest {
         assertThat(r.contributionMensuelleNette().scale()).isEqualTo(2);
         assertThat(r.partContributiveParent1().scale()).isEqualTo(2);
         assertThat(r.fraisExtraordinairesQuotePartParent1().scale()).isEqualTo(2);
+        assertThat(r.coutMensuelRetenu().scale()).isEqualTo(2);
     }
+
+    // --- Validation des inputs (préservée) ---
 
     @Test
     void compute_paysFrance_rejette() {
