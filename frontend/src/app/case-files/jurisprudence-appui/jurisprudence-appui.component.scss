@@ -1,0 +1,147 @@
+// F-242 SF-242-02 — zone compacte « Jurisprudence à l'appui ».
+// Palette DESIGN_SYSTEM : navy #1A3A5C, or #C9973A.
+
+.juris-appui {
+  font-family: 'Inter', sans-serif;
+  margin-top: 4px;
+}
+
+// Appel à l'action replié — état discret quand aucune citation.
+.juris-appui__cta,
+.juris-appui__add-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary, #1A3A5C);
+  padding: 4px 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.juris-appui__add-link {
+  align-self: flex-start;
+}
+
+.juris-appui__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(201, 151, 58, 0.06);
+  border: 1px solid rgba(201, 151, 58, 0.28);
+  border-radius: 8px;
+}
+
+.juris-appui__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent, #C9973A);
+}
+
+.juris-appui__label-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.juris-appui__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.juris-appui__item {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-divider, #E0E4EA);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.juris-appui__citation {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.juris-appui__citation-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.juris-appui__reference {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1C2B3A);
+}
+
+.juris-appui__portee {
+  font-size: 12px;
+  color: var(--color-text-secondary, #6B7A8D);
+  line-height: 1.45;
+}
+
+.juris-appui__citation-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.juris-appui__form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &--add {
+    background: var(--color-surface, #FFFFFF);
+    border: 1px solid var(--color-divider, #E0E4EA);
+    border-radius: 6px;
+    padding: 10px;
+  }
+}
+
+.juris-appui__field {
+  width: 100%;
+  font-size: 13px;
+}
+
+.juris-appui__form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .juris-appui__form-actions {
+    flex-wrap: wrap;
+  }
+}

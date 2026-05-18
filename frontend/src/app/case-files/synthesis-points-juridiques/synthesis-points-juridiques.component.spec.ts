@@ -2,11 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { SynthesisPointsJuridiquesComponent } from './synthesis-points-juridiques.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { JurisprudenceCitationService } from '../../core/services/jurisprudence-citation.service';
 
 const CASE_FILE_ID = 'cf-1';
 
@@ -43,6 +44,7 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
   let fixture: ComponentFixture<SynthesisPointsJuridiquesComponent>;
   let component: SynthesisPointsJuridiquesComponent;
   let caseAnalysisService: jest.Mocked<CaseAnalysisService>;
+  let citationService: jest.Mocked<JurisprudenceCitationService>;
   let queryParamGet: (k: string) => string | null;
 
   beforeEach(async () => {
@@ -54,6 +56,11 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
 
     const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     workspaceService.getCurrentWorkspace.mockReturnValue(of({ id: 'ws-1', country: 'FRANCE' }));
+
+    citationService = jasmine.createSpyObj('JurisprudenceCitationService', [
+      'list', 'create', 'update', 'delete',
+    ]) as any;
+    citationService.list.mockReturnValue(of({ citations: [] }));
 
     await TestBed.configureTestingModule({
       imports: [SynthesisPointsJuridiquesComponent, NoopAnimationsModule, RouterTestingModule],
@@ -70,6 +77,7 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
         { provide: CaseFileService, useValue: caseFileService },
         { provide: CaseAnalysisService, useValue: caseAnalysisService },
         { provide: WorkspaceService, useValue: workspaceService },
+        { provide: JurisprudenceCitationService, useValue: citationService },
       ],
     }).compileComponents();
 
@@ -150,5 +158,64 @@ describe('SynthesisPointsJuridiquesComponent (F-162 SF-162-04)', () => {
 
     const deeplinkComponents = fixture.nativeElement.querySelectorAll('app-jurisprudence-deeplinks');
     expect(deeplinkComponents.length).toBe(2);
+  });
+
+  // U-8 : F-242 SF-242-02 — les citations sont chargées à l'init et réparties par index de point.
+  it('U8: loads jurisprudence citations on init and groups them by point index', () => {
+    citationService.list.mockReturnValue(
+      of({
+        citations: [
+          {
+            id: 'c1', pointJuridiqueIndex: 0, pointJuridiqueTexte: 'p0',
+            reference: 'Réf 1', portee: null,
+            createdAt: '2026-05-18T09:00:00Z', updatedAt: '2026-05-18T09:00:00Z',
+          },
+          {
+            id: 'c2', pointJuridiqueIndex: 1, pointJuridiqueTexte: 'p1',
+            reference: 'Réf 2', portee: 'portée',
+            createdAt: '2026-05-18T09:00:00Z', updatedAt: '2026-05-18T09:00:00Z',
+          },
+          {
+            id: 'c3', pointJuridiqueIndex: 0, pointJuridiqueTexte: 'p0',
+            reference: 'Réf 3', portee: null,
+            createdAt: '2026-05-18T09:00:00Z', updatedAt: '2026-05-18T09:00:00Z',
+          },
+        ],
+      }),
+    );
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1)]));
+    caseAnalysisService.getByVersion.mockReturnValue(
+      of(makeAnalysis(1, [{ texte: 'point A' }, { texte: 'point B' }])),
+    );
+
+    fixture.detectChanges();
+
+    expect(citationService.list).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(component.citationsForPoint(0).map(c => c.id)).toEqual(['c1', 'c3']);
+    expect(component.citationsForPoint(1).map(c => c.id)).toEqual(['c2']);
+    expect(component.citationsForPoint(2)).toEqual([]);
+  });
+
+  // U-9 : F-242 SF-242-02 — un point juridique rend la zone « Jurisprudence à l'appui ».
+  it('U9: injects <app-jurisprudence-appui> for each point card', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1)]));
+    caseAnalysisService.getByVersion.mockReturnValue(
+      of(makeAnalysis(1, [{ texte: 'point A' }, { texte: 'point B' }])),
+    );
+    fixture.detectChanges();
+
+    const appuiComponents = fixture.nativeElement.querySelectorAll('app-jurisprudence-appui');
+    expect(appuiComponents.length).toBe(2);
+  });
+
+  // U-10 : F-242 SF-242-02 — un échec du chargement des citations laisse la map vide.
+  it('U10: keeps citations empty when the citation list fails', () => {
+    citationService.list.mockReturnValue(throwError(() => new Error('boom')));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1)]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeAnalysis(1, [{ texte: 'point' }])));
+
+    fixture.detectChanges();
+
+    expect(component.citationsForPoint(0)).toEqual([]);
   });
 });

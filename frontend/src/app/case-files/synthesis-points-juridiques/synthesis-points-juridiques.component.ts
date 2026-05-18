@@ -6,10 +6,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { JurisprudenceCitationService } from '../../core/services/jurisprudence-citation.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
+import { JurisprudenceCitation } from '../../core/models/jurisprudence-citation.model';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
 import { JurisprudenceDeeplinksComponent } from '../../shared/jurisprudence-deeplinks/jurisprudence-deeplinks.component';
+import { JurisprudenceAppuiComponent } from '../jurisprudence-appui/jurisprudence-appui.component';
 
 const PREVIEW_MAX_CHARS = 200;
 
@@ -22,7 +25,7 @@ const PREVIEW_MAX_CHARS = 200;
   standalone: true,
   imports: [
     RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule,
-    SourceRefComponent, JurisprudenceDeeplinksComponent,
+    SourceRefComponent, JurisprudenceDeeplinksComponent, JurisprudenceAppuiComponent,
   ],
   templateUrl: './synthesis-points-juridiques.component.html',
   styleUrl: './synthesis-points-juridiques.component.scss',
@@ -33,6 +36,8 @@ export class SynthesisPointsJuridiquesComponent implements OnInit {
   loading = signal(true);
   expandedIds = signal<Set<number>>(new Set());
   workspaceCountry = signal<'FR' | 'BE'>('FR');
+  /** F-242 SF-242-02 — citations d'appui du dossier, réparties par index de point. */
+  citationsByPoint = signal<Map<number, JurisprudenceCitation[]>>(new Map());
 
   private readonly sourceMap = computed(() => {
     const map = new Map<string, string>();
@@ -47,6 +52,7 @@ export class SynthesisPointsJuridiquesComponent implements OnInit {
     private caseFileService: CaseFileService,
     private caseAnalysisService: CaseAnalysisService,
     private workspaceService: WorkspaceService,
+    private jurisprudenceCitationService: JurisprudenceCitationService,
   ) {}
 
   ngOnInit(): void {
@@ -62,9 +68,39 @@ export class SynthesisPointsJuridiquesComponent implements OnInit {
       next: cf => {
         this.caseFile.set(cf);
         this.loadAnalysis(id, versionParam ? Number(versionParam) : null);
+        this.loadCitations(id);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  /**
+   * F-242 SF-242-02 — charge les citations d'appui du dossier et les répartit
+   * par `pointJuridiqueIndex`. Un échec laisse la map vide (zone repliée).
+   */
+  private loadCitations(caseFileId: string): void {
+    this.jurisprudenceCitationService.list(caseFileId).subscribe({
+      next: response => this.citationsByPoint.set(this.groupByPoint(response.citations)),
+      error: () => this.citationsByPoint.set(new Map()),
+    });
+  }
+
+  /** Regroupe les citations par index de point juridique. */
+  private groupByPoint(
+    citations: JurisprudenceCitation[],
+  ): Map<number, JurisprudenceCitation[]> {
+    const map = new Map<number, JurisprudenceCitation[]>();
+    for (const citation of citations) {
+      const list = map.get(citation.pointJuridiqueIndex) ?? [];
+      list.push(citation);
+      map.set(citation.pointJuridiqueIndex, list);
+    }
+    return map;
+  }
+
+  /** Citations d'appui rattachées au point juridique d'index donné. */
+  citationsForPoint(index: number): JurisprudenceCitation[] {
+    return this.citationsByPoint().get(index) ?? [];
   }
 
   private loadAnalysis(caseFileId: string, requestedVersion: number | null): void {
