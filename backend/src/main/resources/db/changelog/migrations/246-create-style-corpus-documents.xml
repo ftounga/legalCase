@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="246-create-style-corpus-documents" author="legalcase">
+        <comment>
+            F-98 / SF-98-46 : table du corpus de style (style learning).
+
+            L'avocat téléverse ses anciennes conclusions au niveau de son cabinet
+            (workspace). Le worker asynchrone (queue RabbitMQ style.corpus) extrait
+            le texte, appelle Claude pour produire une "signature de style" — une
+            description réutilisable du style rédactionnel SANS aucune donnée de
+            dossier — puis purge le fichier S3 et ne persiste jamais le texte brut
+            (minimisation RGPD, invariant 1 du cadrage SF-98-46-00-coherence).
+
+            Seule la style_signature subsiste après traitement ; elle est d'usage
+            strictement interne (SF-98-47, injection dans la génération) et n'est
+            jamais exposée par l'API.
+
+            Entité de niveau workspace (FK workspace_id) — modèle UserBillingRate.
+            Le numéro 246 est le prochain libre sur master (245 = create-jurisprudence-checks).
+        </comment>
+
+        <createTable tableName="style_corpus_documents">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_style_corpus_documents_workspace"
+                             referencedTableName="workspaces"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="uploaded_by_user_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_style_corpus_documents_uploaded_by"
+                             referencedTableName="users"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="original_filename" type="varchar(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_type" type="varchar(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_size" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="style_signature" type="text"/>
+            <column name="active" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_message" type="text"/>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="style_corpus_documents"
+                     indexName="idx_style_corpus_documents_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="style_corpus_documents"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

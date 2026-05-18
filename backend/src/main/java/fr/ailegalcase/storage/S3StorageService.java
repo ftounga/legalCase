@@ -65,6 +65,13 @@ public class S3StorageService implements StorageService {
     }
 
     @Override
+    public void delete(String key) {
+        s3Client.deleteObject(
+                DeleteObjectRequest.builder().bucket(props.getBucket()).key(key).build()
+        );
+    }
+
+    @Override
     public String presignedDownloadUrl(String key, int expirationMinutes) {
         var presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(expirationMinutes))
