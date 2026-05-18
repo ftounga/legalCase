@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import {
@@ -74,6 +75,7 @@ const LIFECYCLE_ORDER: readonly ConclusionLifecycleStatus[] = [
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    RouterLink,
   ],
   templateUrl: './conclusions-section.component.html',
   styleUrl: './conclusions-section.component.scss',
@@ -152,6 +154,16 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   /** Vrai s'il existe au moins une version générée pour le dossier. */
   readonly hasVersions = computed<boolean>(() => this.versions().length > 0);
+
+  /**
+   * SF-98-48 (ajustement b2) — Vrai si la version affichée a été générée en
+   * appliquant le corpus de style du cabinet. `styleApplied` est un champ
+   * optionnel fourni par SF-98-47 : absent ou `false` ⇒ pas d'indicateur
+   * (dégradation propre tant que SF-98-47 n'est pas déployée).
+   */
+  readonly styleApplied = computed<boolean>(
+    () => this.conclusion()?.styleApplied === true,
+  );
 
   /**
    * SF-98-49 — Vrai si la version affichée est éditable : génération `DONE`

@@ -1,0 +1,293 @@
+// F-98 / SF-98-48 — Écran cabinet du corpus de style.
+// Palette navy #1A3A5C / or #C9973A. Le rouge est réservé aux échecs.
+// Espacements multiples de 4px.
+
+$navy: #1a3a5c;
+$gold: #c9973a;
+
+.sc-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+// ── En-tête ──────────────────────────────────────────────────
+.sc-page-header {
+  margin-bottom: 24px;
+}
+
+.sc-page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  color: $navy;
+}
+
+.sc-page-title-icon {
+  color: $gold;
+  font-size: 26px;
+  width: 26px;
+  height: 26px;
+}
+
+.sc-page-subtitle {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #5a6473;
+}
+
+// ── Note de confidentialité ─────────────────────────────────
+.sc-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border-left: 4px solid $gold;
+  background: rgba(26, 58, 92, 0.07);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: $navy;
+}
+
+.sc-privacy-icon {
+  flex-shrink: 0;
+  color: $gold;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+// ── Zone d'upload ───────────────────────────────────────────
+.sc-upload-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+.sc-upload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sc-upload-icon {
+  flex-shrink: 0;
+  color: $navy;
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.sc-upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sc-upload-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: $navy;
+}
+
+.sc-upload-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #5a6473;
+}
+
+.sc-file-input {
+  display: none;
+}
+
+.sc-btn-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+// ── État de chargement / messages ───────────────────────────
+.sc-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: $navy;
+}
+
+.sc-message {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sc-message--muted {
+  color: #5a6473;
+}
+
+// ── État vide ───────────────────────────────────────────────
+.sc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.sc-empty-icon {
+  color: #c4ccd6;
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 8px;
+}
+
+.sc-empty-title {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: $navy;
+}
+
+.sc-empty-hint {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #5a6473;
+}
+
+// ── Liste des documents ─────────────────────────────────────
+.sc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #e6e1d4;
+  background: #fff;
+}
+
+.sc-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sc-item-icon {
+  flex-shrink: 0;
+  color: $navy;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.sc-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sc-item-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1a2330;
+  word-break: break-word;
+}
+
+.sc-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.sc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sc-status-spinner {
+  display: inline-block;
+}
+
+// En attente / analyse : navy atténué. Style appris : or.
+// Échec : rouge — réservé à l'alerte (cf. DESIGN_SYSTEM).
+.sc-status--pending {
+  background: rgba(26, 58, 92, 0.08);
+  color: $navy;
+}
+
+.sc-status--done {
+  background: rgba(201, 151, 58, 0.18);
+  color: #8a6420;
+}
+
+.sc-status--failed {
+  background: rgba(176, 0, 32, 0.07);
+  color: #8a1418;
+}
+
+.sc-item-date {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #5a6473;
+}
+
+.sc-item-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a1418;
+}
+
+.sc-item-error-icon {
+  flex-shrink: 0;
+  color: #b00020;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.sc-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}

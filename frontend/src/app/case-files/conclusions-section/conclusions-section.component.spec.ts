@@ -10,6 +10,7 @@ import {
 } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideRouter } from '@angular/router';
 import { ConclusionsSectionComponent } from './conclusions-section.component';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import {
@@ -110,6 +111,7 @@ describe('ConclusionsSectionComponent', () => {
       providers: [
         { provide: MatSnackBar, useValue: snackSpy },
         { provide: DocxExportService, useValue: docxSpy },
+        provideRouter([]),
       ],
     }).compileComponents();
 
@@ -725,5 +727,50 @@ describe('ConclusionsSectionComponent', () => {
       'Fermer',
       jasmine.objectContaining({ panelClass: ['snack-error'] }),
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-98-48 — découvrabilité du corpus de style (b1) + indicateur style (b2)
+  // ---------------------------------------------------------------------------
+
+  it('b1 — NOT_GENERATED → lien vers /workspace/style-learning affiché', () => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    const hint = fixture.nativeElement.querySelector(
+      '[data-testid="style-corpus-link"]',
+    );
+    expect(hint).not.toBeNull();
+    const link: HTMLAnchorElement = hint.querySelector('a');
+    expect(link.getAttribute('href')).toBe('/workspace/style-learning');
+  });
+
+  it('b2 — version DONE avec styleApplied=true → indicateur « Généré dans votre style »', () => {
+    fixture.detectChanges();
+    flushInitialLoad(
+      doneResponse({ styleApplied: true }),
+      versionList(),
+    );
+    fixture.detectChanges();
+
+    const indicator = fixture.nativeElement.querySelector(
+      '[data-testid="style-applied-indicator"]',
+    );
+    expect(indicator).not.toBeNull();
+    expect(indicator.textContent).toContain('Généré dans votre style');
+  });
+
+  it('b2 — styleApplied absent → aucun indicateur (dégradation propre)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="style-applied-indicator"]',
+      ),
+    ).toBeNull();
   });
 });
