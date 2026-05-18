@@ -1,0 +1,319 @@
+/**
+ * SF-217-07 : styles outil "Contribution alimentaire des enfants (Belgique)".
+ * Aligné sur le template canonique `regime-communaute-legale-be-section`.
+ *
+ * Palette : navy/or/rouge. Or réservé au verdict DONNEES_INSUFFISANTES.
+ * Inter pour le texte courant, JetBrains Mono pour les montants et les bases
+ * juridiques. Espacements multiples de 4px.
+ */
+
+.cae-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.cae-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.cae-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.cae-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.cae-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+}
+
+.cae-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.cae-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.cae-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.cae-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form
+.cae-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cae-field-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 220px;
+  }
+}
+
+.cae-field-full {
+  width: 100%;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.cae-section-title {
+  margin: 8px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.cae-section-help {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.cae-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+// Résultat
+.cae-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cae-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+
+  // Navy — CONTRIBUTION_DUE / CONTRIBUTION_EQUILIBREE.
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Or — DONNEES_INSUFFISANTES.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+}
+
+.cae-montant {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.cae-montant-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.cae-montant-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1A3A5C;
+}
+
+.cae-montant-debiteur {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.cae-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cae-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: rgba(26, 35, 48, 0.02);
+}
+
+.cae-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.cae-card-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A3A5C;
+}
+
+.cae-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cae-detail-label,
+.cae-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.cae-detail ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-secondary, #6a7485);
+    line-height: 1.5;
+  }
+}
+
+.cae-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cae-messages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-secondary, #6a7485);
+    line-height: 1.5;
+    padding-left: 12px;
+    border-left: 2px solid var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.cae-bases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+.cae-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
