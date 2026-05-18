@@ -1,0 +1,202 @@
+<section class="ap-section">
+  <header class="ap-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ap-body">
+    <mat-icon class="ap-icon">family_restroom</mat-icon>
+    <span class="ap-title">AUTORITÉ PARENTALE — CC ART. 374-375 BE</span>
+    @if (result()) {
+      <span class="ap-chip"
+            [class.ap-chip--ok]="result()!.verdict === 'AUTORITE_CONJOINTE' || result()!.verdict === 'AUTORITE_EXCLUSIVE_FONDEE'"
+            [class.ap-chip--ko]="result()!.verdict === 'AUTORITE_EXCLUSIVE_NON_FONDEE'"
+            [class.ap-chip--medium]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="ap-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ap-body" class="ap-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="ap-country-banner" data-testid="ap-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — autorité parentale (Code civil, art. 374-375). L'autorité parentale française repose sur des mécanismes distincts et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="ap-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="ap-form" (ngSubmit)="calculate()">
+            <h4 class="ap-section-title">Situation de filiation</h4>
+
+            <div class="ap-field-row ap-full">
+              <mat-slide-toggle
+                  [ngModel]="filiationEtablieDeuxParents()"
+                  (ngModelChange)="filiationEtablieDeuxParents.set($event)"
+                  name="filiationEtablieDeuxParents">
+                Filiation établie à l'égard des deux parents
+              </mat-slide-toggle>
+            </div>
+
+            <div class="ap-field-row ap-full">
+              <mat-slide-toggle
+                  [ngModel]="accordParentalExiste()"
+                  (ngModelChange)="accordParentalExiste.set($event)"
+                  name="accordParentalExiste">
+                Accord parental existant sur les modalités d'exercice
+              </mat-slide-toggle>
+            </div>
+
+            <h4 class="ap-section-title">Régime d'autorité parentale demandé</h4>
+            <p class="ap-section-help">
+              L'autorité parentale est conjointe par principe (CC art. 374 §1). L'exclusive
+              ne peut être confiée à un parent que par décision du Tribunal de la famille,
+              en présence d'un motif grave.
+            </p>
+
+            <div class="ap-field-row ap-full">
+              <mat-slide-toggle
+                  [ngModel]="demandeAutoriteExclusive()"
+                  (ngModelChange)="onDemandeExclusiveChange($event)"
+                  name="demandeAutoriteExclusive">
+                Une autorité parentale exclusive est demandée
+              </mat-slide-toggle>
+            </div>
+
+            @if (demandeAutoriteExclusive()) {
+              <p class="ap-section-help">Motifs graves susceptibles de fonder l'exclusive (CC art. 374 §1 al. 2 / art. 375) :</p>
+
+              <div class="ap-field-row ap-full">
+                <mat-slide-toggle
+                    [ngModel]="desinteretDurableParent()"
+                    (ngModelChange)="desinteretDurableParent.set($event)"
+                    name="desinteretDurableParent">
+                  Désintérêt durable d'un parent pour l'enfant
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ap-field-row ap-full">
+                <mat-slide-toggle
+                    [ngModel]="miseEnDangerEnfant()"
+                    (ngModelChange)="miseEnDangerEnfant.set($event)"
+                    name="miseEnDangerEnfant">
+                  Mise en danger de l'enfant
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ap-field-row ap-full">
+                <mat-slide-toggle
+                    [ngModel]="incapaciteParent()"
+                    (ngModelChange)="incapaciteParent.set($event)"
+                    name="incapaciteParent">
+                  Incapacité durable d'un parent à exercer l'autorité
+                </mat-slide-toggle>
+              </div>
+            }
+
+            <h4 class="ap-section-title">Contexte</h4>
+
+            <div class="ap-field-row ap-full">
+              <mat-slide-toggle
+                  [ngModel]="decisionJudiciaireAnterieure()"
+                  (ngModelChange)="decisionJudiciaireAnterieure.set($event)"
+                  name="decisionJudiciaireAnterieure">
+                Décision judiciaire antérieure sur l'autorité parentale
+              </mat-slide-toggle>
+            </div>
+
+            <div class="ap-field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Mode d'hébergement principal de l'enfant</mat-label>
+                <mat-select
+                    [ngModel]="modeHebergementPrincipal()"
+                    (ngModelChange)="modeHebergementPrincipal.set($event)"
+                    name="modeHebergementPrincipal">
+                  @for (opt of modeHebergementOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="ap-field-row ap-full">
+              <mat-form-field appearance="outline">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire" maxlength="1000"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="ap-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'autorité parentale</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="ap-result">
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <div class="ap-voie">
+              <span class="ap-voie-label">Voie procédurale recommandée</span>
+              <span class="ap-voie-value">{{ voieProceduraleLabel(result()!.voieProcedurale) }}</span>
+            </div>
+
+            @if (result()!.facteurs?.length) {
+              <div class="ap-facteurs">
+                <span class="ap-facteurs-label">Facteurs retenus</span>
+                <ul>
+                  @for (f of result()!.facteurs; track f.code) {
+                    <li class="ap-facteur"
+                        [class.ap-facteur--exclusive]="f.favorableExclusive">
+                      <span class="ap-facteur-libelle">{{ f.libelle }}</span>
+                      <span class="ap-facteur-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                      <span class="ap-facteur-explication">{{ f.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="ap-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="ap-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.basesJuridiques?.length) {
+              <div class="ap-bases">
+                <span class="ap-bases-label">Bases juridiques :</span>
+                <ul>
+                  @for (b of result()!.basesJuridiques; track b) {
+                    <li class="ap-base" [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
