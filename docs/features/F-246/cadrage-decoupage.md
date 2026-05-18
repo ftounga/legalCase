@@ -122,7 +122,7 @@ ou `PREFILL_COUNT_ALWAYS_ZERO`).
 | 29 | `reconnaissance-paternelle` | F-FA-18 | Famille FR | date de naissance de l'enfant | `dateNaissanceEnfantDetectee` |
 | 30 | `adoption` | F-FA-18 | Famille FR | âge de l'adoptant, âge de l'adopté | `ageAdoptantDetecte`, `ageAdopteDetecte` |
 | 31 | `divorce-desunion-be` | F-FA (BE) | Famille BE | date de séparation | `dateSeparation` (BE) |
-| 32 | `victime-violences-l4256` | F-DT (FR) | Travail FR | date de l'ordonnance de protection JAF | `dateOrdonnanceProtectionJaf` (`TravailExtractedData`) |
+| 32 | `victime-violences-l4256` | F-IM-24 | Immigration FR | date de l'ordonnance de protection JAF | `dateOrdonnanceProtectionJaf` (`ImmigrationExtractedData`) |
 
 > **Note méthode** : `divorce-faute` (#3) et `credit-temps-be` (#4) ont leur
 > champ source déclaré côté frontend (`fautesDetectees`, `ageDemandeurAnnees`)
@@ -206,7 +206,7 @@ full-stack unique livrant tous ses outils ensemble.
 | **SF-246-01** | Nullité de procédure de licenciement | Travail FR | `procedure-nullite-licenciement` (F-DT-36) | M (flags procéduraux nouveaux) |
 | **SF-246-02** | Clause de non-concurrence (**= SF-DT-24-03**) | Travail FR | `non-concurrence` (F-DT-24) | M |
 | **SF-246-03** | Divorce pour faute — codes faute | Famille FR | `divorce-faute` (F-FA-09) | S (champ déjà stubé frontend) |
-| **SF-246-04** | Victime de violences L.1152-… (date OP JAF) | Travail FR | `victime-violences-l4256` | S |
+| **SF-246-04** | Victime de violences L.425-6 (date OP JAF) | Immigration FR | `victime-violences-l4256` (F-IM-24) | S |
 | **SF-246-05** | Crédit-temps fin de carrière — âge demandeur | Travail BE | `credit-temps-be` (F-DT-29) | S |
 | **SF-246-06** | Lot Successions / libéralités | Famille FR | `partage-successoral`, `reserve-heriditaire`, `rapport-succession`, `acceptation-renonciation`, `indivision-successorale`, `devolution-legale`, `donation`, `testament-validite` (F-FA-24) | L (8 outils, 1 record, 1 prompt) |
 | **SF-246-07** | Lot Régimes matrimoniaux & liquidation FR | Famille FR | `communaute-universelle`, `recompenses`, `partage-judiciaire` (F-FA-15/16/17) | M (3 outils) |
@@ -241,7 +241,7 @@ Renversez, Mengue), puis Famille FR (gros volume), puis BE.
 
 | Vague | SF | Justification de priorité | Ampleur de la vague |
 |---|---|---|---|
-| **Vague 1 — Travail FR démos** | SF-246-01, SF-246-02, SF-246-04 | Outils cités dans les signaux démo 2026-05-18 (Renversez : conclusions + nullité procédure F-DT-36 ; clause de non-concurrence dossier Dupont). Périmètre des démos en cours. | 3 SF — ~M each, ~2-3 j |
+| **Vague 1 — Travail FR démos + outil violences** | SF-246-01, SF-246-02, SF-246-04 | Travail FR : outils cités dans les signaux démo 2026-05-18 (Renversez : conclusions + nullité procédure F-DT-36 ; clause de non-concurrence dossier Dupont). SF-246-04 (`victime-violences-l4256`, Immigration FR / F-IM-24) reste rattachée à cette vague — outil isolé à champ unique, sans impact d'ordonnancement. Périmètre des démos en cours. | 3 SF — ~M each, ~2-3 j |
 | **Vague 2 — Famille FR successions** | SF-246-06, SF-246-07 | Successions/libéralités + régimes matrimoniaux : 11 outils, fort volume de dossiers Famille FR, gros gain de pré-fill par SF de lot. | 2 SF (lots) — ~L, ~3-4 j |
 | **Vague 3 — Famille FR vie commune & filiation** | SF-246-08, SF-246-09, SF-246-10 | Séparation/PACS/protection + filiation + autorité parentale : 14 outils. | 3 SF (lots) — ~L, ~4-5 j |
 | **Vague 4 — Reliquats FR + BE** | SF-246-03, SF-246-11, SF-246-05, SF-246-12 | Outils isolés à champ unique (faible ampleur), Travail BE et Famille BE en dernier (cohérent avec priorisation domaine). | 4 SF — ~S each, ~2 j |
@@ -353,12 +353,13 @@ une SF de rattrapage — jamais « déféré si besoin émerge ».
 - **32 outils décisionnels** concernés (champs date/valeur saisissables + source
   backend manquante), sur ~103 outils au total — cohérent avec le diagnostic
   2026-05-18 (« ~32 sur ~103 »).
-- **12 SF full-stack** : 5 SF mono-outil (Travail FR / BE, Famille BE) + 5 SF de
-  lot Famille FR + 2 SF reliquats — couvrant les 32 outils.
+- **12 SF full-stack** : 5 SF mono-outil (Travail FR / BE, Immigration FR,
+  Famille BE) + 5 SF de lot Famille FR + 2 SF reliquats — couvrant les 32 outils.
 - `SF-DT-24-03` (clause de non-concurrence) intégrée au découpage sous le numéro
   **SF-246-02**.
-- **4 vagues** : Vague 1 Travail FR (démos) → Vague 2 Famille FR successions →
-  Vague 3 Famille FR vie commune & filiation → Vague 4 reliquats FR + BE.
+- **4 vagues** : Vague 1 Travail FR (démos) + outil violences Immigration FR →
+  Vague 2 Famille FR successions → Vague 3 Famille FR vie commune & filiation →
+  Vague 4 reliquats FR + BE.
 - Point d'attention dominant : **fiabilité d'extraction des dates** quand
   plusieurs dates coexistent — invariants nullable / no-op gracieux / provenance /
   alerte F-IA-03 / fixtures multi-dates à imposer dans chaque mini-spec.
