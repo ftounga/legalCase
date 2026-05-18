@@ -145,6 +145,31 @@
     color: var(--color-text-secondary);
     line-height: 1.4;
   }
+
+  /* F-244 SF-244-04 : lien « Voir la synthèse » — point d'entrée outils → synthèse. */
+  &__link {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A3A5C;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__link-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 /* F-244 SF-244-02 : espace décisionnel en 2 colonnes alignées —

@@ -288,6 +288,19 @@ describe('SynthesisComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Synthèse non disponible');
   });
 
+  // F-244 SF-244-04 — point d'entrée synthèse → outils décisionnels
+  it('SF-244-04: header renders an « Outils décisionnels » link to /case-files/:id?section=decision', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector('[data-testid="synthesis-to-tools-link"]');
+    expect(link).not.toBeNull();
+    // routerLink vers le détail dossier + queryParams { section: 'decision' }.
+    expect(link.getAttribute('href')).toContain(`/case-files/${CASE_FILE_ID}`);
+    expect(link.getAttribute('href')).toContain('section=decision');
+  });
+
   // T-07 : changement de version ne recharge pas le chat
   it('does not reload chat on version change', () => {
     const chatService = TestBed.inject(ChatService) as jest.Mocked<ChatService>;

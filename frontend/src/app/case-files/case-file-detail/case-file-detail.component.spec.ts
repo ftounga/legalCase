@@ -1195,6 +1195,48 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // ----- F-244 SF-244-04 : reconnexion synthèse ↔ outils -----
+
+  describe('F-244 SF-244-04 reconnexion synthèse ↔ outils', () => {
+    const mockSynthesis: CaseAnalysisResult = {
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z',
+    };
+
+    it('SF-244-04-T01: lien « Voir la synthèse » présent dans le bandeau de couplage quand une synthèse existe', () => {
+      fixture.detectChanges();
+      component.synthesis.set(mockSynthesis);
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector('[data-testid="decision-to-synthesis-link"]');
+      expect(link).not.toBeNull();
+      expect(link.closest('.decision-coupling-hint')).not.toBeNull();
+    });
+
+    it('SF-244-04-T02: lien « Voir la synthèse » absent quand aucune synthèse', () => {
+      fixture.detectChanges();
+      expect(component.synthesis()).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-testid="decision-to-synthesis-link"]')).toBeNull();
+    });
+
+    it('SF-244-04-T03: ?section=decision → bascule sur l\'onglet Décision (index 2)', () => {
+      const route = TestBed.inject(ActivatedRoute);
+      (route as any).queryParamMap = of(convertToParamMap({ section: 'decision' }));
+      const freshFixture = TestBed.createComponent(CaseFileDetailComponent);
+      freshFixture.detectChanges();
+      expect(freshFixture.componentInstance.selectedTabIndex()).toBe(2);
+    });
+
+    it('SF-244-04-T04: ?section= valeur inconnue → onglet inchangé (reste Dossier, index 0)', () => {
+      const route = TestBed.inject(ActivatedRoute);
+      (route as any).queryParamMap = of(convertToParamMap({ section: 'xxx-inconnu' }));
+      const freshFixture = TestBed.createComponent(CaseFileDetailComponent);
+      freshFixture.detectChanges();
+      expect(freshFixture.componentInstance.selectedTabIndex()).toBe(0);
+    });
+  });
+
   it('SF-IA-04-03: panel décisionnel monté une fois le dossier chargé', () => {
     fixture.detectChanges();
     const panel = fixture.nativeElement.querySelector('app-decisional-tools-panel');

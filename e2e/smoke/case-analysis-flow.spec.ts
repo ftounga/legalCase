@@ -64,8 +64,13 @@ test.describe('Parcours métier — analyse IA complète', () => {
     await analyzeBtn.click();
 
     // ── 5. Attendre que l'analyse se termine ──
-    // Le lien "Voir la synthèse" apparaît quand l'analyse est DONE
-    const synthesisLink = page.getByRole('link', { name: /voir la synthèse/i });
+    // Le lien "Voir la synthèse" apparaît quand l'analyse est DONE.
+    // F-244 SF-244-04 : un 2ᵉ lien "Voir la synthèse" existe désormais dans
+    // l'onglet « Décision » (bandeau de couplage). On scope le sélecteur à
+    // l'onglet « Analyse » pour rester non ambigu (strict mode Playwright).
+    const synthesisLink = page
+      .locator('[data-tab-panel="analyse"]')
+      .getByRole('link', { name: /voir la synthèse/i });
     await expect(synthesisLink).toBeVisible({ timeout: 120_000 }); // 2 min max pour l'IA
 
     // ── 6. Consulter la synthèse ──

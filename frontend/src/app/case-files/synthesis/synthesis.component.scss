@@ -61,6 +61,27 @@
   margin-bottom: 8px;
 }
 
+/* F-244 SF-244-04 : bouton « Outils décisionnels » — point d'entrée synthèse
+   → onglet Décision. Même style que les boutons d'export ; margin-left auto
+   pour grouper les actions à droite après le bouton « Retour au dossier ». */
+.tools-btn {
+  margin-left: auto;
+  color: #1A3A5C;
+  border-color: #1A3A5C;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+
+  mat-icon {
+    color: #C9973A;
+    margin-right: 4px;
+  }
+
+  &:hover {
+    background-color: #EEF2F7;
+  }
+}
+
 .title-row {
   display: flex;
   align-items: center;
