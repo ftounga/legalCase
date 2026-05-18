@@ -856,4 +856,79 @@ describe('ConclusionsSectionComponent', () => {
       ),
     ).toBeNull();
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-98-53 — Bandeau « conclusions à régénérer »
+  // ---------------------------------------------------------------------------
+
+  it('CA4 — DONE + stale=true → bandeau de régénération affiché', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ stale: true }), versionList());
+    fixture.detectChanges();
+
+    const banner = fixture.nativeElement.querySelector(
+      '[data-testid="stale-banner"]',
+    );
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toContain(
+      'L\'analyse du dossier a évolué depuis la génération',
+    );
+    // Avertissement non bloquant — jamais rouge (cf. DESIGN_SYSTEM).
+    expect(banner.className).not.toContain('error');
+    expect(component.stale()).toBe(true);
+  });
+
+  it('CA4 — DONE + stale=false → bandeau absent', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ stale: false }), versionList());
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="stale-banner"]'),
+    ).toBeNull();
+    expect(component.stale()).toBe(false);
+  });
+
+  it('CA4 — DONE + stale absent → bandeau absent (dégradation propre)', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="stale-banner"]'),
+    ).toBeNull();
+    expect(component.stale()).toBe(false);
+  });
+
+  it('CA4 — version non DONE (FAILED) + stale=true → bandeau absent', () => {
+    fixture.detectChanges();
+    flushInitialLoad(
+      response({ status: 'FAILED', errorMessage: 'Timeout.', stale: true }),
+    );
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="stale-banner"]'),
+    ).toBeNull();
+  });
+
+  it('CA5 — le bandeau met en avant l\'action « Régénérer » → POST generate', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse({ stale: true }), versionList());
+    fixture.detectChanges();
+
+    const regenBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="stale-regenerate-btn"]',
+    );
+    expect(regenBtn).not.toBeNull();
+    expect(regenBtn.textContent).toContain('Régénérer');
+
+    regenBtn.click();
+    const postReq = httpMock.expectOne(GENERATE_URL);
+    expect(postReq.request.method).toBe('POST');
+    postReq.flush({ status: 'PENDING', versionNumber: 3 });
+    httpMock.expectOne(VERSIONS_URL).flush(versionList());
+
+    expect(component.status()).toBe('PENDING');
+  });
 });

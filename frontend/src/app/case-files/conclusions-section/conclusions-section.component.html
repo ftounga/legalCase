@@ -105,6 +105,29 @@
           </span>
         </div>
 
+        <!-- ── Bandeau « conclusions à régénérer » (SF-98-53) ──── -->
+        @if (stale()) {
+          <div class="cs-stale-banner" data-testid="stale-banner">
+            <mat-icon class="cs-stale-icon">update</mat-icon>
+            <span class="cs-stale-text">
+              L'analyse du dossier a évolué depuis la génération de cette
+              version — pensez à régénérer.
+            </span>
+            <button mat-flat-button color="primary"
+                    class="cs-stale-action"
+                    data-testid="stale-regenerate-btn"
+                    [disabled]="generating()"
+                    (click)="generate()">
+              @if (generating()) {
+                <mat-spinner diameter="18" class="cs-btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>refresh</mat-icon>
+              }
+              Régénérer
+            </button>
+          </div>
+        }
+
         <!-- ── Indicateur de style appliqué (SF-98-48 / b2) ──────── -->
         @if (styleApplied()) {
           <p class="cs-style-applied" data-testid="style-applied-indicator">

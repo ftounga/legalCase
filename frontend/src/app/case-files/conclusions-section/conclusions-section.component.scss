@@ -194,6 +194,40 @@ $gold: #c9973a;
   height: 22px;
 }
 
+// ── Bandeau « conclusions à régénérer » (SF-98-53) ─────────
+// Avertissement non bloquant : accent or (attention), JAMAIS rouge —
+// le rouge reste réservé aux échecs (cf. DESIGN_SYSTEM).
+.cs-stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border-left: 4px solid $gold;
+  background: rgba(201, 151, 58, 0.12);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: $navy;
+}
+
+.cs-stale-icon {
+  flex-shrink: 0;
+  color: $gold;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+.cs-stale-text {
+  flex: 1;
+}
+
+.cs-stale-action {
+  flex-shrink: 0;
+}
+
 // ── Texte des conclusions (préformaté) ─────────────────────
 .cs-content {
   margin: 0 0 16px;
