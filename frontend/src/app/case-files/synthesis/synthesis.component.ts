@@ -68,6 +68,9 @@ import { QuotaErrorBannerComponent } from '../../shared/quota-error-banner/quota
 import { ImmigrationEventsSectionComponent } from '../immigration-events-section/immigration-events-section.component';
 import { ImmigrationStrategyComparatorSectionComponent } from '../immigration-strategy-comparator-section/immigration-strategy-comparator-section.component';
 import { DivorceConsentementScoringSectionComponent } from '../divorce-consentement-scoring-section/divorce-consentement-scoring-section.component';
+import { JurisprudenceCitationsSectionComponent } from '../jurisprudence-citations-section/jurisprudence-citations-section.component';
+import { JurisprudenceCheckService } from '../../core/services/jurisprudence-check.service';
+import { JurisprudenceCheck } from '../../core/models/jurisprudence-check.model';
 import { DivorceConsentementScoring, DivorceConsentementValidityDetection, ImmigrationStrategyScenario, ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
 import { CaseAnalysisPartialResponse, CaseAnalysisPartialSections, CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
 import { STREAMING_EXPECTED_SECTIONS, StreamingSection } from './streaming-sections';
@@ -121,7 +124,8 @@ interface SynthesisBadge {
     QuotaErrorBannerComponent,
     ImmigrationEventsSectionComponent,
     ImmigrationStrategyComparatorSectionComponent,
-    DivorceConsentementScoringSectionComponent
+    DivorceConsentementScoringSectionComponent,
+    JurisprudenceCitationsSectionComponent
   ],
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss',
@@ -233,6 +237,9 @@ export class SynthesisComponent implements OnInit, OnDestroy {
 
   strategicOptions = signal<StrategicOption[]>([]);
   updatingOptionId = signal<string | null>(null);
+
+  /** F-179 SF-179-03 — vérifications de jurisprudence citée du dossier. */
+  jurisprudenceChecks = signal<JurisprudenceCheck[]>([]);
 
   readonly optionsToStudy = computed(() =>
     this.strategicOptions().filter(o => o.statut === 'TO_STUDY').sort((a, b) => a.ordre - b.ordre)
@@ -614,6 +621,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private aiQuestionAlignmentService: AiQuestionAlignmentService,
     private typeLitigeOverrideService: TypeLitigeOverrideService,
     private badgeNavigation: BadgeNavigationService,
+    private jurisprudenceCheckService: JurisprudenceCheckService,
   ) {}
 
   ngOnInit(): void {
@@ -698,6 +706,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
           this.loadQuestionsForVersion(caseFileId, versions[0].id);
           this.loadChecksForVersion(caseFileId, versions[0].id);
           this.loadStrategicOptionsForVersion(caseFileId, versions[0].id);
+          this.loadJurisprudenceChecks(caseFileId);
           // F-185 SF-185-01 — si une nouvelle analyse a démarré (re-analyse), on tombera
           // également sur l'endpoint partial via l'événement SSE PARTIAL ; pas de pré-chargement
           // ici car la version DONE existante reste affichée tant que la nouvelle n'a pas terminé.
@@ -904,6 +913,18 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     this.strategicOptionService.list(caseFileId, analysisId).subscribe({
       next: options => this.strategicOptions.set(options),
       error: () => this.strategicOptions.set([])
+    });
+  }
+
+  /**
+   * F-179 SF-179-03 — charge les vérifications de jurisprudence citée de la
+   * dernière analyse DONE du dossier. Fail-soft : un échec laisse la liste
+   * vide (la section ne s'affiche pas) sans bloquer le reste de la synthèse.
+   */
+  loadJurisprudenceChecks(caseFileId: string): void {
+    this.jurisprudenceCheckService.getChecks(caseFileId).subscribe({
+      next: response => this.jurisprudenceChecks.set(response.checks ?? []),
+      error: () => this.jurisprudenceChecks.set([])
     });
   }
 
