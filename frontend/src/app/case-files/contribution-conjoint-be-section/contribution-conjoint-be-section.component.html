@@ -1,0 +1,208 @@
+<section class="ccj-section">
+  <header class="ccj-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ccj-body">
+    <mat-icon class="ccj-icon">volunteer_activism</mat-icon>
+    <span class="ccj-title">PENSION ALIMENTAIRE ENTRE EX-ÉPOUX — CC ART. 301 BE</span>
+    @if (result()) {
+      <span class="ccj-chip"
+            [class.ccj-chip--ok]="result()!.verdict === 'PENSION_DUE' || result()!.verdict === 'PENSION_CONVENTIONNELLE'"
+            [class.ccj-chip--ko]="result()!.verdict === 'PENSION_NON_DUE'"
+            [class.ccj-chip--medium]="result()!.verdict === 'DONNEES_INSUFFISANTES'">
+        @if (result()!.verdict === 'PENSION_DUE') {
+          {{ result()!.montantMensuelIndicatif }} € / mois
+        } @else {
+          {{ verdictBannerLabel(result()!.verdict) }}
+        }
+      </span>
+    }
+    <mat-icon class="ccj-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ccj-body" class="ccj-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="ccj-country-banner" data-testid="ccj-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — pension alimentaire entre ex-époux (Code civil, art. 301). La prestation compensatoire française repose sur un mécanisme distinct (capital forfaitaire) et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="ccj-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="ccj-form" (ngSubmit)="calculate()">
+            <h4 class="ccj-section-title">Type de divorce</h4>
+
+            <div class="ccj-field-full">
+              <mat-form-field appearance="outline">
+                <mat-label>Type de divorce prononcé</mat-label>
+                <mat-select
+                    [ngModel]="typeDivorce()"
+                    (ngModelChange)="typeDivorce.set($event)"
+                    name="typeDivorce">
+                  @for (opt of typeDivorceOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <h4 class="ccj-section-title">Conditions de la pension</h4>
+            <p class="ccj-section-help">En divorce DC, la pension relève de la convention préalable des parties.</p>
+
+            <div class="ccj-field-row ccj-full">
+              <mat-slide-toggle
+                  [ngModel]="renonciationPensionConvention()"
+                  (ngModelChange)="renonciationPensionConvention.set($event)"
+                  name="renonciationPensionConvention">
+                Renonciation à la pension prévue dans la convention
+              </mat-slide-toggle>
+            </div>
+
+            <div class="ccj-field-row ccj-full">
+              <mat-slide-toggle
+                  [ngModel]="creancierEnEtatDeBesoin()"
+                  (ngModelChange)="creancierEnEtatDeBesoin.set($event)"
+                  name="creancierEnEtatDeBesoin">
+                Le créancier est dans le besoin
+              </mat-slide-toggle>
+            </div>
+
+            <div class="ccj-field-row ccj-full">
+              <mat-slide-toggle
+                  [ngModel]="fauteGraveCreancier()"
+                  (ngModelChange)="fauteGraveCreancier.set($event)"
+                  name="fauteGraveCreancier">
+                Faute grave du créancier invoquée (CC art. 301 §2)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="ccj-field-row ccj-full">
+              <mat-slide-toggle
+                  [ngModel]="degradationEconomiqueLieeAuMariage()"
+                  (ngModelChange)="degradationEconomiqueLieeAuMariage.set($event)"
+                  name="degradationEconomiqueLieeAuMariage">
+                Dégradation économique liée aux choix du mariage
+              </mat-slide-toggle>
+            </div>
+
+            <h4 class="ccj-section-title">Durée du mariage et revenus</h4>
+
+            <div class="ccj-field-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Durée du mariage (années)</mat-label>
+                <input matInput type="number" min="0" max="80"
+                       [ngModel]="dureeMariageAnnees()"
+                       (ngModelChange)="dureeMariageAnnees.set($event)"
+                       name="dureeMariageAnnees" required />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Revenu mensuel net — créancier (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="revenuMensuelCreancier()"
+                       (ngModelChange)="revenuMensuelCreancier.set($event)"
+                       name="revenuMensuelCreancier" required />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Revenu mensuel net — débiteur (€)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="revenuMensuelDebiteur()"
+                       (ngModelChange)="revenuMensuelDebiteur.set($event)"
+                       name="revenuMensuelDebiteur" required />
+              </mat-form-field>
+            </div>
+
+            <div class="ccj-field-full">
+              <mat-form-field appearance="outline">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire" maxlength="1000"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="ccj-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la pension alimentaire</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="ccj-result">
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            @if (result()!.verdict === 'PENSION_DUE') {
+              <div class="ccj-montant">
+                <span class="ccj-montant-label">Montant mensuel indicatif</span>
+                <span class="ccj-montant-value">{{ result()!.montantMensuelIndicatif }} €</span>
+                <span class="ccj-montant-duree">
+                  durée maximale : {{ dureeMaximaleLabel(result()!.dureeMaximaleMois) }}
+                </span>
+              </div>
+            }
+
+            @if (result()!.motifsExclusion?.length) {
+              <div class="ccj-motifs">
+                <span class="ccj-motifs-label">Motifs d'exclusion :</span>
+                <ul>
+                  @for (m of result()!.motifsExclusion; track m) {
+                    <li>{{ motifExclusionLabel(m) }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (result()!.detailCalcul?.length) {
+              <div class="ccj-detail">
+                <span class="ccj-detail-label">Détail de l'analyse</span>
+                <ul>
+                  @for (d of result()!.detailCalcul; track d) {
+                    <li>{{ d }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="ccj-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="ccj-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.basesJuridiques?.length) {
+              <div class="ccj-bases">
+                <span class="ccj-bases-label">Bases juridiques :</span>
+                <ul>
+                  @for (b of result()!.basesJuridiques; track b) {
+                    <li class="ccj-base" [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="242-seed-f217-vague2-contribution-conjoint-visibility" author="legalcase">
+        <comment>
+            F-217 SF-217-09 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Pension alimentaire entre ex-époux (Belgique)"
+            (`contribution-conjoint-be`, Vague 2 Famille BE — CC art. 301), table
+            d'analyse créée par SF-217-08 (migration 241).
+
+            Le seed est porté par la SF frontend — et non par la SF backend —
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédents : SF-211-05
+            (migration 228), SF-217-03 (migration 235), SF-217-05 (migration
+            238), SF-217-07 (migration 240). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue.
+
+            Mode ALWAYS_ON, DROIT_FAMILLE / BELGIQUE : la pension alimentaire
+            entre ex-époux est une question systématique de tout dossier de
+            divorce de droit de la famille belge — situation toujours
+            pertinente, pas une situation à détecter (cf.
+            SF-217-00-coherence.md ajustement n° 1). Pas de flag pivot IA
+            requis. priority 70.
+
+            UUID namespace dédié F-217 : f1a04001-0000-0000-0000-eeee21700XXX
+            (005 = numéro libre après SF-217-03 [001-002], SF-217-05 [003] et
+            SF-217-07 [004]).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700005', 'DROIT_FAMILLE', 'BELGIQUE', 'contribution-conjoint-be', 'ALWAYS_ON', NULL, NULL, 70);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee21700005';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
