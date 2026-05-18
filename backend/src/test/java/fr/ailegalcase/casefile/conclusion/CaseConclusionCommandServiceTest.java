@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -218,6 +219,156 @@ class CaseConclusionCommandServiceTest {
         assertThat(response.versionNumber()).isEqualTo(3);
         assertThat(response.status()).isEqualTo("DONE");
         assertThat(response.lifecycleStatus()).isEqualTo("DRAFT");
+    }
+
+    // ── SF-98-53 — péremption (stale) sur getConclusion / getVersion ─────────
+
+    @Test
+    void getConclusion_analysisUpdatedAfterGeneration_staleTrue() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.plusSeconds(3600)); // analyse postérieure
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isTrue();
+    }
+
+    @Test
+    void getConclusion_analysisUpdatedBeforeGeneration_staleFalse() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.minusSeconds(3600)); // analyse antérieure
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+    }
+
+    @Test
+    void getConclusion_noDoneAnalysis_staleFalse() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(Instant.parse("2026-05-10T10:00:00Z"));
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.empty());
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+    }
+
+    @Test
+    void getConclusion_generatedAtNull_staleFalse() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(null);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+        // pas DONE/generatedAt → on ne touche pas le dépôt d'analyses
+        verify(caseAnalysisRepository, never())
+                .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any());
+    }
+
+    @Test
+    void getConclusion_versionNotDone_staleFalse() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setStatus(CaseConclusionStatus.PENDING); // pas DONE
+        v1.setGeneratedAt(Instant.parse("2026-05-10T10:00:00Z"));
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+        verify(caseAnalysisRepository, never())
+                .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any());
+    }
+
+    @Test
+    void getConclusion_notGenerated_staleFalse() {
+        Ctx ctx = supportedCase();
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.empty());
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+    }
+
+    @Test
+    void getConclusion_staleComputationThrows_failOpenStaleFalse() {
+        Ctx ctx = supportedCase();
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(Instant.parse("2026-05-10T10:00:00Z"));
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        // le calcul de péremption échoue → fail-open
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE))
+                .thenThrow(new RuntimeException("DB down"));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+        assertThat(response.versionNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void getVersion_analysisUpdatedAfterGeneration_staleTrue() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.plusSeconds(3600));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+
+        ConclusionResponse response = service.getVersion(ctx.caseFileId, v1.getId(), null, null, null);
+
+        assertThat(response.stale()).isTrue();
+    }
+
+    @Test
+    void getVersion_analysisUpdatedBeforeGeneration_staleFalse() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findByIdAndCaseFileId(v1.getId(), ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.minusSeconds(3600));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+
+        ConclusionResponse response = service.getVersion(ctx.caseFileId, v1.getId(), null, null, null);
+
+        assertThat(response.stale()).isFalse();
     }
 
     // ── listVersions (CA4) ───────────────────────────────────────────────────

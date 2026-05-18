@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -162,7 +163,8 @@ public class CaseConclusionCommandService {
         CaseFile caseFile = resolveCaseFileInWorkspace(caseFileId, workspace);
 
         return caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(caseFileId)
-                .map(c -> ConclusionResponse.fromSafe(c, caseFile, workspace.getCountry()))
+                .map(c -> ConclusionResponse.fromSafe(c, caseFile, workspace.getCountry(),
+                        computeStale(caseFileId, c)))
                 .orElseGet(() -> ConclusionResponse.notGenerated(caseFileId));
     }
 
@@ -196,7 +198,8 @@ public class CaseConclusionCommandService {
         Workspace workspace = resolveWorkspace(oidcUser, provider, principal);
         CaseFile caseFile = resolveCaseFileInWorkspace(caseFileId, workspace);
         CaseConclusion version = resolveVersion(caseFileId, versionId);
-        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry());
+        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry(),
+                computeStale(caseFileId, version));
     }
 
     /**
@@ -228,7 +231,8 @@ public class CaseConclusionCommandService {
         version = caseConclusionRepository.save(version);
         log.info("Conclusion lifecycle updated — conclusion={}, version={}, lifecycle={}",
                 versionId, version.getVersionNumber(), target);
-        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry());
+        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry(),
+                computeStale(caseFileId, version));
     }
 
     /**
@@ -271,7 +275,41 @@ public class CaseConclusionCommandService {
         version = caseConclusionRepository.save(version);
         log.info("Conclusion content updated — conclusion={}, version={}",
                 versionId, version.getVersionNumber());
-        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry());
+        return ConclusionResponse.fromSafe(version, caseFile, workspace.getCountry(),
+                computeStale(caseFileId, version));
+    }
+
+    /**
+     * F-98 / SF-98-53 — calcule si une version de conclusions est <strong>potentiellement
+     * périmée</strong> : la version est {@code DONE}, a un {@code generatedAt} non nul, et
+     * il existe une analyse du dossier ({@code CaseAnalysis} {@code DONE}) dont
+     * {@code updatedAt} est postérieur à ce {@code generatedAt}.
+     *
+     * <p><strong>Fail-open</strong> : toute exception du calcul est avalée, le résultat
+     * tombe à {@code false} avec un log d'avertissement — jamais d'exception propagée.</p>
+     *
+     * @return {@code true} si la version est périmée, {@code false} sinon (version non
+     *         {@code DONE}, {@code generatedAt} nul, aucune analyse postérieure, ou échec)
+     */
+    private boolean computeStale(UUID caseFileId, CaseConclusion version) {
+        try {
+            if (version.getStatus() != CaseConclusionStatus.DONE) {
+                return false;
+            }
+            Instant generatedAt = version.getGeneratedAt();
+            if (generatedAt == null) {
+                return false;
+            }
+            return caseAnalysisRepository
+                    .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE)
+                    .map(analysis -> analysis.getUpdatedAt() != null
+                            && analysis.getUpdatedAt().isAfter(generatedAt))
+                    .orElse(false);
+        } catch (RuntimeException ex) {
+            log.warn("Conclusion staleness computation failed — caseFile={}, conclusion={} — "
+                    + "fail-open to stale=false", caseFileId, version.getId(), ex);
+            return false;
+        }
     }
 
     /** Convertit la valeur de cycle de vie reçue, ou {@code 400} si inconnue / nulle. */

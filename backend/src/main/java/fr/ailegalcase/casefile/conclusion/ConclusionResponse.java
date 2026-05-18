@@ -22,6 +22,12 @@ import java.util.UUID;
  * @param styleApplied    SF-98-47 — vrai si la génération a adopté le style appris du
  *                        cabinet ; {@code false} pour une génération générique ou
  *                        quand aucune version n'existe ({@code NOT_GENERATED})
+ * @param stale           SF-98-53 — vrai si la version est potentiellement périmée :
+ *                        l'analyse du dossier ({@code CaseAnalysis} {@code DONE}) a
+ *                        évolué depuis la génération de la version. {@code false} pour
+ *                        une version non {@code DONE}, sans {@code generatedAt}, sans
+ *                        analyse postérieure, ou quand aucune version n'existe. Calculé
+ *                        à la lecture, jamais persisté.
  */
 public record ConclusionResponse(
         UUID id,
@@ -35,6 +41,7 @@ public record ConclusionResponse(
         String positionLabel,
         String modelUsed,
         boolean styleApplied,
+        boolean stale,
         Instant generatedAt,
         String errorMessage,
         Instant createdAt,
@@ -46,7 +53,7 @@ public record ConclusionResponse(
     /** Réponse « jamais généré » — seuls {@code caseFileId} et {@code status} sont renseignés. */
     public static ConclusionResponse notGenerated(UUID caseFileId) {
         return new ConclusionResponse(null, caseFileId, 0, NOT_GENERATED, null,
-                null, null, null, null, null, false, null, null, null, null);
+                null, null, null, null, null, false, false, null, null, null, null);
     }
 
     /**
@@ -56,8 +63,10 @@ public record ConclusionResponse(
      * @param conclusion la version {@code case_conclusions}
      * @param domain     domaine du dossier ({@code legalDomain})
      * @param country    pays du workspace
+     * @param stale      SF-98-53 — péremption calculée par le service de lecture
      */
-    public static ConclusionResponse from(CaseConclusion conclusion, String domain, String country) {
+    public static ConclusionResponse from(CaseConclusion conclusion, String domain, String country,
+                                          boolean stale) {
         return new ConclusionResponse(
                 conclusion.getId(),
                 conclusion.getCaseFile().getId(),
@@ -70,6 +79,7 @@ public record ConclusionResponse(
                 ProcedureStageCatalog.positionLabel(domain, country, conclusion.getPositionCode()),
                 conclusion.getModelUsed(),
                 conclusion.isStyleApplied(),
+                stale,
                 conclusion.getGeneratedAt(),
                 conclusion.getErrorMessage(),
                 conclusion.getCreatedAt(),
@@ -80,16 +90,19 @@ public record ConclusionResponse(
      * Variante de {@link #from} tolérante : si la résolution des libellés échoue (ex. codes
      * hors catalogue d'un domaine/pays inattendu), les libellés tombent à {@code null} sans
      * faire échouer la réponse.
+     *
+     * @param stale SF-98-53 — péremption calculée par le service de lecture
      */
-    public static ConclusionResponse fromSafe(CaseConclusion conclusion, CaseFile caseFile, String country) {
+    public static ConclusionResponse fromSafe(CaseConclusion conclusion, CaseFile caseFile, String country,
+                                              boolean stale) {
         try {
-            return from(conclusion, caseFile.getLegalDomain(), country);
+            return from(conclusion, caseFile.getLegalDomain(), country, stale);
         } catch (RuntimeException ex) {
             return new ConclusionResponse(
                     conclusion.getId(), caseFile.getId(), conclusion.getVersionNumber(),
                     conclusion.getStatus().name(), conclusion.getLifecycleStatus().name(),
                     conclusion.getContent(), null, null, null,
-                    conclusion.getModelUsed(), conclusion.isStyleApplied(),
+                    conclusion.getModelUsed(), conclusion.isStyleApplied(), stale,
                     conclusion.getGeneratedAt(), conclusion.getErrorMessage(),
                     conclusion.getCreatedAt(), conclusion.getUpdatedAt());
         }
