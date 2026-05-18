@@ -1,0 +1,147 @@
+<!-- F-242 SF-242-02 — zone « Jurisprudence à l'appui » d'un point juridique.
+     Distincte de la section F-179 « Jurisprudences citées ». -->
+<div class="juris-appui">
+  @if (citationsSignal().length === 0 && !addFormOpen()) {
+    <!-- État discret : aucune citation → simple appel à l'action replié. -->
+    <button
+      type="button"
+      class="juris-appui__cta"
+      (click)="openAddForm()">
+      <mat-icon>add</mat-icon>
+      Jurisprudence à l'appui
+    </button>
+  } @else {
+    <div class="juris-appui__panel">
+      <span class="juris-appui__label">
+        <mat-icon class="juris-appui__label-icon">gavel</mat-icon>
+        Jurisprudence à l'appui
+      </span>
+
+      @if (citationsSignal().length > 0) {
+        <ul class="juris-appui__list">
+          @for (citation of citationsSignal(); track citation.id) {
+            <li class="juris-appui__item">
+              @if (editingId() === citation.id) {
+                <!-- Formulaire d'édition inline. -->
+                <div class="juris-appui__form">
+                  <mat-form-field appearance="outline" class="juris-appui__field">
+                    <mat-label>Référence</mat-label>
+                    <input
+                      matInput
+                      name="editReference"
+                      [(ngModel)]="editReference"
+                      maxlength="255"
+                      placeholder="Cass. soc. 12 oct. 2022, n° 21-12345" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="juris-appui__field">
+                    <mat-label>Portée (optionnel)</mat-label>
+                    <input
+                      matInput
+                      name="editPortee"
+                      [(ngModel)]="editPortee"
+                      maxlength="500"
+                      placeholder="Ce que l'arrêt établit" />
+                  </mat-form-field>
+                  <div class="juris-appui__form-actions">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="button"
+                      [disabled]="!canSaveEdit()"
+                      (click)="saveEdit(citation)">
+                      Enregistrer
+                    </button>
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="saving()"
+                      (click)="cancelEdit()">
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <!-- Affichage d'une citation. -->
+                <div class="juris-appui__citation">
+                  <div class="juris-appui__citation-text">
+                    <span class="juris-appui__reference">{{ citation.reference }}</span>
+                    @if (citation.portee) {
+                      <span class="juris-appui__portee">{{ citation.portee }}</span>
+                    }
+                  </div>
+                  <div class="juris-appui__citation-actions">
+                    <button
+                      mat-icon-button
+                      type="button"
+                      matTooltip="Modifier"
+                      [disabled]="saving()"
+                      (click)="startEdit(citation)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      matTooltip="Supprimer"
+                      [disabled]="saving()"
+                      (click)="remove(citation)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (addFormOpen()) {
+        <!-- Formulaire d'ajout compact. -->
+        <div class="juris-appui__form juris-appui__form--add">
+          <mat-form-field appearance="outline" class="juris-appui__field">
+            <mat-label>Référence</mat-label>
+            <input
+              matInput
+              name="newReference"
+              [(ngModel)]="newReference"
+              maxlength="255"
+              placeholder="Cass. soc. 12 oct. 2022, n° 21-12345" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="juris-appui__field">
+            <mat-label>Portée (optionnel)</mat-label>
+            <input
+              matInput
+              name="newPortee"
+              [(ngModel)]="newPortee"
+              maxlength="500"
+              placeholder="Ce que l'arrêt établit" />
+          </mat-form-field>
+          <div class="juris-appui__form-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="!canAdd()"
+              (click)="add()">
+              Ajouter
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="saving()"
+              (click)="cancelAdd()">
+              Annuler
+            </button>
+          </div>
+        </div>
+      } @else {
+        <button
+          type="button"
+          class="juris-appui__add-link"
+          (click)="openAddForm()">
+          <mat-icon>add</mat-icon>
+          Ajouter une citation
+        </button>
+      }
+    </div>
+  }
+</div>

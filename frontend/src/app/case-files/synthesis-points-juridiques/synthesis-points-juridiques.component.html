@@ -55,6 +55,12 @@
               <app-jurisprudence-deeplinks
                 [pointText]="item.texte"
                 [workspaceCountry]="workspaceCountry()" />
+              <!-- F-242 SF-242-02 — retour de la chaîne jurisprudence, adjacent à F-241. -->
+              <app-jurisprudence-appui
+                [caseFileId]="caseFile()!.id"
+                [pointJuridiqueIndex]="i"
+                [pointJuridiqueTexte]="item.texte"
+                [citations]="citationsForPoint(i)" />
               @if (isLong(item.texte)) {
                 <button type="button" class="point-card__toggle" (click)="toggle(i)">
                   <mat-icon>{{ isExpanded(i) ? 'expand_less' : 'expand_more' }}</mat-icon>
