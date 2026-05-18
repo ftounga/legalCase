@@ -67,7 +67,25 @@
     (selectedIndexChange)="selectedTabIndex.set($event)">
     <mat-tab label="Dossier"></mat-tab>
     <mat-tab label="Analyse"></mat-tab>
-    <mat-tab label="Décision"></mat-tab>
+    <!-- F-244 SF-244-02 : l'onglet « Décision » porte un badge auto_awesome
+         agrégé = somme des champs pré-remplis par l'IA sur les outils visibles.
+         Un onglet fermé ne doit pas masquer le travail de l'IA. -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label-decision">
+          Décision
+          @if (decisionPrefillTotal() > 0) {
+            <span class="tab-prefill-badge"
+                  data-testid="decision-prefill-badge"
+                  [matTooltip]="decisionPrefillTotal() + ' champ(s) pré-rempli(s) par l\'analyse'"
+                  matTooltipPosition="above">
+              <mat-icon class="tab-prefill-badge__icon">auto_awesome</mat-icon>
+              {{ decisionPrefillTotal() }}
+            </span>
+          }
+        </span>
+      </ng-template>
+    </mat-tab>
     <mat-tab label="Suivi"></mat-tab>
   </mat-tab-group>
 
@@ -548,53 +566,80 @@
     <!-- Onglet 3 : Décision -->
     <section class="tab-panel" [hidden]="selectedTabIndex() !== 2" data-tab-panel="decision">
       <div class="tab-panel-inner">
-        <app-decisional-tools-panel
-          [caseFileId]="caseFile()!.id"
-          [synthesis]="synthesis()"
-          [workspaceCountry]="workspaceCountry()"
-          [caseFileTitle]="caseFile()!.title"
-          [procedureChecks]="procedureChecks()"
-          [aiQuestions]="questions()"
-          [streamingSectionsReceived]="streamingProgress().received"
-          [streamingSectionsExpected]="streamingProgress().expected"
-          [typeLitigeOverride]="typeLitigeOverride()">
-        </app-decisional-tools-panel>
 
-        <!-- F-184 SF-184-01 : tableau de bord décisionnel en carte premium (Option B). -->
-        <section class="decisional-summary-panel">
-          <header class="decisional-summary-panel__header">
-            <span class="decisional-summary-panel__title">Tableau de bord décisionnel</span>
-            @if (dash.verdictsCount() > 0) {
-              <span class="decisional-summary-panel__count" data-testid="verdicts-count-badge">
-                {{ dash.verdictsCount() }} verdict(s) disponible(s)
-              </span>
-            }
-          </header>
-          <div class="decisional-summary-panel__body">
-            <app-case-dashboard
-              #dash
+        <!-- F-244 SF-244-02 : bandeau de couplage — explicite que renseigner un
+             outil (colonne de saisie, gauche) met à jour le tableau de bord
+             (colonne de verdict, droite). Signal de découvrabilité du couplage
+             saisie → verdict (audit screen-coherence-challenger, ajustement 1). -->
+        <div class="decision-coupling-hint" role="note">
+          <mat-icon class="decision-coupling-hint__icon">sync_alt</mat-icon>
+          <span class="decision-coupling-hint__text">
+            Renseignez les outils à gauche : le tableau de bord à droite consolide leurs verdicts en temps réel.
+          </span>
+        </div>
+
+        <!-- F-244 SF-244-02 : espace décisionnel en 2 colonnes alignées —
+             colonne de saisie (outils) à gauche, colonne de verdict (tableau de
+             bord + conclusions) à droite, sticky pour rester dans le champ de
+             vision pendant la saisie. Empilement < 1024 px. -->
+        <div class="decision-space">
+
+          <!-- Colonne de saisie -->
+          <div class="decision-space__input">
+            <app-decisional-tools-panel
               [caseFileId]="caseFile()!.id"
               [synthesis]="synthesis()"
               [workspaceCountry]="workspaceCountry()"
+              [caseFileTitle]="caseFile()!.title"
               [procedureChecks]="procedureChecks()"
-              [aiQuestions]="questions()">
-            </app-case-dashboard>
+              [aiQuestions]="questions()"
+              [streamingSectionsReceived]="streamingProgress().received"
+              [streamingSectionsExpected]="streamingProgress().expected"
+              [typeLitigeOverride]="typeLitigeOverride()"
+              (prefillTotalChange)="onDecisionPrefillTotalChange($event)">
+            </app-decisional-tools-panel>
           </div>
-        </section>
 
-        <!-- F-98 SF-98-01 : section de génération du projet de conclusions,
-             placée juste après le tableau de bord décisionnel.
-             hasCompletedAnalysis est dérivé du signal `synthesis` (une synthèse
-             non nulle = au moins une analyse terminée). procedureStageComplete
-             n'est pas dérivable proprement ici (le stade procédural est chargé
-             par app-procedure-stage-section via son propre service, pas par ce
-             composant) : on ne le passe donc pas et on laisse le 409
-             STAGE_NOT_SET du backend piloter le message guidant. -->
-        <app-conclusions-section
-          [caseFileId]="caseFile()!.id"
-          [caseTitle]="caseFile()!.title"
-          [hasCompletedAnalysis]="synthesis() !== null">
-        </app-conclusions-section>
+          <!-- Colonne de verdict (sticky) -->
+          <div class="decision-space__verdict">
+            <!-- F-184 SF-184-01 : tableau de bord décisionnel en carte premium (Option B). -->
+            <section class="decisional-summary-panel">
+              <header class="decisional-summary-panel__header">
+                <span class="decisional-summary-panel__title">Tableau de bord décisionnel</span>
+                @if (dash.verdictsCount() > 0) {
+                  <span class="decisional-summary-panel__count" data-testid="verdicts-count-badge">
+                    {{ dash.verdictsCount() }} verdict(s) disponible(s)
+                  </span>
+                }
+              </header>
+              <div class="decisional-summary-panel__body">
+                <app-case-dashboard
+                  #dash
+                  [caseFileId]="caseFile()!.id"
+                  [synthesis]="synthesis()"
+                  [workspaceCountry]="workspaceCountry()"
+                  [procedureChecks]="procedureChecks()"
+                  [aiQuestions]="questions()">
+                </app-case-dashboard>
+              </div>
+            </section>
+
+            <!-- F-98 SF-98-01 : section de génération du projet de conclusions,
+                 placée juste après le tableau de bord décisionnel.
+                 hasCompletedAnalysis est dérivé du signal `synthesis` (une synthèse
+                 non nulle = au moins une analyse terminée). procedureStageComplete
+                 n'est pas dérivable proprement ici (le stade procédural est chargé
+                 par app-procedure-stage-section via son propre service, pas par ce
+                 composant) : on ne le passe donc pas et on laisse le 409
+                 STAGE_NOT_SET du backend piloter le message guidant. -->
+            <app-conclusions-section
+              [caseFileId]="caseFile()!.id"
+              [caseTitle]="caseFile()!.title"
+              [hasCompletedAnalysis]="synthesis() !== null">
+            </app-conclusions-section>
+          </div>
+
+        </div>
       </div>
     </section>
 

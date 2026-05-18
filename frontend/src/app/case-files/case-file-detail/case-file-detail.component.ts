@@ -200,6 +200,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
    * `case-dashboard-stepper` et par le query param `?section=`.
    */
   readonly selectedTabIndex = signal(TAB_DOSSIER);
+  /**
+   * F-244 SF-244-02 — Total agrégé des champs pré-remplis par l'IA sur les
+   * outils visibles de l'onglet « Décision ». Alimenté par l'`@Output`
+   * `prefillTotalChange` du `decisional-tools-panel`. Porté en badge
+   * `auto_awesome` sur l'onglet « Décision » du `mat-tab-group` : un onglet
+   * fermé ne masque pas le travail de l'IA (sous-règle anti-surcharge de
+   * l'audit `screen-coherence-challenger` 2026-05-15). Badge masqué quand 0.
+   */
+  readonly decisionPrefillTotal = signal(0);
   currentMemberRole = signal<string | null>(null);
   workspaceCountry = signal<string>('FRANCE');
   /**
@@ -649,6 +658,17 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       const anchorId = activation.anchorId;
       setTimeout(() => this.scrollAndHighlight(anchorId), 0);
     }
+  }
+
+  /**
+   * F-244 SF-244-02 — handler de l'`@Output` `prefillTotalChange` du
+   * `decisional-tools-panel`. Met à jour le compteur agrégé porté en badge
+   * `auto_awesome` sur l'onglet « Décision ». `case-file-detail` n'est pas en
+   * `ChangeDetectionStrategy.OnPush` : la mutation du signal suffit à
+   * déclencher la CD, pas besoin de `markForCheck()`.
+   */
+  onDecisionPrefillTotalChange(total: number): void {
+    this.decisionPrefillTotal.set(total);
   }
 
   /** SF-IA-03-19 : scroll + highlight pulse 2s sur une section. Retry 3× car le rendu est async. */

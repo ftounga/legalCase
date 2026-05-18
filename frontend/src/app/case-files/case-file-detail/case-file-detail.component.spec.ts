@@ -1278,6 +1278,65 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // ----- F-244 SF-244-02 : onglet Décision (espace décisionnel + badge prefill) -----
+
+  describe('F-244 SF-244-02 onglet Décision', () => {
+    it('SF-244-02-T01: espace décisionnel en 2 colonnes (saisie + verdict) dans l\'onglet Décision', () => {
+      fixture.detectChanges();
+      const decision = fixture.nativeElement.querySelector('[data-tab-panel="decision"]');
+      const space = decision.querySelector('.decision-space');
+      expect(space).not.toBeNull();
+      // Colonne de saisie : panel d'outils.
+      const input = space.querySelector('.decision-space__input');
+      expect(input).not.toBeNull();
+      expect(input.querySelector('app-decisional-tools-panel')).not.toBeNull();
+      // Colonne de verdict : tableau de bord + conclusions.
+      const verdict = space.querySelector('.decision-space__verdict');
+      expect(verdict).not.toBeNull();
+      expect(verdict.querySelector('app-case-dashboard')).not.toBeNull();
+      expect(verdict.querySelector('app-conclusions-section')).not.toBeNull();
+    });
+
+    it('SF-244-02-T02: bandeau de couplage sync_alt rendu dans l\'onglet Décision', () => {
+      fixture.detectChanges();
+      const decision = fixture.nativeElement.querySelector('[data-tab-panel="decision"]');
+      const hint = decision.querySelector('.decision-coupling-hint');
+      expect(hint).not.toBeNull();
+      expect(hint.textContent).toContain('tableau de bord');
+    });
+
+    it('SF-244-02-T03: badge auto_awesome de l\'onglet masqué quand le total de prefill vaut 0', () => {
+      fixture.detectChanges();
+      expect(component.decisionPrefillTotal()).toBe(0);
+      expect(fixture.nativeElement.querySelector('[data-testid="decision-prefill-badge"]')).toBeNull();
+    });
+
+    it('SF-244-02-T04: badge auto_awesome rendu avec le total quand decisionPrefillTotal > 0', () => {
+      fixture.detectChanges();
+      component.onDecisionPrefillTotalChange(7);
+      fixture.detectChanges();
+      const badge = fixture.nativeElement.querySelector('[data-testid="decision-prefill-badge"]');
+      expect(badge).not.toBeNull();
+      expect(badge.textContent).toContain('7');
+    });
+
+    it('SF-244-02-T05: onDecisionPrefillTotalChange(n) met decisionPrefillTotal à n', () => {
+      fixture.detectChanges();
+      component.onDecisionPrefillTotalChange(3);
+      expect(component.decisionPrefillTotal()).toBe(3);
+      component.onDecisionPrefillTotalChange(0);
+      expect(component.decisionPrefillTotal()).toBe(0);
+    });
+
+    it('SF-244-02-T06: conclusions-section (F-98) reste dans la colonne de verdict de l\'onglet Décision', () => {
+      fixture.detectChanges();
+      const conclusions = fixture.nativeElement.querySelector('app-conclusions-section');
+      expect(conclusions).not.toBeNull();
+      expect(conclusions.closest('.decision-space__verdict')).not.toBeNull();
+      expect(conclusions.closest('[data-tab-panel="decision"]')).not.toBeNull();
+    });
+  });
+
   // ----- SF-125-01 : bouton d'analyse contextuel -----
 
   describe('SF-125-01 bouton contextuel', () => {

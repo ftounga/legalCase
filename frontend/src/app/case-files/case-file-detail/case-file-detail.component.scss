@@ -91,6 +91,98 @@
   padding-top: var(--spacing-sm);
 }
 
+/* F-244 SF-244-02 : badge auto_awesome porté par l'onglet « Décision » —
+   total agrégé des champs pré-remplis par l'IA. Or accent du design system. */
+.tab-label-decision {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-prefill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px 1px 5px;
+  border-radius: 999px;
+  background: rgba(201, 151, 58, 0.16);
+  color: #C9973A;
+  font-family: Inter, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+
+  &__icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* F-244 SF-244-02 : bandeau de couplage saisie → verdict de l'onglet
+   « Décision ». Signal de découvrabilité (audit, ajustement 1). */
+.decision-coupling-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: var(--spacing-md);
+  background: #F5F7FA;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+
+  &__icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #C9973A;
+  }
+
+  &__text {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+  }
+}
+
+/* F-244 SF-244-02 : espace décisionnel en 2 colonnes alignées —
+   colonne de saisie (outils) / colonne de verdict (tableau de bord +
+   conclusions). La colonne de verdict est sticky pour rester dans le champ
+   de vision pendant la saisie (audit, défaut 1a). Empilement < 1024 px. */
+.decision-space {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.decision-space__input {
+  min-width: 0;
+}
+
+.decision-space__verdict {
+  min-width: 0;
+  position: sticky;
+  top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Sous 1024 px : empilement vertical (saisie au-dessus, verdict en dessous),
+   sticky neutralisé — l'écran étroit n'a pas la largeur pour 2 colonnes. */
+@media (max-width: 1023px) {
+  .decision-space {
+    grid-template-columns: 1fr;
+  }
+
+  .decision-space__verdict {
+    position: static;
+  }
+}
+
 @media (max-width: 767px) {
   .header-line-1 {
     flex-wrap: wrap;
@@ -926,11 +1018,11 @@
 }
 
 /* F-184 SF-184-01 — Carte premium tableau de bord décisionnel (Option B).
-   F-244 SF-244-01 — wrapper local à la page dossier, désormais dans l'onglet
-   « Décision », sous le panel d'outils décisionnels. Pas de réutilisation prévue
-   ailleurs (extraction en composant dédié possible plus tard si besoin émerge). */
+   F-244 SF-244-02 — désormais 1er bloc de la colonne de verdict de l'espace
+   décisionnel (`.decision-space__verdict`) ; l'espacement est porté par le
+   `gap` du conteneur flex parent (plus de `margin-top` local). Pas de
+   réutilisation prévue ailleurs. */
 .decisional-summary-panel {
-  margin-top: 16px;
   background: #FFFFFF;
   border: 2px solid #C9973A;
   border-radius: 10px;
