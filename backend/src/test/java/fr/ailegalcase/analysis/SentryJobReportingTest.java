@@ -49,12 +49,14 @@ class SentryJobReportingTest {
             mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
     private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
     private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
+    private final JurisprudenceVerificationService jurisprudenceVerificationService =
+            mock(JurisprudenceVerificationService.class);
 
     private final CaseAnalysisService caseAnalysisService = new CaseAnalysisService(
             documentAnalysisRepository, documentExtractionRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, strategicOptionService, caseDeadlineService,
-            sourceExplanationGenerator, sourceExplanationService, piecesPromptContext);
+            sourceExplanationGenerator, sourceExplanationService, piecesPromptContext, jurisprudenceVerificationService);
 
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
@@ -98,6 +100,7 @@ class SentryJobReportingTest {
             typeLitigeOverrideService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
+            jurisprudenceVerificationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
     @BeforeEach

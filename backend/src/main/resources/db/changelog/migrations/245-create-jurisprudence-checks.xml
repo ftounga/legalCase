@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="245-create-jurisprudence-checks" author="legalcase">
+        <comment>
+            F-179 SF-179-01 : table des vérifications de jurisprudence citée dans les
+            documents uploadés d'un dossier (typiquement les conclusions adverses).
+
+            Chaque ligne = une référence jurisprudentielle (arrêt, décision, n° de
+            pourvoi) détectée dans un document, vérifiée par Claude Sonnet quant à son
+            existence réelle et à la fidélité de la position juridique qu'on lui prête.
+
+            4 statuts : VERIFIED (existence + position fidèles), SUSPECT (arrêt réel
+            mais position alléguée incohérente — mauvaise foi adverse), NOT_FOUND
+            (introuvable même après web search), UNCERTAIN (knowledge gap Claude +
+            web search en échec — vérification manuelle requise).
+
+            web_search_used / source_url : portés dès SF-179-01 (schéma complet) ;
+            SF-179-02 ne fait que les renseigner après le fallback web search
+            Légifrance / Juridat — pas de migration en SF-179-02.
+
+            Isolation workspace stricte via workspace_id. Chaque ligne est rattachée
+            à la CaseAnalysis qui l'a produite (case_analysis_id) — la lecture filtre
+            sur la dernière analyse DONE du dossier.
+        </comment>
+
+        <createTable tableName="jurisprudence_checks">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_jurisprudence_checks_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="case_analysis_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_jurisprudence_checks_case_analysis"
+                             referencedTableName="case_analyses"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_jurisprudence_checks_workspace"
+                             referencedTableName="workspaces"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="document_name" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reference" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="explication" type="text"/>
+            <column name="position_alleguee" type="text"/>
+            <column name="source_url" type="varchar(1000)"/>
+            <column name="claude_confidence" type="varchar(10)"/>
+            <column name="web_search_used" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="jurisprudence_checks"
+                     indexName="idx_jurisprudence_checks_case_analysis">
+            <column name="case_analysis_id"/>
+        </createIndex>
+
+        <createIndex tableName="jurisprudence_checks"
+                     indexName="idx_jurisprudence_checks_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="jurisprudence_checks"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
