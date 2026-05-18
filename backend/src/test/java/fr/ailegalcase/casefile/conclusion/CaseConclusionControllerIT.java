@@ -115,9 +115,11 @@ class CaseConclusionControllerIT {
         noAnalysisCf = saveCf(uA, wsA, "CF noanalysis " + ts, "DROIT_DU_TRAVAIL",
                 "CPH", "FOND", "DEMANDEUR");
 
-        // Combinaison réellement hors registre (aucune cellule F-98) — droit de la famille.
-        unsupportedCf = saveCf(uA, wsA, "CF unsupported " + ts, "DROIT_FAMILLE",
-                "JAF", "DIVORCE_FOND", "DEMANDEUR");
+        // Combinaison volontairement hors registre F-98 : le bureau de conciliation et
+        // d'orientation (BCO) est un stade de conciliation, jamais couvert par la matrice
+        // F-98 (même à 53/53) — combinaison « non supportée » stable pour ce test.
+        unsupportedCf = saveCf(uA, wsA, "CF unsupported " + ts, "DROIT_DU_TRAVAIL",
+                "CPH", "BCO", "DEMANDEUR");
         saveDoneAnalysis(unsupportedCf);
 
         // ── Workspace B (isolation) ──────────────────────────────────────────
