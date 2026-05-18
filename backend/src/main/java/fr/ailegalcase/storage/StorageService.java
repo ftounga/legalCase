@@ -31,4 +31,11 @@ public interface StorageService {
      * @return the file content as bytes
      */
     byte[] download(String key);
+
+    /**
+     * Delete an object from storage. Idempotent — deleting a missing key is a no-op.
+     *
+     * @param key the object key in the bucket
+     */
+    void delete(String key);
 }
