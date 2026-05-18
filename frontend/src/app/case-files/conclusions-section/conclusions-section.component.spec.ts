@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { ConclusionsSectionComponent } from './conclusions-section.component';
 import { DocxExportService } from '../../core/services/docx-export.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import {
   ConclusionResponse,
   ConclusionVersionSummary,
@@ -24,6 +25,7 @@ describe('ConclusionsSectionComponent', () => {
   let httpMock: HttpTestingController;
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
   let docxSpy: jasmine.SpyObj<DocxExportService>;
+  let pdfSpy: jasmine.SpyObj<PdfExportService>;
 
   const CASE_ID = 'case-1';
   const GET_URL = `/api/v1/case-files/${CASE_ID}/conclusions`;
@@ -102,6 +104,7 @@ describe('ConclusionsSectionComponent', () => {
   beforeEach(async () => {
     snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     docxSpy = jasmine.createSpyObj('DocxExportService', ['exportConclusion']);
+    pdfSpy = jasmine.createSpyObj('PdfExportService', ['exportConclusion']);
     await TestBed.configureTestingModule({
       imports: [
         ConclusionsSectionComponent,
@@ -111,6 +114,7 @@ describe('ConclusionsSectionComponent', () => {
       providers: [
         { provide: MatSnackBar, useValue: snackSpy },
         { provide: DocxExportService, useValue: docxSpy },
+        { provide: PdfExportService, useValue: pdfSpy },
         provideRouter([]),
       ],
     }).compileComponents();
@@ -724,6 +728,85 @@ describe('ConclusionsSectionComponent', () => {
 
     expect(snackSpy.open).toHaveBeenCalledWith(
       'Erreur lors de la génération du document Word.',
+      'Fermer',
+      jasmine.objectContaining({ panelClass: ['snack-error'] }),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-98-51 — Export PDF des conclusions
+  // ---------------------------------------------------------------------------
+
+  it('DONE → bouton « Télécharger en PDF » visible', () => {
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    const btn = fixture.nativeElement.querySelector(
+      '[data-testid="download-pdf-btn"]',
+    );
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toContain('Télécharger en PDF');
+  });
+
+  it('NOT_GENERATED → bouton « Télécharger en PDF » absent', () => {
+    component.hasCompletedAnalysis = true;
+    fixture.detectChanges();
+    flushInitialLoad();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="download-pdf-btn"]'),
+    ).toBeNull();
+  });
+
+  it('FAILED → bouton « Télécharger en PDF » absent', () => {
+    fixture.detectChanges();
+    flushInitialLoad(response({ status: 'FAILED', errorMessage: 'Timeout.' }));
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="download-pdf-btn"]'),
+    ).toBeNull();
+  });
+
+  it('clic « Télécharger en PDF » → appelle PdfExportService.exportConclusion', () => {
+    component.caseTitle = 'Affaire Dupont';
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="download-pdf-btn"]',
+    );
+    btn.click();
+
+    expect(pdfSpy.exportConclusion).toHaveBeenCalledWith(
+      'POUR : M. X\n\nFAITS ET PROCÉDURE\nLe salarié…',
+      'Affaire Dupont',
+      2,
+    );
+  });
+
+  it('downloadPdf → ignoré si la version n\'est pas DONE', () => {
+    fixture.detectChanges();
+    flushInitialLoad(response({ status: 'FAILED' }));
+    fixture.detectChanges();
+
+    component.downloadPdf();
+    expect(pdfSpy.exportConclusion).not.toHaveBeenCalled();
+  });
+
+  it('downloadPdf → échec de génération affiche une snackbar d\'erreur', () => {
+    pdfSpy.exportConclusion.and.throwError('boom');
+    fixture.detectChanges();
+    flushInitialLoad(doneResponse(), versionList());
+    fixture.detectChanges();
+
+    component.downloadPdf();
+
+    expect(snackSpy.open).toHaveBeenCalledWith(
+      'Erreur lors de la génération du document PDF.',
       'Fermer',
       jasmine.objectContaining({ panelClass: ['snack-error'] }),
     );
