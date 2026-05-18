@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="248-create-case-jurisprudence-citations" author="legalcase">
+        <comment>
+            F-242 SF-242-01 : table des citations de jurisprudence d'appui saisies
+            manuellement par l'avocat (option δ — citation structurée référence +
+            portée, pas le texte intégral de l'arrêt).
+
+            Chaque ligne = une référence jurisprudentielle (« Cass. soc. 12 oct. 2022,
+            n° 21-12345 ») rattachée à un point juridique de la synthèse du dossier.
+            Le point juridique est identifié par son index dans la synthèse + un
+            snapshot de son texte (point_juridique_texte) — le snapshot permet
+            l'affichage même après une ré-analyse qui décalerait les index (le
+            ré-ancrage automatique est hors V1).
+
+            Ces citations sont injectées dans le prompt de génération des conclusions
+            F-98 (section JURISPRUDENCE À L'APPUI) ; toute création / modification /
+            suppression rend les versions de conclusions déjà générées stale (SF-98-53).
+
+            Isolation workspace stricte via workspace_id, comme case_files /
+            case_conclusions.
+        </comment>
+
+        <createTable tableName="case_jurisprudence_citations">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_case_jurisprudence_citations_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_case_jurisprudence_citations_workspace"
+                             referencedTableName="workspaces"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="point_juridique_index" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="point_juridique_texte" type="varchar(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reference" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="portee" type="varchar(500)"/>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="case_jurisprudence_citations"
+                     indexName="idx_case_jurisprudence_citations_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="case_jurisprudence_citations"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

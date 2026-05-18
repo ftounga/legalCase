@@ -39,6 +39,9 @@ class CaseConclusionCommandServiceTest {
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
+    private final fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository
+            jurisprudenceCitationRepository =
+            mock(fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository.class);
 
     /** Registre réel avec les 2 cellules CPH/FOND livrées (demandeur + défendeur). */
     private final ConclusionPromptRegistry promptRegistry = new ConclusionPromptRegistry(List.of(
@@ -46,7 +49,8 @@ class CaseConclusionCommandServiceTest {
 
     private final CaseConclusionCommandService service = new CaseConclusionCommandService(
             caseFileRepository, caseConclusionRepository, caseAnalysisRepository,
-            currentUserResolver, workspaceMemberRepository, rabbitTemplate, promptRegistry);
+            currentUserResolver, workspaceMemberRepository, rabbitTemplate, promptRegistry,
+            jurisprudenceCitationRepository);
 
     // ── génération versionnée (CA2, CA9) ─────────────────────────────────────
 
@@ -386,6 +390,91 @@ class CaseConclusionCommandServiceTest {
         ConclusionResponse response = service.getVersion(ctx.caseFileId, v1.getId(), null, null, null);
 
         assertThat(response.stale()).isTrue();
+    }
+
+    // ── F-242 / SF-242-01 — péremption sur citation de jurisprudence ─────────
+
+    @Test
+    void getConclusion_citationUpdatedAfterGeneration_staleTrue() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        // Analyse antérieure (pas de péremption par l'analyse)…
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.minusSeconds(3600));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+        // …mais une citation de jurisprudence postérieure → stale.
+        when(jurisprudenceCitationRepository.findMaxUpdatedAtByCaseFileId(ctx.caseFileId))
+                .thenReturn(generatedAt.plusSeconds(3600));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isTrue();
+    }
+
+    @Test
+    void getConclusion_citationUpdatedBeforeGeneration_staleFalse() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.minusSeconds(3600));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+        when(jurisprudenceCitationRepository.findMaxUpdatedAtByCaseFileId(ctx.caseFileId))
+                .thenReturn(generatedAt.minusSeconds(60));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+    }
+
+    @Test
+    void getConclusion_noCitationAndAnalysisBefore_staleFalse() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.minusSeconds(3600));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+        // Aucune citation → findMaxUpdatedAtByCaseFileId renvoie null.
+        when(jurisprudenceCitationRepository.findMaxUpdatedAtByCaseFileId(ctx.caseFileId))
+                .thenReturn(null);
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isFalse();
+    }
+
+    @Test
+    void getConclusion_analysisAfter_doesNotConsultCitations() {
+        Ctx ctx = supportedCase();
+        Instant generatedAt = Instant.parse("2026-05-10T10:00:00Z");
+        CaseConclusion v1 = doneVersion(ctx, 1);
+        v1.setGeneratedAt(generatedAt);
+        when(caseConclusionRepository.findFirstByCaseFileIdOrderByVersionNumberDesc(ctx.caseFileId))
+                .thenReturn(Optional.of(v1));
+        // Analyse postérieure → stale court-circuité avant la lecture des citations.
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setUpdatedAt(generatedAt.plusSeconds(3600));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                ctx.caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+
+        ConclusionResponse response = service.getConclusion(ctx.caseFileId, null, null, null);
+
+        assertThat(response.stale()).isTrue();
+        verify(jurisprudenceCitationRepository, never()).findMaxUpdatedAtByCaseFileId(any());
     }
 
     @Test

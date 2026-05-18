@@ -105,7 +105,8 @@ class CaseConclusionPromptBuilderTest {
                         "Validité du licenciement", "Licenciement sans cause réelle et sérieuse",
                         "Indemnité estimée 18 000 €", "ALERT")),
                 List.of(new ConclusionPromptInput.RetainedStrategy(
-                        "Demander la requalification en licenciement sans cause", "Art. L.1235-3 C. trav.")));
+                        "Demander la requalification en licenciement sans cause", "Art. L.1235-3 C. trav.")),
+                List.of());
 
         String message = builder.buildUserMessage(input);
 
@@ -132,13 +133,14 @@ class CaseConclusionPromptBuilderTest {
                 "Bureau de jugement (fond)",
                 "Demandeur (salarié)",
                 "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
-                List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of());
 
         String message = builder.buildUserMessage(input);
 
         assertThat(message).contains("Aucune pièce numérotée identifiée.");
         assertThat(message).contains("Aucun outil décisionnel rempli sur ce dossier.");
         assertThat(message).contains("Aucune piste stratégique retenue.");
+        assertThat(message).contains("Aucune référence de jurisprudence fournie.");
         assertThat(message).doesNotContain("null");
     }
 
@@ -147,7 +149,7 @@ class CaseConclusionPromptBuilderTest {
         ConclusionPromptInput input = new ConclusionPromptInput(
                 "Dossier sans synthèse", "Conseil de prud'hommes",
                 "Bureau de jugement (fond)", "Demandeur (salarié)",
-                null, null, null, null);
+                null, null, null, null, null);
 
         String message = builder.buildUserMessage(input);
 
@@ -160,10 +162,107 @@ class CaseConclusionPromptBuilderTest {
         ConclusionPromptInput input = new ConclusionPromptInput(
                 "Dossier JSON cassé", "Conseil de prud'hommes",
                 "Bureau de jugement (fond)", "Demandeur (salarié)",
-                "{ ceci n'est pas du JSON", List.of(), List.of(), List.of());
+                "{ ceci n'est pas du JSON", List.of(), List.of(), List.of(), List.of());
 
         String message = builder.buildUserMessage(input);
 
         assertThat(message).contains("Synthèse indisponible (format inattendu).");
+    }
+
+    // ── F-242 / SF-242-01 — jurisprudence d'appui ────────────────────────────
+
+    @Test
+    void buildSystemPrompt_includesJurisprudenceAntiHallucinationGuard() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
+
+        // Garde transverse présente même sans signature de style.
+        assertThat(system).contains("Garde jurisprudence");
+        assertThat(system).contains("ne cite aucune référence de jurisprudence");
+        assertThat(system).contains("JURISPRUDENCE À L'APPUI");
+        assertThat(system).contains("n'invente aucun arrêt");
+    }
+
+    @Test
+    void buildSystemPrompt_jurisprudenceGuardPresentWithStyleSignaturesToo() {
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of(
+                "Phrases courtes, registre assertif."));
+
+        assertThat(system).contains("Garde jurisprudence");
+        assertThat(system).contains("Adopte le style rédactionnel suivant");
+        assertThat(system).contains("Phrases courtes, registre assertif");
+    }
+
+    @Test
+    void buildUserMessage_withCitations_groupsByPointJuridique() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier Dupont c/ SARL Martin",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(),
+                List.of(
+                        new ConclusionPromptInput.JurisprudenceCitationForPrompt(
+                                0, "Absence d'entretien préalable",
+                                "Cass. soc. 12 oct. 2022, n° 21-12345",
+                                "L'absence d'entretien préalable rend le licenciement irrégulier."),
+                        new ConclusionPromptInput.JurisprudenceCitationForPrompt(
+                                0, "Absence d'entretien préalable",
+                                "Cass. soc. 3 mai 2018, n° 16-26.796", null),
+                        new ConclusionPromptInput.JurisprudenceCitationForPrompt(
+                                1, "Forclusion du délai de saisine",
+                                "Cass. soc. 8 juin 2017, n° 15-28.599",
+                                "Le délai de saisine du conseil de prud'hommes est de douze mois.")));
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== JURISPRUDENCE À L'APPUI ===");
+        // Le texte de chaque point juridique apparaît une seule fois (regroupement).
+        assertThat(message).contains("Point juridique : Absence d'entretien préalable");
+        assertThat(message).contains("Point juridique : Forclusion du délai de saisine");
+        // Les références sont rattachées sous leur point.
+        assertThat(message).contains("Cass. soc. 12 oct. 2022, n° 21-12345");
+        assertThat(message).contains("Cass. soc. 3 mai 2018, n° 16-26.796");
+        assertThat(message).contains("Cass. soc. 8 juin 2017, n° 15-28.599");
+        // La portée est rendue quand elle est présente.
+        assertThat(message).contains("Portée : L'absence d'entretien préalable rend le licenciement irrégulier.");
+        assertThat(message).contains("Portée : Le délai de saisine du conseil de prud'hommes est de douze mois.");
+        // Un seul intitulé par point juridique malgré deux citations sur le point 0.
+        assertThat(message.split("Point juridique : Absence d'entretien préalable", -1))
+                .hasSize(2);
+        assertThat(message).doesNotContain("Aucune référence de jurisprudence fournie.");
+    }
+
+    @Test
+    void buildUserMessage_withoutCitations_marksJurisprudenceSectionEmpty() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier sans jurisprudence",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), List.of());
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== JURISPRUDENCE À L'APPUI ===");
+        assertThat(message).contains("Aucune référence de jurisprudence fournie.");
+        assertThat(message).doesNotContain("Point juridique :");
+    }
+
+    @Test
+    void buildUserMessage_nullCitations_marksJurisprudenceSectionEmpty() {
+        ConclusionPromptInput input = new ConclusionPromptInput(
+                "Dossier citations null",
+                "Conseil de prud'hommes",
+                "Bureau de jugement (fond)",
+                "Demandeur (salarié)",
+                "{\"faits\": [], \"points_juridiques\": [], \"risques\": []}",
+                List.of(), List.of(), List.of(), null);
+
+        String message = builder.buildUserMessage(input);
+
+        assertThat(message).contains("=== JURISPRUDENCE À L'APPUI ===");
+        assertThat(message).contains("Aucune référence de jurisprudence fournie.");
     }
 }

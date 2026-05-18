@@ -44,6 +44,9 @@ class CaseConclusionServiceTest {
     private final CaseFileDashboardService caseFileDashboardService = mock(CaseFileDashboardService.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final StyleCorpusRepository styleCorpusRepository = mock(StyleCorpusRepository.class);
+    private final fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository
+            jurisprudenceCitationRepository =
+            mock(fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository.class);
     private final ConclusionPromptRegistry promptRegistry = new ConclusionPromptRegistry(List.of(
             new CphFondDemandeurPromptProvider(), new CphFondDefendeurPromptProvider()));
     private final CaseConclusionPromptBuilder promptBuilder =
@@ -52,7 +55,7 @@ class CaseConclusionServiceTest {
     private final CaseConclusionService service = new CaseConclusionService(
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
             documentRepository, documentPieceRepository, caseFileDashboardService,
-            promptBuilder, anthropicService, styleCorpusRepository);
+            promptBuilder, anthropicService, styleCorpusRepository, jurisprudenceCitationRepository);
 
     @BeforeEach
     void wireSelf() {

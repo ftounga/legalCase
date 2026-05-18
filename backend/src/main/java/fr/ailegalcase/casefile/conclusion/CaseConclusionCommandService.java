@@ -5,6 +5,7 @@ import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.casefile.jurisprudence.JurisprudenceCitationRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -47,6 +48,7 @@ public class CaseConclusionCommandService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RabbitTemplate rabbitTemplate;
     private final ConclusionPromptRegistry promptRegistry;
+    private final JurisprudenceCitationRepository jurisprudenceCitationRepository;
 
     public CaseConclusionCommandService(CaseFileRepository caseFileRepository,
                                         CaseConclusionRepository caseConclusionRepository,
@@ -54,7 +56,8 @@ public class CaseConclusionCommandService {
                                         CurrentUserResolver currentUserResolver,
                                         WorkspaceMemberRepository workspaceMemberRepository,
                                         RabbitTemplate rabbitTemplate,
-                                        ConclusionPromptRegistry promptRegistry) {
+                                        ConclusionPromptRegistry promptRegistry,
+                                        JurisprudenceCitationRepository jurisprudenceCitationRepository) {
         this.caseFileRepository = caseFileRepository;
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
@@ -62,6 +65,7 @@ public class CaseConclusionCommandService {
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.promptRegistry = promptRegistry;
+        this.jurisprudenceCitationRepository = jurisprudenceCitationRepository;
     }
 
     /**
@@ -272,16 +276,21 @@ public class CaseConclusionCommandService {
     }
 
     /**
-     * F-98 / SF-98-53 — calcule si une version de conclusions est <strong>potentiellement
-     * périmée</strong> : la version est {@code DONE}, a un {@code generatedAt} non nul, et
-     * il existe une analyse du dossier ({@code CaseAnalysis} {@code DONE}) dont
-     * {@code updatedAt} est postérieur à ce {@code generatedAt}.
+     * F-98 / SF-98-53 + F-242 / SF-242-01 — calcule si une version de conclusions est
+     * <strong>potentiellement périmée</strong> : la version est {@code DONE}, a un
+     * {@code generatedAt} non nul, et l'une des deux conditions suivantes est vraie :
+     * <ul>
+     *   <li>il existe une analyse du dossier ({@code CaseAnalysis} {@code DONE}) dont
+     *       {@code updatedAt} est postérieur au {@code generatedAt} (SF-98-53) ;</li>
+     *   <li>il existe une citation de jurisprudence d'appui du dossier dont
+     *       {@code updatedAt} est postérieur au {@code generatedAt} (F-242).</li>
+     * </ul>
      *
      * <p><strong>Fail-open</strong> : toute exception du calcul est avalée, le résultat
      * tombe à {@code false} avec un log d'avertissement — jamais d'exception propagée.</p>
      *
      * @return {@code true} si la version est périmée, {@code false} sinon (version non
-     *         {@code DONE}, {@code generatedAt} nul, aucune analyse postérieure, ou échec)
+     *         {@code DONE}, {@code generatedAt} nul, aucune source postérieure, ou échec)
      */
     private boolean computeStale(UUID caseFileId, CaseConclusion version) {
         try {
@@ -292,11 +301,18 @@ public class CaseConclusionCommandService {
             if (generatedAt == null) {
                 return false;
             }
-            return caseAnalysisRepository
+            boolean analysisStale = caseAnalysisRepository
                     .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE)
                     .map(analysis -> analysis.getUpdatedAt() != null
                             && analysis.getUpdatedAt().isAfter(generatedAt))
                     .orElse(false);
+            if (analysisStale) {
+                return true;
+            }
+            // F-242 — une citation de jurisprudence postérieure à la génération périme aussi.
+            Instant maxCitationUpdatedAt =
+                    jurisprudenceCitationRepository.findMaxUpdatedAtByCaseFileId(caseFileId);
+            return maxCitationUpdatedAt != null && maxCitationUpdatedAt.isAfter(generatedAt);
         } catch (RuntimeException ex) {
             log.warn("Conclusion staleness computation failed — caseFile={}, conclusion={} — "
                     + "fail-open to stale=false", caseFileId, version.getId(), ex);
