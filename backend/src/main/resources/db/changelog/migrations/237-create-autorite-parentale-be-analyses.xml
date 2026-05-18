@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="237-create-autorite-parentale-be-analyses" author="legalcase">
+        <comment>
+            SF-217-04 : table dédiée à l'outil décisionnel "Autorité parentale
+            belge" (Vague 2 Famille BE — pilier Enfants — CC art. 374-375).
+
+            Arbre décisionnel qualifiant le régime d'autorité parentale :
+            conjointe par principe (CC art. 374 §1), exclusive sur décision du
+            Tribunal de la famille en présence d'un motif grave. Verdict en
+            4 niveaux : AUTORITE_CONJOINTE / AUTORITE_EXCLUSIVE_FONDEE /
+            AUTORITE_EXCLUSIVE_NON_FONDEE / QUALIFICATION_INCOMPLETE.
+
+            Outil single-country BELGIQUE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution et la ré-édition du formulaire UI sans recalcul
+            (pattern F-DT-36 / SF-217-01).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-217-05 (migration 238) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 : un seed
+            de visibilité ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="autorite_parentale_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_autorite_parentale_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="autorite_parentale_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_autorite_parentale_be_analyses_case_file"/>
+
+        <createIndex tableName="autorite_parentale_be_analyses"
+                     indexName="idx_autorite_parentale_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="autorite_parentale_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
