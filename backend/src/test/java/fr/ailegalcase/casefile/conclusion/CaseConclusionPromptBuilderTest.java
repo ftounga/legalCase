@@ -2,25 +2,36 @@ package fr.ailegalcase.casefile.conclusion;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.casefile.DashboardTile;
+import fr.ailegalcase.casefile.ProcedureStageCatalog;
 import fr.ailegalcase.casefile.conclusion.CaseConclusionPromptBuilder.ConclusionPromptInput;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * F-98 / SF-98-01 — tests unitaires de l'assemblage du prompt : présence des intrants,
- * tolérance d'un dossier sans piste / sans outil.
+ * F-98 / SF-98-01 + SF-98-02 — tests unitaires de l'assemblage du prompt : prompt de
+ * base résolu via le registre, consigne de style appliquée par-dessus, présence des
+ * intrants du message utilisateur, tolérance d'un dossier sans piste / sans outil.
  */
 class CaseConclusionPromptBuilderTest {
 
+    /** Cellule CPH / FOND / DEMANDEUR — droit du travail FR. */
+    private static final CombinationKey DEMANDEUR_KEY = new CombinationKey(
+            ProcedureStageCatalog.DROIT_DU_TRAVAIL, ProcedureStageCatalog.FRANCE,
+            "CPH", "FOND", "DEMANDEUR");
+
+    private final ConclusionPromptRegistry registry = new ConclusionPromptRegistry(List.of(
+            new CphFondDemandeurPromptProvider(), new CphFondDefendeurPromptProvider()));
+
     private final CaseConclusionPromptBuilder builder =
-            new CaseConclusionPromptBuilder(new ObjectMapper());
+            new CaseConclusionPromptBuilder(new ObjectMapper(), registry);
 
     @Test
     void buildSystemPrompt_describesProsecutorRoleAndStructure() {
-        String system = builder.buildSystemPrompt();
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
 
         assertThat(system).contains("avocat du demandeur");
         assertThat(system).contains("Conseil de prud'hommes");
@@ -29,11 +40,22 @@ class CaseConclusionPromptBuilderTest {
         assertThat(system).contains("Pièce n°");
     }
 
+    @Test
+    void buildSystemPrompt_unknownCombination_throws() {
+        CombinationKey unknown = new CombinationKey(
+                ProcedureStageCatalog.DROIT_FAMILLE, ProcedureStageCatalog.FRANCE,
+                "JAF", "DIVORCE_FOND", "DEMANDEUR");
+
+        assertThatThrownBy(() -> builder.buildSystemPrompt(unknown, List.of()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Aucun provider de prompt");
+    }
+
     // ── SF-98-47 — consigne d'adaptation de style ────────────────────────────
 
     @Test
     void buildSystemPrompt_withStyleSignatures_includesStyleInstruction() {
-        String system = builder.buildSystemPrompt(List.of(
+        String system = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of(
                 "Phrases courtes, registre assertif, transitions « En conséquence ».",
                 "Argumentation faits puis droit, paragraphes denses."));
 
@@ -45,18 +67,18 @@ class CaseConclusionPromptBuilderTest {
 
     @Test
     void buildSystemPrompt_withoutStyleSignatures_isUnchanged() {
-        String generic = builder.buildSystemPrompt();
+        String generic = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
 
-        assertThat(builder.buildSystemPrompt(List.of())).isEqualTo(generic);
-        assertThat(builder.buildSystemPrompt(null)).isEqualTo(generic);
+        assertThat(builder.buildSystemPrompt(DEMANDEUR_KEY, null)).isEqualTo(generic);
         assertThat(generic).doesNotContain("Adopte le style rédactionnel suivant");
     }
 
     @Test
     void buildSystemPrompt_blankSignaturesOnly_isUnchanged() {
-        String generic = builder.buildSystemPrompt();
+        String generic = builder.buildSystemPrompt(DEMANDEUR_KEY, List.of());
 
-        String result = builder.buildSystemPrompt(java.util.Arrays.asList(null, "", "   "));
+        String result = builder.buildSystemPrompt(DEMANDEUR_KEY,
+                java.util.Arrays.asList(null, "", "   "));
 
         assertThat(result).isEqualTo(generic);
         assertThat(result).doesNotContain("Adopte le style rédactionnel suivant");

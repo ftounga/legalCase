@@ -44,8 +44,10 @@ class CaseConclusionServiceTest {
     private final CaseFileDashboardService caseFileDashboardService = mock(CaseFileDashboardService.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final StyleCorpusRepository styleCorpusRepository = mock(StyleCorpusRepository.class);
+    private final ConclusionPromptRegistry promptRegistry = new ConclusionPromptRegistry(List.of(
+            new CphFondDemandeurPromptProvider(), new CphFondDefendeurPromptProvider()));
     private final CaseConclusionPromptBuilder promptBuilder =
-            new CaseConclusionPromptBuilder(new ObjectMapper());
+            new CaseConclusionPromptBuilder(new ObjectMapper(), promptRegistry);
 
     private final CaseConclusionService service = new CaseConclusionService(
             caseConclusionRepository, caseAnalysisRepository, strategicOptionRepository,
@@ -83,6 +85,25 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getErrorMessage()).isNull();
         // sans corpus de style stubé → génération générique
         assertThat(conclusion.isStyleApplied()).isFalse();
+    }
+
+    @Test
+    void generate_defendeurCell_usesDefendeurSystemPrompt() {
+        UUID conclusionId = UUID.randomUUID();
+        CaseConclusion conclusion = pendingConclusion(conclusionId);
+        conclusion.setPositionCode("DEFENDEUR"); // cellule SF-98-02
+        stubGenerationStubs(conclusionId, conclusion);
+        when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
+                .thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("PAR CES MOTIFS — débouter", "claude-sonnet-4-6",
+                        1200, 3400, "end_turn"));
+
+        service.generate(conclusionId);
+
+        assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
+        verify(anthropicService).analyzeWithSystemCache(
+                contains("avocat du défendeur (employeur)"), any(), anyInt());
     }
 
     @Test

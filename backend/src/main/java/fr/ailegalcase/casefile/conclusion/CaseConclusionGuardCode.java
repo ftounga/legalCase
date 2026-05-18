@@ -14,10 +14,9 @@ public enum CaseConclusionGuardCode {
     ANALYSIS_NOT_READY("Lancez et terminez l'analyse du dossier avant de générer "
             + "les conclusions."),
 
-    /** Combinaison stade/domaine/pays hors périmètre V1. */
-    COMBINATION_NOT_SUPPORTED("La génération de conclusions est disponible pour l'instant "
-            + "uniquement pour : Conseil de prud'hommes, bureau de jugement, côté demandeur, "
-            + "droit du travail (France)."),
+    /** Combinaison procédurale (juridiction/stade/position) non couverte par une cellule de la matrice F-98. */
+    COMBINATION_NOT_SUPPORTED("La génération de conclusions n'est pas encore disponible pour la "
+            + "combinaison procédurale de ce dossier (juridiction, stade, position)."),
 
     /** Génération déjà PENDING ou PROCESSING pour ce dossier. */
     ALREADY_GENERATING("Une génération est déjà en cours pour ce dossier."),
