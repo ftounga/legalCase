@@ -269,6 +269,81 @@ class CaseConclusionControllerIT {
                 .andExpect(jsonPath("$.styleApplied").value(true));
     }
 
+    // ── SF-98-53 — péremption (stale) ────────────────────────────────────────
+
+    @Test
+    void GET_conclusions_analysisUpdatedAfterGeneration_staleTrue() throws Exception {
+        // version DONE générée il y a 2h
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        v1.setGeneratedAt(Instant.now().minusSeconds(7200));
+        caseConclusionRepository.save(v1);
+        // une analyse DONE ré-exécutée ensuite (updatedAt = maintenant)
+        saveDoneAnalysis(supportedCf);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stale").value(true));
+    }
+
+    @Test
+    void GET_conclusions_noAnalysisAfterGeneration_staleFalse() throws Exception {
+        // version DONE générée maintenant ; les analyses du setUp sont antérieures
+        persistVersion(supportedCf, 1, CaseConclusionStatus.DONE, ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stale").value(false));
+    }
+
+    @Test
+    void GET_conclusions_nonDoneVersion_staleFalse() throws Exception {
+        persistVersion(supportedCf, 1, CaseConclusionStatus.PENDING, ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stale").value(false));
+    }
+
+    @Test
+    void GET_conclusions_beforeGenerate_staleFalse() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId() + "/conclusions")
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("NOT_GENERATED"))
+                .andExpect(jsonPath("$.stale").value(false));
+    }
+
+    @Test
+    void GET_version_analysisUpdatedAfterGeneration_staleTrue() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+        v1.setGeneratedAt(Instant.now().minusSeconds(7200));
+        caseConclusionRepository.save(v1);
+        saveDoneAnalysis(supportedCf);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId())
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stale").value(true));
+    }
+
+    @Test
+    void GET_version_noAnalysisAfterGeneration_staleFalse() throws Exception {
+        CaseConclusion v1 = persistVersion(supportedCf, 1, CaseConclusionStatus.DONE,
+                ConclusionLifecycleStatus.DRAFT);
+
+        mockMvc.perform(get("/api/v1/case-files/" + supportedCf.getId()
+                        + "/conclusions/versions/" + v1.getId())
+                        .with(authentication(authA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stale").value(false));
+    }
+
     // ── GET .../conclusions/versions (CA4) ───────────────────────────────────
 
     @Test
