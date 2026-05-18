@@ -210,6 +210,12 @@
               Télécharger en Word
             </button>
             <button mat-stroked-button
+                    data-testid="download-pdf-btn"
+                    (click)="downloadPdf()">
+              <mat-icon>picture_as_pdf</mat-icon>
+              Télécharger en PDF
+            </button>
+            <button mat-stroked-button
                     data-testid="regenerate-btn"
                     [disabled]="generating()"
                     (click)="generate()">

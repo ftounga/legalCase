@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { AnalysisItem, CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../models/case-analysis.model';
 import { formatSourceRef } from '../utils/format-source-ref';
@@ -41,6 +42,8 @@ const RISQUE_CRITICAL_KEYWORDS = [
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
+
+  constructor(private snackBar: MatSnackBar) {}
 
   export(
     caseFile: CaseFile,
@@ -1876,6 +1879,119 @@ export class PdfExportService {
       .slice(0, 40);
     const date = new Date().toISOString().slice(0, 10);
     return `synthese-${slug}-v${synthesis.version}-${date}.pdf`;
+  }
+
+  /**
+   * F-98 / SF-98-51 — Exporte une version de conclusions au format `.pdf`.
+   *
+   * Construit un document `pdfmake` à partir du `content` texte de la version :
+   * les lignes d'en-tête de section (entièrement en MAJUSCULES, courtes — type
+   * `POUR`, `CONTRE`, `FAITS ET PROCÉDURE`, `DISCUSSION`, `PAR CES MOTIFS`)
+   * sont rendues en titres ; les autres lignes en paragraphes. Les lignes vides
+   * sont préservées pour conserver l'aération du texte.
+   *
+   * Réutilise le pattern `pdfmake` du service (import dynamique de
+   * `pdfmake/build/pdfmake` + `vfs_fonts`, `createPdf(...).download(...)`) et
+   * la même heuristique d'en-tête de section que `DocxExportService`
+   * (SF-98-50). Un échec (import ou génération) affiche une `MatSnackBar`
+   * d'erreur, sans téléchargement.
+   *
+   * @param content        texte de la version de conclusions.
+   * @param caseTitle      titre du dossier — sert au nommage du fichier.
+   * @param versionNumber  numéro de la version exportée.
+   */
+  exportConclusion(content: string, caseTitle: string, versionNumber: number): void {
+    import('pdfmake/build/pdfmake').then(pdfMakeModule => {
+      import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
+        const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
+        const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
+        pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
+
+        const docDefinition = this.buildConclusionDocument(content) as TDocumentDefinitions;
+        const fileName = this.buildConclusionFileName(caseTitle, versionNumber);
+        pdfMake.createPdf(docDefinition).download(fileName);
+      }).catch(() => this.notifyConclusionError());
+    }).catch(() => this.notifyConclusionError());
+  }
+
+  /**
+   * Document `pdfmake` d'une version de conclusions : chaque ligne du `content`
+   * devient un paragraphe ; les en-têtes de section sont stylés en titre.
+   */
+  buildConclusionDocument(content: string): object {
+    const lines = (content ?? '').split('\n');
+    const body = lines.map((line) =>
+      this.isSectionHeading(line)
+        ? { text: line.trim(), style: 'sectionTitle' }
+        : { text: line, style: 'paragraph' },
+    );
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [48, 64, 48, 64],
+      content: body,
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 10,
+        color: TEXT,
+        lineHeight: 1.4,
+      },
+      styles: {
+        sectionTitle: { fontSize: 12, bold: true, color: PRIMARY, margin: [0, 12, 0, 6] },
+        paragraph: { margin: [0, 0, 0, 4] },
+      },
+    };
+  }
+
+  /**
+   * Nom de fichier d'une version de conclusions :
+   * `{slug-du-dossier}-conclusions-v{N}.pdf` (fallback `conclusions-vN.pdf`
+   * si le titre est vide). Même heuristique de slug que `buildFileName`.
+   */
+  buildConclusionFileName(caseTitle: string, versionNumber: number): string {
+    const title = caseTitle?.trim() || '';
+    if (!title) {
+      return `conclusions-v${versionNumber}.pdf`;
+    }
+    return `${this.slugifyTitle(title)}-conclusions-v${versionNumber}.pdf`;
+  }
+
+  /** Affiche la `MatSnackBar` d'erreur de génération du PDF de conclusions. */
+  private notifyConclusionError(): void {
+    this.snackBar.open('Erreur lors de la génération du document PDF.', 'Fermer', {
+      duration: 4000, panelClass: ['snack-error'],
+    });
+  }
+
+  /**
+   * Vrai si la ligne est un en-tête de section : une fois la ponctuation et
+   * les espaces retirés, elle ne contient que des lettres en MAJUSCULES, au
+   * moins une lettre, et reste courte (≤ 60 caractères). Même heuristique que
+   * `DocxExportService.isSectionHeading` (SF-98-50) — robuste pour la
+   * structure produite par `CaseConclusionPromptBuilder` (`POUR`, `CONTRE`,
+   * `FAITS ET PROCÉDURE`, `DISCUSSION`, `PAR CES MOTIFS`…).
+   */
+  private isSectionHeading(line: string): boolean {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.length > 60) {
+      return false;
+    }
+    const letters = trimmed.replace(/[^\p{L}]/gu, '');
+    if (letters.length === 0) {
+      return false;
+    }
+    return letters === letters.toUpperCase() && letters !== letters.toLowerCase();
+  }
+
+  /** Slug ASCII minuscule, accents retirés, tronqué à 40 caractères. */
+  private slugifyTitle(value: string): string {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
   }
 
   exportImmigrationChecklist(checklist: ImmigrationChecklist, caseFileTitle: string): void {

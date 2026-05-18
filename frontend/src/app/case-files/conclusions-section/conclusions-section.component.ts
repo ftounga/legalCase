@@ -19,6 +19,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { ConclusionsService } from '../../core/services/conclusions.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import {
   ConclusionLifecycleStatus,
   ConclusionResponse,
@@ -136,6 +137,7 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
 
   private readonly conclusionsService = inject(ConclusionsService);
   private readonly docxExportService = inject(DocxExportService);
+  private readonly pdfExportService = inject(PdfExportService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -397,6 +399,35 @@ export class ConclusionsSectionComponent implements OnInit, OnDestroy {
     } catch {
       this.snackBar.open(
         'Erreur lors de la génération du document Word.',
+        'Fermer',
+        { duration: 4000, panelClass: ['snack-error'] },
+      );
+    }
+  }
+
+  /**
+   * SF-98-51 — Télécharge la version affichée au format PDF.
+   *
+   * Disponible uniquement quand la version est `DONE` (donc avec un `content`).
+   * Délègue la construction du document et le déclenchement du téléchargement
+   * au `PdfExportService` (réutilise le pattern client-side `pdfmake`). En cas
+   * d'échec de génération, le service affiche lui-même une `MatSnackBar`
+   * d'erreur ; une erreur synchrone inattendue est captée ici par sécurité.
+   */
+  downloadPdf(): void {
+    const current = this.conclusion();
+    if (current?.status !== 'DONE' || !current.content) {
+      return;
+    }
+    try {
+      this.pdfExportService.exportConclusion(
+        current.content,
+        this.caseTitle ?? '',
+        current.versionNumber ?? 0,
+      );
+    } catch {
+      this.snackBar.open(
+        'Erreur lors de la génération du document PDF.',
         'Fermer',
         { duration: 4000, panelClass: ['snack-error'] },
       );

@@ -1,5 +1,19 @@
 import { TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { PdfExportService } from './pdf-export.service';
+
+// SF-98-51 — stub des modules `pdfmake` chargés dynamiquement par le service,
+// pour intercepter `createPdf(...).download(...)` sans générer de vrai PDF.
+const pdfDownloadSpy = jest.fn();
+const pdfCreateSpy = jest.fn(() => ({ download: pdfDownloadSpy }));
+jest.mock('pdfmake/build/pdfmake', () => ({
+  __esModule: true,
+  default: { vfs: {}, createPdf: (...args: unknown[]) => pdfCreateSpy(...args) },
+}));
+jest.mock('pdfmake/build/vfs_fonts', () => ({
+  __esModule: true,
+  default: { pdfMake: { vfs: {} } },
+}));
 import { CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
@@ -41,9 +55,16 @@ const mockSynthesis: CaseAnalysisResult = {
 
 describe('PdfExportService', () => {
   let service: PdfExportService;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    TestBed.configureTestingModule({
+      providers: [
+        PdfExportService,
+        { provide: MatSnackBar, useValue: snackBar },
+      ],
+    });
     service = TestBed.inject(PdfExportService);
   });
 
@@ -1426,5 +1447,88 @@ describe('PdfExportService', () => {
     const s = JSON.stringify(doc.content);
     expect(s).toContain('(Question non disponible)');
     expect(s).toContain('réponse libre');
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SF-98-51 — Export PDF des conclusions
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // PDF-CONC-01 : buildConclusionFileName avec titre non vide
+  it('PDF-CONC-01: buildConclusionFileName returns [slug]-conclusions-vN.pdf', () => {
+    expect(service.buildConclusionFileName('Affaire Dupont c/ SA Renault', 4))
+      .toBe('affaire-dupont-c-sa-renault-conclusions-v4.pdf');
+  });
+
+  // PDF-CONC-02 : buildConclusionFileName avec titre vide → fallback
+  it('PDF-CONC-02: buildConclusionFileName returns conclusions-vN.pdf when title empty', () => {
+    expect(service.buildConclusionFileName('', 2)).toBe('conclusions-v2.pdf');
+    expect(service.buildConclusionFileName('   ', 5)).toBe('conclusions-v5.pdf');
+  });
+
+  // PDF-CONC-03 : buildConclusionFileName retire les accents
+  it('PDF-CONC-03: buildConclusionFileName strips accented characters', () => {
+    const name = service.buildConclusionFileName('Licenciement économique — Müller', 1);
+    expect(name).not.toMatch(/[àáâãéèêëîïôùûüç]/i);
+    expect(name).toBe('licenciement-economique-muller-conclusions-v1.pdf');
+  });
+
+  // PDF-CONC-04 : buildConclusionDocument — en-têtes en titres, reste en paragraphes
+  it('PDF-CONC-04: buildConclusionDocument styles section headings as titles', () => {
+    const content =
+      'POUR\nM. Dupont, salarié.\n\nFAITS ET PROCÉDURE\nLe contrat a été rompu.\n\nPAR CES MOTIFS\nPlaise au Conseil…';
+    const doc = service.buildConclusionDocument(content) as any;
+    expect(doc.pageSize).toBe('A4');
+    expect(Array.isArray(doc.content)).toBe(true);
+
+    const headings = doc.content.filter((b: any) => b.style === 'sectionTitle');
+    const paragraphs = doc.content.filter((b: any) => b.style === 'paragraph');
+    expect(headings.map((h: any) => h.text)).toEqual([
+      'POUR', 'FAITS ET PROCÉDURE', 'PAR CES MOTIFS',
+    ]);
+    expect(paragraphs.length).toBeGreaterThan(0);
+    expect(JSON.stringify(doc.content)).toContain('M. Dupont, salarié.');
+  });
+
+  // PDF-CONC-05 : buildConclusionDocument tolère un contenu vide
+  it('PDF-CONC-05: buildConclusionDocument handles empty content', () => {
+    const doc = service.buildConclusionDocument('') as any;
+    expect(Array.isArray(doc.content)).toBe(true);
+    expect(doc.content.length).toBe(1);
+  });
+
+  // PDF-CONC-06 : exportConclusion construit le document et déclenche le download
+  it('PDF-CONC-06: exportConclusion builds the document and triggers the pdfmake download', async () => {
+    pdfDownloadSpy.mockClear();
+    pdfCreateSpy.mockClear();
+    const buildSpy = jest.spyOn(service, 'buildConclusionDocument');
+
+    service.exportConclusion('POUR\nM. Dupont.', 'Affaire Dupont', 4);
+    // Laisse les imports dynamiques `pdfmake` se résoudre.
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(buildSpy).toHaveBeenCalledWith('POUR\nM. Dupont.');
+    expect(pdfCreateSpy).toHaveBeenCalled();
+    expect(pdfDownloadSpy).toHaveBeenCalledWith('affaire-dupont-conclusions-v4.pdf');
+    expect(snackBar.open).not.toHaveBeenCalled();
+  });
+
+  // PDF-CONC-07 : exportConclusion affiche une snackbar si la génération échoue
+  it('PDF-CONC-07: exportConclusion shows snackBar error when generation fails', async () => {
+    // buildConclusionDocument lève → la chaîne d'import échoue → catch snackbar.
+    jest.spyOn(service, 'buildConclusionDocument').mockImplementation(() => {
+      throw new Error('boom');
+    });
+
+    service.exportConclusion('POUR\nTexte', 'Dossier', 1);
+    // Laisse les imports dynamiques `pdfmake` se résoudre.
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Erreur lors de la génération du document PDF.',
+      'Fermer',
+      expect.objectContaining({ duration: 4000, panelClass: ['snack-error'] }),
+    );
   });
 });
