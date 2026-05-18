@@ -305,6 +305,7 @@ chunk_analyses
 document_analyses
 case_analyses
 case_conclusions
+case_jurisprudence_citations
 style_corpus_documents
 ai_questions
 ai_question_answers

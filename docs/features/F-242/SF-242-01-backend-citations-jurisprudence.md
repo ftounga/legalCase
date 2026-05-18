@@ -9,7 +9,7 @@
 `F-242` — Citation jurispru structurée + enrichissement conclusions
 
 ## Statut
-`ready`
+`done` — livrée 2026-05-18.
 
 ## Date de création
 2026-05-18
