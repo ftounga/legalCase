@@ -93,6 +93,10 @@
           <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
           <span matListItemTitle>Administration</span>
         </a>
+        <a mat-list-item routerLink="/workspace/style-learning" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>edit_note</mat-icon>
+          <span matListItemTitle>Corpus de style</span>
+        </a>
         @if (auth.currentUser()?.isSuperAdmin) {
           <mat-divider class="nav-divider"></mat-divider>
           <a mat-list-item routerLink="/super-admin" routerLinkActive="sidenav-active" (click)="onNavClick()">

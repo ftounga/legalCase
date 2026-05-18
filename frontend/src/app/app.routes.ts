@@ -89,6 +89,11 @@ export const routes: Routes = [
           .then(m => m.TimeReportComponent)
       },
       {
+        path: 'workspace/style-learning',
+        loadComponent: () => import('./workspace/style-corpus/style-corpus.component')
+          .then(m => m.StyleCorpusComponent)
+      },
+      {
         path: 'referentials',
         loadComponent: () => import('./referentials/referentials.component')
           .then(m => m.ReferentialsComponent)

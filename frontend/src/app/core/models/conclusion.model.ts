@@ -36,6 +36,11 @@ export type ConclusionLifecycleStatus = 'DRAFT' | 'VALIDATED' | 'DEPOSITED';
  *
  * SF-98-52 : ajout de `versionNumber` + `lifecycleStatus` (champs additifs,
  * rétrocompatibles).
+ *
+ * SF-98-48 : ajout de `styleApplied` (optionnel) — fourni par SF-98-47.
+ * Quand `true`, la version a été générée en appliquant le corpus de style du
+ * cabinet. Absent ou `false` ⇒ aucune adaptation de style (dégradation propre
+ * tant que SF-98-47 n'est pas déployée).
  */
 export interface ConclusionResponse {
   id: string | null;
@@ -52,6 +57,8 @@ export interface ConclusionResponse {
   errorMessage: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  /** SF-98-48/47 — vrai si le style du cabinet a été appliqué. Optionnel. */
+  styleApplied?: boolean;
 }
 
 /**

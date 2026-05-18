@@ -44,6 +44,14 @@
             Ce projet s'appuie sur la synthèse, le stade procédural, les outils
             décisionnels et les pistes stratégiques du dossier.
           </p>
+          <!-- ── Découvrabilité du corpus de style (SF-98-48 / b1) ── -->
+          <p class="cs-style-hint" data-testid="style-corpus-link">
+            <mat-icon class="cs-style-hint-icon">edit_note</mat-icon>
+            <span>
+              Pour que la génération adopte le style de votre cabinet,
+              <a routerLink="/workspace/style-learning">constituez votre corpus de style</a>.
+            </span>
+          </p>
           <div class="cs-actions">
             <button mat-flat-button color="primary"
                     data-testid="generate-btn"
@@ -96,6 +104,14 @@
             avant tout dépôt.
           </span>
         </div>
+
+        <!-- ── Indicateur de style appliqué (SF-98-48 / b2) ──────── -->
+        @if (styleApplied()) {
+          <p class="cs-style-applied" data-testid="style-applied-indicator">
+            <mat-icon class="cs-style-applied-icon">edit_note</mat-icon>
+            <span>Généré dans votre style</span>
+          </p>
+        }
 
         <!-- ── Cycle de vie de la version (SF-98-52) ───────────── -->
         @if (lifecycleStatus()) {

@@ -1,0 +1,134 @@
+<div class="sc-page">
+  <header class="sc-page-header">
+    <h1 class="sc-page-title">
+      <mat-icon class="sc-page-title-icon">edit_note</mat-icon>
+      Corpus de style
+    </h1>
+    <p class="sc-page-subtitle">
+      Téléversez d'anciennes conclusions de votre cabinet : LegalCase en
+      apprend votre style rédactionnel pour l'appliquer aux projets générés.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="sc-loading" data-testid="loading">
+      <mat-spinner diameter="32"></mat-spinner>
+      <span>Chargement du corpus…</span>
+    </div>
+  } @else if (unavailable()) {
+    <p class="sc-message sc-message--muted" data-testid="unavailable">
+      Corpus de style temporairement indisponible. Rechargez la page pour
+      réessayer.
+    </p>
+  } @else {
+
+    <!-- ── Note de confidentialité ─────────────────────────────── -->
+    <div class="sc-privacy" data-testid="privacy-note">
+      <mat-icon class="sc-privacy-icon">verified_user</mat-icon>
+      <span>
+        Seul le <strong>style rédactionnel</strong> est appris (structure,
+        formules, registre). Le contenu de vos conclusions — faits, noms,
+        montants — n'est jamais conservé.
+      </span>
+    </div>
+
+    <!-- ── Zone d'upload ───────────────────────────────────────── -->
+    <mat-card class="sc-upload-card">
+      <div class="sc-upload">
+        <mat-icon class="sc-upload-icon">cloud_upload</mat-icon>
+        <div class="sc-upload-text">
+          <span class="sc-upload-title">
+            Ajouter une conclusion de référence
+          </span>
+          <span class="sc-upload-hint">
+            Formats acceptés : PDF, Word (.doc, .docx), texte — 50 Mo maximum.
+          </span>
+        </div>
+        <input #fileInput type="file" class="sc-file-input"
+               data-testid="file-input"
+               accept=".pdf,.doc,.docx,.txt"
+               (change)="onFileSelected($event)" />
+        <button mat-flat-button color="primary"
+                data-testid="upload-btn"
+                [disabled]="uploading()"
+                (click)="fileInput.click()">
+          @if (uploading()) {
+            <mat-spinner diameter="18" class="sc-btn-spinner"></mat-spinner>
+          } @else {
+            <mat-icon>add</mat-icon>
+          }
+          Téléverser
+        </button>
+      </div>
+    </mat-card>
+
+    <!-- ── Liste des documents ─────────────────────────────────── -->
+    @if (isEmpty()) {
+      <div class="sc-empty" data-testid="empty-state">
+        <mat-icon class="sc-empty-icon">description</mat-icon>
+        <p class="sc-empty-title">Aucune conclusion de référence</p>
+        <p class="sc-empty-hint">
+          Téléversez-en pour que la génération adopte le style de votre
+          cabinet.
+        </p>
+      </div>
+    } @else {
+      <ul class="sc-list" data-testid="documents-list">
+        @for (doc of documents(); track doc.id) {
+          <li class="sc-item" [attr.data-testid]="'doc-' + doc.id">
+            <div class="sc-item-main">
+              <mat-icon class="sc-item-icon">description</mat-icon>
+              <div class="sc-item-info">
+                <span class="sc-item-name">{{ doc.originalFilename }}</span>
+                <span class="sc-item-meta">
+                  <span class="sc-status"
+                        [class.sc-status--pending]="doc.status === 'PENDING' || doc.status === 'PROCESSING'"
+                        [class.sc-status--done]="doc.status === 'DONE'"
+                        [class.sc-status--failed]="doc.status === 'FAILED'"
+                        data-testid="doc-status">
+                    @if (doc.status === 'PENDING' || doc.status === 'PROCESSING') {
+                      <mat-spinner diameter="12" class="sc-status-spinner"></mat-spinner>
+                    }
+                    {{ statusLabel(doc.status) }}
+                  </span>
+                  <span class="sc-item-date">
+                    Ajouté le {{ doc.createdAt | date: 'dd/MM/yyyy' }}
+                  </span>
+                </span>
+                @if (doc.status === 'FAILED' && doc.errorMessage) {
+                  <span class="sc-item-error" data-testid="doc-error">
+                    <mat-icon class="sc-item-error-icon">error_outline</mat-icon>
+                    {{ doc.errorMessage }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="sc-item-actions">
+              <mat-slide-toggle
+                color="primary"
+                data-testid="doc-toggle"
+                [checked]="doc.active"
+                [disabled]="doc.status !== 'DONE' || isToggling(doc.id)"
+                (change)="toggleActive(doc)">
+                {{ doc.active ? 'Actif' : 'Inactif' }}
+              </mat-slide-toggle>
+
+              <button mat-icon-button
+                      data-testid="doc-delete-btn"
+                      aria-label="Retirer ce document du corpus"
+                      [disabled]="isDeleting(doc.id)"
+                      (click)="confirmDelete(doc)">
+                @if (isDeleting(doc.id)) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon>delete_outline</mat-icon>
+                }
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>
