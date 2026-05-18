@@ -168,9 +168,27 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<!-- F-245 SF-245-01 — profil `test` forcé pour les tests unitaires
+			     (surefire) ET d'intégration (failsafe). Aucune des deux phases
+			     n'écrit dans la base du profil `dev` : voir application-test.yml.
+			     Centralisé ici → zéro fichier *IT.java / *Test.java modifié. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<systemPropertyVariables>
+						<spring.profiles.active>test</spring.profiles.active>
+					</systemPropertyVariables>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
+				<configuration>
+					<systemPropertyVariables>
+						<spring.profiles.active>test</spring.profiles.active>
+					</systemPropertyVariables>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
