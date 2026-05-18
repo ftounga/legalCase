@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="239-create-contribution-alimentaire-enfants-be-analyses" author="legalcase">
+        <comment>
+            SF-217-06 : table dédiée à l'outil décisionnel "Contribution
+            alimentaire des enfants" (Vague 2 Famille BE — pilier Enfants —
+            méthode Renard, CC art. 203 / 203bis).
+
+            Estime la contribution alimentaire due pour les enfants d'un couple
+            séparé belge selon les principes de la méthode Renard : répartition
+            du coût de l'enfant au prorata des revenus des parents, déduction de
+            la part hébergement, imputation des allocations familiales,
+            répartition des frais extraordinaires. Verdict en 3 niveaux :
+            CONTRIBUTION_DUE / CONTRIBUTION_EQUILIBREE / DONNEES_INSUFFISANTES.
+
+            Outil single-country BELGIQUE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution et la ré-édition du formulaire UI sans recalcul
+            (pattern F-DT-36 / SF-217-01).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-217-07 (migration 240) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 : un seed
+            de visibilité ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="contribution_alimentaire_enfants_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_contribution_alim_enfants_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="contribution_alimentaire_enfants_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_contribution_alim_enfants_be_analyses_case_file"/>
+
+        <createIndex tableName="contribution_alimentaire_enfants_be_analyses"
+                     indexName="idx_contribution_alim_enfants_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="contribution_alimentaire_enfants_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
