@@ -1,3 +1,5 @@
+import { request } from '@playwright/test';
+
 /**
  * Nettoyage avant chaque run E2E — supprime tous les dossiers du compte e2e.
  *
@@ -8,34 +10,37 @@
  * sur la limite de dossiers ouverts du plan (`402 CASE_FILE_OPEN_LIMIT_EXCEEDED`),
  * ce qui casse la création de dossier dans happy-path et case-analysis-flow.
  *
+ * On utilise le contexte `request` de Playwright et NON le `fetch` global de
+ * Node : sur le runner CI, `fetch` (undici) échouait avec « fetch failed » en
+ * atteignant staging, alors que la pile réseau de Playwright atteint bien
+ * staging (les tests navigateur passent). Le contexte `request` gère en outre
+ * les cookies de session automatiquement (pas d'extraction manuelle de
+ * `Set-Cookie`) et suit les redirections nginx.
+ *
  * Échec silencieux : un nettoyage raté ne doit pas bloquer le run.
  */
 async function globalSetup(): Promise<void> {
-  const baseUrl = process.env['E2E_BASE_URL'] ?? 'http://localhost:4200';
+  const baseURL = process.env['E2E_BASE_URL'] ?? 'http://localhost:4200';
   const email = process.env['E2E_LOCAL_EMAIL'] ?? 'e2e@legalcase.test';
   const password = process.env['E2E_LOCAL_PASSWORD'] ?? 'E2ePassword1!';
 
+  const ctx = await request.newContext({ baseURL, ignoreHTTPSErrors: true });
   try {
-    const loginRes = await fetch(`${baseUrl}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+    const loginRes = await ctx.post('/api/v1/auth/login', {
+      data: { email, password },
     });
-    if (!loginRes.ok) {
-      console.warn(`[E2E] Login de nettoyage échoué (${loginRes.status}) — run sans nettoyage.`);
+    if (!loginRes.ok()) {
+      console.warn(`[E2E] Login de nettoyage échoué (${loginRes.status()}) — run sans nettoyage.`);
       return;
     }
 
-    // Cookie de session : on ne garde que la paire name=value de chaque Set-Cookie.
-    const cookie = (loginRes.headers.getSetCookie?.() ?? [])
-      .map(c => c.split(';')[0])
-      .join('; ');
-
-    const listRes = await fetch(`${baseUrl}/api/v1/case-files?page=0&size=200`, {
-      headers: { Cookie: cookie },
+    // Le cookie de session posé par le login est réutilisé automatiquement
+    // par les requêtes suivantes du même contexte.
+    const listRes = await ctx.get('/api/v1/case-files', {
+      params: { page: 0, size: 200 },
     });
-    if (!listRes.ok) {
-      console.warn(`[E2E] Liste des dossiers inaccessible (${listRes.status}) — run sans nettoyage.`);
+    if (!listRes.ok()) {
+      console.warn(`[E2E] Liste des dossiers inaccessible (${listRes.status()}) — run sans nettoyage.`);
       return;
     }
 
@@ -43,14 +48,13 @@ async function globalSetup(): Promise<void> {
       .map(c => c.id);
 
     for (const id of ids) {
-      await fetch(`${baseUrl}/api/v1/case-files/${id}`, {
-        method: 'DELETE',
-        headers: { Cookie: cookie },
-      });
+      await ctx.delete(`/api/v1/case-files/${id}`);
     }
     console.log(`[E2E] ${ids.length} dossier(s) de test nettoyé(s).`);
   } catch (e) {
     console.warn('[E2E] Nettoyage des dossiers de test impossible :', (e as Error).message);
+  } finally {
+    await ctx.dispose();
   }
 }
 
