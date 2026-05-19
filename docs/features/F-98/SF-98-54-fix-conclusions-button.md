@@ -13,7 +13,7 @@
 
 ## Statut
 
-`ready`
+`done` — livré 2026-05-19 (PR #1079, déployé staging + production)
 
 ## Date de création
 
