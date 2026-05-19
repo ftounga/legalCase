@@ -919,7 +919,23 @@ public record CaseAnalysisResponse(
             Double valeurCommunauteEurDetectee,
             String regimeMatrimonialDetecte,
             Double valeurBiensIndivisionEur,
-            Integer nombreCoindivisairesDetecte) {
+            Integer nombreCoindivisairesDetecte,
+            // SF-246-08 : 7 champs IA vie commune & protection pour pré-fill des
+            // 6 outils décisionnels F-FA-12/13/14/20/21/22 (pacs-dissolution,
+            // separation-corps, indivision, ordonnance-protection, mesures-provisoires,
+            // revisions-post-divorce). Famille FR uniquement, tous nullables.
+            // Sous-objet IA source : `famille_extracted_data.vie_commune_detection`.
+            // `dateSeparation` (FR) ≠ `dateSeparation` BE de SF-246-12 (champ séparé).
+            // `dateRequeteOP` (date dépôt requête) ≠ `dateOrdonnanceProtectionJaf`
+            // (date ordonnance rendue — Immigration SF-246-04).
+            // `patrimoineCommunEur` (montant €) ≠ `patrimoineCommun` boolean existant.
+            String dateSeparation,
+            Double patrimoineCommunEur,
+            String dateConclusionPacs,
+            String dateRequeteOP,
+            String dateAudienceAOMP,
+            Integer nbEnfantsACharge,
+            Double revenusAnnuelsEpoux) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -992,6 +1008,14 @@ public record CaseAnalysisResponse(
             private String regimeMatrimonialDetecte;
             private Double valeurBiensIndivisionEur;
             private Integer nombreCoindivisairesDetecte;
+            // SF-246-08 : 7 champs IA vie commune & protection (F-FA-12/13/14/20/21/22), nullables.
+            private String dateSeparation;
+            private Double patrimoineCommunEur;
+            private String dateConclusionPacs;
+            private String dateRequeteOP;
+            private String dateAudienceAOMP;
+            private Integer nbEnfantsACharge;
+            private Double revenusAnnuelsEpoux;
 
             private Builder() {}
 
@@ -1054,6 +1078,14 @@ public record CaseAnalysisResponse(
             public Builder regimeMatrimonialDetecte(String v) { this.regimeMatrimonialDetecte = v; return this; }
             public Builder valeurBiensIndivisionEur(Double v) { this.valeurBiensIndivisionEur = v; return this; }
             public Builder nombreCoindivisairesDetecte(Integer v) { this.nombreCoindivisairesDetecte = v; return this; }
+            // SF-246-08 : setters des 7 champs IA vie commune & protection.
+            public Builder dateSeparation(String v) { this.dateSeparation = v; return this; }
+            public Builder patrimoineCommunEur(Double v) { this.patrimoineCommunEur = v; return this; }
+            public Builder dateConclusionPacs(String v) { this.dateConclusionPacs = v; return this; }
+            public Builder dateRequeteOP(String v) { this.dateRequeteOP = v; return this; }
+            public Builder dateAudienceAOMP(String v) { this.dateAudienceAOMP = v; return this; }
+            public Builder nbEnfantsACharge(Integer v) { this.nbEnfantsACharge = v; return this; }
+            public Builder revenusAnnuelsEpoux(Double v) { this.revenusAnnuelsEpoux = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1085,7 +1117,11 @@ public record CaseAnalysisResponse(
                         nbFreresSoeursDetecte, dateRedactionTestamentDetectee,
                         // SF-246-07 : 4 champs IA régimes matrimoniaux / liquidation.
                         valeurCommunauteEurDetectee, regimeMatrimonialDetecte,
-                        valeurBiensIndivisionEur, nombreCoindivisairesDetecte);
+                        valeurBiensIndivisionEur, nombreCoindivisairesDetecte,
+                        // SF-246-08 : 7 champs IA vie commune & protection.
+                        dateSeparation, patrimoineCommunEur,
+                        dateConclusionPacs, dateRequeteOP, dateAudienceAOMP,
+                        nbEnfantsACharge, revenusAnnuelsEpoux);
             }
         }
     }
@@ -2388,6 +2424,30 @@ public record CaseAnalysisResponse(
                 || valeurCommunauteEurDetectee != null
                 || valeurBiensIndivisionEur != null
                 || nombreCoindivisairesDetecte != null;
+        // SF-246-08 : sous-objet `vie_commune_detection` — 7 champs IA vie commune &
+        // protection pour pré-fill des 6 outils F-FA-12/13/14/20/21/22.
+        // Absent → tous null (no-op gracieux des prefillFromAi() frontend).
+        // Dates via isoDateOrNull() (§5.1 — YYYY-MM-DD strict),
+        // montants via positiveDoubleOrNull() (jamais 0 — invariant §5.2),
+        // entiers via boundedIntOrNull(_, _, 0, 30).
+        // `patrimoineCommunEur` (montant €) ≠ `patrimoineCommun` boolean existant.
+        // `dateRequeteOP` ≠ `dateOrdonnanceProtectionJaf` (SF-246-04 immigration).
+        JsonNode vcd = node.get("vie_commune_detection");
+        boolean vcdObject = vcd != null && vcd.isObject();
+        String dateSeparation = vcdObject ? isoDateOrNull(vcd, "date_separation") : null;
+        Double patrimoineCommunEur = vcdObject ? positiveDoubleOrNull(vcd, "patrimoine_commun_eur") : null;
+        String dateConclusionPacs = vcdObject ? isoDateOrNull(vcd, "date_conclusion_pacs") : null;
+        String dateRequeteOP = vcdObject ? isoDateOrNull(vcd, "date_requete_op") : null;
+        String dateAudienceAOMP = vcdObject ? isoDateOrNull(vcd, "date_audience_aomp") : null;
+        Integer nbEnfantsACharge = vcdObject ? boundedIntOrNull(vcd, "nb_enfants_a_charge", 0, 30) : null;
+        Double revenusAnnuelsEpoux = vcdObject ? positiveDoubleOrNull(vcd, "revenus_annuels_epoux_eur") : null;
+        boolean vieCommuneDetectionPresent = dateSeparation != null
+                || patrimoineCommunEur != null
+                || dateConclusionPacs != null
+                || dateRequeteOP != null
+                || dateAudienceAOMP != null
+                || nbEnfantsACharge != null
+                || revenusAnnuelsEpoux != null;
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
@@ -2396,7 +2456,8 @@ public record CaseAnalysisResponse(
                 && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil
                 && dateAcceptationPV == null
                 && !successionDetectionPresent
-                && !regimeMatrimonialDetectionPresent) {
+                && !regimeMatrimonialDetectionPresent
+                && !vieCommuneDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -2464,6 +2525,14 @@ public record CaseAnalysisResponse(
                 .regimeMatrimonialDetecte(regimeMatrimonialDetecte)
                 .valeurBiensIndivisionEur(valeurBiensIndivisionEur)
                 .nombreCoindivisairesDetecte(nombreCoindivisairesDetecte)
+                // SF-246-08 : 7 champs IA vie commune & protection (F-FA-12/13/14/20/21/22).
+                .dateSeparation(dateSeparation)
+                .patrimoineCommunEur(patrimoineCommunEur)
+                .dateConclusionPacs(dateConclusionPacs)
+                .dateRequeteOP(dateRequeteOP)
+                .dateAudienceAOMP(dateAudienceAOMP)
+                .nbEnfantsACharge(nbEnfantsACharge)
+                .revenusAnnuelsEpoux(revenusAnnuelsEpoux)
                 .build();
     }
 

@@ -94,6 +94,10 @@ export interface MesuresProvisoiresResponse {
  * `divorce-alteration` / `divorce-accepte`). Tout champ inconnu est ignoré
  * silencieusement. Sera remplacée par `FamilleExtractedData` partagée quand
  * le pipeline IA Famille sera étendu.
+ *
+ * SF-246-08 : ajout `patrimoineCommunEur` (montant € réel, sous-objet backend
+ * `vie_commune_detection`) et `revenusAnnuelsEpoux` (revenus annuels débiteur
+ * — utilisé en priorité si présent, sinon fallback rétro-compat `revenusAnnuelsEpoux1Eur`).
  */
 export interface MesuresProvisoiresAiData {
   /** Date de l'audience AOMP détectée par l'IA (ISO YYYY-MM-DD). */
@@ -108,10 +112,21 @@ export interface MesuresProvisoiresAiData {
    */
   revenusAnnuelsEpoux1Eur?: number | null;
   revenusAnnuelsEpoux2Eur?: number | null;
+  /**
+   * SF-246-08 : revenus annuels du débiteur/demandeur (€) — champ réel backend.
+   * Priorité sur `revenusAnnuelsEpoux1Eur` quand les deux sont présents.
+   */
+  revenusAnnuelsEpoux?: number | null;
   /** Violences alléguées détectées par l'IA. */
   violencesAlleguees?: boolean | null;
   /** Patrimoine commun significatif détecté par l'IA. */
   patrimoineCommunSignificatif?: boolean | null;
+  /**
+   * SF-246-08 : montant du patrimoine commun (€) — invariant §5.2 (> 0 ou null).
+   * Quand présent, `computePatrimoineCommun` le dérive en `true` (présence suffit).
+   * Distinct du boolean `patrimoineCommunSignificatif` (rétro-compat).
+   */
+  patrimoineCommunEur?: number | null;
 }
 
 export const LOGEMENT_PROPRIETAIRE_OPTIONS: Array<{ value: LogementProprietaire; label: string }> = [

@@ -2,6 +2,11 @@
  * F-236 SF-236-02 — Helper partagé `PacsDissolutionPrefillRules`.
  * 5 champs : dateConclusionPacs (ISO), modeDissolution, regimeBiens,
  * creancesAlleguees (array filtré), patrimoineCommunSignificatif (bool).
+ *
+ * SF-246-08 : `dateConclusionPacs` désormais champ réel de `FamilleExtractedData`
+ * (sous-objet backend `vie_commune_detection`). Suppression de l'intersection
+ * aspirationnelle — on utilise directement `FamilleExtractedData`.
+ * Ajout de la garde BE : retourne 0 hors France.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import {
@@ -24,16 +29,8 @@ export const VALID_CREANCES: ReadonlySet<string> = new Set<CreanceAlleguee>([
   'ENRICHISSEMENT_INJUSTE', 'PRESTATION_TRAVAIL_NON_REMUNEREE', 'AUCUNE',
 ]);
 
-type Ai = Partial<FamilleExtractedData> & {
-  dateConclusionPacs?: string | null;
-  modeDissolutionPacsDetecte?: string | null;
-  regimeBiensPacsDetecte?: string | null;
-  creancesAllegueesDetectees?: (string | null)[] | null;
-  patrimoineCommunSignificatifDetecte?: boolean | null;
-};
-
 export interface PacsDissolutionPrefillInput {
-  aiData?: Ai | null;
+  aiData?: FamilleExtractedData | null;
   procedureChecks?: unknown[] | null;
   aiQuestions?: unknown[] | null;
   piecesManquantes?: unknown[] | null;
@@ -75,6 +72,7 @@ export function computePatrimoineCommun(input: PacsDissolutionPrefillInput): boo
 }
 
 export function computePrefillCount(input: PacsDissolutionPrefillInput): number {
+  if (input.workspaceCountry && input.workspaceCountry !== 'FRANCE') return 0;
   let n = 0;
   if (computeDateConclusion(input) !== null) n++;
   if (computeModeDissolution(input) !== null) n++;

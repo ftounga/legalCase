@@ -1,7 +1,12 @@
 /**
  * F-236 SF-236-02 — Helper partagé `SeparationCorpsPrefillRules`.
- * 2 champs : dateJugementSeparationCorps (ISO via dateSeparation),
- * patrimoineCommun (boolean).
+ * 3 champs : dateJugementSeparationCorps (ISO via dateSeparation),
+ * patrimoineCommun (boolean), patrimoineCommunEur (number > 0).
+ *
+ * SF-246-08 : `dateSeparation` désormais champ réel (`vie_commune_detection`).
+ * Ajout de `computePatrimoineCommunEur` (montant € — invariant §5.2 > 0 ou null,
+ * distinct du boolean `patrimoineCommun` existant).
+ * Ajout de la garde BE : retourne 0 hors France.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
@@ -26,10 +31,21 @@ export function computePatrimoineCommun(input: SeparationCorpsPrefillInput): boo
   return typeof v === 'boolean' ? v : null;
 }
 
+/**
+ * SF-246-08 : montant du patrimoine commun (€) — invariant §5.2 (> 0 ou null,
+ * jamais 0). Distinct du boolean `patrimoineCommun` (flag régime).
+ */
+export function computePatrimoineCommunEur(input: SeparationCorpsPrefillInput): number | null {
+  const v = input.aiData?.patrimoineCommunEur;
+  return typeof v === 'number' && v > 0 ? v : null;
+}
+
 export function computePrefillCount(input: SeparationCorpsPrefillInput): number {
+  if (input.workspaceCountry && input.workspaceCountry !== 'FRANCE') return 0;
   let n = 0;
   if (computeDateJugement(input) !== null) n++;
   if (computePatrimoineCommun(input) !== null) n++;
+  if (computePatrimoineCommunEur(input) !== null) n++;
   return n;
 }
 
@@ -37,5 +53,6 @@ export const SeparationCorpsPrefillRules = {
   ISO_DATE_REGEX,
   computeDateJugement,
   computePatrimoineCommun,
+  computePatrimoineCommunEur,
   computePrefillCount,
 };
