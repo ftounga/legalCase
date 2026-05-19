@@ -543,6 +543,38 @@ class CaseAnalysisServiceTest {
         assertThat(inaptBlock).as("Bloc INAPT doit mentionner expected_value null").contains("expected_value");
     }
 
+    // SF-250-04 — Remédiation critereCode lot Travail BE + F-136
+
+    // U-SF-250-04-01 : le prompt système travail contient les codes CREDIT_TEMPS_* annotés BELGIQUE UNIQUEMENT
+    @Test
+    void systemPrompt_containsCreditTempsCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "BELGIQUE", l);
+        assertThat(prompt).as("CREDIT_TEMPS_ANCIENNETE doit être dans le prompt").contains("CREDIT_TEMPS_ANCIENNETE");
+        assertThat(prompt).as("CREDIT_TEMPS_AGE doit être dans le prompt").contains("CREDIT_TEMPS_AGE");
+        assertThat(prompt).as("F-DT-29 doit être cité dans le prompt").contains("F-DT-29");
+        assertThat(prompt).as("Annotation BELGIQUE UNIQUEMENT requise pour CREDIT_TEMPS").contains("BELGIQUE UNIQUEMENT");
+        // Non-régression codes SF-250-02 et SF-250-03
+        assertThat(prompt).contains("DT36_DATE_ENTRETIEN");
+        assertThat(prompt).contains("AT_MP_DATE_ACCIDENT");
+    }
+
+    // U-SF-250-04-02 : le prompt système travail contient TRAVAIL_PROCEDURE_TYPE
+    @Test
+    void systemPrompt_containsTravailProcedureTypeCritereCode() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).as("TRAVAIL_PROCEDURE_TYPE doit être dans le prompt").contains("TRAVAIL_PROCEDURE_TYPE");
+        assertThat(prompt).as("F-136 doit être cité dans le prompt").contains("F-136");
+        // Sémantique binaire : expected_value null
+        int idx = prompt.indexOf("TRAVAIL_PROCEDURE_TYPE");
+        assertThat(idx).isGreaterThan(0);
+        String block = prompt.substring(idx, Math.min(idx + 300, prompt.length()));
+        assertThat(block).as("Bloc TRAVAIL_PROCEDURE_TYPE doit mentionner expected_value null").contains("expected_value");
+    }
+
     // Helper
     private DocumentAnalysis documentAnalysis(String result, Instant createdAt) {
         DocumentAnalysis da = new DocumentAnalysis();

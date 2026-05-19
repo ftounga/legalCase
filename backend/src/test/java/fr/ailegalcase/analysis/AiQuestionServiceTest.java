@@ -299,4 +299,30 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("FR_CONVOCATION");
         assertThat(prompt).contains("RC_CONSENTEMENT");
     }
+
+    // SF-250-04 — Remédiation critereCode lot Travail BE + F-136
+
+    // U-SF-250-04-01 : le prompt questions travail contient les codes CREDIT_TEMPS_* annotés BELGIQUE UNIQUEMENT
+    @Test
+    void systemPrompt_containsCreditTempsCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "BELGIQUE");
+        assertThat(prompt).as("CREDIT_TEMPS_ANCIENNETE doit être dans le prompt questions").contains("CREDIT_TEMPS_ANCIENNETE");
+        assertThat(prompt).as("CREDIT_TEMPS_AGE doit être dans le prompt questions").contains("CREDIT_TEMPS_AGE");
+        assertThat(prompt).as("Annotation BELGIQUE UNIQUEMENT requise pour CREDIT_TEMPS").contains("BELGIQUE UNIQUEMENT");
+        // Non-régression
+        assertThat(prompt).contains("AT_MP_DATE_ACCIDENT");
+        assertThat(prompt).contains("DT36_DATE_ENTRETIEN");
+    }
+
+    // U-SF-250-04-02 : le prompt questions travail contient TRAVAIL_PROCEDURE_TYPE
+    @Test
+    void systemPrompt_containsTravailProcedureTypeForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).as("TRAVAIL_PROCEDURE_TYPE doit être dans le prompt questions").contains("TRAVAIL_PROCEDURE_TYPE");
+        // Convention réponse "oui" = signal positif documentée
+        assertThat(prompt).contains("oui");
+        // Non-régression
+        assertThat(prompt).contains("FR_CONVOCATION");
+        assertThat(prompt).contains("INAPT_ORIGINE");
+    }
 }
