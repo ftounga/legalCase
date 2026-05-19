@@ -149,8 +149,14 @@ public class StripeWebhookService {
                 sub.setSeatCount(quantity.intValue());
                 log.info("Seat count synced from Stripe to {} for customer {}", quantity, customerId);
             }
+            // SF-247-01 : Stripe émet customer.subscription.updated au moment du
+            // cancel_at_period_end ; on synchronise l'état de résiliation local.
+            Boolean cancelAtPeriodEnd = stripeSub.getCancelAtPeriodEnd();
+            sub.setCancelAtPeriodEnd(Boolean.TRUE.equals(cancelAtPeriodEnd));
+            sub.setCurrentPeriodEnd(toInstant(stripeSub.getCurrentPeriodEnd()));
             subscriptionRepository.save(sub);
-            log.info("Plan synced to {} for customer {}", sub.getPlanCode(), customerId);
+            log.info("Plan synced to {} (cancelAtPeriodEnd={}) for customer {}",
+                    sub.getPlanCode(), sub.isCancelAtPeriodEnd(), customerId);
         }, () -> log.warn("No subscription found for Stripe customer {}", customerId));
     }
 
@@ -171,9 +177,22 @@ public class StripeWebhookService {
             sub.setStripeSubscriptionId(null);
             sub.setExpiresAt(Instant.now());
             sub.setStatus("ACTIVE");
+            // SF-247-01 : la résiliation programmée est désormais consommée ;
+            // on remet l'indicateur à false pour ne pas afficher « résiliation
+            // programmée » sur un workspace déjà repassé FREE.
+            sub.setCancelAtPeriodEnd(false);
             subscriptionRepository.save(sub);
             log.info("Subscription deleted — workspace downgraded to FREE for customer {}", customerId);
         }, () -> log.warn("No subscription found for Stripe customer {}", customerId));
+    }
+
+    /**
+     * SF-247-01 : convertit un timestamp Stripe (epoch en secondes) en Instant.
+     * Stripe expose current_period_end comme un Long de secondes ; il peut être
+     * null si la subscription n'est pas encore complètement initialisée.
+     */
+    private static Instant toInstant(Long epochSeconds) {
+        return epochSeconds == null ? null : Instant.ofEpochSecond(epochSeconds);
     }
 
     private String resolvePlanCode(String priceId, String subscriptionId, Session session) {

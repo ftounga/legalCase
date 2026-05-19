@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="249-add-subscription-cancellation-fields" author="legalcase">
+        <comment>
+            F-247 SF-247-01 : résiliation d'abonnement en self-service.
+
+            Ajoute deux colonnes sur la table subscriptions :
+            - cancel_at_period_end : true quand l'OWNER a programmé la
+              résiliation de son abonnement pour la fin de la période de
+              facturation Stripe (sémantique cancel_at_period_end). NOT NULL
+              DEFAULT false — les abonnements existants ne sont pas résiliés.
+            - current_period_end : date de fin de la période de facturation
+              Stripe en cours, renseignée depuis la réponse Stripe
+              (current_period_end). Nullable — un workspace FREE n'a pas de
+              période courante.
+
+            Réversible (drop des deux colonnes).
+        </comment>
+
+        <addColumn tableName="subscriptions">
+            <column name="cancel_at_period_end" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_period_end" type="timestamp with time zone"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="subscriptions" columnName="cancel_at_period_end"/>
+            <dropColumn tableName="subscriptions" columnName="current_period_end"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
