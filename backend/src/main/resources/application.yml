@@ -246,6 +246,8 @@ aws:
     max-size-mb: ${AWS_TEXTRACT_MAX_SIZE_MB:5}
     max-pages: ${AWS_TEXTRACT_MAX_PAGES:11}
     max-concurrent-calls: ${AWS_TEXTRACT_MAX_CONCURRENT_CALLS:3}
+    max-rasterized-pages: ${AWS_TEXTRACT_MAX_RASTERIZED_PAGES:200}
+    max-rasterized-size-mb: ${AWS_TEXTRACT_MAX_RASTERIZED_SIZE_MB:50}
 
 server:
   port: 8080

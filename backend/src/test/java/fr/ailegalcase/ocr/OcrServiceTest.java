@@ -26,11 +26,20 @@ import static org.mockito.Mockito.*;
  *
  * Couvre les 6 cas critiques de la mini-spec (U-OCR-01-01 à 06) : succès,
  * taille/pages > limite, Textract exception, 0 blocks, toggle désactivé.
+ *
+ * SF-122-13 — routage des PDF multi-pages volumineux vers la voie rasterisée
+ * (U-OCR-13-01 à 07) : bornes maxRasterizedPages / maxRasterizedSizeMb,
+ * aiguillage direct vs rasterisé, gate quota conservé, replis de configuration.
  */
 class OcrServiceTest {
 
-    private static final OcrProperties PROPS_ENABLED = new OcrProperties(true, "eu-west-3", 5, 11, 3);
-    private static final OcrProperties PROPS_DISABLED = new OcrProperties(false, "eu-west-3", 5, 11, 3);
+    private static final OcrProperties PROPS_ENABLED = new OcrProperties(true, "eu-west-3", 5, 11, 3, 200, 50);
+    private static final OcrProperties PROPS_DISABLED = new OcrProperties(false, "eu-west-3", 5, 11, 3, 200, 50);
+
+    // SF-122-13 : seuils réduits pour tester les bornes sans fixtures géantes.
+    // maxPages=2, maxRasterizedPages=5, maxRasterizedSizeMb=10.
+    private static final OcrProperties PROPS_SMALL_THRESHOLDS =
+            new OcrProperties(true, "eu-west-3", 5, 2, 3, 5, 10);
 
     // U-OCR-01-01 : succès sync — blocks LINE concaténés, pageCount dérivé
     @Test
@@ -54,13 +63,16 @@ class OcrServiceTest {
         assertThat(result.pageCount()).isEqualTo(1);
     }
 
-    // U-OCR-01-02 : doc > 5 Mo → pas d'appel Textract, motif OCR_UNSUPPORTED_SIZE
+    // U-OCR-01-02 / SF-122-13 : doc dépassant maxRasterizedSizeMb → pas d'appel Textract,
+    // motif OCR_UNSUPPORTED_SIZE. Depuis SF-122-13, un doc > maxSizeMb mais < maxRasterizedSizeMb
+    // est routé vers la rasterisation : seul le dépassement de la borne haute provoque le rejet.
     @Test
     void tryOcr_tooLarge_skipsTextract() {
         TextractClient client = mock(TextractClient.class);
-        byte[] big = new byte[6 * 1024 * 1024]; // 6 Mo
+        // maxRasterizedSizeMb=10 → 11 Mo >= 10 → rejet sans appel Textract.
+        byte[] big = new byte[11 * 1024 * 1024]; // 11 Mo
 
-        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, noQuotaBlock());
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
         OcrResult result = svc.tryOcr(big, UUID.randomUUID(), false);
 
         assertThat(result.success()).isFalse();
@@ -68,13 +80,16 @@ class OcrServiceTest {
         verify(client, never()).analyzeDocument(any(AnalyzeDocumentRequest.class));
     }
 
-    // U-OCR-01-03 : PDF avec > 11 pages détecté via PDFBox → OCR_UNSUPPORTED_SIZE
+    // U-OCR-01-03 / SF-122-13 : PDF dépassant maxRasterizedPages → OCR_UNSUPPORTED_SIZE.
+    // Depuis SF-122-13, un PDF > maxPages mais ≤ maxRasterizedPages est routé vers la
+    // rasterisation : seul le dépassement de la borne haute rasterisée provoque le rejet.
     @Test
     void tryOcr_tooManyPages_skipsTextract() {
         TextractClient client = mock(TextractClient.class);
-        OcrService svc = new OcrService(Optional.of(client), new OcrProperties(true, "eu-west-3", 5, 11, 3), noQuotaBlock());
+        // maxPages=2, maxRasterizedPages=5 → 6 pages > 5 → rejet sans appel Textract.
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
 
-        OcrResult result = svc.tryOcr(multiPagePdfBytes(12), UUID.randomUUID(), false);
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(6), UUID.randomUUID(), false);
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
@@ -288,6 +303,166 @@ class OcrServiceTest {
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_FAILED);
     }
 
+    // ============================================================
+    // SF-122-13 — routage des PDF multi-pages volumineux
+    // ============================================================
+
+    // U-OCR-13-01 : PDF dont N est entre maxPages et maxRasterizedPages → voie rasterisée
+    // empruntée directement (sans UnsupportedDocumentException), résultat successRasterized.
+    @Test
+    void U_OCR_13_01_pdfBetweenMaxPagesAndMaxRasterized_routedToRasterization() {
+        TextractClient client = mock(TextractClient.class);
+        // maxPages=2, maxRasterizedPages=5 → un PDF de 4 pages emprunte la voie rasterisée.
+        // Chaque page rendue en PNG → 1 call Textract par page (aucun call direct préalable).
+        when(client.analyzeDocument(any(AnalyzeDocumentRequest.class)))
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Page A").page(1).build()).build())
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Page B").page(1).build()).build())
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Page C").page(1).build()).build())
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Page D").page(1).build()).build());
+
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(4), UUID.randomUUID(), false);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.rasterized()).isTrue();
+        assertThat(result.pageCount()).isEqualTo(4);
+        // 4 calls rasterisés, aucun call direct (le routage saute callTextractDirect).
+        verify(client, times(4)).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
+    // U-OCR-13-02 : PDF dont N > maxRasterizedPages → OCR_UNSUPPORTED_SIZE, aucun appel Textract.
+    @Test
+    void U_OCR_13_02_pdfAboveMaxRasterizedPages_returnsUnsupportedSize() {
+        TextractClient client = mock(TextractClient.class);
+        // maxRasterizedPages=5 → 6 pages dépasse la borne.
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
+
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(6), UUID.randomUUID(), false);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
+        verify(client, never()).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
+    // U-OCR-13-03 : PDF de taille >= maxRasterizedSizeMb → OCR_UNSUPPORTED_SIZE, aucun appel Textract.
+    @Test
+    void U_OCR_13_03_pdfAboveMaxRasterizedSize_returnsUnsupportedSize() {
+        TextractClient client = mock(TextractClient.class);
+        // maxRasterizedSizeMb=10 → un PDF de 11 Mo dépasse la borne.
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
+
+        OcrResult result = svc.tryOcr(paddedPdfBytes(2, 11), UUID.randomUUID(), false);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
+        verify(client, never()).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
+    // U-OCR-13-04 : PDF <= maxPages et < maxSizeMb → voie directe, résultat non rasterisé (non-régression).
+    @Test
+    void U_OCR_13_04_pdfWithinDirectLimits_usesDirectPath() {
+        TextractClient client = mock(TextractClient.class);
+        // maxPages=2 → un PDF de 2 pages reste dans les limites de la voie directe.
+        AnalyzeDocumentResponse response = AnalyzeDocumentResponse.builder()
+                .blocks(Block.builder().blockType(BlockType.LINE).text("Direct").page(1).build())
+                .build();
+        when(client.analyzeDocument(any(AnalyzeDocumentRequest.class))).thenReturn(response);
+
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(2), UUID.randomUUID(), false);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.rasterized()).isFalse();
+        // Voie directe = un seul call Textract sur le PDF entier.
+        verify(client, times(1)).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
+    // U-OCR-13-05 : PDF > maxSizeMb mais < maxRasterizedSizeMb et <= maxRasterizedPages
+    //               → routé vers la voie rasterisée.
+    @Test
+    void U_OCR_13_05_pdfAboveDirectSizeBelowRasterizedSize_routedToRasterization() {
+        TextractClient client = mock(TextractClient.class);
+        // maxSizeMb=5, maxRasterizedSizeMb=10 → un PDF de 7 Mo / 2 pages emprunte la rasterisation.
+        when(client.analyzeDocument(any(AnalyzeDocumentRequest.class)))
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Big 1").page(1).build()).build())
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Big 2").page(1).build()).build());
+
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
+        OcrResult result = svc.tryOcr(paddedPdfBytes(2, 7), UUID.randomUUID(), false);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.rasterized()).isTrue();
+        assertThat(result.pageCount()).isEqualTo(2);
+        // 2 calls rasterisés, aucun call direct.
+        verify(client, times(2)).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
+    // U-OCR-13-06 : quota OCR dépassé sur un PDF multi-pages → OCR_QUOTA_EXCEEDED, aucun appel Textract.
+    @Test
+    void U_OCR_13_06_quotaExceededOnMultiPagePdf_returnsQuotaExceeded() {
+        TextractClient client = mock(TextractClient.class);
+        PlanLimitService pls = mock(PlanLimitService.class);
+        UUID workspaceId = UUID.randomUUID();
+        when(pls.isOcrQuotaExceeded(eq(workspaceId), anyInt())).thenReturn(true);
+
+        // PDF de 4 pages (entre maxPages=2 et maxRasterizedPages=5) → gate quota appliqué AVANT routage.
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, pls);
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(4), workspaceId, false);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_QUOTA_EXCEEDED);
+        verify(client, never()).analyzeDocument(any(AnalyzeDocumentRequest.class));
+        // Le gate reçoit le nb de pages réel du PDF multi-pages.
+        verify(pls).isOcrQuotaExceeded(eq(workspaceId), eq(4));
+    }
+
+    // U-OCR-13-07 : OcrProperties — valeurs de repli appliquées quand
+    //               maxRasterizedPages / maxRasterizedSizeMb <= 0.
+    @Test
+    void U_OCR_13_07_ocrProperties_fallbackDefaultsWhenNonPositive() {
+        OcrProperties zeros = new OcrProperties(true, "eu-west-3", 5, 11, 3, 0, 0);
+        assertThat(zeros.maxRasterizedPages()).isEqualTo(200);
+        assertThat(zeros.maxRasterizedSizeMb()).isEqualTo(50);
+
+        OcrProperties negatives = new OcrProperties(true, "eu-west-3", 5, 11, 3, -1, -7);
+        assertThat(negatives.maxRasterizedPages()).isEqualTo(200);
+        assertThat(negatives.maxRasterizedSizeMb()).isEqualTo(50);
+
+        // Valeurs positives explicites conservées telles quelles.
+        OcrProperties explicit = new OcrProperties(true, "eu-west-3", 5, 11, 3, 120, 30);
+        assertThat(explicit.maxRasterizedPages()).isEqualTo(120);
+        assertThat(explicit.maxRasterizedSizeMb()).isEqualTo(30);
+    }
+
+    // U-OCR-13-08 : non-régression — le fallback UnsupportedDocumentException → rasterisation
+    //               de la voie directe (SF-122-08) reste opérant après la refonte du routage.
+    @Test
+    void U_OCR_13_08_directPathFallbackToRasterization_stillWorks() {
+        TextractClient client = mock(TextractClient.class);
+        // PDF de 2 pages (<= maxPages=2) → voie directe ; Textract refuse → fallback rasterisé.
+        when(client.analyzeDocument(any(AnalyzeDocumentRequest.class)))
+                .thenThrow(UnsupportedDocumentException.builder().message("PDF format").build())
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Recovered 1").page(1).build()).build())
+                .thenReturn(AnalyzeDocumentResponse.builder()
+                        .blocks(Block.builder().blockType(BlockType.LINE).text("Recovered 2").page(1).build()).build());
+
+        OcrService svc = new OcrService(Optional.of(client), PROPS_SMALL_THRESHOLDS, noQuotaBlock());
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(2), UUID.randomUUID(), false);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.rasterized()).isTrue();
+        assertThat(result.text()).isEqualTo("=== PAGE 1 ===\nRecovered 1\n\n=== PAGE 2 ===\nRecovered 2");
+        // 1 call direct échoué + 2 calls rasterisés.
+        verify(client, times(3)).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
     // --- helpers ---
 
     /** PlanLimitService stub qui n'empêche jamais l'OCR — isOcrQuotaExceeded toujours false. */
@@ -314,5 +489,22 @@ class OcrServiceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * SF-122-13 : génère un PDF de {@code pages} pages dont la taille totale atteint
+     * au moins {@code sizeMb} Mo, sans fixture binaire géante. Le PDF valide est suivi
+     * d'un padding d'octets nuls — PDFBox scanne {@code %%EOF} depuis la fin du flux
+     * et ignore les octets en trop, donc countPdfPages/Loader.loadPDF restent corrects.
+     */
+    private byte[] paddedPdfBytes(int pages, int sizeMb) {
+        byte[] pdf = multiPagePdfBytes(pages);
+        int target = sizeMb * 1024 * 1024;
+        if (pdf.length >= target) {
+            return pdf;
+        }
+        byte[] padded = new byte[target];
+        System.arraycopy(pdf, 0, padded, 0, pdf.length);
+        return padded;
     }
 }
