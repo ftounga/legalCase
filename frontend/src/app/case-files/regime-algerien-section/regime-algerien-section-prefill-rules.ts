@@ -9,8 +9,10 @@ import {
  * F-236 SF-236-02 — Helper partagé pour `RegimeAlgerienSectionComponent`
  * (F-IM-17-regime-algerien) — FR mono-pays.
  *
- * 2 champs : nationaliteAlgerienne (boolean detected) + voieDemande
- * (enum depuis typeProcedureDetectee → mapper).
+ * SF-246-19 : 3 champs pré-remplis désormais :
+ *   1. `nationaliteAlgerienne` (boolean detected) — heuristique `detectNationaliteAlgerienneFromIa`.
+ *   2. `voieDemande` (enum depuis typeProcedureDetectee → mapper).
+ *   3. `presenceReguliereFranceMois` (number) — depuis `aiData.algerienPresenceReguliereMois`.
  */
 
 function isFrance(input: PrefillCountInput): boolean {
@@ -34,11 +36,24 @@ export const RegimeAlgerienPrefillRules = {
     return mapVoieFromIa(ai.typeProcedureDetectee);
   },
 
+  /**
+   * SF-246-19 : durée de présence régulière en France en mois (0–600).
+   */
+  computePresenceReguliereFranceMois(input: PrefillCountInput): number | null {
+    if (!isFrance(input)) return null;
+    const ai = input.aiData;
+    if (!ai) return null;
+    const v = ai.algerienPresenceReguliereMois;
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 600) return null;
+    return v;
+  },
+
   computePrefillCount(input: PrefillCountInput): number {
     if (!isFrance(input)) return 0;
     let n = 0;
     if (this.computeNationaliteAlgerienne(input) !== null) n++;
     if (this.computeVoieDemande(input) !== null) n++;
+    if (this.computePresenceReguliereFranceMois(input) !== null) n++;
     return n;
   },
 } as const;

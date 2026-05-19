@@ -149,6 +149,8 @@ export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
   /** Provenance IA — badge "Pré-rempli depuis l'analyse" effaçable. */
   provenanceDispositif = signal<'IA' | null>(null);
   provenanceMotif = signal<'IA' | null>(null);
+  /** SF-246-19 : provenance IA pour la durée de présence irrégulière. */
+  provenanceDureePresenceIrr = signal<'IA' | null>(null);
 
   /** Listes pour mat-radio. */
   readonly dispositifOptions = DISPOSITIF_ELOIGNEMENT_LABELS;
@@ -290,6 +292,7 @@ export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
 
   onDureePresenceIrreguliereChange(value: number | null): void {
     this.dureePresenceIrreguliereMois.set(value === null || value === undefined ? null : value);
+    this.provenanceDureePresenceIrr.set(null);
   }
 
   onComportementAggravantChange(value: boolean): void {
@@ -365,15 +368,35 @@ export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
    */
   private prefillFromAi(): void {
     // F-236 SF-236-02 : délègue au helper pur partagé.
-    if (this.dispositif() !== null) return;
     const input: PrefillCountInput = {
       aiData: this.aiDataSignal(),
       workspaceCountry: this.workspaceCountry,
     };
-    const mapped = MesuresEloignementPrefillRules.computeDispositif(input);
-    if (mapped !== null) {
-      this.dispositif.set(mapped);
-      this.provenanceDispositif.set('IA');
+
+    // 1. Dispositif.
+    if (this.dispositif() === null) {
+      const mapped = MesuresEloignementPrefillRules.computeDispositif(input);
+      if (mapped !== null) {
+        this.dispositif.set(mapped);
+        this.provenanceDispositif.set('IA');
+      }
+    }
+
+    // 2. SF-246-19 : motif menace.
+    const motif = MesuresEloignementPrefillRules.computeMotifMenace(input);
+    if (motif !== null
+        && (this.motifMenace() === null || this.provenanceMotif() === 'IA')) {
+      this.motifMenace.set(motif);
+      this.provenanceMotif.set('IA');
+    }
+
+    // 3. SF-246-19 : durée présence irrégulière.
+    const duree = MesuresEloignementPrefillRules.computeDureePresenceIrreguliereMois(input);
+    if (duree !== null
+        && (this.dureePresenceIrreguliereMois() === null
+            || this.provenanceDureePresenceIrr() === 'IA')) {
+      this.dureePresenceIrreguliereMois.set(duree);
+      this.provenanceDureePresenceIrr.set('IA');
     }
   }
 
@@ -605,6 +628,7 @@ export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceDispositif.set(null);
         this.provenanceMotif.set(null);
+        this.provenanceDureePresenceIrr.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

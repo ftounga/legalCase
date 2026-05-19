@@ -8,7 +8,7 @@ import {
  * F-236 SF-236-02 — Helper partagé pour le pré-remplissage IA de
  * `ChangementStatutSectionComponent` (F-IM-11-changement-statut).
  *
- * 2 champs pré-remplis :
+ * 4 champs pré-remplis (SF-246-19 : +2) :
  *   1. `titreActuel` (TitreSejourCode) — `mapTitreSejourFromIa` cascade :
  *      d'abord depuis `aiData.typeTitreSejourCode`, sinon depuis
  *      `aiData.typeTitreSejour` (texte libre).
@@ -16,6 +16,10 @@ import {
  *      `aiData.dateExpirationTitre` (ISO string parsable) : floor((expiration
  *      - aujourd'hui) / 30.44 jours), plancher à 0. Posé même si la date
  *      est passée (champ=0).
+ *   3. `titreEnvisage` (TitreSejourCode) — depuis `aiData.changementTitreEnvisage`
+ *      via `mapTitreSejourFromIa`. (SF-246-19)
+ *   4. `remunerationContratEur` (number) — depuis `aiData.changementRemunerationEur`
+ *      (entier > 0, ≤ 500 000). (SF-246-19)
  *
  * Single-country FR — Le composant gate `isFrance()` côté runtime. Le
  * helper applique le même garde-fou via `workspaceCountry`.
@@ -49,11 +53,36 @@ export const ChangementStatutPrefillRules = {
     return Math.max(0, Math.floor(diffMs / MS_PER_AVG_MONTH));
   },
 
+  /**
+   * SF-246-19 : titre de séjour envisagé depuis `aiData.changementTitreEnvisage`.
+   */
+  computeTitreEnvisage(input: PrefillCountInput): TitreSejourCode | null {
+    if ((input.workspaceCountry ?? 'FRANCE') !== 'FRANCE') return null;
+    const ai = input.aiData;
+    if (!ai) return null;
+    return mapTitreSejourFromIa(ai.changementTitreEnvisage ?? null);
+  },
+
+  /**
+   * SF-246-19 : rémunération brute annuelle depuis `aiData.changementRemunerationEur`
+   * (entier > 0, ≤ 500 000).
+   */
+  computeRemuneration(input: PrefillCountInput): number | null {
+    if ((input.workspaceCountry ?? 'FRANCE') !== 'FRANCE') return null;
+    const ai = input.aiData;
+    if (!ai) return null;
+    const v = ai.changementRemunerationEur;
+    if (typeof v !== 'number' || !Number.isInteger(v) || v <= 0 || v > 500_000) return null;
+    return v;
+  },
+
   computePrefillCount(input: PrefillCountInput): number {
     if ((input.workspaceCountry ?? 'FRANCE') !== 'FRANCE') return 0;
     let n = 0;
     if (this.computeTitreActuel(input) !== null) n++;
     if (this.computeDureeRestanteMois(input) !== null) n++;
+    if (this.computeTitreEnvisage(input) !== null) n++;
+    if (this.computeRemuneration(input) !== null) n++;
     return n;
   },
 } as const;

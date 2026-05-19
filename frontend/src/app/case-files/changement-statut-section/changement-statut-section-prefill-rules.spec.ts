@@ -64,4 +64,80 @@ describe('ChangementStatutPrefillRules', () => {
     // L'important : pas de crash + résultat null OU un TitreSejourCode valide
     expect(titre === null || typeof titre === 'string').toBe(true);
   });
+
+  // ── SF-246-19 : computeTitreEnvisage ──────────────────────────────────
+  it('computeTitreEnvisage returns null when absent', () => {
+    expect(Rules.computeTitreEnvisage({ aiData: {} })).toBeNull();
+  });
+
+  it('computeTitreEnvisage returns null for BELGIQUE', () => {
+    expect(Rules.computeTitreEnvisage({
+      aiData: { changementTitreEnvisage: 'CARTE_SALARIE' },
+      workspaceCountry: 'BELGIQUE',
+    })).toBeNull();
+  });
+
+  it('computeTitreEnvisage returns TitreSejourCode for valid code', () => {
+    const result = Rules.computeTitreEnvisage({
+      aiData: { changementTitreEnvisage: 'CARTE_SALARIE' },
+      workspaceCountry: 'FRANCE',
+    });
+    expect(result).toBe('SALARIE');
+  });
+
+  it('computeTitreEnvisage returns null for unknown code', () => {
+    expect(Rules.computeTitreEnvisage({ aiData: { changementTitreEnvisage: 'BOGUS_CODE' } })).toBeNull();
+  });
+
+  // ── SF-246-19 : computeRemuneration ──────────────────────────────────
+  it('computeRemuneration returns null when absent', () => {
+    expect(Rules.computeRemuneration({ aiData: {} })).toBeNull();
+  });
+
+  it('computeRemuneration returns null for 0 or negative', () => {
+    expect(Rules.computeRemuneration({ aiData: { changementRemunerationEur: 0 } })).toBeNull();
+    expect(Rules.computeRemuneration({ aiData: { changementRemunerationEur: -1 } })).toBeNull();
+  });
+
+  it('computeRemuneration returns null for > 500 000', () => {
+    expect(Rules.computeRemuneration({ aiData: { changementRemunerationEur: 500_001 } })).toBeNull();
+  });
+
+  it('computeRemuneration returns value for valid range', () => {
+    expect(Rules.computeRemuneration({ aiData: { changementRemunerationEur: 35_000 } })).toBe(35_000);
+    expect(Rules.computeRemuneration({ aiData: { changementRemunerationEur: 1 } })).toBe(1);
+    expect(Rules.computeRemuneration({ aiData: { changementRemunerationEur: 500_000 } })).toBe(500_000);
+  });
+
+  it('computeRemuneration returns null for BELGIQUE', () => {
+    expect(Rules.computeRemuneration({
+      aiData: { changementRemunerationEur: 35_000 },
+      workspaceCountry: 'BELGIQUE',
+    })).toBeNull();
+  });
+
+  // ── computePrefillCount — cas maximal SF-246-19 ───────────────────────
+  it('returns 4 when all 4 fields present', () => {
+    const input = {
+      aiData: {
+        typeTitreSejourCode: 'VLS_TS_ETUDIANT',
+        dateExpirationTitre: '2099-12-31',
+        changementTitreEnvisage: 'CARTE_SALARIE',
+        changementRemunerationEur: 35_000,
+      },
+      workspaceCountry: 'FRANCE',
+    };
+    expect(Rules.computePrefillCount(input)).toBe(4);
+  });
+
+  it('returns 0 for BELGIQUE even with all fields', () => {
+    expect(Rules.computePrefillCount({
+      aiData: {
+        typeTitreSejourCode: 'VLS_TS_ETUDIANT',
+        changementTitreEnvisage: 'CARTE_SALARIE',
+        changementRemunerationEur: 35_000,
+      },
+      workspaceCountry: 'BELGIQUE',
+    })).toBe(0);
+  });
 });

@@ -1790,6 +1790,178 @@ class CaseAnalysisResponseTest {
         assertThat(im.aesCodeMetier()).isNull();
     }
 
+    // SF-246-19 : 10 champs supplémentaires Immigration FR pour pré-fill outils spécialisés
+    @Test
+    void from_immigration_sf246_19_changementTitreEnvisage_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "changement_titre_envisage": "CARTE_RESIDENT" }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.changementTitreEnvisage()).isEqualTo("CARTE_RESIDENT");
+    }
+
+    @Test
+    void from_immigration_sf246_19_changementTitreEnvisage_unknown_normalizeEnum_returns_null() {
+        // normalizeEnumCode filtre les codes inconnus — le champ est null et non transmis tel quel
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "changement_titre_envisage": "INCONNU_BOGUS"
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.changementTitreEnvisage()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_19_changementRemunerationEur_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "changement_remuneration_eur": 45000 }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.changementRemunerationEur()).isEqualTo(45000);
+    }
+
+    @Test
+    void from_immigration_sf246_19_changementRemunerationEur_out_of_range_returns_null() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "changement_remuneration_eur": 600000
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.changementRemunerationEur()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_19_natDureeResidenceReguliereAnnees_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "nat_duree_residence_reguliere_annees": 5 }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.natDureeResidenceReguliereAnnees()).isEqualTo(5);
+    }
+
+    @Test
+    void from_immigration_sf246_19_natDureeMariageAnnees_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "nat_duree_mariage_annees": 4 }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.natDureeMariageAnnees()).isEqualTo(4);
+    }
+
+    @Test
+    void from_immigration_sf246_19_natAgeDemandeur_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "nat_age_demandeur": 35 }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.natAgeDemandeur()).isEqualTo(35);
+    }
+
+    @Test
+    void from_immigration_sf246_19_mineursDateNaissance_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "mineurs_date_naissance": "2010-05-15" }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.mineursDateNaissance()).isEqualTo("2010-05-15");
+    }
+
+    @Test
+    void from_immigration_sf246_19_mineursDateNaissance_future_rejected() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "mineurs_date_naissance": "2099-01-01"
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.mineursDateNaissance()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_19_algerienPresenceReguliereMois_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "algerien_presence_reguliere_mois": 24 }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.algerienPresenceReguliereMois()).isEqualTo(24);
+    }
+
+    @Test
+    void from_immigration_sf246_19_asileDateDecisionAnterieure_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "asile_date_decision_anterieure": "2022-06-15" }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.asileDateDecisionAnterieure()).isEqualTo("2022-06-15");
+    }
+
+    @Test
+    void from_immigration_sf246_19_asileDateDecisionAnterieure_future_rejected() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "asile_date_decision_anterieure": "2099-01-01"
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.asileDateDecisionAnterieure()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_19_eloiDureePresenceIrreguliereMois_nominal() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "eloi_duree_presence_irreguliere_mois": 18 }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.eloiDureePresenceIrreguliereMois()).isEqualTo(18);
+    }
+
+    @Test
+    void from_immigration_sf246_19_eloiMotifMenace_whitelist_valid() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                { "eloi_motif_menace": "TERRORISME" }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.eloiMotifMenace()).isEqualTo("TERRORISME");
+    }
+
+    @Test
+    void from_immigration_sf246_19_eloiMotifMenace_invalid_returns_null() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "eloi_motif_menace": "BOGUS_CODE"
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.eloiMotifMenace()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_19_all_new_fields_null_graceful() {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE"
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.changementTitreEnvisage()).isNull();
+        assertThat(im.changementRemunerationEur()).isNull();
+        assertThat(im.natDureeResidenceReguliereAnnees()).isNull();
+        assertThat(im.natDureeMariageAnnees()).isNull();
+        assertThat(im.natAgeDemandeur()).isNull();
+        assertThat(im.mineursDateNaissance()).isNull();
+        assertThat(im.algerienPresenceReguliereMois()).isNull();
+        assertThat(im.asileDateDecisionAnterieure()).isNull();
+        assertThat(im.eloiDureePresenceIrreguliereMois()).isNull();
+        assertThat(im.eloiMotifMenace()).isNull();
+    }
+
     // SF-166-01 : 8 flags décisionnels niveau 3 (F-DT-20/21/24/30/31/33/34/35) — Travail FR uniquement
     @Test
     void from_travailExtractedData_rappelSalaireDetecte_isolated_true_othersFalse() {
