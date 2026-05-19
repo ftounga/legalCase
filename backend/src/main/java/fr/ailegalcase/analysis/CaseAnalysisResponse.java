@@ -219,7 +219,17 @@ public record CaseAnalysisResponse(
             // NonConcurrenceCalculator.SecteurActivite. Restent null pour un dossier
             // travail belge (clause BE = régime CCT 1bis distinct).
             String nonConcurrenceDatePriseEffet,
-            String nonConcurrenceSecteurActivite) {
+            String nonConcurrenceSecteurActivite,
+            // SF-207-01 : 2 champs IA Travail BE pour pré-fill F-207-01 prescription
+            // Travail BE. dateRuptureContrat : date de rupture du contrat (ISO
+            // YYYY-MM-DD) — base du calcul du délai de 1 an (Loi 03/07/1978 art. 15
+            // al. 1 + CCT 109 art. 11). motifRupture : motif de rupture détecté
+            // (texte libre — licenciement, démission, faute grave, RCC...), utilisé
+            // par F-IA-04 pour déduire le typeCreance pré-rempli côté frontend.
+            // Tous nullables — Travail BE uniquement, restent null pour un dossier FR.
+            // Réutilisables par les autres SF F-207 (C4, contestation, AT, RCC, outplacement).
+            String dateRuptureContrat,
+            String motifRupture) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -305,7 +315,9 @@ public record CaseAnalysisResponse(
                     .nonConcurrenceContrepartieMontantEur(nonConcurrenceContrepartieMontantEur)
                     .ageDemandeurAnnees(ageDemandeurAnnees)
                     .nonConcurrenceDatePriseEffet(nonConcurrenceDatePriseEffet)
-                    .nonConcurrenceSecteurActivite(nonConcurrenceSecteurActivite);
+                    .nonConcurrenceSecteurActivite(nonConcurrenceSecteurActivite)
+                    .dateRuptureContrat(dateRuptureContrat)
+                    .motifRupture(motifRupture);
         }
 
         public static final class Builder {
@@ -381,6 +393,8 @@ public record CaseAnalysisResponse(
             private Integer ageDemandeurAnnees;
             private String nonConcurrenceDatePriseEffet;
             private String nonConcurrenceSecteurActivite;
+            private String dateRuptureContrat;
+            private String motifRupture;
 
             private Builder() {}
 
@@ -456,6 +470,8 @@ public record CaseAnalysisResponse(
             public Builder ageDemandeurAnnees(Integer v) { this.ageDemandeurAnnees = v; return this; }
             public Builder nonConcurrenceDatePriseEffet(String v) { this.nonConcurrenceDatePriseEffet = v; return this; }
             public Builder nonConcurrenceSecteurActivite(String v) { this.nonConcurrenceSecteurActivite = v; return this; }
+            public Builder dateRuptureContrat(String v) { this.dateRuptureContrat = v; return this; }
+            public Builder motifRupture(String v) { this.motifRupture = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -490,7 +506,8 @@ public record CaseAnalysisResponse(
                         nonConcurrenceDureeMois, nonConcurrenceZoneGeographique,
                         nonConcurrenceContrepartieMontantEur,
                         ageDemandeurAnnees,
-                        nonConcurrenceDatePriseEffet, nonConcurrenceSecteurActivite);
+                        nonConcurrenceDatePriseEffet, nonConcurrenceSecteurActivite,
+                        dateRuptureContrat, motifRupture);
             }
         }
     }
@@ -2035,6 +2052,12 @@ public record CaseAnalysisResponse(
                     // de carrière — entier borné [0, 100], null hors plage / absent / BE
                     // non concerné. Le prompt impose null hors Belgique.
                     .ageDemandeurAnnees(boundedIntOrNull(node, "age_demandeur_annees", 0, MAX_AGE_DEMANDEUR_ANNEES))
+                    // SF-207-01 : 2 champs IA Travail BE pour pré-fill F-207-01
+                    // prescription Travail BE. dateRuptureContrat validée ISO
+                    // YYYY-MM-DD (fail-open → null) ; motifRupture en texte libre.
+                    // Le prompt impose null pour un dossier travail FR.
+                    .dateRuptureContrat(isoDateOrNull(node, "date_rupture_contrat"))
+                    .motifRupture(textOrNull(node, "motif_rupture"))
                     .build();
         } catch (Exception ignored) { return null; }
     }
