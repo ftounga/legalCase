@@ -151,6 +151,8 @@ export class AsileAvanceSectionComponent implements OnInit, OnChanges {
 
   /** Provenance IA — badge "Pré-rempli depuis l'analyse" effaçable. */
   provenanceDispositif = signal<'IA' | null>(null);
+  /** SF-246-19 : provenance IA pour la date de décision antérieure. */
+  provenanceDateDecision = signal<'IA' | null>(null);
 
   /** Listes pour mat-radio. */
   readonly dispositifOptions = DISPOSITIF_ASILE_LABELS;
@@ -279,6 +281,7 @@ export class AsileAvanceSectionComponent implements OnInit, OnChanges {
 
   onDateDecisionChange(value: string | null): void {
     this.dateDecisionAnterieure.set(value && value.length > 0 ? value : null);
+    this.provenanceDateDecision.set(null);
   }
 
   onElementsNouveauxChange(value: boolean): void {
@@ -363,15 +366,26 @@ export class AsileAvanceSectionComponent implements OnInit, OnChanges {
    */
   private prefillFromAi(): void {
     // F-236 SF-236-02 : délègue au helper pur partagé.
-    if (this.dispositifAsile()) return;
     const input: PrefillCountInput = {
       aiData: this.aiDataSignal(),
       workspaceCountry: this.workspaceCountry,
     };
-    const detected = AsileAvancePrefillRules.computeDispositifAsile(input);
-    if (detected !== null) {
-      this.dispositifAsile.set(detected);
-      this.provenanceDispositif.set('IA');
+
+    // 1. Dispositif asile.
+    if (!this.dispositifAsile()) {
+      const detected = AsileAvancePrefillRules.computeDispositifAsile(input);
+      if (detected !== null) {
+        this.dispositifAsile.set(detected);
+        this.provenanceDispositif.set('IA');
+      }
+    }
+
+    // 2. SF-246-19 : date de décision antérieure.
+    const dateDec = AsileAvancePrefillRules.computeDateDecisionAnterieure(input);
+    if (dateDec !== null
+        && (this.dateDecisionAnterieure() === null || this.provenanceDateDecision() === 'IA')) {
+      this.dateDecisionAnterieure.set(dateDec);
+      this.provenanceDateDecision.set('IA');
     }
   }
 
@@ -548,8 +562,10 @@ export class AsileAvanceSectionComponent implements OnInit, OnChanges {
         // Hydrate le form avec les valeurs persistées (pour ré-éditer).
         const disp = mapDispositifFromIa(r.dispositifAsile);
         if (disp) this.dispositifAsile.set(disp);
+        if (r.dateDecisionAnterieure) this.dateDecisionAnterieure.set(r.dateDecisionAnterieure);
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceDispositif.set(null);
+        this.provenanceDateDecision.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

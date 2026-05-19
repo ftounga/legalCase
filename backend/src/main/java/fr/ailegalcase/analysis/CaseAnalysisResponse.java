@@ -734,7 +734,33 @@ public record CaseAnalysisResponse(
             /** Mois de travail salarié dans les 24 derniers mois (0–24, extrait des bulletins de paie). */
             Integer aesMoisActiviteSalariee,
             /** Code ROME ou libellé du métier en tension (texte libre, extrait de l'attestation employeur). */
-            String aesCodeMetier) {
+            String aesCodeMetier,
+            // SF-246-19 : pré-fill statut & dispositifs Immigration FR
+            // (changement-statut / naturalisation / mineurs / régime algérien / asile avancé / mesures d'éloignement).
+            // FRANCE uniquement — null pour dossiers BE. Tous nullables.
+            /** Titre de séjour envisagé par le demandeur (même whitelist que titreActuel). */
+            String changementTitreEnvisage,
+            /** Rémunération du contrat visé en euros bruts annuels (> 0, ≤ 500 000). */
+            Integer changementRemunerationEur,
+            /** Durée de résidence régulière en France en années entières (voie DECRET, ASCENDANT). */
+            Integer natDureeResidenceReguliereAnnees,
+            /** Durée du mariage en années entières (voie MARIAGE). */
+            Integer natDureeMariageAnnees,
+            /** Âge du demandeur en années entières (voie ASCENDANT). */
+            Integer natAgeDemandeur,
+            /** Date de naissance du mineur au format YYYY-MM-DD (non future, extraction acte de naissance). */
+            String mineursDateNaissance,
+            /** Durée de présence régulière en France en mois entiers (régime algérien CRA — accord 1968). */
+            Integer algerienPresenceReguliereMois,
+            /** Date de la décision antérieure sur demande d'asile (YYYY-MM-DD, non future). */
+            String asileDateDecisionAnterieure,
+            /** Durée de présence irrégulière en France en mois entiers (IRTF art. L.612-6+). */
+            Integer eloiDureePresenceIrreguliereMois,
+            /**
+             * Motif de menace pour l'ordre public / sécurité.
+             * Whitelist 5 codes : ORDRE_PUBLIC / SECURITE_ETAT / TERRORISME / RECIDIVE_GRAVE / AUTRE.
+             */
+            String eloiMotifMenace) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -797,7 +823,18 @@ public record CaseAnalysisResponse(
                     .aesDureeScolaritePlusAncienEnfantAnnees(aesDureeScolaritePlusAncienEnfantAnnees)
                     .aesMotifHumanitaire(aesMotifHumanitaire)
                     .aesMoisActiviteSalariee(aesMoisActiviteSalariee)
-                    .aesCodeMetier(aesCodeMetier);
+                    .aesCodeMetier(aesCodeMetier)
+                    // SF-246-19 : pré-fill statut & dispositifs Immigration FR
+                    .changementTitreEnvisage(changementTitreEnvisage)
+                    .changementRemunerationEur(changementRemunerationEur)
+                    .natDureeResidenceReguliereAnnees(natDureeResidenceReguliereAnnees)
+                    .natDureeMariageAnnees(natDureeMariageAnnees)
+                    .natAgeDemandeur(natAgeDemandeur)
+                    .mineursDateNaissance(mineursDateNaissance)
+                    .algerienPresenceReguliereMois(algerienPresenceReguliereMois)
+                    .asileDateDecisionAnterieure(asileDateDecisionAnterieure)
+                    .eloiDureePresenceIrreguliereMois(eloiDureePresenceIrreguliereMois)
+                    .eloiMotifMenace(eloiMotifMenace);
         }
 
         public static final class Builder {
@@ -854,6 +891,17 @@ public record CaseAnalysisResponse(
             private String aesMotifHumanitaire;
             private Integer aesMoisActiviteSalariee;
             private String aesCodeMetier;
+            // SF-246-19 : pré-fill statut & dispositifs Immigration FR
+            private String changementTitreEnvisage;
+            private Integer changementRemunerationEur;
+            private Integer natDureeResidenceReguliereAnnees;
+            private Integer natDureeMariageAnnees;
+            private Integer natAgeDemandeur;
+            private String mineursDateNaissance;
+            private Integer algerienPresenceReguliereMois;
+            private String asileDateDecisionAnterieure;
+            private Integer eloiDureePresenceIrreguliereMois;
+            private String eloiMotifMenace;
 
             private Builder() {}
 
@@ -909,6 +957,17 @@ public record CaseAnalysisResponse(
             public Builder aesMotifHumanitaire(String v) { this.aesMotifHumanitaire = v; return this; }
             public Builder aesMoisActiviteSalariee(Integer v) { this.aesMoisActiviteSalariee = v; return this; }
             public Builder aesCodeMetier(String v) { this.aesCodeMetier = v; return this; }
+            // SF-246-19 : pré-fill statut & dispositifs Immigration FR
+            public Builder changementTitreEnvisage(String v) { this.changementTitreEnvisage = v; return this; }
+            public Builder changementRemunerationEur(Integer v) { this.changementRemunerationEur = v; return this; }
+            public Builder natDureeResidenceReguliereAnnees(Integer v) { this.natDureeResidenceReguliereAnnees = v; return this; }
+            public Builder natDureeMariageAnnees(Integer v) { this.natDureeMariageAnnees = v; return this; }
+            public Builder natAgeDemandeur(Integer v) { this.natAgeDemandeur = v; return this; }
+            public Builder mineursDateNaissance(String v) { this.mineursDateNaissance = v; return this; }
+            public Builder algerienPresenceReguliereMois(Integer v) { this.algerienPresenceReguliereMois = v; return this; }
+            public Builder asileDateDecisionAnterieure(String v) { this.asileDateDecisionAnterieure = v; return this; }
+            public Builder eloiDureePresenceIrreguliereMois(Integer v) { this.eloiDureePresenceIrreguliereMois = v; return this; }
+            public Builder eloiMotifMenace(String v) { this.eloiMotifMenace = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -929,7 +988,12 @@ public record CaseAnalysisResponse(
                         dublinEtatMembreResponsable, dublinMotifTransfert, crrvTypeVisa, crrvMotifRefus,
                         aesDateEntreeFrance, aesDureePresenceMois, aesAnneesScolariteConsecutives,
                         aesNiveauEtudes, aesDureeScolaritePlusAncienEnfantAnnees,
-                        aesMotifHumanitaire, aesMoisActiviteSalariee, aesCodeMetier);
+                        aesMotifHumanitaire, aesMoisActiviteSalariee, aesCodeMetier,
+                        changementTitreEnvisage, changementRemunerationEur,
+                        natDureeResidenceReguliereAnnees, natDureeMariageAnnees, natAgeDemandeur,
+                        mineursDateNaissance, algerienPresenceReguliereMois,
+                        asileDateDecisionAnterieure, eloiDureePresenceIrreguliereMois,
+                        eloiMotifMenace);
             }
         }
     }
@@ -1003,6 +1067,24 @@ public record CaseAnalysisResponse(
             "RISQUES_AU_RETOUR", "ISOLEMENT_TOTAL", "VICTIME_VIOLENCES",
             "VICTIME_TRAITE", "SITUATION_MEDICALE_PRECAIRE_HORS_L425_9", "AUTRE_HUMANITAIRE"
     );
+
+    /**
+     * SF-246-19 : motifs de menace pour mesures d'éloignement (whitelist 5 codes).
+     * Alignés sur {@code MotifMenaceCode} frontend (mesures-eloignement.model.ts).
+     */
+    static final Set<String> ELOI_MOTIFS_MENACE_CODES = Set.of(
+            "ORDRE_PUBLIC", "SECURITE_ETAT", "TERRORISME", "RECIDIVE_GRAVE", "AUTRE"
+    );
+
+    /** SF-246-19 : borne max rémunération contrat (plausibilité). */
+    static final int MAX_CHANGEMENT_REMUNERATION_EUR = 500_000;
+
+    /** SF-246-19 : borne max durées en années (naturalisation, âge). */
+    static final int MAX_NAT_DUREE_ANNEES = 70;
+    static final int MAX_NAT_AGE = 120;
+
+    /** SF-246-19 : borne max durée présence en mois (régime algérien / éloignement). */
+    static final int MAX_PRESENCE_MOIS = 600;
 
     /**
      * Famille — agrégat des flags décisionnels niveau 3 (FR + BE) extraits depuis la clé
@@ -2369,6 +2451,48 @@ public record CaseAnalysisResponse(
                 ? aesMoisActiviteSalarieeRaw : null;
         String aesCodeMetier = textOrNull(root, "aes_code_metier");
         if (aesCodeMetier != null && aesCodeMetier.isBlank()) aesCodeMetier = null;
+        // SF-246-19 : pré-fill statut & dispositifs Immigration FR
+        // Changement de statut : titre envisagé (réutilise IMMIGRATION_TITLE_CODES) + rémunération
+        String changementTitreEnvisage = normalizeEnumCode(
+                textOrNull(root, "changement_titre_envisage"), IMMIGRATION_TITLE_CODES);
+        Integer changementRemunerationEurRaw = nonNegativeIntOrNull(root, "changement_remuneration_eur");
+        Integer changementRemunerationEur = (changementRemunerationEurRaw != null
+                && changementRemunerationEurRaw > 0
+                && changementRemunerationEurRaw <= MAX_CHANGEMENT_REMUNERATION_EUR)
+                ? changementRemunerationEurRaw : null;
+        // Naturalisation : durée résidence + durée mariage + âge demandeur
+        Integer natDureeResidenceReguliereAnnees = boundedIntOrNull(
+                root, "nat_duree_residence_reguliere_annees", 0, MAX_NAT_DUREE_ANNEES);
+        Integer natDureeMariageAnnees = boundedIntOrNull(
+                root, "nat_duree_mariage_annees", 0, MAX_NAT_DUREE_ANNEES);
+        Integer natAgeDemandeur = boundedIntOrNull(root, "nat_age_demandeur", 0, MAX_NAT_AGE);
+        // Mineurs : date de naissance (ISO non-future)
+        String mineursDateNaissanceRaw = textOrNull(root, "mineurs_date_naissance");
+        String mineursDateNaissance = null;
+        if (mineursDateNaissanceRaw != null && mineursDateNaissanceRaw.matches(ISO_DATE_PATTERN_STR)) {
+            String todayStr2 = java.time.LocalDate.now().toString();
+            if (mineursDateNaissanceRaw.compareTo(todayStr2) <= 0) {
+                mineursDateNaissance = mineursDateNaissanceRaw;
+            }
+        }
+        // Régime algérien : durée présence régulière en mois
+        Integer algerienPresenceReguliereMois = boundedIntOrNull(
+                root, "algerien_presence_reguliere_mois", 0, MAX_PRESENCE_MOIS);
+        // Asile avancé : date décision antérieure (ISO non-future)
+        String asileDateDecisionAnterieureRaw = textOrNull(root, "asile_date_decision_anterieure");
+        String asileDateDecisionAnterieure = null;
+        if (asileDateDecisionAnterieureRaw != null
+                && asileDateDecisionAnterieureRaw.matches(ISO_DATE_PATTERN_STR)) {
+            String todayStr3 = java.time.LocalDate.now().toString();
+            if (asileDateDecisionAnterieureRaw.compareTo(todayStr3) <= 0) {
+                asileDateDecisionAnterieure = asileDateDecisionAnterieureRaw;
+            }
+        }
+        // Mesures d'éloignement : durée présence irrégulière + motif menace
+        Integer eloiDureePresenceIrreguliereMois = boundedIntOrNull(
+                root, "eloi_duree_presence_irreguliere_mois", 0, MAX_PRESENCE_MOIS);
+        String eloiMotifMenace = normalizeEnumCode(
+                textOrNull(root, "eloi_motif_menace"), ELOI_MOTIFS_MENACE_CODES);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -2390,7 +2514,12 @@ public record CaseAnalysisResponse(
                 && aesDateEntreeFrance == null && aesAnneesScolariteConsecutives == null
                 && aesNiveauEtudes == null && aesDureeScolaritePlusAncienEnfantAnnees == null
                 && aesMotifHumanitaire == null && aesMoisActiviteSalariee == null
-                && aesCodeMetier == null) return null;
+                && aesCodeMetier == null
+                && changementTitreEnvisage == null && changementRemunerationEur == null
+                && natDureeResidenceReguliereAnnees == null && natDureeMariageAnnees == null
+                && natAgeDemandeur == null && mineursDateNaissance == null
+                && algerienPresenceReguliereMois == null && asileDateDecisionAnterieure == null
+                && eloiDureePresenceIrreguliereMois == null && eloiMotifMenace == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -2452,6 +2581,17 @@ public record CaseAnalysisResponse(
                 .aesMotifHumanitaire(aesMotifHumanitaire)
                 .aesMoisActiviteSalariee(aesMoisActiviteSalariee)
                 .aesCodeMetier(aesCodeMetier)
+                // SF-246-19 : pré-fill statut & dispositifs Immigration FR
+                .changementTitreEnvisage(changementTitreEnvisage)
+                .changementRemunerationEur(changementRemunerationEur)
+                .natDureeResidenceReguliereAnnees(natDureeResidenceReguliereAnnees)
+                .natDureeMariageAnnees(natDureeMariageAnnees)
+                .natAgeDemandeur(natAgeDemandeur)
+                .mineursDateNaissance(mineursDateNaissance)
+                .algerienPresenceReguliereMois(algerienPresenceReguliereMois)
+                .asileDateDecisionAnterieure(asileDateDecisionAnterieure)
+                .eloiDureePresenceIrreguliereMois(eloiDureePresenceIrreguliereMois)
+                .eloiMotifMenace(eloiMotifMenace)
                 .build();
     }
 

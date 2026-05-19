@@ -156,6 +156,8 @@ export class RegimeAlgerienSectionComponent implements OnInit, OnChanges {
   /** Provenance IA — badges "Pré-rempli depuis l'analyse" effaçables. */
   provenanceVoie = signal<'IA' | null>(null);
   provenanceNationalite = signal<'IA' | null>(null);
+  /** SF-246-19 : provenance IA pour la durée de présence régulière. */
+  provenancePresenceReguliere = signal<'IA' | null>(null);
 
   /** Listes pour mat-radio. */
   readonly voieOptions = VOIE_REGIME_ALGERIEN_LABELS;
@@ -299,6 +301,7 @@ export class RegimeAlgerienSectionComponent implements OnInit, OnChanges {
 
   onPresenceReguliereChange(value: number | null): void {
     this.presenceReguliereFranceMois.set(value === null || value === undefined ? null : value);
+    this.provenancePresenceReguliere.set(null);
   }
 
   onCasierJudiciaireChange(value: boolean): void {
@@ -413,6 +416,15 @@ export class RegimeAlgerienSectionComponent implements OnInit, OnChanges {
         this.voieDemande.set(voie);
         this.provenanceVoie.set('IA');
       }
+    }
+
+    // SF-246-19 : durée présence régulière en France.
+    const presenceMois = RegimeAlgerienPrefillRules.computePresenceReguliereFranceMois(input);
+    if (presenceMois !== null
+        && (this.presenceReguliereFranceMois() === null
+            || this.provenancePresenceReguliere() === 'IA')) {
+      this.presenceReguliereFranceMois.set(presenceMois);
+      this.provenancePresenceReguliere.set('IA');
     }
   }
 
@@ -596,6 +608,7 @@ export class RegimeAlgerienSectionComponent implements OnInit, OnChanges {
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceVoie.set(null);
         this.provenanceNationalite.set(null);
+        this.provenancePresenceReguliere.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

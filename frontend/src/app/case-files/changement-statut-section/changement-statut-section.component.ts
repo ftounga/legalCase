@@ -147,6 +147,10 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
   provenanceTitreActuel = signal<'IA' | null>(null);
   /** SF-IM-11-03 : provenance IA pour la durée restante calculée depuis dateExpirationTitre. */
   provenanceDureeRestante = signal<'IA' | null>(null);
+  /** SF-246-19 : provenance IA pour le titre envisagé. */
+  provenanceTitreEnvisage = signal<'IA' | null>(null);
+  /** SF-246-19 : provenance IA pour la rémunération. */
+  provenanceRemuneration = signal<'IA' | null>(null);
 
   /** SF-IM-11-03 : flag de log "warn date malformée" — émis une seule fois par instance. */
   private dateExpirationParseWarned = false;
@@ -252,6 +256,7 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
 
   onTitreEnvisageChange(value: TitreSejourCode | null): void {
     this.titreEnvisage.set(value);
+    this.provenanceTitreEnvisage.set(null);
     if (value !== 'SALARIE') {
       // Champ masqué — vide la rémunération pour ne pas envoyer un résidu.
       this.remunerationContratEur.set(null);
@@ -270,6 +275,7 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
 
   onRemunerationChange(value: number | null): void {
     this.remunerationContratEur.set(value === null || value === undefined ? null : value);
+    this.provenanceRemuneration.set(null);
   }
 
   onCasierJudiciaireChange(value: boolean): void {
@@ -359,6 +365,22 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
             || this.provenanceDureeRestante() === 'IA')) {
       this.dureeRestanteSurTitreActuelMois.set(duree);
       this.provenanceDureeRestante.set('IA');
+    }
+
+    // 3. SF-246-19 : titre envisagé.
+    const titreEnvisage = ChangementStatutPrefillRules.computeTitreEnvisage(input);
+    if (titreEnvisage !== null
+        && (this.titreEnvisage() === null || this.provenanceTitreEnvisage() === 'IA')) {
+      this.titreEnvisage.set(titreEnvisage);
+      this.provenanceTitreEnvisage.set('IA');
+    }
+
+    // 4. SF-246-19 : rémunération brute annuelle.
+    const remuneration = ChangementStatutPrefillRules.computeRemuneration(input);
+    if (remuneration !== null
+        && (this.remunerationContratEur() === null || this.provenanceRemuneration() === 'IA')) {
+      this.remunerationContratEur.set(remuneration);
+      this.provenanceRemuneration.set('IA');
     }
   }
 
@@ -528,6 +550,8 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceTitreActuel.set(null);
         this.provenanceDureeRestante.set(null);
+        this.provenanceTitreEnvisage.set(null);
+        this.provenanceRemuneration.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

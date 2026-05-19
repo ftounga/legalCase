@@ -477,6 +477,30 @@ export interface ImmigrationExtractedData {
   aesMotifHumanitaire?: string | null;
   aesMoisActiviteSalariee?: number | null;
   aesCodeMetier?: string | null;
+  /**
+   * SF-246-19 : pré-fill statut & dispositifs Immigration FR.
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   * `changementTitreEnvisage` : code titre envisagé (même whitelist que typeTitreSejourCode).
+   * `changementRemunerationEur` : rémunération brute annuelle en euros (> 0, ≤ 500 000).
+   * `natDureeResidenceReguliereAnnees` : durée résidence régulière en années (0–70, voies DECRET/ASCENDANT).
+   * `natDureeMariageAnnees` : durée mariage avec Français(e) en années (0–70, voie MARIAGE).
+   * `natAgeDemandeur` : âge du demandeur en années (0–120, voie ASCENDANT).
+   * `mineursDateNaissance` : date de naissance du mineur YYYY-MM-DD (non future).
+   * `algerienPresenceReguliereMois` : durée présence régulière en mois (0–600, régime algérien).
+   * `asileDateDecisionAnterieure` : date décision antérieure asile YYYY-MM-DD (non future).
+   * `eloiDureePresenceIrreguliereMois` : durée présence irrégulière en mois (0–600, IRTF).
+   * `eloiMotifMenace` : motif menace (ORDRE_PUBLIC / SECURITE_ETAT / TERRORISME / RECIDIVE_GRAVE / AUTRE).
+   */
+  changementTitreEnvisage?: string | null;
+  changementRemunerationEur?: number | null;
+  natDureeResidenceReguliereAnnees?: number | null;
+  natDureeMariageAnnees?: number | null;
+  natAgeDemandeur?: number | null;
+  mineursDateNaissance?: string | null;
+  algerienPresenceReguliereMois?: number | null;
+  asileDateDecisionAnterieure?: string | null;
+  eloiDureePresenceIrreguliereMois?: number | null;
+  eloiMotifMenace?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

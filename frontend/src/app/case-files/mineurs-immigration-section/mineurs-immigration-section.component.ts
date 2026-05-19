@@ -407,9 +407,9 @@ export class MineursImmigrationSectionComponent implements OnInit, OnChanges {
       break;
     }
 
-    // 3. IA — `aiData.dateNaissance` (cast défensif).
-    const ai = this.aiDataSignal() as any;
-    const iaVal: string | null = ai?.dateNaissance ?? null;
+    // 3. IA — `aiData.mineursDateNaissance` (SF-246-19 : accès typé, cast supprimé).
+    const ai = this.aiDataSignal();
+    const iaVal: string | null = ai?.mineursDateNaissance ?? null;
     if (iaVal && iaVal !== userVal) {
       builder.addSource('IA', {
         expectedDisplay: iaVal,
@@ -457,8 +457,9 @@ export class MineursImmigrationSectionComponent implements OnInit, OnChanges {
       break;
     }
 
-    const ai = this.aiDataSignal() as any;
-    const iaVal: string | null = ai?.dateEntreeFrance ?? null;
+    // SF-246-19 : accès typé via aesDateEntreeFrance (cast supprimé).
+    const ai = this.aiDataSignal();
+    const iaVal: string | null = ai?.aesDateEntreeFrance ?? null;
     if (iaVal && iaVal !== userVal) {
       builder.addSource('IA', {
         expectedDisplay: iaVal,

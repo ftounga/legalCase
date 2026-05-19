@@ -148,6 +148,10 @@ export class NaturalisationSectionComponent implements OnInit, OnChanges {
 
   /** Provenance IA — badge "Pré-rempli depuis l'analyse" effaçable. */
   provenanceVoie = signal<'IA' | null>(null);
+  /** SF-246-19 : provenances IA pour les champs numériques naturalisation. */
+  provenanceDureeResidence = signal<'IA' | null>(null);
+  provenanceDureeMariage = signal<'IA' | null>(null);
+  provenanceAge = signal<'IA' | null>(null);
 
   /** Listes pour mat-radio. */
   readonly voieOptions = VOIE_NATURALISATION_LABELS;
@@ -277,10 +281,12 @@ export class NaturalisationSectionComponent implements OnInit, OnChanges {
 
   onDureeResidenceChange(value: number | null): void {
     this.dureeResidenceReguliereAnnees.set(value === null || value === undefined ? null : value);
+    this.provenanceDureeResidence.set(null);
   }
 
   onDureeMariageChange(value: number | null): void {
     this.dureeMariageAnnees.set(value === null || value === undefined ? null : value);
+    this.provenanceDureeMariage.set(null);
   }
 
   onCohabitationContinueChange(value: boolean): void {
@@ -289,6 +295,7 @@ export class NaturalisationSectionComponent implements OnInit, OnChanges {
 
   onAgeChange(value: number | null): void {
     this.ageDemandeur.set(value === null || value === undefined ? null : value);
+    this.provenanceAge.set(null);
   }
 
   onAscendantDirectFrancaisChange(value: boolean): void {
@@ -381,10 +388,36 @@ export class NaturalisationSectionComponent implements OnInit, OnChanges {
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
     if (!ai) return;
-    // Aucun champ direct mappable depuis ImmigrationExtractedData actuel —
-    // pattern présent pour la cohérence avec le template canonique. Quand
-    // le prompt IA sera enrichi (durée résidence, âge demandeur, durée
-    // mariage), ajouter ici le pré-fill correspondant.
+    // F-236 SF-236-02 : délègue au helper pur partagé.
+    const input: PrefillCountInput = {
+      aiData: ai,
+      workspaceCountry: this.workspaceCountry,
+    };
+
+    // SF-246-19 : durée de résidence régulière.
+    const dureeRes = NaturalisationPrefillRules.computeDureeResidenceReguliereAnnees(input);
+    if (dureeRes !== null
+        && (this.dureeResidenceReguliereAnnees() === null
+            || this.provenanceDureeResidence() === 'IA')) {
+      this.dureeResidenceReguliereAnnees.set(dureeRes);
+      this.provenanceDureeResidence.set('IA');
+    }
+
+    // SF-246-19 : durée de mariage.
+    const dureeMar = NaturalisationPrefillRules.computeDureeMariageAnnees(input);
+    if (dureeMar !== null
+        && (this.dureeMariageAnnees() === null || this.provenanceDureeMariage() === 'IA')) {
+      this.dureeMariageAnnees.set(dureeMar);
+      this.provenanceDureeMariage.set('IA');
+    }
+
+    // SF-246-19 : âge demandeur.
+    const age = NaturalisationPrefillRules.computeAgeDemandeur(input);
+    if (age !== null
+        && (this.ageDemandeur() === null || this.provenanceAge() === 'IA')) {
+      this.ageDemandeur.set(age);
+      this.provenanceAge.set('IA');
+    }
   }
 
   /**
@@ -566,8 +599,20 @@ export class NaturalisationSectionComponent implements OnInit, OnChanges {
         // Hydrate le form avec les valeurs persistées (pour ré-éditer).
         const voie = mapVoieFromIa(r.voieNaturalisation);
         if (voie) this.voieNaturalisation.set(voie);
+        if (r.dureeResidenceReguliereAnnees !== undefined && r.dureeResidenceReguliereAnnees !== null) {
+          this.dureeResidenceReguliereAnnees.set(r.dureeResidenceReguliereAnnees);
+        }
+        if (r.dureeMariageAnnees !== undefined && r.dureeMariageAnnees !== null) {
+          this.dureeMariageAnnees.set(r.dureeMariageAnnees);
+        }
+        if (r.ageDemandeur !== undefined && r.ageDemandeur !== null) {
+          this.ageDemandeur.set(r.ageDemandeur);
+        }
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceVoie.set(null);
+        this.provenanceDureeResidence.set(null);
+        this.provenanceDureeMariage.set(null);
+        this.provenanceAge.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },
