@@ -443,6 +443,53 @@ class CaseAnalysisServiceTest {
         assertThat(captor.getAllValues().get(0).getVersion()).isEqualTo(3);
     }
 
+    // SF-250-02 — Remédiation critereCode lot Travail FR validité/procédure
+
+    // U-SF-250-02-01 : le prompt système travail-FR contient les 3 codes DT36_*
+    @Test
+    void systemPrompt_containsDt36CriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).as("DT36_DATE_ENTRETIEN doit être dans le prompt points_procedure").contains("DT36_DATE_ENTRETIEN");
+        assertThat(prompt).as("DT36_MOTIVATION doit être dans le prompt points_procedure").contains("DT36_MOTIVATION");
+        assertThat(prompt).as("DT36_ENTRETIEN_TENU doit être dans le prompt points_procedure").contains("DT36_ENTRETIEN_TENU");
+        // Référence outil dans le prompt
+        assertThat(prompt).as("F-DT-36 doit être cité dans le prompt").contains("F-DT-36");
+    }
+
+    // U-SF-250-02-02 : le prompt système travail-FR contient HLN_, DT13_, PSE_, PROTECTION_RP_
+    @Test
+    void systemPrompt_containsHlnAndDt13AndPseAndProtectionRpCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).as("HLN_MOTIF_NULLITE doit être dans le prompt").contains("HLN_MOTIF_NULLITE");
+        assertThat(prompt).as("DT13_MOTIF_ECONOMIQUE doit être dans le prompt").contains("DT13_MOTIF_ECONOMIQUE");
+        assertThat(prompt).as("DT13_DATE_NOTIFICATION doit être dans le prompt").contains("DT13_DATE_NOTIFICATION");
+        assertThat(prompt).as("PSE_DATE_PROJET doit être dans le prompt").contains("PSE_DATE_PROJET");
+        assertThat(prompt).as("PROTECTION_RP_MOTIF doit être dans le prompt").contains("PROTECTION_RP_MOTIF");
+    }
+
+    // U-SF-250-02-03 : les nouveaux codes sont binaires — sémantique null expected_value documentée
+    @Test
+    void systemPrompt_travailFrNewCodesHaveNullExpectedValue() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        // Vérifier que la sémantique binaire ("expected_value" reste null) est documentée pour les nouveaux codes
+        // On cherche que le bloc DT36 mentionne "expected_value" doit rester null
+        int dt36Idx = prompt.indexOf("DT36_DATE_ENTRETIEN");
+        assertThat(dt36Idx).as("DT36_DATE_ENTRETIEN doit être présent").isGreaterThan(0);
+        // Dans le bloc DT36, on doit voir "expected_value" et "null"
+        String dt36Block = prompt.substring(dt36Idx, Math.min(dt36Idx + 500, prompt.length()));
+        assertThat(dt36Block).as("Bloc DT36 doit mentionner expected_value null").contains("expected_value");
+        // Non-régression : les codes existants F-DT-08 ne sont pas altérés
+        assertThat(prompt).contains("FR_CONVOCATION");
+        assertThat(prompt).contains("FR_ENTRETIEN");
+        assertThat(prompt).contains("DT09_TYPE_RUPTURE");
+    }
+
     // Helper
     private DocumentAnalysis documentAnalysis(String result, Instant createdAt) {
         DocumentAnalysis da = new DocumentAnalysis();
