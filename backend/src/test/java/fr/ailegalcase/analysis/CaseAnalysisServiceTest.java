@@ -490,6 +490,59 @@ class CaseAnalysisServiceTest {
         assertThat(prompt).contains("DT09_TYPE_RUPTURE");
     }
 
+    // SF-250-03 — Remédiation critereCode lot Travail FR rupture/requalifications/inaptitude/AT-MP
+
+    // U-SF-250-03-01 : le prompt système travail-FR contient les 6 codes RC_*
+    @Test
+    void systemPrompt_containsRcCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).as("RC_CONSENTEMENT doit être dans le prompt points_procedure").contains("RC_CONSENTEMENT");
+        assertThat(prompt).as("RC_DELAI_RETRACTATION doit être dans le prompt points_procedure").contains("RC_DELAI_RETRACTATION");
+        assertThat(prompt).as("RC_HOMOLOGATION doit être dans le prompt points_procedure").contains("RC_HOMOLOGATION");
+        assertThat(prompt).as("RC_ASSISTANCE doit être dans le prompt points_procedure").contains("RC_ASSISTANCE");
+        assertThat(prompt).as("RC_INDEMNITE doit être dans le prompt points_procedure").contains("RC_INDEMNITE");
+        assertThat(prompt).as("RC_ENTRETIENS doit être dans le prompt points_procedure").contains("RC_ENTRETIENS");
+        assertThat(prompt).as("F-DT-10 doit être cité dans le prompt").contains("F-DT-10");
+    }
+
+    // U-SF-250-03-02 : le prompt système travail-FR contient DT22_, DT23_, DT24_, DT31_, RCI_
+    @Test
+    void systemPrompt_containsDt22Dt23Dt24Dt31RciCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).as("DT22_SALAIRE doit être dans le prompt").contains("DT22_SALAIRE");
+        assertThat(prompt).as("DT23_SALAIRE doit être dans le prompt").contains("DT23_SALAIRE");
+        assertThat(prompt).as("DT24_SALAIRE doit être dans le prompt").contains("DT24_SALAIRE");
+        assertThat(prompt).as("DT31_SALAIRE_MENSUEL doit être dans le prompt").contains("DT31_SALAIRE_MENSUEL");
+        assertThat(prompt).as("DT31_ANCIENNETE doit être dans le prompt").contains("DT31_ANCIENNETE");
+        assertThat(prompt).as("RCI_SALAIRE doit être dans le prompt").contains("RCI_SALAIRE");
+        assertThat(prompt).as("RCI_ANCIENNETE doit être dans le prompt").contains("RCI_ANCIENNETE");
+        // Non-régression codes SF-250-02
+        assertThat(prompt).contains("DT36_DATE_ENTRETIEN");
+        assertThat(prompt).contains("HLN_MOTIF_NULLITE");
+    }
+
+    // U-SF-250-03-03 : le prompt système travail-FR contient INAPT_ et AT_MP_
+    @Test
+    void systemPrompt_containsInapt_andAtMpCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).as("INAPT_ORIGINE doit être dans le prompt").contains("INAPT_ORIGINE");
+        assertThat(prompt).as("INAPT_RECLASSEMENT doit être dans le prompt").contains("INAPT_RECLASSEMENT");
+        assertThat(prompt).as("AT_MP_DATE_ACCIDENT doit être dans le prompt").contains("AT_MP_DATE_ACCIDENT");
+        assertThat(prompt).as("F-DT-15 doit être cité dans le prompt").contains("F-DT-15");
+        assertThat(prompt).as("F-DT-33 doit être cité dans le prompt").contains("F-DT-33");
+        // Sémantique binaire : expected_value null documentée
+        int inapt_idx = prompt.indexOf("INAPT_ORIGINE");
+        assertThat(inapt_idx).isGreaterThan(0);
+        String inaptBlock = prompt.substring(inapt_idx, Math.min(inapt_idx + 400, prompt.length()));
+        assertThat(inaptBlock).as("Bloc INAPT doit mentionner expected_value null").contains("expected_value");
+    }
+
     // Helper
     private DocumentAnalysis documentAnalysis(String result, Instant createdAt) {
         DocumentAnalysis da = new DocumentAnalysis();

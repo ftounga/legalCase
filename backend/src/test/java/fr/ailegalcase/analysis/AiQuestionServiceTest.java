@@ -252,4 +252,51 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("FR_CONVOCATION");
         assertThat(prompt).contains("DT09_TYPE_RUPTURE");
     }
+
+    // SF-250-03 — Remédiation critereCode lot Travail FR rupture/requalifications/inaptitude/AT-MP
+
+    // U-SF-250-03-01 : le prompt questions travail-FR contient les 6 codes RC_*
+    @Test
+    void systemPrompt_containsRcCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).as("RC_CONSENTEMENT doit être dans le prompt questions").contains("RC_CONSENTEMENT");
+        assertThat(prompt).as("RC_DELAI_RETRACTATION doit être dans le prompt questions").contains("RC_DELAI_RETRACTATION");
+        assertThat(prompt).as("RC_HOMOLOGATION doit être dans le prompt questions").contains("RC_HOMOLOGATION");
+        assertThat(prompt).as("RC_ASSISTANCE doit être dans le prompt questions").contains("RC_ASSISTANCE");
+        assertThat(prompt).as("RC_INDEMNITE doit être dans le prompt questions").contains("RC_INDEMNITE");
+        assertThat(prompt).as("RC_ENTRETIENS doit être dans le prompt questions").contains("RC_ENTRETIENS");
+        // Non-régression
+        assertThat(prompt).contains("FR_CONVOCATION");
+        assertThat(prompt).contains("DT36_DATE_ENTRETIEN");
+    }
+
+    // U-SF-250-03-02 : le prompt questions travail-FR contient DT22_, DT23_, DT24_, DT31_, RCI_
+    @Test
+    void systemPrompt_containsDt22Dt23Dt24Dt31RciCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).as("DT22_SALAIRE doit être dans le prompt questions").contains("DT22_SALAIRE");
+        assertThat(prompt).as("DT23_SALAIRE doit être dans le prompt questions").contains("DT23_SALAIRE");
+        assertThat(prompt).as("DT24_SALAIRE doit être dans le prompt questions").contains("DT24_SALAIRE");
+        assertThat(prompt).as("DT31_SALAIRE_MENSUEL doit être dans le prompt questions").contains("DT31_SALAIRE_MENSUEL");
+        assertThat(prompt).as("DT31_ANCIENNETE doit être dans le prompt questions").contains("DT31_ANCIENNETE");
+        assertThat(prompt).as("RCI_SALAIRE doit être dans le prompt questions").contains("RCI_SALAIRE");
+        assertThat(prompt).as("RCI_ANCIENNETE doit être dans le prompt questions").contains("RCI_ANCIENNETE");
+        // Non-régression
+        assertThat(prompt).contains("DT09_TYPE_RUPTURE");
+        assertThat(prompt).contains("HLN_MOTIF_NULLITE");
+    }
+
+    // U-SF-250-03-03 : le prompt questions travail-FR contient INAPT_ et AT_MP_
+    @Test
+    void systemPrompt_containsInapt_andAtMpCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).as("INAPT_ORIGINE doit être dans le prompt questions").contains("INAPT_ORIGINE");
+        assertThat(prompt).as("INAPT_RECLASSEMENT doit être dans le prompt questions").contains("INAPT_RECLASSEMENT");
+        assertThat(prompt).as("AT_MP_DATE_ACCIDENT doit être dans le prompt questions").contains("AT_MP_DATE_ACCIDENT");
+        // Convention réponse "oui" = signal positif documentée
+        assertThat(prompt).contains("oui");
+        // Non-régression
+        assertThat(prompt).contains("FR_CONVOCATION");
+        assertThat(prompt).contains("RC_CONSENTEMENT");
+    }
 }
