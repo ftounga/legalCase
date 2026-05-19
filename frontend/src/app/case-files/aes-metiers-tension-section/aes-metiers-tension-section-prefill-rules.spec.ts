@@ -37,8 +37,8 @@ describe('AesMetiersTensionPrefillRules', () => {
     expect(Rules.computeDateDepotDemande(input)).toBeNull();
   });
 
-  // ── Cas M (partiel) — N=1 outil mono-champ, donc M=1 = N. ─────────────
-  it('returns 1 when only dateDepotProcedure is set (M=N=1, mono-champ)', () => {
+  // ── Cas partiel — dateDepotDemande seul ───────────────────────────────
+  it('returns 1 when only dateDepotProcedure is set', () => {
     const input = {
       aiData: { dateDepotProcedure: '2026-04-01' },
       workspaceCountry: 'FRANCE',
@@ -47,17 +47,98 @@ describe('AesMetiersTensionPrefillRules', () => {
     expect(Rules.computeDateDepotDemande(input)).toBe('2026-04-01');
   });
 
-  // ── Cas N (nominal) ───────────────────────────────────────────────────
-  it('returns N (max théo = 1) when full payload alimente', () => {
-    const input = {
-      aiData: { dateDepotProcedure: '2026-03-15' },
-      workspaceCountry: 'FRANCE',
-    };
-    expect(Rules.computePrefillCount(input)).toBe(1);
-  });
-
   it('defaults workspaceCountry to FRANCE when absent', () => {
     const input = { aiData: { dateDepotProcedure: '2026-03-15' } };
     expect(Rules.computePrefillCount(input)).toBe(1);
+  });
+
+  // ── SF-246-18 : computeDateEntreeFrance ───────────────────────────────
+  it('computeDateEntreeFrance returns null when absent', () => {
+    expect(Rules.computeDateEntreeFrance({ aiData: {} })).toBeNull();
+  });
+
+  it('computeDateEntreeFrance returns null for future date', () => {
+    expect(Rules.computeDateEntreeFrance({ aiData: { aesDateEntreeFrance: '2099-01-01' } })).toBeNull();
+  });
+
+  it('computeDateEntreeFrance returns date for valid past ISO', () => {
+    expect(Rules.computeDateEntreeFrance({ aiData: { aesDateEntreeFrance: '2020-06-01' } })).toBe('2020-06-01');
+  });
+
+  it('computeDateEntreeFrance returns null for BELGIQUE', () => {
+    expect(Rules.computeDateEntreeFrance({
+      aiData: { aesDateEntreeFrance: '2020-06-01' },
+      workspaceCountry: 'BELGIQUE',
+    })).toBeNull();
+  });
+
+  // ── SF-246-18 : computeMoisActiviteSalariee ───────────────────────────
+  it('computeMoisActiviteSalariee returns null when absent', () => {
+    expect(Rules.computeMoisActiviteSalariee({ aiData: {} })).toBeNull();
+  });
+
+  it('computeMoisActiviteSalariee returns null for > 24', () => {
+    expect(Rules.computeMoisActiviteSalariee({ aiData: { aesMoisActiviteSalariee: 25 } })).toBeNull();
+  });
+
+  it('computeMoisActiviteSalariee returns value for 0–24', () => {
+    expect(Rules.computeMoisActiviteSalariee({ aiData: { aesMoisActiviteSalariee: 18 } })).toBe(18);
+    expect(Rules.computeMoisActiviteSalariee({ aiData: { aesMoisActiviteSalariee: 0 } })).toBe(0);
+    expect(Rules.computeMoisActiviteSalariee({ aiData: { aesMoisActiviteSalariee: 24 } })).toBe(24);
+  });
+
+  it('computeMoisActiviteSalariee returns null for BELGIQUE', () => {
+    expect(Rules.computeMoisActiviteSalariee({
+      aiData: { aesMoisActiviteSalariee: 18 },
+      workspaceCountry: 'BELGIQUE',
+    })).toBeNull();
+  });
+
+  // ── SF-246-18 : computeCodeMetier ─────────────────────────────────────
+  it('computeCodeMetier returns null when absent', () => {
+    expect(Rules.computeCodeMetier({ aiData: {} })).toBeNull();
+  });
+
+  it('computeCodeMetier returns null for empty string', () => {
+    expect(Rules.computeCodeMetier({ aiData: { aesCodeMetier: '' } })).toBeNull();
+    expect(Rules.computeCodeMetier({ aiData: { aesCodeMetier: '   ' } })).toBeNull();
+  });
+
+  it('computeCodeMetier returns trimmed string for valid code', () => {
+    expect(Rules.computeCodeMetier({ aiData: { aesCodeMetier: 'N1101' } })).toBe('N1101');
+    expect(Rules.computeCodeMetier({ aiData: { aesCodeMetier: '  Infirmier(ère)  ' } })).toBe('Infirmier(ère)');
+  });
+
+  it('computeCodeMetier returns null for BELGIQUE', () => {
+    expect(Rules.computeCodeMetier({
+      aiData: { aesCodeMetier: 'N1101' },
+      workspaceCountry: 'BELGIQUE',
+    })).toBeNull();
+  });
+
+  // ── computePrefillCount — cas maximal ────────────────────────────────
+  it('returns 4 when all 4 fields present', () => {
+    const input = {
+      aiData: {
+        dateDepotProcedure: '2026-04-01',
+        aesDateEntreeFrance: '2020-06-01',
+        aesMoisActiviteSalariee: 18,
+        aesCodeMetier: 'N1101',
+      },
+      workspaceCountry: 'FRANCE',
+    };
+    expect(Rules.computePrefillCount(input)).toBe(4);
+  });
+
+  it('returns 0 for BELGIQUE even with all fields', () => {
+    expect(Rules.computePrefillCount({
+      aiData: {
+        dateDepotProcedure: '2026-04-01',
+        aesDateEntreeFrance: '2020-06-01',
+        aesMoisActiviteSalariee: 18,
+        aesCodeMetier: 'N1101',
+      },
+      workspaceCountry: 'BELGIQUE',
+    })).toBe(0);
   });
 });

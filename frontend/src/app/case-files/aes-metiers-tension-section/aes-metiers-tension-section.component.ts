@@ -138,9 +138,12 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
   contratOuPromesseValide = signal<boolean>(false);
   dateDepotDemande = signal<string | null>(null);
 
-  // Provenance IA — badge "Pré-rempli depuis l'analyse" effaçable.
+  // Provenance IA — badges "Pré-rempli depuis l'analyse" effaçables.
+  // SF-246-18 : 4 champs pré-remplissables.
   provenanceDateEntreeFrance = signal<'IA' | null>(null);
   provenanceDateDepotDemande = signal<'IA' | null>(null);
+  provenanceMoisActivite = signal<'IA' | null>(null);
+  provenanceCodeMetier = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : explanations map.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -266,6 +269,7 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
 
   onMoisActiviteChange(value: number | null): void {
     this.moisActiviteSalarieeDernieres24Mois.set(value);
+    this.provenanceMoisActivite.set(null);
   }
 
   onMetierEstEnTensionChange(value: boolean): void {
@@ -273,11 +277,13 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
     if (!value) {
       // codeMetier non pertinent si le métier n'est pas en tension.
       this.codeMetier.set('');
+      this.provenanceCodeMetier.set(null);
     }
   }
 
   onCodeMetierChange(value: string): void {
     this.codeMetier.set(value);
+    this.provenanceCodeMetier.set(null);
   }
 
   onMenaceOrdrePublicChange(value: boolean): void {
@@ -318,10 +324,11 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
    * SF-IM-09-05 / F-236 SF-236-02 : pré-remplissage depuis l'analyse IA
    * via le helper pur partagé `AesMetiersTensionPrefillRules`.
    *
-   * IMPORTANT : aujourd'hui `ImmigrationExtractedData` n'expose pas
-   * de `dateEntreeFrance`. Le champ reste vide jusqu'à ce que le
-   * pipeline IA l'expose. Seul `dateDepotProcedure` est utilisé pour
-   * pré-remplir `dateDepotDemande` (graceful no-op pour les autres).
+   * SF-246-18 : 4 champs pré-remplis depuis ImmigrationExtractedData typé.
+   *  - dateDepotDemande ← dateDepotProcedure (existant)
+   *  - dateEntreeFrance ← aesDateEntreeFrance
+   *  - moisActiviteSalariee ← aesMoisActiviteSalariee
+   *  - codeMetier ← aesCodeMetier
    */
   private prefillFromAi(): void {
     const input: PrefillCountInput = {
@@ -332,6 +339,24 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
     if (depot !== null && !this.dateDepotDemande()) {
       this.dateDepotDemande.set(depot);
       this.provenanceDateDepotDemande.set('IA');
+    }
+    // SF-246-18 : dateEntreeFrance
+    const entree = AesMetiersTensionPrefillRules.computeDateEntreeFrance(input);
+    if (entree !== null && !this.dateEntreeFrance()) {
+      this.dateEntreeFrance.set(entree);
+      this.provenanceDateEntreeFrance.set('IA');
+    }
+    // SF-246-18 : moisActiviteSalariee
+    const mois = AesMetiersTensionPrefillRules.computeMoisActiviteSalariee(input);
+    if (mois !== null && this.moisActiviteSalarieeDernieres24Mois() === null) {
+      this.moisActiviteSalarieeDernieres24Mois.set(mois);
+      this.provenanceMoisActivite.set('IA');
+    }
+    // SF-246-18 : codeMetier
+    const code = AesMetiersTensionPrefillRules.computeCodeMetier(input);
+    if (code !== null && !this.codeMetier()) {
+      this.codeMetier.set(code);
+      this.provenanceCodeMetier.set('IA');
     }
   }
 
@@ -514,6 +539,8 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
         this.dateDepotDemande.set(r.dateDepotDemande);
         this.provenanceDateEntreeFrance.set(null);
         this.provenanceDateDepotDemande.set(null);
+        this.provenanceMoisActivite.set(null);
+        this.provenanceCodeMetier.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

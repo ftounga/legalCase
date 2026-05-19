@@ -276,7 +276,7 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
    * champ IA dédié à ce stade : no-op gracieux.
    */
   private prefillFromAi(): void {
-    // F-236 SF-236-02 : délègue au helper pur partagé.
+    // SF-246-18 : 3 champs pré-remplis depuis ImmigrationExtractedData typé.
     if (!this.isFrance()) return;
     const input: PrefillCountInput = {
       aiData: this.aiDataSignal(),
@@ -293,6 +293,13 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
         && (this.dateDepotDemande() === null || this.provenanceDateDepot() === 'IA')) {
       this.dateDepotDemande.set(depot);
       this.provenanceDateDepot.set('IA');
+    }
+    // SF-246-18 : motif humanitaire dominant.
+    const motif = AesHumanitairePrefillRules.computeMotifHumanitaire(input);
+    if (motif !== null
+        && (this.motifHumanitaireDominant() === null || this.provenanceMotif() === 'IA')) {
+      this.motifHumanitaireDominant.set(motif);
+      this.provenanceMotif.set('IA');
     }
   }
 

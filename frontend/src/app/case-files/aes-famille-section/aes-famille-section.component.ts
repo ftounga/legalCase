@@ -131,9 +131,11 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
   menaceOrdrePublic = signal(false);
   dateDepotDemande = signal<string | null>(null);
 
-  // Provenance IA (badges)
+  // Provenance IA (badges) — SF-246-18 : 4 champs pré-remplissables.
   provenanceDateEntree = signal<'IA' | null>(null);
   provenanceDureePresence = signal<'IA' | null>(null);
+  provenanceDureeScolarite = signal<'IA' | null>(null);
+  provenanceDateDepotDemande = signal<'IA' | null>(null);
 
   // Source explanations (F-IA-03-15c)
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -212,6 +214,8 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
         this.applyResultToForm(r);
         this.provenanceDateEntree.set(null);
         this.provenanceDureePresence.set(null);
+        this.provenanceDureeScolarite.set(null);
+        this.provenanceDateDepotDemande.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },
@@ -232,11 +236,10 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
 
   /**
    * Pré-remplit le form depuis aiData. Champs ImmigrationExtractedData typés
-   * actuellement absents (`dateEntreeFrance`) → fallback gracieux via cast.
+   * SF-246-18 : 4 champs pré-remplis depuis ImmigrationExtractedData typé.
    * No-op si aiData null ou champs manquants.
    */
   private prefillFromAi(): void {
-    // F-236 SF-236-02 : délègue au helper pur partagé.
     if (this.workspaceCountry !== 'FRANCE') return;
     const input: PrefillCountInput = {
       aiData: this.aiDataSignal(),
@@ -255,6 +258,19 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
           this.provenanceDureePresence.set('IA');
         }
       }
+    }
+    // SF-246-18 : durée scolarité enfant le plus ancien.
+    const dureeScol = AesFamillePrefillRules.computeDureeScolaritePlusAncienEnfant(input);
+    if (dureeScol !== null
+        && (this.dureeScolaritePlusAncienEnfantAnnees() === 0 || this.provenanceDureeScolarite() === 'IA')) {
+      this.dureeScolaritePlusAncienEnfantAnnees.set(dureeScol);
+      this.provenanceDureeScolarite.set('IA');
+    }
+    // SF-246-18 : date de dépôt de la demande.
+    const depot = AesFamillePrefillRules.computeDateDepotDemande(input);
+    if (depot !== null && !this.dateDepotDemande()) {
+      this.dateDepotDemande.set(depot);
+      this.provenanceDateDepotDemande.set('IA');
     }
   }
 
@@ -359,10 +375,12 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
 
   onDureeScolariteChange(value: number | null): void {
     this.dureeScolaritePlusAncienEnfantAnnees.set(value ?? 0);
+    this.provenanceDureeScolarite.set(null);
   }
 
   onDateDepotChange(value: string | null): void {
     this.dateDepotDemande.set(value && value.length >= 10 ? value : null);
+    this.provenanceDateDepotDemande.set(null);
   }
 
   /**

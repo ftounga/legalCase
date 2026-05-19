@@ -692,7 +692,32 @@ public record CaseAnalysisResponse(
             /** Type de visa refusé CRRV — l'un des 5 codes TypeVisaCrrv (null si non identifiable). */
             String crrvTypeVisa,
             /** Motif du refus de visa en texte libre ≤ 500 car. (null si absent des pièces). */
-            String crrvMotifRefus) {
+            String crrvMotifRefus,
+            // SF-246-18 : pré-fill outils AES Immigration FR (aes-etudiant / aes-famille /
+            // aes-humanitaire / aes-metiers-tension). FRANCE uniquement — null pour dossiers BE.
+            /** Date d'entrée en France extraite du passeport / visa d'entrée (YYYY-MM-DD, non future). */
+            String aesDateEntreeFrance,
+            /** Mois entiers écoulés depuis aesDateEntreeFrance jusqu'à aujourd'hui (calculé côté extracteur). */
+            Integer aesDureePresenceMois,
+            /** Années d'études consécutives en France (extrait du certificat de scolarité). */
+            Integer aesAnneesScolariteConsecutives,
+            /**
+             * Niveau d'études le plus élevé mentionné dans les pièces.
+             * Whitelist : LYCEE / BAC_PLUS_1_2 / BAC_PLUS_3_4 / BAC_PLUS_5_PLUS.
+             */
+            String aesNiveauEtudes,
+            /** Durée de scolarité en France de l'enfant le plus anciennement inscrit (années entières). */
+            Integer aesDureeScolaritePlusAncienEnfantAnnees,
+            /**
+             * Motif humanitaire dominant extrait des pièces.
+             * Whitelist 6 codes : RISQUES_AU_RETOUR / ISOLEMENT_TOTAL / VICTIME_VIOLENCES /
+             * VICTIME_TRAITE / SITUATION_MEDICALE_PRECAIRE_HORS_L425_9 / AUTRE_HUMANITAIRE.
+             */
+            String aesMotifHumanitaire,
+            /** Mois de travail salarié dans les 24 derniers mois (0–24, extrait des bulletins de paie). */
+            Integer aesMoisActiviteSalariee,
+            /** Code ROME ou libellé du métier en tension (texte libre, extrait de l'attestation employeur). */
+            String aesCodeMetier) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -746,7 +771,16 @@ public record CaseAnalysisResponse(
                     .dublinEtatMembreResponsable(dublinEtatMembreResponsable)
                     .dublinMotifTransfert(dublinMotifTransfert)
                     .crrvTypeVisa(crrvTypeVisa)
-                    .crrvMotifRefus(crrvMotifRefus);
+                    .crrvMotifRefus(crrvMotifRefus)
+                    // SF-246-18 : champs AES Immigration FR
+                    .aesDateEntreeFrance(aesDateEntreeFrance)
+                    .aesDureePresenceMois(aesDureePresenceMois)
+                    .aesAnneesScolariteConsecutives(aesAnneesScolariteConsecutives)
+                    .aesNiveauEtudes(aesNiveauEtudes)
+                    .aesDureeScolaritePlusAncienEnfantAnnees(aesDureeScolaritePlusAncienEnfantAnnees)
+                    .aesMotifHumanitaire(aesMotifHumanitaire)
+                    .aesMoisActiviteSalariee(aesMoisActiviteSalariee)
+                    .aesCodeMetier(aesCodeMetier);
         }
 
         public static final class Builder {
@@ -794,6 +828,15 @@ public record CaseAnalysisResponse(
             private String dublinMotifTransfert;
             private String crrvTypeVisa;
             private String crrvMotifRefus;
+            // SF-246-18 : pré-fill outils AES Immigration FR
+            private String aesDateEntreeFrance;
+            private Integer aesDureePresenceMois;
+            private Integer aesAnneesScolariteConsecutives;
+            private String aesNiveauEtudes;
+            private Integer aesDureeScolaritePlusAncienEnfantAnnees;
+            private String aesMotifHumanitaire;
+            private Integer aesMoisActiviteSalariee;
+            private String aesCodeMetier;
 
             private Builder() {}
 
@@ -840,6 +883,15 @@ public record CaseAnalysisResponse(
             public Builder dublinMotifTransfert(String v) { this.dublinMotifTransfert = v; return this; }
             public Builder crrvTypeVisa(String v) { this.crrvTypeVisa = v; return this; }
             public Builder crrvMotifRefus(String v) { this.crrvMotifRefus = v; return this; }
+            // SF-246-18 : champs AES Immigration FR
+            public Builder aesDateEntreeFrance(String v) { this.aesDateEntreeFrance = v; return this; }
+            public Builder aesDureePresenceMois(Integer v) { this.aesDureePresenceMois = v; return this; }
+            public Builder aesAnneesScolariteConsecutives(Integer v) { this.aesAnneesScolariteConsecutives = v; return this; }
+            public Builder aesNiveauEtudes(String v) { this.aesNiveauEtudes = v; return this; }
+            public Builder aesDureeScolaritePlusAncienEnfantAnnees(Integer v) { this.aesDureeScolaritePlusAncienEnfantAnnees = v; return this; }
+            public Builder aesMotifHumanitaire(String v) { this.aesMotifHumanitaire = v; return this; }
+            public Builder aesMoisActiviteSalariee(Integer v) { this.aesMoisActiviteSalariee = v; return this; }
+            public Builder aesCodeMetier(String v) { this.aesCodeMetier = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -857,7 +909,10 @@ public record CaseAnalysisResponse(
                         regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
                         nationalite, dateOrdonnanceProtectionJaf,
                         nomRequerant, prenomRequerant, dateDecisionContestee, referenceDecision,
-                        dublinEtatMembreResponsable, dublinMotifTransfert, crrvTypeVisa, crrvMotifRefus);
+                        dublinEtatMembreResponsable, dublinMotifTransfert, crrvTypeVisa, crrvMotifRefus,
+                        aesDateEntreeFrance, aesDureePresenceMois, aesAnneesScolariteConsecutives,
+                        aesNiveauEtudes, aesDureeScolaritePlusAncienEnfantAnnees,
+                        aesMotifHumanitaire, aesMoisActiviteSalariee, aesCodeMetier);
             }
         }
     }
@@ -914,6 +969,23 @@ public record CaseAnalysisResponse(
 
     /** SF-246-17 : longueur max de l'état membre Dublin (texte libre). */
     static final int MAX_DUBLIN_ETAT_MEMBRE_LENGTH = 200;
+
+    /**
+     * SF-246-18 : niveaux d'études AES étudiant (whitelist 4 codes).
+     * Alignés sur le type {@code AesEtudiantNiveauEtudes} frontend.
+     */
+    static final Set<String> AES_NIVEAU_ETUDES_CODES = Set.of(
+            "LYCEE", "BAC_PLUS_1_2", "BAC_PLUS_3_4", "BAC_PLUS_5_PLUS"
+    );
+
+    /**
+     * SF-246-18 : motifs humanitaires AES (whitelist 6 codes).
+     * Alignés sur le type {@code MotifHumanitaire} frontend.
+     */
+    static final Set<String> AES_MOTIFS_HUMANITAIRES_CODES = Set.of(
+            "RISQUES_AU_RETOUR", "ISOLEMENT_TOTAL", "VICTIME_VIOLENCES",
+            "VICTIME_TRAITE", "SITUATION_MEDICALE_PRECAIRE_HORS_L425_9", "AUTRE_HUMANITAIRE"
+    );
 
     /**
      * Famille — agrégat des flags décisionnels niveau 3 (FR + BE) extraits depuis la clé
@@ -2248,6 +2320,32 @@ public record CaseAnalysisResponse(
         String dublinMotifTransfert = normalizeEnumCode(textOrNull(root, "dublin_motif_transfert"), MOTIFS_TRANSFERT_DUBLIN_CODES);
         String crrvTypeVisa = normalizeEnumCode(textOrNull(root, "crrv_type_visa"), TYPES_VISA_CRRV_CODES);
         String crrvMotifRefus = truncatedTextOrNull(root, "crrv_motif_refus", MAX_CRRV_MOTIF_REFUS_LENGTH);
+        // SF-246-18 : pré-fill outils AES Immigration FR (aes-etudiant / aes-famille /
+        // aes-humanitaire / aes-metiers-tension). FR uniquement — null pour dossiers BE.
+        String aesDateEntreeFranceRaw = textOrNull(root, "aes_date_entree_france");
+        // Guard : ISO YYYY-MM-DD strict, date non future.
+        final String ISO_DATE_PATTERN_STR = "\\d{4}-\\d{2}-\\d{2}";
+        String aesDateEntreeFrance = null;
+        Integer aesDureePresenceMois = null;
+        if (aesDateEntreeFranceRaw != null && aesDateEntreeFranceRaw.matches(ISO_DATE_PATTERN_STR)) {
+            String todayStr = java.time.LocalDate.now().toString();
+            if (aesDateEntreeFranceRaw.compareTo(todayStr) <= 0) {
+                aesDateEntreeFrance = aesDateEntreeFranceRaw;
+                java.time.LocalDate entree = java.time.LocalDate.parse(aesDateEntreeFranceRaw);
+                java.time.LocalDate today = java.time.LocalDate.now();
+                aesDureePresenceMois = (int) java.time.temporal.ChronoUnit.MONTHS.between(entree, today);
+            }
+        }
+        Integer aesAnneesScolariteConsecutives = nonNegativeIntOrNull(root, "aes_annees_scolarite_consecutives");
+        String aesNiveauEtudes = normalizeEnumCode(textOrNull(root, "aes_niveau_etudes"), AES_NIVEAU_ETUDES_CODES);
+        Integer aesDureeScolaritePlusAncienEnfantAnnees = nonNegativeIntOrNull(root, "aes_duree_scolarite_plus_ancien_enfant_annees");
+        String aesMotifHumanitaire = normalizeEnumCode(textOrNull(root, "aes_motif_humanitaire"), AES_MOTIFS_HUMANITAIRES_CODES);
+        // aesMoisActiviteSalariee : entier [0–24] ; au-delà → null.
+        Integer aesMoisActiviteSalarieeRaw = nonNegativeIntOrNull(root, "aes_mois_activite_salariee");
+        Integer aesMoisActiviteSalariee = (aesMoisActiviteSalarieeRaw != null && aesMoisActiviteSalarieeRaw <= 24)
+                ? aesMoisActiviteSalarieeRaw : null;
+        String aesCodeMetier = textOrNull(root, "aes_code_metier");
+        if (aesCodeMetier != null && aesCodeMetier.isBlank()) aesCodeMetier = null;
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -2265,7 +2363,11 @@ public record CaseAnalysisResponse(
                 && nomRequerant == null && prenomRequerant == null
                 && dateDecisionContestee == null && referenceDecision == null
                 && dublinEtatMembre == null && dublinMotifTransfert == null
-                && crrvTypeVisa == null && crrvMotifRefus == null) return null;
+                && crrvTypeVisa == null && crrvMotifRefus == null
+                && aesDateEntreeFrance == null && aesAnneesScolariteConsecutives == null
+                && aesNiveauEtudes == null && aesDureeScolaritePlusAncienEnfantAnnees == null
+                && aesMotifHumanitaire == null && aesMoisActiviteSalariee == null
+                && aesCodeMetier == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -2318,6 +2420,15 @@ public record CaseAnalysisResponse(
                 .dublinMotifTransfert(dublinMotifTransfert)
                 .crrvTypeVisa(crrvTypeVisa)
                 .crrvMotifRefus(crrvMotifRefus)
+                // SF-246-18 : pré-fill outils AES Immigration FR
+                .aesDateEntreeFrance(aesDateEntreeFrance)
+                .aesDureePresenceMois(aesDureePresenceMois)
+                .aesAnneesScolariteConsecutives(aesAnneesScolariteConsecutives)
+                .aesNiveauEtudes(aesNiveauEtudes)
+                .aesDureeScolaritePlusAncienEnfantAnnees(aesDureeScolaritePlusAncienEnfantAnnees)
+                .aesMotifHumanitaire(aesMotifHumanitaire)
+                .aesMoisActiviteSalariee(aesMoisActiviteSalariee)
+                .aesCodeMetier(aesCodeMetier)
                 .build();
     }
 
