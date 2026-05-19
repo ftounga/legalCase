@@ -523,6 +523,77 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("FA15_REGIME_MATRIMONIAL");
     }
 
+    // SF-250-10 — Remédiation critereCode lot Famille BE + audit outils ⚠️
+
+    // U-SF-250-10-01 : le prompt questions famille-BE contient DESU_BE_*, F217_* annotés BELGIQUE UNIQUEMENT
+    @Test
+    void systemPrompt_containsFamilleBeCriteraCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "BELGIQUE");
+        assertThat(prompt).as("DESU_BE_DATE_SEPARATION doit être dans le prompt questions").contains("DESU_BE_DATE_SEPARATION");
+        assertThat(prompt).as("DESU_BE_CONSENTEE doit être dans le prompt questions").contains("DESU_BE_CONSENTEE");
+        assertThat(prompt).as("DESU_BE_DATE_ASSIGNATION doit être dans le prompt questions").contains("DESU_BE_DATE_ASSIGNATION");
+        assertThat(prompt).as("F217_DATE_MARIAGE doit être dans le prompt questions").contains("F217_DATE_MARIAGE");
+        assertThat(prompt).as("F217_DATE_NOTIFICATION_PROJET doit être dans le prompt questions").contains("F217_DATE_NOTIFICATION_PROJET");
+        assertThat(prompt).as("Annotation BELGIQUE UNIQUEMENT requise pour codes famille BE").contains("BELGIQUE UNIQUEMENT");
+        // Non-régression
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("BE_CHOIX_AVOCAT");
+    }
+
+    // U-SF-250-10-02 : le prompt questions immigration-FR contient IM21_DATE_NOTIFICATION_PLACEMENT, IM22_*, IM23_*
+    @Test
+    void systemPrompt_containsJldDublinCrrvCriteraCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM21_DATE_NOTIFICATION_PLACEMENT doit être dans le prompt questions").contains("IM21_DATE_NOTIFICATION_PLACEMENT");
+        assertThat(prompt).as("IM21_PLACEMENT_CRA doit être dans le prompt questions").contains("IM21_PLACEMENT_CRA");
+        assertThat(prompt).as("IM21_MOTIF_PLACEMENT doit être dans le prompt questions").contains("IM21_MOTIF_PLACEMENT");
+        assertThat(prompt).as("IM22_DATE_NOTIFICATION_DUBLIN doit être dans le prompt questions").contains("IM22_DATE_NOTIFICATION_DUBLIN");
+        assertThat(prompt).as("IM23_DATE_NOTIFICATION_REFUS doit être dans le prompt questions").contains("IM23_DATE_NOTIFICATION_REFUS");
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise pour codes JLD/Dublin/CRRV").contains("FRANCE UNIQUEMENT");
+        // Non-régression codes immigration FR existants dans AiQuestionService
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).contains("IM11_TITRE_ACTUEL");
+    }
+
+    // U-SF-250-10-03 : le prompt questions famille-FR contient codes filiation, adoption, réserve, rapport
+    @Test
+    void systemPrompt_containsFiliationAdoptionReserveCriteraCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        // Reconnaissance + contestation + recherche paternité
+        assertThat(prompt).as("CONSENTEMENT_LIBRE doit être dans le prompt questions").contains("CONSENTEMENT_LIBRE");
+        assertThat(prompt).as("PATERNITE_VRAISEMBLABLE doit être dans le prompt questions").contains("PATERNITE_VRAISEMBLABLE");
+        assertThat(prompt).as("CONTESTATION_PATERNITE_MOTIFS_SERIEUX doit être dans le prompt questions").contains("CONTESTATION_PATERNITE_MOTIFS_SERIEUX");
+        assertThat(prompt).as("CONTESTATION_PATERNITE_EXPERTISE_ADN doit être dans le prompt questions").contains("CONTESTATION_PATERNITE_EXPERTISE_ADN");
+        assertThat(prompt).as("CONTESTATION_PATERNITE_POSSESSION_ETAT doit être dans le prompt questions").contains("CONTESTATION_PATERNITE_POSSESSION_ETAT");
+        assertThat(prompt).as("RECHERCHE_PATERNITE_POSSESSION_ETAT doit être dans le prompt questions").contains("RECHERCHE_PATERNITE_POSSESSION_ETAT");
+        assertThat(prompt).as("RECHERCHE_PATERNITE_EXPERTISE_ADN doit être dans le prompt questions").contains("RECHERCHE_PATERNITE_EXPERTISE_ADN");
+        assertThat(prompt).as("RECHERCHE_PATERNITE_REFUS_ADN doit être dans le prompt questions").contains("RECHERCHE_PATERNITE_REFUS_ADN");
+        assertThat(prompt).as("RECHERCHE_PATERNITE_MOTIFS_SERIEUX doit être dans le prompt questions").contains("RECHERCHE_PATERNITE_MOTIFS_SERIEUX");
+        // Possession d'état
+        assertThat(prompt).as("POSSESSION_ETAT_TRACTATUS doit être dans le prompt questions").contains("POSSESSION_ETAT_TRACTATUS");
+        assertThat(prompt).as("POSSESSION_ETAT_FAMA doit être dans le prompt questions").contains("POSSESSION_ETAT_FAMA");
+        assertThat(prompt).as("POSSESSION_ETAT_CONTINUE doit être dans le prompt questions").contains("POSSESSION_ETAT_CONTINUE");
+        assertThat(prompt).as("POSSESSION_ETAT_PAISIBLE doit être dans le prompt questions").contains("POSSESSION_ETAT_PAISIBLE");
+        assertThat(prompt).as("POSSESSION_ETAT_NON_EQUIVOQUE doit être dans le prompt questions").contains("POSSESSION_ETAT_NON_EQUIVOQUE");
+        // Adoption
+        assertThat(prompt).as("ADOPTION_FORME doit être dans le prompt questions").contains("ADOPTION_FORME");
+        assertThat(prompt).as("ADOPTION_PUPILLE_ETAT doit être dans le prompt questions").contains("ADOPTION_PUPILLE_ETAT");
+        assertThat(prompt).as("ADOPTION_ADOPTANT_MARIE doit être dans le prompt questions").contains("ADOPTION_ADOPTANT_MARIE");
+        assertThat(prompt).as("ADOPTION_AGE_ADOPTANT doit être dans le prompt questions").contains("ADOPTION_AGE_ADOPTANT");
+        assertThat(prompt).as("ADOPTION_AGE_ADOPTE doit être dans le prompt questions").contains("ADOPTION_AGE_ADOPTE");
+        // Réserve héréditaire + rapport à succession
+        assertThat(prompt).as("RESERVE_CONJOINT_SURVIVANT doit être dans le prompt questions").contains("RESERVE_CONJOINT_SURVIVANT");
+        assertThat(prompt).as("RAPPORT_QUALITE_HERITIER doit être dans le prompt questions").contains("RAPPORT_QUALITE_HERITIER");
+        assertThat(prompt).as("RAPPORT_DONATION_NOMINALE doit être dans le prompt questions").contains("RAPPORT_DONATION_NOMINALE");
+        assertThat(prompt).as("RAPPORT_VALEUR_PARTAGE doit être dans le prompt questions").contains("RAPPORT_VALEUR_PARTAGE");
+        assertThat(prompt).as("RAPPORT_DATE_DONATION doit être dans le prompt questions").contains("RAPPORT_DATE_DONATION");
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise pour codes filiation").contains("FRANCE UNIQUEMENT");
+        // Non-régression SF-250-09
+        assertThat(prompt).contains("TESTAMENT_FORME");
+        assertThat(prompt).contains("FA25_DATE_CERTIFICAT");
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+    }
+
     // SF-250-04 — Remédiation critereCode lot Travail BE + F-136
 
     // U-SF-250-04-01 : le prompt questions travail contient les codes CREDIT_TEMPS_* annotés BELGIQUE UNIQUEMENT
