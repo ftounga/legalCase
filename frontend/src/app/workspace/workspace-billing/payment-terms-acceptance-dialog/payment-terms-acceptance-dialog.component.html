@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>
+  @if (data.type === 'SUBSCRIPTION') {
+    Confirmer la souscription au plan {{ data.planLabel }}
+  } @else {
+    Confirmer l'achat de {{ data.planLabel }}
+  }
+</h2>
+
+<mat-dialog-content>
+  @if (data.type === 'SUBSCRIPTION') {
+    <p>
+      En souscrivant ce plan (<strong>{{ data.price }}/mois</strong>), j'accepte :
+    </p>
+  } @else {
+    <p>
+      En achetant {{ data.planLabel }} pour <strong>{{ data.price }}</strong>, j'accepte :
+    </p>
+  }
+
+  <ul class="terms-list">
+    <li>
+      les <a href="/cgu" target="_blank" rel="noopener">Conditions Générales d'Utilisation</a>
+    </li>
+    <li>
+      la <a href="/privacy" target="_blank" rel="noopener">politique de confidentialité</a>
+    </li>
+    <li>
+      @if (data.type === 'SUBSCRIPTION') {
+        le prélèvement récurrent mensuel via mon prestataire bancaire (Stripe).
+      } @else {
+        le prélèvement unique via mon prestataire bancaire (Stripe).
+      }
+    </li>
+  </ul>
+
+  <div class="checkbox-row">
+    <mat-checkbox [(ngModel)]="acceptedTerms">
+      J'accepte les conditions ci-dessus.
+    </mat-checkbox>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-flat-button color="primary"
+    [disabled]="!acceptedTerms"
+    (click)="confirm()">
+    Confirmer et payer
+  </button>
+</mat-dialog-actions>

@@ -3,7 +3,7 @@
  */
 
 /** Types de consentement reconnus par le backend (POST /api/v1/consent/accept). */
-export type ConsentType = 'SIGNUP_TERMS' | 'PRIVACY_POLICY' | 'DPA' | 'COMMERCIAL_TERMS';
+export type ConsentType = 'SIGNUP_TERMS' | 'PRIVACY_POLICY' | 'DPA' | 'COMMERCIAL_TERMS' | 'PAYMENT_TERMS';
 
 /** Corps de requête pour POST /api/v1/consent/accept. */
 export interface ConsentAcceptanceRequest {
