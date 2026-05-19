@@ -40,10 +40,20 @@ import java.util.stream.Collectors;
  * Appelé par {@link fr.ailegalcase.document.ExtractionService} quand
  * {@code PDFTextStripper} renvoie un texte vide et que le fichier est un PDF.
  *
- * Mode synchrone API (AnalyzeDocument / FeatureType.TABLES). Contraintes AWS :
- * ≤ 5 Mo et ≤ 11 pages (limites de l'API sync). Documents plus volumineux
- * renvoient {@link ExtractionFailureReason#OCR_UNSUPPORTED_SIZE} sans appel AWS
- * (mode async via {@code StartDocumentAnalysis} = itération future, hors scope V1).
+ * Mode synchrone API (AnalyzeDocument / FeatureType.TABLES). Deux voies de
+ * traitement :
+ * <ul>
+ *   <li><b>directe</b> — un seul call Textract sur le PDF entier. Empruntée pour
+ *       les PDF dans les limites de l'API sync (≤ 5 Mo et ≤ 11 pages).</li>
+ *   <li><b>rasterisée</b> (SF-122-08) — chaque page rendue en PNG via PDFBox puis
+ *       OCR-isée séparément, sans limite intrinsèque de pages. Empruntée en
+ *       fallback sur {@code UnsupportedDocumentException} et, depuis SF-122-13,
+ *       pour les PDF hors limites directes (> 5 Mo ou > 11 pages).</li>
+ * </ul>
+ * SF-122-13 : les PDF hors limites directes sont routés vers la voie rasterisée
+ * plutôt que rejetés. Une borne haute ({@code maxRasterizedPages} /
+ * {@code maxRasterizedSizeMb}) protège du coût Textract et de la latence ; au-delà,
+ * {@link ExtractionFailureReason#OCR_UNSUPPORTED_SIZE} est renvoyé sans appel AWS.
  *
  * Toggle via {@code aws.textract.enabled} — désactivé en dev pour éviter tout
  * coût AWS.
@@ -83,11 +93,12 @@ public class OcrService {
      *
      * Ordre des checks :
      * 1. toggle {@code aws.textract.enabled}
-     * 2. taille fichier ≤ 5 Mo (AWS sync)
-     * 3. nombre de pages PDF ≤ 11 (AWS sync)
+     * 2. SF-122-13 : taille fichier < {@code maxRasterizedSizeMb} (borne haute rasterisée)
+     * 3. SF-122-13 : nombre de pages PDF ≤ {@code maxRasterizedPages} (borne haute rasterisée)
      * 4. SF-122-02 : quota mensuel + hard cap journalier du workspace
      *    (pages effectives = pdfPages × 3 si formsMode=true)
-     * 5. appel Textract (FeatureType.TABLES + FORMS si formsMode, TABLES seul sinon)
+     * 5. SF-122-13 : routage — voie directe si dans les limites sync (≤ 5 Mo et ≤ 11 pages),
+     *    sinon voie rasterisée page-par-page (FeatureType.TABLES + FORMS si formsMode, TABLES seul sinon)
      *
      * @param fileBytes   contenu binaire du fichier
      * @param workspaceId workspace du document (pour le gate quota)
@@ -102,14 +113,18 @@ public class OcrService {
         }
 
         int sizeMb = fileBytes.length / (1024 * 1024);
-        if (sizeMb >= properties.maxSizeMb()) {
-            log.info("OCR skipped — document too large ({} MB > {} MB max)", sizeMb, properties.maxSizeMb());
+        // SF-122-13 : borne haute de la voie rasterisée — au-delà, réellement trop volumineux.
+        if (sizeMb >= properties.maxRasterizedSizeMb()) {
+            log.info("OCR skipped — document too large ({} MB >= {} MB max rasterized)",
+                    sizeMb, properties.maxRasterizedSizeMb());
             return OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
         }
 
         int pdfPages = countPdfPages(fileBytes);
-        if (pdfPages > properties.maxPages()) {
-            log.info("OCR skipped — document has too many pages ({} > {} max)", pdfPages, properties.maxPages());
+        // SF-122-13 : borne haute du nombre de pages traitables même par rasterisation.
+        if (pdfPages > properties.maxRasterizedPages()) {
+            log.info("OCR skipped — document has too many pages ({} > {} max rasterized)",
+                    pdfPages, properties.maxRasterizedPages());
             return OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
         }
 
@@ -119,6 +134,14 @@ public class OcrService {
             log.info("OCR blocked — quota exceeded for workspace {} (formsMode={}, {} pages effective)",
                     workspaceId, formsMode, quotaPages);
             return OcrResult.failure(ExtractionFailureReason.OCR_QUOTA_EXCEEDED);
+        }
+
+        // SF-122-13 : routage — un PDF hors des limites de la voie directe (> 5 Mo ou > 11 pages)
+        // est traité page-par-page par rasterisation ; la voie directe Textract sync échouerait.
+        if (sizeMb >= properties.maxSizeMb() || pdfPages > properties.maxPages()) {
+            log.info("OCR routed to rasterization — document out of direct limits ({} MB, {} pages)",
+                    sizeMb, pdfPages);
+            return callTextractRasterized(fileBytes, formsMode, pdfPages);
         }
 
         try {
