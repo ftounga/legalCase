@@ -2685,4 +2685,114 @@ class CaseAnalysisResponseTest {
         assertThat(t).isNotNull();
         assertThat(t.nonConcurrenceDureeMois()).isNull();
     }
+
+    // ========================================================================
+    // SF-246-05 : pré-fill IA F-DT-29 — âge du demandeur (crédit-temps BE)
+    // ========================================================================
+
+    @Test
+    void from_travailExtractedData_ageDemandeur_present_parsed() {
+        // Cas nominal : age_demandeur_annees présent → champ renseigné.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "CP200",
+                    "age_demandeur_annees": 58
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.ageDemandeurAnnees()).isEqualTo(58);
+    }
+
+    @Test
+    void from_travailExtractedData_ageDemandeur_absent_null() {
+        // Champ absent → ageDemandeurAnnees null, pas d'exception.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "CP200",
+                    "salaire_brut_mensuel": 3200
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.ageDemandeurAnnees()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_ageDemandeur_horsPlage_null() {
+        // Garde de plage [0, 100] : âge négatif ou > 100 → null.
+        CaseAnalysis negative = analysis("""
+                {
+                  "travail_extracted_data": { "age_demandeur_annees": -1 }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(negative).travailExtractedData()
+                .ageDemandeurAnnees()).isNull();
+
+        CaseAnalysis tooLarge = analysis("""
+                {
+                  "travail_extracted_data": { "age_demandeur_annees": 120 }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(tooLarge).travailExtractedData()
+                .ageDemandeurAnnees()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_ageDemandeur_texte_null() {
+        // age_demandeur_annees en texte (ex. "cinquante-huit") → null (node non numérique).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": { "age_demandeur_annees": "cinquante-huit" }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.ageDemandeurAnnees()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_ageDemandeur_zeroPreserve() {
+        // 0 est dans la plage [0, 100] : le record le préserve tel quel. La
+        // distinction "0 ≠ inconnu" est portée par le prompt, pas par l'extracteur.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": { "age_demandeur_annees": 0 }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.ageDemandeurAnnees()).isZero();
+    }
+
+    @Test
+    void from_travailExtractedData_ageDemandeur_etAnciennete_aucuneConfusion() {
+        // Invariant cadrage §5.1.1 : un dossier mentionnant l'âge du travailleur
+        // (58 ans) ET son ancienneté (25 ans) → ageDemandeurAnnees = 58, jamais 25.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "CP200",
+                    "date_entree": "2000-01-01",
+                    "age_demandeur_annees": 58
+                  },
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT_ORDINAIRE",
+                    "anciennete_annees": 25
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.ageDemandeurAnnees()).isEqualTo(58);
+    }
 }
