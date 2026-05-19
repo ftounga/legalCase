@@ -403,6 +403,70 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("TRAVAIL_PROCEDURE_TYPE");
     }
 
+    // SF-250-08 — Remédiation critereCode lot Famille FR — divorce / union
+
+    // U-SF-250-08-01 : le prompt questions famille-FR contient DA_DUREE_MARIAGE, FA09_*, FA12_*, FA13_, FA14_*
+    @Test
+    void systemPrompt_containsDaFa09Fa12Fa13Fa14CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        assertThat(prompt).as("DA_DUREE_MARIAGE doit être dans le prompt questions").contains("DA_DUREE_MARIAGE");
+        assertThat(prompt).as("FA09_DUREE_MARIAGE doit être dans le prompt questions").contains("FA09_DUREE_MARIAGE");
+        assertThat(prompt).as("FA09_DATE_DEPOT_ASSIGNATION doit être dans le prompt questions").contains("FA09_DATE_DEPOT_ASSIGNATION");
+        assertThat(prompt).as("FA09_FAUTES_INVOQUEES doit être dans le prompt questions").contains("FA09_FAUTES_INVOQUEES");
+        assertThat(prompt).as("FA12_DATE_AUDIENCE doit être dans le prompt questions").contains("FA12_DATE_AUDIENCE");
+        assertThat(prompt).as("FA12_VIOLENCES doit être dans le prompt questions").contains("FA12_VIOLENCES");
+        assertThat(prompt).as("FA13_NB_ENFANTS doit être dans le prompt questions").contains("FA13_NB_ENFANTS");
+        assertThat(prompt).as("FA14_DATE_REQUETE doit être dans le prompt questions").contains("FA14_DATE_REQUETE");
+        assertThat(prompt).as("FA14_VIOLENCES_ALLEGUEES doit être dans le prompt questions").contains("FA14_VIOLENCES_ALLEGUEES");
+        assertThat(prompt).as("FA14_LOGEMENT_COMMUN doit être dans le prompt questions").contains("FA14_LOGEMENT_COMMUN");
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise").contains("FRANCE UNIQUEMENT");
+        // Non-régression
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("FR_CHOIX_AVOCATS");
+    }
+
+    // U-SF-250-08-02 : le prompt questions famille-FR contient FA15_, COMMUNAUTE_UNIVERSELLE_*, PARTAGE_JUDICIAIRE_*
+    @Test
+    void systemPrompt_containsFa15CommunauteUniversellePartageJudiciairCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        assertThat(prompt).as("FA15_REGIME_MATRIMONIAL doit être dans le prompt questions").contains("FA15_REGIME_MATRIMONIAL");
+        assertThat(prompt).as("COMMUNAUTE_UNIVERSELLE_CONTRAT_NOTARIE doit être dans le prompt questions").contains("COMMUNAUTE_UNIVERSELLE_CONTRAT_NOTARIE");
+        assertThat(prompt).as("COMMUNAUTE_UNIVERSELLE_ENFANTS_NON_COMMUNS doit être dans le prompt questions").contains("COMMUNAUTE_UNIVERSELLE_ENFANTS_NON_COMMUNS");
+        assertThat(prompt).as("PARTAGE_JUDICIAIRE_PV doit être dans le prompt questions").contains("PARTAGE_JUDICIAIRE_PV");
+        assertThat(prompt).as("PARTAGE_JUDICIAIRE_TENTATIVE_AMIABLE doit être dans le prompt questions").contains("PARTAGE_JUDICIAIRE_TENTATIVE_AMIABLE");
+        // Non-régression
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("DA_DUREE_MARIAGE");
+    }
+
+    // U-SF-250-08-03 : le prompt questions famille-FR contient FA19_* (13 codes), FA20_*, FA21_, FA22_*
+    @Test
+    void systemPrompt_containsFa19Fa20Fa21Fa22CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        assertThat(prompt).as("FA19_REGIME_EXERCICE_ACTUEL doit être dans le prompt questions").contains("FA19_REGIME_EXERCICE_ACTUEL");
+        assertThat(prompt).as("FA19_DANGER_CARACTERISE doit être dans le prompt questions").contains("FA19_DANGER_CARACTERISE");
+        assertThat(prompt).as("FA19_CONSENTEMENT_AUTRE_PARENT doit être dans le prompt questions").contains("FA19_CONSENTEMENT_AUTRE_PARENT");
+        assertThat(prompt).as("FA19_INTERFERENCE_VIE_ENFANT doit être dans le prompt questions").contains("FA19_INTERFERENCE_VIE_ENFANT");
+        assertThat(prompt).as("FA19_AGE_ENFANTS doit être dans le prompt questions").contains("FA19_AGE_ENFANTS");
+        assertThat(prompt).as("FA19_RAISON_CHANGEMENT doit être dans le prompt questions").contains("FA19_RAISON_CHANGEMENT");
+        assertThat(prompt).as("FA19_INFORME_PREALABLEMENT doit être dans le prompt questions").contains("FA19_INFORME_PREALABLEMENT");
+        assertThat(prompt).as("FA19_MODE_RESIDENCE_ACTUEL doit être dans le prompt questions").contains("FA19_MODE_RESIDENCE_ACTUEL");
+        assertThat(prompt).as("FA19_DOMAINE_DESACCORD doit être dans le prompt questions").contains("FA19_DOMAINE_DESACCORD");
+        assertThat(prompt).as("FA19_INTENSITE_DESACCORD doit être dans le prompt questions").contains("FA19_INTENSITE_DESACCORD");
+        assertThat(prompt).as("FA19_TENTATIVES_MEDIATION doit être dans le prompt questions").contains("FA19_TENTATIVES_MEDIATION");
+        assertThat(prompt).as("FA19_AGE_ENFANTS_CONCERNES doit être dans le prompt questions").contains("FA19_AGE_ENFANTS_CONCERNES");
+        assertThat(prompt).as("FA19_URGENCE doit être dans le prompt questions").contains("FA19_URGENCE");
+        assertThat(prompt).as("FA20_MODE_DISSOLUTION doit être dans le prompt questions").contains("FA20_MODE_DISSOLUTION");
+        assertThat(prompt).as("FA20_REGIME_BIENS doit être dans le prompt questions").contains("FA20_REGIME_BIENS");
+        assertThat(prompt).as("FA20_CREANCES_ALLEGUEES doit être dans le prompt questions").contains("FA20_CREANCES_ALLEGUEES");
+        assertThat(prompt).as("FA21_DATE_JUGEMENT_SEPARATION doit être dans le prompt questions").contains("FA21_DATE_JUGEMENT_SEPARATION");
+        assertThat(prompt).as("FA22_DATE_ORIGINE doit être dans le prompt questions").contains("FA22_DATE_ORIGINE");
+        assertThat(prompt).as("FA22_OCCUPATION doit être dans le prompt questions").contains("FA22_OCCUPATION");
+        // Non-régression
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("FA15_REGIME_MATRIMONIAL");
+    }
+
     // SF-250-04 — Remédiation critereCode lot Travail BE + F-136
 
     // U-SF-250-04-01 : le prompt questions travail contient les codes CREDIT_TEMPS_* annotés BELGIQUE UNIQUEMENT
