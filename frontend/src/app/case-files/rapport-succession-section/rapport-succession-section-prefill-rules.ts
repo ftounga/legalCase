@@ -6,14 +6,10 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 export type QualiteHeritierRapport = 'DESCENDANT' | 'CONJOINT_SURVIVANT';
 
-type Ai = Partial<FamilleExtractedData> & {
-  qualiteHeritierRapportDetectee?: string | null;
-  montantDonationsRecuesEurDetecte?: number | null;
-  valeurDonationAuJourPartageEurDetectee?: number | null;
-  dateDonationDetectee?: string | null;
-  donationDispenseDeRapportDetected?: boolean | null;
-  naturePresumeeNonRapportableDetected?: boolean | null;
-};
+// SF-246-06 : les champs successions/libéralités sont désormais tous portés par le
+// record backend `FamilleExtractedData` (chaîne `succession_detection` branchée) —
+// plus de type d'intersection aspirationnel.
+type Ai = Partial<FamilleExtractedData>;
 
 export interface RapportSuccessionPrefillInput {
   aiData?: Ai | null;

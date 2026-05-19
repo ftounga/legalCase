@@ -5,12 +5,10 @@
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
-type Ai = Partial<FamilleExtractedData> & {
-  conjointSurvivantDetected?: boolean | null;
-  nbDescendantsDetecte?: number | null;
-  tousDescendantsCommunsAvecConjointDetected?: boolean | null;
-  nbFreresSoeursDetecte?: number | null;
-};
+// SF-246-06 : les champs successions/libéralités sont désormais tous portés par le
+// record backend `FamilleExtractedData` (chaîne `succession_detection` branchée) —
+// plus de type d'intersection aspirationnel.
+type Ai = Partial<FamilleExtractedData>;
 
 export interface DevolutionLegalePrefillInput {
   aiData?: Ai | null;

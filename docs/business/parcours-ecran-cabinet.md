@@ -44,7 +44,7 @@ La configuration cabinet n'a pas d'« état terminal » unique — c'est un ense
 
 Le désabonnement des emails non-transactionnels n'est **pas un écran applicatif** : c'est un parcours déclenché depuis la boîte mail de l'avocat.
 
-1. L'avocat reçoit un email non-transactionnel (séquence d'onboarding F-73, newsletter mensuelle M-26).
+1. L'avocat reçoit un email non-transactionnel (séquence d'onboarding F-73, newsletter mensuelle).
 2. Il clique sur « Se désinscrire » dans le pied de l'email.
 3. Le navigateur ouvre la **page publique `/unsubscribe?token=…`** (hors `ShellComponent`, sans login).
 4. La page confirme l'action et reste **bidirectionnelle** (réabonnement possible avec le même token).

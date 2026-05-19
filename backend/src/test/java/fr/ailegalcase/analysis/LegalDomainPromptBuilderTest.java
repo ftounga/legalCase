@@ -242,6 +242,65 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("FRANCE, TOUS ces 5 flags BE DOIVENT rester false");
     }
 
+    // SF-246-06 : prompt Famille enrichi du sous-objet succession_detection
+    // (16 champs successions / libéralités pour le pré-fill des 8 outils F-FA-24).
+    @Test
+    void domainSpecificInstruction_famille_containsSuccessionDetectionSubObject() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("succession_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_successionDetection_containsSixteenKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Les 16 clés du sous-objet succession_detection.
+        assertThat(instruction).contains("\"date_deces\"");
+        assertThat(instruction).contains("\"date_ouverture_succession\"");
+        assertThat(instruction).contains("\"mode_partage_demande\"");
+        assertThat(instruction).contains("\"nombre_coheritiers\"");
+        assertThat(instruction).contains("\"montant_succession_eur\"");
+        assertThat(instruction).contains("\"montant_liberalites_total_eur\"");
+        assertThat(instruction).contains("\"nombre_enfants_succession\"");
+        assertThat(instruction).contains("\"date_donation\"");
+        assertThat(instruction).contains("\"montant_donations_recues_eur\"");
+        assertThat(instruction).contains("\"valeur_donation_au_jour_partage_eur\"");
+        assertThat(instruction).contains("\"actif_brut_succession_eur\"");
+        assertThat(instruction).contains("\"passif_succession_eur\"");
+        assertThat(instruction).contains("\"type_indivision_successorale\"");
+        assertThat(instruction).contains("\"nb_descendants\"");
+        assertThat(instruction).contains("\"nb_freres_soeurs\"");
+        assertThat(instruction).contains("\"date_redaction_testament\"");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_successionDetection_distinguishesDates() {
+        // Le prompt nomme explicitement les 4 concepts de date pour éviter la confusion.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("QUATRE concepts distincts");
+        assertThat(instruction).contains("Date du décès du de cujus");
+        assertThat(instruction).contains("Date d'ouverture de la succession");
+        assertThat(instruction).contains("Date de l'acte de donation");
+        assertThat(instruction).contains("Date de rédaction du testament");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_successionDetection_imposesNullOutsideFrance() {
+        // Le sous-objet doit rester null hors FR et hors certitude.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("famille BELGIQUE, ce sous-objet DOIT rester null");
+        assertThat(instruction).contains("null plutôt qu'une valeur approximative");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_successionDetection_documentsEnumWhitelists() {
+        // Énumérations strictes mode_partage_demande / type_indivision_successorale.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("\"AMIABLE\"");
+        assertThat(instruction).contains("\"JUDICIAIRE\"");
+        assertThat(instruction).contains("\"LEGALE\"");
+        assertThat(instruction).contains("\"CONVENTIONNELLE\"");
+    }
+
     // F-205 SF-205-01 : prompt Travail enrichi de 23 flags additionnels FR
     @Test
     void domainSpecificInstruction_travail_contains23F205Flags() {
@@ -339,5 +398,33 @@ class LegalDomainPromptBuilderTest {
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
         assertThat(instruction).contains("clause_non_concurrence_detail");
         assertThat(instruction).contains("FRANCE UNIQUEMENT");
+    }
+
+    // SF-246-05 : prompt Travail enrichi de la clé age_demandeur_annees
+    // (pré-fill F-DT-29, crédit-temps fin de carrière, BELGIQUE uniquement).
+    @Test
+    void domainSpecificInstruction_travail_containsAgeDemandeurAnneesKey() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("age_demandeur_annees");
+        // Définition juridique non ambiguë.
+        assertThat(instruction).contains("ANNÉES RÉVOLUES");
+        assertThat(instruction).contains("crédit-temps fin de carrière");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_ageDemandeur_distingueDeLAnciennete() {
+        // Invariant cadrage §5.1.1 : l'âge doit être explicitement distingué de
+        // l'ancienneté et de toute durée du dossier.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("age_demandeur_annees");
+        assertThat(instruction).contains("NE PAS confondre avec l'ancienneté");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_ageDemandeur_explicitlyExcludeFR() {
+        // Le champ est BE uniquement — null pour un dossier travail français.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("age_demandeur_annees");
+        assertThat(instruction).contains("BELGIQUE UNIQUEMENT");
     }
 }

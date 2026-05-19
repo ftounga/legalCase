@@ -5,12 +5,10 @@
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { FormeDonation } from '../../core/models/donation.model';
 
-type Ai = Partial<FamilleExtractedData> & {
-  formeDonationDetectee?: string | null;
-  dateDonationDetectee?: string | null;
-  saineDEspritDonateurDetected?: boolean | null;
-  respectQuotiteDisponibleDetected?: boolean | null;
-};
+// SF-246-06 : les champs successions/libéralités sont désormais tous portés par le
+// record backend `FamilleExtractedData` (chaîne `succession_detection` branchée) —
+// plus de type d'intersection aspirationnel.
+type Ai = Partial<FamilleExtractedData>;
 
 export interface DonationPrefillInput {
   aiData?: Ai | null;

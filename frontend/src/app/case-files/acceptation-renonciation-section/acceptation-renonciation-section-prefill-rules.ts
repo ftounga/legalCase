@@ -9,14 +9,10 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 export const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 export type QualiteHeritierRang = 'PREMIER_RANG' | 'SECOND_RANG';
 
-type Ai = Partial<FamilleExtractedData> & {
-  dateOuvertureSuccessionDetectee?: string | null;
-  actifBrutSuccessionEurDetecte?: number | null;
-  passifSuccessionEurDetecte?: number | null;
-  qualiteHeritierDetectee?: string | null;
-  actesEquivalentAcceptationDejaPosesDetected?: boolean | null;
-  dettesIncertainesDetected?: boolean | null;
-};
+// SF-246-06 : les champs successions/libéralités sont désormais tous portés par le
+// record backend `FamilleExtractedData` (chaîne `succession_detection` branchée) —
+// plus de type d'intersection aspirationnel.
+type Ai = Partial<FamilleExtractedData>;
 
 export interface AcceptationRenonciationPrefillInput {
   aiData?: Ai | null;
