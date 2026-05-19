@@ -2367,6 +2367,358 @@ class CaseAnalysisResponseTest {
     }
 
     // ========================================================================
+    // SF-246-06 : pré-fill IA F-FA-24 — sous-objet succession_detection
+    // (16 champs successions / libéralités, Famille FR uniquement)
+    // ========================================================================
+
+    @Test
+    void extractFamilleData_successionDetection_nominalCase_allSixteenFields() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "date_deces": "2025-03-01",
+                      "date_ouverture_succession": "2025-03-02",
+                      "mode_partage_demande": "JUDICIAIRE",
+                      "nombre_coheritiers": 3,
+                      "montant_succession_eur": 420000.0,
+                      "montant_liberalites_total_eur": 60000.0,
+                      "nombre_enfants_succession": 2,
+                      "date_donation": "2018-06-12",
+                      "montant_donations_recues_eur": 30000.0,
+                      "valeur_donation_au_jour_partage_eur": 45000.0,
+                      "actif_brut_succession_eur": 480000.0,
+                      "passif_succession_eur": 60000.0,
+                      "type_indivision_successorale": "LEGALE",
+                      "nb_descendants": 2,
+                      "nb_freres_soeurs": 0,
+                      "date_redaction_testament": "2020-09-30"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isEqualTo("2025-03-01");
+        assertThat(f.dateOuvertureSuccessionDetectee()).isEqualTo("2025-03-02");
+        assertThat(f.modePartageDemandeDetecte()).isEqualTo("JUDICIAIRE");
+        assertThat(f.nombreCoheritiersDetecte()).isEqualTo(3);
+        assertThat(f.montantSuccessionEurDetecte()).isEqualTo(420000.0);
+        assertThat(f.montantLibsTotalEurDetecte()).isEqualTo(60000.0);
+        assertThat(f.nombreEnfantsSuccessionDetecte()).isEqualTo(2);
+        assertThat(f.dateDonationDetectee()).isEqualTo("2018-06-12");
+        assertThat(f.montantDonationsRecuesEurDetecte()).isEqualTo(30000.0);
+        assertThat(f.valeurDonationAuJourPartageEurDetectee()).isEqualTo(45000.0);
+        assertThat(f.actifBrutSuccessionEurDetecte()).isEqualTo(480000.0);
+        assertThat(f.passifSuccessionEurDetecte()).isEqualTo(60000.0);
+        assertThat(f.typeIndivisionSuccessoraleDetecte()).isEqualTo("LEGALE");
+        assertThat(f.nbDescendantsDetecte()).isEqualTo(2);
+        assertThat(f.nbFreresSoeursDetecte()).isEqualTo(0);
+        assertThat(f.dateRedactionTestamentDetectee()).isEqualTo("2020-09-30");
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_absent_allSixteenFieldsNull() throws Exception {
+        // Sous-objet succession_detection absent → 16 champs null, pas d'exception.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isNull();
+        assertThat(f.dateOuvertureSuccessionDetectee()).isNull();
+        assertThat(f.modePartageDemandeDetecte()).isNull();
+        assertThat(f.nombreCoheritiersDetecte()).isNull();
+        assertThat(f.montantSuccessionEurDetecte()).isNull();
+        assertThat(f.montantLibsTotalEurDetecte()).isNull();
+        assertThat(f.nombreEnfantsSuccessionDetecte()).isNull();
+        assertThat(f.dateDonationDetectee()).isNull();
+        assertThat(f.montantDonationsRecuesEurDetecte()).isNull();
+        assertThat(f.valeurDonationAuJourPartageEurDetectee()).isNull();
+        assertThat(f.actifBrutSuccessionEurDetecte()).isNull();
+        assertThat(f.passifSuccessionEurDetecte()).isNull();
+        assertThat(f.typeIndivisionSuccessoraleDetecte()).isNull();
+        assertThat(f.nbDescendantsDetecte()).isNull();
+        assertThat(f.nbFreresSoeursDetecte()).isNull();
+        assertThat(f.dateRedactionTestamentDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_null_allSixteenFieldsNull() throws Exception {
+        // Sous-objet explicitement null (cas LLM ne détecte aucune succession).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isNull();
+        assertThat(f.modePartageDemandeDetecte()).isNull();
+        assertThat(f.montantSuccessionEurDetecte()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_recordBuiltWhenOnlySuccessionDetectionPresent() throws Exception {
+        // Garde-fou : si le seul contenu peuplé est succession_detection (tous les
+        // flags false, pas de date d'accord divorce), le record DOIT être construit.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_detection": {
+                      "date_deces": "2025-03-01"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isEqualTo("2025-03-01");
+        assertThat(f.successionEnvisagee()).isFalse();
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_nonIsoDate_failsOpenToNull() throws Exception {
+        // Dates hors ISO YYYY-MM-DD → null (fail-open via isoDateOrNull).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "date_deces": "01/03/2025",
+                      "date_ouverture_succession": "mars 2025",
+                      "date_donation": "2018-6-12",
+                      "date_redaction_testament": "2020-09-30"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isNull();
+        assertThat(f.dateOuvertureSuccessionDetectee()).isNull();
+        assertThat(f.dateDonationDetectee()).isNull();
+        // Seule la date ISO valide est conservée.
+        assertThat(f.dateRedactionTestamentDetectee()).isEqualTo("2020-09-30");
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_nonPositiveAmounts_failOpenToNull() throws Exception {
+        // Montants <= 0 ou aberrants → null (jamais 0 — invariant cadrage §5.2).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "montant_succession_eur": 0,
+                      "montant_liberalites_total_eur": -5000,
+                      "montant_donations_recues_eur": 30000.0,
+                      "actif_brut_succession_eur": 0.0,
+                      "passif_succession_eur": -1
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.montantSuccessionEurDetecte()).isNull();
+        assertThat(f.montantLibsTotalEurDetecte()).isNull();
+        assertThat(f.actifBrutSuccessionEurDetecte()).isNull();
+        assertThat(f.passifSuccessionEurDetecte()).isNull();
+        // Seul le montant strictement positif est conservé.
+        assertThat(f.montantDonationsRecuesEurDetecte()).isEqualTo(30000.0);
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_countsOutOfRange_failOpenToNull() throws Exception {
+        // Dénombrements hors [0, 50] → null (boundedIntOrNull).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "nombre_coheritiers": -1,
+                      "nombre_enfants_succession": 51,
+                      "nb_descendants": 3,
+                      "nb_freres_soeurs": 999
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.nombreCoheritiersDetecte()).isNull();
+        assertThat(f.nombreEnfantsSuccessionDetecte()).isNull();
+        assertThat(f.nbFreresSoeursDetecte()).isNull();
+        // Seul le dénombrement dans la plage est conservé.
+        assertThat(f.nbDescendantsDetecte()).isEqualTo(3);
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_enumsOutOfWhitelist_failOpenToNull() throws Exception {
+        // mode_partage_demande / type_indivision_successorale hors whitelist → null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "mode_partage_demande": "PARTIEL",
+                      "type_indivision_successorale": "MAINTIEN_FORCE"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.modePartageDemandeDetecte()).isNull();
+        assertThat(f.typeIndivisionSuccessoraleDetecte()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_enumsCaseInsensitiveAndTrimmed() throws Exception {
+        // Énumérations normalisées en MAJUSCULES + trim (whitelistedOrNull).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "mode_partage_demande": "  amiable  ",
+                      "type_indivision_successorale": "Conventionnelle"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.modePartageDemandeDetecte()).isEqualTo("AMIABLE");
+        assertThat(f.typeIndivisionSuccessoraleDetecte()).isEqualTo("CONVENTIONNELLE");
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_multiDates_noConfusion() throws Exception {
+        // Invariant cadrage §5.1.6 : 4 dates distinctes (décès, ouverture, donation
+        // antérieure, testament) → chaque champ rempli avec la BONNE date.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "date_deces": "2025-03-01",
+                      "date_ouverture_succession": "2025-03-01",
+                      "date_donation": "2018-06-12",
+                      "date_redaction_testament": "2020-09-30"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isEqualTo("2025-03-01");
+        assertThat(f.dateOuvertureSuccessionDetectee()).isEqualTo("2025-03-01");
+        assertThat(f.dateDonationDetectee()).isEqualTo("2018-06-12");
+        assertThat(f.dateRedactionTestamentDetectee()).isEqualTo("2020-09-30");
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_multiAmounts_noConfusion() throws Exception {
+        // 4 montants distincts (actif brut, passif, succession, libéralités) → chacun
+        // dans le bon champ.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "actif_brut_succession_eur": 480000.0,
+                      "passif_succession_eur": 60000.0,
+                      "montant_succession_eur": 420000.0,
+                      "montant_liberalites_total_eur": 90000.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.actifBrutSuccessionEurDetecte()).isEqualTo(480000.0);
+        assertThat(f.passifSuccessionEurDetecte()).isEqualTo(60000.0);
+        assertThat(f.montantSuccessionEurDetecte()).isEqualTo(420000.0);
+        assertThat(f.montantLibsTotalEurDetecte()).isEqualTo(90000.0);
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_belgianCase_recordNullWhenNothingElse() throws Exception {
+        // Dossier BE : le prompt impose succession_detection null → si aucun flag BE
+        // ni date d'accord, le record reste null (pas de fabrication de champs FR).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionDetection_notAnObject_failsOpenToNull() throws Exception {
+        // succession_detection mal typé (chaîne) → traité comme absent, 16 champs null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": "oui"
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDecesDetectee()).isNull();
+        assertThat(f.nombreCoheritiersDetecte()).isNull();
+    }
+
+    @Test
+    void from_familleExtractedData_successionDetection_endToEndThroughFrom() {
+        // Parcours complet via from() — la synthèse expose succession_detection peuplé.
+        var f = CaseAnalysisResponse.from(analysis("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection": {
+                      "date_ouverture_succession": "2025-03-01",
+                      "nombre_coheritiers": 4,
+                      "montant_succession_eur": 250000.0
+                    }
+                  }
+                }
+                """)).familleExtractedData();
+        assertThat(f).isNotNull();
+        assertThat(f.dateOuvertureSuccessionDetectee()).isEqualTo("2025-03-01");
+        assertThat(f.nombreCoheritiersDetecte()).isEqualTo(4);
+        assertThat(f.montantSuccessionEurDetecte()).isEqualTo(250000.0);
+    }
+
+    // ========================================================================
     // SF-246-01 : pré-fill IA F-DT-36 — bloc procedure_licenciement_detection
     // ========================================================================
 

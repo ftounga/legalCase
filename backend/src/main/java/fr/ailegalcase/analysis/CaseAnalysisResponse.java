@@ -886,7 +886,31 @@ public record CaseAnalysisResponse(
             // OU de la convention préalable (BE — DC art. 1287+ CJ). Format ISO YYYY-MM-DD.
             // Utilisé par F-FA-07 checklist divorce pour pré-cocher les étapes "Signature
             // convention FR" + "Rédaction convention BE" (helper divorce-checklist-section-prefill-rules).
-            String dateAcceptationPV) {
+            String dateAcceptationPV,
+            // SF-246-06 : 16 champs IA successions/libéralités pour pré-fill des
+            // 8 outils décisionnels F-FA-24 (partage-successoral, reserve-heriditaire,
+            // rapport-succession, acceptation-renonciation, indivision-successorale,
+            // devolution-legale, donation, testament-validite). Famille FR uniquement,
+            // tous nullables — le prompt impose null hors FR / hors certitude.
+            // Sous-objet IA source : `famille_extracted_data.succession_detection`.
+            // `dateDecesDetectee` ≠ `dateOuvertureSuccessionDetectee` : concepts
+            // juridiquement distincts (cadrage §5.1.1), souvent identiques en pratique.
+            String dateDecesDetectee,
+            String dateOuvertureSuccessionDetectee,
+            String modePartageDemandeDetecte,
+            Integer nombreCoheritiersDetecte,
+            Double montantSuccessionEurDetecte,
+            Double montantLibsTotalEurDetecte,
+            Integer nombreEnfantsSuccessionDetecte,
+            String dateDonationDetectee,
+            Double montantDonationsRecuesEurDetecte,
+            Double valeurDonationAuJourPartageEurDetectee,
+            Double actifBrutSuccessionEurDetecte,
+            Double passifSuccessionEurDetecte,
+            String typeIndivisionSuccessoraleDetecte,
+            Integer nbDescendantsDetecte,
+            Integer nbFreresSoeursDetecte,
+            String dateRedactionTestamentDetectee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -937,6 +961,23 @@ public record CaseAnalysisResponse(
             private boolean kafalaRecueilDetecte;
             // F-239 : string fields
             private String dateAcceptationPV;
+            // SF-246-06 : 16 champs IA successions/libéralités (F-FA-24), nullables.
+            private String dateDecesDetectee;
+            private String dateOuvertureSuccessionDetectee;
+            private String modePartageDemandeDetecte;
+            private Integer nombreCoheritiersDetecte;
+            private Double montantSuccessionEurDetecte;
+            private Double montantLibsTotalEurDetecte;
+            private Integer nombreEnfantsSuccessionDetecte;
+            private String dateDonationDetectee;
+            private Double montantDonationsRecuesEurDetecte;
+            private Double valeurDonationAuJourPartageEurDetectee;
+            private Double actifBrutSuccessionEurDetecte;
+            private Double passifSuccessionEurDetecte;
+            private String typeIndivisionSuccessoraleDetecte;
+            private Integer nbDescendantsDetecte;
+            private Integer nbFreresSoeursDetecte;
+            private String dateRedactionTestamentDetectee;
 
             private Builder() {}
 
@@ -977,6 +1018,23 @@ public record CaseAnalysisResponse(
             public Builder pacteSuccessoralEnvisage(boolean v) { this.pacteSuccessoralEnvisage = v; return this; }
             public Builder kafalaRecueilDetecte(boolean v) { this.kafalaRecueilDetecte = v; return this; }
             public Builder dateAcceptationPV(String v) { this.dateAcceptationPV = v; return this; }
+            // SF-246-06 : setters des 16 champs IA successions/libéralités.
+            public Builder dateDecesDetectee(String v) { this.dateDecesDetectee = v; return this; }
+            public Builder dateOuvertureSuccessionDetectee(String v) { this.dateOuvertureSuccessionDetectee = v; return this; }
+            public Builder modePartageDemandeDetecte(String v) { this.modePartageDemandeDetecte = v; return this; }
+            public Builder nombreCoheritiersDetecte(Integer v) { this.nombreCoheritiersDetecte = v; return this; }
+            public Builder montantSuccessionEurDetecte(Double v) { this.montantSuccessionEurDetecte = v; return this; }
+            public Builder montantLibsTotalEurDetecte(Double v) { this.montantLibsTotalEurDetecte = v; return this; }
+            public Builder nombreEnfantsSuccessionDetecte(Integer v) { this.nombreEnfantsSuccessionDetecte = v; return this; }
+            public Builder dateDonationDetectee(String v) { this.dateDonationDetectee = v; return this; }
+            public Builder montantDonationsRecuesEurDetecte(Double v) { this.montantDonationsRecuesEurDetecte = v; return this; }
+            public Builder valeurDonationAuJourPartageEurDetectee(Double v) { this.valeurDonationAuJourPartageEurDetectee = v; return this; }
+            public Builder actifBrutSuccessionEurDetecte(Double v) { this.actifBrutSuccessionEurDetecte = v; return this; }
+            public Builder passifSuccessionEurDetecte(Double v) { this.passifSuccessionEurDetecte = v; return this; }
+            public Builder typeIndivisionSuccessoraleDetecte(String v) { this.typeIndivisionSuccessoraleDetecte = v; return this; }
+            public Builder nbDescendantsDetecte(Integer v) { this.nbDescendantsDetecte = v; return this; }
+            public Builder nbFreresSoeursDetecte(Integer v) { this.nbFreresSoeursDetecte = v; return this; }
+            public Builder dateRedactionTestamentDetectee(String v) { this.dateRedactionTestamentDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -996,7 +1054,16 @@ public record CaseAnalysisResponse(
                         mediationFamilialePreSaisinePertinente,
                         divorceDcEnvisage, divorceDdiEnvisage, cohabitationLegaleBeDetectee,
                         pacteSuccessoralEnvisage, kafalaRecueilDetecte,
-                        dateAcceptationPV);
+                        dateAcceptationPV,
+                        // SF-246-06 : 16 champs IA successions/libéralités.
+                        dateDecesDetectee, dateOuvertureSuccessionDetectee,
+                        modePartageDemandeDetecte, nombreCoheritiersDetecte,
+                        montantSuccessionEurDetecte, montantLibsTotalEurDetecte,
+                        nombreEnfantsSuccessionDetecte, dateDonationDetectee,
+                        montantDonationsRecuesEurDetecte, valeurDonationAuJourPartageEurDetectee,
+                        actifBrutSuccessionEurDetecte, passifSuccessionEurDetecte,
+                        typeIndivisionSuccessoraleDetecte, nbDescendantsDetecte,
+                        nbFreresSoeursDetecte, dateRedactionTestamentDetectee);
             }
         }
     }
@@ -2243,13 +2310,50 @@ public record CaseAnalysisResponse(
         if (dateAcceptationPV == null) {
             dateAcceptationPV = extractDateAccordInitialDivorceFromTimeline(root);
         }
+        // SF-246-06 : sous-objet `succession_detection` — 16 champs IA successions/
+        // libéralités pour pré-fill des 8 outils F-FA-24. Absent → tous null
+        // (no-op gracieux des prefillFromAi() frontend). Dates via isoDateOrNull(),
+        // montants via positiveDoubleOrNull() (jamais 0 — invariant §5.2),
+        // dénombrements via boundedIntOrNull(_, _, 0, 50), énumérations via
+        // stringOrNull() + whitelist (fail-open hors énumération).
+        JsonNode sd = node.get("succession_detection");
+        boolean sdObject = sd != null && sd.isObject();
+        String dateDecesDetectee = sdObject ? isoDateOrNull(sd, "date_deces") : null;
+        String dateOuvertureSuccessionDetectee = sdObject ? isoDateOrNull(sd, "date_ouverture_succession") : null;
+        String modePartageDemandeDetecte = sdObject
+                ? whitelistedOrNull(stringOrNull(sd, "mode_partage_demande"), "AMIABLE", "JUDICIAIRE")
+                : null;
+        Integer nombreCoheritiersDetecte = sdObject ? boundedIntOrNull(sd, "nombre_coheritiers", 0, 50) : null;
+        Double montantSuccessionEurDetecte = sdObject ? positiveDoubleOrNull(sd, "montant_succession_eur") : null;
+        Double montantLibsTotalEurDetecte = sdObject ? positiveDoubleOrNull(sd, "montant_liberalites_total_eur") : null;
+        Integer nombreEnfantsSuccessionDetecte = sdObject ? boundedIntOrNull(sd, "nombre_enfants_succession", 0, 50) : null;
+        String dateDonationDetectee = sdObject ? isoDateOrNull(sd, "date_donation") : null;
+        Double montantDonationsRecuesEurDetecte = sdObject ? positiveDoubleOrNull(sd, "montant_donations_recues_eur") : null;
+        Double valeurDonationAuJourPartageEurDetectee = sdObject ? positiveDoubleOrNull(sd, "valeur_donation_au_jour_partage_eur") : null;
+        Double actifBrutSuccessionEurDetecte = sdObject ? positiveDoubleOrNull(sd, "actif_brut_succession_eur") : null;
+        Double passifSuccessionEurDetecte = sdObject ? positiveDoubleOrNull(sd, "passif_succession_eur") : null;
+        String typeIndivisionSuccessoraleDetecte = sdObject
+                ? whitelistedOrNull(stringOrNull(sd, "type_indivision_successorale"), "LEGALE", "CONVENTIONNELLE")
+                : null;
+        Integer nbDescendantsDetecte = sdObject ? boundedIntOrNull(sd, "nb_descendants", 0, 50) : null;
+        Integer nbFreresSoeursDetecte = sdObject ? boundedIntOrNull(sd, "nb_freres_soeurs", 0, 50) : null;
+        String dateRedactionTestamentDetectee = sdObject ? isoDateOrNull(sd, "date_redaction_testament") : null;
+        boolean successionDetectionPresent = dateDecesDetectee != null || dateOuvertureSuccessionDetectee != null
+                || modePartageDemandeDetecte != null || nombreCoheritiersDetecte != null
+                || montantSuccessionEurDetecte != null || montantLibsTotalEurDetecte != null
+                || nombreEnfantsSuccessionDetecte != null || dateDonationDetectee != null
+                || montantDonationsRecuesEurDetecte != null || valeurDonationAuJourPartageEurDetectee != null
+                || actifBrutSuccessionEurDetecte != null || passifSuccessionEurDetecte != null
+                || typeIndivisionSuccessoraleDetecte != null || nbDescendantsDetecte != null
+                || nbFreresSoeursDetecte != null || dateRedactionTestamentDetectee != null;
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
                 && !su && !te && !don && !rh && !ps && !iss && !rs
                 && !pm && !cec && !pmg && !mfp
                 && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil
-                && dateAcceptationPV == null) {
+                && dateAcceptationPV == null
+                && !successionDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -2295,6 +2399,40 @@ public record CaseAnalysisResponse(
                 .kafalaRecueilDetecte(kafalaRecueil)
                 // F-239 : string fields
                 .dateAcceptationPV(dateAcceptationPV)
+                // SF-246-06 : 16 champs IA successions/libéralités (F-FA-24).
+                .dateDecesDetectee(dateDecesDetectee)
+                .dateOuvertureSuccessionDetectee(dateOuvertureSuccessionDetectee)
+                .modePartageDemandeDetecte(modePartageDemandeDetecte)
+                .nombreCoheritiersDetecte(nombreCoheritiersDetecte)
+                .montantSuccessionEurDetecte(montantSuccessionEurDetecte)
+                .montantLibsTotalEurDetecte(montantLibsTotalEurDetecte)
+                .nombreEnfantsSuccessionDetecte(nombreEnfantsSuccessionDetecte)
+                .dateDonationDetectee(dateDonationDetectee)
+                .montantDonationsRecuesEurDetecte(montantDonationsRecuesEurDetecte)
+                .valeurDonationAuJourPartageEurDetectee(valeurDonationAuJourPartageEurDetectee)
+                .actifBrutSuccessionEurDetecte(actifBrutSuccessionEurDetecte)
+                .passifSuccessionEurDetecte(passifSuccessionEurDetecte)
+                .typeIndivisionSuccessoraleDetecte(typeIndivisionSuccessoraleDetecte)
+                .nbDescendantsDetecte(nbDescendantsDetecte)
+                .nbFreresSoeursDetecte(nbFreresSoeursDetecte)
+                .dateRedactionTestamentDetectee(dateRedactionTestamentDetectee)
                 .build();
+    }
+
+    /**
+     * SF-246-06 : retourne {@code value} (normalisé en MAJUSCULES, trimmé) s'il
+     * appartient à la whitelist {@code allowed}, sinon {@code null} (fail-open).
+     * Utilisé pour les énumérations IA {@code mode_partage_demande}
+     * ({@code AMIABLE}/{@code JUDICIAIRE}) et {@code type_indivision_successorale}
+     * ({@code LEGALE}/{@code CONVENTIONNELLE}) du sous-objet {@code succession_detection}.
+     */
+    private static String whitelistedOrNull(String value, String... allowed) {
+        if (value == null) return null;
+        String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
+        if (normalized.isEmpty()) return null;
+        for (String candidate : allowed) {
+            if (candidate.equals(normalized)) return normalized;
+        }
+        return null;
     }
 }
