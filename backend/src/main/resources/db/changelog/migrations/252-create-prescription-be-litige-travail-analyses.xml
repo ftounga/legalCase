@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="252-create-prescription-be-litige-travail-analyses" author="legalcase">
+        <comment>
+            SF-207-01 : table dédiée à l'outil décisionnel "Prescription Travail BE —
+            calculateur de délais" (F-207). Calculateur des délais de prescription
+            des actions du droit du travail belge.
+            Base juridique : Loi du 3 juillet 1978 art. 15 (al. 1 : 1 an post-rupture
+            pour créances ex-contrat ; al. 2 : 5 ans pour actions pendant le contrat
+            et arriérés de salaire) ; CCT 109 art. 11 (action en motivation du
+            licenciement / indemnité licenciement manifestement déraisonnable : 1 an
+            post-rupture) ; Code civil art. 2262bis (arriérés de salaire : 5 ans).
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté FR pour
+            préserver l'isolation). Aucun équivalent FR direct (L.1471-1+ Code travail
+            FR relève d'un régime distinct).
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (dateRupture, typeCreance, dateActionEnvisagee) + outputs
+            (verdict PRESCRIT/IMMINENT/NON_PRESCRIT, dateLimitePrescription,
+            joursRestants, regleAppliquee, baseJuridique, formuleCalcul, country).
+            Note : règle decision_tool_visibility_rules livrée côté frontend
+            SF-207-01b (TOOL_REGISTRY + visibility ALWAYS_ON BELGIQUE / DROIT_DU_TRAVAIL).
+        </comment>
+
+        <createTable tableName="prescription_be_litige_travail_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_prescription_be_litige_travail_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="prescription_be_litige_travail_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_prescription_be_litige_travail_case_file"/>
+
+        <createIndex tableName="prescription_be_litige_travail_analyses"
+                     indexName="idx_prescription_be_litige_travail_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="prescription_be_litige_travail_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
