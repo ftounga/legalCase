@@ -300,6 +300,45 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("RC_CONSENTEMENT");
     }
 
+    // SF-250-05 — Remédiation critereCode lot Immigration FR — OQTF / AES
+
+    // U-SF-250-05-01 : le prompt questions immigration-FR contient les codes IM08_* (OQTF + référés)
+    @Test
+    void systemPrompt_containsIm08CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM08_MOTIF_OQTF doit être dans le prompt questions").contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).as("IM08_RECOURS_FORME doit être dans le prompt questions").contains("IM08_RECOURS_FORME");
+        assertThat(prompt).as("IM08RA_DECISION_CONTESTEE doit être dans le prompt questions").contains("IM08RA_DECISION_CONTESTEE");
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise pour IM08").contains("FRANCE UNIQUEMENT");
+        // Non-régression
+        assertThat(prompt).contains("IM05_MOTIF");
+        assertThat(prompt).contains("IM06_RECOURS_TYPE");
+    }
+
+    // U-SF-250-05-02 : le prompt questions immigration-FR contient les codes IM09_* métiers tension
+    @Test
+    void systemPrompt_containsIm09MetiersCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM09_DATE_ENTREE_FRANCE doit être dans le prompt questions").contains("IM09_DATE_ENTREE_FRANCE");
+        assertThat(prompt).as("IM09_MOIS_ACTIVITE doit être dans le prompt questions").contains("IM09_MOIS_ACTIVITE");
+        // Non-régression
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+    }
+
+    // U-SF-250-05-03 : le prompt questions immigration-FR contient les codes IM09_ETU_* et IM09H_*
+    @Test
+    void systemPrompt_containsIm09EtudiantHumanitaireCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM09_ETU_DATE_ENTREE_FRANCE doit être dans le prompt questions").contains("IM09_ETU_DATE_ENTREE_FRANCE");
+        assertThat(prompt).as("IM09_ETU_DUREE_PRESENCE doit être dans le prompt questions").contains("IM09_ETU_DUREE_PRESENCE");
+        assertThat(prompt).as("IM09_ETU_DATE_DEPOT_DEMANDE doit être dans le prompt questions").contains("IM09_ETU_DATE_DEPOT_DEMANDE");
+        assertThat(prompt).as("IM09H_DATE_ENTREE_FRANCE doit être dans le prompt questions").contains("IM09H_DATE_ENTREE_FRANCE");
+        assertThat(prompt).as("IM09H_MOTIF_HUMANITAIRE doit être dans le prompt questions").contains("IM09H_MOTIF_HUMANITAIRE");
+        // Non-régression codes SF-250-04
+        assertThat(prompt).contains("CREDIT_TEMPS_ANCIENNETE");
+        assertThat(prompt).contains("TRAVAIL_PROCEDURE_TYPE");
+    }
+
     // SF-250-04 — Remédiation critereCode lot Travail BE + F-136
 
     // U-SF-250-04-01 : le prompt questions travail contient les codes CREDIT_TEMPS_* annotés BELGIQUE UNIQUEMENT
