@@ -5,6 +5,7 @@ import { WorkspaceMemberService } from '../../core/services/workspace-member.ser
 import { BillingService } from '../../core/services/billing.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { LegalConsentService } from '../../core/services/legal-consent.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
@@ -14,6 +15,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Workspace } from '../../core/models/workspace.model';
 import { SubscriptionState } from '../../core/models/subscription.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
+import { PaymentTermsAcceptanceDialogComponent } from './payment-terms-acceptance-dialog/payment-terms-acceptance-dialog.component';
 
 const mockWorkspace: Workspace = {
   id: 'ws1', name: 'Test', slug: 'test', planCode: 'SOLO', status: 'ACTIVE'
@@ -52,6 +54,7 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
   fixture: ComponentFixture<WorkspaceBillingComponent>;
   component: WorkspaceBillingComponent;
   billingServiceSpy: jest.Mocked<BillingService>;
+  legalConsentServiceSpy: jest.Mocked<LegalConsentService>;
   snackBarSpy: jest.Mocked<MatSnackBar>;
   dialogSpy: jest.Mocked<MatDialog>;
 }> {
@@ -61,6 +64,7 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
     'createCheckoutSession', 'createTopupSession', 'getSeatsSummary',
     'getSubscription', 'cancelSubscription', 'resumeSubscription'
   ]);
+  const legalConsentServiceSpy = jasmine.createSpyObj('LegalConsentService', ['acceptConsent']);
   const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
   const dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
@@ -86,6 +90,7 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
       { provide: WorkspaceService, useValue: workspaceServiceSpy },
       { provide: WorkspaceMemberService, useValue: memberServiceSpy },
       { provide: BillingService, useValue: billingServiceSpy },
+      { provide: LegalConsentService, useValue: legalConsentServiceSpy },
       { provide: AuthService, useValue: { currentUser: signal({ id: 'u1', email: 'owner@test.fr' }) } },
       { provide: MatSnackBar, useValue: snackBarSpy },
       { provide: MatDialog, useValue: dialogSpy },
@@ -97,16 +102,17 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
   const fixture = TestBed.createComponent(WorkspaceBillingComponent);
   const component = fixture.componentInstance;
   fixture.detectChanges();
-  return { fixture, component, billingServiceSpy, snackBarSpy, dialogSpy };
+  return { fixture, component, billingServiceSpy, legalConsentServiceSpy, snackBarSpy, dialogSpy };
 }
 
 describe('WorkspaceBillingComponent', () => {
   let component: WorkspaceBillingComponent;
   let fixture: ComponentFixture<WorkspaceBillingComponent>;
   let billingServiceSpy: jest.Mocked<BillingService>;
+  let dialogSpy: jest.Mocked<MatDialog>;
 
   beforeEach(async () => {
-    ({ component, fixture, billingServiceSpy } = await buildComponent());
+    ({ component, fixture, billingServiceSpy, dialogSpy } = await buildComponent());
   });
 
   it('should be created', () => {
@@ -176,17 +182,19 @@ describe('WorkspaceBillingComponent', () => {
     expect(component.isCurrentPlan('FREE')).toBe(false);
   });
 
-  it('upgrade — appelle BillingService.createCheckoutSession', () => {
-    billingServiceSpy.createCheckoutSession.mockReturnValue(NEVER);
+  it('upgrade — ouvre PaymentTermsAcceptanceDialogComponent (WB-01)', () => {
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
 
     component.upgrade('PRO');
 
-    expect(billingServiceSpy.createCheckoutSession).toHaveBeenCalledWith('PRO');
-    expect(component.upgrading()).toBe('PRO');
+    expect(dialogSpy.open).toHaveBeenCalledWith(
+      PaymentTermsAcceptanceDialogComponent,
+      expect.objectContaining({ data: expect.objectContaining({ planLabel: 'Pro', type: 'SUBSCRIPTION' }) })
+    );
   });
 
   it('upgrade — trackEvent upgrade_clicked avec le plan', () => {
-    billingServiceSpy.createCheckoutSession.mockReturnValue(NEVER);
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
     const analyticsService = TestBed.inject(AnalyticsService) as jest.Mocked<AnalyticsService>;
 
     component.upgrade('SOLO');
@@ -204,13 +212,15 @@ describe('WorkspaceBillingComponent', () => {
     expect(component.ocrPacks.map(p => p.code)).toEqual(['OCR_500', 'OCR_2000', 'OCR_8000']);
   });
 
-  it('buyTopup — appelle BillingService.createTopupSession', () => {
-    billingServiceSpy.createTopupSession.mockReturnValue(NEVER);
+  it('buyTopup — ouvre PaymentTermsAcceptanceDialogComponent (TOPUP)', () => {
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
 
     component.buyTopup('TOKENS_1M');
 
-    expect(billingServiceSpy.createTopupSession).toHaveBeenCalledWith('TOKENS_1M');
-    expect(component.buying()).toBe('TOKENS_1M');
+    expect(dialogSpy.open).toHaveBeenCalledWith(
+      PaymentTermsAcceptanceDialogComponent,
+      expect.objectContaining({ data: expect.objectContaining({ type: 'TOPUP' }) })
+    );
   });
 
 });
@@ -223,6 +233,7 @@ describe('WorkspaceBillingComponent — topup query params', () => {
       'createCheckoutSession', 'createTopupSession', 'getSeatsSummary',
       'getSubscription', 'cancelSubscription', 'resumeSubscription'
     ]);
+    const legalConsentServiceSpy = jasmine.createSpyObj('LegalConsentService', ['acceptConsent']);
     const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
     memberServiceSpy.getMembers.mockReturnValue(of([ownerMember]));
@@ -238,6 +249,7 @@ describe('WorkspaceBillingComponent — topup query params', () => {
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
         { provide: WorkspaceMemberService, useValue: memberServiceSpy },
         { provide: BillingService, useValue: billingServiceSpy },
+        { provide: LegalConsentService, useValue: legalConsentServiceSpy },
         { provide: AuthService, useValue: { currentUser: signal({ id: 'u1', email: 'owner@test.fr' }) } },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: jasmine.createSpyObj('MatDialog', ['open']) },
@@ -291,6 +303,7 @@ describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
       'createCheckoutSession', 'createTopupSession', 'getSeatsSummary',
       'getSubscription', 'cancelSubscription', 'resumeSubscription'
     ]);
+    const legalConsentServiceSpy = jasmine.createSpyObj('LegalConsentService', ['acceptConsent']);
     const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
@@ -307,6 +320,7 @@ describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
         { provide: WorkspaceMemberService, useValue: memberServiceSpy },
         { provide: BillingService, useValue: billingServiceSpy },
+        { provide: LegalConsentService, useValue: legalConsentServiceSpy },
         { provide: AuthService, useValue: { currentUser: signal({ id: 'u1', email: 'owner@test.fr' }) } },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: jasmine.createSpyObj('MatDialog', ['open']) },
@@ -484,5 +498,113 @@ describe('WorkspaceBillingComponent — SF-247-02 résiliation', () => {
       'Aucune résiliation programmée', 'Fermer',
       expect.objectContaining({ panelClass: ['snack-error'] })
     );
+  });
+});
+
+// SF-240-03 — modale d'acceptation CGV avant paiement Stripe
+describe('WorkspaceBillingComponent — SF-240-03 modale consent paiement', () => {
+
+  // WB-01 : clic sur "Passer au plan" → MatDialog.open est appelé avec PaymentTermsAcceptanceDialogComponent
+  it('WB-01 — upgrade ouvre PaymentTermsAcceptanceDialogComponent', async () => {
+    const { component, dialogSpy } = await buildComponent();
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
+
+    component.upgrade('SOLO');
+
+    expect(dialogSpy.open).toHaveBeenCalledWith(
+      PaymentTermsAcceptanceDialogComponent,
+      expect.objectContaining({ data: expect.objectContaining({ planLabel: 'Solo', type: 'SUBSCRIPTION' }) })
+    );
+  });
+
+  // WB-02 : dialogRef.afterClosed() retourne true → consentService.acceptConsent est appelé AVANT billingService.createCheckoutSession
+  it('WB-02 — confirm → acceptConsent puis createCheckoutSession (ordre respecté)', async () => {
+    const { component, dialogSpy, legalConsentServiceSpy, billingServiceSpy } = await buildComponent();
+    const callOrder: string[] = [];
+
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(true) } as never);
+    legalConsentServiceSpy.acceptConsent.mockImplementation(() => {
+      callOrder.push('consent');
+      return of({ acceptances: [] });
+    });
+    billingServiceSpy.createCheckoutSession.mockImplementation(() => {
+      callOrder.push('checkout');
+      return NEVER;
+    });
+
+    component.upgrade('SOLO');
+
+    expect(legalConsentServiceSpy.acceptConsent).toHaveBeenCalledWith({
+      consentTypes: ['PAYMENT_TERMS'],
+      version: '2026-05-11'
+    });
+    expect(billingServiceSpy.createCheckoutSession).toHaveBeenCalledWith('SOLO');
+    expect(callOrder).toEqual(['consent', 'checkout']);
+  });
+
+  // WB-03 : dialogRef.afterClosed() retourne false → aucun POST
+  it('WB-03 — annulation → ni acceptConsent ni createCheckoutSession', async () => {
+    const { component, dialogSpy, legalConsentServiceSpy, billingServiceSpy } = await buildComponent();
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
+
+    component.upgrade('SOLO');
+
+    expect(legalConsentServiceSpy.acceptConsent).not.toHaveBeenCalled();
+    expect(billingServiceSpy.createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  // WB-04 : consentService.acceptConsent échoue → billingService.createCheckoutSession non appelé + MatSnackBar
+  it('WB-04 — erreur acceptConsent → pas de createCheckoutSession + snackbar erreur', async () => {
+    const { component, dialogSpy, legalConsentServiceSpy, billingServiceSpy, snackBarSpy } = await buildComponent();
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(true) } as never);
+    legalConsentServiceSpy.acceptConsent.mockReturnValue(throwError(() => new Error('network')));
+
+    component.upgrade('SOLO');
+
+    expect(billingServiceSpy.createCheckoutSession).not.toHaveBeenCalled();
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Impossible d\'enregistrer votre acceptation, réessayez.',
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] })
+    );
+  });
+
+  // WB-05 : flow top-up similaire
+  it('WB-05 — buyTopup ouvre la modale, confirm → acceptConsent puis createTopupSession', async () => {
+    const { component, dialogSpy, legalConsentServiceSpy, billingServiceSpy } = await buildComponent();
+    const callOrder: string[] = [];
+
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(true) } as never);
+    legalConsentServiceSpy.acceptConsent.mockImplementation(() => {
+      callOrder.push('consent');
+      return of({ acceptances: [] });
+    });
+    billingServiceSpy.createTopupSession.mockImplementation(() => {
+      callOrder.push('topup');
+      return NEVER;
+    });
+
+    component.buyTopup('TOKENS_1M');
+
+    expect(dialogSpy.open).toHaveBeenCalledWith(
+      PaymentTermsAcceptanceDialogComponent,
+      expect.objectContaining({ data: expect.objectContaining({ type: 'TOPUP' }) })
+    );
+    expect(legalConsentServiceSpy.acceptConsent).toHaveBeenCalledWith({
+      consentTypes: ['PAYMENT_TERMS'],
+      version: '2026-05-11'
+    });
+    expect(billingServiceSpy.createTopupSession).toHaveBeenCalledWith('TOKENS_1M');
+    expect(callOrder).toEqual(['consent', 'topup']);
+  });
+
+  it('WB-05b — buyTopup annulé → ni acceptConsent ni createTopupSession', async () => {
+    const { component, dialogSpy, legalConsentServiceSpy, billingServiceSpy } = await buildComponent();
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
+
+    component.buyTopup('TOKENS_1M');
+
+    expect(legalConsentServiceSpy.acceptConsent).not.toHaveBeenCalled();
+    expect(billingServiceSpy.createTopupSession).not.toHaveBeenCalled();
   });
 });

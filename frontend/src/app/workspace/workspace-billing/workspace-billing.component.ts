@@ -14,11 +14,13 @@ import { WorkspaceMemberService } from '../../core/services/workspace-member.ser
 import { BillingService } from '../../core/services/billing.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { LegalConsentService, CURRENT_CONSENT_VERSION } from '../../core/services/legal-consent.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { SeatsSummary } from '../../core/models/seats-summary.model';
 import { SubscriptionState } from '../../core/models/subscription.model';
 import { fadeInUp } from '../../shared/animations';
 import { CancelSubscriptionDialogComponent } from './cancel-subscription-dialog.component';
+import { PaymentTermsAcceptanceDialogComponent, PaymentTermsDialogData } from './payment-terms-acceptance-dialog/payment-terms-acceptance-dialog.component';
 
 @Component({
   selector: 'app-workspace-billing',
@@ -154,7 +156,8 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private route: ActivatedRoute,
     @Inject(DOCUMENT) private document: Document,
-    private analyticsService: AnalyticsService
+    private analyticsService: AnalyticsService,
+    private legalConsentService: LegalConsentService
   ) {}
 
   ngOnInit(): void {
@@ -240,32 +243,90 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
 
   upgrade(planCode: string): void {
     this.analyticsService.trackEvent('upgrade_clicked', { plan: planCode });
-    this.upgrading.set(planCode);
-    this.billingService.createCheckoutSession(planCode).subscribe({
-      next: ({ checkoutUrl }) => {
-        this.document.location.href = checkoutUrl;
-      },
-      error: () => {
-        this.snackBar.open('Erreur lors de la redirection vers le paiement.', 'Fermer', {
-          duration: 4000, panelClass: ['snack-error']
-        });
-        this.upgrading.set(null);
-      }
+    const plan = this.plans.find(p => p.code === planCode);
+    const dialogData: PaymentTermsDialogData = {
+      planLabel: plan?.label ?? planCode,
+      price: plan?.price ?? '',
+      type: 'SUBSCRIPTION'
+    };
+    const ref = this.dialog.open<PaymentTermsAcceptanceDialogComponent, PaymentTermsDialogData, boolean>(
+      PaymentTermsAcceptanceDialogComponent,
+      { data: dialogData, autoFocus: 'dialog' }
+    );
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.upgrading.set(planCode);
+      this.legalConsentService.acceptConsent({
+        consentTypes: ['PAYMENT_TERMS'],
+        version: CURRENT_CONSENT_VERSION
+      }).subscribe({
+        next: () => {
+          this.billingService.createCheckoutSession(planCode).subscribe({
+            next: ({ checkoutUrl }) => {
+              this.document.location.href = checkoutUrl;
+            },
+            error: () => {
+              this.snackBar.open('Erreur lors de la redirection vers le paiement.', 'Fermer', {
+                duration: 4000, panelClass: ['snack-error']
+              });
+              this.upgrading.set(null);
+            }
+          });
+        },
+        error: () => {
+          this.snackBar.open(
+            'Impossible d\'enregistrer votre acceptation, réessayez.',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] }
+          );
+          this.upgrading.set(null);
+        }
+      });
     });
   }
 
   buyTopup(packCode: string): void {
-    this.buying.set(packCode);
-    this.billingService.createTopupSession(packCode).subscribe({
-      next: ({ checkoutUrl }) => {
-        this.document.location.href = checkoutUrl;
-      },
-      error: () => {
-        this.snackBar.open('Erreur lors de la redirection vers le paiement.', 'Fermer', {
-          duration: 4000, panelClass: ['snack-error']
-        });
-        this.buying.set(null);
-      }
+    const tokenPack = this.tokenPacks.find(p => p.code === packCode);
+    const ocrPack = this.ocrPacks.find(p => p.code === packCode);
+    const pack = tokenPack ?? ocrPack;
+    const dialogData: PaymentTermsDialogData = {
+      planLabel: pack?.label ?? packCode,
+      price: pack?.price ?? '',
+      type: 'TOPUP'
+    };
+    const ref = this.dialog.open<PaymentTermsAcceptanceDialogComponent, PaymentTermsDialogData, boolean>(
+      PaymentTermsAcceptanceDialogComponent,
+      { data: dialogData, autoFocus: 'dialog' }
+    );
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.buying.set(packCode);
+      this.legalConsentService.acceptConsent({
+        consentTypes: ['PAYMENT_TERMS'],
+        version: CURRENT_CONSENT_VERSION
+      }).subscribe({
+        next: () => {
+          this.billingService.createTopupSession(packCode).subscribe({
+            next: ({ checkoutUrl }) => {
+              this.document.location.href = checkoutUrl;
+            },
+            error: () => {
+              this.snackBar.open('Erreur lors de la redirection vers le paiement.', 'Fermer', {
+                duration: 4000, panelClass: ['snack-error']
+              });
+              this.buying.set(null);
+            }
+          });
+        },
+        error: () => {
+          this.snackBar.open(
+            'Impossible d\'enregistrer votre acceptation, réessayez.',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] }
+          );
+          this.buying.set(null);
+        }
+      });
     });
   }
 
