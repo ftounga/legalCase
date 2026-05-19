@@ -268,4 +268,74 @@ class StripeWebhookServiceTest {
         assertThat(captor.getValue().getSeatCount()).isEqualTo(5);
         assertThat(captor.getValue().getPlanCode()).isEqualTo("TEAM");
     }
+
+    // SF-247-01 — customer.subscription.deleted → FREE + cancelAtPeriodEnd reset à false
+    @Test
+    void handleEvent_subscriptionDeleted_resetsCancelAtPeriodEnd() {
+        fr.ailegalcase.billing.Subscription sub = new fr.ailegalcase.billing.Subscription();
+        sub.setPlanCode("SOLO");
+        sub.setStripeSubscriptionId("sub_123");
+        sub.setCancelAtPeriodEnd(true);
+        when(subscriptionRepository.findByStripeCustomerId("cus_abc")).thenReturn(Optional.of(sub));
+        when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        com.stripe.model.Subscription stripeSub = mock(com.stripe.model.Subscription.class);
+        when(stripeSub.getCustomer()).thenReturn("cus_abc");
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) stripeSub); }
+        catch (com.stripe.exception.StripeException ignored) {}
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.subscription.deleted");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        ArgumentCaptor<fr.ailegalcase.billing.Subscription> captor =
+                ArgumentCaptor.forClass(fr.ailegalcase.billing.Subscription.class);
+        verify(subscriptionRepository).save(captor.capture());
+        assertThat(captor.getValue().getPlanCode()).isEqualTo("FREE");
+        assertThat(captor.getValue().isCancelAtPeriodEnd()).isFalse();
+    }
+
+    // SF-247-01 — customer.subscription.updated avec cancel_at_period_end=true → synchro locale
+    @Test
+    void handleEvent_subscriptionUpdated_syncsCancelAtPeriodEnd() throws Exception {
+        fr.ailegalcase.billing.Subscription sub = new fr.ailegalcase.billing.Subscription();
+        sub.setPlanCode("SOLO");
+        sub.setCancelAtPeriodEnd(false);
+        when(subscriptionRepository.findByStripeCustomerId("cus_cancel")).thenReturn(Optional.of(sub));
+        when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        com.stripe.model.Subscription stripeSub = mock(com.stripe.model.Subscription.class);
+        com.stripe.model.SubscriptionItem item = mock(com.stripe.model.SubscriptionItem.class);
+        com.stripe.model.Price price = mock(com.stripe.model.Price.class);
+        com.stripe.model.SubscriptionItemCollection items = mock(com.stripe.model.SubscriptionItemCollection.class);
+        when(stripeSub.getCustomer()).thenReturn("cus_cancel");
+        when(stripeSub.getId()).thenReturn("sub_c_1");
+        when(stripeSub.getItems()).thenReturn(items);
+        when(items.getData()).thenReturn(java.util.List.of(item));
+        when(item.getPrice()).thenReturn(price);
+        when(price.getId()).thenReturn("price_solo_test");
+        when(item.getQuantity()).thenReturn(1L);
+        when(stripeSub.getCancelAtPeriodEnd()).thenReturn(Boolean.TRUE);
+        when(stripeSub.getCurrentPeriodEnd()).thenReturn(1_900_000_000L);
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) stripeSub);
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.subscription.updated");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        ArgumentCaptor<fr.ailegalcase.billing.Subscription> captor =
+                ArgumentCaptor.forClass(fr.ailegalcase.billing.Subscription.class);
+        verify(subscriptionRepository).save(captor.capture());
+        assertThat(captor.getValue().isCancelAtPeriodEnd()).isTrue();
+        assertThat(captor.getValue().getCurrentPeriodEnd())
+                .isEqualTo(Instant.ofEpochSecond(1_900_000_000L));
+    }
 }

@@ -42,4 +42,16 @@ public class Subscription {
     // acceptInvitation / removeMember / webhook customer.subscription.updated.
     @Column(name = "seat_count", nullable = false)
     private int seatCount = 1;
+
+    // SF-247-01 : true quand une résiliation est programmée pour la fin de
+    // période de facturation Stripe (cancel_at_period_end). Reset à false par
+    // le webhook customer.subscription.deleted au moment du downgrade FREE.
+    @Column(name = "cancel_at_period_end", nullable = false)
+    private boolean cancelAtPeriodEnd = false;
+
+    // SF-247-01 : date de fin de la période de facturation Stripe en cours.
+    // Renseigné depuis la réponse Stripe (current_period_end). Nullable :
+    // un workspace FREE / sans abonnement Stripe n'a pas de période courante.
+    @Column(name = "current_period_end")
+    private Instant currentPeriodEnd;
 }
