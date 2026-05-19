@@ -703,6 +703,72 @@ class CaseAnalysisServiceTest {
         assertThat(block).as("Bloc TRAVAIL_PROCEDURE_TYPE doit mentionner expected_value null").contains("expected_value");
     }
 
+    // SF-250-09 — Remédiation critereCode lot Famille FR — successions / libéralités
+
+    // U-SF-250-09-01 : le prompt système famille-FR contient TESTAMENT_* et DONATION_*
+    @Test
+    void systemPrompt_containsTestamentDonationCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE", l);
+        assertThat(prompt).as("TESTAMENT_FORME doit être dans le prompt").contains("TESTAMENT_FORME");
+        assertThat(prompt).as("TESTAMENT_SAINE_ESPRIT doit être dans le prompt").contains("TESTAMENT_SAINE_ESPRIT");
+        assertThat(prompt).as("TESTAMENT_QUOTITE doit être dans le prompt").contains("TESTAMENT_QUOTITE");
+        assertThat(prompt).as("DONATION_FORME doit être dans le prompt").contains("DONATION_FORME");
+        assertThat(prompt).as("DONATION_SAINE_ESPRIT doit être dans le prompt").contains("DONATION_SAINE_ESPRIT");
+        assertThat(prompt).as("DONATION_QUOTITE doit être dans le prompt").contains("DONATION_QUOTITE");
+        assertThat(prompt).as("F-FA-24 doit être cité dans le prompt").contains("F-FA-24");
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise pour codes successions").contains("FRANCE UNIQUEMENT");
+        // Non-régression codes SF-250-08
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("FA22_OCCUPATION");
+    }
+
+    // U-SF-250-09-02 : le prompt système famille-FR contient PARTAGE_*, INDIVISION_*, DEVOLUTION_LEGALE_*
+    @Test
+    void systemPrompt_containsPartageIndivisionDevolutionCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE", l);
+        assertThat(prompt).as("PARTAGE_MODE doit être dans le prompt").contains("PARTAGE_MODE");
+        assertThat(prompt).as("PARTAGE_CONSENTEMENTS doit être dans le prompt").contains("PARTAGE_CONSENTEMENTS");
+        assertThat(prompt).as("PARTAGE_PRESENCE_IMMEUBLES doit être dans le prompt").contains("PARTAGE_PRESENCE_IMMEUBLES");
+        assertThat(prompt).as("INDIVISION_DATE_OUVERTURE doit être dans le prompt").contains("INDIVISION_DATE_OUVERTURE");
+        assertThat(prompt).as("INDIVISION_TYPE doit être dans le prompt").contains("INDIVISION_TYPE");
+        assertThat(prompt).as("DEVOLUTION_LEGALE_CONJOINT doit être dans le prompt").contains("DEVOLUTION_LEGALE_CONJOINT");
+        assertThat(prompt).as("DEVOLUTION_LEGALE_DESCENDANTS_COMMUNS doit être dans le prompt").contains("DEVOLUTION_LEGALE_DESCENDANTS_COMMUNS");
+        // Non-régression
+        assertThat(prompt).contains("TESTAMENT_FORME");
+        assertThat(prompt).contains("FA22_DATE_ORIGINE");
+    }
+
+    // U-SF-250-09-03 : le prompt système famille-FR contient FA25_*, FA26_*, PMA_GPA_DISPOSITIF, FA05_*
+    @Test
+    void systemPrompt_containsFa25Fa26PmaGpaFa05CriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE", l);
+        assertThat(prompt).as("FA25_DATE_CERTIFICAT doit être dans le prompt").contains("FA25_DATE_CERTIFICAT");
+        assertThat(prompt).as("FA25_ALT_MENTALES doit être dans le prompt").contains("FA25_ALT_MENTALES");
+        assertThat(prompt).as("FA25_CONSENTEMENT doit être dans le prompt").contains("FA25_CONSENTEMENT");
+        assertThat(prompt).as("FA25_DEMANDEUR_FAMILIAL doit être dans le prompt").contains("FA25_DEMANDEUR_FAMILIAL");
+        assertThat(prompt).as("FA26_TYPE_CHANGEMENT doit être dans le prompt").contains("FA26_TYPE_CHANGEMENT");
+        assertThat(prompt).as("FA26_MOTIF_INVOQUE doit être dans le prompt").contains("FA26_MOTIF_INVOQUE");
+        assertThat(prompt).as("FA26_DATE_NAISSANCE doit être dans le prompt").contains("FA26_DATE_NAISSANCE");
+        assertThat(prompt).as("FA26_MAJEUR_DEMANDEUR doit être dans le prompt").contains("FA26_MAJEUR_DEMANDEUR");
+        assertThat(prompt).as("FA26_CONSENTEMENT_PARENTAL doit être dans le prompt").contains("FA26_CONSENTEMENT_PARENTAL");
+        assertThat(prompt).as("PMA_GPA_DISPOSITIF doit être dans le prompt").contains("PMA_GPA_DISPOSITIF");
+        assertThat(prompt).as("FA05_VALEUR_VENALE doit être dans le prompt").contains("FA05_VALEUR_VENALE");
+        assertThat(prompt).as("FA05_CAPITAL_RESTANT doit être dans le prompt").contains("FA05_CAPITAL_RESTANT");
+        assertThat(prompt).as("F-FA-25 doit être cité dans le prompt").contains("F-FA-25");
+        assertThat(prompt).as("F-FA-26 doit être cité dans le prompt").contains("F-FA-26");
+        assertThat(prompt).as("F-FA-27 doit être cité dans le prompt").contains("F-FA-27");
+        assertThat(prompt).as("F-FA-05 doit être cité dans le prompt").contains("F-FA-05");
+        // Non-régression
+        assertThat(prompt).contains("TESTAMENT_FORME");
+        assertThat(prompt).contains("PARTAGE_MODE");
+    }
+
     // SF-250-08 — Remédiation critereCode lot Famille FR — divorce / union
 
     // U-SF-250-08-01 : le prompt système famille-FR contient DA_DUREE_MARIAGE, FA09_*, FA12_*, FA13_, FA14_*
