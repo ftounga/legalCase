@@ -387,6 +387,16 @@ export interface FamilleExtractedData {
   /** F-210 SF-210-04 : dettes incertaines détectées. */
   dettesIncertainesDetected?: boolean | null;
   /**
+   * SF-246-03 : codes de fautes matrimoniales détectées par le pipeline IA pour
+   * pré-remplissage de l'outil F-FA-09 (divorce pour faute, art. 242 Cciv, FR uniquement).
+   * Codes ∈ {VIOLENCES, ADULTERE, ABANDON_DOMICILE, MANQUEMENT_DEVOIR_ASSISTANCE,
+   * INJURES_GRAVES, MANQUEMENT_DEVOIR_FIDELITE, MANQUEMENT_DEVOIR_RESPECT}.
+   * Source backend réelle : `divorce_faute_detection.fautes_detectees`.
+   * Null si aucune faute documentée ou dossier belge (jamais []).
+   * Remplace le stub aspirationnel de l'ancien cast permissif.
+   */
+  fautesDetectees?: string[] | null;
+  /**
    * SF-246-08 : pré-fill lot séparation / indivision / PACS / protection
    * (F-FA-12/13/14/20/21/22). Sous-objet backend `vie_commune_detection`.
    *

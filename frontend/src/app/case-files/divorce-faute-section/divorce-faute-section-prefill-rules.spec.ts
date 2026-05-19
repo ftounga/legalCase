@@ -39,6 +39,7 @@ describe('DivorceFautePrefillRules', () => {
           revenusAnnuelsDemandeurEur: 52000,
           revenusAnnuelsDefendeurEur: 38000,
           dateDepotAssignation: '2026-03-15',
+          // SF-246-03 : `fautesDetectees` est désormais un champ réel du type.
           fautesDetectees: ['ADULTERE', 'VIOLENCES'],
         } as any,
       }),
@@ -80,28 +81,46 @@ describe('DivorceFautePrefillRules', () => {
   });
 
   // ── computeFautesDetectees ─────────────────────────────────────────────
+  // SF-246-03 : `fautesDetectees` est désormais un champ réel de FamilleExtractedData.
   it('computeFautesDetectees — filtre codes invalides', () => {
     expect(
       computeFautesDetectees({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        aiData: { fautesDetectees: ['ADULTERE', 'PAS_VALIDE', 'AUTRE'] } as any,
+        aiData: { fautesDetectees: ['ADULTERE', 'PAS_VALIDE', 'AUTRE'] },
       }),
     ).toEqual(['ADULTERE', 'AUTRE']);
   });
 
   it('computeFautesDetectees — case-insensible (uppercase)', () => {
     expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      computeFautesDetectees({ aiData: { fautesDetectees: ['adultere'] } as any }),
+      computeFautesDetectees({ aiData: { fautesDetectees: ['adultere'] } }),
     ).toEqual(['ADULTERE']);
   });
 
   it('computeFautesDetectees — tableau filtré vide → null', () => {
     expect(
       computeFautesDetectees({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        aiData: { fautesDetectees: ['BIDON', 'AUTRE_BIDON'] } as any,
+        aiData: { fautesDetectees: ['BIDON', 'AUTRE_BIDON'] },
       }),
+    ).toBeNull();
+  });
+
+  it('computeFautesDetectees — violences + abandon — cas nominal SF-246-03', () => {
+    expect(
+      computeFautesDetectees({
+        aiData: { fautesDetectees: ['VIOLENCES', 'ABANDON'] },
+      }),
+    ).toEqual(['VIOLENCES', 'ABANDON']);
+  });
+
+  it('computeFautesDetectees — null quand aiData null', () => {
+    expect(computeFautesDetectees({ aiData: null })).toBeNull();
+    expect(computeFautesDetectees({ aiData: undefined })).toBeNull();
+    expect(computeFautesDetectees({})).toBeNull();
+  });
+
+  it('computeFautesDetectees — null quand fautesDetectees null', () => {
+    expect(
+      computeFautesDetectees({ aiData: { fautesDetectees: null } }),
     ).toBeNull();
   });
 
