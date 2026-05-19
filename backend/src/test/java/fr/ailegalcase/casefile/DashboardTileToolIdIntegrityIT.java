@@ -70,6 +70,36 @@ class DashboardTileToolIdIntegrityIT {
             "F-196-questions-summary"
     );
 
+    /**
+     * SF-DT-36-03 — outils décisionnels seedés dans
+     * {@code decision_tool_visibility_rules} (donc visibles dans le panel
+     * F-IA-04) qui n'émettent <strong>volontairement</strong> aucune
+     * {@code DashboardTile} : outils "formule/PDF" sans persistance de
+     * résultat, composants UI Angular auto-suffisants, référentiels.
+     *
+     * <p>Sert au garde-fou inverse {@link
+     * #tout_toolId_seede_en_visibilite_a_une_tile_dashboard_ou_est_explicitement_exclu()}.
+     * Tout ajout ici doit être justifié : un outil disposant d'une table de
+     * résultat + d'un endpoint de calcul ne doit JAMAIS y figurer — il doit
+     * avoir sa tuile dashboard (sinon son résultat est calculé mais jamais
+     * affiché, cf. bug F-DT-36 corrigé par SF-DT-36-03).</p>
+     */
+    private static final Set<String> KNOWN_NO_DASHBOARD_TILE_IDS = Set.of(
+            // Outils info-only / formule / PDF — pas de table de résultat persistée.
+            "F-DT-03-prescription-litige",
+            "F-DT-04-fiche-prudhomale",
+            "F-DT-06-requete-tribunal-travail",
+            "F-132-rupture-amiable-info",
+            // Wrappers frontend auto-suffisants (F-198) — pas de backend de calcul.
+            "F-152-divorce-consentement-scoring",
+            "F-153-fourchettes-jaf",
+            "F-FA-01-prestation-compensatoire",
+            "F-FA-02-pension-alimentaire",
+            "F-FA-04-liquidation-communaute",
+            // Checklist référentielle — pas de résultat décisionnel persisté.
+            "F-IM-01-checklist-pieces"
+    );
+
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
     private static final String DASHBOARD_SERVICE_PATH =
             "src/main/java/fr/ailegalcase/casefile/CaseFileDashboardService.java";
@@ -118,6 +148,63 @@ class DashboardTileToolIdIntegrityIT {
                       .append("      KNOWN_SUMMARY_TILE_IDS dans ce test.\n")
                       .append("\nNe jamais émettre une DashboardTile sans correspondance DB —\n")
                       .append("le clic dashboard sera silencieusement cassé en runtime.");
+                    return sb.toString();
+                })
+                .isEmpty();
+    }
+
+    /**
+     * SF-DT-36-03 — garde-fou <strong>inverse</strong> de {@link
+     * #aucun_toolId_hardcode_dans_CaseFileDashboardService_n_est_orphelin()}.
+     *
+     * <p>Origine du bug : F-DT-36 (nullité de procédure de licenciement) a été
+     * livré avec sa table de résultat, son endpoint de calcul, son seed
+     * {@code decision_tool_visibility_rules} et son entrée {@code TOOL_REGISTRY}
+     * frontend — mais sans tuile dans {@code CaseFileDashboardService}. Le
+     * résultat calculé était persisté mais jamais affiché au dashboard. Le test
+     * direct ne détecte pas ce cas (il vérifie « tuile émise → seed DB », pas
+     * « seed DB → tuile émise »).</p>
+     *
+     * <p>Principe : tout {@code tool_id} de {@code decision_tool_visibility_rules}
+     * doit <strong>soit</strong> être émis comme {@code DashboardTile} par
+     * {@code CaseFileDashboardService}, <strong>soit</strong> figurer dans
+     * {@link #KNOWN_NO_DASHBOARD_TILE_IDS} (outil sans tuile par conception).</p>
+     */
+    @Test
+    void tout_toolId_seede_en_visibilite_a_une_tile_dashboard_ou_est_explicitement_exclu()
+            throws IOException {
+        Set<String> emittedToolIds = extractToolIdsFromDashboardService();
+        Set<String> dbToolIds = new HashSet<>(jdbc.queryForList(
+                "SELECT DISTINCT tool_id FROM decision_tool_visibility_rules",
+                String.class));
+        assertThat(dbToolIds)
+                .withFailMessage("Aucun tool_id en DB — vérifier que les migrations "
+                        + "decision_tool_visibility_rules ont bien tourné")
+                .isNotEmpty();
+
+        List<String> missingTiles = dbToolIds.stream()
+                .filter(id -> !emittedToolIds.contains(id))
+                .filter(id -> !KNOWN_NO_DASHBOARD_TILE_IDS.contains(id))
+                .sorted()
+                .collect(Collectors.toList());
+
+        assertThat(missingTiles)
+                .withFailMessage(() -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("SF-DT-36-03 — outils seedés dans\n")
+                      .append("decision_tool_visibility_rules SANS tuile émise par\n")
+                      .append("CaseFileDashboardService ET hors KNOWN_NO_DASHBOARD_TILE_IDS :\n");
+                    missingTiles.forEach(id -> sb.append(" - ").append(id).append("\n"));
+                    sb.append("\nLeur résultat serait calculé/persisté mais jamais\n")
+                      .append("affiché au dashboard (bug F-DT-36). Action requise :\n")
+                      .append("  (a) ajouter un addSafely(tiles, () -> tileFromXxx(...))\n")
+                      .append("      + la méthode tileFromXxx() dans\n")
+                      .append("      CaseFileDashboardService, OU\n")
+                      .append("  (b) si l'outil n'a volontairement pas de tuile dashboard\n")
+                      .append("      (outil formule/PDF sans persistance de résultat,\n")
+                      .append("      composant UI auto-suffisant, référentiel),\n")
+                      .append("      l'ajouter à KNOWN_NO_DASHBOARD_TILE_IDS avec\n")
+                      .append("      justification dans ce test.");
                     return sb.toString();
                 })
                 .isEmpty();
