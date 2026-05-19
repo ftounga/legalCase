@@ -7,6 +7,9 @@ import fr.ailegalcase.document.DocumentChunk;
 import fr.ailegalcase.document.DocumentExtraction;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.document.ExtractionFailedEvent;
+import fr.ailegalcase.document.ExtractionFailureReason;
+import fr.ailegalcase.document.ExtractionStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -243,6 +246,244 @@ class DocumentAnalysisServiceTest {
         assertThat(prompt).contains("3 points_juridiques maximum");
         assertThat(prompt).contains("3 risques maximum");
         assertThat(prompt).contains("3 questions_ouvertes maximum");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SF-121-05 : job DOCUMENT_ANALYSIS terminal sur échec d'extraction partiel
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // U-121-05-01 : done = totalItems, aucune extraction FAILED → DONE (non-régression)
+    @Test
+    void recompute_doneEqualsTotalNoFailure_jobDone() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(3L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(0L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(job.getProcessedItems()).isEqualTo(3);
+    }
+
+    // U-121-05-02 : done + failedExtractions = totalItems, done >= 1 → DONE
+    @Test
+    void recompute_doneePlusFailedEqualsTotal_jobDone() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(2L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(1L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(job.getProcessedItems()).isEqualTo(3);
+    }
+
+    // U-121-05-03 : done + failedExtractions < totalItems → reste PROCESSING
+    @Test
+    void recompute_terminalBelowTotal_jobStaysProcessing() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(6);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(3L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(1L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.PROCESSING);
+        assertThat(job.getProcessedItems()).isEqualTo(4);
+    }
+
+    // U-121-05-04 : done = 0, failedExtractions = totalItems → PAS DONE (0 doc exploitable)
+    @Test
+    void recompute_zeroDoneAllFailed_jobNotDone() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(0L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(3L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.PROCESSING);
+        assertThat(job.getProcessedItems()).isEqualTo(3);
+    }
+
+    // U-121-05-05 : done + failedExtractions > totalItems → processedItems clampé à totalItems
+    @Test
+    void recompute_terminalAboveTotal_processedItemsClamped() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(3L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(2L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(job.getProcessedItems()).isEqualTo(3); // clampé, pas 5
+    }
+
+    // U-121-05-06 : job déjà FAILED → garde de statut, non repassé DONE
+    @Test
+    void recompute_jobAlreadyFailed_notReopenedToDone() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+        job.setStatus(AnalysisStatus.FAILED);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(2L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(1L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.FAILED);
+    }
+
+    // U-121-05-07 : job déjà DONE → garde de statut, reste DONE (idempotence)
+    @Test
+    void recompute_jobAlreadyDone_staysDone() {
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+        job.setStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(3L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(0L);
+
+        service.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // U-121-05-08 : handler ExtractionFailedEvent → job PROCESSING + complétion atteinte → DONE
+    @Test
+    void onExtractionFailed_completionReached_jobDone() {
+        UUID extractionId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(3);
+
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(2L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(1L);
+
+        service.onExtractionFailed(new ExtractionFailedEvent(
+                extractionId, documentId, "scan.pdf", ExtractionFailureReason.OCR_UNSUPPORTED_SIZE));
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(job.getProcessedItems()).isEqualTo(3);
+    }
+
+    // U-121-05-09 : handler ExtractionFailedEvent — aucun job DOCUMENT_ANALYSIS → pas d'exception
+    @Test
+    void onExtractionFailed_noJob_noException() {
+        UUID extractionId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.empty());
+
+        service.onExtractionFailed(new ExtractionFailedEvent(
+                extractionId, documentId, "scan.pdf", ExtractionFailureReason.EMPTY_TEXT));
+
+        verify(analysisJobRepository, never()).save(any());
+    }
+
+    // U-121-05-10 : handler ExtractionFailedEvent — caseFile irrésolvable → fallback documentRepository
+    @Test
+    void onExtractionFailed_caseFileResolvedViaDocument_jobRecomputed() {
+        UUID extractionId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        AnalysisJob job = jobProcessing(2);
+
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(caseFileId);
+        Document document = new Document();
+        document.setCaseFile(caseFile);
+
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.empty());
+        when(documentRepository.findById(documentId)).thenReturn(Optional.of(document));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(1L);
+        when(extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(caseFileId, ExtractionStatus.FAILED))
+                .thenReturn(1L);
+
+        service.onExtractionFailed(new ExtractionFailedEvent(
+                extractionId, documentId, "scan.pdf", ExtractionFailureReason.CORRUPTED));
+
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // U-121-05-11 : handler ExtractionFailedEvent — caseFile totalement irrésolvable → pas d'exception
+    @Test
+    void onExtractionFailed_caseFileUnresolvable_noException() {
+        UUID extractionId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.empty());
+        when(documentRepository.findById(documentId)).thenReturn(Optional.empty());
+
+        service.onExtractionFailed(new ExtractionFailedEvent(
+                extractionId, documentId, "scan.pdf", ExtractionFailureReason.UNSUPPORTED_FORMAT));
+
+        verifyNoInteractions(analysisJobRepository);
+    }
+
+    private AnalysisJob jobProcessing(int totalItems) {
+        AnalysisJob job = new AnalysisJob();
+        job.setJobType(JobType.DOCUMENT_ANALYSIS);
+        job.setStatus(AnalysisStatus.PROCESSING);
+        job.setTotalItems(totalItems);
+        job.setProcessedItems(0);
+        return job;
     }
 
     // Helpers

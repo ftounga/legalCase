@@ -15,6 +15,15 @@ public interface DocumentExtractionRepository extends JpaRepository<DocumentExtr
 
     boolean existsByDocumentCaseFileIdAndExtractionStatusIn(UUID caseFileId, Collection<ExtractionStatus> statuses);
 
+    /**
+     * SF-121-05 : compte les extractions d'un dossier dans un statut donné. Utilisé
+     * pour totaliser les extractions FAILED dans le calcul de complétion du job
+     * DOCUMENT_ANALYSIS — un document dont l'extraction échoue ne produit jamais de
+     * DocumentAnalysis, le job plafonnerait sous totalItems et resterait PROCESSING
+     * à vie sans ce comptage.
+     */
+    long countByDocumentCaseFileIdAndExtractionStatus(UUID caseFileId, ExtractionStatus status);
+
     @Query("SELECT e.document.caseFile.id FROM DocumentExtraction e WHERE e.id = :id")
     Optional<UUID> findCaseFileIdById(@Param("id") UUID id);
 
