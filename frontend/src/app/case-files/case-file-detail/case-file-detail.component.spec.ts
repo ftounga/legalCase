@@ -2330,4 +2330,66 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // SF-121-06 : échec d'extraction actionnable côté écran
+  describe('SF-121-06 — échec d\'extraction actionnable', () => {
+    it('U-CFD-121-06-01 : onManageFailedDocuments() → selectedTabIndex passe à TAB_DOSSIER (0)', () => {
+      component.selectedTabIndex.set(1);
+
+      component.onManageFailedDocuments();
+
+      expect(component.selectedTabIndex()).toBe(0);
+    });
+
+    it('U-CFD-121-06-02 : onManageFailedDocuments() → scrollAndHighlight("section-documents") appelé', () => {
+      jest.useFakeTimers();
+      const scrollSpy = jest.spyOn(component as any, 'scrollAndHighlight').mockImplementation(() => {});
+
+      component.onManageFailedDocuments();
+      jest.runOnlyPendingTimers();
+
+      expect(scrollSpy).toHaveBeenCalledWith('section-documents');
+      jest.useRealTimers();
+    });
+
+    it('U-CFD-121-06-03 : appel alors que l\'onglet Dossier est déjà actif → idempotent', () => {
+      component.selectedTabIndex.set(0);
+
+      component.onManageFailedDocuments();
+
+      expect(component.selectedTabIndex()).toBe(0);
+    });
+
+    it('U-CFD-121-06-04 : doc FAILED OCR_UNSUPPORTED_SIZE → message de récupération spécifique rendu', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([{
+        ...mockDocument, extractionStatus: 'FAILED', failureReason: 'OCR_UNSUPPORTED_SIZE',
+      }]);
+      fixture.detectChanges();
+
+      const hint = fixture.nativeElement.querySelector('.extraction-recovery-hint');
+      expect(hint).toBeTruthy();
+      expect(hint.textContent).toContain('Divisez-le en fichiers plus légers');
+    });
+
+    it('U-CFD-121-06-05 : doc FAILED sans failureReason → message générique de repli', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([{
+        ...mockDocument, extractionStatus: 'FAILED', failureReason: null,
+      }]);
+      fixture.detectChanges();
+
+      const hint = fixture.nativeElement.querySelector('.extraction-recovery-hint');
+      expect(hint).toBeTruthy();
+      expect(hint.textContent).toContain('Ré-uploadez le document ou remplacez-le');
+    });
+
+    it('U-CFD-121-06-06 : doc DONE → aucun message de récupération', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([{ ...mockDocument, extractionStatus: 'DONE' }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.extraction-recovery-hint')).toBeFalsy();
+    });
+  });
+
 });

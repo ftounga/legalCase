@@ -190,3 +190,31 @@ export function extractionFailureLabel(reason: ExtractionFailureReason | null | 
       return 'Extraction impossible';
   }
 }
+
+/**
+ * SF-121-06 : message de récupération actionnable, spécifique au motif d'échec.
+ * Affiché en clair sous le nom du document non analysable — il dit à l'avocat
+ * quoi faire (pas seulement ce qui a échoué, contrairement à extractionFailureLabel).
+ */
+export function extractionRecoveryHint(reason: ExtractionFailureReason | null | undefined): string {
+  switch (reason) {
+    case 'OCR_UNSUPPORTED_SIZE':
+      return 'Fichier trop volumineux pour l\'analyse automatique (max 5 Mo / 11 pages). '
+        + 'Divisez-le en fichiers plus légers et ré-uploadez-le.';
+    case 'EMPTY_TEXT':
+    case 'OCR_FAILED':
+      return 'Document scanné non reconnu. Utilisez « Relancer avec OCR » ci-dessus, '
+        + 'ou remplacez le document.';
+    case 'CORRUPTED':
+    case 'UNSUPPORTED_FORMAT':
+      return 'Fichier illisible. Remplacez-le par une version valide puis ré-uploadez.';
+    case 'EXTRACTION_EXCEPTION':
+      return 'L\'extraction a échoué. Ré-uploadez le document ; si l\'erreur persiste, '
+        + 'contactez le support.';
+    case 'OCR_QUOTA_EXCEEDED':
+      return 'Quota OCR atteint. Achetez des pages supplémentaires depuis Abonnement, '
+        + 'puis relancez l\'OCR.';
+    default:
+      return 'Extraction impossible. Ré-uploadez le document ou remplacez-le.';
+  }
+}

@@ -868,6 +868,27 @@
   line-height: 14px;
 }
 
+/* SF-121-06 : message de récupération visible sous le nom d'un doc non analysable.
+   Texte d'aide discret (pas une alerte rouge supplémentaire) — il guide l'action. */
+.extraction-recovery-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-xs) 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.recovery-hint-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  flex-shrink: 0;
+  color: #C9973A;
+}
+
 /* SF-144-01 : feedback UX live "OCR en cours" pendant l'appel Textract
    Palette navy cohérente avec le design system principal (plus visible et
    moins proche du warning que la teinte gold initiale). */
