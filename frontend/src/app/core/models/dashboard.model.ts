@@ -27,10 +27,20 @@ export interface DashboardAnalysis {
   createdAt: string;
 }
 
+/** F-249 — un jour de la tendance d'activité hebdomadaire. */
+export interface DashboardActivityDay {
+  date: string;          // ISO yyyy-MM-dd
+  analysesCount: number;
+}
+
 export interface DashboardSummary {
   openCases: DashboardOpenCase[];
   openCasesCount: number;
   urgentDeadlines: DashboardDeadline[];
   staleChecks: DashboardStaleCheck[];
   recentAnalyses: DashboardAnalysis[];
+  // ── F-249 — enrichissement page d'accueil ──
+  userFirstName: string | null;
+  casesOpenedThisWeek: number;
+  weeklyActivity: DashboardActivityDay[];
 }

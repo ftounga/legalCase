@@ -9,6 +9,7 @@ import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,12 +34,13 @@ public class DashboardController {
     }
 
     @GetMapping
+    @Transactional(readOnly = true)
     public DashboardSummaryResponse getSummary(@AuthenticationPrincipal OidcUser oidcUser,
                                                Principal principal) {
         User user = currentUserResolver.resolve(oidcUser, OAuthProviderResolver.resolve(principal), principal);
         WorkspaceMember member = workspaceMemberRepository.findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace introuvable"));
         Workspace workspace = member.getWorkspace();
-        return dashboardService.buildSummary(workspace);
+        return dashboardService.buildSummary(workspace, user);
     }
 }

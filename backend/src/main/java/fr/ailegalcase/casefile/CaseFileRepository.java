@@ -50,6 +50,8 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
 
     long countByWorkspaceAndDeletedAtIsNullAndStatusNot(Workspace workspace, String status);
 
+    long countByWorkspaceAndDeletedAtIsNullAndCreatedAtAfter(Workspace workspace, java.time.Instant createdAt);
+
     @Query("SELECT new fr.ailegalcase.analysis.CaseFileContext(c.workspace.id, c.workspace.legalDomain, c.workspace.country, c.createdBy.id) FROM CaseFile c WHERE c.id = :id")
     Optional<CaseFileContext> findContextById(@Param("id") UUID id);
 }

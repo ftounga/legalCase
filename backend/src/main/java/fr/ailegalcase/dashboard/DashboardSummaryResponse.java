@@ -7,6 +7,9 @@ public record DashboardSummaryResponse(
         long openCasesCount,
         List<DashboardDeadlineItem> urgentDeadlines,
         List<DashboardStaleCheckItem> staleChecks,
-        List<DashboardAnalysisItem> recentAnalyses
+        List<DashboardAnalysisItem> recentAnalyses,
+        String userFirstName,
+        long casesOpenedThisWeek,
+        List<DashboardActivityDayItem> weeklyActivity
 ) {
 }

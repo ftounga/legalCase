@@ -210,3 +210,35 @@ Border-radius des badges : `4px`, padding : `4px 8px`, police Inter 500 12px.
 - Formulaires sans `mat-error` pour les erreurs de validation
 - Icônes hors Material Icons sans validation
 - Fond coloré sur les cartes (toujours blanc)
+
+---
+
+## 10 — Couche d'accueil — dashboard (dérogation encadrée, F-249)
+
+> Ajoutée par **F-249** (refonte futuriste du tableau de bord d'accueil). **Dérogation strictement limitée à l'écran `/dashboard`** (`frontend/src/app/dashboard/`). Le reste du produit reste régi sans exception par les sections 1 à 9.
+
+Le tableau de bord d'accueil est la page d'accueil de l'application — la première chose que voit l'avocat à chaque session. Pour lui donner un caractère plus moderne et un point focal fort, une **couche de rendu d'accueil** est autorisée sur ce seul écran. Elle n'introduit **aucune couleur ni police nouvelle** — uniquement de nouvelles *façons d'utiliser* la palette existante.
+
+### Autorisé sur `/dashboard` uniquement
+
+| Élément | Règle |
+|---|---|
+| **Dégradés navy** | Dégradés linéaires entre nuances de navy de la palette Material primary (`#1A3A5C` → `#0E2341`, soit primary 500 → 800). Réservés au hero. Aucune autre teinte. |
+| **Halo / glow doré** | Lueur diffuse `#C9973A` à faible opacité (≤ 18 %) en accent du hero et au survol des cartes. Jamais en aplat. |
+| **Glassmorphism** | Surfaces translucides (blanc à 6–12 % d'opacité) avec `backdrop-filter: blur(...)` et fine bordure claire — uniquement pour les compteurs KPI **posés sur le hero en dégradé**. Les cartes de section restent blanches opaques (section 5 inchangée). |
+| **Compteurs animés** | Animation *count-up* des valeurs KPI à l'entrée de page, **une seule fois**, durée ≤ 800 ms. Jamais en boucle. |
+| **Profondeur** | Ombres en couches plus prononcées que la section 5, autorisées sur le hero et au survol des cartes (`0 4px 12px` + `0 8px 24px`, navy teinté). |
+| **Transitions** | Entrée en cascade des blocs (stagger), `cubic-bezier(0.22, 1, 0.36, 1)`. Transitions de survol ≤ 240 ms. |
+| **Sparkline** | Mini-graphe de tendance d'activité (7 jours) en accent du hero, tracé en or sur le dégradé navy. Décoratif léger, sans axes. |
+
+### Interdit, même sur `/dashboard`
+
+- Toute couleur hors palette (navy / or / sémantiques succès-erreur-avertissement).
+- Le mode sombre, le néon, les dégradés multicolores.
+- Fond dégradé ou coloré sur les **cartes de section** — elles restent blanches (section 5).
+- Toute animation en boucle / permanente (l'écran est consulté plusieurs fois par jour).
+- Réduire la lisibilité de l'information critique (délais urgents) sous les effets visuels — la hiérarchie urgences > reste prime sur l'esthétique.
+
+### Polices et espacements
+
+Inchangés : Inter / Merriweather / JetBrains Mono (section 3), espacements multiples de 4px (section 6).
