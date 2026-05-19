@@ -300,6 +300,43 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("RC_CONSENTEMENT");
     }
 
+    // SF-250-06 — Remédiation critereCode lot Immigration FR — titres / asile / éloignement
+
+    // U-SF-250-06-01 : le prompt questions immigration-FR contient les codes IM11_, IM12_, IM13_
+    @Test
+    void systemPrompt_containsIm11Im12Im13CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM11_TITRE_ACTUEL doit être dans le prompt questions").contains("IM11_TITRE_ACTUEL");
+        assertThat(prompt).as("IM12_DISPOSITIF_ASILE doit être dans le prompt questions").contains("IM12_DISPOSITIF_ASILE");
+        assertThat(prompt).as("IM13_VOIE_NATURALISATION doit être dans le prompt questions").contains("IM13_VOIE_NATURALISATION");
+        // Non-régression codes SF-250-05
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).contains("IM09H_MOTIF_HUMANITAIRE");
+    }
+
+    // U-SF-250-06-02 : le prompt questions immigration-FR contient les codes IM19_* (mineurs)
+    @Test
+    void systemPrompt_containsIm19MineursCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM19_DATE_NAISSANCE doit être dans le prompt questions").contains("IM19_DATE_NAISSANCE");
+        assertThat(prompt).as("IM19_DATE_ENTREE doit être dans le prompt questions").contains("IM19_DATE_ENTREE");
+        // Non-régression
+        assertThat(prompt).contains("IM08_RECOURS_FORME");
+    }
+
+    // U-SF-250-06-03 : le prompt questions immigration-FR contient IM20_* et IM24_*
+    @Test
+    void systemPrompt_containsIm20EloignementIm24ViolencesCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE");
+        assertThat(prompt).as("IM20_DISPOSITIF_ELOIGNEMENT doit être dans le prompt questions").contains("IM20_DISPOSITIF_ELOIGNEMENT");
+        assertThat(prompt).as("IM20_MOTIF_MENACE doit être dans le prompt questions").contains("IM20_MOTIF_MENACE");
+        assertThat(prompt).as("IM24_DATE_ORDONNANCE_PROTECTION doit être dans le prompt questions").contains("IM24_DATE_ORDONNANCE_PROTECTION");
+        // Non-régression codes SF-250-04 + SF-250-05
+        assertThat(prompt).contains("CREDIT_TEMPS_ANCIENNETE");
+        assertThat(prompt).contains("TRAVAIL_PROCEDURE_TYPE");
+        assertThat(prompt).contains("IM09_DATE_ENTREE_FRANCE");
+    }
+
     // SF-250-05 — Remédiation critereCode lot Immigration FR — OQTF / AES
 
     // U-SF-250-05-01 : le prompt questions immigration-FR contient les codes IM08_* (OQTF + référés)
