@@ -124,11 +124,9 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   // SF-FA-09-02 : pré-fill IA (tous optionnels — null-safe partout).
   // F-236 SF-236-03 — F-FA-09 est un outil **famille** : son `aiData` est
-  // alimenté par `synthesis.familleExtractedData` (et non `travailExtractedData`
-  // comme historiquement à cause d'une erreur de mapping dans TOOL_REGISTRY).
-  // Note : `fautesDetectees` reste actuellement déclaré sur `TravailExtractedData`
-  // côté modèle backend — la lecture se fait via cast permissif en ligne 273
-  // jusqu'à ce que le pipeline backend déplace le champ dans `FamilleExtractedData`.
+  // alimenté par `synthesis.familleExtractedData`.
+  // SF-246-03 : `fautesDetectees` est désormais un champ réel de
+  // `FamilleExtractedData` (source backend branchée — cast permissif supprimé).
   @Input() aiData?: FamilleExtractedData | null;
   // SF-155-10 : inputs multi-sources F-IA-03 (F96 / QUESTION_IA / PIECE_MANQUANTE).
   @Input() procedureChecks?: ProcedureCheck[] | null;
@@ -307,8 +305,7 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
     }
 
     // 5. Fautes détectées par pipeline IA — filtrage codes valides via helper.
-    // F-236 SF-236-03 : `fautesDetectees` est actuellement déclaré sur
-    // `TravailExtractedData` (anomalie modèle backend — cast permissif).
+    // SF-246-03 : `fautesDetectees` est un champ réel de `FamilleExtractedData`.
     const fautes = DivorceFautePrefillRules.computeFautesDetectees(helperInput);
     if (fautes !== null
         && (this.fautesInvoquees().length === 0 || this.provenanceFautesInvoquees() === 'IA')) {
@@ -503,15 +500,15 @@ export class DivorceFauteSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-155-10 : fautes invoquées — divergence ensembliste IA vs user.
+   * SF-155-10 / SF-246-03 : fautes invoquées — divergence ensembliste IA vs user.
    * Multi-sources : F96 (critère `FA09_FAUTES_INVOQUEES`) + PIECE_MANQUANTE
    * (témoignages, constats huissier, mains courantes).
+   * SF-246-03 : cast permissif supprimé — `fautesDetectees` est désormais un
+   * champ réel de `FamilleExtractedData` (source backend branchée).
    */
   private buildFautesAlert(): DivorceFauteCoherenceAlert | null {
     const ai = this.aiDataSignal();
-    // F-236 SF-236-03 : `fautesDetectees` est actuellement déclaré sur
-    // `TravailExtractedData`. Cast permissif jusqu'à correction modèle backend.
-    const aiList = (ai as { fautesDetectees?: string[] | null } | null | undefined)?.fautesDetectees;
+    const aiList = ai?.fautesDetectees;
     if (!Array.isArray(aiList) || aiList.length === 0) return null;
     const aiSet = new Set(aiList.map((f) => f?.toUpperCase()).filter((f): f is string => !!f));
     if (aiSet.size === 0) return null;

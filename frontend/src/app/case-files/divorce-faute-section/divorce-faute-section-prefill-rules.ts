@@ -66,13 +66,14 @@ export function computeDateDepotAssignation(input: DivorceFautePrefillInput): st
 }
 
 /**
- * Fautes détectées par le pipeline IA — filtre uniquement les codes valides
- * (case-insensible, uppercased). Retourne la liste filtrée non vide, ou
- * `null` si rien ne matche.
+ * SF-246-03 : fautes détectées par le pipeline IA — lit le champ réel
+ * `fautesDetectees` de `FamilleExtractedData` (source backend branchée).
+ * Filtre uniquement les codes valides (case-insensible, uppercased).
+ * Retourne la liste filtrée non vide, ou `null` si rien ne matche.
+ * L'ancien cast permissif est supprimé — le champ existe désormais côté backend.
  */
 export function computeFautesDetectees(input: DivorceFautePrefillInput): FauteCode[] | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = (input.aiData as any)?.fautesDetectees;
+  const raw = input.aiData?.fautesDetectees;
   if (!Array.isArray(raw) || raw.length === 0) return null;
   const filtered = raw
     .filter((f: unknown): f is string => typeof f === 'string')

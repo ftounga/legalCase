@@ -1270,7 +1270,15 @@ public record CaseAnalysisResponse(
             // Remplace le champ aspirationnel `ageEnfants` du DTO frontend.
             java.util.List<Integer> agesEnfantsDetectes,
             String dateDebutCalendrierDetectee,
-            String dateFinCalendrierDetectee) {
+            String dateFinCalendrierDetectee,
+            // SF-246-03 : codes de faute détectés pour pré-fill F-FA-09 divorce pour faute
+            // (Famille FR uniquement, nullable). Codes alignés sur FauteCode frontend :
+            // {ADULTERE, VIOLENCES, ABANDON, OUTRAGES, DEVOIR_ASSISTANCE,
+            //  DEVOIR_FIDELITE, DEVOIR_COMMUNAUTE_VIE, AUTRE}.
+            // Codes hors whitelist exclus par extractFamilleData(). Liste vide → null
+            // (jamais [] — invariant cadrage §5.1.2). Source :
+            // `famille_extracted_data.divorce_faute_detection.fautes_detectees`.
+            java.util.List<String> fautesDetectees) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1363,6 +1371,8 @@ public record CaseAnalysisResponse(
             private java.util.List<Integer> agesEnfantsDetectes;
             private String dateDebutCalendrierDetectee;
             private String dateFinCalendrierDetectee;
+            // SF-246-03 : codes de faute détectés pour pré-fill F-FA-09 (Famille FR).
+            private java.util.List<String> fautesDetectees;
 
             private Builder() {}
 
@@ -1445,6 +1455,8 @@ public record CaseAnalysisResponse(
             public Builder agesEnfantsDetectes(java.util.List<Integer> v) { this.agesEnfantsDetectes = v; return this; }
             public Builder dateDebutCalendrierDetectee(String v) { this.dateDebutCalendrierDetectee = v; return this; }
             public Builder dateFinCalendrierDetectee(String v) { this.dateFinCalendrierDetectee = v; return this; }
+            // SF-246-03 : setter codes de faute détectés (F-FA-09).
+            public Builder fautesDetectees(java.util.List<String> v) { this.fautesDetectees = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1486,7 +1498,9 @@ public record CaseAnalysisResponse(
                         dateMajoriteEnfantDetectee, dateNaissanceEnfantRechercheDetectee,
                         dateNaissanceEnfantDetectee, ageAdoptantDetecte, ageAdopteDetecte,
                         // SF-246-10 : 3 champs IA autorité parentale.
-                        agesEnfantsDetectes, dateDebutCalendrierDetectee, dateFinCalendrierDetectee);
+                        agesEnfantsDetectes, dateDebutCalendrierDetectee, dateFinCalendrierDetectee,
+                        // SF-246-03 : codes de faute détectés (F-FA-09).
+                        fautesDetectees);
             }
         }
     }
@@ -3028,6 +3042,34 @@ public record CaseAnalysisResponse(
         boolean autoriteParentaleDetectionPresent = agesEnfantsDetectes != null
                 || dateDebutCalendrierDetectee != null
                 || dateFinCalendrierDetectee != null;
+        // SF-246-03 : sous-objet `divorce_faute_detection` — liste de codes de faute
+        // pour pré-fill de l'outil F-FA-09 divorce pour faute. Absent → null (no-op).
+        // Codes whitelistés (énumération fermée, alignés sur FauteCode frontend F-FA-09) ;
+        // codes hors whitelist exclus. Liste vide après filtrage → null (jamais []).
+        // Famille FR uniquement — le prompt impose null pour les dossiers BE.
+        java.util.Set<String> FAUTE_WHITELIST = java.util.Set.of(
+                "ADULTERE", "VIOLENCES", "ABANDON",
+                "OUTRAGES", "DEVOIR_ASSISTANCE",
+                "DEVOIR_FIDELITE", "DEVOIR_COMMUNAUTE_VIE", "AUTRE");
+        JsonNode dfd = node.get("divorce_faute_detection");
+        java.util.List<String> fautesDetectees = null;
+        if (dfd != null && dfd.isObject()) {
+            JsonNode fautesNode = dfd.get("fautes_detectees");
+            if (fautesNode != null && fautesNode.isArray() && !fautesNode.isEmpty()) {
+                java.util.List<String> raw = new java.util.ArrayList<>();
+                for (JsonNode item : fautesNode) {
+                    if (item.isTextual()) {
+                        String code = item.asText().trim().toUpperCase();
+                        if (FAUTE_WHITELIST.contains(code) && !raw.contains(code)) {
+                            raw.add(code);
+                        }
+                    }
+                }
+                fautesDetectees = raw.isEmpty() ? null : java.util.Collections.unmodifiableList(raw);
+            }
+        }
+        boolean divorceFauteDetectionPresent = fautesDetectees != null;
+
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
@@ -3039,7 +3081,8 @@ public record CaseAnalysisResponse(
                 && !regimeMatrimonialDetectionPresent
                 && !vieCommuneDetectionPresent
                 && !filiationDetectionPresent
-                && !autoriteParentaleDetectionPresent) {
+                && !autoriteParentaleDetectionPresent
+                && !divorceFauteDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -3127,6 +3170,8 @@ public record CaseAnalysisResponse(
                 .agesEnfantsDetectes(agesEnfantsDetectes)
                 .dateDebutCalendrierDetectee(dateDebutCalendrierDetectee)
                 .dateFinCalendrierDetectee(dateFinCalendrierDetectee)
+                // SF-246-03 : codes de faute détectés pour pré-fill F-FA-09.
+                .fautesDetectees(fautesDetectees)
                 .build();
     }
 

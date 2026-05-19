@@ -4485,4 +4485,134 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateDebutCalendrierDetectee()).isEqualTo("2026-09-01");
         assertThat(f.dateFinCalendrierDetectee()).isEqualTo("2027-06-30");
     }
+
+    // =========================================================================
+    // SF-246-03 — divorce_faute_detection (fautesDetectees)
+    // =========================================================================
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_casNominal_violencesEtAbandon() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "divorce_faute_detection": {
+                      "fautes_detectees": ["VIOLENCES", "ABANDON"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.fautesDetectees()).containsExactly("VIOLENCES", "ABANDON");
+    }
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_codesHorsWhitelist_exclus() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "divorce_faute_detection": {
+                      "fautes_detectees": ["ADULTERE", "CODE_INCONNU", "VIOLENCES"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // CODE_INCONNU exclu ; les deux codes valides conservés.
+        assertThat(f.fautesDetectees()).containsExactly("ADULTERE", "VIOLENCES");
+    }
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_sousObjetAbsent_fautesNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.fautesDetectees()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_listeVideApresFiltre_retourneNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "divorce_faute_detection": {
+                      "fautes_detectees": ["BIDON1", "BIDON2"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Tous codes invalides → null (jamais []).
+        assertThat(f.fautesDetectees()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_caseInsensible_normaliseEnMajuscules() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "divorce_faute_detection": {
+                      "fautes_detectees": ["adultere", "Violences"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.fautesDetectees()).containsExactly("ADULTERE", "VIOLENCES");
+    }
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_deduplication() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "divorce_faute_detection": {
+                      "fautes_detectees": ["ADULTERE", "ADULTERE", "VIOLENCES"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Doublons dédupliqués.
+        assertThat(f.fautesDetectees()).containsExactly("ADULTERE", "VIOLENCES");
+    }
+
+    @Test
+    void extractFamilleData_divorceFauteDetection_tousCodes8() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_faute_envisage": true,
+                    "divorce_faute_detection": {
+                      "fautes_detectees": ["ADULTERE","VIOLENCES","ABANDON","OUTRAGES","DEVOIR_ASSISTANCE","DEVOIR_FIDELITE","DEVOIR_COMMUNAUTE_VIE","AUTRE"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.fautesDetectees()).hasSize(8);
+    }
 }

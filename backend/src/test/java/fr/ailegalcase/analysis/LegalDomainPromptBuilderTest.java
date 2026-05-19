@@ -629,4 +629,49 @@ class LegalDomainPromptBuilderTest {
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
         assertThat(instruction).contains("RÈGLE LISTE D'ÂGES");
     }
+
+    // =========================================================================
+    // SF-246-03 — divorce_faute_detection (codes de faute, F-FA-09)
+    // =========================================================================
+
+    @Test
+    void domainSpecificInstruction_famille_contientDivorceFauteDetectionSousObjet() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("divorce_faute_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_divorceFauteDetection_contientFautesDetecteesCle() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("fautes_detectees");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_divorceFauteDetection_contientHuitCodes() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Les 8 codes de l'énumération fermée alignée sur FauteCode frontend.
+        assertThat(instruction).contains("\"ADULTERE\"");
+        assertThat(instruction).contains("\"VIOLENCES\"");
+        assertThat(instruction).contains("\"ABANDON\"");
+        assertThat(instruction).contains("\"OUTRAGES\"");
+        assertThat(instruction).contains("\"DEVOIR_ASSISTANCE\"");
+        assertThat(instruction).contains("\"DEVOIR_FIDELITE\"");
+        assertThat(instruction).contains("\"DEVOIR_COMMUNAUTE_VIE\"");
+        assertThat(instruction).contains("\"AUTRE\"");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_divorceFauteDetection_imposesNullHorsFrance() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Le prompt doit exiger null pour les dossiers belges.
+        assertThat(instruction).contains("divorce_faute_detection");
+        assertThat(instruction).contains("BELGIQUE");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_divorceFauteDetection_regleOrDocumentation() {
+        // La règle d'or "pièce concrète" doit être présente.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("RÈGLE D'OR");
+    }
 }
