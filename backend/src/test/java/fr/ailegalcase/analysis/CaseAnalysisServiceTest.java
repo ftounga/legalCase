@@ -543,6 +543,54 @@ class CaseAnalysisServiceTest {
         assertThat(inaptBlock).as("Bloc INAPT doit mentionner expected_value null").contains("expected_value");
     }
 
+    // SF-250-06 — Remédiation critereCode lot Immigration FR — titres / asile / éloignement
+
+    // U-SF-250-06-01 : le prompt système immigration-FR contient les codes IM11_, IM12_, IM13_
+    @Test
+    void systemPrompt_containsIm11Im12Im13CriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE", l);
+        assertThat(prompt).as("IM11_TITRE_ACTUEL doit être dans le prompt").contains("IM11_TITRE_ACTUEL");
+        assertThat(prompt).as("IM12_DISPOSITIF_ASILE doit être dans le prompt").contains("IM12_DISPOSITIF_ASILE");
+        assertThat(prompt).as("IM13_VOIE_NATURALISATION doit être dans le prompt").contains("IM13_VOIE_NATURALISATION");
+        assertThat(prompt).as("F-IM-11 doit être cité dans le prompt").contains("F-IM-11");
+        assertThat(prompt).as("F-IM-12 doit être cité dans le prompt").contains("F-IM-12");
+        assertThat(prompt).as("F-IM-13 doit être cité dans le prompt").contains("F-IM-13");
+        // Non-régression codes SF-250-05
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).contains("IM09H_MOTIF_HUMANITAIRE");
+    }
+
+    // U-SF-250-06-02 : le prompt système immigration-FR contient les codes IM19_* (mineurs)
+    @Test
+    void systemPrompt_containsIm19MineursCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE", l);
+        assertThat(prompt).as("IM19_DATE_NAISSANCE doit être dans le prompt").contains("IM19_DATE_NAISSANCE");
+        assertThat(prompt).as("IM19_DATE_ENTREE doit être dans le prompt").contains("IM19_DATE_ENTREE");
+        assertThat(prompt).as("F-IM-19 doit être cité dans le prompt").contains("F-IM-19");
+    }
+
+    // U-SF-250-06-03 : le prompt système immigration-FR contient IM20_* et IM24_*
+    @Test
+    void systemPrompt_containsIm20EloignementAndIm24ViolencesCriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "FRANCE", l);
+        assertThat(prompt).as("IM20_DISPOSITIF_ELOIGNEMENT doit être dans le prompt").contains("IM20_DISPOSITIF_ELOIGNEMENT");
+        assertThat(prompt).as("IM20_MOTIF_MENACE doit être dans le prompt").contains("IM20_MOTIF_MENACE");
+        assertThat(prompt).as("IM24_DATE_ORDONNANCE_PROTECTION doit être dans le prompt").contains("IM24_DATE_ORDONNANCE_PROTECTION");
+        assertThat(prompt).as("F-IM-20 doit être cité dans le prompt").contains("F-IM-20");
+        assertThat(prompt).as("F-IM-24 doit être cité dans le prompt").contains("F-IM-24");
+        // Annotation FRANCE UNIQUEMENT présente
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise pour IM20/IM24").contains("FRANCE UNIQUEMENT");
+        // Non-régression codes SF-250-05 + SF-250-04
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).contains("CREDIT_TEMPS_ANCIENNETE");
+    }
+
     // SF-250-05 — Remédiation critereCode lot Immigration FR — OQTF / AES
 
     // U-SF-250-05-01 : le prompt système immigration-FR contient les codes IM08_* (OQTF + référés)
