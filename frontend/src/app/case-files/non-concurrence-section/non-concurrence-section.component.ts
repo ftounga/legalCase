@@ -46,6 +46,8 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import {
   NonConcurrenceSectionPrefillRules,
+  computeDatePriseEffet,
+  computeSecteurActivite,
 } from './non-concurrence-section-prefill-rules';
 
 /**
@@ -178,6 +180,9 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
   provenanceLimiteTerritoire = signal<'IA' | null>(null);
   provenanceContrepartieMontant = signal<'IA' | null>(null);
   provenanceContrepartiePresente = signal<'IA' | null>(null);
+  // SF-246-13 : provenance IA pour les 2 nouveaux champs.
+  provenanceDatePriseEffet = signal<'IA' | null>(null);
+  provenanceSecteur = signal<'IA' | null>(null);
 
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
@@ -313,6 +318,22 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
         && (!this.contrepartieFinancierePresente() || this.provenanceContrepartiePresente() === 'IA')) {
       this.contrepartieFinancierePresente.set(contrepartiePresente);
       this.provenanceContrepartiePresente.set('IA');
+    }
+
+    // SF-246-13 : --- Date de prise d'effet de la clause ---
+    const datePriseEffet = computeDatePriseEffet(input);
+    if (datePriseEffet !== null
+        && (this.datePriseEffet() === null || this.provenanceDatePriseEffet() === 'IA')) {
+      this.datePriseEffet.set(datePriseEffet);
+      this.provenanceDatePriseEffet.set('IA');
+    }
+
+    // SF-246-13 : --- Secteur d'activité (code enum normalisé) ---
+    const secteurActivite = computeSecteurActivite(input);
+    if (secteurActivite !== null
+        && (this.secteurActivite() === null || this.provenanceSecteur() === 'IA')) {
+      this.secteurActivite.set(secteurActivite as any);
+      this.provenanceSecteur.set('IA');
     }
   }
 
@@ -650,10 +671,14 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
 
   onSecteurActiviteChange(value: SecteurActivite | null): void {
     this.secteurActivite.set(value);
+    // SF-246-13 : modification manuelle — masque le badge IA.
+    this.provenanceSecteur.set(null);
   }
 
   onDatePriseEffetChange(value: string | null): void {
     this.datePriseEffet.set(value && value.length > 0 ? value : null);
+    // SF-246-13 : modification manuelle — masque le badge IA.
+    this.provenanceDatePriseEffet.set(null);
   }
 
   // ---------------------------------------------------------------------------
@@ -781,6 +806,9 @@ export class NonConcurrenceSectionComponent implements OnInit, OnChanges {
     this.provenanceLimiteTerritoire.set(null);
     this.provenanceContrepartieMontant.set(null);
     this.provenanceContrepartiePresente.set(null);
+    // SF-246-13 : idem pour les 2 nouveaux champs.
+    this.provenanceDatePriseEffet.set(null);
+    this.provenanceSecteur.set(null);
     this.clausePresenteTouchedByUser = true;
     this.showForm.set(false);
   }

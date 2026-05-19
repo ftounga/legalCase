@@ -225,28 +225,42 @@
             </div>
 
             <!-- Secteur d'activité -->
-            <mat-form-field appearance="outline">
-              <mat-label>Secteur d'activité</mat-label>
-              <mat-select
-                  [ngModel]="secteurActivite()"
-                  (ngModelChange)="onSecteurActiviteChange($event)"
-                  name="secteurActivite" required>
-                @for (opt of secteurOptions; track opt.code) {
-                  <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
-                }
-              </mat-select>
-              <mat-hint>Le secteur module les seuils jurisprudentiels de proportionnalité de la contrepartie.</mat-hint>
-            </mat-form-field>
+            <div class="nc-field-group">
+              @if (provenanceSecteur() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              <mat-form-field appearance="outline">
+                <mat-label>Secteur d'activité</mat-label>
+                <mat-select
+                    [ngModel]="secteurActivite()"
+                    (ngModelChange)="onSecteurActiviteChange($event)"
+                    name="secteurActivite" required>
+                  @for (opt of secteurOptions; track opt.code) {
+                    <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+                <mat-hint>Le secteur module les seuils jurisprudentiels de proportionnalité de la contrepartie.</mat-hint>
+              </mat-form-field>
+            </div>
 
             <!-- Date de prise d'effet -->
-            <mat-form-field appearance="outline">
-              <mat-label>Date de prise d'effet de la clause</mat-label>
-              <input matInput type="date"
-                     [ngModel]="datePriseEffet()"
-                     (ngModelChange)="onDatePriseEffetChange($event)"
-                     name="datePriseEffet" required />
-              <mat-hint>Date à partir de laquelle la clause s'applique (généralement = date de fin du contrat).</mat-hint>
-            </mat-form-field>
+            <div class="nc-field-group">
+              @if (provenanceDatePriseEffet() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              <mat-form-field appearance="outline">
+                <mat-label>Date de prise d'effet de la clause</mat-label>
+                <input matInput type="date"
+                       [ngModel]="datePriseEffet()"
+                       (ngModelChange)="onDatePriseEffetChange($event)"
+                       name="datePriseEffet" required />
+                <mat-hint>Date à partir de laquelle la clause s'applique (généralement = date de fin du contrat).</mat-hint>
+              </mat-form-field>
+            </div>
 
             <div class="nc-actions nc-field-full">
               <button mat-flat-button color="primary" type="submit"
