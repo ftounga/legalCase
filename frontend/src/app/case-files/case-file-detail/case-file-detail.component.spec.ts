@@ -806,6 +806,33 @@ describe('CaseFileDetailComponent', () => {
     expect(component.canAnalyze()).toBe(false);
   });
 
+  it('SF-98-54 — loadAnalysisJobs réussi met analysisJobsLoaded à true', () => {
+    // ngOnInit (beforeEach) a déjà appelé loadAnalysisJobs avec un mock qui réussit.
+    expect(component.analysisJobsLoaded()).toBe(true);
+  });
+
+  it('SF-98-54 hasCompletedAnalysis — undefined tant que les jobs ne sont pas chargés', () => {
+    component.analysisJobsLoaded.set(false);
+    expect(component.hasCompletedAnalysis()).toBeUndefined();
+  });
+
+  it('SF-98-54 hasCompletedAnalysis — true si jobs chargés avec CASE_ANALYSIS DONE', () => {
+    component.analysisJobsLoaded.set(true);
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 },
+      { jobType: 'CASE_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 }
+    ]);
+    expect(component.hasCompletedAnalysis()).toBe(true);
+  });
+
+  it('SF-98-54 hasCompletedAnalysis — false si jobs chargés sans CASE_ANALYSIS DONE', () => {
+    component.analysisJobsLoaded.set(true);
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 }
+    ]);
+    expect(component.hasCompletedAnalysis()).toBe(false);
+  });
+
   it('caseAnalysisRunning — true si CASE_ANALYSIS PENDING', () => {
     component.analysisJobs.set([
       { jobType: 'CASE_ANALYSIS', status: 'PENDING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
