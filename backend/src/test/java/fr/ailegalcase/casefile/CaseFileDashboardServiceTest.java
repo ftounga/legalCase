@@ -78,6 +78,8 @@ class CaseFileDashboardServiceTest {
     private ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo;
     // SF-DT-38-02 — qualification rupture période d'essai (FR, F-DT-38).
     private RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo;
+    // SF-206-01 : F-DT-42 abandon de poste / présomption de démission (FR)
+    private AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo;
     private JldRetentionRepository jldRetentionRepo;
     private DublinRecoursRepository dublinRecoursRepo;
     private CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -196,6 +198,7 @@ class CaseFileDashboardServiceTest {
         creditTempsBeRepo = mock(CreditTempsBeRepository.class);
         procedureNulliteLicenciementRepo = mock(ProcedureNulliteLicenciementRepository.class);
         rupturePeriodeEssaiRepo = mock(RupturePeriodeEssaiRepository.class);
+        abandonPostePresomptionDemissionRepo = mock(AbandonPostePresomptionDemissionRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
         crrvRefusVisaRepo = mock(CrrvRefusVisaRepository.class);
@@ -317,6 +320,7 @@ class CaseFileDashboardServiceTest {
         when(creditTempsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(procedureNulliteLicenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(rupturePeriodeEssaiRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(abandonPostePresomptionDemissionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(jldRetentionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(dublinRecoursRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(crrvRefusVisaRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -405,6 +409,7 @@ class CaseFileDashboardServiceTest {
                 avantagesConventionnelsBeRepo, creditTempsBeRepo,
                 procedureNulliteLicenciementRepo,
                 rupturePeriodeEssaiRepo,
+                abandonPostePresomptionDemissionRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
                 acceptationRenonciationSuccessionRepo, autoriteParentaleBeRepo,

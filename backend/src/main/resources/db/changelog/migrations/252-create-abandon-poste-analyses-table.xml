@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="252-create-abandon-poste-presomption-demission-analyses" author="legalcase">
+        <comment>
+            SF-206-01 : table dédiée à l'outil décisionnel "Abandon de poste /
+            présomption de démission" (F-DT-42, FRANCE — loi 21/12/2022,
+            art. L.1237-1-1 CT et D.1237-2-1 s. CT décret 17/04/2023).
+
+            Analyse, du point de vue de l'avocat du salarié, la solidité de la
+            contestation d'une présomption de démission : irrégularités de la
+            mise en demeure (délai &lt; 15 jours calendaires, mentions manquantes,
+            mode de notification AUTRE) et motif légitime d'absence (médical,
+            droit de retrait / grève, modification du contrat refusée, défaut
+            de paiement du salaire) ou reprise dans le délai. Verdict en 3
+            niveaux : CONTESTATION_SOLIDE / CONTESTATION_INCERTAINE /
+            CONTESTATION_DIFFICILE. Score 0-100 (solidité).
+
+            L'outil expose une dateExpirationDelai = dateMiseEnDemeurePresentee
+            + delaiAccordeJours, destinée à F-69 (échéance "Expiration du délai
+            de mise en demeure (abandon de poste)").
+
+            Outil single-country FRANCE — la présomption de démission par
+            abandon de poste est un mécanisme franco-français (pas d'équivalent
+            BE direct).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-16 / F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-206-02 (migration ultérieure) — couplé
+            à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-DT-36-02
+            (migration 231). Sans ce couplage, le garde-fou
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+        </comment>
+
+        <createTable tableName="abandon_poste_presomption_demission_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_abandon_poste_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="abandon_poste_presomption_demission_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_abandon_poste_analyses_case_file"/>
+
+        <createIndex tableName="abandon_poste_presomption_demission_analyses"
+                     indexName="idx_abandon_poste_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="abandon_poste_presomption_demission_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

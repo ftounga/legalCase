@@ -392,7 +392,21 @@ public record CaseAnalysisResponse(
             String commissionParitaireBe,      // BELGIQUE — avantages-conventionnels-be
             Integer joursTravaillesAnneePrecedenteBe, // BELGIQUE — avantages-conventionnels-be
             Integer joursPrestesBe,            // BELGIQUE — avantages-conventionnels-be
-            String dateDemandeCreditTemps) {   // BELGIQUE — credit-temps-be
+            String dateDemandeCreditTemps,     // BELGIQUE — credit-temps-be
+            // SF-206-01 : 8 champs IA procéduraux pour pré-fill F-DT-42 (abandon
+            // de poste / présomption de démission, Travail FR uniquement,
+            // nullables). Sous-objet `abandon_poste_detail`. La présomption de
+            // démission par abandon de poste (loi 21/12/2022, art. L.1237-1-1 CT
+            // et D.1237-2-1 s. CT) est un mécanisme franco-français : ces champs
+            // restent null pour la BE.
+            String abandonPosteDateMiseEnDemeure,
+            String abandonPosteModeNotification,
+            Integer abandonPosteDelaiAccordeJours,
+            String abandonPosteMotifAbsence,
+            String abandonPosteDateReprise,
+            Boolean abandonPosteMedMentionneDelai,
+            Boolean abandonPosteMedMentionneConsequences,
+            Boolean abandonPosteRepriseDansDelai) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -540,7 +554,16 @@ public record CaseAnalysisResponse(
                     .commissionParitaireBe(commissionParitaireBe)
                     .joursTravaillesAnneePrecedenteBe(joursTravaillesAnneePrecedenteBe)
                     .joursPrestesBe(joursPrestesBe)
-                    .dateDemandeCreditTemps(dateDemandeCreditTemps);
+                    .dateDemandeCreditTemps(dateDemandeCreditTemps)
+                    // SF-206-01 — abandon de poste / présomption de démission
+                    .abandonPosteDateMiseEnDemeure(abandonPosteDateMiseEnDemeure)
+                    .abandonPosteModeNotification(abandonPosteModeNotification)
+                    .abandonPosteDelaiAccordeJours(abandonPosteDelaiAccordeJours)
+                    .abandonPosteMotifAbsence(abandonPosteMotifAbsence)
+                    .abandonPosteDateReprise(abandonPosteDateReprise)
+                    .abandonPosteMedMentionneDelai(abandonPosteMedMentionneDelai)
+                    .abandonPosteMedMentionneConsequences(abandonPosteMedMentionneConsequences)
+                    .abandonPosteRepriseDansDelai(abandonPosteRepriseDansDelai);
         }
 
         public static final class Builder {
@@ -683,6 +706,15 @@ public record CaseAnalysisResponse(
             private Integer joursTravaillesAnneePrecedenteBe;
             private Integer joursPrestesBe;
             private String dateDemandeCreditTemps;
+            // SF-206-01
+            private String abandonPosteDateMiseEnDemeure;
+            private String abandonPosteModeNotification;
+            private Integer abandonPosteDelaiAccordeJours;
+            private String abandonPosteMotifAbsence;
+            private String abandonPosteDateReprise;
+            private Boolean abandonPosteMedMentionneDelai;
+            private Boolean abandonPosteMedMentionneConsequences;
+            private Boolean abandonPosteRepriseDansDelai;
 
             private Builder() {}
 
@@ -820,6 +852,15 @@ public record CaseAnalysisResponse(
             public Builder joursTravaillesAnneePrecedenteBe(Integer v) { this.joursTravaillesAnneePrecedenteBe = v; return this; }
             public Builder joursPrestesBe(Integer v) { this.joursPrestesBe = v; return this; }
             public Builder dateDemandeCreditTemps(String v) { this.dateDemandeCreditTemps = v; return this; }
+            // SF-206-01
+            public Builder abandonPosteDateMiseEnDemeure(String v) { this.abandonPosteDateMiseEnDemeure = v; return this; }
+            public Builder abandonPosteModeNotification(String v) { this.abandonPosteModeNotification = v; return this; }
+            public Builder abandonPosteDelaiAccordeJours(Integer v) { this.abandonPosteDelaiAccordeJours = v; return this; }
+            public Builder abandonPosteMotifAbsence(String v) { this.abandonPosteMotifAbsence = v; return this; }
+            public Builder abandonPosteDateReprise(String v) { this.abandonPosteDateReprise = v; return this; }
+            public Builder abandonPosteMedMentionneDelai(Boolean v) { this.abandonPosteMedMentionneDelai = v; return this; }
+            public Builder abandonPosteMedMentionneConsequences(Boolean v) { this.abandonPosteMedMentionneConsequences = v; return this; }
+            public Builder abandonPosteRepriseDansDelai(Boolean v) { this.abandonPosteRepriseDansDelai = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -891,7 +932,12 @@ public record CaseAnalysisResponse(
                         dateConnaissanceFait, dateNotificationMotifs,
                         commissionParitaireBe,
                         joursTravaillesAnneePrecedenteBe, joursPrestesBe,
-                        dateDemandeCreditTemps);
+                        dateDemandeCreditTemps,
+                        // SF-206-01
+                        abandonPosteDateMiseEnDemeure, abandonPosteModeNotification,
+                        abandonPosteDelaiAccordeJours, abandonPosteMotifAbsence,
+                        abandonPosteDateReprise, abandonPosteMedMentionneDelai,
+                        abandonPosteMedMentionneConsequences, abandonPosteRepriseDansDelai);
             }
         }
     }
@@ -994,6 +1040,25 @@ public record CaseAnalysisResponse(
      */
     static final Set<String> SECTEUR_ACTIVITE_CODES = Set.of(
             "INFORMATIQUE", "COMMERCE", "INDUSTRIE", "SERVICES", "AUTRE"
+    );
+
+    /**
+     * SF-206-01 : codes de mode de notification de la mise en demeure d'abandon
+     * de poste — alignés sur l'enum {@code AbandonPostePresomptionDemissionCalculator.ModeNotification}
+     * (FR uniquement).
+     */
+    static final Set<String> ABANDON_POSTE_MODE_NOTIFICATION_CODES = Set.of(
+            "LRAR", "REMISE_MAIN_PROPRE", "AUTRE"
+    );
+
+    /**
+     * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
+     * d'abandon de poste — alignés sur l'enum
+     * {@code AbandonPostePresomptionDemissionCalculator.MotifAbsence} (FR uniquement).
+     */
+    static final Set<String> ABANDON_POSTE_MOTIF_ABSENCE_CODES = Set.of(
+            "AUCUN", "MEDICAL", "DROIT_RETRAIT", "DROIT_GREVE",
+            "MODIFICATION_CONTRAT_REFUSEE", "DEFAUT_PAIEMENT_SALAIRE", "AUTRE"
     );
 
     /**
@@ -2802,6 +2867,11 @@ public record CaseAnalysisResponse(
             // Peut être absent (dossier FR, pièces insuffisantes) → 6 champs null.
             JsonNode travailBe = node.get("travail_be_detection");
             boolean hasTravailBe = travailBe != null && travailBe.isObject();
+            // SF-206-01 : sous-objet pour pré-fill F-DT-42 (abandon de poste
+            // présomption de démission). Peut être absent (dossier sans MED ou
+            // dossier BE) → tous les champs null.
+            JsonNode abandonPoste = node.get("abandon_poste_detail");
+            boolean hasAbandonPoste = abandonPoste != null && abandonPoste.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -2983,6 +3053,19 @@ public record CaseAnalysisResponse(
                     .documentsDateCertificatTravail(extract246_21DocumentsDateCertificat(node))
                     .documentsDateAttestationFranceTravail(extract246_21DocumentsDateAttestation(node))
                     .documentsDateSoldeToutCompte(extract246_21DocumentsDateSolde(node))
+                    // SF-206-01 : 8 champs IA pour pré-fill F-DT-42 — date ISO
+                    // YYYY-MM-DD validée, délai borné [0, 365] jours, mode et
+                    // motif normalisés sur enum (code hors liste → null).
+                    // Booléens via booleanOrNull(). Tous null si sous-objet
+                    // abandon_poste_detail absent.
+                    .abandonPosteDateMiseEnDemeure(hasAbandonPoste ? isoDateOrNull(abandonPoste, "date_mise_en_demeure") : null)
+                    .abandonPosteModeNotification(hasAbandonPoste ? normalizeEnumCode(textOrNull(abandonPoste, "mode_notification"), ABANDON_POSTE_MODE_NOTIFICATION_CODES) : null)
+                    .abandonPosteDelaiAccordeJours(hasAbandonPoste ? boundedIntOrNull(abandonPoste, "delai_accorde_jours", 0, 365) : null)
+                    .abandonPosteMotifAbsence(hasAbandonPoste ? normalizeEnumCode(textOrNull(abandonPoste, "motif_absence"), ABANDON_POSTE_MOTIF_ABSENCE_CODES) : null)
+                    .abandonPosteDateReprise(hasAbandonPoste ? isoDateOrNull(abandonPoste, "date_reprise") : null)
+                    .abandonPosteMedMentionneDelai(hasAbandonPoste ? booleanOrNull(abandonPoste, "med_mentionne_delai") : null)
+                    .abandonPosteMedMentionneConsequences(hasAbandonPoste ? booleanOrNull(abandonPoste, "med_mentionne_consequences") : null)
+                    .abandonPosteRepriseDansDelai(hasAbandonPoste ? booleanOrNull(abandonPoste, "reprise_dans_delai") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

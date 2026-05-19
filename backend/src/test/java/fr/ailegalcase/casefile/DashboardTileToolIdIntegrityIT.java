@@ -67,7 +67,13 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary"
+            "F-196-questions-summary",
+            // F-DT-42 (SF-206-01) — exclusion transitoire (à résorber par SF-206-02
+            // frontend). La tuile est émise par CaseFileDashboardService mais le
+            // seed `decision_tool_visibility_rules` + l'entrée TOOL_REGISTRY frontend
+            // sont volontairement portés ensemble par la SF frontend SF-206-02
+            // (pattern SF-DT-38-02 / SF-DT-36-02 — cf. comment migration 252).
+            "F-DT-42-abandon-poste-presomption-demission"
     );
 
     /**

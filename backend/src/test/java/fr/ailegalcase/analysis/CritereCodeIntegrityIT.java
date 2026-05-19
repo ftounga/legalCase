@@ -77,6 +77,12 @@ class CritereCodeIntegrityIT {
             "DT36_MOTIVATION",
             "DT36_ENTRETIEN_TENU",
 
+            // ─── Droit du travail — Abandon de poste / présomption démission F-DT-42 ──
+            "DT42_DATE_MISE_EN_DEMEURE",
+            "DT42_DELAI_ACCORDE",
+            "DT42_MENTIONS_MED",
+            "DT42_MOTIF_LEGITIME",
+
             // ─── Droit du travail — Harcèlement / licenciement nul F-DT-11 ─────────────
             "HLN_MOTIF_NULLITE",
 
