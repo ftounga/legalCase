@@ -407,14 +407,15 @@
             @if (auditReport()!.activeTiles.length === 0) {
               <p class="audit-empty">Aucune analyse produite.</p>
             } @else {
-              <table mat-table [dataSource]="auditReport()!.activeTiles"
+              <table mat-table [dataSource]="sortedActiveTiles()"
+                     matSort (matSortChange)="onActiveSortChange($event)"
                      class="backlog-table audit-table">
                 <ng-container matColumnDef="tableName">
-                  <th mat-header-cell *matHeaderCellDef>Outil</th>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Outil</th>
                   <td mat-cell *matCellDef="let row" class="cell-code">{{ row.tableName }}</td>
                 </ng-container>
                 <ng-container matColumnDef="rowCount">
-                  <th mat-header-cell *matHeaderCellDef>Analyses produites</th>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Analyses produites</th>
                   <td mat-cell *matCellDef="let row">{{ row.rowCount }}</td>
                 </ng-container>
                 <tr mat-header-row *matHeaderRowDef="activeColumns"></tr>

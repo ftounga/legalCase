@@ -9,12 +9,14 @@ import { SuperAdminBacklogComponent } from './super-admin-backlog.component';
 import { BacklogFeatureDetailDialogComponent } from './feature-detail/backlog-feature-detail-dialog.component';
 import { BacklogAdminService } from '../../core/services/backlog-admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { DashboardAuditService } from '../../core/services/dashboard-audit.service';
 import {
   BacklogFeatureSummary,
   BacklogFreshness,
   BacklogMarketingTaskSummary,
   BacklogSyncResult,
 } from '../../core/models/backlog.model';
+import { DashboardAuditReport } from '../../core/models/dashboard-audit.model';
 import { PageResponse } from '../../core/models/super-admin.model';
 
 const mockFreshness: BacklogFreshness = {
@@ -49,6 +51,40 @@ const mockSyncResult: BacklogSyncResult = {
   subfeaturesCount: 612, marketingCount: 76, orphansMarked: 0, success: true,
 };
 
+const mockAuditReport: DashboardAuditReport = {
+  ranAt: '2026-05-19T18:00:00Z',
+  crashedMappers: [
+    {
+      toolId: 'indemnite-licenciement',
+      crashCount: 4,
+      lastExceptionClass: 'NullPointerException',
+      lastExceptionMessage: 'tile data missing',
+      lastOccurredAt: '2026-05-19T17:45:00Z',
+    },
+    {
+      toolId: 'preavis-calculator',
+      crashCount: 9,
+      lastExceptionClass: 'IllegalStateException',
+      lastExceptionMessage: 'bad state',
+      lastOccurredAt: '2026-05-18T10:00:00Z',
+    },
+  ],
+  dormantTiles: [
+    { tableName: 'rupture_conventionnelle_analyses', rowCount: 0 },
+  ],
+  activeTiles: [
+    { tableName: 'indemnite_licenciement_analyses', rowCount: 12 },
+    { tableName: 'preavis_analyses', rowCount: 31 },
+  ],
+};
+
+const emptyAuditReport: DashboardAuditReport = {
+  ranAt: '2026-05-19T18:00:00Z',
+  crashedMappers: [],
+  dormantTiles: [],
+  activeTiles: [],
+};
+
 function pageOf<T>(content: T[]): PageResponse<T> {
   return { content, totalElements: content.length, totalPages: 1, size: 50, number: 0 };
 }
@@ -57,6 +93,7 @@ describe('SuperAdminBacklogComponent', () => {
   let component: SuperAdminBacklogComponent;
   let fixture: ComponentFixture<SuperAdminBacklogComponent>;
   let backlogService: any;
+  let auditService: any;
   let snackBar: any;
   let dialog: any;
   let router: Router;
@@ -66,6 +103,9 @@ describe('SuperAdminBacklogComponent', () => {
       'searchFeatures', 'searchMarketingTasks', 'getFreshness',
       'triggerSync', 'getFeatureDetail',
     ]);
+    auditService = jasmine.createSpyObj('DashboardAuditService', [
+      'getLatest', 'runAudit',
+    ]);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
@@ -73,6 +113,8 @@ describe('SuperAdminBacklogComponent', () => {
     backlogService.searchFeatures.mockReturnValue(of(pageOf([mockFeature])));
     backlogService.searchMarketingTasks.mockReturnValue(of(pageOf([mockMarketing])));
     backlogService.triggerSync.mockReturnValue(of(mockSyncResult));
+    auditService.getLatest.mockReturnValue(of(mockAuditReport));
+    auditService.runAudit.mockReturnValue(of(mockAuditReport));
 
     const currentUser = signal<any>({ id: 'u-sa', email: 'sa@test.com', isSuperAdmin });
     const authService = { currentUser };
@@ -81,6 +123,7 @@ describe('SuperAdminBacklogComponent', () => {
       imports: [SuperAdminBacklogComponent, NoopAnimationsModule],
       providers: [
         { provide: BacklogAdminService, useValue: backlogService },
+        { provide: DashboardAuditService, useValue: auditService },
         { provide: AuthService, useValue: authService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: MatDialog, useValue: dialog },
@@ -298,5 +341,177 @@ describe('SuperAdminBacklogComponent', () => {
     backlogService.searchFeatures.mockClear();
     component.onViewModeChange('list');
     expect(backlogService.searchFeatures).not.toHaveBeenCalled();
+  });
+
+  // ── F-180 SF-180-02 — Tab « Audit dashboard » ──────────────────────────
+
+  it('does not load the audit report on init (lazy)', () => {
+    setup(true);
+    fixture.detectChanges();
+    expect(auditService.getLatest).not.toHaveBeenCalled();
+    expect(component.auditLoaded()).toBe(false);
+  });
+
+  it('lazy-loads the audit report only on first switch to tab index 2', () => {
+    setup(true);
+    fixture.detectChanges();
+
+    component.onTabChange(2);
+    expect(auditService.getLatest).toHaveBeenCalledTimes(1);
+    expect(component.auditLoaded()).toBe(true);
+    expect(component.auditLoading()).toBe(false);
+
+    // re-opening the tab must not reload (lazy)
+    component.onTabChange(0);
+    component.onTabChange(2);
+    expect(auditService.getLatest).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the 3 panels from a populated audit report', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+    fixture.detectChanges();
+
+    expect(component.auditReport()).toEqual(mockAuditReport);
+    expect(component.auditReport()!.crashedMappers.length).toBe(2);
+    expect(component.auditReport()!.dormantTiles.length).toBe(1);
+    expect(component.auditReport()!.activeTiles.length).toBe(2);
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Mappers en erreur');
+    expect(text).toContain('Tiles dormantes');
+    expect(text).toContain('Tiles actives');
+    expect(text).toContain('indemnite-licenciement');
+  });
+
+  it('handles the empty state without crashing (0 crash / 0 dormant / 0 active)', () => {
+    setup(true);
+    auditService.getLatest.mockReturnValue(of(emptyAuditReport));
+    fixture.detectChanges();
+    component.onTabChange(2);
+    fixture.detectChanges();
+
+    expect(component.auditError()).toBe(false);
+    expect(component.sortedCrashedMappers()).toEqual([]);
+    expect(component.sortedActiveTiles()).toEqual([]);
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Aucun mapper en erreur');
+    expect(text).toContain('Aucune tile dormante');
+    expect(text).toContain('Aucune analyse produite');
+  });
+
+  it('flags auditError and shows an error snackbar on a network failure', () => {
+    setup(true);
+    auditService.getLatest.mockReturnValue(throwError(() => ({ status: 500 })));
+    fixture.detectChanges();
+
+    component.onTabChange(2);
+
+    expect(component.auditLoading()).toBe(false);
+    expect(component.auditError()).toBe(true);
+    expect(component.auditReport()).toBeNull();
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('audit'),
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] }),
+    );
+  });
+
+  it('redirects to /case-files when the audit load returns 403', () => {
+    setup(true);
+    auditService.getLatest.mockReturnValue(throwError(() => ({ status: 403 })));
+    fixture.detectChanges();
+
+    component.onTabChange(2);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
+  });
+
+  it('triggerAuditRun posts to /run, toggles auditRunning, refreshes panels and shows success snackbar', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+
+    const refreshed: DashboardAuditReport = { ...emptyAuditReport, ranAt: '2026-05-19T19:00:00Z' };
+    auditService.runAudit.mockReturnValue(of(refreshed));
+
+    component.triggerAuditRun();
+
+    expect(auditService.runAudit).toHaveBeenCalledTimes(1);
+    expect(component.auditRunning()).toBe(false);
+    expect(component.auditReport()).toEqual(refreshed);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('relancé'),
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-success'] }),
+    );
+  });
+
+  it('triggerAuditRun does not double-post while a run is already in progress', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+
+    component.auditRunning.set(true);
+    component.triggerAuditRun();
+
+    expect(auditService.runAudit).not.toHaveBeenCalled();
+  });
+
+  it('triggerAuditRun handles an error with an error snackbar without crashing', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+    auditService.runAudit.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.triggerAuditRun();
+
+    expect(component.auditRunning()).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Échec'),
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] }),
+    );
+  });
+
+  it('sortedCrashedMappers sorts by crashCount desc by default', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+
+    const sorted = component.sortedCrashedMappers();
+    expect(sorted.map(m => m.crashCount)).toEqual([9, 4]);
+  });
+
+  it('onCrashedSortChange re-sorts the crashed mappers table', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+
+    component.onCrashedSortChange({ active: 'toolId', direction: 'asc' });
+    expect(component.sortedCrashedMappers().map(m => m.toolId))
+      .toEqual(['indemnite-licenciement', 'preavis-calculator']);
+  });
+
+  it('sortedActiveTiles sorts by rowCount desc by default and re-sorts on header click', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.onTabChange(2);
+
+    expect(component.sortedActiveTiles().map(t => t.rowCount)).toEqual([31, 12]);
+
+    component.onActiveSortChange({ active: 'tableName', direction: 'asc' });
+    expect(component.sortedActiveTiles().map(t => t.tableName))
+      .toEqual(['indemnite_licenciement_analyses', 'preavis_analyses']);
+  });
+
+  it('kubectlLogsHint builds a kubectl command scoped to the tool id', () => {
+    setup(true);
+    fixture.detectChanges();
+    const hint = component.kubectlLogsHint('preavis-calculator');
+    expect(hint).toContain('kubectl logs');
+    expect(hint).toContain('preavis-calculator');
   });
 });

@@ -146,6 +146,7 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
   auditRunning = signal(false);
   auditError = signal(false);
   crashedSort = signal<Sort>({ active: 'crashCount', direction: 'desc' });
+  activeSort = signal<Sort>({ active: 'rowCount', direction: 'desc' });
 
   /** Mappers en erreur triés selon l'en-tête MatSort cliqué. */
   sortedCrashedMappers = computed(() => {
@@ -161,6 +162,23 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
         case 'lastOccurredAt': return a.lastOccurredAt.localeCompare(b.lastOccurredAt) * dir;
         case 'toolId': return a.toolId.localeCompare(b.toolId) * dir;
         case 'lastExceptionClass': return a.lastExceptionClass.localeCompare(b.lastExceptionClass) * dir;
+        default: return 0;
+      }
+    });
+  });
+
+  /** Tiles actives triées selon l'en-tête MatSort cliqué (rowCount desc par défaut). */
+  sortedActiveTiles = computed(() => {
+    const report = this.auditReport();
+    if (!report) return [];
+    const sort = this.activeSort();
+    const rows = [...report.activeTiles];
+    if (!sort.active || sort.direction === '') return rows;
+    const dir = sort.direction === 'asc' ? 1 : -1;
+    return rows.sort((a, b) => {
+      switch (sort.active) {
+        case 'rowCount': return (a.rowCount - b.rowCount) * dir;
+        case 'tableName': return a.tableName.localeCompare(b.tableName) * dir;
         default: return 0;
       }
     });
@@ -404,6 +422,10 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
 
   onCrashedSortChange(sort: Sort): void {
     this.crashedSort.set(sort);
+  }
+
+  onActiveSortChange(sort: Sort): void {
+    this.activeSort.set(sort);
   }
 
   /** Commande kubectl logs suggérée pour investiguer un crash de mapper. */
