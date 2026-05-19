@@ -131,4 +131,14 @@ describe('LandingComponent', () => {
     const prev = fixture.nativeElement.querySelector('.video-carousel-arrow--prev');
     expect(prev?.hasAttribute('disabled')).toBe(true);
   });
+
+  // SF-240-04 : lien DPA dans le footer
+  it('LDF-01 — footer contient un lien Télécharger le DPA pointant vers /api/v1/legal/dpa', () => {
+    const footerLinks = fixture.nativeElement.querySelectorAll('footer .footer-links a');
+    const dpaLink = Array.from(footerLinks).find(
+      (a: any) => a.textContent?.includes('DPA') || a.textContent?.includes('Télécharger le DPA')
+    ) as HTMLAnchorElement | undefined;
+    expect(dpaLink).toBeTruthy();
+    expect(dpaLink?.getAttribute('href')).toBe('/api/v1/legal/dpa');
+  });
 });

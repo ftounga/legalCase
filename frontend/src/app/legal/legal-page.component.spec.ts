@@ -55,4 +55,14 @@ describe('LegalPageComponent', () => {
     const titleService = TestBed.inject(Title);
     expect(titleService.getTitle()).toBe('Mentions légales — AI LegalCase');
   });
+
+  // SF-240-04 : encart DPA sur la page /privacy
+  it('LDF-02 — /privacy : affiche l\'encart DPA avec lien /api/v1/legal/dpa', async () => {
+    const fixture = await setup('Politique de confidentialité', POLITIQUE_CONFIDENTIALITE);
+    const el: HTMLElement = fixture.nativeElement;
+    const bodyText = el.querySelector('.legal-body')?.innerHTML ?? '';
+    expect(bodyText).toContain('Data Processing Agreement');
+    const link = el.querySelector('.legal-body a[href="/api/v1/legal/dpa"]');
+    expect(link).toBeTruthy();
+  });
 });

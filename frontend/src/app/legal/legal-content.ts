@@ -138,6 +138,30 @@ export const POLITIQUE_CONFIDENTIALITE: LegalSection[] = [
     content: `
       <p>Toute modification substantielle sera notifiée par email au moins 30 jours avant son entrée en vigueur. La poursuite de l'utilisation du service vaut acceptation.</p>
     `
+  },
+  {
+    heading: '8. Data Processing Agreement (DPA) — Cabinets d\'avocats responsables de traitement',
+    content: `
+      <div class="dpa-download-section">
+        <p>
+          Si votre cabinet d'avocats utilise AI LegalCase pour traiter des données personnelles
+          de vos clients (pièces de procédure, dossiers, documents contractuels), vous agissez
+          en qualité de <strong>responsable de traitement</strong> et NG-CONSULTING en qualité de
+          <strong>sous-traitant</strong> au sens de l'Article 28 du RGPD.
+        </p>
+        <p>
+          Le Data Processing Agreement (DPA) ci-dessous régit ce traitement conformément au RGPD.
+          Il couvre notamment les mesures de sécurité (TLS 1.3, chiffrement at-rest, isolation workspace),
+          les sous-traitants ultérieurs (AWS eu-west-3, Anthropic, Stripe, Brevo) et vos droits
+          en tant que responsable de traitement.
+        </p>
+        <p>
+          <a href="/api/v1/legal/dpa" target="_blank" rel="noopener" class="dpa-download-link">
+            ⬇ Télécharger le DPA (RGPD art. 28) — PDF
+          </a>
+        </p>
+      </div>
+    `
   }
 ];
 
