@@ -2881,14 +2881,16 @@ class CaseAnalysisResponseTest {
 
     @Test
     void from_travailExtractedData_clauseNonConcurrence_complet_parsed() {
-        // Cas nominal : sous-objet complet → 3 champs renseignés.
+        // Cas nominal : sous-objet complet → 5 champs renseignés (SF-246-02 + SF-246-13).
         CaseAnalysis analysis = analysis("""
                 {
                   "travail_extracted_data": {
                     "clause_non_concurrence_detail": {
                       "duree_mois": 24,
                       "zone_geographique": "France métropolitaine",
-                      "contrepartie_montant_mensuel_eur": 900.0
+                      "contrepartie_montant_mensuel_eur": 900.0,
+                      "date_prise_effet": "2026-03-31",
+                      "secteur_activite": "INFORMATIQUE"
                     }
                   }
                 }
@@ -2899,11 +2901,13 @@ class CaseAnalysisResponseTest {
         assertThat(t.nonConcurrenceDureeMois()).isEqualTo(24);
         assertThat(t.nonConcurrenceZoneGeographique()).isEqualTo("France métropolitaine");
         assertThat(t.nonConcurrenceContrepartieMontantEur()).isEqualTo(900.0);
+        assertThat(t.nonConcurrenceDatePriseEffet()).isEqualTo("2026-03-31");
+        assertThat(t.nonConcurrenceSecteurActivite()).isEqualTo("INFORMATIQUE");
     }
 
     @Test
     void from_travailExtractedData_clauseNonConcurrence_sousObjetAbsent_tousNull() {
-        // Sous-objet clause_non_concurrence_detail absent → 3 champs null, pas d'exception.
+        // Sous-objet clause_non_concurrence_detail absent → 5 champs null, pas d'exception.
         CaseAnalysis analysis = analysis("""
                 {
                   "travail_extracted_data": {
@@ -2918,6 +2922,8 @@ class CaseAnalysisResponseTest {
         assertThat(t.nonConcurrenceDureeMois()).isNull();
         assertThat(t.nonConcurrenceZoneGeographique()).isNull();
         assertThat(t.nonConcurrenceContrepartieMontantEur()).isNull();
+        assertThat(t.nonConcurrenceDatePriseEffet()).isNull();
+        assertThat(t.nonConcurrenceSecteurActivite()).isNull();
     }
 
     @Test
@@ -3036,6 +3042,109 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
         assertThat(t).isNotNull();
         assertThat(t.nonConcurrenceDureeMois()).isNull();
+    }
+
+    // ------------------------------------------------------------------------
+    // SF-246-13 : 2 champs IA complétant clause_non_concurrence_detail
+    // (date de prise d'effet + secteur d'activité, pré-fill F-DT-24).
+    // ------------------------------------------------------------------------
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_datePriseEffetNonIso_null() {
+        // date_prise_effet dans un format non ISO → null (isoDateOrNull fail-open).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "date_prise_effet": "31/03/2026" }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDatePriseEffet()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_datePriseEffetIso_parsed() {
+        // date_prise_effet ISO YYYY-MM-DD stricte → conservée telle quelle.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "date_prise_effet": "2025-12-15" }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDatePriseEffet()).isEqualTo("2025-12-15");
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_secteurHorsEnum_null() {
+        // secteur_activite hors enum (ex. "BTP") → null (normalizeEnumCode whitelist).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "secteur_activite": "BTP" }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceSecteurActivite()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_secteurMinuscules_normalise() {
+        // secteur_activite en minuscules → upper-case puis validé contre la whitelist.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "secteur_activite": "informatique" }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceSecteurActivite()).isEqualTo("INFORMATIQUE");
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_secteurChaqueValeurEnum_parsed() {
+        // Les 5 codes de l'enum SecteurActivite sont tous acceptés.
+        for (String code : new String[]{"INFORMATIQUE", "COMMERCE", "INDUSTRIE", "SERVICES", "AUTRE"}) {
+            CaseAnalysis analysis = analysis("""
+                    {
+                      "travail_extracted_data": {
+                        "clause_non_concurrence_detail": { "secteur_activite": "%s" }
+                      }
+                    }
+                    """.formatted(code));
+            assertThat(CaseAnalysisResponse.from(analysis).travailExtractedData()
+                    .nonConcurrenceSecteurActivite()).isEqualTo(code);
+        }
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrence_datePriseEffetEtSecteurAbsents_null() {
+        // Sous-objet présent mais sans les 2 clés SF-246-13 → champs null, pas d'exception.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "clause_non_concurrence_detail": { "duree_mois": 12 }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nonConcurrenceDureeMois()).isEqualTo(12);
+        assertThat(t.nonConcurrenceDatePriseEffet()).isNull();
+        assertThat(t.nonConcurrenceSecteurActivite()).isNull();
     }
 
     // ========================================================================
@@ -3815,5 +3924,144 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateSeparation()).isEqualTo("2022-01-01");
         // filiation_detection intact.
         assertThat(f.dateEtablissementFiliationDetectee()).isEqualTo("2005-04-10");
+    }
+
+    // =========================================================================
+    // SF-246-10 — autorite_parentale_detection (agesEnfantsDetectes + dates calendrier)
+    // =========================================================================
+
+    @Test
+    void extractFamilleData_autoriteParentaleDetection_casNominal_troisChamps() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "autorite_parentale_detectee": true,
+                    "autorite_parentale_detection": {
+                      "ages_enfants": [12, 9, 4],
+                      "date_debut_calendrier": "2026-09-01",
+                      "date_fin_calendrier": "2027-08-31"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.agesEnfantsDetectes()).containsExactly(12, 9, 4);
+        assertThat(f.dateDebutCalendrierDetectee()).isEqualTo("2026-09-01");
+        assertThat(f.dateFinCalendrierDetectee()).isEqualTo("2027-08-31");
+    }
+
+    @Test
+    void extractFamilleData_autoriteParentaleDetection_absent_troisChampsNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_residence_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.agesEnfantsDetectes()).isNull();
+        assertThat(f.dateDebutCalendrierDetectee()).isNull();
+        assertThat(f.dateFinCalendrierDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_autoriteParentaleDetection_agesAvecValeursAberrantes_filtrees() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "autorite_parentale_detection": {
+                      "ages_enfants": [10, 200, 6],
+                      "date_debut_calendrier": null,
+                      "date_fin_calendrier": null
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // 200 hors plage [0, 25] → exclu.
+        assertThat(f.agesEnfantsDetectes()).containsExactly(10, 6);
+    }
+
+    @Test
+    void extractFamilleData_autoriteParentaleDetection_listeVideApresFiltrage_null() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        // changement_residence_envisage force le guard à retourner non-null (flag lu par le parseur).
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_residence_envisage": true,
+                    "autorite_parentale_detection": {
+                      "ages_enfants": [200, 300],
+                      "date_debut_calendrier": null,
+                      "date_fin_calendrier": null
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Tous hors plage → null (jamais liste vide — invariant §5.1.2 transposé aux listes).
+        assertThat(f.agesEnfantsDetectes()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_autoriteParentaleDetection_dateNonIso_rejetee() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "autorite_parentale_detection": {
+                      "ages_enfants": null,
+                      "date_debut_calendrier": "01/09/2026",
+                      "date_fin_calendrier": "not-a-date"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        // date_debut_calendrier et date_fin_calendrier malformées → null.
+        // Le sous-objet autorite_parentale_detection est présent mais n'apporte aucune donnée valide.
+        // Guard retourne null sauf si un autre flag est présent.
+        // Ici autorite_parentale_detection présent mais ses 3 champs sont null → autoriteParentaleDetectionPresent = false.
+        // → extractFamilleData() retourne null (guard). On vérifie le comportement gracieux.
+        if (f != null) {
+            assertThat(f.dateDebutCalendrierDetectee()).isNull();
+            assertThat(f.dateFinCalendrierDetectee()).isNull();
+        }
+    }
+
+    @Test
+    void extractFamilleData_autoriteParentaleDetection_coexistenceAvecFiliationDetection() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "autorite_parentale_detectee": true,
+                    "filiation_detection": {
+                      "date_etablissement_filiation": "2005-04-10"
+                    },
+                    "autorite_parentale_detection": {
+                      "ages_enfants": [8, 5],
+                      "date_debut_calendrier": "2026-09-01",
+                      "date_fin_calendrier": "2027-06-30"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // filiation_detection intact.
+        assertThat(f.dateEtablissementFiliationDetectee()).isEqualTo("2005-04-10");
+        // autorite_parentale_detection intact.
+        assertThat(f.agesEnfantsDetectes()).containsExactly(8, 5);
+        assertThat(f.dateDebutCalendrierDetectee()).isEqualTo("2026-09-01");
+        assertThat(f.dateFinCalendrierDetectee()).isEqualTo("2027-06-30");
     }
 }

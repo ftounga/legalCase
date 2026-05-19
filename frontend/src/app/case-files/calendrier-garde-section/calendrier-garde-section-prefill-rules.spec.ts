@@ -1,8 +1,12 @@
 /**
  * F-236 SF-236-02 — Tests `CalendrierGardePrefillRules`.
+ * SF-246-10 : ajout tests pré-fill âges + dates calendrier.
  */
 import {
   CalendrierGardePrefillRules,
+  computeAgesEnfants,
+  computeDateDebutCalendrier,
+  computeDateFinCalendrier,
   computeGardeCode,
   computeModeDetailleNote,
   computePrefillCount,
@@ -104,6 +108,96 @@ describe('CalendrierGardePrefillRules', () => {
       expect(CalendrierGardePrefillRules.computePrefillCount).toBe(computePrefillCount);
       expect(CalendrierGardePrefillRules.MODES_FR.has('ALTERNEE_FR')).toBe(true);
       expect(CalendrierGardePrefillRules.MODES_BE.has('ALTERNEE_BE')).toBe(true);
+    });
+  });
+
+  // ---- SF-246-10 : âges enfants + dates calendrier ----
+
+  describe('SF-246-10 — computeAgesEnfants', () => {
+    it('retourne [] si aiData absent', () => {
+      expect(computeAgesEnfants({})).toEqual([]);
+    });
+
+    it('filtre âges hors plage [0, 25]', () => {
+      expect(
+        computeAgesEnfants({ aiData: { agesEnfantsDetectes: [5, -1, 26, 7.5, 12] } } as any),
+      ).toEqual([5, 12]);
+    });
+
+    it('retourne les 3 âges valides d\'un dossier nominal', () => {
+      expect(
+        computeAgesEnfants({ aiData: { agesEnfantsDetectes: [12, 9, 4] } } as any),
+      ).toEqual([12, 9, 4]);
+    });
+
+    it('retourne [] si liste vide', () => {
+      expect(
+        computeAgesEnfants({ aiData: { agesEnfantsDetectes: [] } } as any),
+      ).toEqual([]);
+    });
+  });
+
+  describe('SF-246-10 — computeDateDebutCalendrier', () => {
+    it('retourne null si absent', () => {
+      expect(computeDateDebutCalendrier({})).toBeNull();
+    });
+
+    it('retourne la date ISO si présente', () => {
+      expect(
+        computeDateDebutCalendrier({ aiData: { dateDebutCalendrierDetectee: '2026-09-01' } } as any),
+      ).toBe('2026-09-01');
+    });
+
+    it('retourne null si chaîne vide', () => {
+      expect(
+        computeDateDebutCalendrier({ aiData: { dateDebutCalendrierDetectee: '' } } as any),
+      ).toBeNull();
+    });
+  });
+
+  describe('SF-246-10 — computeDateFinCalendrier', () => {
+    it('retourne null si absent', () => {
+      expect(computeDateFinCalendrier({})).toBeNull();
+    });
+
+    it('retourne la date ISO si présente', () => {
+      expect(
+        computeDateFinCalendrier({ aiData: { dateFinCalendrierDetectee: '2027-08-31' } } as any),
+      ).toBe('2027-08-31');
+    });
+  });
+
+  describe('SF-246-10 — computePrefillCount enrichi', () => {
+    it('cas 0 — aucun champ', () => {
+      expect(computePrefillCount({})).toBe(0);
+    });
+
+    it('cas partiel — ages seulement (+ mode)', () => {
+      expect(
+        computePrefillCount({
+          aiModeGardeDetaille: 'ALTERNEE_FR',
+          workspaceCountry: 'FRANCE',
+          aiData: { agesEnfantsDetectes: [8] },
+        } as any),
+      ).toBe(2);
+    });
+
+    it('cas nominal — mode + ages + 2 dates = 4', () => {
+      expect(
+        computePrefillCount({
+          aiModeGardeDetaille: 'DVH_CLASSIQUE_FR',
+          workspaceCountry: 'FRANCE',
+          aiData: {
+            agesEnfantsDetectes: [12, 9],
+            dateDebutCalendrierDetectee: '2026-09-01',
+            dateFinCalendrierDetectee: '2027-08-31',
+          },
+        } as any),
+      ).toBe(4);
+    });
+
+    it('expose computeAgesEnfants dans le module', () => {
+      expect(CalendrierGardePrefillRules.computeAgesEnfants).toBe(computeAgesEnfants);
     });
   });
 });

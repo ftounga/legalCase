@@ -1,7 +1,11 @@
 /**
  * F-236 SF-236-02 — Helper partagé `ChangementResidencePrefillRules`.
  * 5 champs : raisonChangement, consentementAutreParent (bool),
- * informePrealablement (bool), modeResidenceActuel, ageEnfants (filtré).
+ * informePrealablement (bool), modeResidenceActuel, agesEnfantsDetectes (filtré).
+ *
+ * SF-246-10 : `ageEnfants` aspirationnel remplacé par `agesEnfantsDetectes`
+ * (source backend réelle : `autorite_parentale_detection.ages_enfants`).
+ * Plage [0, 25] (alignée sur le contrat backend).
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import {
@@ -16,13 +20,7 @@ export const VALID_MODES: ReadonlySet<string> = new Set<ModeResidenceCh>([
   'ALTERNEE', 'EXCLUSIVE_DEMANDEUR', 'EXCLUSIVE_DEFENDEUR',
 ]);
 
-type Ai = Partial<FamilleExtractedData> & {
-  raisonChangementDetectee?: string | null;
-  consentementAutreParent?: boolean | null;
-  informePrealablement?: boolean | null;
-  modeResidenceActuel?: string | null;
-  ageEnfants?: (number | null)[] | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface ChangementResidencePrefillInput {
   aiData?: Ai | null;
@@ -57,11 +55,12 @@ export function computeModeResidenceActuel(input: ChangementResidencePrefillInpu
   return VALID_MODES.has(upper) ? (upper as ModeResidenceCh) : null;
 }
 
-export function computeAgeEnfants(input: ChangementResidencePrefillInput): number[] {
-  const ages = input.aiData?.ageEnfants;
+/** SF-246-10 : âges des enfants depuis le champ réel `agesEnfantsDetectes`. */
+export function computeAgesEnfants(input: ChangementResidencePrefillInput): number[] {
+  const ages = input.aiData?.agesEnfantsDetectes;
   if (!Array.isArray(ages)) return [];
   return ages.filter(
-    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 30,
+    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 25,
   );
 }
 
@@ -71,7 +70,7 @@ export function computePrefillCount(input: ChangementResidencePrefillInput): num
   if (computeConsentementAutreParent(input) !== null) n++;
   if (computeInformePrealablement(input) !== null) n++;
   if (computeModeResidenceActuel(input) !== null) n++;
-  if (computeAgeEnfants(input).length > 0) n++;
+  if (computeAgesEnfants(input).length > 0) n++;
   return n;
 }
 
@@ -82,6 +81,6 @@ export const ChangementResidencePrefillRules = {
   computeConsentementAutreParent,
   computeInformePrealablement,
   computeModeResidenceActuel,
-  computeAgeEnfants,
+  computeAgesEnfants,
   computePrefillCount,
 };

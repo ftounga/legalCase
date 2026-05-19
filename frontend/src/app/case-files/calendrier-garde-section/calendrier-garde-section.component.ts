@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { CalendrierGardeService } from '../../core/services/calendrier-garde.service';
 import { CalendrierGardeResponse } from '../../core/models/calendrier-garde.model';
 import { CaseAnalysisResult, PieceManquanteEntry } from '../../core/models/case-analysis.model';
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
@@ -57,11 +58,14 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiModeGardeDetaille?: string | null;
   @Input() workspaceCountry: string = 'FRANCE';
+  /** SF-246-10 : données IA famille pour pré-fill âges + dates calendrier. */
+  @Input() aiData?: Partial<FamilleExtractedData> | null;
   @Input() synthesis?: CaseAnalysisResult | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  private aiDataSignal = signal<Partial<FamilleExtractedData> | null | undefined>(undefined);
   private synthesisSignal = signal<CaseAnalysisResult | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
@@ -81,9 +85,19 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   parentBNom = signal('');
   modeDetailleNote = signal<string | null>(null);
 
+  // SF-246-10 : nouveaux champs pré-remplis depuis aiData (FamilleExtractedData).
+  agesEnfants = signal<number[]>([]);
+  agesEnfantsRaw = signal<string>('');
+  dateDebutCalendrier = signal<string>('');
+  dateFinCalendrier = signal<string>('');
+
   // SF-155-18 : provenance IA par champ (badge "Pré-rempli depuis l'analyse").
   // Effacé dès que l'avocat modifie manuellement (onGardeCodeChange).
   provenanceGardeCode = signal<'IA' | null>(null);
+  // SF-246-10 : provenance par champ nouveau.
+  provenanceAgesEnfants = signal<'IA' | null>(null);
+  provenanceDateDebutCalendrier = signal<'IA' | null>(null);
+  provenanceDateFinCalendrier = signal<'IA' | null>(null);
 
   readonly modes = [
     { group: 'France', items: [
@@ -144,6 +158,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
     if (this.forceExpanded) this.collapsed.set(false);
+    this.aiDataSignal.set(this.aiData);
     this.synthesisSignal.set(this.synthesis);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
@@ -158,6 +173,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
     if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['synthesis']) this.synthesisSignal.set(this.synthesis);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
@@ -165,7 +181,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     // SF-155-18 : ré-applique le prefill dès que aiModeGardeDetaille change,
     // tant qu'aucun résultat persistant n'a été chargé et qu'on est en mode
     // formulaire (pattern canonique immigration-title-decision-section).
-    if (changes['aiModeGardeDetaille'] && this.showForm() && !this.result()) {
+    if ((changes['aiModeGardeDetaille'] || changes['aiData']) && this.showForm() && !this.result()) {
       this.prefillFromAi();
     }
   }
@@ -182,6 +198,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     const input = {
       aiModeGardeDetaille: this.aiModeGardeDetaille ?? null,
       workspaceCountry: this.workspaceCountry,
+      aiData: this.aiDataSignal() ?? null,
     };
     const mode = CalendrierGardePrefillRules.computeGardeCode(input);
     const note = CalendrierGardePrefillRules.computeModeDetailleNote(input);
@@ -190,6 +207,31 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
       this.provenanceGardeCode.set('IA');
     }
     this.modeDetailleNote.set(note);
+
+    // SF-246-10 : pré-fill âges enfants.
+    const ages = CalendrierGardePrefillRules.computeAgesEnfants(input);
+    if (ages.length > 0
+        && (this.agesEnfants().length === 0 || this.provenanceAgesEnfants() === 'IA')) {
+      this.agesEnfants.set(ages);
+      this.agesEnfantsRaw.set(ages.join(', '));
+      this.provenanceAgesEnfants.set('IA');
+    }
+
+    // SF-246-10 : pré-fill date de début du calendrier.
+    const dateDebut = CalendrierGardePrefillRules.computeDateDebutCalendrier(input);
+    if (dateDebut !== null
+        && (this.dateDebutCalendrier() === '' || this.provenanceDateDebutCalendrier() === 'IA')) {
+      this.dateDebutCalendrier.set(dateDebut);
+      this.provenanceDateDebutCalendrier.set('IA');
+    }
+
+    // SF-246-10 : pré-fill date de fin du calendrier.
+    const dateFin = CalendrierGardePrefillRules.computeDateFinCalendrier(input);
+    if (dateFin !== null
+        && (this.dateFinCalendrier() === '' || this.provenanceDateFinCalendrier() === 'IA')) {
+      this.dateFinCalendrier.set(dateFin);
+      this.provenanceDateFinCalendrier.set('IA');
+    }
   }
 
   private buildPiecesIndex(pieces: PieceManquanteEntry[]): Record<string, string> {
@@ -314,6 +356,10 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
         this.prefillForm(r);
         // SF-155-18 : valeurs persistées = saisie avocat — jamais de badge IA.
         this.provenanceGardeCode.set(null);
+        // SF-246-10 : même règle sur les nouveaux champs.
+        this.provenanceAgesEnfants.set(null);
+        this.provenanceDateDebutCalendrier.set(null);
+        this.provenanceDateFinCalendrier.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },
@@ -360,6 +406,35 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   }
 
   /**
+   * SF-246-10 : handler changement du champ âges des enfants (texte brut).
+   */
+  onAgesEnfantsRawChange(value: string): void {
+    this.agesEnfantsRaw.set(value ?? '');
+    this.agesEnfants.set(this.parseAgesEnfants(value ?? ''));
+    this.provenanceAgesEnfants.set(null);
+  }
+
+  /** SF-246-10 : handler date de début du calendrier. */
+  onDateDebutCalendrierChange(value: string): void {
+    this.dateDebutCalendrier.set(value ?? '');
+    this.provenanceDateDebutCalendrier.set(null);
+  }
+
+  /** SF-246-10 : handler date de fin du calendrier. */
+  onDateFinCalendrierChange(value: string): void {
+    this.dateFinCalendrier.set(value ?? '');
+    this.provenanceDateFinCalendrier.set(null);
+  }
+
+  /** SF-246-10 : parse la saisie textuelle d'âges (ex : "12, 8, 4") en liste d'entiers. */
+  parseAgesEnfants(raw: string): number[] {
+    if (!raw || !raw.trim()) return [];
+    return raw.split(',')
+      .map(s => parseInt(s.trim(), 10))
+      .filter(n => !isNaN(n) && Number.isInteger(n) && n >= 0 && n <= 25);
+  }
+
+  /**
    * SF-155-18 : handler change parent A — pas de provenance IA (champ
    * purement informatif, non pré-rempli), méthode fournie pour symétrie
    * et hook futur.
@@ -393,6 +468,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     synthesis?: any;
     workspaceCountry?: string;
     aiModeGardeDetaille?: string | null;
+    aiData?: Partial<FamilleExtractedData> | null;
   }): number {
     // F-236 SF-236-02 — délégation au helper partagé.
     return CalendrierGardePrefillRules.computePrefillCount(input);

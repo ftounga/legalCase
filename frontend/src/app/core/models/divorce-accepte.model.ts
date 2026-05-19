@@ -91,7 +91,13 @@ export interface FamilleExtractedData {
   dangerCaracterise?: boolean | null;
   consentementAutreParent?: boolean | null;
   interferenceVieEnfant?: boolean | null;
-  ageEnfants?: number[] | null;
+  /**
+   * SF-246-10 : âges en années entières des enfants concernés (liste, ordre de
+   * naissance). Remplace le champ aspirationnel `ageEnfants` (source backend
+   * absente). Source backend réelle : `autorite_parentale_detection.ages_enfants`.
+   * Entiers [0, 25] ou null (jamais []).
+   */
+  agesEnfantsDetectes?: number[] | null;
   /**
    * SF-FA-19-06 : pré-fill outil "Désaccords parentaux art. 373-2-10".
    * Valeurs string brutes — converties en enum côté composant.
@@ -406,4 +412,16 @@ export interface FamilleExtractedData {
   nbEnfantsACharge?: number | null;
   /** SF-246-08 : revenus annuels du débiteur/demandeur (€) — pré-fill mesures provisoires & révisions. */
   revenusAnnuelsEpoux?: number | null;
+  /**
+   * SF-246-10 : date de début de la période pour laquelle un calendrier de garde
+   * est demandé ou en vigueur (ISO YYYY-MM-DD). Source backend réelle :
+   * `autorite_parentale_detection.date_debut_calendrier`.
+   */
+  dateDebutCalendrierDetectee?: string | null;
+  /**
+   * SF-246-10 : date de fin de la période du calendrier de garde demandé ou en
+   * vigueur (ISO YYYY-MM-DD). Source backend réelle :
+   * `autorite_parentale_detection.date_fin_calendrier`.
+   */
+  dateFinCalendrierDetectee?: string | null;
 }

@@ -1,7 +1,11 @@
 /**
  * F-236 SF-236-02 — Helper partagé `AutoriteParentalePrefillRules`.
  * 5 champs : regimeExerciceActuel, dangerCaracterise, consentementAutreParent,
- * interferenceVieEnfant, ageEnfants (filtré).
+ * interferenceVieEnfant, agesEnfantsDetectes (filtré).
+ *
+ * SF-246-10 : `ageEnfants` aspirationnel remplacé par `agesEnfantsDetectes`
+ * (source backend réelle : `autorite_parentale_detection.ages_enfants`).
+ * Plage [0, 25] (vs [0, 30] de l'aspirationnel — alignée sur le contrat backend).
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { RegimeExercice } from '../../core/models/autorite-parentale.model';
@@ -13,13 +17,7 @@ export const VALID_REGIMES: ReadonlySet<string> = new Set<RegimeExercice>([
   'DELEGATION_TIERS',
 ]);
 
-type Ai = Partial<FamilleExtractedData> & {
-  regimeExerciceActuel?: string | null;
-  dangerCaracterise?: boolean | null;
-  consentementAutreParent?: boolean | null;
-  interferenceVieEnfant?: boolean | null;
-  ageEnfants?: (number | null)[] | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface AutoriteParentalePrefillInput {
   aiData?: Ai | null;
@@ -50,11 +48,12 @@ export function computeInterferenceVieEnfant(input: AutoriteParentalePrefillInpu
   return typeof v === 'boolean' ? v : null;
 }
 
-export function computeAgeEnfants(input: AutoriteParentalePrefillInput): number[] {
-  const ages = input.aiData?.ageEnfants;
+/** SF-246-10 : âges des enfants depuis le champ réel `agesEnfantsDetectes`. */
+export function computeAgesEnfants(input: AutoriteParentalePrefillInput): number[] {
+  const ages = input.aiData?.agesEnfantsDetectes;
   if (!Array.isArray(ages)) return [];
   return ages.filter(
-    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 30,
+    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 25,
   );
 }
 
@@ -64,7 +63,7 @@ export function computePrefillCount(input: AutoriteParentalePrefillInput): numbe
   if (computeDangerCaracterise(input) !== null) n++;
   if (computeConsentementAutreParent(input) !== null) n++;
   if (computeInterferenceVieEnfant(input) !== null) n++;
-  if (computeAgeEnfants(input).length > 0) n++;
+  if (computeAgesEnfants(input).length > 0) n++;
   return n;
 }
 
@@ -74,6 +73,6 @@ export const AutoriteParentalePrefillRules = {
   computeDangerCaracterise,
   computeConsentementAutreParent,
   computeInterferenceVieEnfant,
-  computeAgeEnfants,
+  computeAgesEnfants,
   computePrefillCount,
 };

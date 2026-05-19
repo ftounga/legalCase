@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SimpleChange } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -314,5 +315,76 @@ describe('CalendrierGardeSectionComponent', () => {
       synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'UNKNOWN_MODE' } },
       workspaceCountry: 'FRANCE',
     })).toBe(0);
+  });
+
+  // ---- SF-246-10 : aiData pré-fill âges + dates calendrier ----
+
+  it('SF-246-10: prefill agesEnfants depuis aiData', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { agesEnfantsDetectes: [12, 9, 4] } as any;
+    initNo();
+    expect(component.agesEnfants()).toEqual([12, 9, 4]);
+    expect(component.provenanceAgesEnfants()).toBe('IA');
+  });
+
+  it('SF-246-10: prefill dateDebutCalendrier depuis aiData', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { dateDebutCalendrierDetectee: '2026-09-01' } as any;
+    initNo();
+    expect(component.dateDebutCalendrier()).toBe('2026-09-01');
+    expect(component.provenanceDateDebutCalendrier()).toBe('IA');
+  });
+
+  it('SF-246-10: prefill dateFinCalendrier depuis aiData', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { dateFinCalendrierDetectee: '2027-08-31' } as any;
+    initNo();
+    expect(component.dateFinCalendrier()).toBe('2027-08-31');
+    expect(component.provenanceDateFinCalendrier()).toBe('IA');
+  });
+
+  it('SF-246-10: no-op gracieux si aiData null', () => {
+    component.aiData = null;
+    initNo();
+    expect(component.agesEnfants()).toEqual([]);
+    expect(component.dateDebutCalendrier()).toBe('');
+    expect(component.dateFinCalendrier()).toBe('');
+    expect(component.provenanceAgesEnfants()).toBeNull();
+    expect(component.provenanceDateDebutCalendrier()).toBeNull();
+    expect(component.provenanceDateFinCalendrier()).toBeNull();
+  });
+
+  it('SF-246-10: onAgesEnfantsRawChange efface badge IA', () => {
+    component.aiData = { agesEnfantsDetectes: [8, 5] } as any;
+    initNo();
+    expect(component.provenanceAgesEnfants()).toBe('IA');
+    component.onAgesEnfantsRawChange('10, 12');
+    expect(component.agesEnfants()).toEqual([10, 12]);
+    expect(component.provenanceAgesEnfants()).toBeNull();
+  });
+
+  it('SF-246-10: getPrefillCount compte mode + ages + 2 dates = 4 max', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      synthesis: { pensionAlimentaireEstimate: { modeGardeDetaille: 'ALTERNEE_FR' } },
+      workspaceCountry: 'FRANCE',
+      aiData: { agesEnfantsDetectes: [8], dateDebutCalendrierDetectee: '2026-09-01', dateFinCalendrierDetectee: '2027-08-31' },
+    })).toBe(4);
+  });
+
+  it('SF-246-10: getPrefillCount — 3 si ages + 2 dates (pas de mode)', () => {
+    expect(CalendrierGardeSectionComponent.getPrefillCount({
+      workspaceCountry: 'FRANCE',
+      aiData: { agesEnfantsDetectes: [5, 12], dateDebutCalendrierDetectee: '2026-09-01', dateFinCalendrierDetectee: '2027-06-30' },
+    })).toBe(3);
+  });
+
+  it('SF-246-10: ngOnChanges(aiData) post-mount rafraîchit le pré-fill', () => {
+    component.aiData = null;
+    initNo();
+    const newAi = { agesEnfantsDetectes: [10, 7] } as any;
+    component.aiData = newAi;
+    component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
+    expect(component.agesEnfants()).toEqual([10, 7]);
+    expect(component.provenanceAgesEnfants()).toBe('IA');
   });
 });

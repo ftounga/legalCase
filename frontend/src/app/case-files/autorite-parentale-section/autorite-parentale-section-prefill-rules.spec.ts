@@ -24,10 +24,10 @@ describe('AutoriteParentalePrefillRules', () => {
     ).toBeNull();
   });
 
-  it('âges filtrés (négatifs / > 30 / décimaux exclus)', () => {
+  it('âges filtrés (négatifs / > 25 / décimaux exclus) — SF-246-10 plage [0, 25]', () => {
     expect(
-      AutoriteParentalePrefillRules.computeAgeEnfants({
-        aiData: { ageEnfants: [5, -1, 31, 7.5, 12] },
+      AutoriteParentalePrefillRules.computeAgesEnfants({
+        aiData: { agesEnfantsDetectes: [5, -1, 26, 7.5, 12] },
       } as any),
     ).toEqual([5, 12]);
   });
@@ -40,7 +40,7 @@ describe('AutoriteParentalePrefillRules', () => {
           dangerCaracterise: true,
           consentementAutreParent: false,
           interferenceVieEnfant: true,
-          ageEnfants: [5, 12],
+          agesEnfantsDetectes: [5, 12],
         },
       } as any),
     ).toBe(5);

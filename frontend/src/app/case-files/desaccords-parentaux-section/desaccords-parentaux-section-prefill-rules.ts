@@ -1,7 +1,11 @@
 /**
  * F-236 SF-236-02 — Helper partagé `DesaccordsParentauxPrefillRules`.
  * 5 champs : domaine, intensite, tentativesMediation (array filtré),
- * ageEnfantsConcernes (filtré), urgence (bool).
+ * agesEnfantsConcernes (filtré), urgence (bool).
+ *
+ * SF-246-10 : `ageEnfants` aspirationnel remplacé par `agesEnfantsDetectes`
+ * (source backend réelle : `autorite_parentale_detection.ages_enfants`).
+ * Plage [0, 25] (alignée sur le contrat backend).
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import {
@@ -20,13 +24,7 @@ export const VALID_TENTATIVES: ReadonlySet<string> = new Set<TentativeMediation>
   'MEDIATION_FAMILIALE', 'MEDIATION_JUDICIAIRE', 'DISCUSSIONS_DIRECTES', 'THERAPIE_FAMILIALE', 'AUCUNE',
 ]);
 
-type Ai = Partial<FamilleExtractedData> & {
-  domaineDesaccordDetecte?: string | null;
-  intensiteDesaccordDetecte?: string | null;
-  tentativesMediationDetectees?: (string | null)[] | null;
-  ageEnfants?: (number | null)[] | null;
-  urgenceDetectee?: boolean | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface DesaccordsParentauxPrefillInput {
   aiData?: Ai | null;
@@ -60,11 +58,12 @@ export function computeTentatives(input: DesaccordsParentauxPrefillInput): Tenta
     .filter(t => VALID_TENTATIVES.has(t)) as TentativeMediation[];
 }
 
-export function computeAgeEnfants(input: DesaccordsParentauxPrefillInput): number[] {
-  const ages = input.aiData?.ageEnfants;
+/** SF-246-10 : âges des enfants depuis le champ réel `agesEnfantsDetectes`. */
+export function computeAgesEnfants(input: DesaccordsParentauxPrefillInput): number[] {
+  const ages = input.aiData?.agesEnfantsDetectes;
   if (!Array.isArray(ages)) return [];
   return ages.filter(
-    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 30,
+    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 25,
   );
 }
 
@@ -78,7 +77,7 @@ export function computePrefillCount(input: DesaccordsParentauxPrefillInput): num
   if (computeDomaine(input) !== null) n++;
   if (computeIntensite(input) !== null) n++;
   if (computeTentatives(input).length > 0) n++;
-  if (computeAgeEnfants(input).length > 0) n++;
+  if (computeAgesEnfants(input).length > 0) n++;
   if (computeUrgence(input) !== null) n++;
   return n;
 }
@@ -90,7 +89,7 @@ export const DesaccordsParentauxPrefillRules = {
   computeDomaine,
   computeIntensite,
   computeTentatives,
-  computeAgeEnfants,
+  computeAgesEnfants,
   computeUrgence,
   computePrefillCount,
 };

@@ -180,7 +180,7 @@ describe('DesaccordsParentauxSectionComponent', () => {
       domaineDesaccordDetecte: 'SCOLARITE',
       intensiteDesaccordDetecte: 'MAJEUR',
       tentativesMediationDetectees: ['MEDIATION_FAMILIALE'],
-      ageEnfants: [10, 7],
+      agesEnfantsDetectes: [10, 7],
       urgenceDetectee: true,
     } as FamilleExtractedData;
     component.ngOnInit();
@@ -287,7 +287,7 @@ describe('DesaccordsParentauxSectionComponent', () => {
   });
 
   it('onAgeEnfantsRawChange efface le badge IA âges', () => {
-    component.aiData = { ageEnfants: [12, 8] } as FamilleExtractedData;
+    component.aiData = { agesEnfantsDetectes: [12, 8] } as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -317,7 +317,7 @@ describe('DesaccordsParentauxSectionComponent', () => {
   });
 
   it('coherenceAlerts.AGE_ENFANTS_CONCERNES multi-source IA + F96 + PIECE_MANQUANTE', () => {
-    component.aiData = { ageEnfants: [12, 8] } as FamilleExtractedData;
+    component.aiData = { agesEnfantsDetectes: [12, 8] } as FamilleExtractedData;
     component.procedureChecks = [
       {
         id: 'c1', ordre: 1, description: 'Âges enfants', statut: 'NON_COMPLIANT',
@@ -441,7 +441,7 @@ describe('DesaccordsParentauxSectionComponent', () => {
 
     const newAi = {
       domaineDesaccordDetecte: 'SCOLARITE',
-      ageEnfants: [10, 7],
+      agesEnfantsDetectes: [10, 7],
     } as FamilleExtractedData;
     component.aiData = newAi;
     component.ngOnChanges({

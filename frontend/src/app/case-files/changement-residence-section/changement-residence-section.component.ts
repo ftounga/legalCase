@@ -500,7 +500,7 @@ export class ChangementResidenceSectionComponent implements OnInit, OnChanges {
    *  - consentementAutreParent
    *  - informePrealablement
    *  - modeResidenceActuel
-   *  - ageEnfants
+   *  - agesEnfantsDetectes (SF-246-10 : source backend réelle)
    *
    * No-op gracieux si champ absent. N'écrase pas une saisie avocat
    * (heuristique : provenance === null sur un champ rempli ou booléen
@@ -538,7 +538,7 @@ export class ChangementResidenceSectionComponent implements OnInit, OnChanges {
       this.provenanceModeResidenceActuel.set('IA');
     }
 
-    const ages = ChangementResidencePrefillRules.computeAgeEnfants(h);
+    const ages = ChangementResidencePrefillRules.computeAgesEnfants(h);
     if (ages.length > 0
         && (this.ageEnfants().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
       this.ageEnfants.set(ages);
@@ -718,7 +718,7 @@ export class ChangementResidenceSectionComponent implements OnInit, OnChanges {
    */
   private buildAgeEnfantsAlert(): ChangementResidenceCoherenceAlert | null {
     const ai = this.aiDataSignal();
-    const aiAges = ai?.ageEnfants;
+    const aiAges = ai?.agesEnfantsDetectes;
     if (!Array.isArray(aiAges) || aiAges.length === 0) return null;
     const userAges = this.ageEnfants();
     if (userAges.length === 0) return null;
