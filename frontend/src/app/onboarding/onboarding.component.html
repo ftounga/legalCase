@@ -19,6 +19,16 @@
           }
         </mat-form-field>
 
+        <div class="consent-checkbox">
+          <mat-checkbox formControlName="acceptedTerms" color="primary">
+            J'ai lu et j'accepte les
+            <a href="/cgu" target="_blank" rel="noopener" (click)="$event.stopPropagation()">CGU</a>
+            et la
+            <a href="/privacy" target="_blank" rel="noopener" (click)="$event.stopPropagation()">politique de confidentialité</a>
+            de LegalCase.
+          </mat-checkbox>
+        </div>
+
         <button mat-flat-button color="primary" type="submit"
                 [disabled]="form.invalid || saving" class="submit-btn">
           @if (saving) {
