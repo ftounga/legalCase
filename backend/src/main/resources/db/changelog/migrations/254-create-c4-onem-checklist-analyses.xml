@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="254-create-c4-onem-checklist-analyses" author="legalcase">
+        <comment>
+            SF-207-02 : table dédiée à l'outil décisionnel "C4 ONEM — checklist
+            de conformité" (F-207). Vérifie les 10 mentions obligatoires du
+            document C4 ONEM (formulaire de fin de contrat employeur BE) au
+            sens de l'AR du 25 novembre 1991 portant réglementation du chômage
+            art. 92. Détecte la mention "faute grave" entraînant l'exclusion
+            ONEM 4 à 52 semaines (art. 144). Génère le contenu d'une lettre
+            rectificative quand des mentions manquent (verdict NON_CONFORME).
+            Substance juridique BE-only (loi du 3 juillet 1978 relative aux
+            contrats de travail en filigrane) — pas de calque FR (mémoire
+            feedback_belgique_never_forget).
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté
+            FR pour préserver l'isolation, pattern SF-207-01).
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (raisonSocialeEmployeur, numeroBce, nomSalarie,
+            numeroNationalRegistre, dateEntreeService, dateSortieService,
+            categorieOnem, motifExplicite, fauteGraveMentionnee,
+            preavisPresteJours, dernierSalaireMensuelBrut) + outputs
+            (verdict CONFORME/NON_CONFORME/RISQUE_EXCLUSION_FAUTE_GRAVE,
+            mentionsManquantes, fauteGraveDetectee, exclusionOnemRange,
+            lettreRectificativeProposee, baseJuridique, etapeSuivante,
+            country).
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY
+            seront livrées côté frontend SF-207-02b.
+        </comment>
+
+        <createTable tableName="c4_onem_checklist_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_c4_onem_checklist_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="c4_onem_checklist_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_c4_onem_checklist_case_file"/>
+
+        <createIndex tableName="c4_onem_checklist_analyses"
+                     indexName="idx_c4_onem_checklist_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="c4_onem_checklist_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
