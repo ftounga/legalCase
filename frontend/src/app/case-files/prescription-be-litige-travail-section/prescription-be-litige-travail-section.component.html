@@ -1,0 +1,150 @@
+<div class="prescription-be-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">schedule</mat-icon>
+    <span class="section-title">Prescription — litige travail (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="prescription-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <div class="form-row">
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de rupture du contrat</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateRupture()"
+                       (ngModelChange)="onDateRuptureChange($event)"
+                       name="dateRupture" required />
+              </mat-form-field>
+              @if (provenanceDateRupture() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().DATE_RUPTURE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_RUPTURE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de créance</mat-label>
+                <mat-select [ngModel]="typeCreance()"
+                            (ngModelChange)="onTypeCreanceChange($event)"
+                            name="typeCreance" required>
+                  @for (opt of typeCreanceOptions; track opt.code) {
+                    <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceTypeCreance() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().TYPE_CREANCE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('TYPE_CREANCE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'action envisagée (optionnel)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateActionEnvisagee()"
+                       (ngModelChange)="onDateActionEnvisageeChange($event)"
+                       name="dateActionEnvisagee" />
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>calculate</mat-icon> Calculer la prescription
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ verdictLabel(result()!.verdict) }}</span>
+              <span class="verdict-detail">
+                Échéance : {{ result()!.dateLimitePrescription }}
+                · {{ result()!.joursRestants }} jours restants
+              </span>
+            </div>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Règle appliquée</span>
+            <p>{{ result()!.regleAppliquee }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Formule de calcul</span>
+            <p class="legal-mono">{{ result()!.formuleCalcul }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

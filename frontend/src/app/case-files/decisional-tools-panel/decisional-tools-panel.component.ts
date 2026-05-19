@@ -59,6 +59,8 @@ import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l425
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
+// SF-207-01b : section décisionnelle prescription Travail BE (BE-only, ALWAYS_ON).
+import { PrescriptionBeLitigeTravailSectionComponent } from '../prescription-be-litige-travail-section/prescription-be-litige-travail-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -405,6 +407,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
           // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
           piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-DT-04-fiche-prudhomale'),
+        }),
+      }],
+      // SF-207-01b : prescription Travail BE — placée en tête de la séquence
+      // Travail BE (transversal P1 ALWAYS_ON, cf. SF-207-00b-ux-coherence).
+      // L'avocat doit voir d'abord ce délai critique avant de préparer la requête.
+      ['prescription-be-litige-travail', {
+        displayLabel: 'Prescription — litige travail (BE)',
+        component: PrescriptionBeLitigeTravailSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA depuis 2 champs TravailExtractedData (Travail BE) :
+          // `dateRuptureContrat` + `motifRupture` (mapping → typeCreance).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       ['F-DT-06-requete-tribunal-travail', {
@@ -2120,6 +2139,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
 
     // ── Délais & procédure ─────────────────────────────────────────────
     ['F-DT-03-prescription-litige', 'DELAIS'],
+    // SF-207-01b : prescription Travail BE (Loi 03/07/1978 art. 15 + CCT 109 art. 11).
+    ['prescription-be-litige-travail', 'DELAIS'],
     ['F-DT-29-credit-temps-be', 'DELAIS'],
     ['F-DT-33-at-mp', 'DELAIS'],
     ['F-DT-34-refere-prudhomal', 'DELAIS'],
