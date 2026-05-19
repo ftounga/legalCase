@@ -225,4 +225,31 @@ class AiQuestionServiceTest {
                 "{\"questions\":[{\"texte\":\"\",\"critere_code\":\"FR_CONVOCATION\"},{\"critere_code\":\"FR_ENTRETIEN\"}]}");
         assertThat(result).isEmpty();
     }
+
+    // SF-250-02 — Remédiation critereCode lot Travail FR validité/procédure
+
+    // U-SF-250-02-01 : le prompt questions travail-FR contient les 3 codes DT36_*
+    @Test
+    void systemPrompt_containsDt36CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).as("DT36_DATE_ENTRETIEN doit être dans le prompt questions").contains("DT36_DATE_ENTRETIEN");
+        assertThat(prompt).as("DT36_MOTIVATION doit être dans le prompt questions").contains("DT36_MOTIVATION");
+        assertThat(prompt).as("DT36_ENTRETIEN_TENU doit être dans le prompt questions").contains("DT36_ENTRETIEN_TENU");
+        // Convention impérative réponse "oui" = signal positif doit être présente
+        assertThat(prompt).as("Convention réponse oui doit être documentée").contains("oui");
+    }
+
+    // U-SF-250-02-02 : le prompt questions travail-FR contient HLN_, DT13_, PSE_, PROTECTION_RP_
+    @Test
+    void systemPrompt_containsHlnDt13PseProtectionRpCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).as("HLN_MOTIF_NULLITE doit être dans le prompt questions").contains("HLN_MOTIF_NULLITE");
+        assertThat(prompt).as("DT13_MOTIF_ECONOMIQUE doit être dans le prompt questions").contains("DT13_MOTIF_ECONOMIQUE");
+        assertThat(prompt).as("DT13_DATE_NOTIFICATION doit être dans le prompt questions").contains("DT13_DATE_NOTIFICATION");
+        assertThat(prompt).as("PSE_DATE_PROJET doit être dans le prompt questions").contains("PSE_DATE_PROJET");
+        assertThat(prompt).as("PROTECTION_RP_MOTIF doit être dans le prompt questions").contains("PROTECTION_RP_MOTIF");
+        // Non-régression : codes existants toujours présents
+        assertThat(prompt).contains("FR_CONVOCATION");
+        assertThat(prompt).contains("DT09_TYPE_RUPTURE");
+    }
 }
