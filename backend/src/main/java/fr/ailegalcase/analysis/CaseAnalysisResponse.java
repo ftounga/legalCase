@@ -672,7 +672,17 @@ public record CaseAnalysisResponse(
             String nationalite,
             // SF-246-04 : date de l'ordonnance de protection JAF (Cciv 515-9) pour pré-fill F-IM-24
             // victime de violences L.425-6. Immigration FRANCE uniquement, nullable — dossier BE : null.
-            String dateOrdonnanceProtectionJaf) {
+            String dateOrdonnanceProtectionJaf,
+            // SF-246-16 : identité requérant + référence décision contestée pour pré-fill F-IM-06 recours.
+            // Tous nullables — absents si l'IA ne peut les extraire des pièces.
+            /** Nom de famille du requérant (texte libre). */
+            String nomRequerant,
+            /** Prénom du requérant (texte libre). */
+            String prenomRequerant,
+            /** Date de la décision contestée au format YYYY-MM-DD. */
+            String dateDecisionContestee,
+            /** Référence ou numéro de la décision contestée (texte libre). */
+            String referenceDecision) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -717,7 +727,11 @@ public record CaseAnalysisResponse(
                     .regroupement40terDetecte(regroupement40terDetecte)
                     .oqtAnnexe13Detectee(oqtAnnexe13Detectee)
                     .nationalite(nationalite)
-                    .dateOrdonnanceProtectionJaf(dateOrdonnanceProtectionJaf);
+                    .dateOrdonnanceProtectionJaf(dateOrdonnanceProtectionJaf)
+                    .nomRequerant(nomRequerant)
+                    .prenomRequerant(prenomRequerant)
+                    .dateDecisionContestee(dateDecisionContestee)
+                    .referenceDecision(referenceDecision);
         }
 
         public static final class Builder {
@@ -755,6 +769,11 @@ public record CaseAnalysisResponse(
             private boolean oqtAnnexe13Detectee;
             private String nationalite;
             private String dateOrdonnanceProtectionJaf;
+            // SF-246-16 : identité requérant + référence décision contestée
+            private String nomRequerant;
+            private String prenomRequerant;
+            private String dateDecisionContestee;
+            private String referenceDecision;
 
             private Builder() {}
 
@@ -792,6 +811,10 @@ public record CaseAnalysisResponse(
             public Builder oqtAnnexe13Detectee(boolean v) { this.oqtAnnexe13Detectee = v; return this; }
             public Builder nationalite(String v) { this.nationalite = v; return this; }
             public Builder dateOrdonnanceProtectionJaf(String v) { this.dateOrdonnanceProtectionJaf = v; return this; }
+            public Builder nomRequerant(String v) { this.nomRequerant = v; return this; }
+            public Builder prenomRequerant(String v) { this.prenomRequerant = v; return this; }
+            public Builder dateDecisionContestee(String v) { this.dateDecisionContestee = v; return this; }
+            public Builder referenceDecision(String v) { this.referenceDecision = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -807,7 +830,8 @@ public record CaseAnalysisResponse(
                         naturalisationEnvisageeDetectee, clientMineurDetecte, mesureEloignementDetectee,
                         procedure9bisEnvisagee, procedure9terMedicaleDetectee,
                         regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
-                        nationalite, dateOrdonnanceProtectionJaf);
+                        nationalite, dateOrdonnanceProtectionJaf,
+                        nomRequerant, prenomRequerant, dateDecisionContestee, referenceDecision);
             }
         }
     }
@@ -2163,6 +2187,11 @@ public record CaseAnalysisResponse(
         // pré-fill F-IM-24 victime de violences L.425-6. Texte brut conservé : le pré-fill front
         // rejette tout format non ISO via ISO_DATE_RE.
         String dateOrdonnanceProtectionJaf = textOrNull(root, "date_ordonnance_protection_jaf");
+        // SF-246-16 : identité requérant + référence décision contestée pour pré-fill F-IM-06.
+        String nomRequerant = textOrNull(root, "nom_requerant");
+        String prenomRequerant = textOrNull(root, "prenom_requerant");
+        String dateDecisionContestee = textOrNull(root, "date_decision_contestee");
+        String referenceDecision = textOrNull(root, "reference_decision");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -2176,7 +2205,9 @@ public record CaseAnalysisResponse(
                 && !procedure9bis && !procedure9ter && !regroupement40bis
                 && !regroupement40ter && !oqtAnnexe13
                 && nationalite == null
-                && dateOrdonnanceProtectionJaf == null) return null;
+                && dateOrdonnanceProtectionJaf == null
+                && nomRequerant == null && prenomRequerant == null
+                && dateDecisionContestee == null && referenceDecision == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -2219,6 +2250,11 @@ public record CaseAnalysisResponse(
                 .nationalite(nationalite)
                 // SF-246-04 : date ordonnance de protection JAF (pré-fill F-IM-24)
                 .dateOrdonnanceProtectionJaf(dateOrdonnanceProtectionJaf)
+                // SF-246-16 : identité requérant + référence décision contestée (pré-fill F-IM-06)
+                .nomRequerant(nomRequerant)
+                .prenomRequerant(prenomRequerant)
+                .dateDecisionContestee(dateDecisionContestee)
+                .referenceDecision(referenceDecision)
                 .build();
     }
 

@@ -415,6 +415,13 @@ export interface ImmigrationExtractedData {
    * — dossier BE : null.
    */
   dateOrdonnanceProtectionJaf?: string | null;
+  /** F-235 : nationalité du requérant en texte libre (ex. "Algérienne"). */
+  nationalite?: string | null;
+  /** SF-246-16 : identité requérant + référence décision contestée pour pré-fill F-IM-06. */
+  nomRequerant?: string | null;
+  prenomRequerant?: string | null;
+  dateDecisionContestee?: string | null;
+  referenceDecision?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

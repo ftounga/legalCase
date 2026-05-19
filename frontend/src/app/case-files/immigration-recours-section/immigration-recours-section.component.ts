@@ -25,13 +25,14 @@ import { RetainedPistesBadge } from '../immigration-title-decision-section/immig
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
-import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract'; // static getPrefillCount signature
 import {
   ImmigrationRecoursPrefillRules,
+  ImmigrationRecoursPrefillInput,
   VALID_RECOURS_CODES,
 } from './immigration-recours-section-prefill-rules';
 
-export type IM06AlertField = 'RECOURS_TYPE' | 'DATE_NOTIFICATION';
+export type IM06AlertField = 'RECOURS_TYPE' | 'DATE_NOTIFICATION' | 'NOM_REQUERANT' | 'DATE_DECISION';
 // SF-155-13 : alias rétro-compat — utilise l'interface générique partagée.
 export type IM06AlertSource = CoherenceAlertSource;
 export type IM06CoherenceAlert = CoherenceAlert<IM06AlertField>;
@@ -133,6 +134,12 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   // Provenance notes (SF-IM-06-04)
   provenanceRecoursType = signal<'IA' | null>(null);
   provenanceDateNotification = signal<'IA' | null>(null);
+  // SF-246-16 : provenances pour les 5 nouveaux champs pré-remplis par l'IA.
+  provenanceNom = signal<'IA' | null>(null);
+  provenancePrenom = signal<'IA' | null>(null);
+  provenanceNationalite = signal<'IA' | null>(null);
+  provenanceDateDecision = signal<'IA' | null>(null);
+  provenanceReference = signal<'IA' | null>(null);
   nom = signal('');
   prenom = signal('');
   nationalite = signal('');
@@ -364,21 +371,53 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
 
   private prefillFromAi(): void {
     // F-236 SF-236-02 : délègue au helper pur partagé.
-    const input: PrefillCountInput = { aiData: this.aiData };
+    const input: ImmigrationRecoursPrefillInput = { aiData: this.aiData };
     const recours = ImmigrationRecoursPrefillRules.computeRecoursType(input);
-    if (recours !== null) {
+    if (recours !== null && !this.recoursType()) {
       this.recoursType.set(recours);
       this.provenanceRecoursType.set('IA');
     }
     const date = ImmigrationRecoursPrefillRules.computeDateNotification(input);
-    if (date !== null) {
+    if (date !== null && !this.dateNotification()) {
       this.dateNotification.set(date);
       this.provenanceDateNotification.set('IA');
+    }
+    // SF-246-16 : 5 nouveaux champs identité + décision contestée.
+    const nomVal = ImmigrationRecoursPrefillRules.computeNomRequerant(input);
+    if (nomVal !== null && !this.nom()) {
+      this.nom.set(nomVal);
+      this.provenanceNom.set('IA');
+    }
+    const prenomVal = ImmigrationRecoursPrefillRules.computePrenomRequerant(input);
+    if (prenomVal !== null && !this.prenom()) {
+      this.prenom.set(prenomVal);
+      this.provenancePrenom.set('IA');
+    }
+    const nationaliteVal = ImmigrationRecoursPrefillRules.computeNationalite(input);
+    if (nationaliteVal !== null && !this.nationalite()) {
+      this.nationalite.set(nationaliteVal);
+      this.provenanceNationalite.set('IA');
+    }
+    const dateDecisionVal = ImmigrationRecoursPrefillRules.computeDateDecision(input);
+    if (dateDecisionVal !== null && !this.dateDecision()) {
+      this.dateDecision.set(dateDecisionVal);
+      this.provenanceDateDecision.set('IA');
+    }
+    const refVal = ImmigrationRecoursPrefillRules.computeReferenceDecision(input);
+    if (refVal !== null && !this.reference()) {
+      this.reference.set(refVal);
+      this.provenanceReference.set('IA');
     }
   }
 
   onRecoursTypeChange(): void { this.provenanceRecoursType.set(null); }
   onDateNotificationChange(): void { this.provenanceDateNotification.set(null); }
+  // SF-246-16 : handlers provenance pour les 5 nouveaux champs.
+  onNomChange(): void { this.provenanceNom.set(null); }
+  onPrenomChange(): void { this.provenancePrenom.set(null); }
+  onNationaliteChange(): void { this.provenanceNationalite.set(null); }
+  onDateDecisionChange(): void { this.provenanceDateDecision.set(null); }
+  onReferenceChange(): void { this.provenanceReference.set(null); }
 
   generate(): void {
     this.generating.set(true);
@@ -434,5 +473,13 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     this.dateDecision.set(resp.decisionContestee.date);
     this.reference.set(resp.decisionContestee.reference ?? '');
     this.exposeFaits.set(resp.exposeFaits ?? '');
+    // SF-246-16 : reset provenances IA — données issues du recours sauvegardé, pas de l'IA.
+    this.provenanceRecoursType.set(null);
+    this.provenanceDateNotification.set(null);
+    this.provenanceNom.set(null);
+    this.provenancePrenom.set(null);
+    this.provenanceNationalite.set(null);
+    this.provenanceDateDecision.set(null);
+    this.provenanceReference.set(null);
   }
 }
