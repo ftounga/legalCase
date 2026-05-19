@@ -219,6 +219,13 @@ export interface FamilleExtractedData {
   paterniteVraisemblableDetected?: boolean | null;
   enfantNonReconnuParAutrePereDetected?: boolean | null;
   procedureRespecteeReconnaissanceDetected?: boolean | null;
+  /**
+   * SF-246-09 : date de naissance de l'enfant faisant l'objet d'une
+   * reconnaissance paternelle (art. 316 Cciv).
+   * Source backend réelle : `filiation_detection.date_naissance_enfant`.
+   * DISTINCT de `dateNaissanceEnfantRechercheDetectee` (action en recherche
+   * de paternité art. 327 Cciv).
+   */
   dateNaissanceEnfantDetectee?: string | null;
   /**
    * SF-FA-16-02 : pré-fill communauté universelle (art. 1526 + 1527 al. 2 Cciv).
@@ -243,8 +250,22 @@ export interface FamilleExtractedData {
     | 'MERE'
     | 'ENFANT_MAJEUR'
     | null;
+  /**
+   * SF-246-09 : date d'établissement de la filiation contestée (source backend
+   * réelle : `filiation_detection.date_etablissement_filiation`).
+   */
   dateEtablissementFiliationDetectee?: string | null;
+  /**
+   * SF-246-09 : date de connaissance de la vérité sur la filiation (point de
+   * départ du délai de prescription art. 321 Cciv). Source backend réelle :
+   * `filiation_detection.date_connaissance_verite`.
+   */
   dateConnaissanceVeriteDetectee?: string | null;
+  /**
+   * SF-246-09 : date de majorité de l'enfant concerné (18 ans — départ du
+   * délai 10 ans pour l'enfant art. 321 Cciv). Source backend réelle :
+   * `filiation_detection.date_majorite_enfant`.
+   */
   dateMajoriteEnfantDetectee?: string | null;
   possessionEtatConforme5AnsDetected?: boolean | null;
   expertiseAdnDemandeeDetected?: boolean | null;
@@ -261,6 +282,12 @@ export interface FamilleExtractedData {
     | 'REPRESENTANT_LEGAL_MINEUR'
     | 'MERE'
     | null;
+  /**
+   * SF-246-09 : date de naissance de l'enfant dont la paternité est recherchée
+   * (action art. 327 Cciv). Source backend réelle :
+   * `filiation_detection.date_naissance_enfant_recherche`.
+   * DISTINCT de `dateNaissanceEnfantDetectee` (reconnaissance art. 316 Cciv).
+   */
   dateNaissanceEnfantRechercheDetectee?: string | null;
   presomptionPossessionEtatRechercheDetected?: boolean | null;
   expertiseAdnDemandeeRechercheDetected?: boolean | null;
@@ -290,7 +317,17 @@ export interface FamilleExtractedData {
   formeAdoptionDemandeeDetected?: 'PLENIERE' | 'SIMPLE' | null;
   pupilleEtatDetected?: boolean | null;
   adoptantMarieDetected?: boolean | null;
+  /**
+   * SF-246-09 : âge de l'adoptant en années à la date de la requête d'adoption
+   * (condition art. 343 al. 2 Cciv : 28 ans minimum). Source backend réelle :
+   * `filiation_detection.age_adoptant`. Entier [0, 120] ou null.
+   */
   ageAdoptantDetecte?: number | null;
+  /**
+   * SF-246-09 : âge de l'adopté en années à la date de la requête d'adoption
+   * (adoption plénière : limite 15 ans art. 345 Cciv). Source backend réelle :
+   * `filiation_detection.age_adopte`. Entier [0, 120] ou null.
+   */
   ageAdopteDetecte?: number | null;
   /**
    * SF-FA-24-10 : pré-fill partage successoral (art. 815-840 Cciv).

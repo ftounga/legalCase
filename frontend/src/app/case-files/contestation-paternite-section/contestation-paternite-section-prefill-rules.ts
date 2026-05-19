@@ -1,21 +1,19 @@
 /**
  * F-236 SF-236-02 — Helper partagé `ContestationPaternitePrefillRules`.
- * 6 champs : qualiteAagir (string), dateEtablissementFiliation (string),
+ * 7 champs : qualiteAagir (string), dateEtablissementFiliation (string),
  * dateConnaissanceVerite (string), dateMajoriteEnfant (string),
  * possessionEtatConforme5Ans (boolean), expertiseAdnDemandee (boolean — runtime
- * gate sur "!this.expertiseAdnDemandee" donc compté quand defined).
+ * gate sur "!this.expertiseAdnDemandee" donc compté quand defined),
+ * motifsSerieux (boolean).
+ *
+ * SF-246-09 : dateEtablissementFiliationDetectee, dateConnaissanceVeriteDetectee,
+ * dateMajoriteEnfantDetectee sont désormais des champs réels de FamilleExtractedData
+ * (source backend `filiation_detection`) — le type d'intersection aspirationnel
+ * est supprimé, lecture directe depuis le record.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
-type Ai = Partial<FamilleExtractedData> & {
-  qualiteAagirContestationDetected?: string | null;
-  dateEtablissementFiliationDetectee?: string | null;
-  dateConnaissanceVeriteDetectee?: string | null;
-  dateMajoriteEnfantDetectee?: string | null;
-  possessionEtatConforme5AnsDetected?: boolean | null;
-  expertiseAdnDemandeeDetected?: boolean | null;
-  motifsSerieuxDetected?: boolean | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface ContestationPaternitePrefillInput {
   aiData?: Ai | null;

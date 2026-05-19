@@ -4,18 +4,17 @@
  * 5 champs : formeAdoption ('PLENIERE'|'SIMPLE'), pupilleEtat (bool — compté
  * uniquement si true, runtime pose IA seulement sur true), adoptantMarie
  * (idem), ageAdoptant (number >= 0), ageAdopte (number >= 0).
+ *
+ * SF-246-09 : ageAdoptantDetecte et ageAdopteDetecte sont désormais des champs
+ * réels de FamilleExtractedData (source backend `filiation_detection`) — les
+ * types d'intersection aspirationnels sont supprimés, lecture directe depuis
+ * le record.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 export type FormeAdoption = 'PLENIERE' | 'SIMPLE';
 
-type Ai = Partial<FamilleExtractedData> & {
-  formeAdoptionDemandeeDetected?: FormeAdoption | string | null;
-  pupilleEtatDetected?: boolean | null;
-  adoptantMarieDetected?: boolean | null;
-  ageAdoptantDetecte?: number | null;
-  ageAdopteDetecte?: number | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface AdoptionPrefillInput {
   aiData?: Ai | null;

@@ -2,16 +2,14 @@
  * F-236 SF-236-02 — Helper partagé `ReconnaissancePaternellePrefillRules`.
  * 5 champs : consentementLibreDuPere, paterniteVraisemblable,
  * enfantNonReconnuParAutrePere, procedureRespectee (booléens), dateNaissanceEnfant.
+ *
+ * SF-246-09 : dateNaissanceEnfantDetectee est désormais un champ réel de
+ * FamilleExtractedData (source backend `filiation_detection`) — le type
+ * d'intersection aspirationnel est supprimé, lecture directe depuis le record.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
-type Ai = Partial<FamilleExtractedData> & {
-  consentementLibreDuPereDetected?: boolean | null;
-  paterniteVraisemblableDetected?: boolean | null;
-  enfantNonReconnuParAutrePereDetected?: boolean | null;
-  procedureRespecteeReconnaissanceDetected?: boolean | null;
-  dateNaissanceEnfantDetectee?: string | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface ReconnaissancePaternellePrefillInput {
   aiData?: Ai | null;

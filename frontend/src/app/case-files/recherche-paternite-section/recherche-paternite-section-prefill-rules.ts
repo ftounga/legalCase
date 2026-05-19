@@ -1,17 +1,14 @@
 /**
  * F-236 SF-236-02 — Helper partagé `RecherchePaternitePrefillRules`.
  * 6 champs.
+ *
+ * SF-246-09 : dateNaissanceEnfantRechercheDetectee est désormais un champ réel
+ * de FamilleExtractedData (source backend `filiation_detection`) — le type
+ * d'intersection aspirationnel est supprimé, lecture directe depuis le record.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
-type Ai = Partial<FamilleExtractedData> & {
-  qualiteDuDemandeurRechercheDetected?: string | null;
-  dateNaissanceEnfantRechercheDetectee?: string | null;
-  presomptionPossessionEtatRechercheDetected?: boolean | null;
-  expertiseAdnDemandeeRechercheDetected?: boolean | null;
-  pereDesigneRefuseADNDetected?: boolean | null;
-  motifsSerieuxRechercheDetected?: boolean | null;
-};
+type Ai = Partial<FamilleExtractedData>;
 
 export interface RecherchePaternitePrefillInput {
   aiData?: Ai | null;
