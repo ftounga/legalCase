@@ -543,6 +543,40 @@ class CaseAnalysisServiceTest {
         assertThat(inaptBlock).as("Bloc INAPT doit mentionner expected_value null").contains("expected_value");
     }
 
+    // SF-250-07 — Remédiation critereCode lot Immigration BE
+
+    // U-SF-250-07-01 : le prompt système immigration-BE contient le code IM08_MOTIF_OQT_BE annoté BELGIQUE UNIQUEMENT
+    @Test
+    void systemPrompt_containsIm08OqtBeCritereCode() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "BELGIQUE", l);
+        assertThat(prompt).as("IM08_MOTIF_OQT_BE doit être dans le prompt").contains("IM08_MOTIF_OQT_BE");
+        assertThat(prompt).as("F-IM-08 doit être cité dans le prompt (BE)").contains("F-IM-08");
+        assertThat(prompt).as("Annotation BELGIQUE UNIQUEMENT requise pour IM08_MOTIF_OQT_BE").contains("BELGIQUE UNIQUEMENT");
+        // Non-régression — codes FR toujours présents
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).contains("IM11_TITRE_ACTUEL");
+    }
+
+    // U-SF-250-07-02 : le prompt système immigration contient BE_9TER_* et IM17_VOIE_REGIME_ALGERIEN
+    @Test
+    void systemPrompt_containsBe9terAndIm17CriteraCodes() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "BELGIQUE", l);
+        assertThat(prompt).as("BE_9TER_MALADIE_GRAVE doit être dans le prompt").contains("BE_9TER_MALADIE_GRAVE");
+        assertThat(prompt).as("BE_9TER_SOINS_BE doit être dans le prompt").contains("BE_9TER_SOINS_BE");
+        assertThat(prompt).as("BE_9TER_SOINS_INACCESSIBLES doit être dans le prompt").contains("BE_9TER_SOINS_INACCESSIBLES");
+        assertThat(prompt).as("BE_9TER_MENACE_ORDRE_PUBLIC doit être dans le prompt").contains("BE_9TER_MENACE_ORDRE_PUBLIC");
+        assertThat(prompt).as("IM17_VOIE_REGIME_ALGERIEN doit être dans le prompt").contains("IM17_VOIE_REGIME_ALGERIEN");
+        assertThat(prompt).as("F-IM-14 doit être cité dans le prompt").contains("F-IM-14");
+        assertThat(prompt).as("F-IM-17 doit être cité dans le prompt").contains("F-IM-17");
+        // Non-régression codes SF-250-05, SF-250-06
+        assertThat(prompt).contains("IM24_DATE_ORDONNANCE_PROTECTION");
+        assertThat(prompt).contains("IM09H_MOTIF_HUMANITAIRE");
+    }
+
     // SF-250-06 — Remédiation critereCode lot Immigration FR — titres / asile / éloignement
 
     // U-SF-250-06-01 : le prompt système immigration-FR contient les codes IM11_, IM12_, IM13_
