@@ -22,7 +22,7 @@
 | Écran | Route | Rôle |
 |---|---|---|
 | Membres | `/workspace/members` | Invitation / rôles des membres |
-| Abonnement | `/workspace/billing` | Plan et facturation |
+| Abonnement | `/workspace/billing` | Plan, facturation et **résiliation self-service (F-247)** |
 | Administration | `/workspace/admin` | Plan, consommation tokens / OCR, taux de facturation |
 | Rapport de temps | `/workspace/time-report` | Suivi du temps |
 | **Corpus de style** | `/workspace/style-learning` | **F-98 — corpus de conclusions de référence pour l'apprentissage du style rédactionnel** |
@@ -40,8 +40,21 @@
 
 La configuration cabinet n'a pas d'« état terminal » unique — c'est un ensemble de réglages persistants. Pour le **corpus de style** spécifiquement : l'état « configuré » = au moins une conclusion de référence ingérée et apprentissage actif ; l'effet se matérialise dans le parcours dossier (section « Conclusions »).
 
+## Parcours périphérique — désinscription des emails (F-248)
+
+Le désabonnement des emails non-transactionnels n'est **pas un écran applicatif** : c'est un parcours déclenché depuis la boîte mail de l'avocat.
+
+1. L'avocat reçoit un email non-transactionnel (séquence d'onboarding F-73, newsletter mensuelle).
+2. Il clique sur « Se désinscrire » dans le pied de l'email.
+3. Le navigateur ouvre la **page publique `/unsubscribe?token=…`** (hors `ShellComponent`, sans login).
+4. La page confirme l'action et reste **bidirectionnelle** (réabonnement possible avec le même token).
+
+Cette page n'impacte aucun écran cabinet et n'ajoute pas d'entrée de menu. Elle rejoint la famille des routes publiques token-based (`verify-email`, `reset-password`, `share/:token`).
+
 ## Historique des passages
 
 | Date | Feature | Apport au parcours |
 |---|---|---|
 | 2026-05-18 | F-98 style learning (cadrage écran SF-98-46-00b) | Création du référentiel parcours cabinet. Ajout de l'écran « Corpus de style » (`/workspace/style-learning`) dans la rubrique GESTION. Verdict GO avec ajustements. |
+| 2026-05-19 | F-247 résiliation self-service (cadrage écran SF-247-00b) | Écran Abonnement enrichi : section de résiliation self-service en bas de page (visible si plan payant + OWNER) + bandeau « résiliation programmée » en haut. Verdict GO. |
+| 2026-05-19 | F-248 désabonnement emails (cadrage écran SF-248-00b) | Ajout du parcours périphérique de désinscription email (email → page publique `/unsubscribe`). N'impacte aucun écran cabinet applicatif. Verdict GO avec ajustements. |
