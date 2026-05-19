@@ -33,6 +33,16 @@
           [value]="step.progressValue"
           [bufferValue]="0">
         </mat-progress-bar>
+
+        @if (step.status === 'failed') {
+          <!-- SF-121-06 : la step en échec oriente vers l'onglet Dossier où se fait l'action. -->
+          <button type="button"
+                  class="step-redirect"
+                  (click)="manageFailedDocuments.emit()">
+            <span>Gérer les documents non analysables</span>
+            <mat-icon class="step-redirect-icon">arrow_forward</mat-icon>
+          </button>
+        }
       </div>
     </div>
   }

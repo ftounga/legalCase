@@ -200,6 +200,38 @@ $color-divider:    #E0E4EA;
   }
 }
 
+// ─── Redirect link (SF-121-06 : step en échec → onglet Dossier) ──────────────
+
+.step-redirect {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: rgba($color-active, 0.06);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: $color-active;
+  transition: background 0.15s ease;
+
+  &:hover  { background: rgba($color-active, 0.12); }
+  &:focus-visible {
+    outline: 2px solid rgba($color-active, 0.5);
+    outline-offset: 1px;
+  }
+}
+
+.step-redirect-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
 // ─── Animations ──────────────────────────────────────────────────────────────
 
 @keyframes spin {

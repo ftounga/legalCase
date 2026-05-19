@@ -147,4 +147,60 @@ describe('AnalysisPipelineComponent', () => {
     expect(step.status).toBe('failed');
     expect(step.counter).toBe('3 / 5');
   });
+
+  // SF-121-06 : step en échec → élément de redirection cliquable
+  describe('SF-121-06 — orientation des steps en échec', () => {
+    it('U-AP-06-01 : step failed → bouton .step-redirect rendu', () => {
+      component.jobs = [job('DOCUMENT_ANALYSIS', 'FAILED', 100, 9, 3)];
+      component.documentsCount = 9;
+      component.ngOnChanges();
+      fixture.detectChanges();
+
+      const redirect = fixture.nativeElement.querySelector('.step-redirect');
+      expect(redirect).toBeTruthy();
+      expect(redirect.textContent).toContain('Gérer les documents non analysables');
+    });
+
+    it('U-AP-06-02 : step done → aucun élément de redirection', () => {
+      component.jobs = [job('DOCUMENT_ANALYSIS', 'DONE', 100, 9, 9)];
+      component.documentsCount = 9;
+      component.ngOnChanges();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.step-redirect')).toBeNull();
+    });
+
+    it('U-AP-06-03 : step active-processing → aucun élément de redirection', () => {
+      component.jobs = [job('DOCUMENT_ANALYSIS', 'PROCESSING', 50, 10, 5)];
+      component.documentsCount = 10;
+      component.ngOnChanges();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.step-redirect')).toBeNull();
+    });
+
+    it('U-AP-06-04 : aucun job → aucune step failed → aucun élément de redirection', () => {
+      component.jobs = [];
+      component.documentsCount = 0;
+      component.ngOnChanges();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.step-redirect')).toBeNull();
+    });
+
+    it('U-AP-06-05 : clic sur l\'élément → manageFailedDocuments émis', () => {
+      component.jobs = [job('DOCUMENT_ANALYSIS', 'FAILED', 100, 9, 3)];
+      component.documentsCount = 9;
+      component.ngOnChanges();
+      fixture.detectChanges();
+
+      const emitSpy = jest.fn();
+      component.manageFailedDocuments.subscribe(emitSpy);
+
+      const redirect: HTMLButtonElement = fixture.nativeElement.querySelector('.step-redirect');
+      redirect.click();
+
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -344,6 +344,13 @@
                       }
                     }
                   </span>
+                  @if (doc.extractionStatus === 'FAILED') {
+                    <!-- SF-121-06 : message de récupération visible, spécifique au motif d'échec. -->
+                    <p class="extraction-recovery-hint">
+                      <mat-icon class="recovery-hint-icon">lightbulb</mat-icon>
+                      {{ extractionRecoveryHint(doc.failureReason) }}
+                    </p>
+                  }
                   @if (doc.pieces && doc.pieces.length > 0) {
                     <div class="piece-chips">
                       @for (piece of doc.pieces; track piece.id) {
@@ -476,7 +483,8 @@
             [jobs]="analysisJobs()"
             [uploading]="uploading()"
             [uploadProgress]="overallUploadProgress()"
-            [documentsCount]="documents().length">
+            [documentsCount]="documents().length"
+            (manageFailedDocuments)="onManageFailedDocuments()">
           </app-analysis-pipeline>
         } @else {
           <div class="analysis-placeholder">

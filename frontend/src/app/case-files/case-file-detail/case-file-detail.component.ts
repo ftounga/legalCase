@@ -42,7 +42,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
-import { Document, extractionFailureLabel, documentPieceTypeIcon, documentPieceTypeLabel } from '../../core/models/document.model';
+import { Document, extractionFailureLabel, extractionRecoveryHint, documentPieceTypeIcon, documentPieceTypeLabel } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisPartialResponse, CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { STREAMING_EXPECTED_SECTIONS } from '../synthesis/streaming-sections';
@@ -245,6 +245,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   // SF-121-02 : exposé au template pour le tooltip du badge "Non analysable"
   readonly extractionFailureLabel = extractionFailureLabel;
+  /** SF-121-06 : message de récupération actionnable affiché sous un doc FAILED. */
+  readonly extractionRecoveryHint = extractionRecoveryHint;
   readonly documentPieceTypeIcon = documentPieceTypeIcon;
   readonly documentPieceTypeLabel = documentPieceTypeLabel;
 
@@ -724,6 +726,18 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       const anchorId = activation.anchorId;
       setTimeout(() => this.scrollAndHighlight(anchorId), 0);
     }
+  }
+
+  /**
+   * SF-121-06 — handler de l'`@Output` `manageFailedDocuments` de
+   * `analysis-pipeline`. La step « Analyse des documents » en échec (onglet
+   * Analyse) renvoie vers l'onglet Dossier, où vit l'action de récupération
+   * (supprimer / ré-uploader la pièce). Réutilise le pont inter-onglets
+   * `selectedTabIndex` + `scrollAndHighlight`. Bascule idempotente.
+   */
+  onManageFailedDocuments(): void {
+    this.selectedTabIndex.set(TAB_DOSSIER);
+    setTimeout(() => this.scrollAndHighlight('section-documents'), 0);
   }
 
   /**

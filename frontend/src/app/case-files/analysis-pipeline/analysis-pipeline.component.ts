@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
@@ -28,6 +28,13 @@ export class AnalysisPipelineComponent implements OnChanges, OnDestroy {
   @Input() uploading = false;
   @Input() uploadProgress = 0;
   @Input() documentsCount = 0;
+
+  /**
+   * SF-121-06 : émis quand l'avocat clique sur l'orientation d'une step en échec.
+   * Le parent (`case-file-detail`) bascule sur l'onglet Dossier et scrolle vers
+   * la liste des documents — là où se fait l'action de récupération.
+   */
+  @Output() manageFailedDocuments = new EventEmitter<void>();
 
   steps: PipelineStep[] = [];
 
