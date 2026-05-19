@@ -430,6 +430,19 @@ export interface ImmigrationExtractedData {
   prenomRequerant?: string | null;
   dateDecisionContestee?: string | null;
   referenceDecision?: string | null;
+  /**
+   * SF-246-17 : pré-fill outils dublin-recours (F-IM-22) et crrv-refus-visa (F-IM-23).
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   * `dublinEtatMembreResponsable` : texte libre (≤ 200 car.).
+   * `dublinMotifTransfert` : code parmi DEMANDE_ASILE_AUTRE_ETAT / VISA_DELIVRE_AUTRE_ETAT /
+   *   ENTREE_IRREGULIERE_AUTRE_ETAT / MEMBRE_FAMILLE_AUTRE_ETAT / AUTRE.
+   * `crrvTypeVisa` : code parmi COURT_SEJOUR / LONG_SEJOUR / REGROUPEMENT_FAMILIAL / ETUDIANT / AUTRE.
+   * `crrvMotifRefus` : texte libre (≤ 500 car.).
+   */
+  dublinEtatMembreResponsable?: string | null;
+  dublinMotifTransfert?: string | null;
+  crrvTypeVisa?: string | null;
+  crrvMotifRefus?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

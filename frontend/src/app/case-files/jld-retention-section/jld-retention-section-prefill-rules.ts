@@ -2,7 +2,7 @@ import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contr
 import { MotifPlacementJld } from '../../core/models/jld-retention.model';
 
 /**
- * SF-208-05 — Helper partage pour {@link JldRetentionSectionComponent}
+ * SF-208-05 / SF-246-17 — Helper partage pour {@link JldRetentionSectionComponent}
  * (F-IM-21-jld-retention-fr) — FR mono-pays.
  *
  * Champs pre-fill :
@@ -12,9 +12,13 @@ import { MotifPlacementJld } from '../../core/models/jld-retention.model';
  *  - motifPlacement : si `aiData.motifOqtfCode` est present, on infere
  *    `EXECUTION_OQTF` (cas le plus frequent : placement pour executer une OQTF
  *    venant d'etre notifiee). Note : signal indirect — l'avocat peut corriger.
+ *  - recoursForme : depuis `aiData.recoursFormeDetected` (SF-246-17).
+ *    OUI → true, NON → false, INCONNU ou null → null (no-op gracieux).
  *
- * Champs NON pre-remplis (champs sans signal IA fiable) :
- *  - recoursForme / dateRecours (toujours geres manuellement par l'avocat).
+ * Champs NON pre-remplis :
+ *  - dateRecours : acte a venir, saisi par l'avocat.
+ *
+ * Total : 3 champs pre-remplissables (sur 4 saisissables).
  */
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -68,11 +72,33 @@ export const JldRetentionPrefillRules = {
     return null;
   },
 
+  /**
+   * SF-246-17 : recours forméе detectable depuis `recoursFormeDetected`.
+   * OUI → true ; NON → false ; INCONNU ou absent → null (no-op gracieux).
+   * Note : signal OQTF générique — peut être utilisé pour JLD car
+   * le placement en CRA suit toujours une OQTF.
+   */
+  computeRecoursForme(input: PrefillCountInput): boolean | null {
+    if (!isFrance(input)) return null;
+    const ai = input.aiData;
+    if (!ai) return null;
+    const detected = ai.recoursFormeDetected;
+    if (!detected || typeof detected !== 'object') return null;
+    const reponse = typeof detected.reponse === 'string'
+      ? detected.reponse.trim().toUpperCase()
+      : null;
+    if (reponse === 'OUI') return true;
+    if (reponse === 'NON') return false;
+    return null; // INCONNU ou absent → no-op
+  },
+
   computePrefillCount(input: PrefillCountInput): number {
     if (!isFrance(input)) return 0;
     let n = 0;
     if (this.computeDateNotificationPlacement(input) !== null) n++;
     if (this.computeMotifPlacement(input) !== null) n++;
+    // SF-246-17 : recours forme
+    if (this.computeRecoursForme(input) !== null) n++;
     return n;
   },
 } as const;

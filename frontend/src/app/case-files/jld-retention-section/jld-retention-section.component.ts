@@ -128,6 +128,7 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
 
   provenanceDateNotification = signal<'IA' | null>(null);
   provenanceMotifPlacement = signal<'IA' | null>(null);
+  provenanceRecoursForme = signal<'IA' | null>(null);
 
   readonly motifs: MotifPlacementJldOption[] = MOTIFS_PLACEMENT_JLD;
   readonly todayIso: string = new Date().toISOString().slice(0, 10);
@@ -223,6 +224,7 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
 
   onRecoursFormeChange(value: boolean): void {
     this.recoursForme.set(value);
+    this.provenanceRecoursForme.set(null);
     if (!value) this.dateRecours.set(null);
   }
 
@@ -320,6 +322,13 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
       this.motifPlacement.set(motif);
       this.provenanceMotifPlacement.set('IA');
     }
+
+    // SF-246-17 : recours / saisine deja forme (depuis recoursFormeDetected)
+    const recoursForme = JldRetentionPrefillRules.computeRecoursForme(input);
+    if (recoursForme !== null && this.provenanceRecoursForme() === null) {
+      this.recoursForme.set(recoursForme);
+      this.provenanceRecoursForme.set('IA');
+    }
   }
 
   private buildDateNotificationAlert(): JldCoherenceAlert | null {
@@ -393,6 +402,9 @@ export class JldRetentionSectionComponent implements OnInit, OnChanges {
         this.motifPlacement.set(r.motifPlacement);
         this.recoursForme.set(r.recoursForme);
         this.dateRecours.set(r.dateRecours);
+        this.provenanceDateNotification.set(null);
+        this.provenanceMotifPlacement.set(null);
+        this.provenanceRecoursForme.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

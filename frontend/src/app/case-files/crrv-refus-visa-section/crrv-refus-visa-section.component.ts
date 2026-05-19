@@ -121,6 +121,9 @@ export class CrrvRefusVisaSectionComponent implements OnInit, OnChanges {
   dateRecours = signal<string | null>(null);
 
   provenanceDateNotification = signal<'IA' | null>(null);
+  // SF-246-17 : provenance IA pour les 2 nouveaux champs.
+  provenanceTypeVisa = signal<'IA' | null>(null);
+  provenanceMotifRefus = signal<'IA' | null>(null);
 
   readonly typesVisa: TypeVisaCrrvOption[] = TYPES_VISA_CRRV;
   readonly todayIso: string = new Date().toISOString().slice(0, 10);
@@ -214,6 +217,17 @@ export class CrrvRefusVisaSectionComponent implements OnInit, OnChanges {
     if (!value) this.dateRecours.set(null);
   }
 
+  // SF-246-17 : handlers pour remettre la provenance à null au changement manuel.
+  onTypeVisaChange(value: TypeVisaCrrv | null): void {
+    this.typeVisa.set(value);
+    this.provenanceTypeVisa.set(null);
+  }
+
+  onMotifRefusChange(value: string | null): void {
+    this.motifRefus.set(value || null);
+    this.provenanceMotifRefus.set(null);
+  }
+
   analyze(): void {
     if (!this.formValid()) return;
     const request = {
@@ -303,6 +317,22 @@ export class CrrvRefusVisaSectionComponent implements OnInit, OnChanges {
       this.dateNotificationRefus.set(date);
       this.provenanceDateNotification.set('IA');
     }
+
+    // SF-246-17 : type de visa refusé (enum)
+    const typeVisa = CrrvRefusVisaPrefillRules.computeTypeVisa(input);
+    if (typeVisa !== null
+        && (this.typeVisa() === null || this.provenanceTypeVisa() === 'IA')) {
+      this.typeVisa.set(typeVisa);
+      this.provenanceTypeVisa.set('IA');
+    }
+
+    // SF-246-17 : motif du refus (texte libre)
+    const motifRefus = CrrvRefusVisaPrefillRules.computeMotifRefus(input);
+    if (motifRefus !== null
+        && (this.motifRefus() === null || this.provenanceMotifRefus() === 'IA')) {
+      this.motifRefus.set(motifRefus);
+      this.provenanceMotifRefus.set('IA');
+    }
   }
 
   private buildDateNotificationAlert(): CrrvCoherenceAlert | null {
@@ -357,6 +387,10 @@ export class CrrvRefusVisaSectionComponent implements OnInit, OnChanges {
         this.motifRefus.set(r.motifRefus);
         this.recoursForme.set(r.recoursForme);
         this.dateRecours.set(r.dateRecours);
+        // Valeurs persistées = saisie avocat — jamais de badge IA.
+        this.provenanceDateNotification.set(null);
+        this.provenanceTypeVisa.set(null);
+        this.provenanceMotifRefus.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

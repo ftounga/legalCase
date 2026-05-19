@@ -1541,6 +1541,101 @@ class CaseAnalysisResponseTest {
         assertThat(im.transfertImminentDetected()).isNull();
     }
 
+    // SF-246-17 : 4 champs Dublin/CRRV pour pré-fill F-IM-22 et F-IM-23
+    @Test
+    void from_immigration_dublinEtatMembreResponsable_nominal() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "dublin_etat_membre_responsable": "  ITALIE  "
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dublinEtatMembreResponsable()).isEqualTo("ITALIE");
+    }
+
+    @Test
+    void from_immigration_dublinMotifTransfert_nominal_uppercase() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "dublin_motif_transfert": "demande_asile_autre_etat"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dublinMotifTransfert()).isEqualTo("DEMANDE_ASILE_AUTRE_ETAT");
+    }
+
+    @Test
+    void from_immigration_dublinMotifTransfert_horsWhitelist_retourneNull() {
+        // CODE_INCONNU rejeté par la whitelist → dublinMotifTransfert null.
+        // On ancre avec type_titre_sejour_code pour éviter que le record entier soit null.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "dublin_motif_transfert": "CODE_INCONNU"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dublinMotifTransfert()).isNull();
+    }
+
+    @Test
+    void from_immigration_crrvTypeVisa_nominal_uppercase() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "crrv_type_visa": "long_sejour"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.crrvTypeVisa()).isEqualTo("LONG_SEJOUR");
+    }
+
+    @Test
+    void from_immigration_crrvTypeVisa_horsWhitelist_retourneNull() {
+        // VISA_INCONNU rejeté par la whitelist → crrvTypeVisa null.
+        // On ancre avec type_titre_sejour_code pour éviter que le record entier soit null.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "crrv_type_visa": "VISA_INCONNU"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.crrvTypeVisa()).isNull();
+    }
+
+    @Test
+    void from_immigration_crrvMotifRefus_nominal_tronque500Chars() {
+        String longText = "A".repeat(600);
+        CaseAnalysis analysis = analysis("""
+                {
+                  "crrv_motif_refus": "%s"
+                }
+                """.formatted(longText));
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.crrvMotifRefus()).hasSize(500);
+    }
+
+    @Test
+    void from_immigration_sf246_17_tous_champs_absents_gracefulNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dublinEtatMembreResponsable()).isNull();
+        assertThat(im.dublinMotifTransfert()).isNull();
+        assertThat(im.crrvTypeVisa()).isNull();
+        assertThat(im.crrvMotifRefus()).isNull();
+    }
+
     // SF-166-01 : 8 flags décisionnels niveau 3 (F-DT-20/21/24/30/31/33/34/35) — Travail FR uniquement
     @Test
     void from_travailExtractedData_rappelSalaireDetecte_isolated_true_othersFalse() {

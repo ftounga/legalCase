@@ -122,6 +122,9 @@ export class DublinRecoursSectionComponent implements OnInit, OnChanges {
   dateRecours = signal<string | null>(null);
 
   provenanceDateNotification = signal<'IA' | null>(null);
+  // SF-246-17 : provenance IA pour les 2 nouveaux champs.
+  provenanceEtatMembre = signal<'IA' | null>(null);
+  provenanceMotifTransfert = signal<'IA' | null>(null);
 
   readonly motifs: MotifTransfertDublinOption[] = MOTIFS_TRANSFERT_DUBLIN;
   readonly todayIso: string = new Date().toISOString().slice(0, 10);
@@ -213,6 +216,17 @@ export class DublinRecoursSectionComponent implements OnInit, OnChanges {
     if (!value) this.dateRecours.set(null);
   }
 
+  // SF-246-17 : handlers pour remettre la provenance à null au changement manuel.
+  onEtatMembreResponsableChange(value: string | null): void {
+    this.etatMembreResponsable.set(value || null);
+    this.provenanceEtatMembre.set(null);
+  }
+
+  onMotifTransfertChange(value: MotifTransfertDublin | null): void {
+    this.motifTransfert.set(value);
+    this.provenanceMotifTransfert.set(null);
+  }
+
   analyze(): void {
     if (!this.formValid()) return;
     const request = {
@@ -302,6 +316,22 @@ export class DublinRecoursSectionComponent implements OnInit, OnChanges {
       this.dateNotificationDecisionTransfert.set(date);
       this.provenanceDateNotification.set('IA');
     }
+
+    // SF-246-17 : état membre responsable (texte libre)
+    const etatMembre = DublinRecoursPrefillRules.computeEtatMembreResponsable(input);
+    if (etatMembre !== null
+        && (this.etatMembreResponsable() === null || this.provenanceEtatMembre() === 'IA')) {
+      this.etatMembreResponsable.set(etatMembre);
+      this.provenanceEtatMembre.set('IA');
+    }
+
+    // SF-246-17 : motif de transfert Dublin (enum)
+    const motifTransfert = DublinRecoursPrefillRules.computeMotifTransfert(input);
+    if (motifTransfert !== null
+        && (this.motifTransfert() === null || this.provenanceMotifTransfert() === 'IA')) {
+      this.motifTransfert.set(motifTransfert);
+      this.provenanceMotifTransfert.set('IA');
+    }
   }
 
   private buildDateNotificationAlert(): DublinCoherenceAlert | null {
@@ -356,6 +386,10 @@ export class DublinRecoursSectionComponent implements OnInit, OnChanges {
         this.motifTransfert.set(r.motifTransfert);
         this.recoursForme.set(r.recoursForme);
         this.dateRecours.set(r.dateRecours);
+        // Valeurs persistées = saisie avocat — jamais de badge IA.
+        this.provenanceDateNotification.set(null);
+        this.provenanceEtatMembre.set(null);
+        this.provenanceMotifTransfert.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },
