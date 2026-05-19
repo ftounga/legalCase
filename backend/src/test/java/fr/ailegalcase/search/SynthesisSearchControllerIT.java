@@ -89,6 +89,7 @@ class SynthesisSearchControllerIT {
         caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFile.setStatus("OPEN");
         caseFile.setWorkspace(workspace);
+        caseFile.setCreatedBy(user);
         caseFileRepository.save(caseFile);
 
         auth = buildGoogleAuth("google-search-sub", "search-test@example.com");
@@ -186,6 +187,7 @@ class SynthesisSearchControllerIT {
         otherCf.setLegalDomain("DROIT_DU_TRAVAIL");
         otherCf.setStatus("OPEN");
         otherCf.setWorkspace(otherWorkspace);
+        otherCf.setCreatedBy(other);
         caseFileRepository.save(otherCf);
 
         caseAnalysisRepository.save(buildDoneAnalysis(otherCf,

@@ -90,6 +90,7 @@ class AdminUsageControllerIT {
         caseFile.setCreatedBy(ownerUser);
         caseFile.setTitle("Dossier Admin Test");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         ownerAuth = buildAuth("google-admin-sub", "admin-test@example.com");
@@ -218,6 +219,7 @@ class AdminUsageControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         WorkspaceMember otherMember = new WorkspaceMember();

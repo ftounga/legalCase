@@ -102,9 +102,11 @@ class AncienneteControllerIT {
     }
 
     @Test void SF_DT_07_05_GET_bareme_BTP_returns200() throws Exception {
+        // SF-129-01/03 : les codes legacy (BTP) sont normalisés vers leur IDCC officiel.
+        // BTP → IDCC_1596 ; le barème exposé porte le code IDCC normalisé.
         mockMvc.perform(get("/api/v1/anciennete/baremes/BTP").with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.conventionCode").value("BTP"))
+                .andExpect(jsonPath("$.conventionCode").value("IDCC_1596"))
                 .andExpect(jsonPath("$.country").value("FRANCE"))
                 .andExpect(jsonPath("$.congesLegauxJours").isNumber())
                 .andExpect(jsonPath("$.primesAnciennete").isArray());

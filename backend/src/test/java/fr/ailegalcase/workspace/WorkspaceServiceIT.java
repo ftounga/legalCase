@@ -2,11 +2,13 @@ package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.StripeCustomerService;
 import fr.ailegalcase.billing.Subscription;
 import fr.ailegalcase.billing.SubscriptionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
 import java.util.List;
@@ -32,6 +34,12 @@ class WorkspaceServiceIT {
     @Autowired
     private SubscriptionRepository subscriptionRepository;
 
+    @MockBean
+    private StripeCustomerService stripeCustomerService;
+
+    @MockBean
+    private EmailService emailService;
+
     private User savedUser(String email) {
         User user = new User();
         user.setEmail(email);
@@ -48,8 +56,8 @@ class WorkspaceServiceIT {
 
         List<Workspace> workspaces = workspaceRepository.findAll();
         assertThat(workspaces).hasSize(1);
-        assertThat(workspaces.get(0).getName()).isEqualTo("john@example.com");
-        assertThat(workspaces.get(0).getPlanCode()).isEqualTo("STARTER");
+        assertThat(workspaces.get(0).getName()).isEqualTo("JOHN@EXAMPLE.COM");
+        assertThat(workspaces.get(0).getPlanCode()).isEqualTo("FREE");
         assertThat(workspaces.get(0).getStatus()).isEqualTo("ACTIVE");
         assertThat(workspaces.get(0).getCreatedAt()).isNotNull();
 
@@ -94,9 +102,9 @@ class WorkspaceServiceIT {
         List<Subscription> subs = subscriptionRepository.findAll();
         assertThat(subs).hasSize(1);
         assertThat(subs.get(0).getWorkspaceId()).isEqualTo(workspace.getId());
-        assertThat(subs.get(0).getPlanCode()).isEqualTo("STARTER");
+        assertThat(subs.get(0).getPlanCode()).isEqualTo("FREE");
         assertThat(subs.get(0).getStatus()).isEqualTo("ACTIVE");
         assertThat(subs.get(0).getStartedAt()).isNotNull();
-        assertThat(subs.get(0).getExpiresAt()).isNull();
+        assertThat(subs.get(0).getExpiresAt()).isNotNull();
     }
 }

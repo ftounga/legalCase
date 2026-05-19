@@ -1,6 +1,7 @@
 package fr.ailegalcase.shared;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -43,6 +44,24 @@ public class GlobalExceptionHandler {
                                                                 HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getDefaultMessage())
+                .findFirst()
+                .orElse("Validation failed");
+        log.warn("{} {} → 400 {}", request.getMethod(), request.getRequestURI(), message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "Bad Request", "message", message));
+    }
+
+    /**
+     * Validation au niveau paramètre (@RequestParam / @PathVariable annotés @Size,
+     * @Min, etc.) — Spring lève une ConstraintViolationException, qui n'est pas une
+     * MethodArgumentNotValidException. Sans ce handler elle remonte en 500. On la
+     * traduit en 400, comme la validation de corps de requête.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, String>> handleConstraintViolation(ConstraintViolationException ex,
+                                                                          HttpServletRequest request) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> v.getMessage())
                 .findFirst()
                 .orElse("Validation failed");
         log.warn("{} {} → 400 {}", request.getMethod(), request.getRequestURI(), message);

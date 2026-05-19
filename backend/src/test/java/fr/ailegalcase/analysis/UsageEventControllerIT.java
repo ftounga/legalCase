@@ -90,6 +90,7 @@ class UsageEventControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Usage");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         auth = buildGoogleAuth("google-usage-sub", "usage-test@example.com");
@@ -153,6 +154,7 @@ class UsageEventControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         WorkspaceMember otherMember = new WorkspaceMember();
@@ -168,6 +170,7 @@ class UsageEventControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre Workspace");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
 
         mockMvc.perform(get("/api/v1/case-files/{id}/usage", otherCaseFile.getId())

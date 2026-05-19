@@ -105,6 +105,7 @@ class AiQuestionControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Questions");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         auth = buildGoogleAuth("google-questions-sub", "questions-test@example.com");
@@ -164,6 +165,7 @@ class AiQuestionControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         WorkspaceMember otherMember = new WorkspaceMember();
@@ -179,6 +181,7 @@ class AiQuestionControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre Workspace");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
 
         mockMvc.perform(get("/api/v1/case-files/{id}/ai-questions", otherCaseFile.getId())

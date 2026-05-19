@@ -107,13 +107,19 @@ class ReferentialControllerIT {
 
     @Test
     void GET_referentials_DROIT_FAMILLE_retourne_taux_pension_et_coefficients() throws Exception {
+        // SF-137-01 : les entries sont filtrées sur le country du workspace. Le
+        // workspace de test est FRANCE (valeur par défaut de Workspace.country) :
+        // sur les 2 lignes seedées par type (FRANCE + BELGIQUE) seule la FRANCE
+        // remonte.
         mockMvc.perform(get("/api/v1/referentials")
                         .param("domain", "DROIT_FAMILLE")
                         .with(authentication(auth))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.sections.PENSION_TAUX", hasSize(2)))
-                .andExpect(jsonPath("$.sections.PRESTATION_COEFF", hasSize(2)));
+                .andExpect(jsonPath("$.sections.PENSION_TAUX", hasSize(1)))
+                .andExpect(jsonPath("$.sections.PENSION_TAUX[0].country").value("FRANCE"))
+                .andExpect(jsonPath("$.sections.PRESTATION_COEFF", hasSize(1)))
+                .andExpect(jsonPath("$.sections.PRESTATION_COEFF[0].country").value("FRANCE"));
     }
 
     @Test
