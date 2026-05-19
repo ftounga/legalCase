@@ -344,6 +344,19 @@ export interface TravailExtractedData {
   nonConcurrenceDureeMois?: number | null;
   nonConcurrenceZoneGeographique?: string | null;
   nonConcurrenceContrepartieMontantEur?: number | null;
+  /**
+   * SF-246-15 : identités salarié/employeur pour pré-fill des fiches de procédure
+   * `prudhome-fiche` (FR) et `tribunal-travail-fiche` (BE). Champs présents dans le
+   * record backend depuis F-DT-04/F-DT-06 — dette DTO frontend réglée ici.
+   * `siretEmployeur` : FR uniquement (14 chiffres) ; `bceEmployeur` : BE uniquement.
+   */
+  nomSalarie?: string | null;
+  prenomSalarie?: string | null;
+  adresseSalarie?: string | null;
+  nomEmployeur?: string | null;
+  adresseEmployeur?: string | null;
+  siretEmployeur?: string | null;
+  bceEmployeur?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

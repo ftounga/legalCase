@@ -33,16 +33,20 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import {
   PrudhomeFicheSectionPrefillRules,
   computeProfession as computeProfessionRule,
+  computeNomSalarie as computeNomSalarieRule,
+  computePrenomSalarie as computePrenomSalarieRule,
+  computeAdresseSalarie as computeAdresseSalarieRule,
+  computeNomEmployeur as computeNomEmployeurRule,
+  computeAdresseEmployeur as computeAdresseEmployeurRule,
+  computeSiretEmployeur as computeSiretEmployeurRule,
 } from './prudhome-fiche-section-prefill-rules';
 
 /**
  * SF-173-01 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-04
- * (fiche prud'homale FR). Volontairement minimal — la fiche FR ne contient pas
- * directement les champs salaire/dates/motif (uniquement profession en mappable
- * direct depuis `TravailExtractedData`). Si une SF future enrichit la fiche
- * avec dateRupture / salaire, étendre cet enum.
+ * (fiche prud'homale FR).
+ * SF-246-15 : ajout `NOM_SALARIE` et `NOM_EMPLOYEUR` (identités pré-remplies).
  */
-export type PrudhomeAlertField = 'PROFESSION';
+export type PrudhomeAlertField = 'PROFESSION' | 'NOM_SALARIE' | 'NOM_EMPLOYEUR';
 
 export type PrudhomeCoherenceAlert = CoherenceAlert<PrudhomeAlertField>;
 
@@ -117,16 +121,20 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
   // SF-173-01 : provenance IA par champ pré-rempli. Effacé dès que l'avocat
   // modifie manuellement (handler `onXxxChange()` ou via `valueChanges`).
   provenanceProfession = signal<'IA' | null>(null);
+  // SF-246-15 : provenance IA pour les champs identités.
+  provenanceNomSalarie = signal<'IA' | null>(null);
+  provenancePrenomSalarie = signal<'IA' | null>(null);
+  provenanceAdresseSalarie = signal<'IA' | null>(null);
+  provenanceNomEmployeur = signal<'IA' | null>(null);
+  provenanceAdresseEmployeur = signal<'IA' | null>(null);
+  provenanceSiretEmployeur = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : map {sourceKey → explanations} pour le popover enrichi.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   form: FormGroup;
 
-  // SF-173-01 : alertes F-IA-03 dynamiques. Pour la fiche prud'homale FR, seul
-  // `profession` est directement comparable avec `aiData.poste`. Les autres
-  // champs de la fiche (nom, adresse, demandes, faits) ne sont pas extraits
-  // par l'IA Travail à ce jour.
+  // SF-173-01 + SF-246-15 : alertes F-IA-03 dynamiques.
   coherenceAlerts = computed<Partial<Record<PrudhomeAlertField, PrudhomeCoherenceAlert>>>(() => {
     // Force re-eval au changement form value.
     this.formValueSignal();
@@ -137,6 +145,13 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
 
     const professionAlert = this.buildProfessionAlert();
     if (professionAlert) alerts.PROFESSION = professionAlert;
+
+    // SF-246-15 : alertes identités.
+    const nomSalarieAlert = this.buildNomSalarieAlert();
+    if (nomSalarieAlert) alerts.NOM_SALARIE = nomSalarieAlert;
+
+    const nomEmployeurAlert = this.buildNomEmployeurAlert();
+    if (nomEmployeurAlert) alerts.NOM_EMPLOYEUR = nomEmployeurAlert;
 
     return alerts;
   });
@@ -177,18 +192,44 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
     // SF-173-01 : remet provenance à null quand l'avocat édite manuellement
     // un champ pré-rempli (le badge IA disparaît).
     this.form.get('demandeur.profession')?.valueChanges.subscribe(() => {
-      // Ignore le set initial via prefill (provenance vient d'être posée à 'IA').
-      // Le pattern canonique F-155 utilise des handlers (ngModelChange) ; ici on
-      // utilise valueChanges car le formulaire est ReactiveForms — le résultat
-      // est équivalent : la provenance IA est invalidée à toute modif suivante.
-      // Garde : seule la 1re modif après prefill compte ; les suivantes sont no-op.
       if (this.provenanceProfession() === 'IA') {
-        // Détecte si la nouvelle valeur est différente de la valeur IA actuelle.
         const aiValue = this.aiDataSignal()?.poste;
         const current = this.form.get('demandeur.profession')?.value;
         if (current !== aiValue) {
           this.provenanceProfession.set(null);
         }
+      }
+    });
+
+    // SF-246-15 : invalider provenance IA sur modification manuelle des identités.
+    this.form.get('demandeur.nom')?.valueChanges.subscribe(v => {
+      if (this.provenanceNomSalarie() === 'IA' && v !== this.aiDataSignal()?.nomSalarie) {
+        this.provenanceNomSalarie.set(null);
+      }
+    });
+    this.form.get('demandeur.prenom')?.valueChanges.subscribe(v => {
+      if (this.provenancePrenomSalarie() === 'IA' && v !== this.aiDataSignal()?.prenomSalarie) {
+        this.provenancePrenomSalarie.set(null);
+      }
+    });
+    this.form.get('demandeur.adresse')?.valueChanges.subscribe(v => {
+      if (this.provenanceAdresseSalarie() === 'IA' && v !== this.aiDataSignal()?.adresseSalarie) {
+        this.provenanceAdresseSalarie.set(null);
+      }
+    });
+    this.form.get('defendeur.nom')?.valueChanges.subscribe(v => {
+      if (this.provenanceNomEmployeur() === 'IA' && v !== this.aiDataSignal()?.nomEmployeur) {
+        this.provenanceNomEmployeur.set(null);
+      }
+    });
+    this.form.get('defendeur.adresse')?.valueChanges.subscribe(v => {
+      if (this.provenanceAdresseEmployeur() === 'IA' && v !== this.aiDataSignal()?.adresseEmployeur) {
+        this.provenanceAdresseEmployeur.set(null);
+      }
+    });
+    this.form.get('defendeur.siret')?.valueChanges.subscribe(v => {
+      if (this.provenanceSiretEmployeur() === 'IA' && v !== this.aiDataSignal()?.siretEmployeur) {
+        this.provenanceSiretEmployeur.set(null);
       }
     });
 
@@ -239,21 +280,26 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-173-01 : pré-remplit le form depuis `aiData`. N'écrase pas une saisie
-   * manuelle (la condition `!current` garantit que les valeurs déjà saisies
-   * par l'avocat sont préservées). Pour la fiche prud'homale FR, seul
-   * `aiData.poste → demandeur.profession` est mappable directement.
+   * SF-173-01 + SF-246-15 : pré-remplit le form depuis `aiData`. N'écrase pas une saisie
+   * manuelle (la condition `!ctrl.value` garantit la préservation des saisies).
    *
-   * Champs non mappés (par construction de TravailExtractedData) :
-   * `demandeur.nom/prenom/adresse/telephone/email`, `defendeur.nom/adresse/siret/representant`,
-   * `demandes`, `faitsTexte`, `moyensDroitTexte`. Ces champs restent vides — l'avocat
-   * les complète manuellement.
+   * Mapping `TravailExtractedData` → FormGroup (FR) :
+   * - `poste`          → `demandeur.profession`
+   * - `nomSalarie`     → `demandeur.nom`         (SF-246-15)
+   * - `prenomSalarie`  → `demandeur.prenom`       (SF-246-15)
+   * - `adresseSalarie` → `demandeur.adresse`      (SF-246-15)
+   * - `nomEmployeur`   → `defendeur.nom`          (SF-246-15)
+   * - `adresseEmployeur` → `defendeur.adresse`    (SF-246-15)
+   * - `siretEmployeur` → `defendeur.siret`        (SF-246-15, FR uniquement)
+   *
+   * Champs non mappés : `demandeur.telephone/email`, `defendeur.representant`,
+   * `demandes`, `faitsTexte`, `moyensDroitTexte` — l'avocat les complète manuellement.
    */
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
     if (!ai) return;
 
-    // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
+    // F-236 SF-236-02 : profession.
     const profession = computeProfessionRule({ aiData: ai });
     if (profession) {
       const ctrl = this.form.get('demandeur.profession');
@@ -262,12 +308,76 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
         this.provenanceProfession.set('IA');
       }
     }
+
+    // SF-246-15 : identités salarié.
+    const nomSalarie = computeNomSalarieRule({ aiData: ai });
+    if (nomSalarie) {
+      const ctrl = this.form.get('demandeur.nom');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(nomSalarie, { emitEvent: false });
+        this.provenanceNomSalarie.set('IA');
+      }
+    }
+
+    const prenomSalarie = computePrenomSalarieRule({ aiData: ai });
+    if (prenomSalarie) {
+      const ctrl = this.form.get('demandeur.prenom');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(prenomSalarie, { emitEvent: false });
+        this.provenancePrenomSalarie.set('IA');
+      }
+    }
+
+    const adresseSalarie = computeAdresseSalarieRule({ aiData: ai });
+    if (adresseSalarie) {
+      const ctrl = this.form.get('demandeur.adresse');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(adresseSalarie, { emitEvent: false });
+        this.provenanceAdresseSalarie.set('IA');
+      }
+    }
+
+    // SF-246-15 : identités employeur.
+    const nomEmployeur = computeNomEmployeurRule({ aiData: ai });
+    if (nomEmployeur) {
+      const ctrl = this.form.get('defendeur.nom');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(nomEmployeur, { emitEvent: false });
+        this.provenanceNomEmployeur.set('IA');
+      }
+    }
+
+    const adresseEmployeur = computeAdresseEmployeurRule({ aiData: ai });
+    if (adresseEmployeur) {
+      const ctrl = this.form.get('defendeur.adresse');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(adresseEmployeur, { emitEvent: false });
+        this.provenanceAdresseEmployeur.set('IA');
+      }
+    }
+
+    const siretEmployeur = computeSiretEmployeurRule({ aiData: ai });
+    if (siretEmployeur) {
+      const ctrl = this.form.get('defendeur.siret');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(siretEmployeur, { emitEvent: false });
+        this.provenanceSiretEmployeur.set('IA');
+      }
+    }
   }
 
   /** SF-173-01 : effacer le badge IA quand l'avocat modifie manuellement. */
   onProfessionChange(): void {
     this.provenanceProfession.set(null);
   }
+
+  // SF-246-15 : handlers manuels identités.
+  onNomSalarieChange(): void { this.provenanceNomSalarie.set(null); }
+  onPrenomSalarieChange(): void { this.provenancePrenomSalarie.set(null); }
+  onAdresseSalarieChange(): void { this.provenanceAdresseSalarie.set(null); }
+  onNomEmployeurChange(): void { this.provenanceNomEmployeur.set(null); }
+  onAdresseEmployeurChange(): void { this.provenanceAdresseEmployeur.set(null); }
+  onSiretEmployeurChange(): void { this.provenanceSiretEmployeur.set(null); }
 
   private loadSourceExplanations(): void {
     if (!this.caseFileId) return;
@@ -280,7 +390,13 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
 
   /** SF-IA-03-15c : mapping vers sourceKey. */
   explanationFor(field: PrudhomeAlertField): SourceExplanation[] {
-    const key = field === 'PROFESSION' ? 'poste' : '';
+    const key = (() => {
+      switch (field) {
+        case 'PROFESSION': return 'poste';
+        case 'NOM_SALARIE': return 'nom_salarie';
+        case 'NOM_EMPLOYEUR': return 'nom_employeur';
+      }
+    })();
     return this.sourceExplanations().get(key) ?? [];
   }
 
@@ -320,6 +436,35 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
       .build();
   }
 
+  // SF-246-15 : alertes identités.
+  private buildNomSalarieAlert(): PrudhomeCoherenceAlert | null {
+    const userValue = this.form.get('demandeur.nom')?.value as string | null;
+    if (!userValue || !userValue.trim()) return null;
+    const ai = this.aiDataSignal();
+    if (!ai?.nomSalarie) return null;
+    if (userValue.trim().toLowerCase() === ai.nomSalarie.trim().toLowerCase()) return null;
+    return CoherenceAlertBuilder.forField<PrudhomeAlertField>('NOM_SALARIE')
+      .addSource('IA', {
+        expectedDisplay: ai.nomSalarie,
+        reason: `Analyse du dossier : nom salarié ${ai.nomSalarie}`,
+      })
+      .build();
+  }
+
+  private buildNomEmployeurAlert(): PrudhomeCoherenceAlert | null {
+    const userValue = this.form.get('defendeur.nom')?.value as string | null;
+    if (!userValue || !userValue.trim()) return null;
+    const ai = this.aiDataSignal();
+    if (!ai?.nomEmployeur) return null;
+    if (userValue.trim().toLowerCase() === ai.nomEmployeur.trim().toLowerCase()) return null;
+    return CoherenceAlertBuilder.forField<PrudhomeAlertField>('NOM_EMPLOYEUR')
+      .addSource('IA', {
+        expectedDisplay: ai.nomEmployeur,
+        reason: `Analyse du dossier : nom employeur ${ai.nomEmployeur}`,
+      })
+      .build();
+  }
+
   get demandesArray(): FormArray {
     return this.form.get('demandes') as FormArray;
   }
@@ -350,8 +495,14 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
         this.saving.set(false);
         this.pieces.set(fiche.piecesList);
         this.hasPersistedFiche.set(true);
-        // SF-173-01 : valeurs persistées par l'avocat — efface les badges IA.
+        // SF-173-01 + SF-246-15 : valeurs persistées par l'avocat — efface les badges IA.
         this.provenanceProfession.set(null);
+        this.provenanceNomSalarie.set(null);
+        this.provenancePrenomSalarie.set(null);
+        this.provenanceAdresseSalarie.set(null);
+        this.provenanceNomEmployeur.set(null);
+        this.provenanceAdresseEmployeur.set(null);
+        this.provenanceSiretEmployeur.set(null);
         this.snackBar.open('Fiche enregistrée', 'Fermer', {
           duration: 3000, panelClass: ['snack-success']
         });
@@ -405,7 +556,13 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
       );
     }
     this.pieces.set(fiche.piecesList ?? []);
-    // SF-173-01 : valeurs persistées validées par l'avocat — efface les badges IA.
+    // SF-173-01 + SF-246-15 : valeurs persistées validées par l'avocat — efface les badges IA.
     this.provenanceProfession.set(null);
+    this.provenanceNomSalarie.set(null);
+    this.provenancePrenomSalarie.set(null);
+    this.provenanceAdresseSalarie.set(null);
+    this.provenanceNomEmployeur.set(null);
+    this.provenanceAdresseEmployeur.set(null);
+    this.provenanceSiretEmployeur.set(null);
   }
 }

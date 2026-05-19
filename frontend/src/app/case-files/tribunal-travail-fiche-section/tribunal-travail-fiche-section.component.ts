@@ -38,15 +38,20 @@ import {
   computeDateDebut as computeDateDebutRule,
   computeDateFin as computeDateFinRule,
   computeMotifRupture as computeMotifRuptureRule,
+  computeNomRequerant as computeNomRequerantRule,
+  computePrenomRequerant as computePrenomRequerantRule,
+  computeDomicileRequerant as computeDomicileRequerantRule,
+  computeNomDefendeur as computeNomDefendeurRule,
+  computeSiegeSocialDefendeur as computeSiegeSocialDefendeurRule,
+  computeNumeroBce as computeNumeroBceRule,
 } from './tribunal-travail-fiche-section-prefill-rules';
 
 /**
  * SF-173-02 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-06
- * (requête tribunal du travail BE). Critiques : dateDebut (vs aiData.dateEntree),
- * motifRupture (vs aiData.motifLicenciement). `commissionParitaire`
- * (équivalent BE de la convention collective FR) traité en alerte secondaire.
+ * (requête tribunal du travail BE). Critiques : dateDebut, motifRupture.
+ * SF-246-15 : ajout `NOM_REQUERANT` et `NOM_DEFENDEUR` (identités pré-remplies).
  */
-export type TribunalAlertField = 'DATE_DEBUT' | 'MOTIF_RUPTURE' | 'COMMISSION_PARITAIRE' | 'TYPE_CONTRAT';
+export type TribunalAlertField = 'DATE_DEBUT' | 'MOTIF_RUPTURE' | 'COMMISSION_PARITAIRE' | 'TYPE_CONTRAT' | 'NOM_REQUERANT' | 'NOM_DEFENDEUR';
 
 export type TribunalCoherenceAlert = CoherenceAlert<TribunalAlertField>;
 
@@ -116,14 +121,19 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
   provenanceDateDebut = signal<'IA' | null>(null);
   provenanceDateFin = signal<'IA' | null>(null);
   provenanceMotifRupture = signal<'IA' | null>(null);
+  // SF-246-15 : provenance IA pour les champs identités.
+  provenanceNomRequerant = signal<'IA' | null>(null);
+  provenancePrenomRequerant = signal<'IA' | null>(null);
+  provenanceDomicileRequerant = signal<'IA' | null>(null);
+  provenanceNomDefendeur = signal<'IA' | null>(null);
+  provenanceSiegeSocialDefendeur = signal<'IA' | null>(null);
+  provenanceNumeroBce = signal<'IA' | null>(null);
 
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   form: FormGroup;
 
-  // SF-173-02 : alertes F-IA-03 (uniquement avant persistance, pour cohérence
-  // avec le pattern canonique F-155). Les fields critiques sont dateDebut /
-  // motifRupture / commissionParitaire / typeContrat.
+  // SF-173-02 + SF-246-15 : alertes F-IA-03.
   coherenceAlerts = computed<Partial<Record<TribunalAlertField, TribunalCoherenceAlert>>>(() => {
     this.formValueSignal();
     if (this.hasPersistedFiche()) return {};
@@ -142,6 +152,13 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
 
     const mrAlert = this.buildMotifRuptureAlert();
     if (mrAlert) alerts.MOTIF_RUPTURE = mrAlert;
+
+    // SF-246-15 : alertes identités.
+    const nomReqAlert = this.buildNomRequerantAlert();
+    if (nomReqAlert) alerts.NOM_REQUERANT = nomReqAlert;
+
+    const nomDefAlert = this.buildNomDefendeurAlert();
+    if (nomDefAlert) alerts.NOM_DEFENDEUR = nomDefAlert;
 
     return alerts;
   });
@@ -221,6 +238,38 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
       }
     });
 
+    // SF-246-15 : invalider provenance IA sur modification manuelle des identités.
+    this.form.get('requerant.nom')?.valueChanges.subscribe(v => {
+      if (this.provenanceNomRequerant() === 'IA' && v !== this.aiDataSignal()?.nomSalarie) {
+        this.provenanceNomRequerant.set(null);
+      }
+    });
+    this.form.get('requerant.prenom')?.valueChanges.subscribe(v => {
+      if (this.provenancePrenomRequerant() === 'IA' && v !== this.aiDataSignal()?.prenomSalarie) {
+        this.provenancePrenomRequerant.set(null);
+      }
+    });
+    this.form.get('requerant.domicile')?.valueChanges.subscribe(v => {
+      if (this.provenanceDomicileRequerant() === 'IA' && v !== this.aiDataSignal()?.adresseSalarie) {
+        this.provenanceDomicileRequerant.set(null);
+      }
+    });
+    this.form.get('defendeur.nom')?.valueChanges.subscribe(v => {
+      if (this.provenanceNomDefendeur() === 'IA' && v !== this.aiDataSignal()?.nomEmployeur) {
+        this.provenanceNomDefendeur.set(null);
+      }
+    });
+    this.form.get('defendeur.siegeSocial')?.valueChanges.subscribe(v => {
+      if (this.provenanceSiegeSocialDefendeur() === 'IA' && v !== this.aiDataSignal()?.adresseEmployeur) {
+        this.provenanceSiegeSocialDefendeur.set(null);
+      }
+    });
+    this.form.get('defendeur.numeroBce')?.valueChanges.subscribe(v => {
+      if (this.provenanceNumeroBce() === 'IA' && v !== this.aiDataSignal()?.bceEmployeur) {
+        this.provenanceNumeroBce.set(null);
+      }
+    });
+
     this.form.valueChanges.subscribe(v => this.formValueSignal.set(v));
   }
 
@@ -262,18 +311,21 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-173-02 : pré-remplit le form depuis `aiData`. N'écrase pas une saisie
-   * manuelle (la condition `!current` garantit la préservation des saisies).
+   * SF-173-02 + SF-246-15 : pré-remplit le form depuis `aiData`. N'écrase pas
+   * une saisie manuelle (la condition `!ctrl.value` garantit la préservation).
    *
    * Mapping `TravailExtractedData` → FormGroup (BE) :
-   * - `aiData.conventionCollective` → `procedureInfo.commissionParitaire` (équivalent BE)
-   * - `aiData.typeContrat` → `contratInfo.typeContrat` (normalisé EMPLOYE/OUVRIER)
-   * - `aiData.dateEntree` → `contratInfo.dateDebut`
-   * - `aiData.dateLicenciement` → `contratInfo.dateFin`
-   * - `aiData.motifLicenciement` → `contratInfo.motifRupture`
-   *
-   * Champs non mappés : `requerant.*`, `defendeur.*`, `procedureInfo.tribunal/division/langue`,
-   * `demandes`, `exposeDesMoyens` — l'avocat les complète manuellement.
+   * - `conventionCollective`  → `procedureInfo.commissionParitaire`
+   * - `typeContrat`           → `contratInfo.typeContrat` (normalisé EMPLOYE/OUVRIER)
+   * - `dateEntree`            → `contratInfo.dateDebut`
+   * - `dateLicenciement`      → `contratInfo.dateFin`
+   * - `motifLicenciement`     → `contratInfo.motifRupture`
+   * - `nomSalarie`            → `requerant.nom`            (SF-246-15)
+   * - `prenomSalarie`         → `requerant.prenom`         (SF-246-15)
+   * - `adresseSalarie`        → `requerant.domicile`       (SF-246-15)
+   * - `nomEmployeur`          → `defendeur.nom`            (SF-246-15)
+   * - `adresseEmployeur`      → `defendeur.siegeSocial`    (SF-246-15)
+   * - `bceEmployeur`          → `defendeur.numeroBce`      (SF-246-15, BE uniquement)
    */
   private prefillFromAi(): void {
     const ai = this.aiDataSignal();
@@ -324,6 +376,61 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
         this.provenanceMotifRupture.set('IA');
       }
     }
+
+    // SF-246-15 : identités salarié/employeur.
+    const nomRequerant = computeNomRequerantRule({ aiData: ai });
+    if (nomRequerant) {
+      const ctrl = this.form.get('requerant.nom');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(nomRequerant, { emitEvent: false });
+        this.provenanceNomRequerant.set('IA');
+      }
+    }
+
+    const prenomRequerant = computePrenomRequerantRule({ aiData: ai });
+    if (prenomRequerant) {
+      const ctrl = this.form.get('requerant.prenom');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(prenomRequerant, { emitEvent: false });
+        this.provenancePrenomRequerant.set('IA');
+      }
+    }
+
+    const domicile = computeDomicileRequerantRule({ aiData: ai });
+    if (domicile) {
+      const ctrl = this.form.get('requerant.domicile');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(domicile, { emitEvent: false });
+        this.provenanceDomicileRequerant.set('IA');
+      }
+    }
+
+    const nomDefendeur = computeNomDefendeurRule({ aiData: ai });
+    if (nomDefendeur) {
+      const ctrl = this.form.get('defendeur.nom');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(nomDefendeur, { emitEvent: false });
+        this.provenanceNomDefendeur.set('IA');
+      }
+    }
+
+    const siegeSocial = computeSiegeSocialDefendeurRule({ aiData: ai });
+    if (siegeSocial) {
+      const ctrl = this.form.get('defendeur.siegeSocial');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(siegeSocial, { emitEvent: false });
+        this.provenanceSiegeSocialDefendeur.set('IA');
+      }
+    }
+
+    const numeroBce = computeNumeroBceRule({ aiData: ai });
+    if (numeroBce) {
+      const ctrl = this.form.get('defendeur.numeroBce');
+      if (ctrl && !ctrl.value) {
+        ctrl.setValue(numeroBce, { emitEvent: false });
+        this.provenanceNumeroBce.set('IA');
+      }
+    }
   }
 
   /** SF-173-02 : normalise un libellé typeContrat IA vers l'enum BE EMPLOYE/OUVRIER (sinon null). */
@@ -342,6 +449,14 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
   onDateFinChange(): void { this.provenanceDateFin.set(null); }
   onMotifRuptureChange(): void { this.provenanceMotifRupture.set(null); }
 
+  // SF-246-15 : handlers manuels identités.
+  onNomRequerantChange(): void { this.provenanceNomRequerant.set(null); }
+  onPrenomRequerantChange(): void { this.provenancePrenomRequerant.set(null); }
+  onDomicileRequerantChange(): void { this.provenanceDomicileRequerant.set(null); }
+  onNomDefendeurChange(): void { this.provenanceNomDefendeur.set(null); }
+  onSiegeSocialDefendeurChange(): void { this.provenanceSiegeSocialDefendeur.set(null); }
+  onNumeroBceChange(): void { this.provenanceNumeroBce.set(null); }
+
   private loadSourceExplanations(): void {
     if (!this.caseFileId) return;
     if (!this.sourceExplanationService) return;
@@ -358,6 +473,8 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
         case 'TYPE_CONTRAT': return 'type_contrat';
         case 'DATE_DEBUT': return 'date_entree';
         case 'MOTIF_RUPTURE': return 'motif_licenciement';
+        case 'NOM_REQUERANT': return 'nom_salarie';
+        case 'NOM_DEFENDEUR': return 'nom_employeur';
       }
     })();
     return this.sourceExplanations().get(key) ?? [];
@@ -437,6 +554,35 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
       .build();
   }
 
+  // SF-246-15 : alertes identités.
+  private buildNomRequerantAlert(): TribunalCoherenceAlert | null {
+    const userValue = this.form.get('requerant.nom')?.value as string | null;
+    if (!userValue || !userValue.trim()) return null;
+    const ai = this.aiDataSignal();
+    if (!ai?.nomSalarie) return null;
+    if (userValue.trim().toLowerCase() === ai.nomSalarie.trim().toLowerCase()) return null;
+    return CoherenceAlertBuilder.forField<TribunalAlertField>('NOM_REQUERANT')
+      .addSource('IA', {
+        expectedDisplay: ai.nomSalarie,
+        reason: `Analyse du dossier : nom salarié ${ai.nomSalarie}`,
+      })
+      .build();
+  }
+
+  private buildNomDefendeurAlert(): TribunalCoherenceAlert | null {
+    const userValue = this.form.get('defendeur.nom')?.value as string | null;
+    if (!userValue || !userValue.trim()) return null;
+    const ai = this.aiDataSignal();
+    if (!ai?.nomEmployeur) return null;
+    if (userValue.trim().toLowerCase() === ai.nomEmployeur.trim().toLowerCase()) return null;
+    return CoherenceAlertBuilder.forField<TribunalAlertField>('NOM_DEFENDEUR')
+      .addSource('IA', {
+        expectedDisplay: ai.nomEmployeur,
+        reason: `Analyse du dossier : nom employeur ${ai.nomEmployeur}`,
+      })
+      .build();
+  }
+
   get demandesArray(): FormArray {
     return this.form.get('demandes') as FormArray;
   }
@@ -467,12 +613,18 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
         this.saving.set(false);
         this.pieces.set(fiche.piecesList);
         this.hasPersistedFiche.set(true);
-        // SF-173-02 : valeurs persistées validées par l'avocat — efface les badges IA.
+        // SF-173-02 + SF-246-15 : valeurs persistées validées par l'avocat — efface les badges IA.
         this.provenanceCommissionParitaire.set(null);
         this.provenanceTypeContrat.set(null);
         this.provenanceDateDebut.set(null);
         this.provenanceDateFin.set(null);
         this.provenanceMotifRupture.set(null);
+        this.provenanceNomRequerant.set(null);
+        this.provenancePrenomRequerant.set(null);
+        this.provenanceDomicileRequerant.set(null);
+        this.provenanceNomDefendeur.set(null);
+        this.provenanceSiegeSocialDefendeur.set(null);
+        this.provenanceNumeroBce.set(null);
         this.snackBar.open('Requête enregistrée', 'Fermer', {
           duration: 3000, panelClass: ['snack-success']
         });
@@ -528,11 +680,17 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
       );
     }
     this.pieces.set(fiche.piecesList ?? []);
-    // SF-173-02 : valeurs persistées validées par l'avocat — efface les badges IA.
+    // SF-173-02 + SF-246-15 : valeurs persistées validées par l'avocat — efface les badges IA.
     this.provenanceCommissionParitaire.set(null);
     this.provenanceTypeContrat.set(null);
     this.provenanceDateDebut.set(null);
     this.provenanceDateFin.set(null);
     this.provenanceMotifRupture.set(null);
+    this.provenanceNomRequerant.set(null);
+    this.provenancePrenomRequerant.set(null);
+    this.provenanceDomicileRequerant.set(null);
+    this.provenanceNomDefendeur.set(null);
+    this.provenanceSiegeSocialDefendeur.set(null);
+    this.provenanceNumeroBce.set(null);
   }
 }
