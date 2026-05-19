@@ -1,24 +1,31 @@
-import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { Component, computed, Inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { DatePipe, DOCUMENT } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { BillingService } from '../../core/services/billing.service';
+import { AuthService } from '../../core/services/auth.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { SeatsSummary } from '../../core/models/seats-summary.model';
+import { SubscriptionState } from '../../core/models/subscription.model';
 import { fadeInUp } from '../../shared/animations';
+import { CancelSubscriptionDialogComponent } from './cancel-subscription-dialog.component';
 
 @Component({
   selector: 'app-workspace-billing',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    RouterLink, DatePipe, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule
+  ],
   templateUrl: './workspace-billing.component.html',
   styleUrl: './workspace-billing.component.scss',
   animations: [fadeInUp],
@@ -29,6 +36,28 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   upgrading = signal<string | null>(null);
   buying = signal<string | null>(null);
   seatsSummary = signal<SeatsSummary | null>(null);
+
+  // SF-247-02 : état d'abonnement + résiliation self-service.
+  subscription = signal<SubscriptionState | null>(null);
+  /** Rôle du membre courant dans le workspace courant — null tant que non résolu. */
+  currentUserRole = signal<string | null>(null);
+  /** true pendant un appel cancel/resume — désactive les boutons concernés. */
+  cancelInFlight = signal(false);
+
+  /** Une résiliation est programmée pour la fin de période en cours. */
+  readonly cancellationScheduled = computed(
+    () => this.subscription()?.cancelAtPeriodEnd === true
+  );
+
+  /** L'OWNER d'un plan payant sans résiliation déjà programmée peut résilier. */
+  readonly canCancel = computed(() => {
+    const sub = this.subscription();
+    if (!sub) return false;
+    return sub.planCode !== 'FREE'
+      && !sub.cancelAtPeriodEnd
+      && this.currentUserRole() === 'OWNER';
+  });
+
   private pollSub?: Subscription;
 
   readonly tokenPacks = [
@@ -118,8 +147,11 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
 
   constructor(
     private workspaceService: WorkspaceService,
+    private memberService: WorkspaceMemberService,
     private billingService: BillingService,
+    private auth: AuthService,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
     private route: ActivatedRoute,
     @Inject(DOCUMENT) private document: Document,
     private analyticsService: AnalyticsService
@@ -135,6 +167,25 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     this.billingService.getSeatsSummary().subscribe({
       next: s => this.seatsSummary.set(s),
       error: () => this.seatsSummary.set(null)
+    });
+
+    // SF-247-02 : état d'abonnement — fail-safe : en cas d'échec, ni bandeau ni
+    // section résiliation, l'écran billing reste fonctionnel.
+    this.billingService.getSubscription().subscribe({
+      next: s => this.subscription.set(s),
+      error: () => this.subscription.set(null)
+    });
+
+    // SF-247-02 : rôle du membre courant — lu depuis la liste des membres du
+    // workspace courant (pas de nouvel endpoint). Silencieux en cas d'échec :
+    // sans rôle confirmé, la section « Résilier » n'est pas rendue (fail-safe).
+    this.memberService.getMembers().subscribe({
+      next: members => {
+        const myId = this.auth.currentUser()?.id;
+        const me = members.find(m => m.userId === myId);
+        this.currentUserRole.set(me?.memberRole ?? null);
+      },
+      error: () => this.currentUserRole.set(null)
     });
 
     this.route.queryParams.subscribe(params => {
@@ -240,5 +291,73 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   seatsPlanLabel(plan: string): string {
     const l: Record<string, string> = { FREE: 'Free', SOLO: 'Solo', TEAM: 'Team', PRO: 'Pro' };
     return l[plan] ?? plan;
+  }
+
+  // SF-247-02 : résiliation d'abonnement self-service.
+
+  /** Date de fin de période à afficher dans le bandeau « résiliation programmée ». */
+  cancellationEndDate(): string | null {
+    return this.subscription()?.currentPeriodEnd ?? null;
+  }
+
+  /** Ouvre le dialog de confirmation ; au confirm, déclenche la résiliation. */
+  openCancelDialog(): void {
+    if (!this.canCancel()) return;
+    const ref = this.dialog.open<CancelSubscriptionDialogComponent, { currentPeriodEnd: string | null }, boolean>(
+      CancelSubscriptionDialogComponent,
+      { data: { currentPeriodEnd: this.subscription()?.currentPeriodEnd ?? null }, autoFocus: 'dialog' }
+    );
+    ref.afterClosed().subscribe(confirmed => {
+      if (confirmed) this.confirmCancel();
+    });
+  }
+
+  /** Appelle le backend pour programmer la résiliation. */
+  confirmCancel(): void {
+    if (this.cancelInFlight()) return;
+    this.cancelInFlight.set(true);
+    this.analyticsService.trackEvent('subscription_cancel_clicked', {
+      plan: this.subscription()?.planCode ?? ''
+    });
+    this.billingService.cancelSubscription().subscribe({
+      next: state => {
+        this.subscription.set(state);
+        this.cancelInFlight.set(false);
+        this.snackBar.open(
+          'Résiliation programmée. Vous gardez l\'accès jusqu\'à la fin de la période.',
+          'Fermer', { duration: 6000, panelClass: ['snack-success'] }
+        );
+      },
+      error: err => {
+        this.cancelInFlight.set(false);
+        this.snackBar.open(
+          err?.error?.message ?? 'La résiliation a échoué, réessayez.',
+          'Fermer', { duration: 6000, panelClass: ['snack-error'] }
+        );
+      }
+    });
+  }
+
+  /** Annule une résiliation programmée. */
+  resume(): void {
+    if (this.cancelInFlight()) return;
+    this.cancelInFlight.set(true);
+    this.billingService.resumeSubscription().subscribe({
+      next: state => {
+        this.subscription.set(state);
+        this.cancelInFlight.set(false);
+        this.snackBar.open(
+          'Abonnement réactivé.', 'Fermer',
+          { duration: 5000, panelClass: ['snack-success'] }
+        );
+      },
+      error: err => {
+        this.cancelInFlight.set(false);
+        this.snackBar.open(
+          err?.error?.message ?? 'La réactivation a échoué, réessayez.',
+          'Fermer', { duration: 6000, panelClass: ['snack-error'] }
+        );
+      }
+    });
   }
 }

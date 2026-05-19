@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Workspace } from '../models/workspace.model';
 import { SeatsSummary } from '../models/seats-summary.model';
+import { SubscriptionState } from '../models/subscription.model';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {
@@ -23,6 +24,21 @@ export class BillingService {
   // SF-123-03 : résumé seats + coût mensuel pour header membres + section billing.
   getSeatsSummary(): Observable<SeatsSummary> {
     return this.http.get<SeatsSummary>(`${this.billingUrl}/seats-summary`);
+  }
+
+  // SF-247-02 : état d'abonnement (plan, statut, résiliation programmée).
+  getSubscription(): Observable<SubscriptionState> {
+    return this.http.get<SubscriptionState>(`${this.billingUrl}/subscription`);
+  }
+
+  // SF-247-02 : programme la résiliation de l'abonnement en fin de période.
+  cancelSubscription(): Observable<SubscriptionState> {
+    return this.http.post<SubscriptionState>(`${this.billingUrl}/cancel`, {});
+  }
+
+  // SF-247-02 : annule une résiliation programmée.
+  resumeSubscription(): Observable<SubscriptionState> {
+    return this.http.post<SubscriptionState>(`${this.billingUrl}/resume`, {});
   }
 
   shouldShowTrialBanner(workspace: Workspace): boolean {

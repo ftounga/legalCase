@@ -1,50 +1,112 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { WorkspaceBillingComponent } from './workspace-billing.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { BillingService } from '../../core/services/billing.service';
+import { AuthService } from '../../core/services/auth.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
-import { of, NEVER } from 'rxjs';
+import { of, NEVER, throwError } from 'rxjs';
+import { signal } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Workspace } from '../../core/models/workspace.model';
+import { SubscriptionState } from '../../core/models/subscription.model';
+import { WorkspaceMember } from '../../core/models/workspace-member.model';
 
 const mockWorkspace: Workspace = {
   id: 'ws1', name: 'Test', slug: 'test', planCode: 'SOLO', status: 'ACTIVE'
 };
 
+const ownerMember: WorkspaceMember = {
+  userId: 'u1', email: 'owner@test.fr', firstName: 'O', lastName: 'Wner',
+  memberRole: 'OWNER', createdAt: '2026-01-01T00:00:00Z'
+};
+const plainMember: WorkspaceMember = {
+  userId: 'u1', email: 'member@test.fr', firstName: 'M', lastName: 'Ember',
+  memberRole: 'MEMBER', createdAt: '2026-01-01T00:00:00Z'
+};
+
+const paidSubscription: SubscriptionState = {
+  planCode: 'SOLO', status: 'ACTIVE', cancelAtPeriodEnd: false, currentPeriodEnd: null
+};
+const scheduledSubscription: SubscriptionState = {
+  planCode: 'SOLO', status: 'ACTIVE', cancelAtPeriodEnd: true,
+  currentPeriodEnd: '2026-06-30T00:00:00Z'
+};
+const freeSubscription: SubscriptionState = {
+  planCode: 'FREE', status: 'ACTIVE', cancelAtPeriodEnd: false, currentPeriodEnd: null
+};
+
+interface BillingMockOptions {
+  subscription?: SubscriptionState | 'error';
+  members?: WorkspaceMember[] | 'error';
+}
+
+/**
+ * Construit le composant avec des spies configurables. Couvre les besoins SF-247-02
+ * tout en préservant les suites existantes (plans / topup / seats).
+ */
+async function buildComponent(opts: BillingMockOptions = {}): Promise<{
+  fixture: ComponentFixture<WorkspaceBillingComponent>;
+  component: WorkspaceBillingComponent;
+  billingServiceSpy: jest.Mocked<BillingService>;
+  snackBarSpy: jest.Mocked<MatSnackBar>;
+  dialogSpy: jest.Mocked<MatDialog>;
+}> {
+  const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+  const memberServiceSpy = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
+  const billingServiceSpy = jasmine.createSpyObj('BillingService', [
+    'createCheckoutSession', 'createTopupSession', 'getSeatsSummary',
+    'getSubscription', 'cancelSubscription', 'resumeSubscription'
+  ]);
+  const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+  const dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
+
+  workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+  billingServiceSpy.getSeatsSummary.mockReturnValue(of({
+    planCode: 'SOLO', seatCount: 1, includedSeats: 1, maxSeats: 1,
+    extraSeatPriceCents: 0, baseMonthlyCostCents: 9900, totalMonthlyCostCents: 9900
+  }));
+
+  const sub = opts.subscription ?? paidSubscription;
+  billingServiceSpy.getSubscription.mockReturnValue(
+    sub === 'error' ? throwError(() => new Error('boom')) : of(sub)
+  );
+
+  const members = opts.members ?? [ownerMember];
+  memberServiceSpy.getMembers.mockReturnValue(
+    members === 'error' ? throwError(() => new Error('boom')) : of(members)
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [WorkspaceBillingComponent, NoopAnimationsModule],
+    providers: [
+      { provide: WorkspaceService, useValue: workspaceServiceSpy },
+      { provide: WorkspaceMemberService, useValue: memberServiceSpy },
+      { provide: BillingService, useValue: billingServiceSpy },
+      { provide: AuthService, useValue: { currentUser: signal({ id: 'u1', email: 'owner@test.fr' }) } },
+      { provide: MatSnackBar, useValue: snackBarSpy },
+      { provide: MatDialog, useValue: dialogSpy },
+      { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
+      { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
+    ]
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(WorkspaceBillingComponent);
+  const component = fixture.componentInstance;
+  fixture.detectChanges();
+  return { fixture, component, billingServiceSpy, snackBarSpy, dialogSpy };
+}
+
 describe('WorkspaceBillingComponent', () => {
   let component: WorkspaceBillingComponent;
   let fixture: ComponentFixture<WorkspaceBillingComponent>;
-  let workspaceServiceSpy: jest.Mocked<WorkspaceService>;
   let billingServiceSpy: jest.Mocked<BillingService>;
-  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
-    workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession', 'getSeatsSummary']);
-    snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
-
-    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
-    billingServiceSpy.getSeatsSummary.mockReturnValue(of({
-      planCode: 'SOLO', seatCount: 1, includedSeats: 1, maxSeats: 1,
-      extraSeatPriceCents: 0, baseMonthlyCostCents: 9900, totalMonthlyCostCents: 9900
-    }));
-
-    await TestBed.configureTestingModule({
-      imports: [WorkspaceBillingComponent, NoopAnimationsModule],
-      providers: [
-        { provide: WorkspaceService, useValue: workspaceServiceSpy },
-        { provide: BillingService, useValue: billingServiceSpy },
-        { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
-        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
-      ]
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(WorkspaceBillingComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    ({ component, fixture, billingServiceSpy } = await buildComponent());
   });
 
   it('should be created', () => {
@@ -91,7 +153,6 @@ describe('WorkspaceBillingComponent', () => {
   it('SOLO est le plan featured (Recommandé)', () => {
     const solo = component.plans.find(p => p.code === 'SOLO')!;
     expect(solo.code).toBe('SOLO');
-    // Vérifié côté HTML : plan-card--featured sur SOLO
   });
 
   it('re-synthèse enrichie incluse sur SOLO/TEAM/PRO', () => {
@@ -155,15 +216,17 @@ describe('WorkspaceBillingComponent', () => {
 });
 
 describe('WorkspaceBillingComponent — topup query params', () => {
-  let workspaceServiceSpy: jest.Mocked<WorkspaceService>;
-  let billingServiceSpy: jest.Mocked<BillingService>;
-  let snackBarSpy: jest.Mocked<MatSnackBar>;
-
   const setupWith = async (queryParams: Record<string, string>) => {
-    workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession', 'getSeatsSummary']);
-    snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+    const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+    const memberServiceSpy = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
+    const billingServiceSpy = jasmine.createSpyObj('BillingService', [
+      'createCheckoutSession', 'createTopupSession', 'getSeatsSummary',
+      'getSubscription', 'cancelSubscription', 'resumeSubscription'
+    ]);
+    const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+    memberServiceSpy.getMembers.mockReturnValue(of([ownerMember]));
+    billingServiceSpy.getSubscription.mockReturnValue(of(paidSubscription));
     billingServiceSpy.getSeatsSummary.mockReturnValue(of({
       planCode: 'SOLO', seatCount: 1, includedSeats: 1, maxSeats: 1,
       extraSeatPriceCents: 0, baseMonthlyCostCents: 9900, totalMonthlyCostCents: 9900
@@ -173,39 +236,44 @@ describe('WorkspaceBillingComponent — topup query params', () => {
       imports: [WorkspaceBillingComponent, NoopAnimationsModule],
       providers: [
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
+        { provide: WorkspaceMemberService, useValue: memberServiceSpy },
         { provide: BillingService, useValue: billingServiceSpy },
+        { provide: AuthService, useValue: { currentUser: signal({ id: 'u1', email: 'owner@test.fr' }) } },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: ActivatedRoute, useValue: { queryParams: of(queryParams) } }
+        { provide: MatDialog, useValue: jasmine.createSpyObj('MatDialog', ['open']) },
+        { provide: ActivatedRoute, useValue: { queryParams: of(queryParams) } },
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
       ]
     }).compileComponents();
 
     const fixture = TestBed.createComponent(WorkspaceBillingComponent);
     fixture.detectChanges();
+    return snackBarSpy;
   };
 
   it('?topup=success — affiche le snackbar de confirmation', async () => {
-    await setupWith({ topup: 'success' });
+    const snackBarSpy = await setupWith({ topup: 'success' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       'Tokens ajoutés à votre compte !', 'Fermer', expect.objectContaining({ duration: 6000 })
     );
   });
 
   it('?topup=canceled — affiche le snackbar d\'annulation', async () => {
-    await setupWith({ topup: 'canceled' });
+    const snackBarSpy = await setupWith({ topup: 'canceled' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       'Achat de tokens annulé.', 'Fermer', expect.objectContaining({ duration: 4000 })
     );
   });
 
   it('?topup=success&topup_kind=ocr — affiche le snackbar OCR', async () => {
-    await setupWith({ topup: 'success', topup_kind: 'ocr' });
+    const snackBarSpy = await setupWith({ topup: 'success', topup_kind: 'ocr' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       'Pages OCR ajoutées à votre quota !', 'Fermer', expect.objectContaining({ duration: 6000 })
     );
   });
 
   it('?topup=canceled&topup_kind=ocr — affiche le snackbar d\'annulation OCR', async () => {
-    await setupWith({ topup: 'canceled', topup_kind: 'ocr' });
+    const snackBarSpy = await setupWith({ topup: 'canceled', topup_kind: 'ocr' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       'Achat de pages OCR annulé.', 'Fermer', expect.objectContaining({ duration: 4000 })
     );
@@ -215,14 +283,19 @@ describe('WorkspaceBillingComponent — topup query params', () => {
 describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
   let component: WorkspaceBillingComponent;
   let fixture: ComponentFixture<WorkspaceBillingComponent>;
-  let billingServiceSpy: jest.Mocked<BillingService>;
 
   beforeEach(async () => {
     const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession', 'getSeatsSummary']);
+    const memberServiceSpy = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
+    const billingServiceSpy = jasmine.createSpyObj('BillingService', [
+      'createCheckoutSession', 'createTopupSession', 'getSeatsSummary',
+      'getSubscription', 'cancelSubscription', 'resumeSubscription'
+    ]);
     const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+    memberServiceSpy.getMembers.mockReturnValue(of([ownerMember]));
+    billingServiceSpy.getSubscription.mockReturnValue(of(paidSubscription));
     billingServiceSpy.getSeatsSummary.mockReturnValue(of({
       planCode: 'TEAM', seatCount: 4, includedSeats: 3, maxSeats: 6,
       extraSeatPriceCents: 5900, baseMonthlyCostCents: 21900, totalMonthlyCostCents: 27800
@@ -232,8 +305,11 @@ describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
       imports: [WorkspaceBillingComponent, NoopAnimationsModule],
       providers: [
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
+        { provide: WorkspaceMemberService, useValue: memberServiceSpy },
         { provide: BillingService, useValue: billingServiceSpy },
+        { provide: AuthService, useValue: { currentUser: signal({ id: 'u1', email: 'owner@test.fr' }) } },
         { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: MatDialog, useValue: jasmine.createSpyObj('MatDialog', ['open']) },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
       ]
@@ -245,7 +321,6 @@ describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
   });
 
   it('charge le résumé seats au init', () => {
-    expect(billingServiceSpy.getSeatsSummary).toHaveBeenCalled();
     expect(component.seatsSummary()?.planCode).toBe('TEAM');
   });
 
@@ -264,5 +339,150 @@ describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
     expect(html.textContent).toContain('Utilisateurs actifs');
     expect(html.textContent).toContain('Team');
     expect(html.textContent).toContain('278 €');
+  });
+});
+
+// SF-247-02 — résiliation d'abonnement self-service
+describe('WorkspaceBillingComponent — SF-247-02 résiliation', () => {
+
+  it('section « Résilier » visible si payant + OWNER + non programmé', async () => {
+    const { component, fixture } = await buildComponent({
+      subscription: paidSubscription, members: [ownerMember]
+    });
+    expect(component.canCancel()).toBe(true);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.cancel-section')).toBeTruthy();
+    expect(html.textContent).toContain('Résilier l\'abonnement');
+  });
+
+  it('section « Résilier » masquée si non-OWNER', async () => {
+    const { component, fixture } = await buildComponent({
+      subscription: paidSubscription, members: [plainMember]
+    });
+    expect(component.currentUserRole()).toBe('MEMBER');
+    expect(component.canCancel()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.cancel-section')).toBeNull();
+  });
+
+  it('section « Résilier » masquée si plan FREE', async () => {
+    const { component, fixture } = await buildComponent({
+      subscription: freeSubscription, members: [ownerMember]
+    });
+    expect(component.canCancel()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.cancel-section')).toBeNull();
+  });
+
+  it('section « Résilier » masquée si résiliation déjà programmée', async () => {
+    const { component } = await buildComponent({
+      subscription: scheduledSubscription, members: [ownerMember]
+    });
+    expect(component.canCancel()).toBe(false);
+  });
+
+  it('bandeau « résiliation programmée » + date affichés si cancelAtPeriodEnd', async () => {
+    const { component, fixture } = await buildComponent({
+      subscription: scheduledSubscription, members: [ownerMember]
+    });
+    expect(component.cancellationScheduled()).toBe(true);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.cancellation-banner')).toBeTruthy();
+    expect(html.textContent).toContain('Résiliation programmée');
+    // 2026-06-30 formaté en longDate FR
+    expect(html.textContent).toMatch(/2026/);
+  });
+
+  it('aucun bandeau ni section si GET subscription échoue (fail-safe)', async () => {
+    const { component, fixture } = await buildComponent({
+      subscription: 'error', members: [ownerMember]
+    });
+    expect(component.subscription()).toBeNull();
+    expect(component.canCancel()).toBe(false);
+    expect(component.cancellationScheduled()).toBe(false);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.cancel-section')).toBeNull();
+    expect(html.querySelector('.cancellation-banner')).toBeNull();
+  });
+
+  it('openCancelDialog — n\'appelle pas le backend si le dialog est annulé', async () => {
+    const { component, dialogSpy, billingServiceSpy } = await buildComponent();
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(false) } as never);
+
+    component.openCancelDialog();
+
+    expect(dialogSpy.open).toHaveBeenCalled();
+    expect(billingServiceSpy.cancelSubscription).not.toHaveBeenCalled();
+  });
+
+  it('openCancelDialog — confirme → appelle cancelSubscription', async () => {
+    const { component, dialogSpy, billingServiceSpy } = await buildComponent();
+    dialogSpy.open.mockReturnValue({ afterClosed: () => of(true) } as never);
+    billingServiceSpy.cancelSubscription.mockReturnValue(of(scheduledSubscription));
+
+    component.openCancelDialog();
+
+    expect(billingServiceSpy.cancelSubscription).toHaveBeenCalled();
+  });
+
+  it('confirmCancel — succès : bascule l\'affichage et notifie', async () => {
+    const { component, billingServiceSpy, snackBarSpy } = await buildComponent();
+    billingServiceSpy.cancelSubscription.mockReturnValue(of(scheduledSubscription));
+
+    component.confirmCancel();
+
+    expect(component.subscription()?.cancelAtPeriodEnd).toBe(true);
+    expect(component.cancellationScheduled()).toBe(true);
+    expect(component.canCancel()).toBe(false);
+    expect(component.cancelInFlight()).toBe(false);
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      expect.stringContaining('Résiliation programmée'), 'Fermer',
+      expect.objectContaining({ panelClass: ['snack-success'] })
+    );
+  });
+
+  it('confirmCancel — erreur backend : snackbar avec error.error.message', async () => {
+    const { component, billingServiceSpy, snackBarSpy } = await buildComponent();
+    billingServiceSpy.cancelSubscription.mockReturnValue(
+      throwError(() => ({ error: { message: 'Seul le propriétaire peut résilier l\'abonnement' } }))
+    );
+
+    component.confirmCancel();
+
+    expect(component.cancelInFlight()).toBe(false);
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Seul le propriétaire peut résilier l\'abonnement', 'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] })
+    );
+  });
+
+  it('resume — succès : masque le bandeau et notifie', async () => {
+    const { component, billingServiceSpy, snackBarSpy } = await buildComponent({
+      subscription: scheduledSubscription, members: [ownerMember]
+    });
+    billingServiceSpy.resumeSubscription.mockReturnValue(of(paidSubscription));
+
+    component.resume();
+
+    expect(component.cancellationScheduled()).toBe(false);
+    expect(component.cancelInFlight()).toBe(false);
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Abonnement réactivé.', 'Fermer',
+      expect.objectContaining({ panelClass: ['snack-success'] })
+    );
+  });
+
+  it('resume — erreur backend : snackbar avec le message renvoyé', async () => {
+    const { component, billingServiceSpy, snackBarSpy } = await buildComponent({
+      subscription: scheduledSubscription, members: [ownerMember]
+    });
+    billingServiceSpy.resumeSubscription.mockReturnValue(
+      throwError(() => ({ error: { message: 'Aucune résiliation programmée' } }))
+    );
+
+    component.resume();
+
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Aucune résiliation programmée', 'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] })
+    );
   });
 });

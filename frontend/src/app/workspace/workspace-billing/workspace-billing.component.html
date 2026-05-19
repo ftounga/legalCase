@@ -9,6 +9,33 @@
     </div>
   }
 
+  <!-- SF-247-02 : bandeau résiliation programmée — en haut, visible sans scroll -->
+  @if (cancellationScheduled()) {
+    <div class="cancellation-banner">
+      <mat-icon>event_busy</mat-icon>
+      <span class="cancellation-banner-text">
+        Résiliation programmée.
+        @if (cancellationEndDate()) {
+          Votre abonnement reste actif jusqu'au {{ cancellationEndDate() | date:'longDate' }}.
+        } @else {
+          Votre abonnement reste actif jusqu'à la fin de la période en cours.
+        }
+      </span>
+      @if (currentUserRole() === 'OWNER') {
+        <button mat-stroked-button
+          class="cancellation-banner-action"
+          [disabled]="cancelInFlight()"
+          (click)="resume()">
+          @if (cancelInFlight()) {
+            <mat-spinner diameter="18" />
+          } @else {
+            Réactiver l'abonnement
+          }
+        </button>
+      }
+    </div>
+  }
+
   <div class="plans-grid">
     @for (plan of plans; track plan.code) {
       <div class="plan-card" [class.plan-card--current]="isCurrentPlan(plan.code)" [class.plan-card--featured]="plan.code === 'SOLO'">
@@ -147,4 +174,19 @@
       }
     </div>
   </div>
+
+  <!-- SF-247-02 : section résiliation — discrète, en bas, OWNER + plan payant uniquement -->
+  @if (canCancel()) {
+    <div class="cancel-section">
+      <span class="cancel-section-text">
+        Vous souhaitez mettre fin à votre abonnement ?
+      </span>
+      <button mat-stroked-button
+        class="cancel-section-action"
+        [disabled]="cancelInFlight()"
+        (click)="openCancelDialog()">
+        Résilier l'abonnement
+      </button>
+    </div>
+  }
 </div>
