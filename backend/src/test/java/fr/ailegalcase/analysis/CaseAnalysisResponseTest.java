@@ -3147,4 +3147,233 @@ class CaseAnalysisResponseTest {
         assertThat(t).isNotNull();
         assertThat(t.ageDemandeurAnnees()).isEqualTo(58);
     }
+
+    // ========================================================================
+    // SF-246-07 : pré-fill IA F-FA-15/16/17 — sous-objet regime_matrimonial_detection
+    // (4 champs régimes matrimoniaux / liquidation, Famille FR uniquement)
+    // ========================================================================
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_nominalCase_allFourFields() throws Exception {
+        // Cas nominal : sous-objet complet → 4 champs renseignés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recompenses_envisagees": true,
+                    "regime_communaute_universelle_detecte": true,
+                    "partage_judiciaire_envisage": true,
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "COMMUNAUTE_UNIVERSELLE",
+                      "valeur_communaute_eur": 350000.0,
+                      "valeur_biens_indivision_eur": 180000.0,
+                      "nombre_coindivisaires": 2
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeMatrimonialDetecte()).isEqualTo("COMMUNAUTE_UNIVERSELLE");
+        assertThat(f.valeurCommunauteEurDetectee()).isEqualTo(350000.0);
+        assertThat(f.valeurBiensIndivisionEur()).isEqualTo(180000.0);
+        assertThat(f.nombreCoindivisairesDetecte()).isEqualTo(2);
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_absent_allFourFieldsNull() throws Exception {
+        // Sous-objet absent → 4 champs null, pas d'exception.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recompenses_envisagees": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeMatrimonialDetecte()).isNull();
+        assertThat(f.valeurCommunauteEurDetectee()).isNull();
+        assertThat(f.valeurBiensIndivisionEur()).isNull();
+        assertThat(f.nombreCoindivisairesDetecte()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_null_allFourFieldsNull() throws Exception {
+        // Sous-objet explicitement null → 4 champs null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recompenses_envisagees": true,
+                    "regime_matrimonial_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeMatrimonialDetecte()).isNull();
+        assertThat(f.valeurCommunauteEurDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_regimeHorsWhitelist_null() throws Exception {
+        // Régime hors whitelist (ex. "REGINE_INCONNU") → null (fail-open).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recompenses_envisagees": true,
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "REGIME_INCONNU_X",
+                      "valeur_communaute_eur": 200000.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeMatrimonialDetecte()).isNull();
+        // La valeur de communauté reste parsée indépendamment.
+        assertThat(f.valeurCommunauteEurDetectee()).isEqualTo(200000.0);
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_valeurNegative_null() throws Exception {
+        // Montants ≤ 0 → null (invariant §5.2 : jamais 0 ni négatif).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "regime_communaute_universelle_detecte": true,
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "COMMUNAUTE_LEGALE",
+                      "valeur_communaute_eur": -500.0,
+                      "valeur_biens_indivision_eur": 0.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.valeurCommunauteEurDetectee()).isNull();
+        assertThat(f.valeurBiensIndivisionEur()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_nombreCoindivisairesHorsPlage_null() throws Exception {
+        // Nombre de coïndivisaires hors [0, 50] → null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "partage_judiciaire_envisage": true,
+                    "regime_matrimonial_detection": {
+                      "nombre_coindivisaires": 99
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.nombreCoindivisairesDetecte()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_regimeCasseLowercase_normalise() throws Exception {
+        // Régime en minuscules → normalisé en MAJUSCULES par whitelistedOrNull.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recompenses_envisagees": true,
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "communaute_legale"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeMatrimonialDetecte()).isEqualTo("COMMUNAUTE_LEGALE");
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_seulContenuNonNull_retourneNonNull() throws Exception {
+        // Garde-fou : si le seul contenu peuplé est regime_matrimonial_detection
+        // (aucun flag booléen activé), l'objet est quand même retourné (non-null).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "SEPARATION_BIENS"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeMatrimonialDetecte()).isEqualTo("SEPARATION_BIENS");
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_multiValeurs_bonChampsRemplis() throws Exception {
+        // Invariant cadrage §5.1.6 : dossier mentionnant à la fois la valeur de la
+        // communauté (350 000 €) et celle des biens en indivision (180 000 €) →
+        // chaque montant dans le bon champ, aucune confusion.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "regime_communaute_universelle_detecte": true,
+                    "partage_judiciaire_envisage": true,
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "COMMUNAUTE_UNIVERSELLE",
+                      "valeur_communaute_eur": 350000.0,
+                      "valeur_biens_indivision_eur": 180000.0,
+                      "nombre_coindivisaires": 3
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Chaque montant dans le bon champ — pas d'inversion.
+        assertThat(f.valeurCommunauteEurDetectee()).isEqualTo(350000.0);
+        assertThat(f.valeurBiensIndivisionEur()).isEqualTo(180000.0);
+        assertThat(f.nombreCoindivisairesDetecte()).isEqualTo(3);
+        assertThat(f.regimeMatrimonialDetecte()).isEqualTo("COMMUNAUTE_UNIVERSELLE");
+    }
+
+    @Test
+    void extractFamilleData_regimeMatrimonialDetection_coexistenceAvecSuccessionDetection() throws Exception {
+        // Les deux sous-objets peuvent coexister sans interférence.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "regime_communaute_universelle_detecte": true,
+                    "succession_detection": {
+                      "date_deces": "2025-01-15",
+                      "nombre_coheritiers": 2
+                    },
+                    "regime_matrimonial_detection": {
+                      "regime_matrimonial": "COMMUNAUTE_LEGALE",
+                      "valeur_communaute_eur": 120000.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // succession_detection intact.
+        assertThat(f.dateDecesDetectee()).isEqualTo("2025-01-15");
+        assertThat(f.nombreCoheritiersDetecte()).isEqualTo(2);
+        // regime_matrimonial_detection intact.
+        assertThat(f.regimeMatrimonialDetecte()).isEqualTo("COMMUNAUTE_LEGALE");
+        assertThat(f.valeurCommunauteEurDetectee()).isEqualTo(120000.0);
+    }
 }

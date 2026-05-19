@@ -910,7 +910,16 @@ public record CaseAnalysisResponse(
             String typeIndivisionSuccessoraleDetecte,
             Integer nbDescendantsDetecte,
             Integer nbFreresSoeursDetecte,
-            String dateRedactionTestamentDetectee) {
+            String dateRedactionTestamentDetectee,
+            // SF-246-07 : 4 champs IA régimes matrimoniaux / liquidation pour pré-fill
+            // des 3 outils décisionnels F-FA-15/16/17 (recompenses, communaute-universelle,
+            // partage-judiciaire). Famille FR uniquement, tous nullables — le prompt impose
+            // null hors FR / hors certitude.
+            // Sous-objet IA source : `famille_extracted_data.regime_matrimonial_detection`.
+            Double valeurCommunauteEurDetectee,
+            String regimeMatrimonialDetecte,
+            Double valeurBiensIndivisionEur,
+            Integer nombreCoindivisairesDetecte) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -978,6 +987,11 @@ public record CaseAnalysisResponse(
             private Integer nbDescendantsDetecte;
             private Integer nbFreresSoeursDetecte;
             private String dateRedactionTestamentDetectee;
+            // SF-246-07 : 4 champs IA régimes matrimoniaux / liquidation (F-FA-15/16/17), nullables.
+            private Double valeurCommunauteEurDetectee;
+            private String regimeMatrimonialDetecte;
+            private Double valeurBiensIndivisionEur;
+            private Integer nombreCoindivisairesDetecte;
 
             private Builder() {}
 
@@ -1035,6 +1049,11 @@ public record CaseAnalysisResponse(
             public Builder nbDescendantsDetecte(Integer v) { this.nbDescendantsDetecte = v; return this; }
             public Builder nbFreresSoeursDetecte(Integer v) { this.nbFreresSoeursDetecte = v; return this; }
             public Builder dateRedactionTestamentDetectee(String v) { this.dateRedactionTestamentDetectee = v; return this; }
+            // SF-246-07 : setters des 4 champs IA régimes matrimoniaux / liquidation.
+            public Builder valeurCommunauteEurDetectee(Double v) { this.valeurCommunauteEurDetectee = v; return this; }
+            public Builder regimeMatrimonialDetecte(String v) { this.regimeMatrimonialDetecte = v; return this; }
+            public Builder valeurBiensIndivisionEur(Double v) { this.valeurBiensIndivisionEur = v; return this; }
+            public Builder nombreCoindivisairesDetecte(Integer v) { this.nombreCoindivisairesDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1063,7 +1082,10 @@ public record CaseAnalysisResponse(
                         montantDonationsRecuesEurDetecte, valeurDonationAuJourPartageEurDetectee,
                         actifBrutSuccessionEurDetecte, passifSuccessionEurDetecte,
                         typeIndivisionSuccessoraleDetecte, nbDescendantsDetecte,
-                        nbFreresSoeursDetecte, dateRedactionTestamentDetectee);
+                        nbFreresSoeursDetecte, dateRedactionTestamentDetectee,
+                        // SF-246-07 : 4 champs IA régimes matrimoniaux / liquidation.
+                        valeurCommunauteEurDetectee, regimeMatrimonialDetecte,
+                        valeurBiensIndivisionEur, nombreCoindivisairesDetecte);
             }
         }
     }
@@ -2346,6 +2368,26 @@ public record CaseAnalysisResponse(
                 || actifBrutSuccessionEurDetecte != null || passifSuccessionEurDetecte != null
                 || typeIndivisionSuccessoraleDetecte != null || nbDescendantsDetecte != null
                 || nbFreresSoeursDetecte != null || dateRedactionTestamentDetectee != null;
+        // SF-246-07 : sous-objet `regime_matrimonial_detection` — 4 champs IA régimes
+        // matrimoniaux / liquidation pour pré-fill des 3 outils F-FA-15/16/17.
+        // Absent → tous null (no-op gracieux des prefillFromAi() frontend).
+        // Montants via positiveDoubleOrNull() (jamais 0 — invariant §5.2),
+        // dénombrements via boundedIntOrNull(_, _, 0, 50),
+        // régime via stringOrNull() + whitelist 4 valeurs.
+        JsonNode rmd = node.get("regime_matrimonial_detection");
+        boolean rmdObject = rmd != null && rmd.isObject();
+        String regimeMatrimonialDetecte = rmdObject
+                ? whitelistedOrNull(stringOrNull(rmd, "regime_matrimonial"),
+                        "COMMUNAUTE_LEGALE", "COMMUNAUTE_UNIVERSELLE",
+                        "SEPARATION_BIENS", "PARTICIPATION_ACQUETS")
+                : null;
+        Double valeurCommunauteEurDetectee = rmdObject ? positiveDoubleOrNull(rmd, "valeur_communaute_eur") : null;
+        Double valeurBiensIndivisionEur = rmdObject ? positiveDoubleOrNull(rmd, "valeur_biens_indivision_eur") : null;
+        Integer nombreCoindivisairesDetecte = rmdObject ? boundedIntOrNull(rmd, "nombre_coindivisaires", 0, 50) : null;
+        boolean regimeMatrimonialDetectionPresent = regimeMatrimonialDetecte != null
+                || valeurCommunauteEurDetectee != null
+                || valeurBiensIndivisionEur != null
+                || nombreCoindivisairesDetecte != null;
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
@@ -2353,7 +2395,8 @@ public record CaseAnalysisResponse(
                 && !pm && !cec && !pmg && !mfp
                 && !divorceDc && !divorceDdi && !cohabitationLegale && !pacteSuccessoral && !kafalaRecueil
                 && dateAcceptationPV == null
-                && !successionDetectionPresent) {
+                && !successionDetectionPresent
+                && !regimeMatrimonialDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -2416,6 +2459,11 @@ public record CaseAnalysisResponse(
                 .nbDescendantsDetecte(nbDescendantsDetecte)
                 .nbFreresSoeursDetecte(nbFreresSoeursDetecte)
                 .dateRedactionTestamentDetectee(dateRedactionTestamentDetectee)
+                // SF-246-07 : 4 champs IA régimes matrimoniaux / liquidation (F-FA-15/16/17).
+                .valeurCommunauteEurDetectee(valeurCommunauteEurDetectee)
+                .regimeMatrimonialDetecte(regimeMatrimonialDetecte)
+                .valeurBiensIndivisionEur(valeurBiensIndivisionEur)
+                .nombreCoindivisairesDetecte(nombreCoindivisairesDetecte)
                 .build();
     }
 
