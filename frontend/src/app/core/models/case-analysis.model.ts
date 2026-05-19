@@ -295,7 +295,9 @@ export interface TravailExtractedData {
   /**
    * SF-DT-29-02 : âge du demandeur en années entières pour pré-fill F-DT-29
    * (crédit-temps BE, AR 29/10/1997 fin de carrière nécessite âge ≥ 55/60).
-   * No-op gracieux si absent — pipeline IA peut le brancher ultérieurement.
+   * SF-246-05 : champ branché sur le pipeline IA — extrait par
+   * `extractTravailData()` depuis la clé `age_demandeur_annees` (Travail BE
+   * uniquement, borné [0, 100]). `null` si non déterminable ou dossier FR.
    */
   ageDemandeurAnnees?: number | null;
   /**

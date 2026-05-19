@@ -340,4 +340,32 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("clause_non_concurrence_detail");
         assertThat(instruction).contains("FRANCE UNIQUEMENT");
     }
+
+    // SF-246-05 : prompt Travail enrichi de la clé age_demandeur_annees
+    // (pré-fill F-DT-29, crédit-temps fin de carrière, BELGIQUE uniquement).
+    @Test
+    void domainSpecificInstruction_travail_containsAgeDemandeurAnneesKey() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("age_demandeur_annees");
+        // Définition juridique non ambiguë.
+        assertThat(instruction).contains("ANNÉES RÉVOLUES");
+        assertThat(instruction).contains("crédit-temps fin de carrière");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_ageDemandeur_distingueDeLAnciennete() {
+        // Invariant cadrage §5.1.1 : l'âge doit être explicitement distingué de
+        // l'ancienneté et de toute durée du dossier.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("age_demandeur_annees");
+        assertThat(instruction).contains("NE PAS confondre avec l'ancienneté");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_ageDemandeur_explicitlyExcludeFR() {
+        // Le champ est BE uniquement — null pour un dossier travail français.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("age_demandeur_annees");
+        assertThat(instruction).contains("BELGIQUE UNIQUEMENT");
+    }
 }

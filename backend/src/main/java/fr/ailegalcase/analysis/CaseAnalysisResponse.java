@@ -206,7 +206,12 @@ public record CaseAnalysisResponse(
             // distinct — ces champs restent null pour un dossier travail belge.
             Integer nonConcurrenceDureeMois,
             String nonConcurrenceZoneGeographique,
-            Double nonConcurrenceContrepartieMontantEur) {
+            Double nonConcurrenceContrepartieMontantEur,
+            // SF-246-05 : âge du demandeur pour pré-fill F-DT-29 crédit-temps fin de
+            // carrière (Travail BELGIQUE uniquement, nullable). Entier borné [0, 100] ;
+            // hors plage → null. Le crédit-temps fin de carrière (CCT 103, AR 29/10/1997)
+            // est un dispositif belge — ce champ reste null pour un dossier travail FR.
+            Integer ageDemandeurAnnees) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -289,7 +294,8 @@ public record CaseAnalysisResponse(
                     .motivationLettreSuffisanteDetected(motivationLettreSuffisanteDetected)
                     .nonConcurrenceDureeMois(nonConcurrenceDureeMois)
                     .nonConcurrenceZoneGeographique(nonConcurrenceZoneGeographique)
-                    .nonConcurrenceContrepartieMontantEur(nonConcurrenceContrepartieMontantEur);
+                    .nonConcurrenceContrepartieMontantEur(nonConcurrenceContrepartieMontantEur)
+                    .ageDemandeurAnnees(ageDemandeurAnnees);
         }
 
         public static final class Builder {
@@ -362,6 +368,7 @@ public record CaseAnalysisResponse(
             private Integer nonConcurrenceDureeMois;
             private String nonConcurrenceZoneGeographique;
             private Double nonConcurrenceContrepartieMontantEur;
+            private Integer ageDemandeurAnnees;
 
             private Builder() {}
 
@@ -434,6 +441,7 @@ public record CaseAnalysisResponse(
             public Builder nonConcurrenceDureeMois(Integer v) { this.nonConcurrenceDureeMois = v; return this; }
             public Builder nonConcurrenceZoneGeographique(String v) { this.nonConcurrenceZoneGeographique = v; return this; }
             public Builder nonConcurrenceContrepartieMontantEur(Double v) { this.nonConcurrenceContrepartieMontantEur = v; return this; }
+            public Builder ageDemandeurAnnees(Integer v) { this.ageDemandeurAnnees = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -466,7 +474,8 @@ public record CaseAnalysisResponse(
                         lettreLicenciementEcriteDetectee, lettreLicenciementMotiveeDetected,
                         motivationLettreSuffisanteDetected,
                         nonConcurrenceDureeMois, nonConcurrenceZoneGeographique,
-                        nonConcurrenceContrepartieMontantEur);
+                        nonConcurrenceContrepartieMontantEur,
+                        ageDemandeurAnnees);
             }
         }
     }
@@ -576,6 +585,13 @@ public record CaseAnalysisResponse(
 
     /** SF-246-02 : longueur maximale de la zone géographique de la clause de non-concurrence. */
     static final int MAX_NON_CONCURRENCE_ZONE_LENGTH = 500;
+
+    /**
+     * SF-246-05 : âge maximal plausible du demandeur d'un crédit-temps fin de carrière.
+     * Toute valeur hors de la plage {@code [0, 100]} est jugée aberrante par
+     * {@code boundedIntOrNull} et ramenée à {@code null} — invariant mini-spec.
+     */
+    static final int MAX_AGE_DEMANDEUR_ANNEES = 100;
 
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
@@ -1726,6 +1742,10 @@ public record CaseAnalysisResponse(
                     .nonConcurrenceDureeMois(hasClauseNc ? boundedIntOrNull(clauseNc, "duree_mois", 0, MAX_NON_CONCURRENCE_DUREE_MOIS) : null)
                     .nonConcurrenceZoneGeographique(hasClauseNc ? truncatedTextOrNull(clauseNc, "zone_geographique", MAX_NON_CONCURRENCE_ZONE_LENGTH) : null)
                     .nonConcurrenceContrepartieMontantEur(hasClauseNc ? positiveDoubleOrNull(clauseNc, "contrepartie_montant_mensuel_eur") : null)
+                    // SF-246-05 : âge du demandeur pour pré-fill F-DT-29 crédit-temps fin
+                    // de carrière — entier borné [0, 100], null hors plage / absent / BE
+                    // non concerné. Le prompt impose null hors Belgique.
+                    .ageDemandeurAnnees(boundedIntOrNull(node, "age_demandeur_annees", 0, MAX_AGE_DEMANDEUR_ANNEES))
                     .build();
         } catch (Exception ignored) { return null; }
     }
