@@ -365,6 +365,20 @@ export interface TravailExtractedData {
   adresseEmployeur?: string | null;
   siretEmployeur?: string | null;
   bceEmployeur?: string | null;
+  /**
+   * SF-207-01 : 2 champs IA Travail BE pour pré-fill F-207
+   * (prescription Travail BE). Tous deux nullables.
+   * `dateRuptureContrat` : date de rupture du contrat au format ISO YYYY-MM-DD
+   * (point de départ du délai de 1 an post-rupture, Loi 03/07/1978 art. 15
+   * al. 1 + CCT 109 art. 11). Distincte de `dateLicenciement` (date de
+   * notification) — la date de rupture intègre le préavis presté éventuel.
+   * `motifRupture` : motif de rupture détecté en texte libre court
+   * (`licenciement`, `démission`, `faute grave`, `RCC`, `rupture amiable`,
+   * `fin de CDD`...). Utilisé pour pré-fill `typeCreance`.
+   * Restent `null` pour un dossier Travail FR.
+   */
+  dateRuptureContrat?: string | null;
+  motifRupture?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="253-add-prescription-be-litige-travail-visibility" author="legalcase">
+        <comment>
+            F-207 SF-207-01b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Prescription d'une action de droit du travail belge"
+            (`prescription-be-litige-travail`), table d'analyse créée par
+            SF-207-01 (migration 252).
+
+            Le seed est porté par la SF frontend (et non backend) pour rester
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même commit
+            (decisional-tools-panel.component.ts). Précédents : SF-211-05
+            (migration 228), SF-217-03 (migration 235), SF-217-05 (migration
+            238), SF-217-07 (migration 240), SF-217-09 (migration 242). Sans
+            ce couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            échoue (mémoire feedback_pre_merge_visibility_seed_check).
+
+            Mode ALWAYS_ON, DROIT_DU_TRAVAIL / BELGIQUE : la prescription
+            (1 an post-rupture Loi 03/07/1978 art. 15 al. 1 + CCT 109 art. 11 ;
+            5 ans pendant le contrat / arriérés salaire) est une question
+            systématique de tout dossier travail belge — situation toujours
+            pertinente, pas une situation à détecter (cf. SF-207-00-coherence.md
+            transversal P1). Pas de trigger_field IA requis. priority 100
+            (placé en tête de la séquence Travail BE — délai critique
+            préalable à toute autre démarche, cf. SF-207-00b-ux-coherence).
+
+            UUID namespace dédié F-207 : f1a04001-0000-0000-0000-eeee20700001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20700001', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'prescription-be-litige-travail', 'ALWAYS_ON', NULL, NULL, 100);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20700001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
