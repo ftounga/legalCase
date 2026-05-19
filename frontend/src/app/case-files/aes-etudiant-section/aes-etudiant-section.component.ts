@@ -155,11 +155,11 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
   dateDepotDemande = signal<string | null>(null);
 
   // Provenance IA — badges "Pré-rempli depuis l'analyse" effaçables.
-  // 2 champs pré-remplissables : `dateEntreeFrance` (futur quand pipeline
-  // IA exposera le champ — fallback `as { dateEntreeFrance?: string }`,
-  // pattern aes-famille SF-IM-09-06) + `dateDepotDemande` (depuis
-  // `dateDepotProcedure`).
+  // SF-246-18 : 5 champs pré-remplissables.
   provenanceDateEntreeFrance = signal<'IA' | null>(null);
+  provenanceDureePresenceMois = signal<'IA' | null>(null);
+  provenanceAnneesScolarite = signal<'IA' | null>(null);
+  provenanceNiveauEtudes = signal<'IA' | null>(null);
   provenanceDateDepotDemande = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : explanations map.
@@ -294,14 +294,17 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
 
   onDureePresenceMoisChange(value: number | null): void {
     this.dureePresenceMois.set(value);
+    this.provenanceDureePresenceMois.set(null);
   }
 
   onAnneesScolariteChange(value: number | null): void {
     this.anneesScolariteEnFranceConsecutives.set(value);
+    this.provenanceAnneesScolarite.set(null);
   }
 
   onNiveauEtudesChange(value: AesEtudiantNiveauEtudes | null): void {
     this.niveauEtudesActuel.set(value);
+    this.provenanceNiveauEtudes.set(null);
   }
 
   onResultatsAcademiquesChange(value: AesEtudiantResultats | null): void {
@@ -367,20 +370,21 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-IM-09-08 : pré-remplissage depuis l'analyse IA.
+   * SF-246-18 : pré-remplissage depuis l'analyse IA.
    *
-   * IMPORTANT : aujourd'hui `ImmigrationExtractedData` n'expose pas
-   * formellement `dateEntreeFrance`, `dureePresenceMois`,
-   * `anneesScolariteEnFrance`, `niveauEtudesActuel`, `resultatsAcademiques`.
+   * 5 champs pré-remplis (SF-246-18) :
+   *  - `dateEntreeFrance` ← `aesDateEntreeFrance` (champ typé)
+   *  - `dureePresenceMois` ← `aesDureePresenceMois` (calculé backend)
+   *  - `anneesScolariteEnFranceConsecutives` ← `aesAnneesScolariteConsecutives`
+   *  - `niveauEtudesActuel` ← `aesNiveauEtudes` (whitelist 4 codes)
+   *  - `dateDepotDemande` ← `dateDepotProcedure` (existant)
    *
-   * Deux champs pré-remplis (pattern canonique aes-famille SF-IM-09-06
-   * + aes-metiers-tension SF-IM-09-05) :
-   *  - `dateEntreeFrance` via fallback `as { dateEntreeFrance?: string }`
-   *    (champ futur du pipeline — no-op gracieux aujourd'hui).
-   *  - `dateDepotDemande` via `dateDepotProcedure` (champ standard).
+   * Règles (fail-open) :
+   *  - passe silencieusement si aiData absent
+   *  - ne pré-remplit QUE si le champ est encore vide (préserve les edits)
+   *  - n'écrase jamais si provenance !== 'IA'
    */
   private prefillFromAi(): void {
-    // F-236 SF-236-02 : délègue au helper pur partagé.
     const input: PrefillCountInput = {
       aiData: this.aiData,
       workspaceCountry: this.workspaceCountry,
@@ -389,6 +393,21 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
     if (entree !== null && !this.dateEntreeFrance()) {
       this.dateEntreeFrance.set(entree);
       this.provenanceDateEntreeFrance.set('IA');
+    }
+    const duree = AesEtudiantPrefillRules.computeDureePresenceMois(input);
+    if (duree !== null && this.dureePresenceMois() === null) {
+      this.dureePresenceMois.set(duree);
+      this.provenanceDureePresenceMois.set('IA');
+    }
+    const annees = AesEtudiantPrefillRules.computeAnneesScolariteConsecutives(input);
+    if (annees !== null && this.anneesScolariteEnFranceConsecutives() === null) {
+      this.anneesScolariteEnFranceConsecutives.set(annees);
+      this.provenanceAnneesScolarite.set('IA');
+    }
+    const niveau = AesEtudiantPrefillRules.computeNiveauEtudes(input);
+    if (niveau !== null && this.niveauEtudesActuel() === null) {
+      this.niveauEtudesActuel.set(niveau);
+      this.provenanceNiveauEtudes.set('IA');
     }
     const depot = AesEtudiantPrefillRules.computeDateDepotDemande(input);
     if (depot !== null && !this.dateDepotDemande()) {
@@ -601,6 +620,9 @@ export class AesEtudiantSectionComponent implements OnInit, OnChanges {
         this.parcoursCoherent.set(r.parcoursCoherent);
         this.dateDepotDemande.set(r.dateDepotDemande);
         this.provenanceDateEntreeFrance.set(null);
+        this.provenanceDureePresenceMois.set(null);
+        this.provenanceAnneesScolarite.set(null);
+        this.provenanceNiveauEtudes.set(null);
         this.provenanceDateDepotDemande.set(null);
         this.showForm.set(false);
         this.loading.set(false);

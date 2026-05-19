@@ -443,6 +443,26 @@ export interface ImmigrationExtractedData {
   dublinMotifTransfert?: string | null;
   crrvTypeVisa?: string | null;
   crrvMotifRefus?: string | null;
+  /**
+   * SF-246-18 : pré-fill outils AES Immigration FR.
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   * `aesDateEntreeFrance` : date d'entrée en France ISO YYYY-MM-DD.
+   * `aesDureePresenceMois` : mois entiers depuis aesDateEntreeFrance (calculé backend).
+   * `aesAnneesScolariteConsecutives` : années d'études consécutives en France.
+   * `aesNiveauEtudes` : LYCEE / BAC_PLUS_1_2 / BAC_PLUS_3_4 / BAC_PLUS_5_PLUS.
+   * `aesDureeScolaritePlusAncienEnfantAnnees` : années scolarité enfant le plus ancien.
+   * `aesMotifHumanitaire` : code motif humanitaire (6 valeurs).
+   * `aesMoisActiviteSalariee` : mois salariat dans les 24 derniers mois (0–24).
+   * `aesCodeMetier` : code ROME ou libellé métier en tension.
+   */
+  aesDateEntreeFrance?: string | null;
+  aesDureePresenceMois?: number | null;
+  aesAnneesScolariteConsecutives?: number | null;
+  aesNiveauEtudes?: string | null;
+  aesDureeScolaritePlusAncienEnfantAnnees?: number | null;
+  aesMotifHumanitaire?: string | null;
+  aesMoisActiviteSalariee?: number | null;
+  aesCodeMetier?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

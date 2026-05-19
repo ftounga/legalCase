@@ -1636,6 +1636,160 @@ class CaseAnalysisResponseTest {
         assertThat(im.crrvMotifRefus()).isNull();
     }
 
+    // SF-246-18 : 8 champs AES Immigration FR pour pré-fill outils AES
+    @Test
+    void from_immigration_sf246_18_aesDateEntreeFrance_nominal() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "VLS_TS_ETUDIANT",
+                  "aes_date_entree_france": "2021-03-15",
+                  "aes_annees_scolarite_consecutives": 3,
+                  "aes_niveau_etudes": "BAC_PLUS_3_4"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesDateEntreeFrance()).isEqualTo("2021-03-15");
+        assertThat(im.aesDureePresenceMois()).isNotNull().isGreaterThanOrEqualTo(36);
+        assertThat(im.aesAnneesScolariteConsecutives()).isEqualTo(3);
+        assertThat(im.aesNiveauEtudes()).isEqualTo("BAC_PLUS_3_4");
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesDateEntreeFrance_future_rejected() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "VLS_TS_ETUDIANT",
+                  "aes_date_entree_france": "2030-01-01"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesDateEntreeFrance()).isNull();
+        assertThat(im.aesDureePresenceMois()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesNiveauEtudes_whitelist_valid_all_codes() {
+        for (String code : new String[]{"LYCEE", "BAC_PLUS_1_2", "BAC_PLUS_3_4", "BAC_PLUS_5_PLUS"}) {
+            CaseAnalysis analysis = analysis("""
+                    {
+                      "type_titre_sejour_code": "VLS_TS_ETUDIANT",
+                      "aes_date_entree_france": "2020-06-01",
+                      "aes_niveau_etudes": "%s"
+                    }
+                    """.formatted(code));
+            var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+            assertThat(im).isNotNull();
+            assertThat(im.aesNiveauEtudes()).as("code: " + code).isEqualTo(code);
+        }
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesNiveauEtudes_invalid_code_returns_null() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "VLS_TS_ETUDIANT",
+                  "aes_date_entree_france": "2020-06-01",
+                  "aes_niveau_etudes": "MASTER_2"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesNiveauEtudes()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesMotifHumanitaire_valid() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_VPF",
+                  "aes_date_entree_france": "2019-01-01",
+                  "aes_motif_humanitaire": "VICTIME_VIOLENCES"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesMotifHumanitaire()).isEqualTo("VICTIME_VIOLENCES");
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesMotifHumanitaire_invalid_returns_null() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_VPF",
+                  "aes_date_entree_france": "2019-01-01",
+                  "aes_motif_humanitaire": "DANGER_INCONNU"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesMotifHumanitaire()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesMoisActiviteSalariee_valid_range() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "aes_date_entree_france": "2020-01-01",
+                  "aes_mois_activite_salariee": 18,
+                  "aes_code_metier": "N1101"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesMoisActiviteSalariee()).isEqualTo(18);
+        assertThat(im.aesCodeMetier()).isEqualTo("N1101");
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesMoisActiviteSalariee_out_of_range_returns_null() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "aes_date_entree_france": "2020-01-01",
+                  "aes_mois_activite_salariee": 25
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesMoisActiviteSalariee()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_18_aesDureeScolarite_famille_nominal() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_VPF",
+                  "aes_date_entree_france": "2018-09-01",
+                  "aes_duree_scolarite_plus_ancien_enfant_annees": 4
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesDureeScolaritePlusAncienEnfantAnnees()).isEqualTo(4);
+    }
+
+    @Test
+    void from_immigration_sf246_18_all_new_fields_null_graceful() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE"
+                }
+                """);
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.aesDateEntreeFrance()).isNull();
+        assertThat(im.aesDureePresenceMois()).isNull();
+        assertThat(im.aesAnneesScolariteConsecutives()).isNull();
+        assertThat(im.aesNiveauEtudes()).isNull();
+        assertThat(im.aesDureeScolaritePlusAncienEnfantAnnees()).isNull();
+        assertThat(im.aesMotifHumanitaire()).isNull();
+        assertThat(im.aesMoisActiviteSalariee()).isNull();
+        assertThat(im.aesCodeMetier()).isNull();
+    }
+
     // SF-166-01 : 8 flags décisionnels niveau 3 (F-DT-20/21/24/30/31/33/34/35) — Travail FR uniquement
     @Test
     void from_travailExtractedData_rappelSalaireDetecte_isolated_true_othersFalse() {
