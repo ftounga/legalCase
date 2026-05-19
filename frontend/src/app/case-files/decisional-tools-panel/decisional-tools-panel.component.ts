@@ -920,6 +920,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiModeGardeDetaille: ctx.synthesis?.pensionAlimentaireEstimate?.modeGardeDetaille,
+          // SF-246-10 : aiData branché sur familleExtractedData pour pré-fill âges + dates.
+          aiData: ctx.synthesis?.familleExtractedData,
           synthesis: ctx.synthesis,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

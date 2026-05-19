@@ -474,7 +474,7 @@ export class AutoriteParentaleSectionComponent implements OnInit, OnChanges {
    *  - dangerCaracterise
    *  - consentementAutreParent
    *  - interferenceVieEnfant
-   *  - ageEnfants
+   *  - agesEnfantsDetectes (SF-246-10 : source backend réelle)
    *
    * No-op gracieux si champ absent. N'écrase pas une saisie avocat
    * (heuristique : provenance === null sur un champ rempli ou booléen
@@ -512,7 +512,7 @@ export class AutoriteParentaleSectionComponent implements OnInit, OnChanges {
       this.provenanceInterferenceVieEnfant.set('IA');
     }
 
-    const ages = AutoriteParentalePrefillRules.computeAgeEnfants(h);
+    const ages = AutoriteParentalePrefillRules.computeAgesEnfants(h);
     if (ages.length > 0
         && (this.ageEnfants().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
       this.ageEnfants.set(ages);
@@ -672,7 +672,7 @@ export class AutoriteParentaleSectionComponent implements OnInit, OnChanges {
    */
   private buildAgeEnfantsAlert(): AutoriteParentaleCoherenceAlert | null {
     const ai = this.aiDataSignal();
-    const aiAges = ai?.ageEnfants;
+    const aiAges = ai?.agesEnfantsDetectes;
     if (!Array.isArray(aiAges) || aiAges.length === 0) return null;
     const userAges = this.ageEnfants();
     if (userAges.length === 0) return null;

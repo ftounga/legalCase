@@ -33,7 +33,7 @@ describe('ChangementResidencePrefillRules', () => {
           consentementAutreParent: true,
           informePrealablement: false,
           modeResidenceActuel: 'ALTERNEE',
-          ageEnfants: [3, 7],
+          agesEnfantsDetectes: [3, 7],
         },
       } as any),
     ).toBe(5);

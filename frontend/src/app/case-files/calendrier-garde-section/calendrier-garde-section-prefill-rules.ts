@@ -7,7 +7,12 @@
  *
  * Gate `workspaceCountry` : si le mode IA appartient à l'autre pays que le
  * workspace courant, **pas de pré-fill** (note informative seulement).
+ *
+ * SF-246-10 : ajout du pré-fill `agesEnfantsDetectes` + `dateDebutCalendrierDetectee`
+ * + `dateFinCalendrierDetectee` depuis `aiData` (FamilleExtractedData).
+ * Le composant est branché sur `aiData` depuis cette SF — avant il l'ignorait.
  */
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 export const MODES_FR: ReadonlySet<string> = new Set(['ALTERNEE_FR', 'DVH_CLASSIQUE_FR', 'DVH_ELARGI_FR']);
 export const MODES_BE: ReadonlySet<string> = new Set(['ALTERNEE_BE', 'SECONDAIRE_BE', 'SECONDAIRE_ELARGI_BE']);
@@ -20,8 +25,8 @@ export interface CalendrierGardePrefillInput {
     pensionAlimentaireEstimate?: { modeGardeDetaille?: string | null } | null;
   } | null;
   workspaceCountry?: string;
-  // Champs ignorés (contrat unifié).
-  aiData?: unknown;
+  /** SF-246-10 : données IA famille pour pré-fill âges + dates calendrier. */
+  aiData?: Partial<FamilleExtractedData> | null;
   procedureChecks?: unknown[] | null;
   aiQuestions?: unknown[] | null;
   piecesManquantes?: unknown[] | null;
@@ -73,8 +78,34 @@ export function computeModeDetailleNote(input: CalendrierGardePrefillInput): str
   return `Mode détecté : "${ai}" (autre pays). Vérifier que ce dossier est adapté.`;
 }
 
+/** SF-246-10 : âges des enfants depuis le champ réel `agesEnfantsDetectes`. */
+export function computeAgesEnfants(input: CalendrierGardePrefillInput): number[] {
+  const ages = input.aiData?.agesEnfantsDetectes;
+  if (!Array.isArray(ages)) return [];
+  return ages.filter(
+    (n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 25,
+  );
+}
+
+/** SF-246-10 : date de début de la période du calendrier. */
+export function computeDateDebutCalendrier(input: CalendrierGardePrefillInput): string | null {
+  const v = input.aiData?.dateDebutCalendrierDetectee;
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+/** SF-246-10 : date de fin de la période du calendrier. */
+export function computeDateFinCalendrier(input: CalendrierGardePrefillInput): string | null {
+  const v = input.aiData?.dateFinCalendrierDetectee;
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
 export function computePrefillCount(input: CalendrierGardePrefillInput): number {
-  return computeGardeCode(input) !== null ? 1 : 0;
+  let n = 0;
+  if (computeGardeCode(input) !== null) n++;
+  if (computeAgesEnfants(input).length > 0) n++;
+  if (computeDateDebutCalendrier(input) !== null) n++;
+  if (computeDateFinCalendrier(input) !== null) n++;
+  return n;
 }
 
 export const CalendrierGardePrefillRules = {
@@ -84,5 +115,8 @@ export const CalendrierGardePrefillRules = {
   resolveModeIa,
   computeGardeCode,
   computeModeDetailleNote,
+  computeAgesEnfants,
+  computeDateDebutCalendrier,
+  computeDateFinCalendrier,
   computePrefillCount,
 };

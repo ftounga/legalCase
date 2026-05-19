@@ -211,7 +211,15 @@ public record CaseAnalysisResponse(
             // carrière (Travail BELGIQUE uniquement, nullable). Entier borné [0, 100] ;
             // hors plage → null. Le crédit-temps fin de carrière (CCT 103, AR 29/10/1997)
             // est un dispositif belge — ce champ reste null pour un dossier travail FR.
-            Integer ageDemandeurAnnees) {
+            Integer ageDemandeurAnnees,
+            // SF-246-13 : 2 champs IA complétant le détail de la clause de
+            // non-concurrence pour pré-fill F-DT-24 (Travail FR uniquement, nullables).
+            // Date de prise d'effet de la clause au format ISO YYYY-MM-DD (≈ date de
+            // fin / rupture du contrat) ; secteur d'activité normalisé sur l'enum
+            // NonConcurrenceCalculator.SecteurActivite. Restent null pour un dossier
+            // travail belge (clause BE = régime CCT 1bis distinct).
+            String nonConcurrenceDatePriseEffet,
+            String nonConcurrenceSecteurActivite) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -295,7 +303,9 @@ public record CaseAnalysisResponse(
                     .nonConcurrenceDureeMois(nonConcurrenceDureeMois)
                     .nonConcurrenceZoneGeographique(nonConcurrenceZoneGeographique)
                     .nonConcurrenceContrepartieMontantEur(nonConcurrenceContrepartieMontantEur)
-                    .ageDemandeurAnnees(ageDemandeurAnnees);
+                    .ageDemandeurAnnees(ageDemandeurAnnees)
+                    .nonConcurrenceDatePriseEffet(nonConcurrenceDatePriseEffet)
+                    .nonConcurrenceSecteurActivite(nonConcurrenceSecteurActivite);
         }
 
         public static final class Builder {
@@ -369,6 +379,8 @@ public record CaseAnalysisResponse(
             private String nonConcurrenceZoneGeographique;
             private Double nonConcurrenceContrepartieMontantEur;
             private Integer ageDemandeurAnnees;
+            private String nonConcurrenceDatePriseEffet;
+            private String nonConcurrenceSecteurActivite;
 
             private Builder() {}
 
@@ -442,6 +454,8 @@ public record CaseAnalysisResponse(
             public Builder nonConcurrenceZoneGeographique(String v) { this.nonConcurrenceZoneGeographique = v; return this; }
             public Builder nonConcurrenceContrepartieMontantEur(Double v) { this.nonConcurrenceContrepartieMontantEur = v; return this; }
             public Builder ageDemandeurAnnees(Integer v) { this.ageDemandeurAnnees = v; return this; }
+            public Builder nonConcurrenceDatePriseEffet(String v) { this.nonConcurrenceDatePriseEffet = v; return this; }
+            public Builder nonConcurrenceSecteurActivite(String v) { this.nonConcurrenceSecteurActivite = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -475,7 +489,8 @@ public record CaseAnalysisResponse(
                         motivationLettreSuffisanteDetected,
                         nonConcurrenceDureeMois, nonConcurrenceZoneGeographique,
                         nonConcurrenceContrepartieMontantEur,
-                        ageDemandeurAnnees);
+                        ageDemandeurAnnees,
+                        nonConcurrenceDatePriseEffet, nonConcurrenceSecteurActivite);
             }
         }
     }
@@ -556,6 +571,17 @@ public record CaseAnalysisResponse(
     /** SF-155-04-00-BE-travail : codes d'origine d'inaptitude FR pour pré-fill F-DT-15. */
     static final Set<String> ORIGINE_INAPTITUDE_CODES = Set.of(
             "ACCIDENT_TRAVAIL", "MALADIE_PROFESSIONNELLE", "MALADIE_ORDINAIRE"
+    );
+
+    /**
+     * SF-246-13 : codes de secteur d'activité pour pré-fill F-DT-24 (clause de
+     * non-concurrence). Liste alignée sur l'enum {@code NonConcurrenceCalculator.SecteurActivite}
+     * et sur {@code SECTEUR_ACTIVITE_OPTIONS} du front (non-concurrence.model.ts)
+     * pour un pré-fill direct sans mapping intermédiaire. Un code hors liste
+     * renvoyé par le LLM est ramené à {@code null} par {@code normalizeEnumCode}.
+     */
+    static final Set<String> SECTEUR_ACTIVITE_CODES = Set.of(
+            "INFORMATIQUE", "COMMERCE", "INDUSTRIE", "SERVICES", "AUTRE"
     );
 
     /**
@@ -951,7 +977,18 @@ public record CaseAnalysisResponse(
             String dateNaissanceEnfantRechercheDetectee,
             String dateNaissanceEnfantDetectee,
             Integer ageAdoptantDetecte,
-            Integer ageAdopteDetecte) {
+            Integer ageAdopteDetecte,
+            // SF-246-10 : 3 champs IA autorité parentale pour pré-fill des
+            // 4 outils décisionnels F-FA-19 (autorite-parentale,
+            // changement-residence, desaccords-parentaux, calendrier-garde).
+            // Famille FR uniquement, tous nullables — le prompt impose null hors FR
+            // / hors certitude. Sous-objet IA source :
+            // `famille_extracted_data.autorite_parentale_detection`.
+            // `agesEnfantsDetectes` : liste d'entiers [0, 25] ou null (jamais []).
+            // Remplace le champ aspirationnel `ageEnfants` du DTO frontend.
+            java.util.List<Integer> agesEnfantsDetectes,
+            String dateDebutCalendrierDetectee,
+            String dateFinCalendrierDetectee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1040,6 +1077,10 @@ public record CaseAnalysisResponse(
             private String dateNaissanceEnfantDetectee;
             private Integer ageAdoptantDetecte;
             private Integer ageAdopteDetecte;
+            // SF-246-10 : 3 champs IA autorité parentale (F-FA-19), nullables.
+            private java.util.List<Integer> agesEnfantsDetectes;
+            private String dateDebutCalendrierDetectee;
+            private String dateFinCalendrierDetectee;
 
             private Builder() {}
 
@@ -1118,6 +1159,10 @@ public record CaseAnalysisResponse(
             public Builder dateNaissanceEnfantDetectee(String v) { this.dateNaissanceEnfantDetectee = v; return this; }
             public Builder ageAdoptantDetecte(Integer v) { this.ageAdoptantDetecte = v; return this; }
             public Builder ageAdopteDetecte(Integer v) { this.ageAdopteDetecte = v; return this; }
+            // SF-246-10 : setters des 3 champs IA autorité parentale (F-FA-19).
+            public Builder agesEnfantsDetectes(java.util.List<Integer> v) { this.agesEnfantsDetectes = v; return this; }
+            public Builder dateDebutCalendrierDetectee(String v) { this.dateDebutCalendrierDetectee = v; return this; }
+            public Builder dateFinCalendrierDetectee(String v) { this.dateFinCalendrierDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1157,7 +1202,9 @@ public record CaseAnalysisResponse(
                         // SF-246-09 : 7 champs IA filiation / adoption.
                         dateEtablissementFiliationDetectee, dateConnaissanceVeriteDetectee,
                         dateMajoriteEnfantDetectee, dateNaissanceEnfantRechercheDetectee,
-                        dateNaissanceEnfantDetectee, ageAdoptantDetecte, ageAdopteDetecte);
+                        dateNaissanceEnfantDetectee, ageAdoptantDetecte, ageAdopteDetecte,
+                        // SF-246-10 : 3 champs IA autorité parentale.
+                        agesEnfantsDetectes, dateDebutCalendrierDetectee, dateFinCalendrierDetectee);
             }
         }
     }
@@ -1903,6 +1950,13 @@ public record CaseAnalysisResponse(
                     .nonConcurrenceDureeMois(hasClauseNc ? boundedIntOrNull(clauseNc, "duree_mois", 0, MAX_NON_CONCURRENCE_DUREE_MOIS) : null)
                     .nonConcurrenceZoneGeographique(hasClauseNc ? truncatedTextOrNull(clauseNc, "zone_geographique", MAX_NON_CONCURRENCE_ZONE_LENGTH) : null)
                     .nonConcurrenceContrepartieMontantEur(hasClauseNc ? positiveDoubleOrNull(clauseNc, "contrepartie_montant_mensuel_eur") : null)
+                    // SF-246-13 : 2 champs IA complétant le pré-fill F-DT-24 — date de
+                    // prise d'effet validée ISO YYYY-MM-DD (fail-open → null si non ISO),
+                    // secteur d'activité normalisé sur l'enum SecteurActivite (code hors
+                    // liste → null). Tous null si sous-objet clause_non_concurrence_detail
+                    // absent.
+                    .nonConcurrenceDatePriseEffet(hasClauseNc ? isoDateOrNull(clauseNc, "date_prise_effet") : null)
+                    .nonConcurrenceSecteurActivite(hasClauseNc ? normalizeEnumCode(textOrNull(clauseNc, "secteur_activite"), SECTEUR_ACTIVITE_CODES) : null)
                     // SF-246-05 : âge du demandeur pour pré-fill F-DT-29 crédit-temps fin
                     // de carrière — entier borné [0, 100], null hors plage / absent / BE
                     // non concerné. Le prompt impose null hors Belgique.
@@ -2511,6 +2565,33 @@ public record CaseAnalysisResponse(
                 || dateNaissanceEnfantDetectee != null
                 || ageAdoptantDetecte != null
                 || ageAdopteDetecte != null;
+        // SF-246-10 : sous-objet `autorite_parentale_detection` — 3 champs IA
+        // autorité parentale pour pré-fill des 4 outils F-FA-19. Absent → tous
+        // null (no-op gracieux des prefillFromAi() frontend). Ages via boucle
+        // boundedIntOrNull(_, _, 0, 25) — chaque élément invalide exclu ; liste
+        // vide → null (jamais [] — invariant cadrage §5.1.2 transposé aux listes).
+        // Dates via isoDateOrNull() (§5.1 — YYYY-MM-DD strict).
+        JsonNode apd = node.get("autorite_parentale_detection");
+        boolean apdObject = apd != null && apd.isObject();
+        java.util.List<Integer> agesEnfantsDetectes = null;
+        if (apdObject) {
+            com.fasterxml.jackson.databind.JsonNode agesNode = apd.get("ages_enfants");
+            if (agesNode != null && agesNode.isArray() && !agesNode.isEmpty()) {
+                java.util.List<Integer> raw = new java.util.ArrayList<>();
+                for (com.fasterxml.jackson.databind.JsonNode item : agesNode) {
+                    if (item.isInt()) {
+                        int v = item.asInt();
+                        if (v >= 0 && v <= 25) raw.add(v);
+                    }
+                }
+                agesEnfantsDetectes = raw.isEmpty() ? null : java.util.Collections.unmodifiableList(raw);
+            }
+        }
+        String dateDebutCalendrierDetectee = apdObject ? isoDateOrNull(apd, "date_debut_calendrier") : null;
+        String dateFinCalendrierDetectee = apdObject ? isoDateOrNull(apd, "date_fin_calendrier") : null;
+        boolean autoriteParentaleDetectionPresent = agesEnfantsDetectes != null
+                || dateDebutCalendrierDetectee != null
+                || dateFinCalendrierDetectee != null;
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
@@ -2521,7 +2602,8 @@ public record CaseAnalysisResponse(
                 && !successionDetectionPresent
                 && !regimeMatrimonialDetectionPresent
                 && !vieCommuneDetectionPresent
-                && !filiationDetectionPresent) {
+                && !filiationDetectionPresent
+                && !autoriteParentaleDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -2605,6 +2687,10 @@ public record CaseAnalysisResponse(
                 .dateNaissanceEnfantDetectee(dateNaissanceEnfantDetectee)
                 .ageAdoptantDetecte(ageAdoptantDetecte)
                 .ageAdopteDetecte(ageAdopteDetecte)
+                // SF-246-10 : 3 champs IA autorité parentale (F-FA-19).
+                .agesEnfantsDetectes(agesEnfantsDetectes)
+                .dateDebutCalendrierDetectee(dateDebutCalendrierDetectee)
+                .dateFinCalendrierDetectee(dateFinCalendrierDetectee)
                 .build();
     }
 

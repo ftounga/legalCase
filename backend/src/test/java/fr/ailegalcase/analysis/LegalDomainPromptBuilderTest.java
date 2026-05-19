@@ -400,6 +400,36 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("FRANCE UNIQUEMENT");
     }
 
+    // SF-246-13 : sous-objet clause_non_concurrence_detail enrichi des clés
+    // date_prise_effet et secteur_activite (pré-fill F-DT-24, FR uniquement).
+    @Test
+    void domainSpecificInstruction_travail_clauseNonConcurrence_containsDatePriseEffetAndSecteurKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("date_prise_effet");
+        assertThat(instruction).contains("secteur_activite");
+        // Le sous-objet annonce désormais 5 clés.
+        assertThat(instruction).contains("Les 5 clés attendues");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_clauseNonConcurrence_secteurListsAllFiveEnumCodes() {
+        // Le prompt impose le classement dans l'une des 5 valeurs exactes de l'enum.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("INFORMATIQUE");
+        assertThat(instruction).contains("COMMERCE");
+        assertThat(instruction).contains("INDUSTRIE");
+        assertThat(instruction).contains("SERVICES");
+        assertThat(instruction).contains("AUTRE");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_clauseNonConcurrence_datePriseEffetImposeFormatIso() {
+        // date_prise_effet doit être au format YYYY-MM-DD strict.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("date_prise_effet");
+        assertThat(instruction).contains("YYYY-MM-DD");
+    }
+
     // SF-246-05 : prompt Travail enrichi de la clé age_demandeur_annees
     // (pré-fill F-DT-29, crédit-temps fin de carrière, BELGIQUE uniquement).
     @Test
@@ -565,5 +595,38 @@ class LegalDomainPromptBuilderTest {
         // La borne [0, 120] pour les âges doit être explicite dans le prompt.
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
         assertThat(instruction).contains("entier entre 0 et 120");
+    }
+
+    // =========================================================================
+    // SF-246-10 — autorite_parentale_detection
+    // =========================================================================
+
+    @Test
+    void domainSpecificInstruction_famille_contientAutoriteParentaleDetectionSousObjet() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("autorite_parentale_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_autoriteParentaleDetection_contientTroisCles() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("ages_enfants");
+        assertThat(instruction).contains("date_debut_calendrier");
+        assertThat(instruction).contains("date_fin_calendrier");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_autoriteParentaleDetection_imposesNullHorsFrance() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Le prompt impose null hors France pour le sous-objet autorite_parentale_detection.
+        assertThat(instruction).contains("autorite_parentale_detection");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_autoriteParentaleDetection_regleListeAges() {
+        // L'instruction d'exclusion d'âge non fiable doit être présente.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("RÈGLE LISTE D'ÂGES");
     }
 }

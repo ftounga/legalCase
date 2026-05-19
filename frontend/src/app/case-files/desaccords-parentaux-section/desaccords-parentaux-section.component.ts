@@ -484,7 +484,7 @@ export class DesaccordsParentauxSectionComponent implements OnInit, OnChanges {
    *  - domaineDesaccord (depuis `domaineDesaccordDetecte`)
    *  - intensiteDesaccord (depuis `intensiteDesaccordDetecte`)
    *  - tentativesMediation (depuis `tentativesMediationDetectees`)
-   *  - ageEnfantsConcernes (depuis `ageEnfants` — réutilisé)
+   *  - ageEnfantsConcernes (depuis `agesEnfantsDetectes` — SF-246-10 source backend réelle)
    *  - urgence (depuis `urgenceDetectee`)
    *
    * No-op gracieux si champ absent.
@@ -514,7 +514,7 @@ export class DesaccordsParentauxSectionComponent implements OnInit, OnChanges {
       this.provenanceTentatives.set('IA');
     }
 
-    const ages = DesaccordsParentauxPrefillRules.computeAgeEnfants(h);
+    const ages = DesaccordsParentauxPrefillRules.computeAgesEnfants(h);
     if (ages.length > 0
         && (this.ageEnfantsConcernes().length === 0 || this.provenanceAgeEnfants() === 'IA')) {
       this.ageEnfantsConcernes.set(ages);
@@ -661,7 +661,7 @@ export class DesaccordsParentauxSectionComponent implements OnInit, OnChanges {
    */
   private buildAgeEnfantsAlert(): DesaccordsParentauxCoherenceAlert | null {
     const ai = this.aiDataSignal();
-    const aiAges = ai?.ageEnfants;
+    const aiAges = ai?.agesEnfantsDetectes;
     if (!Array.isArray(aiAges) || aiAges.length === 0) return null;
     const userAges = this.ageEnfantsConcernes();
     if (userAges.length === 0) return null;

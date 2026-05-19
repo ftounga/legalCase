@@ -171,7 +171,7 @@ describe('AutoriteParentaleSectionComponent', () => {
       dangerCaracterise: true,
       consentementAutreParent: false,
       interferenceVieEnfant: true,
-      ageEnfants: [10, 7],
+      agesEnfantsDetectes: [10, 7],
     } as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
@@ -277,7 +277,7 @@ describe('AutoriteParentaleSectionComponent', () => {
   });
 
   it('onAgeEnfantsRawChange efface le badge IA âges', () => {
-    component.aiData = { ageEnfants: [12, 8] } as FamilleExtractedData;
+    component.aiData = { agesEnfantsDetectes: [12, 8] } as FamilleExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -307,7 +307,7 @@ describe('AutoriteParentaleSectionComponent', () => {
   });
 
   it('coherenceAlerts.AGE_ENFANTS multi-source IA + F96 + PIECE_MANQUANTE', () => {
-    component.aiData = { ageEnfants: [12, 8] } as FamilleExtractedData;
+    component.aiData = { agesEnfantsDetectes: [12, 8] } as FamilleExtractedData;
     component.procedureChecks = [
       {
         id: 'c1', ordre: 1, description: 'Âges enfants', statut: 'NON_COMPLIANT',
@@ -414,7 +414,7 @@ describe('AutoriteParentaleSectionComponent', () => {
 
     const newAi = {
       regimeExerciceActuel: 'CONJOINT',
-      ageEnfants: [10, 7],
+      agesEnfantsDetectes: [10, 7],
     } as FamilleExtractedData;
     component.aiData = newAi;
     component.ngOnChanges({

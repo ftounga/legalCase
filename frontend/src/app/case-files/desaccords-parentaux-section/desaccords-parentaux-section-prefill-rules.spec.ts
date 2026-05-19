@@ -32,7 +32,7 @@ describe('DesaccordsParentauxPrefillRules', () => {
           domaineDesaccordDetecte: 'SCOLARITE',
           intensiteDesaccordDetecte: 'MAJEUR',
           tentativesMediationDetectees: ['MEDIATION_FAMILIALE'],
-          ageEnfants: [10],
+          agesEnfantsDetectes: [10],
           urgenceDetectee: true,
         },
       } as any),
