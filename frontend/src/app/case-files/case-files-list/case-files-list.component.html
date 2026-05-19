@@ -1,6 +1,9 @@
 <div class="page-header">
   <h1 class="page-title">Dossiers</h1>
-  <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
+  <button mat-flat-button color="primary"
+          data-tour-target="new-dossier-btn"
+          appDisabledIfPendingPayment
+          (click)="openCreateDialog()">
     <mat-icon>add</mat-icon>
     Nouveau dossier
   </button>

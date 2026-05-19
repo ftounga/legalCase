@@ -26,14 +26,20 @@
             (+{{ s.extraSeatPriceCents / 100 }} €/user)
           }
         </div>
-        <button mat-flat-button color="primary" class="seats-banner__action" (click)="openInviteDialog()">
+        <button mat-flat-button color="primary"
+                class="seats-banner__action"
+                appDisabledIfPendingPayment
+                (click)="openInviteDialog()">
           <mat-icon>person_add</mat-icon>
           Inviter un membre
         </button>
       </div>
     } @else {
       <div class="seats-banner seats-banner--fallback">
-        <button mat-flat-button color="primary" class="seats-banner__action" (click)="openInviteDialog()">
+        <button mat-flat-button color="primary"
+                class="seats-banner__action"
+                appDisabledIfPendingPayment
+                (click)="openInviteDialog()">
           <mat-icon>person_add</mat-icon>
           Inviter un membre
         </button>

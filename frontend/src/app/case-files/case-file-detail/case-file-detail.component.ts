@@ -46,6 +46,7 @@ import { Document, extractionFailureLabel, extractionRecoveryHint, documentPiece
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisPartialResponse, CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { STREAMING_EXPECTED_SECTIONS } from '../synthesis/streaming-sections';
+import { DisabledIfPendingPaymentDirective } from '../../shared/directives/disabled-if-pending-payment.directive';
 import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
@@ -165,7 +166,8 @@ export const TAB_SUIVI = 3;
     TimerWidgetComponent,
     CaseDashboardComponent, AnalysisPipelineComponent,
     DecisionToolsPanelComponent,
-    QuotaErrorBannerComponent
+    QuotaErrorBannerComponent,
+    DisabledIfPendingPaymentDirective
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',

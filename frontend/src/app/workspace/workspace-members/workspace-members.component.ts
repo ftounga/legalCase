@@ -14,6 +14,7 @@ import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { WorkspaceInvitation } from '../../core/models/workspace-invitation.model';
 import { SeatsSummary } from '../../core/models/seats-summary.model';
 import { fadeInUp } from '../../shared/animations';
+import { DisabledIfPendingPaymentDirective } from '../../shared/directives/disabled-if-pending-payment.directive';
 import {
   InviteMemberDialogComponent, InviteMemberDialogResult
 } from './invite-member-dialog.component';
@@ -27,7 +28,8 @@ import {
   imports: [
     DatePipe,
     MatTableModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    DisabledIfPendingPaymentDirective
   ],
   templateUrl: './workspace-members.component.html',
   styleUrl: './workspace-members.component.scss',

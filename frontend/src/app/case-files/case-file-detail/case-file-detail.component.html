@@ -156,6 +156,7 @@
             }
             <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp4,.mov" multiple hidden (change)="onFileSelected($event)">
             <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn"
+                    appDisabledIfPendingPayment
                     (click)="triggerUpload(); $event.stopPropagation()"
                     [disabled]="!canUpload()">
               <mat-icon>add</mat-icon>

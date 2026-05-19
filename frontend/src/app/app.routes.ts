@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { workspacePlanGuard } from './core/guards/workspace-plan.guard';
 import { MENTIONS_LEGALES, POLITIQUE_CONFIDENTIALITE, CGU } from './legal/legal-content';
 import { NotFoundComponent } from './not-found/not-found.component';
 
@@ -92,6 +93,21 @@ export const routes: Routes = [
         path: 'workspace/style-learning',
         loadComponent: () => import('./workspace/style-corpus/style-corpus.component')
           .then(m => m.StyleCorpusComponent)
+      },
+      {
+        // F-156 SF-156-02 — page d'erreur dédiée FREE/SOLO qui bricole l'URL.
+        path: 'workspaces/upgrade-required',
+        loadComponent: () => import('./workspace/workspace-upgrade-required-page/workspace-upgrade-required-page.component')
+          .then(m => m.WorkspaceUpgradeRequiredPageComponent)
+      },
+      {
+        // F-156 SF-156-02 — route protégée par workspacePlanGuard.
+        // FREE/SOLO → /workspaces/upgrade-required. TEAM/PRO → dashboard
+        // (la création réelle passe par le dialog du switcher, pas par une route dédiée).
+        path: 'workspaces/new',
+        canActivate: [workspacePlanGuard],
+        loadComponent: () => import('./workspace/workspace-upgrade-required-page/workspace-upgrade-required-page.component')
+          .then(m => m.WorkspaceUpgradeRequiredPageComponent)
       },
       {
         path: 'referentials',

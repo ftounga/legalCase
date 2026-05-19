@@ -1,5 +1,5 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
-import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
@@ -11,16 +11,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceInvitationService } from '../../core/services/workspace-invitation.service';
+import { WorkspaceStateService } from '../../core/services/workspace-state.service';
 import { ReferentialService } from '../../core/services/referential.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
 import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
 import { NotificationCenterComponent } from '../notification-center/notification-center.component';
 import { WorkspaceCreateDialogComponent } from '../workspace-create-dialog/workspace-create-dialog.component';
+import { WorkspaceStatusBannerComponent } from '../workspace-status-banner/workspace-status-banner.component';
 
 @Component({
   selector: 'app-shell',
@@ -30,7 +32,8 @@ import { WorkspaceCreateDialogComponent } from '../workspace-create-dialog/works
     MatToolbarModule, MatSidenavModule, MatListModule,
     MatIconModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatBadgeModule, MatDividerModule,
-    TrialBannerComponent, NotificationCenterComponent
+    TrialBannerComponent, NotificationCenterComponent,
+    WorkspaceStatusBannerComponent,
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
@@ -43,6 +46,12 @@ export class ShellComponent implements OnInit, OnDestroy {
   sidenavOpen = signal(true);
   pendingAlertsCount = signal(0);
 
+  /** F-156 SF-156-02 — option « + Créer un workspace » conditionnée au plan OWNER courant (CA1/CA2). */
+  readonly canCreateWorkspace = computed(() => {
+    const plan = (this.workspace()?.planCode ?? '').toUpperCase();
+    return plan === 'TEAM' || plan === 'PRO';
+  });
+
   get userInitials(): string {
     const user = this.auth.currentUser();
     if (!user?.email) return '?';
@@ -53,6 +62,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     return user.email.substring(0, 2).toUpperCase();
   }
   private alertPollingTimer?: ReturnType<typeof setInterval>;
+  private readonly workspaceState = inject(WorkspaceStateService);
+  private readonly route = inject(ActivatedRoute);
 
   constructor(
     readonly auth: AuthService,
@@ -95,6 +106,10 @@ export class ShellComponent implements OnInit, OnDestroy {
     } else {
       this.loadWorkspace();
     }
+
+    // F-156 SF-156-02 — détection retour Stripe (CA6, CA10).
+    // Le success_url backend pointe vers `?workspace_created=success&workspace_id=<id>`.
+    this.handleStripeReturn();
   }
 
   ngOnDestroy(): void {
@@ -125,6 +140,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.workspaceService.switchWorkspace(ws.id).subscribe({
       next: newWs => {
         this.workspace.set(newWs);
+        this.workspaceState.setCurrent(newWs);
         this.workspaces.update(list => list.map(w => ({ ...w, primary: w.id === newWs.id })));
         this.workspaceService.notifyWorkspaceSwitched();
         this.router.navigate(['/case-files']);
@@ -136,34 +152,73 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * F-154 SF-154-01 : ouvre le dialog de création d'un nouveau workspace,
-   * puis bascule automatiquement dessus à la création réussie.
+   * F-156 SF-156-02 — ouvre le dialog de création d'un workspace payant (TEAM/PRO).
+   *
+   * <p>Au succès, le dialog redirige le navigateur vers Stripe Checkout (`window.location.href`).
+   * Le retour Stripe est géré par {@link handleStripeReturn} via le query param `workspace_created`.
+   *
+   * <p>Gate amont : l'option « + Créer » n'est rendue dans le template que si
+   * {@link canCreateWorkspace} est true (CA1/CA2).
    */
   openCreateWorkspaceDialog(): void {
-    const ref = this.dialog.open(WorkspaceCreateDialogComponent, {
-      width: '620px',
+    if (!this.canCreateWorkspace()) {
+      // Sécurité défense en profondeur — ne devrait jamais arriver car l'option est cachée.
+      this.router.navigate(['/workspaces/upgrade-required']);
+      return;
+    }
+    this.dialog.open(WorkspaceCreateDialogComponent, {
+      width: '720px',
       maxWidth: '95vw',
       autoFocus: false,
       disableClose: false,
     });
-    ref.afterClosed().subscribe((created: Workspace | null | undefined) => {
+    // Volontairement pas de afterClosed() avec switch ici : la redirection Stripe quitte l'app.
+  }
+
+  /**
+   * F-156 SF-156-02 — handler du retour Stripe (CA6 / CA10).
+   * - `?workspace_created=success&workspace_id=<id>` → bascule sur le nouveau workspace + nettoie l'URL.
+   * - `?workspace_created=cancelled` → snackbar « Création annulée — aucun frais prélevé »
+   *   + reste sur le workspace courant.
+   */
+  private handleStripeReturn(): void {
+    this.route.queryParams.subscribe(params => {
+      const created = params['workspace_created'];
       if (!created) return;
-      this.workspaceService.switchWorkspace(created.id).subscribe({
-        next: active => {
-          this.workspace.set(active);
-          this.loadWorkspaceList();
-          this.workspaceService.notifyWorkspaceSwitched();
-          this.snackBar.open(`Workspace « ${active.name} » créé`, 'Fermer', {
-            duration: 4000, panelClass: ['snack-success']
-          });
-          this.router.navigate(['/case-files']);
-        },
-        error: () => this.snackBar.open(
-          'Workspace créé, mais basculement impossible. Rafraîchissez la page.',
-          'Fermer',
-          { duration: 6000, panelClass: ['snack-error'] }
-        )
-      });
+      const workspaceId = params['workspace_id'];
+
+      if (created === 'success' && workspaceId) {
+        this.workspaceService.switchWorkspace(workspaceId).subscribe({
+          next: ws => {
+            this.workspace.set(ws);
+            this.workspaceState.setCurrent(ws);
+            this.loadWorkspaceList();
+            this.workspaceService.notifyWorkspaceSwitched();
+            // Nettoyage des query params pour éviter de re-déclencher au refresh.
+            this.router.navigate([], {
+              relativeTo: this.route,
+              queryParams: { workspace_created: null, workspace_id: null },
+              queryParamsHandling: 'merge',
+              replaceUrl: true,
+            });
+          },
+          error: () => this.snackBar.open(
+            'Workspace créé mais basculement impossible. Rafraîchissez la page.',
+            'Fermer',
+            { duration: 6000, panelClass: ['snack-error'] }
+          )
+        });
+      } else if (created === 'cancelled') {
+        this.snackBar.open('Création annulée — aucun frais prélevé.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-info']
+        });
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { workspace_created: null, workspace_id: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
     });
   }
 
@@ -171,6 +226,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.workspaceService.getCurrentWorkspace().subscribe({
       next: ws => {
         this.workspace.set(ws);
+        this.workspaceState.setCurrent(ws);
         this.loadWorkspaceList();
         this.ready.set(true);
       },

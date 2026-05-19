@@ -19,6 +19,7 @@ import { TourService } from '../../core/services/tour.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseFileCreateDialogComponent } from '../case-file-create-dialog/case-file-create-dialog.component';
 import { fadeInUp, listStagger } from '../../shared/animations';
+import { DisabledIfPendingPaymentDirective } from '../../shared/directives/disabled-if-pending-payment.directive';
 
 @Component({
   selector: 'app-case-files-list',
@@ -26,7 +27,8 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   imports: [
     RouterLink, NgClass, DatePipe,
     MatTableModule, MatPaginatorModule, MatSortModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonToggleModule
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonToggleModule,
+    DisabledIfPendingPaymentDirective
   ],
   templateUrl: './case-files-list.component.html',
   styleUrl: './case-files-list.component.scss',
