@@ -403,6 +403,62 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("TRAVAIL_PROCEDURE_TYPE");
     }
 
+    // SF-250-09 — Remédiation critereCode lot Famille FR — successions / libéralités
+
+    // U-SF-250-09-01 : le prompt questions famille-FR contient TESTAMENT_* et DONATION_*
+    @Test
+    void systemPrompt_containsTestamentDonationCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        assertThat(prompt).as("TESTAMENT_FORME doit être dans le prompt questions").contains("TESTAMENT_FORME");
+        assertThat(prompt).as("TESTAMENT_SAINE_ESPRIT doit être dans le prompt questions").contains("TESTAMENT_SAINE_ESPRIT");
+        assertThat(prompt).as("TESTAMENT_QUOTITE doit être dans le prompt questions").contains("TESTAMENT_QUOTITE");
+        assertThat(prompt).as("DONATION_FORME doit être dans le prompt questions").contains("DONATION_FORME");
+        assertThat(prompt).as("DONATION_SAINE_ESPRIT doit être dans le prompt questions").contains("DONATION_SAINE_ESPRIT");
+        assertThat(prompt).as("DONATION_QUOTITE doit être dans le prompt questions").contains("DONATION_QUOTITE");
+        assertThat(prompt).as("Annotation FRANCE UNIQUEMENT requise pour codes successions").contains("FRANCE UNIQUEMENT");
+        // Non-régression codes SF-250-08
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("FA22_OCCUPATION");
+    }
+
+    // U-SF-250-09-02 : le prompt questions famille-FR contient PARTAGE_*, INDIVISION_*, DEVOLUTION_LEGALE_*
+    @Test
+    void systemPrompt_containsPartageIndivisionDevolutionCodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        assertThat(prompt).as("PARTAGE_MODE doit être dans le prompt questions").contains("PARTAGE_MODE");
+        assertThat(prompt).as("PARTAGE_CONSENTEMENTS doit être dans le prompt questions").contains("PARTAGE_CONSENTEMENTS");
+        assertThat(prompt).as("PARTAGE_PRESENCE_IMMEUBLES doit être dans le prompt questions").contains("PARTAGE_PRESENCE_IMMEUBLES");
+        assertThat(prompt).as("INDIVISION_DATE_OUVERTURE doit être dans le prompt questions").contains("INDIVISION_DATE_OUVERTURE");
+        assertThat(prompt).as("INDIVISION_TYPE doit être dans le prompt questions").contains("INDIVISION_TYPE");
+        assertThat(prompt).as("DEVOLUTION_LEGALE_CONJOINT doit être dans le prompt questions").contains("DEVOLUTION_LEGALE_CONJOINT");
+        assertThat(prompt).as("DEVOLUTION_LEGALE_DESCENDANTS_COMMUNS doit être dans le prompt questions").contains("DEVOLUTION_LEGALE_DESCENDANTS_COMMUNS");
+        // Non-régression
+        assertThat(prompt).contains("TESTAMENT_FORME");
+        assertThat(prompt).contains("FA22_DATE_ORIGINE");
+    }
+
+    // U-SF-250-09-03 : le prompt questions famille-FR contient FA25_*, FA26_*, PMA_GPA_DISPOSITIF, FA05_*
+    @Test
+    void systemPrompt_containsFa25Fa26PmaGpaFa05CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_LA_FAMILLE", "FRANCE");
+        assertThat(prompt).as("FA25_DATE_CERTIFICAT doit être dans le prompt questions").contains("FA25_DATE_CERTIFICAT");
+        assertThat(prompt).as("FA25_ALT_MENTALES doit être dans le prompt questions").contains("FA25_ALT_MENTALES");
+        assertThat(prompt).as("FA25_CONSENTEMENT doit être dans le prompt questions").contains("FA25_CONSENTEMENT");
+        assertThat(prompt).as("FA25_DEMANDEUR_FAMILIAL doit être dans le prompt questions").contains("FA25_DEMANDEUR_FAMILIAL");
+        assertThat(prompt).as("FA26_TYPE_CHANGEMENT doit être dans le prompt questions").contains("FA26_TYPE_CHANGEMENT");
+        assertThat(prompt).as("FA26_MOTIF_INVOQUE doit être dans le prompt questions").contains("FA26_MOTIF_INVOQUE");
+        assertThat(prompt).as("FA26_DATE_NAISSANCE doit être dans le prompt questions").contains("FA26_DATE_NAISSANCE");
+        assertThat(prompt).as("FA26_MAJEUR_DEMANDEUR doit être dans le prompt questions").contains("FA26_MAJEUR_DEMANDEUR");
+        assertThat(prompt).as("FA26_CONSENTEMENT_PARENTAL doit être dans le prompt questions").contains("FA26_CONSENTEMENT_PARENTAL");
+        assertThat(prompt).as("PMA_GPA_DISPOSITIF doit être dans le prompt questions").contains("PMA_GPA_DISPOSITIF");
+        assertThat(prompt).as("FA05_VALEUR_VENALE doit être dans le prompt questions").contains("FA05_VALEUR_VENALE");
+        assertThat(prompt).as("FA05_CAPITAL_RESTANT doit être dans le prompt questions").contains("FA05_CAPITAL_RESTANT");
+        // Non-régression
+        assertThat(prompt).contains("TESTAMENT_FORME");
+        assertThat(prompt).contains("PARTAGE_MODE");
+        assertThat(prompt).contains("FA22_OCCUPATION");
+    }
+
     // SF-250-08 — Remédiation critereCode lot Famille FR — divorce / union
 
     // U-SF-250-08-01 : le prompt questions famille-FR contient DA_DUREE_MARIAGE, FA09_*, FA12_*, FA13_, FA14_*
