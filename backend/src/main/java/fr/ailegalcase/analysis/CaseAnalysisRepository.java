@@ -57,4 +57,7 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
 
     List<CaseAnalysis> findTop5ByCaseFile_WorkspaceAndAnalysisStatusOrderByCreatedAtDesc(
             fr.ailegalcase.workspace.Workspace workspace, AnalysisStatus analysisStatus);
+
+    List<CaseAnalysis> findByCaseFile_WorkspaceAndAnalysisStatusAndCreatedAtAfter(
+            fr.ailegalcase.workspace.Workspace workspace, AnalysisStatus analysisStatus, Instant createdAt);
 }

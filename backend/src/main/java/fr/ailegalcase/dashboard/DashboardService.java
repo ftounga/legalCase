@@ -9,12 +9,14 @@ import fr.ailegalcase.casefile.CaseDeadline;
 import fr.ailegalcase.casefile.CaseDeadlineRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.auth.User;
 import fr.ailegalcase.workspace.Workspace;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -45,14 +47,21 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public DashboardSummaryResponse buildSummary(Workspace workspace) {
+    public DashboardSummaryResponse buildSummary(Workspace workspace, User user) {
         List<DashboardOpenCaseItem> openCases = buildOpenCases(workspace);
         long openCasesCount = caseFileRepository.countByWorkspaceAndDeletedAtIsNullAndStatusNot(workspace, STATUS_CLOSED);
         List<DashboardDeadlineItem> urgentDeadlines = buildUrgentDeadlines(workspace.getId());
         List<DashboardStaleCheckItem> staleChecks = buildStaleChecks(workspace.getId());
         List<DashboardAnalysisItem> recentAnalyses = buildRecentAnalyses(workspace);
 
-        return new DashboardSummaryResponse(openCases, openCasesCount, urgentDeadlines, staleChecks, recentAnalyses);
+        String userFirstName = (user != null) ? user.getFirstName() : null;
+        Instant weekCutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        long casesOpenedThisWeek = caseFileRepository
+                .countByWorkspaceAndDeletedAtIsNullAndCreatedAtAfter(workspace, weekCutoff);
+        List<DashboardActivityDayItem> weeklyActivity = buildWeeklyActivity(workspace, weekCutoff);
+
+        return new DashboardSummaryResponse(openCases, openCasesCount, urgentDeadlines, staleChecks, recentAnalyses,
+                userFirstName, casesOpenedThisWeek, weeklyActivity);
     }
 
     private List<DashboardOpenCaseItem> buildOpenCases(Workspace workspace) {
@@ -95,5 +104,33 @@ public class DashboardService {
                 .map(ca -> new DashboardAnalysisItem(ca.getId(), ca.getCaseFile().getId(),
                         ca.getCaseFile().getTitle(), ca.getAnalysisType().name(), ca.getCreatedAt()))
                 .toList();
+    }
+
+    private List<DashboardActivityDayItem> buildWeeklyActivity(Workspace workspace, Instant cutoff) {
+        List<CaseAnalysis> analyses = caseAnalysisRepository
+                .findByCaseFile_WorkspaceAndAnalysisStatusAndCreatedAtAfter(workspace, AnalysisStatus.DONE, cutoff);
+
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate today = LocalDate.now(zone);
+
+        // Build ordered map J-6 → J0, all counts initialised to 0
+        Map<LocalDate, Long> countsByDay = new LinkedHashMap<>();
+        for (int i = 6; i >= 0; i--) {
+            countsByDay.put(today.minusDays(i), 0L);
+        }
+
+        // Bucket each analysis into its calendar day
+        for (CaseAnalysis ca : analyses) {
+            LocalDate day = ca.getCreatedAt().atZone(zone).toLocalDate();
+            if (countsByDay.containsKey(day)) {
+                countsByDay.merge(day, 1L, Long::sum);
+            }
+        }
+
+        List<DashboardActivityDayItem> result = new ArrayList<>();
+        for (Map.Entry<LocalDate, Long> entry : countsByDay.entrySet()) {
+            result.add(new DashboardActivityDayItem(entry.getKey(), entry.getValue()));
+        }
+        return result;
     }
 }

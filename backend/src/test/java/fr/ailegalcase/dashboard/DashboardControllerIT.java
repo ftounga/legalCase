@@ -1,10 +1,16 @@
 package fr.ailegalcase.dashboard;
 
+import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.AnalysisType;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.CaseAnalysis;
+import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.casefile.CaseFile;
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -43,17 +49,23 @@ class DashboardControllerIT {
     @Autowired AuthAccountRepository authAccountRepository;
     @Autowired WorkspaceRepository workspaceRepository;
     @Autowired WorkspaceMemberRepository workspaceMemberRepository;
+    @Autowired CaseFileRepository caseFileRepository;
+    @Autowired CaseAnalysisRepository caseAnalysisRepository;
     @MockBean AnthropicService anthropicService;
 
     private OAuth2AuthenticationToken userAAuth;
     private OAuth2AuthenticationToken userBAuth;
+    private Workspace wsA;
+    private Workspace wsB;
+    private User userA;
 
     @BeforeEach
     void setUp() {
         long ts = System.nanoTime();
 
-        User userA = new User();
+        userA = new User();
         userA.setEmail("dash-a-" + ts + "@example.com");
+        userA.setFirstName("Marie");
         userA.setStatus("ACTIVE");
         userA = userRepository.save(userA);
 
@@ -63,7 +75,7 @@ class DashboardControllerIT {
         accA.setProviderUserId("google-dash-a-" + ts);
         authAccountRepository.save(accA);
 
-        Workspace wsA = new Workspace();
+        wsA = new Workspace();
         wsA.setName("Workspace A " + ts);
         wsA.setSlug("ws-a-" + ts);
         wsA.setOwner(userA);
@@ -93,7 +105,7 @@ class DashboardControllerIT {
         accB.setProviderUserId("google-dash-b-" + ts);
         authAccountRepository.save(accB);
 
-        Workspace wsB = new Workspace();
+        wsB = new Workspace();
         wsB.setName("Workspace B " + ts);
         wsB.setSlug("ws-b-" + ts);
         wsB.setOwner(userB);
@@ -112,7 +124,7 @@ class DashboardControllerIT {
         userBAuth = buildGoogleAuth("google-dash-b-" + ts, "dash-b-" + ts + "@example.com");
     }
 
-    // IT-DASH-01 : GET 200 avec structure complète
+    // IT-DASH-01 : GET 200 avec structure complète (champs existants + 3 nouveaux)
     @Test
     void GET_dashboard_retourne_200_avec_structure() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard")
@@ -122,7 +134,10 @@ class DashboardControllerIT {
                 .andExpect(jsonPath("$.openCasesCount").isNumber())
                 .andExpect(jsonPath("$.urgentDeadlines").isArray())
                 .andExpect(jsonPath("$.staleChecks").isArray())
-                .andExpect(jsonPath("$.recentAnalyses").isArray());
+                .andExpect(jsonPath("$.recentAnalyses").isArray())
+                .andExpect(jsonPath("$.casesOpenedThisWeek").isNumber())
+                .andExpect(jsonPath("$.weeklyActivity").isArray())
+                .andExpect(jsonPath("$.weeklyActivity.length()").value(7));
     }
 
     // IT-DASH-02 : isolation workspace — workspace A ne voit pas les données de workspace B
@@ -138,6 +153,77 @@ class DashboardControllerIT {
                         .with(authentication(userBAuth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openCasesCount").value(0));
+    }
+
+    // IT-DASH-03 : userFirstName présent dans la réponse
+    @Test
+    void GET_dashboard_retourne_userFirstName() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard")
+                        .with(authentication(userAAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userFirstName").value("Marie"));
+    }
+
+    // IT-DASH-04 : weeklyActivity contient exactement 7 entrées
+    @Test
+    void GET_dashboard_weeklyActivity_has_seven_entries() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard")
+                        .with(authentication(userAAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weeklyActivity").isArray())
+                .andExpect(jsonPath("$.weeklyActivity.length()").value(7));
+    }
+
+    // IT-DASH-05 : isolation workspace casesOpenedThisWeek — un dossier de wsB n'est pas compté pour wsA
+    @Test
+    void GET_dashboard_casesOpenedThisWeek_isolation_workspace() throws Exception {
+        // Créer un dossier dans wsB
+        CaseFile cfB = new CaseFile();
+        cfB.setTitle("Dossier WS-B");
+        cfB.setLegalDomain("DROIT_DU_TRAVAIL");
+        cfB.setStatus("ACTIVE");
+        cfB.setWorkspace(wsB);
+        cfB.setCreatedBy(wsB.getOwner());
+        caseFileRepository.save(cfB);
+
+        // wsA ne doit pas voir ce dossier
+        mockMvc.perform(get("/api/v1/dashboard")
+                        .with(authentication(userAAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.casesOpenedThisWeek").value(0));
+
+        // wsB doit voir son propre dossier
+        mockMvc.perform(get("/api/v1/dashboard")
+                        .with(authentication(userBAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.casesOpenedThisWeek").value(1));
+    }
+
+    // IT-DASH-06 : isolation workspace weeklyActivity — une analyse de wsB n'est pas comptée pour wsA
+    @Test
+    void GET_dashboard_weeklyActivity_isolation_workspace() throws Exception {
+        // Créer un dossier et une analyse dans wsB
+        CaseFile cfB = new CaseFile();
+        cfB.setTitle("Dossier WS-B analyse");
+        cfB.setLegalDomain("DROIT_DU_TRAVAIL");
+        cfB.setStatus("ACTIVE");
+        cfB.setWorkspace(wsB);
+        cfB.setCreatedBy(wsB.getOwner());
+        caseFileRepository.save(cfB);
+
+        CaseAnalysis caB = new CaseAnalysis();
+        caB.setCaseFile(cfB);
+        caB.setAnalysisType(AnalysisType.STANDARD);
+        caB.setAnalysisStatus(AnalysisStatus.DONE);
+        caB.setVersion(1);
+        caseAnalysisRepository.save(caB);
+
+        // wsA doit avoir tous ses jours à 0
+        mockMvc.perform(get("/api/v1/dashboard")
+                        .with(authentication(userAAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weeklyActivity[0].analysesCount").value(0))
+                .andExpect(jsonPath("$.weeklyActivity[6].analysesCount").value(0));
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
