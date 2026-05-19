@@ -74,6 +74,23 @@ class CaseFileDashboardServiceTest {
     private MotifGraveBeRepository motifGraveBeRepo;
     private AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo;
     private CreditTempsBeRepository creditTempsBeRepo;
+    // SF-DT-36-03 — 16 outils orphelins du dashboard (correctif câblage)
+    private ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo;
+    private JldRetentionRepository jldRetentionRepo;
+    private DublinRecoursRepository dublinRecoursRepo;
+    private CrrvRefusVisaRepository crrvRefusVisaRepo;
+    private VictimeViolencesL4256Repository victimeViolencesL4256Repo;
+    private AcceptationRenonciationSuccessionRepository acceptationRenonciationSuccessionRepo;
+    private AutoriteParentaleBeRepository autoriteParentaleBeRepo;
+    private ContributionAlimentaireEnfantsBeRepository contributionAlimentaireEnfantsBeRepo;
+    private ContributionConjointBeRepository contributionConjointBeRepo;
+    private DivorceDcBeRepository divorceDcBeRepo;
+    private DivorceDdiBeRepository divorceDdiBeRepo;
+    private LiquidationPartageBeRepository liquidationPartageBeRepo;
+    private MediationFamilialePreSaisineRepository mediationFamilialePreSaisineRepo;
+    private PacteSuccessoralBe2018Repository pacteSuccessoralBe2018Repo;
+    private RegimeCommunauteLegaleBeRepository regimeCommunauteLegaleBeRepo;
+    private TribunalFamilleBeMesuresProvisoiresRepository tribunalFamilleBeMesuresProvisoiresRepo;
     // SF-167-03 — Famille FR + BE
     private DivorceAlterationRepository divorceAlterationRepo;
     private DivorceFauteRepository divorceFauteRepo;
@@ -173,6 +190,22 @@ class CaseFileDashboardServiceTest {
         motifGraveBeRepo = mock(MotifGraveBeRepository.class);
         avantagesConventionnelsBeRepo = mock(AvantagesConventionnelsBeRepository.class);
         creditTempsBeRepo = mock(CreditTempsBeRepository.class);
+        procedureNulliteLicenciementRepo = mock(ProcedureNulliteLicenciementRepository.class);
+        jldRetentionRepo = mock(JldRetentionRepository.class);
+        dublinRecoursRepo = mock(DublinRecoursRepository.class);
+        crrvRefusVisaRepo = mock(CrrvRefusVisaRepository.class);
+        victimeViolencesL4256Repo = mock(VictimeViolencesL4256Repository.class);
+        acceptationRenonciationSuccessionRepo = mock(AcceptationRenonciationSuccessionRepository.class);
+        autoriteParentaleBeRepo = mock(AutoriteParentaleBeRepository.class);
+        contributionAlimentaireEnfantsBeRepo = mock(ContributionAlimentaireEnfantsBeRepository.class);
+        contributionConjointBeRepo = mock(ContributionConjointBeRepository.class);
+        divorceDcBeRepo = mock(DivorceDcBeRepository.class);
+        divorceDdiBeRepo = mock(DivorceDdiBeRepository.class);
+        liquidationPartageBeRepo = mock(LiquidationPartageBeRepository.class);
+        mediationFamilialePreSaisineRepo = mock(MediationFamilialePreSaisineRepository.class);
+        pacteSuccessoralBe2018Repo = mock(PacteSuccessoralBe2018Repository.class);
+        regimeCommunauteLegaleBeRepo = mock(RegimeCommunauteLegaleBeRepository.class);
+        tribunalFamilleBeMesuresProvisoiresRepo = mock(TribunalFamilleBeMesuresProvisoiresRepository.class);
         divorceAlterationRepo = mock(DivorceAlterationRepository.class);
         divorceFauteRepo = mock(DivorceFauteRepository.class);
         divorceAccepteRepo = mock(DivorceAccepteRepository.class);
@@ -275,6 +308,22 @@ class CaseFileDashboardServiceTest {
         when(motifGraveBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(avantagesConventionnelsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(creditTempsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(procedureNulliteLicenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(jldRetentionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(dublinRecoursRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(crrvRefusVisaRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(victimeViolencesL4256Repo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(acceptationRenonciationSuccessionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(autoriteParentaleBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(contributionAlimentaireEnfantsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(contributionConjointBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(divorceDcBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(divorceDdiBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(liquidationPartageBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(mediationFamilialePreSaisineRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(pacteSuccessoralBe2018Repo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(regimeCommunauteLegaleBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(tribunalFamilleBeMesuresProvisoiresRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(divorceAlterationRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(divorceFauteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(divorceAccepteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -344,6 +393,14 @@ class CaseFileDashboardServiceTest {
                 transactionRepo, documentsFinContratRepo, atMpRepo,
                 referePrudhomalRepo, contestationAreRepo, motifGraveBeRepo,
                 avantagesConventionnelsBeRepo, creditTempsBeRepo,
+                procedureNulliteLicenciementRepo,
+                jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
+                victimeViolencesL4256Repo,
+                acceptationRenonciationSuccessionRepo, autoriteParentaleBeRepo,
+                contributionAlimentaireEnfantsBeRepo, contributionConjointBeRepo,
+                divorceDcBeRepo, divorceDdiBeRepo, liquidationPartageBeRepo,
+                mediationFamilialePreSaisineRepo, pacteSuccessoralBe2018Repo,
+                regimeCommunauteLegaleBeRepo, tribunalFamilleBeMesuresProvisoiresRepo,
                 divorceAlterationRepo, divorceFauteRepo, divorceAccepteRepo,
                 divorceDesunionIrremediableBeRepo, mesuresProvisoiresRepo,
                 revisionsPostDivorceRepo, ordonnanceProtectionRepo,
@@ -582,7 +639,114 @@ class CaseFileDashboardServiceTest {
                 Arguments.of("F-DT-28-avantages-conventionnels-be", "INDEMNITES",
                         (Runnable) this::seedAvantagesBe),
                 Arguments.of("F-DT-29-credit-temps-be", "DELAIS",
-                        (Runnable) this::seedCreditTempsBe)
+                        (Runnable) this::seedCreditTempsBe),
+                Arguments.of("F-DT-36-procedure-nullite-licenciement", "VALIDITE",
+                        (Runnable) this::seedProcedureNulliteLicenciement)
+        );
+    }
+
+    /**
+     * SF-DT-36-03 — correctif câblage dashboard F-DT-36 : le mapping verdict →
+     * alertLevel respecte la convention couleur de SF-DT-36-02 (rouge réservé
+     * au verdict NULLITE_AVEREE).
+     */
+    @ParameterizedTest(name = "verdict {0} -> alertLevel {1}")
+    @org.junit.jupiter.params.provider.CsvSource({
+            "NULLITE_AVEREE,ALERT",
+            "NULLITE_PROBABLE,WARNING",
+            "PROCEDURE_REGULIERE,OK"
+    })
+    void assembleTiles_procedureNullite_mappeVerdictVersAlertLevel(
+            String verdictName, String expectedAlert) {
+        seedProcedureNulliteLicenciement(
+                ProcedureNulliteLicenciementCalculator.Verdict.valueOf(verdictName));
+        DashboardTile tile = service.assembleTiles(UUID.randomUUID()).stream()
+                .filter(t -> "F-DT-36-procedure-nullite-licenciement".equals(t.toolId()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Tile F-DT-36 absente"));
+        assertThat(tile.alertLevel()).isEqualTo(expectedAlert);
+        assertThat(tile.primaryValue()).isEqualTo(verdictName);
+        assertThat(tile.theme()).isEqualTo("VALIDITE");
+    }
+
+    /**
+     * SF-DT-36-03 — correctif câblage des 4 outils Immigration FR orphelins du
+     * dashboard (F-IM-21/22/23/24) : chacun, une fois calculé/persisté, émet
+     * désormais sa tuile avec le bon thème et le bon alertLevel.
+     */
+    @ParameterizedTest(name = "[{index}] {0} -> {2}")
+    @MethodSource("immigrationOrphanTilesData")
+    void assembleTiles_cableLesOutilsImmigrationOrphelins(
+            String expectedToolId, String expectedTheme, String expectedAlert,
+            Runnable seedRepo) {
+        seedRepo.run();
+        DashboardTile tile = service.assembleTiles(UUID.randomUUID()).stream()
+                .filter(t -> expectedToolId.equals(t.toolId()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Tile " + expectedToolId + " absente"));
+        assertThat(tile.theme()).isEqualTo(expectedTheme);
+        assertThat(tile.alertLevel()).isEqualTo(expectedAlert);
+        assertThat(tile.primaryValue()).isNotNull();
+        assertThat(tile.secondaryValue()).isNotNull();
+    }
+
+    private Stream<Arguments> immigrationOrphanTilesData() {
+        return Stream.of(
+                Arguments.of("F-IM-21-jld-retention-fr", "DELAIS", "ALERT",
+                        (Runnable) () -> seedJldRetention("EXPIRE")),
+                Arguments.of("F-IM-22-dublin-recours-fr", "DELAIS", "WARNING",
+                        (Runnable) () -> seedDublinRecours("URGENT")),
+                Arguments.of("F-IM-23-crrv-refus-visa-fr", "DELAIS", "OK",
+                        (Runnable) () -> seedCrrvRefusVisa("DISPONIBLE")),
+                Arguments.of("F-IM-24-victime-violences-l4256-fr", "VALIDITE", "ALERT",
+                        (Runnable) () -> seedVictimeViolences("NON_ELIGIBLE"))
+        );
+    }
+
+    /**
+     * SF-DT-36-03 — correctif câblage des 11 outils Famille BE orphelins du
+     * dashboard : chacun, une fois calculé/persisté, émet désormais sa tuile
+     * avec le bon toolId, le bon thème et l'alertLevel attendu.
+     */
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource("familleBeOrphanTilesData")
+    void assembleTiles_cableLesOutilsFamilleBeOrphelins(
+            String expectedToolId, String expectedTheme, String expectedAlert,
+            Runnable seedRepo) {
+        seedRepo.run();
+        DashboardTile tile = service.assembleTiles(UUID.randomUUID()).stream()
+                .filter(t -> expectedToolId.equals(t.toolId()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Tile " + expectedToolId + " absente"));
+        assertThat(tile.theme()).isEqualTo(expectedTheme);
+        assertThat(tile.primaryValue()).isNotNull();
+        assertThat(tile.alertLevel()).isEqualTo(expectedAlert);
+    }
+
+    private Stream<Arguments> familleBeOrphanTilesData() {
+        return Stream.of(
+                Arguments.of("acceptation-renonciation-succession", "VALIDITE", null,
+                        (Runnable) this::seedAcceptationRenonciation),
+                Arguments.of("autorite-parentale-be", "VALIDITE", null,
+                        (Runnable) this::seedAutoriteParentaleBe),
+                Arguments.of("contribution-alimentaire-enfants-be", "INDEMNITES", null,
+                        (Runnable) this::seedContributionAlimentaireEnfantsBe),
+                Arguments.of("contribution-conjoint-be", "INDEMNITES", null,
+                        (Runnable) this::seedContributionConjointBe),
+                Arguments.of("divorce-dc-be", "VALIDITE", "OK",
+                        (Runnable) this::seedDivorceDcBe),
+                Arguments.of("divorce-ddi-3voies-be", "DELAIS", null,
+                        (Runnable) this::seedDivorceDdiBe),
+                Arguments.of("liquidation-partage-be", "DELAIS", null,
+                        (Runnable) this::seedLiquidationPartageBe),
+                Arguments.of("mediation-familiale-pre-saisine", "DOCUMENTS", "ALERT",
+                        (Runnable) this::seedMediationFamilialePreSaisine),
+                Arguments.of("pacte-successoral-be-2018", "VALIDITE", "ALERT",
+                        (Runnable) this::seedPacteSuccessoralBe2018),
+                Arguments.of("regime-mat-be-communaute-legale", "DIAGNOSTIC", null,
+                        (Runnable) this::seedRegimeCommunauteLegaleBe),
+                Arguments.of("tribunal-famille-be-mesures-prov", "DELAIS", null,
+                        (Runnable) this::seedTribunalFamilleBeMesuresProvisoires)
         );
     }
 
@@ -715,6 +879,150 @@ class CaseFileDashboardServiceTest {
             e.setSnapshotData(objectMapper.writeValueAsString(r));
             when(licenciementNulDetectionRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
         } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    /** SF-DT-36-03 — seed F-DT-36 avec verdict NULLITE_PROBABLE par défaut. */
+    private void seedProcedureNulliteLicenciement() {
+        seedProcedureNulliteLicenciement(
+                ProcedureNulliteLicenciementCalculator.Verdict.NULLITE_PROBABLE);
+    }
+
+    private void seedProcedureNulliteLicenciement(
+            ProcedureNulliteLicenciementCalculator.Verdict verdict) {
+        try {
+            ProcedureNulliteLicenciementAnalysis e = new ProcedureNulliteLicenciementAnalysis();
+            ProcedureNulliteLicenciementResponse r = new ProcedureNulliteLicenciementResponse(
+                    UUID.randomUUID(),
+                    true, null, null, true, null,
+                    true, true, true, null,
+                    false, false, null, false, false, null,
+                    verdict, 20, List.of(), List.of(), List.of(),
+                    "FRANCE", java.time.Instant.now());
+            e.setSnapshotData(objectMapper.writeValueAsString(r));
+            when(procedureNulliteLicenciementRepo.findByCaseFileId(any()))
+                    .thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    /** SF-DT-36-03 — seed F-IM-21 JLD rétention avec le statut de délai donné. */
+    private void seedJldRetention(String statut) {
+        try {
+            JldRetentionAnalysis e = new JldRetentionAnalysis();
+            JldRetentionResult r = new JldRetentionResult(
+                    null, "AUTRE", false, null, null, null, null,
+                    5L, statut, "formule", "CESEDA L.741", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(jldRetentionRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    /** SF-DT-36-03 — seed F-IM-22 recours Dublin avec le statut de délai donné. */
+    private void seedDublinRecours(String statut) {
+        try {
+            DublinRecoursAnalysis e = new DublinRecoursAnalysis();
+            DublinRecoursResult r = new DublinRecoursResult(
+                    null, "ALLEMAGNE", "AUTRE", false, null, null, null,
+                    3L, statut, "SUSPENSIF", "formule", "Règlement UE 604/2013", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(dublinRecoursRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    /** SF-DT-36-03 — seed F-IM-23 recours CRRV avec le statut de délai donné. */
+    private void seedCrrvRefusVisa(String statut) {
+        try {
+            CrrvRefusVisaAnalysis e = new CrrvRefusVisaAnalysis();
+            CrrvRefusVisaResult r = new CrrvRefusVisaResult(
+                    null, "COURT_SEJOUR", "AUTRE", false, null, null,
+                    10L, statut, "formule", "CESEDA L.312-1", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(crrvRefusVisaRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    /** SF-DT-36-03 — seed F-IM-24 victime de violences L.425-6 avec le score donné. */
+    private void seedVictimeViolences(String eligibiliteScore) {
+        try {
+            VictimeViolencesL4256Analysis e = new VictimeViolencesL4256Analysis();
+            VictimeViolencesL4256Result r = new VictimeViolencesL4256Result(
+                    null, "JAF", 6, null, 0, "ALGERIENNE", eligibiliteScore,
+                    List.of("Ordonnance de protection en cours"), List.of(),
+                    12, "formule", "CESEDA L.425-6", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(victimeViolencesL4256Repo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    // SF-DT-36-03 — seeds des 11 outils Famille BE orphelins. Snapshot JSON
+    // minimal : seuls les champs lus par la tuile sont fournis (Jackson
+    // complète les champs absents à null/défaut).
+    private void seedAcceptationRenonciation() {
+        AcceptationRenonciationSuccessionAnalysis e = new AcceptationRenonciationSuccessionAnalysis();
+        e.setResultData("{\"optionRecommandee\":\"RENONCIATION\",\"delaiRestantJours\":90}");
+        when(acceptationRenonciationSuccessionRepo.findByCaseFileId(any()))
+                .thenReturn(Optional.of(e));
+    }
+
+    private void seedAutoriteParentaleBe() {
+        AutoriteParentaleBeAnalysis e = new AutoriteParentaleBeAnalysis();
+        e.setSnapshotData("{}");
+        when(autoriteParentaleBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedContributionAlimentaireEnfantsBe() {
+        ContributionAlimentaireEnfantsBeAnalysis e = new ContributionAlimentaireEnfantsBeAnalysis();
+        e.setSnapshotData("{}");
+        when(contributionAlimentaireEnfantsBeRepo.findByCaseFileId(any()))
+                .thenReturn(Optional.of(e));
+    }
+
+    private void seedContributionConjointBe() {
+        ContributionConjointBeAnalysis e = new ContributionConjointBeAnalysis();
+        e.setSnapshotData("{}");
+        when(contributionConjointBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedDivorceDcBe() {
+        DivorceDcBeAnalysis e = new DivorceDcBeAnalysis();
+        e.setResultData("{\"verdict\":\"RECEVABLE\"}");
+        when(divorceDcBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedDivorceDdiBe() {
+        DivorceDdiBeAnalysis e = new DivorceDdiBeAnalysis();
+        e.setResultData("{\"voieRecommandee\":\"VOIE_2_COMMUNE_6_MOIS\",\"joursSeparation\":200}");
+        when(divorceDdiBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedLiquidationPartageBe() {
+        LiquidationPartageBeAnalysis e = new LiquidationPartageBeAnalysis();
+        e.setSnapshotData("{\"prochaineEtape\":\"Établir l'inventaire\"}");
+        when(liquidationPartageBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedMediationFamilialePreSaisine() {
+        MediationFamilialePreSaisineAnalysis e = new MediationFamilialePreSaisineAnalysis();
+        e.setResultData("{\"verdict\":\"IRRECEVABLE\"}");
+        when(mediationFamilialePreSaisineRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedPacteSuccessoralBe2018() {
+        PacteSuccessoralBe2018Analysis e = new PacteSuccessoralBe2018Analysis();
+        e.setResultData("{\"verdict\":\"NUL\"}");
+        when(pacteSuccessoralBe2018Repo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedRegimeCommunauteLegaleBe() {
+        RegimeCommunauteLegaleBeAnalysis e = new RegimeCommunauteLegaleBeAnalysis();
+        e.setSnapshotData("{}");
+        when(regimeCommunauteLegaleBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+    }
+
+    private void seedTribunalFamilleBeMesuresProvisoires() {
+        TribunalFamilleBeMesuresProvisoiresAnalysis e = new TribunalFamilleBeMesuresProvisoiresAnalysis();
+        e.setResultData("{\"verdict\":\"URGENT_REFERE\",\"scoreUrgence\":80}");
+        when(tribunalFamilleBeMesuresProvisoiresRepo.findByCaseFileId(any()))
+                .thenReturn(Optional.of(e));
     }
 
     private void seedPrecariteCdd() {

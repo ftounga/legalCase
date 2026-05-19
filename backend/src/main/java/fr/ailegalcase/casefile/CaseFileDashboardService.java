@@ -84,6 +84,25 @@ public class CaseFileDashboardService {
     private final MotifGraveBeRepository motifGraveBeRepo;
     private final AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo;
     private final CreditTempsBeRepository creditTempsBeRepo;
+    // SF-DT-36-03 : repos des 16 outils décisionnels orphelins du dashboard —
+    // ils calculaient et persistaient leur résultat sans émettre de tuile
+    // (audit transversal : F-DT-36 + F-IM-21/22/23/24 + 11 outils Famille BE).
+    private final ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo;
+    private final JldRetentionRepository jldRetentionRepo;
+    private final DublinRecoursRepository dublinRecoursRepo;
+    private final CrrvRefusVisaRepository crrvRefusVisaRepo;
+    private final VictimeViolencesL4256Repository victimeViolencesL4256Repo;
+    private final AcceptationRenonciationSuccessionRepository acceptationRenonciationSuccessionRepo;
+    private final AutoriteParentaleBeRepository autoriteParentaleBeRepo;
+    private final ContributionAlimentaireEnfantsBeRepository contributionAlimentaireEnfantsBeRepo;
+    private final ContributionConjointBeRepository contributionConjointBeRepo;
+    private final DivorceDcBeRepository divorceDcBeRepo;
+    private final DivorceDdiBeRepository divorceDdiBeRepo;
+    private final LiquidationPartageBeRepository liquidationPartageBeRepo;
+    private final MediationFamilialePreSaisineRepository mediationFamilialePreSaisineRepo;
+    private final PacteSuccessoralBe2018Repository pacteSuccessoralBe2018Repo;
+    private final RegimeCommunauteLegaleBeRepository regimeCommunauteLegaleBeRepo;
+    private final TribunalFamilleBeMesuresProvisoiresRepository tribunalFamilleBeMesuresProvisoiresRepo;
     // SF-167-03 : repos Famille FR + BE additionnels (extension à ~31 outils Famille restants).
     private final DivorceAlterationRepository divorceAlterationRepo;
     private final DivorceFauteRepository divorceFauteRepo;
@@ -187,6 +206,22 @@ public class CaseFileDashboardService {
                                      MotifGraveBeRepository motifGraveBeRepo,
                                      AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo,
                                      CreditTempsBeRepository creditTempsBeRepo,
+                                     ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo,
+                                     JldRetentionRepository jldRetentionRepo,
+                                     DublinRecoursRepository dublinRecoursRepo,
+                                     CrrvRefusVisaRepository crrvRefusVisaRepo,
+                                     VictimeViolencesL4256Repository victimeViolencesL4256Repo,
+                                     AcceptationRenonciationSuccessionRepository acceptationRenonciationSuccessionRepo,
+                                     AutoriteParentaleBeRepository autoriteParentaleBeRepo,
+                                     ContributionAlimentaireEnfantsBeRepository contributionAlimentaireEnfantsBeRepo,
+                                     ContributionConjointBeRepository contributionConjointBeRepo,
+                                     DivorceDcBeRepository divorceDcBeRepo,
+                                     DivorceDdiBeRepository divorceDdiBeRepo,
+                                     LiquidationPartageBeRepository liquidationPartageBeRepo,
+                                     MediationFamilialePreSaisineRepository mediationFamilialePreSaisineRepo,
+                                     PacteSuccessoralBe2018Repository pacteSuccessoralBe2018Repo,
+                                     RegimeCommunauteLegaleBeRepository regimeCommunauteLegaleBeRepo,
+                                     TribunalFamilleBeMesuresProvisoiresRepository tribunalFamilleBeMesuresProvisoiresRepo,
                                      DivorceAlterationRepository divorceAlterationRepo,
                                      DivorceFauteRepository divorceFauteRepo,
                                      DivorceAccepteRepository divorceAccepteRepo,
@@ -283,6 +318,22 @@ public class CaseFileDashboardService {
         this.motifGraveBeRepo = motifGraveBeRepo;
         this.avantagesConventionnelsBeRepo = avantagesConventionnelsBeRepo;
         this.creditTempsBeRepo = creditTempsBeRepo;
+        this.procedureNulliteLicenciementRepo = procedureNulliteLicenciementRepo;
+        this.jldRetentionRepo = jldRetentionRepo;
+        this.dublinRecoursRepo = dublinRecoursRepo;
+        this.crrvRefusVisaRepo = crrvRefusVisaRepo;
+        this.victimeViolencesL4256Repo = victimeViolencesL4256Repo;
+        this.acceptationRenonciationSuccessionRepo = acceptationRenonciationSuccessionRepo;
+        this.autoriteParentaleBeRepo = autoriteParentaleBeRepo;
+        this.contributionAlimentaireEnfantsBeRepo = contributionAlimentaireEnfantsBeRepo;
+        this.contributionConjointBeRepo = contributionConjointBeRepo;
+        this.divorceDcBeRepo = divorceDcBeRepo;
+        this.divorceDdiBeRepo = divorceDdiBeRepo;
+        this.liquidationPartageBeRepo = liquidationPartageBeRepo;
+        this.mediationFamilialePreSaisineRepo = mediationFamilialePreSaisineRepo;
+        this.pacteSuccessoralBe2018Repo = pacteSuccessoralBe2018Repo;
+        this.regimeCommunauteLegaleBeRepo = regimeCommunauteLegaleBeRepo;
+        this.tribunalFamilleBeMesuresProvisoiresRepo = tribunalFamilleBeMesuresProvisoiresRepo;
         this.divorceAlterationRepo = divorceAlterationRepo;
         this.divorceFauteRepo = divorceFauteRepo;
         this.divorceAccepteRepo = divorceAccepteRepo;
@@ -430,6 +481,23 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromMotifGraveBeAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromAvantagesConventionnelsBeAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromCreditTempsBeAnalysis(caseFileId));
+        // ── SF-DT-36-03 — correctif câblage des 16 outils orphelins du dashboard
+        addSafely(tiles, () -> tileFromProcedureNulliteLicenciementAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromJldRetentionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDublinRecoursAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromVictimeViolencesL4256Analysis(caseFileId));
+        addSafely(tiles, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromContributionConjointBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDivorceDcBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDivorceDdiBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromLiquidationPartageBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromMediationFamilialePreSaisineAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPacteSuccessoralBe2018Analysis(caseFileId));
+        addSafely(tiles, () -> tileFromRegimeCommunauteLegaleBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromTribunalFamilleBeMesuresProvisoiresAnalysis(caseFileId));
         // ── SF-167-03 — extension Famille FR + BE ────────────────────────────
         addSafely(tiles, () -> tileFromDivorceAlterationAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromDivorceFauteAnalysis(caseFileId));
@@ -1180,6 +1248,359 @@ public class CaseFileDashboardService {
                         verdict != null ? verdict : "—",
                         secondary,
                         alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-DT-36 Nullité de procédure de licenciement (FR) — SF-DT-36-03.
+     *
+     * <p>Correctif de câblage : l'outil calculait et persistait son résultat
+     * (table {@code procedure_nullite_licenciement_analyses}) mais n'émettait
+     * aucune tuile dashboard — il était orphelin de {@code assembleTiles()}.</p>
+     */
+    private DashboardTile tileFromProcedureNulliteLicenciementAnalysis(UUID caseFileId) {
+        return procedureNulliteLicenciementRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), ProcedureNulliteLicenciementResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                int nbVices = r.vicesDetectes() != null ? r.vicesDetectes().size() : 0;
+                String secondary = nbVices + " vice(s) — score " + r.scoreNullite() + "/100";
+                return new DashboardTile(
+                        "F-DT-36-procedure-nullite-licenciement",
+                        "VALIDITE",
+                        "Nullité de procédure",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        mapVerdictNullite(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-IM-21 JLD rétention administrative (FR) — SF-DT-36-03.
+     * Correctif de câblage : outil orphelin du dashboard (résultat persisté
+     * dans {@code jld_retention_analyses} mais jamais agrégé).
+     */
+    private DashboardTile tileFromJldRetentionAnalysis(UUID caseFileId) {
+        return jldRetentionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), JldRetentionResult.class);
+                String secondary = r.joursRestantsAvantSaisine() + " j. avant saisine JLD";
+                return new DashboardTile(
+                        "F-IM-21-jld-retention-fr",
+                        "DELAIS",
+                        "JLD rétention",
+                        r.statut() != null ? r.statut() : "—",
+                        secondary,
+                        mapStatutDelai(r.statut()));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-IM-22 Recours contre transfert Dublin (FR) — SF-DT-36-03.
+     * Correctif de câblage : outil orphelin du dashboard.
+     */
+    private DashboardTile tileFromDublinRecoursAnalysis(UUID caseFileId) {
+        return dublinRecoursRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DublinRecoursResult.class);
+                String secondary = r.joursRestants() + " j. avant expiration du recours";
+                return new DashboardTile(
+                        "F-IM-22-dublin-recours-fr",
+                        "DELAIS",
+                        "Recours Dublin",
+                        r.statut() != null ? r.statut() : "—",
+                        secondary,
+                        mapStatutDelai(r.statut()));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-IM-23 Recours CRRV contre refus de visa (FR) — SF-DT-36-03.
+     * Correctif de câblage : outil orphelin du dashboard.
+     */
+    private DashboardTile tileFromCrrvRefusVisaAnalysis(UUID caseFileId) {
+        return crrvRefusVisaRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), CrrvRefusVisaResult.class);
+                String secondary = r.joursRestants() + " j. avant expiration du recours CRRV";
+                return new DashboardTile(
+                        "F-IM-23-crrv-refus-visa-fr",
+                        "DELAIS",
+                        "Recours CRRV",
+                        r.statut() != null ? r.statut() : "—",
+                        secondary,
+                        mapStatutDelai(r.statut()));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-IM-24 Titre de séjour victime de violences L.425-6 (FR) — SF-DT-36-03.
+     * Correctif de câblage : outil orphelin du dashboard.
+     */
+    private DashboardTile tileFromVictimeViolencesL4256Analysis(UUID caseFileId) {
+        return victimeViolencesL4256Repo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getResultData(), VictimeViolencesL4256Result.class);
+                String score = r.eligibiliteScore();
+                int nbValides = r.criteresValides() != null ? r.criteresValides().size() : 0;
+                int nbManquants = r.criteresManquants() != null ? r.criteresManquants().size() : 0;
+                String secondary = nbValides + " critère(s) validé(s), "
+                        + nbManquants + " manquant(s)";
+                String alert = switch (score == null ? "" : score) {
+                    case "ELIGIBLE_PLEIN_DROIT" -> "OK";
+                    case "ELIGIBLE_SOUS_RESERVE" -> "WARNING";
+                    case "NON_ELIGIBLE" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-24-victime-violences-l4256-fr",
+                        "VALIDITE",
+                        "Titre L.425-6 violences",
+                        score != null ? score : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // SF-DT-36-03 — 11 outils Famille BE orphelins du dashboard. Chacun
+    // calculait/persistait son résultat sans émettre de tuile. Le verdict est
+    // exposé en valeur principale ; alertLevel mappé via mapVerdictDecisionnel
+    // pour les verdicts à sémantique universelle, null sinon (cf. mini-spec).
+    // ─────────────────────────────────────────────────────────────────────
+
+    /** acceptation-renonciation-succession — option successorale (Cciv 768+). */
+    private DashboardTile tileFromAcceptationRenonciationSuccessionAnalysis(UUID caseFileId) {
+        return acceptationRenonciationSuccessionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getResultData(), AcceptationRenonciationSuccessionResult.class);
+                return new DashboardTile(
+                        "acceptation-renonciation-succession",
+                        "VALIDITE",
+                        "Option successorale",
+                        r.optionRecommandee() != null ? r.optionRecommandee() : "—",
+                        r.delaiRestantJours() + " j. avant expiration du droit d'option",
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** autorite-parentale-be — autorité parentale belge. */
+    private DashboardTile tileFromAutoriteParentaleBeAnalysis(UUID caseFileId) {
+        return autoriteParentaleBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), AutoriteParentaleBeResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                return new DashboardTile(
+                        "autorite-parentale-be",
+                        "VALIDITE",
+                        "Autorité parentale (BE)",
+                        verdict != null ? verdict : "—",
+                        null,
+                        mapVerdictDecisionnel(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** contribution-alimentaire-enfants-be — contribution alimentaire enfants (BE). */
+    private DashboardTile tileFromContributionAlimentaireEnfantsBeAnalysis(UUID caseFileId) {
+        return contributionAlimentaireEnfantsBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), ContributionAlimentaireEnfantsBeResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String secondary = r.contributionMensuelleNette() != null
+                        ? formatEuros(r.contributionMensuelleNette()) + " €/mois"
+                        : null;
+                return new DashboardTile(
+                        "contribution-alimentaire-enfants-be",
+                        "INDEMNITES",
+                        "Contribution enfants (BE)",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        mapVerdictDecisionnel(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** contribution-conjoint-be — pension alimentaire entre ex-époux (BE). */
+    private DashboardTile tileFromContributionConjointBeAnalysis(UUID caseFileId) {
+        return contributionConjointBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), ContributionConjointBeResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String secondary = r.montantMensuelIndicatif() != null
+                        ? formatEuros(r.montantMensuelIndicatif()) + " €/mois"
+                        : null;
+                return new DashboardTile(
+                        "contribution-conjoint-be",
+                        "INDEMNITES",
+                        "Pension entre ex-époux (BE)",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        mapVerdictDecisionnel(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** divorce-dc-be — divorce par consentement mutuel (BE). */
+    private DashboardTile tileFromDivorceDcBeAnalysis(UUID caseFileId) {
+        return divorceDcBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceDcBeResult.class);
+                return new DashboardTile(
+                        "divorce-dc-be",
+                        "VALIDITE",
+                        "Divorce consentement mutuel (BE)",
+                        r.verdict() != null ? r.verdict() : "—",
+                        null,
+                        mapVerdictDecisionnel(r.verdict()));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** divorce-ddi-3voies-be — divorce pour désunion irrémédiable (BE). */
+    private DashboardTile tileFromDivorceDdiBeAnalysis(UUID caseFileId) {
+        return divorceDdiBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceDdiBeResult.class);
+                return new DashboardTile(
+                        "divorce-ddi-3voies-be",
+                        "DELAIS",
+                        "Divorce désunion irrémédiable (BE)",
+                        r.voieRecommandee() != null ? r.voieRecommandee() : "—",
+                        r.joursSeparation() + " j. depuis la séparation",
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** liquidation-partage-be — liquidation-partage notarial (BE). */
+    private DashboardTile tileFromLiquidationPartageBeAnalysis(UUID caseFileId) {
+        return liquidationPartageBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), LiquidationPartageBeResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                return new DashboardTile(
+                        "liquidation-partage-be",
+                        "DELAIS",
+                        "Liquidation-partage (BE)",
+                        verdict != null ? verdict : "—",
+                        r.prochaineEtape(),
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** mediation-familiale-pre-saisine — médiation familiale préalable JAF. */
+    private DashboardTile tileFromMediationFamilialePreSaisineAnalysis(UUID caseFileId) {
+        return mediationFamilialePreSaisineRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getResultData(), MediationFamilialePreSaisineResult.class);
+                return new DashboardTile(
+                        "mediation-familiale-pre-saisine",
+                        "DOCUMENTS",
+                        "Médiation familiale préalable",
+                        r.verdict() != null ? r.verdict() : "—",
+                        null,
+                        mapVerdictDecisionnel(r.verdict()));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** pacte-successoral-be-2018 — pacte successoral global (BE). */
+    private DashboardTile tileFromPacteSuccessoralBe2018Analysis(UUID caseFileId) {
+        return pacteSuccessoralBe2018Repo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getResultData(), PacteSuccessoralBe2018Result.class);
+                return new DashboardTile(
+                        "pacte-successoral-be-2018",
+                        "VALIDITE",
+                        "Pacte successoral (BE)",
+                        r.verdict() != null ? r.verdict() : "—",
+                        null,
+                        mapVerdictDecisionnel(r.verdict()));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** regime-mat-be-communaute-legale — régime de communauté légale (BE). */
+    private DashboardTile tileFromRegimeCommunauteLegaleBeAnalysis(UUID caseFileId) {
+        return regimeCommunauteLegaleBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), RegimeCommunauteLegaleBeResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                return new DashboardTile(
+                        "regime-mat-be-communaute-legale",
+                        "DIAGNOSTIC",
+                        "Régime communauté légale (BE)",
+                        verdict != null ? verdict : "—",
+                        null,
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** tribunal-famille-be-mesures-prov — mesures provisoires tribunal famille (BE). */
+    private DashboardTile tileFromTribunalFamilleBeMesuresProvisoiresAnalysis(UUID caseFileId) {
+        return tribunalFamilleBeMesuresProvisoiresRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getResultData(), TribunalFamilleBeMesuresProvisoiresResult.class);
+                return new DashboardTile(
+                        "tribunal-famille-be-mesures-prov",
+                        "DELAIS",
+                        "Mesures provisoires TF (BE)",
+                        r.verdict() != null ? r.verdict() : "—",
+                        "Score urgence " + r.scoreUrgence() + "/100",
+                        null);
             } catch (Exception ex) {
                 return null;
             }
@@ -2730,6 +3151,58 @@ public class CaseFileDashboardService {
             case "ELEVEE", "ELEVE", "FAVORABLE", "VALIDE", "CONFORME" -> "OK";
             case "MOYENNE", "MOYEN", "MITIGE", "CONTESTABLE" -> "WARNING";
             case "FAIBLE", "INVALIDE", "NUL", "DEFAVORABLE", "NON_CONFORME" -> "ALERT";
+            default -> null;
+        };
+    }
+
+    /**
+     * SF-DT-36-03 — mapping verdict F-DT-36 → {@code alertLevel} de la tuile
+     * dashboard. Distinct de {@link #mapVerdictRisque} : F-DT-36 rend un verdict
+     * de <em>gravité</em> (et non de probabilité favorable), où
+     * {@code NULLITE_AVEREE} est le résultat critique. Convention couleur figée
+     * par SF-DT-36-02 : rouge réservé à {@code NULLITE_AVEREE}.
+     */
+    private static String mapVerdictNullite(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "NULLITE_AVEREE" -> "ALERT";
+            case "NULLITE_PROBABLE" -> "WARNING";
+            case "PROCEDURE_REGULIERE" -> "OK";
+            default -> null;
+        };
+    }
+
+    /**
+     * SF-DT-36-03 — mapping du statut de délai → {@code alertLevel} de la tuile
+     * dashboard, commun aux outils contentieux Immigration FR à délai
+     * (F-IM-21 JLD rétention, F-IM-22 Dublin, F-IM-23 CRRV). Statut figé par
+     * les calculateurs : {@code DISPONIBLE} / {@code RECOURS_FORME} (délai
+     * ouvert ou recours déjà formé), {@code URGENT} (échéance proche),
+     * {@code EXPIRE} (délai dépassé — critique).
+     */
+    private static String mapStatutDelai(String statut) {
+        if (statut == null) return null;
+        return switch (statut) {
+            case "DISPONIBLE", "RECOURS_FORME" -> "OK";
+            case "URGENT" -> "WARNING";
+            case "EXPIRE" -> "ALERT";
+            default -> null;
+        };
+    }
+
+    /**
+     * SF-DT-36-03 — mapping {@code alertLevel} pour les verdicts à sémantique
+     * universelle des outils Famille BE (validité d'un acte, recevabilité d'une
+     * demande). Les verdicts spécifiques à un outil (CONTRIBUTION_DUE,
+     * VOIE_2_*, EN_COURS, etc.) ne sont volontairement pas mappés : la tuile
+     * reste neutre ({@code null}) plutôt que d'imposer une couleur arbitraire.
+     */
+    private static String mapVerdictDecisionnel(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "VALIDE", "RECEVABLE" -> "OK";
+            case "CONTESTABLE" -> "WARNING";
+            case "NUL", "IRRECEVABLE" -> "ALERT";
             default -> null;
         };
     }
