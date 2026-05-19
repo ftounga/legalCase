@@ -1,4 +1,7 @@
-/** F-236 SF-236-02 — Tests `PacsDissolutionPrefillRules`. */
+/**
+ * F-236 SF-236-02 — Tests `PacsDissolutionPrefillRules`.
+ * SF-246-08 : ajout tests garde BE + `dateConclusionPacs` champ réel.
+ */
 import {
   PacsDissolutionPrefillRules,
   computePrefillCount,
@@ -7,6 +10,18 @@ import {
 describe('PacsDissolutionPrefillRules', () => {
   it('cas 0', () => {
     expect(computePrefillCount({})).toBe(0);
+  });
+
+  it('retourne 0 pour workspaceCountry BELGIQUE (garde BE)', () => {
+    expect(
+      computePrefillCount({
+        aiData: {
+          dateConclusionPacs: '2018-05-12',
+          modeDissolutionPacsDetecte: 'DECLARATION_UNILATERALE',
+        } as any,
+        workspaceCountry: 'BELGIQUE',
+      }),
+    ).toBe(0);
   });
 
   it('cas M — 3/5', () => {
@@ -37,6 +52,7 @@ describe('PacsDissolutionPrefillRules', () => {
           creancesAllegueesDetectees: ['AUCUNE'],
           patrimoineCommunSignificatifDetecte: true,
         },
+        workspaceCountry: 'FRANCE',
       } as any),
     ).toBe(5);
   });

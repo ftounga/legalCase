@@ -343,4 +343,30 @@ export interface FamilleExtractedData {
   actesEquivalentAcceptationDejaPosesDetected?: boolean | null;
   /** F-210 SF-210-04 : dettes incertaines détectées. */
   dettesIncertainesDetected?: boolean | null;
+  /**
+   * SF-246-08 : pré-fill lot séparation / indivision / PACS / protection
+   * (F-FA-12/13/14/20/21/22). Sous-objet backend `vie_commune_detection`.
+   *
+   * `patrimoineCommunEur` : valeur du patrimoine commun (€) — invariant §5.2
+   * (> 0 ou null, jamais 0). Distinct de `patrimoineCommun` (boolean existant).
+   *
+   * `revenusAnnuelsEpoux` : revenus annuels débiteur/demandeur (€) — pré-fill
+   * outil mesures provisoires + révisions post-divorce.
+   *
+   * Dates — invariant §5.1 (ISO YYYY-MM-DD strict) :
+   * - `dateSeparation` : date séparation effective FR (déjà existant, désormais réel).
+   * - `dateConclusionPacs` : date de conclusion du PACS (déjà existant, désormais réel).
+   * - `dateRequeteOP` : date dépôt requête OP (déjà existant, désormais réel).
+   * - `dateAudienceAOMP` : date audience audience ordonnance de mesures provisoires.
+   *
+   * `nbEnfantsACharge` : nombre d'enfants à charge [0, 30].
+   */
+  /** SF-246-08 : montant du patrimoine commun (€) — distinct du boolean `patrimoineCommun`. */
+  patrimoineCommunEur?: number | null;
+  /** SF-246-08 : date de l'audience AOMP (ISO YYYY-MM-DD). */
+  dateAudienceAOMP?: string | null;
+  /** SF-246-08 : nombre d'enfants à charge [0, 30]. */
+  nbEnfantsACharge?: number | null;
+  /** SF-246-08 : revenus annuels du débiteur/demandeur (€) — pré-fill mesures provisoires & révisions. */
+  revenusAnnuelsEpoux?: number | null;
 }

@@ -12,6 +12,11 @@
  *    le nombre de badges visuels effectivement affichés.
  *  - listes `violences` / `preuves` : compte 1 si au moins 1 code filtré
  *    valide après normalisation.
+ *
+ * SF-246-08 : `dateRequeteOP` désormais champ réel de `FamilleExtractedData`
+ * (sous-objet backend `vie_commune_detection`). Suppression de l'intersection
+ * aspirationnelle — tous les champs utilisés sont déjà dans `FamilleExtractedData`.
+ * Ajout de la garde BE : retourne 0 hors France.
  */
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { PreuveCode, ViolenceCode } from '../../core/models/ordonnance-protection.model';
@@ -38,15 +43,7 @@ export const VALID_PREUVE_CODES: ReadonlySet<string> = new Set<PreuveCode>([
 ]);
 
 export interface OrdonnanceProtectionPrefillInput {
-  aiData?: (Partial<FamilleExtractedData> & {
-    dateRequeteOP?: string | null;
-    violencesAllegueesDetectees?: readonly (string | null | undefined)[] | null;
-    preuvesViolencesDetectees?: readonly (string | null | undefined)[] | null;
-    dangerImmediatDetected?: boolean | null;
-    presenceEnfantsDetected?: boolean | null;
-    logementCommunDetected?: boolean | null;
-    victimeFinanciairementDependanteDetected?: boolean | null;
-  }) | null;
+  aiData?: Partial<FamilleExtractedData> | null;
   procedureChecks?: unknown[] | null;
   aiQuestions?: unknown[] | null;
   piecesManquantes?: unknown[] | null;
@@ -96,6 +93,7 @@ export function isVictimeFinanciairementDependanteTrue(
 }
 
 export function computePrefillCount(input: OrdonnanceProtectionPrefillInput): number {
+  if (input.workspaceCountry && input.workspaceCountry !== 'FRANCE') return 0;
   let n = 0;
   if (computeDateRequete(input) !== null) n++;
   if (computeViolencesAllegueesCodes(input).length > 0) n++;

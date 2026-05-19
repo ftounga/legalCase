@@ -470,4 +470,46 @@ class LegalDomainPromptBuilderTest {
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
         assertThat(instruction).contains("RÈGLE ANTI-CONFUSION régime / fait");
     }
+
+    // SF-246-08 : prompt Famille enrichi du sous-objet vie_commune_detection
+    // ─────────────────────────────────────────────────────────────────────────────────
+    @Test
+    void domainSpecificInstruction_famille_containsVieCommuneDetectionSubObject() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("vie_commune_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_vieCommuneDetection_containsSevenKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Les 7 clés du sous-objet vie_commune_detection.
+        assertThat(instruction).contains("\"date_separation\"");
+        assertThat(instruction).contains("\"patrimoine_commun_eur\"");
+        assertThat(instruction).contains("\"date_conclusion_pacs\"");
+        assertThat(instruction).contains("\"date_requete_op\"");
+        assertThat(instruction).contains("\"date_audience_aomp\"");
+        assertThat(instruction).contains("\"nb_enfants_a_charge\"");
+        assertThat(instruction).contains("\"revenus_annuels_epoux_eur\"");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_vieCommuneDetection_imposesNullOutsideFrance() {
+        // Le sous-objet doit rester null hors FR (Belgique gérée par ses propres champs).
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_vieCommuneDetection_regleAntiConfusionDates() {
+        // La règle anti-confusion des 4 dates doit être présente.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("DISTINCTION DES DATES VIE COMMUNE");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_vieCommuneDetection_borneNbEnfants() {
+        // La borne 30 de nb_enfants_a_charge doit être explicite dans le prompt.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("entier entre 0 et 30");
+    }
 }

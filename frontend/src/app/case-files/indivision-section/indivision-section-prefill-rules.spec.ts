@@ -1,4 +1,7 @@
-/** F-236 SF-236-02 — Tests `IndivisionPrefillRules`. */
+/**
+ * F-236 SF-236-02 — Tests `IndivisionPrefillRules`.
+ * SF-246-08 : ajout tests garde BE + `dateSeparation` champ réel.
+ */
 import {
   IndivisionPrefillRules,
   computePrefillCount,
@@ -7,6 +10,15 @@ import {
 describe('IndivisionPrefillRules', () => {
   it('cas 0', () => {
     expect(computePrefillCount({})).toBe(0);
+  });
+
+  it('retourne 0 pour workspaceCountry BELGIQUE (garde BE)', () => {
+    expect(
+      computePrefillCount({
+        aiData: { dateSeparation: '2024-03-01', logementCommunDetected: true } as any,
+        workspaceCountry: 'BELGIQUE',
+      }),
+    ).toBe(0);
   });
 
   it('cas M — date seule', () => {
@@ -23,6 +35,7 @@ describe('IndivisionPrefillRules', () => {
     expect(
       computePrefillCount({
         aiData: { dateSeparation: '2024-03-01', logementCommunDetected: true },
+        workspaceCountry: 'FRANCE',
       } as any),
     ).toBe(2);
   });

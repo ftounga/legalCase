@@ -3376,4 +3376,204 @@ class CaseAnalysisResponseTest {
         assertThat(f.regimeMatrimonialDetecte()).isEqualTo("COMMUNAUTE_LEGALE");
         assertThat(f.valeurCommunauteEurDetectee()).isEqualTo(120000.0);
     }
+
+    // SF-246-08 : pré-fill IA F-FA-12/13/14/20/21/22 — sous-objet vie_commune_detection
+    // ─────────────────────────────────────────────────────────────────────────────────
+    /** Cas nominal : 7 champs, tous présents et valides. */
+    @Test
+    void extractFamilleData_vieCommuneDetection_nominalCase_allSevenFields() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "pacs_dissolution_envisagee": true,
+                    "vie_commune_detection": {
+                      "date_separation": "2023-06-15",
+                      "patrimoine_commun_eur": 200000.0,
+                      "date_conclusion_pacs": "2018-03-01",
+                      "date_requete_op": "2024-01-10",
+                      "date_audience_aomp": "2024-02-20",
+                      "nb_enfants_a_charge": 2,
+                      "revenus_annuels_epoux_eur": 45000.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparation()).isEqualTo("2023-06-15");
+        assertThat(f.patrimoineCommunEur()).isEqualTo(200000.0);
+        assertThat(f.dateConclusionPacs()).isEqualTo("2018-03-01");
+        assertThat(f.dateRequeteOP()).isEqualTo("2024-01-10");
+        assertThat(f.dateAudienceAOMP()).isEqualTo("2024-02-20");
+        assertThat(f.nbEnfantsACharge()).isEqualTo(2);
+        assertThat(f.revenusAnnuelsEpoux()).isEqualTo(45000.0);
+    }
+
+    /** Sous-objet absent → 7 champs tous null (no-op gracieux). */
+    @Test
+    void extractFamilleData_vieCommuneDetection_absent_allSevenFieldsNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "separation_corps_envisagee": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparation()).isNull();
+        assertThat(f.patrimoineCommunEur()).isNull();
+        assertThat(f.dateConclusionPacs()).isNull();
+        assertThat(f.dateRequeteOP()).isNull();
+        assertThat(f.dateAudienceAOMP()).isNull();
+        assertThat(f.nbEnfantsACharge()).isNull();
+        assertThat(f.revenusAnnuelsEpoux()).isNull();
+    }
+
+    /** Sous-objet null JSON → 7 champs tous null. */
+    @Test
+    void extractFamilleData_vieCommuneDetection_null_allSevenFieldsNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "separation_corps_envisagee": true,
+                    "vie_commune_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparation()).isNull();
+        assertThat(f.patrimoineCommunEur()).isNull();
+        assertThat(f.nbEnfantsACharge()).isNull();
+    }
+
+    /** Date mal formée (non-ISO) → rejetée (isoDateOrNull). */
+    @Test
+    void extractFamilleData_vieCommuneDetection_dateMalFormee_rejetee() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "separation_corps_envisagee": true,
+                    "vie_commune_detection": {
+                      "date_separation": "15/06/2023",
+                      "patrimoine_commun_eur": 100000.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparation()).isNull();
+        // patrimoine_commun_eur valide → non null
+        assertThat(f.patrimoineCommunEur()).isEqualTo(100000.0);
+    }
+
+    /** Montant négatif → rejeté (positiveDoubleOrNull — invariant §5.2). */
+    @Test
+    void extractFamilleData_vieCommuneDetection_montantNegatif_rejete() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "separation_corps_envisagee": true,
+                    "vie_commune_detection": {
+                      "patrimoine_commun_eur": -1.0,
+                      "revenus_annuels_epoux_eur": 0.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        // vieCommuneDetectionPresent = false (all null) + sc = true → f non null
+        assertThat(f).isNotNull();
+        assertThat(f.patrimoineCommunEur()).isNull();
+        assertThat(f.revenusAnnuelsEpoux()).isNull();
+    }
+
+    /** nb_enfants_a_charge hors plage [0, 30] → null (boundedIntOrNull). */
+    @Test
+    void extractFamilleData_vieCommuneDetection_nbEnfantsHorsPlage_null() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "revision_post_divorce_envisagee": true,
+                    "vie_commune_detection": {
+                      "nb_enfants_a_charge": 35
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.nbEnfantsACharge()).isNull();
+    }
+
+    /** nb_enfants_a_charge = 0 accepté (borne inclusive). */
+    @Test
+    void extractFamilleData_vieCommuneDetection_nbEnfantsZero_accepte() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "vie_commune_detection": {
+                      "nb_enfants_a_charge": 0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.nbEnfantsACharge()).isEqualTo(0);
+    }
+
+    /** Seul un champ non-null suffit à retourner un FamilleExtractedData non-null. */
+    @Test
+    void extractFamilleData_vieCommuneDetection_seulChampNonNull_retourneNonNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "vie_commune_detection": {
+                      "date_requete_op": "2024-01-10"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateRequeteOP()).isEqualTo("2024-01-10");
+    }
+
+    /** Coexistence avec regime_matrimonial_detection : les deux sous-objets sont lus. */
+    @Test
+    void extractFamilleData_vieCommuneDetection_coexistenceAvecRegimeMatrimonial() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_consentement_mutuel_envisage": true,
+                    "regime_matrimonial_detection": {
+                      "valeur_communaute_eur": 150000.0
+                    },
+                    "vie_commune_detection": {
+                      "date_separation": "2023-06-15",
+                      "nb_enfants_a_charge": 1
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // regime_matrimonial_detection intact.
+        assertThat(f.valeurCommunauteEurDetectee()).isEqualTo(150000.0);
+        // vie_commune_detection intact.
+        assertThat(f.dateSeparation()).isEqualTo("2023-06-15");
+        assertThat(f.nbEnfantsACharge()).isEqualTo(1);
+    }
 }
