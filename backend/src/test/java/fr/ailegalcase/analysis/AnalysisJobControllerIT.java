@@ -103,6 +103,7 @@ class AnalysisJobControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Jobs");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         auth = buildGoogleAuth("google-jobs-sub", "jobs-test@example.com");
@@ -177,6 +178,7 @@ class AnalysisJobControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         WorkspaceMember otherMember = new WorkspaceMember();
@@ -192,6 +194,7 @@ class AnalysisJobControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre Workspace");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
 
         // L'user du workspace A essaie d'accéder au dossier du workspace B

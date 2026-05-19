@@ -11,16 +11,18 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -38,20 +40,25 @@ import java.util.TreeSet;
  * <p>Cette extension est enregistrée automatiquement pour tous les tests
  * (cf. {@code junit-platform.properties} +
  * {@code META-INF/services/org.junit.jupiter.api.extension.Extension}). Avant
- * chaque test disposant d'un contexte Spring, elle vide les tables métier de la
- * base H2 ({@code SET REFERENTIAL_INTEGRITY FALSE} puis {@code TRUNCATE TABLE}).
- * Le nettoyage est centralisé : il ne dépend plus du fait que chaque IT pense à
- * nettoyer dans le bon ordre.
+ * chaque test disposant d'un contexte Spring, elle vide les données de test de
+ * la base H2 ({@code SET REFERENTIAL_INTEGRITY FALSE}, puis {@code TRUNCATE TABLE}
+ * des tables purement métier et {@code DELETE} ciblé des lignes de test sur les
+ * tables de référence — voir ci-dessous). Le nettoyage est centralisé : il ne
+ * dépend plus du fait que chaque IT pense à nettoyer dans le bon ordre.
  *
- * <p>Les tables seedées par Liquibase (données de référence :
- * {@code legal_referentials}, {@code decision_tool_visibility_rules}…) ne sont
- * jamais tronquées — sans quoi tous les outils décisionnels qui les consultent
- * échoueraient. Elles sont détectées au premier nettoyage : toute table non vide
- * juste après Liquibase (donc avant l'exécution du premier test) contient des
- * données de référence et est préservée pour la durée du fork JVM. La détection
- * est fiable car aucun IT n'insère de données métier dans un {@code @BeforeAll}
- * (vérifié F-245). Les tables techniques de Liquibase ({@code DATABASECHANGELOG*})
- * sont préservées de la même façon.
+ * <p>Les données de référence seedées par Liquibase ({@code legal_referentials},
+ * {@code decision_tool_visibility_rules}…) doivent survivre — sans quoi tous les
+ * outils décisionnels qui les consultent échoueraient. La préservation se fait
+ * <b>au niveau ligne</b>, et non au niveau table : au premier nettoyage (avant
+ * l'exécution du premier test), l'extension capture les valeurs de clé primaire
+ * des lignes présentes dans chaque table. Le nettoyage supprime ensuite les
+ * lignes de test (clé hors snapshot) et conserve les lignes seedées. C'est
+ * indispensable pour les tables à la fois seedées <em>et</em> écrites par des
+ * tests (ex. {@code legal_referentials}, où un test peut insérer des entrées
+ * temporaires) : une préservation au niveau table laisserait fuir ces écritures
+ * d'un test à l'autre. La détection est fiable car aucun IT n'insère de données
+ * dans un {@code @BeforeAll} (vérifié F-245). Les tables techniques de Liquibase
+ * ({@code DATABASECHANGELOG*}) sont exclues d'emblée.
  *
  * <p>Le nettoyage s'exécute en {@link BeforeEachCallback} (et non après le test) :
  * il est ainsi hors de toute transaction de test ouverte (pas de conflit de verrou
@@ -66,12 +73,25 @@ public class DatabaseCleanupExtension implements BeforeEachCallback {
     private static final List<String> SYSTEM_TABLES = List.of("DATABASECHANGELOG", "DATABASECHANGELOGLOCK");
 
     /**
-     * Tables de référence (non vides juste après Liquibase) à préserver — capturé
-     * une seule fois, au premier nettoyage, partagé pour tout le fork JVM.
-     * {@code volatile} + synchronisation par prudence ; les tests s'exécutent
-     * en réalité dans un fork mono-thread ({@code forkCount=1}).
+     * Snapshot des données de référence seedées par Liquibase, capturé une seule fois
+     * (au premier nettoyage, avant tout test) et partagé pour le fork JVM. Pour chaque
+     * table contenant des lignes juste après Liquibase, on retient la valeur de clé
+     * primaire de ces lignes. Le nettoyage supprime alors les lignes de test (clé hors
+     * snapshot) tout en conservant les lignes de référence — indispensable pour les
+     * tables à la fois seedées ET écrites par des tests (ex. {@code legal_referentials}).
+     * {@code volatile} + synchronisation par prudence ; les tests s'exécutent en réalité
+     * dans un fork mono-thread ({@code forkCount=1}).
      */
-    private static volatile Set<String> seededTables;
+    private static volatile Map<String, SeedTable> seedTables;
+
+    /**
+     * Une table contenant des données de référence. {@code primaryKeyColumn} est la
+     * colonne clé primaire mono-colonne ; {@code null} si la table n'a pas de clé
+     * primaire simple exploitable, auquel cas la table est préservée intégralement
+     * (cas de repli conservateur). {@code seedKeys} liste les valeurs de clé primaire
+     * des lignes seedées par Liquibase.
+     */
+    private record SeedTable(String primaryKeyColumn, List<Object> seedKeys) {}
 
     @Override
     public void beforeEach(ExtensionContext context) {
@@ -104,13 +124,21 @@ public class DatabaseCleanupExtension implements BeforeEachCallback {
                 return;
             }
             List<String> tables = applicationTables(connection);
-            Set<String> preserved = preservedTables(connection, tables);
+            Map<String, SeedTable> seeds = seedTables(connection, tables);
             try (Statement statement = connection.createStatement()) {
                 statement.execute("SET REFERENTIAL_INTEGRITY FALSE");
                 for (String table : tables) {
-                    if (!preserved.contains(table)) {
+                    SeedTable seed = seeds.get(table);
+                    if (seed == null) {
+                        // Table sans donnée de référence → vidée intégralement.
                         statement.execute("TRUNCATE TABLE \"" + table + "\"");
+                    } else if (seed.primaryKeyColumn() != null) {
+                        // Table de référence : on supprime les lignes de test (clé hors
+                        // snapshot) et on conserve les lignes seedées par Liquibase.
+                        deleteNonSeedRows(connection, table, seed);
                     }
+                    // seed != null && primaryKeyColumn == null → table de référence
+                    // sans PK simple : préservée intégralement (repli conservateur).
                 }
                 statement.execute("SET REFERENTIAL_INTEGRITY TRUE");
             }
@@ -121,35 +149,88 @@ public class DatabaseCleanupExtension implements BeforeEachCallback {
     }
 
     /**
-     * Tables de référence à préserver (jamais tronquées) : capturées une fois, au
-     * premier nettoyage, comme l'ensemble des tables non vides juste après
-     * Liquibase — soit les données de référence seedées par les migrations.
+     * Capture, une seule fois, le snapshot des données de référence : pour chaque table
+     * non vide juste après Liquibase (donc avant tout test — aucun IT n'insère en
+     * {@code @BeforeAll}, vérifié F-245), la colonne clé primaire et les valeurs de clé
+     * des lignes seedées.
      */
-    private Set<String> preservedTables(Connection connection, List<String> tables) throws SQLException {
-        Set<String> captured = seededTables;
+    private Map<String, SeedTable> seedTables(Connection connection, List<String> tables) throws SQLException {
+        Map<String, SeedTable> captured = seedTables;
         if (captured != null) {
             return captured;
         }
         synchronized (DatabaseCleanupExtension.class) {
-            if (seededTables == null) {
-                Set<String> nonEmpty = new HashSet<>();
+            if (seedTables == null) {
+                Map<String, SeedTable> map = new HashMap<>();
                 for (String table : tables) {
-                    if (rowCount(connection, table) > 0) {
-                        nonEmpty.add(table);
+                    String pk = singleColumnPrimaryKey(connection, table);
+                    if (pk == null) {
+                        // Pas de PK simple : préservée intégralement si elle est non vide.
+                        if (isNonEmpty(connection, table)) {
+                            map.put(table, new SeedTable(null, List.of()));
+                        }
+                        continue;
+                    }
+                    List<Object> keys = primaryKeyValues(connection, table, pk);
+                    if (!keys.isEmpty()) {
+                        map.put(table, new SeedTable(pk, keys));
                     }
                 }
-                seededTables = Set.copyOf(nonEmpty);
-                log.info("DatabaseCleanupExtension — {} table(s) de référence préservée(s) : {}",
-                        nonEmpty.size(), new TreeSet<>(nonEmpty));
+                seedTables = Map.copyOf(map);
+                log.info("DatabaseCleanupExtension — {} table(s) de référence : {}",
+                        map.size(), new TreeSet<>(map.keySet()));
             }
-            return seededTables;
+            return seedTables;
         }
     }
 
-    private long rowCount(Connection connection, String table) throws SQLException {
+    /** Colonne clé primaire mono-colonne de la table, ou {@code null} si PK absente / composite. */
+    private String singleColumnPrimaryKey(Connection connection, String table) throws SQLException {
+        List<String> columns = new ArrayList<>();
+        try (ResultSet rs = connection.getMetaData()
+                .getPrimaryKeys(connection.getCatalog(), "PUBLIC", table)) {
+            while (rs.next()) {
+                columns.add(rs.getString("COLUMN_NAME"));
+            }
+        }
+        return columns.size() == 1 ? columns.get(0) : null;
+    }
+
+    /** Valeurs de la colonne clé primaire {@code pkColumn} de la table (toutes les lignes). */
+    private List<Object> primaryKeyValues(Connection connection, String table, String pkColumn)
+            throws SQLException {
+        List<Object> values = new ArrayList<>();
         try (Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM \"" + table + "\"")) {
-            return resultSet.next() ? resultSet.getLong(1) : 0L;
+             ResultSet resultSet = statement.executeQuery(
+                     "SELECT \"" + pkColumn + "\" FROM \"" + table + "\"")) {
+            while (resultSet.next()) {
+                values.add(resultSet.getObject(1));
+            }
+        }
+        return values;
+    }
+
+    /** Vrai si la table contient au moins une ligne. */
+    private boolean isNonEmpty(Connection connection, String table) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(
+                     "SELECT 1 FROM \"" + table + "\" LIMIT 1")) {
+            return resultSet.next();
+        }
+    }
+
+    /** Supprime de la table les lignes dont la clé primaire n'est pas dans le snapshot seed. */
+    private void deleteNonSeedRows(Connection connection, String table, SeedTable seed)
+            throws SQLException {
+        String placeholders = String.join(",", Collections.nCopies(seed.seedKeys().size(), "?"));
+        String sql = "DELETE FROM \"" + table + "\" WHERE \"" + seed.primaryKeyColumn()
+                + "\" NOT IN (" + placeholders + ")";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            int index = 1;
+            for (Object key : seed.seedKeys()) {
+                statement.setObject(index++, key);
+            }
+            statement.executeUpdate();
         }
     }
 

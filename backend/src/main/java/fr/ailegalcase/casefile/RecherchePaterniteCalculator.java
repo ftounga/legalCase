@@ -161,15 +161,17 @@ public final class RecherchePaterniteCalculator {
         if (motifsSerieux) score += 15;
         if (presomptionRefusADN) score += 15;
 
-        // Verdict
+        // Verdict — seuils calibrés sur le faisceau d'indices typique :
+        // un demandeur recevable a au moins ADN + (motifs sérieux OU possession
+        // d'état OU refus ADN) + délai non prescrit → score ≥ 65.
         VerdictRecevabilite verdict;
         if (prescrit) {
             verdict = VerdictRecevabilite.FAIBLE;
         } else if (signauxPositifs == 0) {
             verdict = VerdictRecevabilite.FAIBLE;
-        } else if (score >= 75) {
+        } else if (score >= 65) {
             verdict = VerdictRecevabilite.ELEVEE;
-        } else if (score >= 50) {
+        } else if (score >= 45) {
             verdict = VerdictRecevabilite.MOYENNE;
         } else {
             verdict = VerdictRecevabilite.FAIBLE;

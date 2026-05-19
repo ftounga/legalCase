@@ -22,6 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = {
         "spring.security.oauth2.client.registration.google.client-id=test-google-id",
         "spring.security.oauth2.client.registration.google.client-secret=test-google-secret",
+        // ChunkingService envoie le document directement à l'analyse (sans chunking)
+        // sous le seuil direct-analysis-threshold-chars. On force le seuil à 0 pour
+        // que tout texte non vide passe réellement par la branche de chunking testée.
+        "app.pipeline.direct-analysis-threshold-chars=0",
 })
 class ChunkingServiceIT {
 
@@ -84,6 +88,7 @@ class ChunkingServiceIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier chunking test");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         Document document = new Document();
@@ -118,7 +123,9 @@ class ChunkingServiceIT {
     // C-02 : texte long → plusieurs chunks
     @Test
     void chunk_longText_savesMultipleChunks() {
-        String text = "mot ".repeat(500); // ~2000 chars
+        // CHUNK_SIZE=3000, OVERLAP=400 → pas effectif 2600 chars : ~8000 chars
+        // produisent plusieurs chunks.
+        String text = "mot ".repeat(2000); // ~8000 chars
 
         chunkingService.chunk(extractionId, text);
 

@@ -3,7 +3,9 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
+import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -52,22 +55,22 @@ public class AnalysisStatusStreamController {
     public SseEmitter stream(@PathVariable UUID id,
                              @AuthenticationPrincipal OidcUser oidcUser,
                              Principal principal) {
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
-
+        // Vérification existence + isolation workspace AVANT la création de l'emitter :
+        // une fois l'emitter renvoyé le statut HTTP est figé, on ne peut plus signaler
+        // 404/403. On lève donc les exceptions de statut de façon synchrone (même
+        // contrat que les contrôleurs frères, ex. AnalysisJobController).
         var user = currentUserResolver.resolve(oidcUser, OAuthProviderResolver.resolve(principal), principal);
-        var workspaceMember = workspaceMemberRepository.findByUserAndPrimaryTrue(user);
-        if (workspaceMember.isEmpty()) {
-            emitter.complete();
-            return emitter;
-        }
-        var workspace = workspaceMember.get().getWorkspace();
+        var workspace = workspaceMemberRepository.findByUserAndPrimaryTrue(user)
+                .map(WorkspaceMember::getWorkspace)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
 
-        var caseFileOpt = caseFileRepository.findByIdAndDeletedAtIsNull(id);
-        if (caseFileOpt.isEmpty() || !caseFileOpt.get().getWorkspace().getId().equals(workspace.getId())) {
-            emitter.complete();
-            return emitter;
+        var caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
+        if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Case file not in current workspace");
         }
-        var caseFile = caseFileOpt.get();
+
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
 
         // SF-159-03 — court-circuit uniquement si AUCUN job actif (PENDING/PROCESSING).
         // Avant : la présence d'une CaseAnalysis DONE court-circuitait l'enregistrement

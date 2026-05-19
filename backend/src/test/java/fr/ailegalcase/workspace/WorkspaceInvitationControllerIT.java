@@ -4,6 +4,8 @@ import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,7 @@ class WorkspaceInvitationControllerIT {
     @Autowired private WorkspaceRepository workspaceRepository;
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private WorkspaceInvitationRepository workspaceInvitationRepository;
+    @Autowired private SubscriptionRepository subscriptionRepository;
 
     private User owner;
     private Workspace workspace;
@@ -47,6 +50,7 @@ class WorkspaceInvitationControllerIT {
 
     @BeforeEach
     void setUp() {
+        subscriptionRepository.deleteAll();
         workspaceInvitationRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
         workspaceRepository.deleteAll();
@@ -79,6 +83,15 @@ class WorkspaceInvitationControllerIT {
         ownerMember.setMemberRole("OWNER");
         ownerMember.setPrimary(true);
         workspaceMemberRepository.save(ownerMember);
+
+        // Plan TEAM (6 sièges) : autorise l'invitation de membres au-delà de l'owner.
+        // Sans abonnement le workspace est résolu en FREE = 1 siège → gate seat 402.
+        Subscription subscription = new Subscription();
+        subscription.setWorkspaceId(workspace.getId());
+        subscription.setPlanCode("TEAM");
+        subscription.setStatus("ACTIVE");
+        subscription.setStartedAt(Instant.now());
+        subscriptionRepository.save(subscription);
 
         ownerAuth = buildAuth("sub-owner-inv-it", "owner-inv-it@example.com");
     }
@@ -189,6 +202,7 @@ class WorkspaceInvitationControllerIT {
         accepteeWorkspace.setOwner(acceptee);
         accepteeWorkspace.setPlanCode("STARTER");
         accepteeWorkspace.setStatus("ACTIVE");
+        accepteeWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(accepteeWorkspace);
 
         WorkspaceMember accepteeMember = new WorkspaceMember();
@@ -240,6 +254,7 @@ class WorkspaceInvitationControllerIT {
         otherWorkspace.setOwner(owner);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         WorkspaceInvitation inv = new WorkspaceInvitation();

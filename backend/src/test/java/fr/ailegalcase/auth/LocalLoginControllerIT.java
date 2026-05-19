@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,15 +75,19 @@ class LocalLoginControllerIT {
     void login_thenMe_returnsLocalUser() throws Exception {
         createLocalAccount("session@example.com", true);
 
-        MockHttpSession session = new MockHttpSession();
-
-        mockMvc.perform(post(LOGIN_URL)
+        // Spring Session (JDBC) est actif : la continuité de session passe par le
+        // cookie SESSION, pas par l'objet MockHttpSession. On rejoue donc le cookie
+        // émis par la réponse de login sur la requête /api/me.
+        var loginResult = mockMvc.perform(post(LOGIN_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson("session@example.com", "password123"))
-                        .session(session))
-                .andExpect(status().isOk());
+                        .content(loginJson("session@example.com", "password123")))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        mockMvc.perform(get(ME_URL).session(session))
+        jakarta.servlet.http.Cookie sessionCookie = loginResult.getResponse().getCookie("SESSION");
+        assertThat(sessionCookie).as("cookie SESSION émis par le login").isNotNull();
+
+        mockMvc.perform(get(ME_URL).cookie(sessionCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("session@example.com"))
                 .andExpect(jsonPath("$.provider").value("LOCAL"));

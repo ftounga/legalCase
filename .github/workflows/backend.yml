@@ -34,8 +34,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run tests
-        run: cd backend && ./mvnw test -q
+      - name: Run tests (unitaires + intégration)
+        run: cd backend && ./mvnw verify -q
 
   build-and-deploy:
     name: Build & Deploy

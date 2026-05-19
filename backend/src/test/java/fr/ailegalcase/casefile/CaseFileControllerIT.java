@@ -424,12 +424,12 @@ class CaseFileControllerIT {
     // I-17 : PATCH /{id}/reopen → 402 si quota atteint
     @Test
     void reopen_quotaFull_returns402() throws Exception {
-        // Créer une subscription STARTER (max 3 open)
+        // Plan FREE = 2 dossiers ouverts max (cf. PlanLimitService.FREE_MAX_OPEN_CASE_FILES).
         Workspace workspace = workspaceMemberRepository.findAll().stream()
                 .filter(WorkspaceMember::isPrimary).findFirst().orElseThrow().getWorkspace();
         Subscription sub = new Subscription();
         sub.setWorkspaceId(workspace.getId());
-        sub.setPlanCode("STARTER");
+        sub.setPlanCode("FREE");
         sub.setStatus("ACTIVE");
         sub.setStartedAt(Instant.now());
         subscriptionRepository.save(sub);
@@ -438,10 +438,9 @@ class CaseFileControllerIT {
         String closedId = createCaseFile("Dossier fermé");
         mockMvc.perform(patch("/api/v1/case-files/" + closedId + "/close").with(authentication(auth)));
 
-        // Remplir le quota (STARTER = 3 max open) avec 3 autres dossiers
+        // Remplir le quota (FREE = 2 dossiers ouverts) avec 2 autres dossiers
         createCaseFile("Open 1");
         createCaseFile("Open 2");
-        createCaseFile("Open 3");
 
         mockMvc.perform(patch("/api/v1/case-files/" + closedId + "/reopen")
                         .with(authentication(auth)))
@@ -609,10 +608,13 @@ class CaseFileControllerIT {
     }
 
     private String createCaseFile(String title) throws Exception {
+        // andExpect(isCreated) : un quota plein renverrait 402 sans champ "id" — on
+        // échoue ici explicitement plutôt que sur un NullPointerException opaque.
         String response = mockMvc.perform(post("/api/v1/case-files")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"" + title + "\"}")
                         .with(authentication(auth)))
+                .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return new com.fasterxml.jackson.databind.ObjectMapper().readTree(response).get("id").asText();
     }

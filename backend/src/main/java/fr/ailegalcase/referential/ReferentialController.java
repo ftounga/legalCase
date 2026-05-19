@@ -8,6 +8,7 @@ import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,9 @@ public class ReferentialController {
         this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
+    // @Transactional : la résolution du workspace (member.getWorkspace().getId()/getCountry())
+    // touche une association LAZY ; avec open-in-view: false il faut une session active.
+    @Transactional(readOnly = true)
     @GetMapping
     public ResponseEntity<ReferentialResponse> getReferentials(
             @RequestParam String domain,
@@ -61,6 +65,8 @@ public class ReferentialController {
         return ResponseEntity.ok(referentialService.getReferentials(domain.toUpperCase(), workspaceId, workspaceCountry));
     }
 
+    // @Transactional : idem — member.getWorkspace().getId() est une association LAZY.
+    @Transactional
     @PutMapping("/{id}")
     public ResponseEntity<ReferentialUpdateResponse> updateReferential(
             @PathVariable UUID id,
