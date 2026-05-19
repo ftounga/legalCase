@@ -424,7 +424,8 @@ class CaseFileDashboardServiceTest {
                 procedureCheckAlignmentService,
                 pieceManquanteAlignmentService,
                 risqueAlignmentService,
-                aiQuestionAlignmentService);
+                aiQuestionAlignmentService,
+                mock(DashboardTileCrashRecorder.class));
     }
 
     @Test

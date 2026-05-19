@@ -148,7 +148,8 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class),
                 mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class),
                 mock(fr.ailegalcase.analysis.RisqueAlignmentService.class),
-                mock(fr.ailegalcase.analysis.AiQuestionAlignmentService.class));
+                mock(fr.ailegalcase.analysis.AiQuestionAlignmentService.class),
+                mock(DashboardTileCrashRecorder.class));
     }
 
     @Test

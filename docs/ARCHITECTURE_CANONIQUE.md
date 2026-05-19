@@ -317,7 +317,9 @@ analysis_qa_snapshots
 
 analysis_jobs  
 usage_events  
-subscriptions
+subscriptions  
+dashboard_tile_crashes  
+dashboard_audit_runs
 
 ---
 
@@ -1776,6 +1778,50 @@ Règles :
 - Tous les endpoints `/api/v1/super-admin/backlog/*` gated par `SuperAdminService.assertSuperAdmin`.
 - La sync est idempotente : `BacklogSyncService.sync()` appelé 2× consécutifs ne crée pas de doublons (upsert par code).
 - Suppressions : aucune. Si un code disparaît du MD, on positionne `is_orphaned=true` (conservation historique).
+
+---
+
+## dashboard_tile_crashes
+
+F-180 SF-180-01 — crashes runtime des mappers `DashboardTile` de F-167. Une row = une exception réelle jetée en production par un mapper `tileFromXxx()` de `CaseFileDashboardService` et catchée par `addSafely()`. Complément **runtime** du garde-fou **statique** `DashboardTileToolIdIntegrityIT` (SF-DT-36-03, CI build-time) : ici on persiste les crashes d'exécution, là on empêche les désynchros structurelles avant merge.
+
+Colonnes :
+- id (UUID, PK)
+- tool_id (VARCHAR(100), non nullable — identifiant TOOL_REGISTRY du mapper)
+- case_file_id (UUID, nullable — dossier en cours d'assemblage ; **jamais exposé par l'API**, PII)
+- exception_class (VARCHAR(255), non nullable)
+- exception_message (VARCHAR(2000), nullable — tronqué à 2000 caractères côté service)
+- occurred_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index : idx_dashboard_tile_crashes_occurred_at, idx_dashboard_tile_crashes_tool_id.
+
+Règles :
+- Aucun `workspace_id` — observabilité produit globale (même pattern que les tables `backlog_*`).
+- INSERT par `DashboardTileCrashRecorder` (transaction `REQUIRES_NEW`, fail-open du fail-open : un échec d'INSERT ne dégrade jamais le dashboard de l'avocat).
+- Rétention 30j : les rows plus anciennes sont purgées à chaque `DashboardAuditService.runAudit()`.
+- Persistance en DB plutôt que grep logs JVM : robuste au redémarrage d'instance.
+- Migration : 251-create-dashboard-audit-tables.xml
+
+## dashboard_audit_runs
+
+F-180 SF-180-01 — snapshots historisés des runs d'audit dashboard. Une row = un audit produit soit par le `@Scheduled` hebdomadaire (lundi 8h UTC), soit par le bouton « Relancer maintenant » du super-admin.
+
+Colonnes :
+- id (UUID, PK)
+- ran_at (TIMESTAMP WITH TIME ZONE, non nullable)
+- crashed_json (TEXT, non nullable — JSON sérialisé du panel 🔴 mappers en erreur 168h)
+- dormant_json (TEXT, non nullable — JSON du panel 🟡 tables `*_analyses` à 0 row)
+- active_json (TEXT, non nullable — JSON du panel 🟢 tables `*_analyses` à ≥ 1 row, triées par count desc)
+- created_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index : idx_dashboard_audit_runs_ran_at.
+
+Règles :
+- Aucun `workspace_id` — feature super-admin transversale.
+- Colonnes JSON en `TEXT` (pas `jsonb`) pour compatibilité H2 profil dev.
+- `GET /api/v1/super-admin/dashboard-audit/latest` lit la dernière row par `ran_at DESC` — il ne recalcule pas (un run = 95+ `count(*)`). Si aucune row n'existe, un run est déclenché à la volée.
+- Endpoints `/api/v1/super-admin/dashboard-audit/*` gated par `SuperAdminService.assertSuperAdmin`.
+- Migration : 251-create-dashboard-audit-tables.xml
 
 ---
 
