@@ -345,6 +345,14 @@ export interface TravailExtractedData {
   nonConcurrenceZoneGeographique?: string | null;
   nonConcurrenceContrepartieMontantEur?: number | null;
   /**
+   * SF-246-13 : date de prise d'effet + secteur d'activité de la clause de
+   * non-concurrence pour pré-fill F-DT-24 (FR uniquement). Tous deux nullables.
+   * `nonConcurrenceDatePriseEffet` : date ISO YYYY-MM-DD (= date de fin/rupture contrat).
+   * `nonConcurrenceSecteurActivite` : code parmi INFORMATIQUE / COMMERCE / INDUSTRIE / SERVICES / AUTRE.
+   */
+  nonConcurrenceDatePriseEffet?: string | null;
+  nonConcurrenceSecteurActivite?: string | null;
+  /**
    * SF-246-15 : identités salarié/employeur pour pré-fill des fiches de procédure
    * `prudhome-fiche` (FR) et `tribunal-travail-fiche` (BE). Champs présents dans le
    * record backend depuis F-DT-04/F-DT-06 — dette DTO frontend réglée ici.

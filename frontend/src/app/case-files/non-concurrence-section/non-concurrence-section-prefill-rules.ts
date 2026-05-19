@@ -1,5 +1,5 @@
 /**
- * F-236 SF-236-02 / SF-246-02 — Helper partagé pour l'outil "Clause de
+ * F-236 SF-236-02 / SF-246-02 / SF-246-13 — Helper partagé pour l'outil "Clause de
  * non-concurrence" (F-DT-24, FR). Module pur — runtime (`prefillFromAi()`) et
  * static (`getPrefillCount()`) appellent les MÊMES fonctions (contrat F-236).
  *
@@ -17,14 +17,18 @@
  *   contrepartieMontantMensuelEur ← aiData.nonConcurrenceContrepartieMontantEur
  *   contrepartieFinancierePresente ← dérivé : true si contrepartie != null
  *
- * Les 4 booléens dérivés sont calculés ici à partir des champs source — pas de
- * champ booléen redondant dans le record IA (invariant « un champ = une
- * définition », cf. mini-spec §"Note de design IA").
+ * SF-246-13 : 2 champs supplémentaires (invariant F-246 « tous les champs ») :
+ *   datePriseEffet                ← aiData.nonConcurrenceDatePriseEffet (date ISO YYYY-MM-DD)
+ *   secteurActivite               ← aiData.nonConcurrenceSecteurActivite (code enum normalisé)
+ *
+ * Total : 10 champs pré-remplissables. Les 4 booléens dérivés sont calculés ici
+ * à partir des champs source — pas de champ booléen redondant dans le record IA
+ * (invariant « un champ = une définition », cf. mini-spec §"Note de design IA").
  */
 
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 
-/** SF-246-02 : contrat figé — sous-ensemble de `TravailExtractedData` consommé par le pré-fill. */
+/** SF-246-02 / SF-246-13 : contrat figé — sous-ensemble de `TravailExtractedData` consommé par le pré-fill. */
 export interface NonConcurrencePrefillInput {
   aiData?: Pick<
     TravailExtractedData,
@@ -33,6 +37,8 @@ export interface NonConcurrencePrefillInput {
     | 'nonConcurrenceDureeMois'
     | 'nonConcurrenceZoneGeographique'
     | 'nonConcurrenceContrepartieMontantEur'
+    | 'nonConcurrenceDatePriseEffet'
+    | 'nonConcurrenceSecteurActivite'
   > | null;
   workspaceCountry?: string;
 }
@@ -103,11 +109,41 @@ export function computeContrepartieFinancierePresente(input: NonConcurrencePrefi
 }
 
 /**
+ * SF-246-13 : `datePriseEffet` — date ISO YYYY-MM-DD de prise d'effet de la clause
+ * (= date de fin/rupture du contrat de travail). Validée par le backend via `isoDateOrNull()`.
+ * Ici : accepte la valeur telle quelle si non vide, null sinon (la validation de format
+ * est faite côté extracteur backend — ce qui arrive dans le DTO est déjà ISO ou null).
+ */
+export function computeDatePriseEffet(input: NonConcurrencePrefillInput): string | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.nonConcurrenceDatePriseEffet;
+  if (typeof v !== 'string' || v.trim().length === 0) return null;
+  // Guard format ISO YYYY-MM-DD (défense en profondeur — le backend filtre déjà).
+  return /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? v.trim() : null;
+}
+
+/**
+ * SF-246-13 : `secteurActivite` — code enum parmi INFORMATIQUE / COMMERCE /
+ * INDUSTRIE / SERVICES / AUTRE. Normalisé par le backend via `normalizeEnumCode()`.
+ * Ici : whitelist des 5 codes (défense en profondeur).
+ */
+const SECTEUR_ACTIVITE_CODES = new Set(['INFORMATIQUE', 'COMMERCE', 'INDUSTRIE', 'SERVICES', 'AUTRE']);
+
+export function computeSecteurActivite(input: NonConcurrencePrefillInput): string | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.nonConcurrenceSecteurActivite;
+  if (typeof v !== 'string') return null;
+  const upper = v.trim().toUpperCase();
+  return SECTEUR_ACTIVITE_CODES.has(upper) ? upper : null;
+}
+
+/**
  * Nombre exact de champs effectivement pré-remplissables — parité stricte avec
  * `prefillFromAi()` du composant. Retourne 0 si `workspaceCountry !== 'FRANCE'`.
- * Compte les 8 champs : 3 champs valeur (salaire, durée, contrepartie),
- * 1 booléen factuel (clause présente) et 4 booléens dérivés (limites + présence
- * contrepartie). Un booléen dérivé n'est compté que si son champ source l'est.
+ * Compte les 10 champs : 3 champs valeur (salaire, durée, contrepartie),
+ * 1 booléen factuel (clause présente), 4 booléens dérivés (limites + présence
+ * contrepartie), 1 date (datePriseEffet), 1 enum (secteurActivite).
+ * Un booléen dérivé n'est compté que si son champ source l'est.
  */
 export function computePrefillCount(input: NonConcurrencePrefillInput): number {
   if (!isFrance(input)) return 0;
@@ -120,6 +156,9 @@ export function computePrefillCount(input: NonConcurrencePrefillInput): number {
   if (computeLimiteTerritoireDefini(input) !== null) count++;
   if (computeContrepartieMontantEur(input) !== null) count++;
   if (computeContrepartieFinancierePresente(input) !== null) count++;
+  // SF-246-13 : 2 nouveaux champs
+  if (computeDatePriseEffet(input) !== null) count++;
+  if (computeSecteurActivite(input) !== null) count++;
   return count;
 }
 
@@ -132,5 +171,8 @@ export const NonConcurrenceSectionPrefillRules = {
   computeLimiteTerritoireDefini,
   computeContrepartieMontantEur,
   computeContrepartieFinancierePresente,
+  // SF-246-13 : 2 nouveaux champs
+  computeDatePriseEffet,
+  computeSecteurActivite,
   computePrefillCount,
 };
