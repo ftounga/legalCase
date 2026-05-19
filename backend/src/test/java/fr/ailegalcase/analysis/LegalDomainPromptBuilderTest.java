@@ -427,4 +427,47 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("age_demandeur_annees");
         assertThat(instruction).contains("BELGIQUE UNIQUEMENT");
     }
+
+    // SF-246-07 : prompt Famille enrichi du sous-objet regime_matrimonial_detection
+    // (4 champs régimes matrimoniaux / liquidation pour le pré-fill des 3 outils F-FA-15/16/17).
+
+    @Test
+    void domainSpecificInstruction_famille_containsRegimeMatrimonialDetectionSubObject() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("regime_matrimonial_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_regimeMatrimonialDetection_containsFourKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Les 4 clés du sous-objet regime_matrimonial_detection.
+        assertThat(instruction).contains("\"regime_matrimonial\"");
+        assertThat(instruction).contains("\"valeur_communaute_eur\"");
+        assertThat(instruction).contains("\"valeur_biens_indivision_eur\"");
+        assertThat(instruction).contains("\"nombre_coindivisaires\"");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_regimeMatrimonialDetection_enumWhitelist() {
+        // Énumération stricte des 4 régimes autorisés.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("\"COMMUNAUTE_LEGALE\"");
+        assertThat(instruction).contains("\"COMMUNAUTE_UNIVERSELLE\"");
+        assertThat(instruction).contains("\"SEPARATION_BIENS\"");
+        assertThat(instruction).contains("\"PARTICIPATION_ACQUETS\"");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_regimeMatrimonialDetection_imposesNullOutsideFrance() {
+        // Le sous-objet doit rester null hors FR.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("famille BELGIQUE, ce sous-objet DOIT rester null");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_regimeMatrimonialDetection_regleAntiFait() {
+        // Le prompt impose de renseigner le régime JURIDIQUE documenté, jamais la prétention.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("RÈGLE ANTI-CONFUSION régime / fait");
+    }
 }

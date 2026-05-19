@@ -1,5 +1,6 @@
 /**
  * F-236 SF-236-02 — Tests du helper partagé `RecompensesPrefillRules`.
+ * SF-246-07 : ajout du test de la garde workspaceCountry BE.
  *
  * Garantit la stricte parité runtime/static : ces tests valident la logique
  * commune. Cas obligatoires (3) :
@@ -30,6 +31,15 @@ describe('RecompensesPrefillRules', () => {
 
     it('retourne 0 quand regimeMatrimonialDetecte = null', () => {
       expect(computePrefillCount({ aiData: { regimeMatrimonialDetecte: null as unknown as string } })).toBe(0);
+    });
+
+    it('retourne 0 pour workspaceCountry BELGIQUE — SF-246-07 garde BE', () => {
+      expect(
+        computePrefillCount({
+          aiData: { regimeMatrimonialDetecte: 'COMMUNAUTE_LEGALE' },
+          workspaceCountry: 'BELGIQUE',
+        }),
+      ).toBe(0);
     });
   });
 

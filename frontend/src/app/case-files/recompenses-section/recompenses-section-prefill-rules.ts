@@ -60,8 +60,12 @@ export function computeRegimeMatrimonial(
  * Compte le nombre de champs que `prefillFromAi()` runtime poserait depuis
  * `aiData` (et autres sources). Utilisé par le panel F-IA-04 pour le badge
  * `auto_awesome (+N)` AVANT instanciation du composant.
+ *
+ * SF-246-07 : garde BE — retourne 0 si workspaceCountry !== 'FRANCE'
+ * (le régime matrimonial FR n'est pas applicable hors de France).
  */
 export function computePrefillCount(input: RecompensesPrefillInput): number {
+  if (input.workspaceCountry && input.workspaceCountry !== 'FRANCE') return 0;
   let count = 0;
   if (computeRegimeMatrimonial(input) !== null) count++;
   return count;
