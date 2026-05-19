@@ -294,5 +294,137 @@
         </div>
       </div>
     </mat-tab>
+
+    <!-- ─────── TAB AUDIT DASHBOARD (F-180) ─────── -->
+    <mat-tab label="Audit dashboard">
+      <div class="tab-content">
+
+        <header class="audit-header">
+          <div class="audit-header-text">
+            <h2>Audit dashboard tiles F-167</h2>
+            @if (auditReport()) {
+              <p class="audit-timestamp">
+                Dernier audit : {{ auditReport()!.ranAt | date:'dd/MM/yyyy HH:mm' }}
+              </p>
+            }
+          </div>
+          <button mat-stroked-button
+                  (click)="triggerAuditRun()"
+                  [disabled]="auditRunning() || auditLoading()"
+                  aria-label="Relancer l'audit dashboard">
+            @if (auditRunning()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>refresh</mat-icon>
+            }
+            <span>Relancer maintenant</span>
+          </button>
+        </header>
+
+        @if (auditLoading()) {
+          <div class="loading">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+        } @else if (auditError()) {
+          <p class="audit-empty audit-empty--error">
+            <mat-icon>error_outline</mat-icon>
+            Audit indisponible — voir les logs serveur.
+          </p>
+        } @else if (auditReport()) {
+
+          <!-- 🔴 Panel mappers en erreur -->
+          <section class="audit-panel audit-panel--error">
+            <h3 class="audit-panel-title">
+              <span class="audit-badge audit-badge--error">Mappers en erreur</span>
+              <span class="audit-count">{{ auditReport()!.crashedMappers.length }}</span>
+            </h3>
+            @if (auditReport()!.crashedMappers.length === 0) {
+              <p class="audit-empty audit-empty--ok">
+                <mat-icon>check_circle</mat-icon>
+                Aucun mapper en erreur sur les 7 derniers jours.
+              </p>
+            } @else {
+              <table mat-table [dataSource]="sortedCrashedMappers()"
+                     matSort (matSortChange)="onCrashedSortChange($event)"
+                     class="backlog-table audit-table">
+                <ng-container matColumnDef="toolId">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Outil</th>
+                  <td mat-cell *matCellDef="let row" class="cell-code">{{ row.toolId }}</td>
+                </ng-container>
+                <ng-container matColumnDef="crashCount">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Crashes</th>
+                  <td mat-cell *matCellDef="let row">{{ row.crashCount }}</td>
+                </ng-container>
+                <ng-container matColumnDef="lastExceptionClass">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Dernière exception</th>
+                  <td mat-cell *matCellDef="let row">{{ row.lastExceptionClass }}</td>
+                </ng-container>
+                <ng-container matColumnDef="lastExceptionMessage">
+                  <th mat-header-cell *matHeaderCellDef>Message</th>
+                  <td mat-cell *matCellDef="let row" class="cell-message">
+                    <span class="audit-message">{{ row.lastExceptionMessage || '—' }}</span>
+                    <code class="audit-kubectl" [title]="kubectlLogsHint(row.toolId)">
+                      {{ kubectlLogsHint(row.toolId) }}
+                    </code>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="lastOccurredAt">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Dernier crash</th>
+                  <td mat-cell *matCellDef="let row">{{ row.lastOccurredAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="crashedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: crashedColumns;"></tr>
+              </table>
+            }
+          </section>
+
+          <!-- 🟡 Panel tiles dormantes -->
+          <section class="audit-panel audit-panel--dormant">
+            <h3 class="audit-panel-title">
+              <span class="audit-badge audit-badge--dormant">Tiles dormantes</span>
+              <span class="audit-count">{{ auditReport()!.dormantTiles.length }}</span>
+            </h3>
+            @if (auditReport()!.dormantTiles.length === 0) {
+              <p class="audit-empty">Aucune tile dormante.</p>
+            } @else {
+              <ul class="audit-list">
+                @for (tile of auditReport()!.dormantTiles; track tile.tableName) {
+                  <li class="audit-list-item">
+                    <span class="cell-code">{{ tile.tableName }}</span>
+                    <span class="audit-list-meta">0 analyse</span>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <!-- 🟢 Panel tiles actives -->
+          <section class="audit-panel audit-panel--active">
+            <h3 class="audit-panel-title">
+              <span class="audit-badge audit-badge--active">Tiles actives</span>
+              <span class="audit-count">{{ auditReport()!.activeTiles.length }}</span>
+            </h3>
+            @if (auditReport()!.activeTiles.length === 0) {
+              <p class="audit-empty">Aucune analyse produite.</p>
+            } @else {
+              <table mat-table [dataSource]="auditReport()!.activeTiles"
+                     class="backlog-table audit-table">
+                <ng-container matColumnDef="tableName">
+                  <th mat-header-cell *matHeaderCellDef>Outil</th>
+                  <td mat-cell *matCellDef="let row" class="cell-code">{{ row.tableName }}</td>
+                </ng-container>
+                <ng-container matColumnDef="rowCount">
+                  <th mat-header-cell *matHeaderCellDef>Analyses produites</th>
+                  <td mat-cell *matCellDef="let row">{{ row.rowCount }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="activeColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: activeColumns;"></tr>
+              </table>
+            }
+          </section>
+
+        }
+      </div>
+    </mat-tab>
   </mat-tab-group>
 </section>
