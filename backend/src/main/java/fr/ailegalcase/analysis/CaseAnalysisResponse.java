@@ -682,7 +682,17 @@ public record CaseAnalysisResponse(
             /** Date de la décision contestée au format YYYY-MM-DD. */
             String dateDecisionContestee,
             /** Référence ou numéro de la décision contestée (texte libre). */
-            String referenceDecision) {
+            String referenceDecision,
+            // SF-246-17 : pré-fill des outils dublin-recours (F-IM-22) et crrv-refus-visa (F-IM-23).
+            // FRANCE uniquement, tous nullables. Absents si l'IA ne peut identifier la décision.
+            /** État membre UE responsable de la demande d'asile (Dublin III, art. 3 Règl. 604/2013). Texte libre ≤ 200 car. */
+            String dublinEtatMembreResponsable,
+            /** Motif de transfert Dublin normalisé — l'un des 5 codes (null si non identifiable). */
+            String dublinMotifTransfert,
+            /** Type de visa refusé CRRV — l'un des 5 codes TypeVisaCrrv (null si non identifiable). */
+            String crrvTypeVisa,
+            /** Motif du refus de visa en texte libre ≤ 500 car. (null si absent des pièces). */
+            String crrvMotifRefus) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -731,7 +741,12 @@ public record CaseAnalysisResponse(
                     .nomRequerant(nomRequerant)
                     .prenomRequerant(prenomRequerant)
                     .dateDecisionContestee(dateDecisionContestee)
-                    .referenceDecision(referenceDecision);
+                    .referenceDecision(referenceDecision)
+                    // SF-246-17
+                    .dublinEtatMembreResponsable(dublinEtatMembreResponsable)
+                    .dublinMotifTransfert(dublinMotifTransfert)
+                    .crrvTypeVisa(crrvTypeVisa)
+                    .crrvMotifRefus(crrvMotifRefus);
         }
 
         public static final class Builder {
@@ -774,6 +789,11 @@ public record CaseAnalysisResponse(
             private String prenomRequerant;
             private String dateDecisionContestee;
             private String referenceDecision;
+            // SF-246-17 : pré-fill dublin-recours + crrv-refus-visa
+            private String dublinEtatMembreResponsable;
+            private String dublinMotifTransfert;
+            private String crrvTypeVisa;
+            private String crrvMotifRefus;
 
             private Builder() {}
 
@@ -815,6 +835,11 @@ public record CaseAnalysisResponse(
             public Builder prenomRequerant(String v) { this.prenomRequerant = v; return this; }
             public Builder dateDecisionContestee(String v) { this.dateDecisionContestee = v; return this; }
             public Builder referenceDecision(String v) { this.referenceDecision = v; return this; }
+            // SF-246-17
+            public Builder dublinEtatMembreResponsable(String v) { this.dublinEtatMembreResponsable = v; return this; }
+            public Builder dublinMotifTransfert(String v) { this.dublinMotifTransfert = v; return this; }
+            public Builder crrvTypeVisa(String v) { this.crrvTypeVisa = v; return this; }
+            public Builder crrvMotifRefus(String v) { this.crrvMotifRefus = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -831,7 +856,8 @@ public record CaseAnalysisResponse(
                         procedure9bisEnvisagee, procedure9terMedicaleDetectee,
                         regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
                         nationalite, dateOrdonnanceProtectionJaf,
-                        nomRequerant, prenomRequerant, dateDecisionContestee, referenceDecision);
+                        nomRequerant, prenomRequerant, dateDecisionContestee, referenceDecision,
+                        dublinEtatMembreResponsable, dublinMotifTransfert, crrvTypeVisa, crrvMotifRefus);
             }
         }
     }
@@ -864,6 +890,30 @@ public record CaseAnalysisResponse(
             "SEJOUR_IRREGULIER_ART_7", "REFUS_SEJOUR_APRES_DEMANDE",
             "FIN_SEJOUR_REGULIER", "AUTRE"
     );
+
+    /**
+     * SF-246-17 : codes de motif de transfert Dublin III (Règl. UE 604/2013) pour pré-fill
+     * F-IM-22 (dublin-recours). Alignés sur l'enum {@code MotifTransfertDublin} du frontend
+     * (dublin-recours.model.ts) — toute divergence casserait le pré-fill en silence.
+     */
+    static final Set<String> MOTIFS_TRANSFERT_DUBLIN_CODES = Set.of(
+            "DEMANDE_ASILE_AUTRE_ETAT", "VISA_DELIVRE_AUTRE_ETAT",
+            "ENTREE_IRREGULIERE_AUTRE_ETAT", "MEMBRE_FAMILLE_AUTRE_ETAT", "AUTRE"
+    );
+
+    /**
+     * SF-246-17 : codes de type de visa CRRV pour pré-fill F-IM-23 (crrv-refus-visa).
+     * Alignés sur l'enum {@code TypeVisaCrrv} du frontend (crrv-refus-visa.model.ts).
+     */
+    static final Set<String> TYPES_VISA_CRRV_CODES = Set.of(
+            "COURT_SEJOUR", "LONG_SEJOUR", "REGROUPEMENT_FAMILIAL", "ETUDIANT", "AUTRE"
+    );
+
+    /** SF-246-17 : longueur max du motif de refus CRRV (texte libre). */
+    static final int MAX_CRRV_MOTIF_REFUS_LENGTH = 500;
+
+    /** SF-246-17 : longueur max de l'état membre Dublin (texte libre). */
+    static final int MAX_DUBLIN_ETAT_MEMBRE_LENGTH = 200;
 
     /**
      * Famille — agrégat des flags décisionnels niveau 3 (FR + BE) extraits depuis la clé
@@ -2192,6 +2242,12 @@ public record CaseAnalysisResponse(
         String prenomRequerant = textOrNull(root, "prenom_requerant");
         String dateDecisionContestee = textOrNull(root, "date_decision_contestee");
         String referenceDecision = textOrNull(root, "reference_decision");
+        // SF-246-17 : pré-fill dublin-recours (F-IM-22) + crrv-refus-visa (F-IM-23).
+        // FR uniquement — le prompt impose null pour dossiers BE.
+        String dublinEtatMembre = truncatedTextOrNull(root, "dublin_etat_membre_responsable", MAX_DUBLIN_ETAT_MEMBRE_LENGTH);
+        String dublinMotifTransfert = normalizeEnumCode(textOrNull(root, "dublin_motif_transfert"), MOTIFS_TRANSFERT_DUBLIN_CODES);
+        String crrvTypeVisa = normalizeEnumCode(textOrNull(root, "crrv_type_visa"), TYPES_VISA_CRRV_CODES);
+        String crrvMotifRefus = truncatedTextOrNull(root, "crrv_motif_refus", MAX_CRRV_MOTIF_REFUS_LENGTH);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -2207,7 +2263,9 @@ public record CaseAnalysisResponse(
                 && nationalite == null
                 && dateOrdonnanceProtectionJaf == null
                 && nomRequerant == null && prenomRequerant == null
-                && dateDecisionContestee == null && referenceDecision == null) return null;
+                && dateDecisionContestee == null && referenceDecision == null
+                && dublinEtatMembre == null && dublinMotifTransfert == null
+                && crrvTypeVisa == null && crrvMotifRefus == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -2255,6 +2313,11 @@ public record CaseAnalysisResponse(
                 .prenomRequerant(prenomRequerant)
                 .dateDecisionContestee(dateDecisionContestee)
                 .referenceDecision(referenceDecision)
+                // SF-246-17 : pré-fill dublin-recours + crrv-refus-visa
+                .dublinEtatMembreResponsable(dublinEtatMembre)
+                .dublinMotifTransfert(dublinMotifTransfert)
+                .crrvTypeVisa(crrvTypeVisa)
+                .crrvMotifRefus(crrvMotifRefus)
                 .build();
     }
 

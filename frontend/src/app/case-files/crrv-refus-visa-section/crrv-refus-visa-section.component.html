@@ -80,25 +80,41 @@
                 }
               </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Type de visa</mat-label>
-                <mat-select
-                    [ngModel]="typeVisa()"
-                    (ngModelChange)="typeVisa.set($event)"
-                    name="typeVisa" required>
-                  @for (t of typesVisa; track t.code) {
-                    <mat-option [value]="t.code">{{ t.label }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <!-- Type de visa (SF-246-17 : badge IA) -->
+              <div class="crrv-field-wrap">
+                @if (provenanceTypeVisa() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse
+                  </span>
+                }
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de visa</mat-label>
+                  <mat-select
+                      [ngModel]="typeVisa()"
+                      (ngModelChange)="onTypeVisaChange($event)"
+                      name="typeVisa" required>
+                    @for (t of typesVisa; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
 
-              <mat-form-field appearance="outline" class="crrv-motif-field">
-                <mat-label>Motif du refus (200 caracteres max)</mat-label>
-                <textarea matInput rows="2" maxlength="200"
-                       [ngModel]="motifRefus()"
-                       (ngModelChange)="motifRefus.set($event || null)"
-                       name="motifRefus"></textarea>
-              </mat-form-field>
+              <!-- Motif du refus (SF-246-17 : badge IA) -->
+              <div class="crrv-field-wrap">
+                @if (provenanceMotifRefus() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse
+                  </span>
+                }
+                <mat-form-field appearance="outline" class="crrv-motif-field">
+                  <mat-label>Motif du refus (200 caracteres max)</mat-label>
+                  <textarea matInput rows="2" maxlength="200"
+                         [ngModel]="motifRefus()"
+                         (ngModelChange)="onMotifRefusChange($event)"
+                         name="motifRefus"></textarea>
+                </mat-form-field>
+              </div>
 
               <div class="crrv-toggle-row crrv-field-wrap">
                 <mat-slide-toggle

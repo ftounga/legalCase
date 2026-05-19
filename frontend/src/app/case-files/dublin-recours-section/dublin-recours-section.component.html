@@ -80,26 +80,42 @@
                 }
               </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Etat membre responsable</mat-label>
-                <input matInput type="text"
-                       [ngModel]="etatMembreResponsable()"
-                       (ngModelChange)="etatMembreResponsable.set($event || null)"
-                       name="etatMembreResponsable"
-                       placeholder="Ex: ITALIE, ESPAGNE, DEUTSCHLAND..." />
-              </mat-form-field>
+              <!-- Etat membre responsable (SF-246-17 : badge IA) -->
+              <div class="dublin-field-wrap">
+                @if (provenanceEtatMembre() === 'IA') {
+                  <span class="dublin-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse
+                  </span>
+                }
+                <mat-form-field appearance="outline">
+                  <mat-label>Etat membre responsable</mat-label>
+                  <input matInput type="text"
+                         [ngModel]="etatMembreResponsable()"
+                         (ngModelChange)="onEtatMembreResponsableChange($event)"
+                         name="etatMembreResponsable"
+                         placeholder="Ex: ITALIE, ESPAGNE, DEUTSCHLAND..." />
+                </mat-form-field>
+              </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Motif du transfert</mat-label>
-                <mat-select
-                    [ngModel]="motifTransfert()"
-                    (ngModelChange)="motifTransfert.set($event)"
-                    name="motifTransfert" required>
-                  @for (m of motifs; track m.code) {
-                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <!-- Motif du transfert (SF-246-17 : badge IA) -->
+              <div class="dublin-field-wrap">
+                @if (provenanceMotifTransfert() === 'IA') {
+                  <span class="dublin-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse
+                  </span>
+                }
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif du transfert</mat-label>
+                  <mat-select
+                      [ngModel]="motifTransfert()"
+                      (ngModelChange)="onMotifTransfertChange($event)"
+                      name="motifTransfert" required>
+                    @for (m of motifs; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
 
               <div class="dublin-toggle-row dublin-field-wrap">
                 <mat-slide-toggle

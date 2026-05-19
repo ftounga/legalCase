@@ -112,6 +112,9 @@
                     name="recoursForme">
                   Recours / saisine deja effectue
                 </mat-slide-toggle>
+                @if (provenanceRecoursForme() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pre-rempli depuis l'analyse</span>
+                }
               </div>
 
               @if (recoursForme()) {
