@@ -229,7 +229,23 @@ public record CaseAnalysisResponse(
             // Tous nullables — Travail BE uniquement, restent null pour un dossier FR.
             // Réutilisables par les autres SF F-207 (C4, contestation, AT, RCC, outplacement).
             String dateRuptureContrat,
-            String motifRupture) {
+            String motifRupture,
+            // SF-207-02 : 6 champs IA Travail BE additionnels pour pré-fill F-207-02
+            // C4 ONEM checklist (AR 25/11/1991 art. 92 — 10 mentions obligatoires).
+            // Tous nullables — Travail BE uniquement, restent null pour un dossier FR.
+            // raisonSocialeEmployeur / numeroBce duplicent partiellement nomEmployeur /
+            // bceEmployeur mais sont rattachés explicitement au document C4 (la mini-spec
+            // SF-207-02 impose le naming spécifique). categorieOnem est le code du C4
+            // (ex. "9" = faute grave). motifExplicite est la formulation littérale du
+            // motif inscrite sur le C4 (≥ 5 car.). preavisPresteJours est le préavis
+            // effectivement presté en jours (obligatoire si pas faute grave).
+            // dernierSalaireMensuelBrut est le dernier salaire brut mensuel.
+            String raisonSocialeEmployeur,
+            String numeroBce,
+            String categorieOnem,
+            String motifExplicite,
+            Integer preavisPresteJours,
+            java.math.BigDecimal dernierSalaireMensuelBrut) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -317,7 +333,13 @@ public record CaseAnalysisResponse(
                     .nonConcurrenceDatePriseEffet(nonConcurrenceDatePriseEffet)
                     .nonConcurrenceSecteurActivite(nonConcurrenceSecteurActivite)
                     .dateRuptureContrat(dateRuptureContrat)
-                    .motifRupture(motifRupture);
+                    .motifRupture(motifRupture)
+                    .raisonSocialeEmployeur(raisonSocialeEmployeur)
+                    .numeroBce(numeroBce)
+                    .categorieOnem(categorieOnem)
+                    .motifExplicite(motifExplicite)
+                    .preavisPresteJours(preavisPresteJours)
+                    .dernierSalaireMensuelBrut(dernierSalaireMensuelBrut);
         }
 
         public static final class Builder {
@@ -395,6 +417,13 @@ public record CaseAnalysisResponse(
             private String nonConcurrenceSecteurActivite;
             private String dateRuptureContrat;
             private String motifRupture;
+            // SF-207-02 — 6 champs IA Travail BE pour pré-fill F-207-02 C4 ONEM checklist.
+            private String raisonSocialeEmployeur;
+            private String numeroBce;
+            private String categorieOnem;
+            private String motifExplicite;
+            private Integer preavisPresteJours;
+            private java.math.BigDecimal dernierSalaireMensuelBrut;
 
             private Builder() {}
 
@@ -472,6 +501,12 @@ public record CaseAnalysisResponse(
             public Builder nonConcurrenceSecteurActivite(String v) { this.nonConcurrenceSecteurActivite = v; return this; }
             public Builder dateRuptureContrat(String v) { this.dateRuptureContrat = v; return this; }
             public Builder motifRupture(String v) { this.motifRupture = v; return this; }
+            public Builder raisonSocialeEmployeur(String v) { this.raisonSocialeEmployeur = v; return this; }
+            public Builder numeroBce(String v) { this.numeroBce = v; return this; }
+            public Builder categorieOnem(String v) { this.categorieOnem = v; return this; }
+            public Builder motifExplicite(String v) { this.motifExplicite = v; return this; }
+            public Builder preavisPresteJours(Integer v) { this.preavisPresteJours = v; return this; }
+            public Builder dernierSalaireMensuelBrut(java.math.BigDecimal v) { this.dernierSalaireMensuelBrut = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -507,7 +542,9 @@ public record CaseAnalysisResponse(
                         nonConcurrenceContrepartieMontantEur,
                         ageDemandeurAnnees,
                         nonConcurrenceDatePriseEffet, nonConcurrenceSecteurActivite,
-                        dateRuptureContrat, motifRupture);
+                        dateRuptureContrat, motifRupture,
+                        raisonSocialeEmployeur, numeroBce, categorieOnem,
+                        motifExplicite, preavisPresteJours, dernierSalaireMensuelBrut);
             }
         }
     }
@@ -2212,6 +2249,17 @@ public record CaseAnalysisResponse(
                     // Le prompt impose null pour un dossier travail FR.
                     .dateRuptureContrat(isoDateOrNull(node, "date_rupture_contrat"))
                     .motifRupture(textOrNull(node, "motif_rupture"))
+                    // SF-207-02 : 6 champs IA Travail BE pour pré-fill F-207-02
+                    // C4 ONEM checklist. Le prompt impose null hors Belgique.
+                    // numeroBce normalisé via le helper BE existant (suppression
+                    // préfixe BE/points). dernierSalaireMensuelBrut décodé en
+                    // BigDecimal pour préserver la précision.
+                    .raisonSocialeEmployeur(textOrNull(node, "raison_sociale_employeur"))
+                    .numeroBce(normalizeBeBceIdentifier(textOrNull(node, "numero_bce")))
+                    .categorieOnem(textOrNull(node, "categorie_onem"))
+                    .motifExplicite(textOrNull(node, "motif_explicite"))
+                    .preavisPresteJours(nonNegativeIntOrNull(node, "preavis_preste_jours"))
+                    .dernierSalaireMensuelBrut(bigDecimalOrNull(node, "dernier_salaire_mensuel_brut"))
                     .build();
         } catch (Exception ignored) { return null; }
     }
@@ -2635,6 +2683,21 @@ public record CaseAnalysisResponse(
 
     private static Double doubleOrNull(JsonNode node, String field) {
         return node.has(field) && !node.get(field).isNull() ? node.get(field).doubleValue() : null;
+    }
+
+    /**
+     * SF-207-02 : décodage d'un montant en {@link java.math.BigDecimal} pour
+     * préserver la précision décimale (ex. dernier salaire mensuel brut du
+     * C4 ONEM). Retourne {@code null} si le champ est absent, null, ou si la
+     * valeur ne peut pas être décodée en BigDecimal.
+     */
+    private static java.math.BigDecimal bigDecimalOrNull(JsonNode node, String field) {
+        if (!node.has(field) || node.get(field).isNull()) return null;
+        try {
+            return node.get(field).decimalValue();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static Integer intOrNull(JsonNode node, String field) {
