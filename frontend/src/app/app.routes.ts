@@ -162,6 +162,11 @@ export const routes: Routes = [
       .then(m => m.PublicShareComponent)
   },
   {
+    path: 'unsubscribe',
+    loadComponent: () => import('./email/unsubscribe/unsubscribe.component')
+      .then(m => m.UnsubscribeComponent)
+  },
+  {
     path: 'contact',
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent)
   },
