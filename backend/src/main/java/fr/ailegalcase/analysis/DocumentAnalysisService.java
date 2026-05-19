@@ -4,6 +4,8 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.DocumentExtraction;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.document.ExtractionFailedEvent;
+import fr.ailegalcase.document.ExtractionStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -13,6 +15,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -180,7 +184,7 @@ public class DocumentAnalysisService {
         }
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
-            updateDocumentAnalysisJob(caseFileId);
+            recomputeDocumentAnalysisJobCompletion(caseFileId);
             if (caseFileId != null) {
                 boolean allDocsDone = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS)
                         .map(j -> j.getStatus() == AnalysisStatus.DONE)
@@ -224,20 +228,85 @@ public class DocumentAnalysisService {
         });
     }
 
-    private void updateDocumentAnalysisJob(UUID caseFileId) {
+    /**
+     * SF-121-05 : ré-évalue la complétion du job DOCUMENT_ANALYSIS d'un dossier.
+     *
+     * <p>Un document dont l'extraction échoue ne produit JAMAIS de
+     * {@link DocumentAnalysis} : le compteur {@code done} (analyses en DONE)
+     * plafonne sous {@code totalItems} (= TOUS les documents) et le job reste
+     * {@code PROCESSING} à vie (incident prod RENVERSEZ 2026-05-19, dossier
+     * stanojevic, OCR_UNSUPPORTED_SIZE). La complétion compte donc désormais aussi
+     * les extractions FAILED : {@code terminal = done + failedExtractions}.
+     *
+     * <p>Gardes : le job passe DONE seulement s'il n'est pas déjà terminal
+     * (idempotence — appelé par {@code finalizeAnalysis} ET par le listener
+     * {@link #onExtractionFailed}), si {@code totalItems > 0}, si {@code terminal}
+     * couvre {@code totalItems} et si au moins 1 document est exploitable
+     * ({@code done > 0}) — un dossier sans aucune analyse réussie ne doit jamais
+     * passer DONE.
+     */
+    private void recomputeDocumentAnalysisJobCompletion(UUID caseFileId) {
         if (caseFileId == null) return;
 
         analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS).ifPresent(job -> {
             long done = documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(
                     caseFileId, AnalysisStatus.DONE);
+            // SF-121-05 : les extractions FAILED ne produisent pas de DocumentAnalysis ;
+            // elles comptent comme items "terminaux" pour ne pas bloquer le job.
+            long failedExtractions = extractionRepository.countByDocumentCaseFileIdAndExtractionStatus(
+                    caseFileId, ExtractionStatus.FAILED);
+            long terminal = done + failedExtractions;
+
             // clamp to totalItems to prevent progressPercentage > 100 under race conditions
-            int clamped = (int) Math.min(done, job.getTotalItems());
-            job.setProcessedItems(clamped);
-            if (job.getTotalItems() > 0 && done >= job.getTotalItems()) {
+            int processedItems = (int) Math.min(terminal, job.getTotalItems());
+            job.setProcessedItems(processedItems);
+
+            // SF-121-05 : garde de statut → ne jamais repasser un job déjà terminal,
+            // garde totalItems > 0, et garde done > 0 (au moins 1 doc exploitable —
+            // un dossier 0 analyse réussie ne passe jamais DONE).
+            boolean notTerminal = job.getStatus() != AnalysisStatus.DONE
+                    && job.getStatus() != AnalysisStatus.FAILED;
+            if (notTerminal && job.getTotalItems() > 0 && terminal >= job.getTotalItems() && done > 0) {
                 job.setStatus(AnalysisStatus.DONE);
             }
             analysisJobRepository.save(job);
         });
+    }
+
+    /**
+     * SF-121-05 : ré-évalue le job DOCUMENT_ANALYSIS quand une extraction passe en
+     * FAILED. Couvre le cas où le document en échec d'extraction est le DERNIER à
+     * se résoudre : aucune {@code finalizeAnalysis} ne tourne après lui, donc sans
+     * ce listener la complétion ne serait jamais recalculée et le job resterait
+     * PROCESSING jusqu'au reset zombie (42 min).
+     *
+     * <p>{@code AFTER_COMMIT} : l'extraction FAILED est déjà committée, le comptage
+     * est cohérent. Le listener s'exécute hors transaction → la ré-évaluation passe
+     * par {@code self} (proxy Spring) pour bénéficier de {@code @Transactional},
+     * comme le fait déjà {@link #consumeDocumentAnalysis}.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onExtractionFailed(ExtractionFailedEvent event) {
+        UUID caseFileId = extractionRepository.findCaseFileIdById(event.extractionId())
+                .orElseGet(() -> documentRepository.findById(event.documentId())
+                        .map(d -> d.getCaseFile() != null ? d.getCaseFile().getId() : null)
+                        .orElse(null));
+        if (caseFileId == null) {
+            log.warn("SF-121-05 : extraction FAILED {} — caseFile introuvable, ré-évaluation du job ignorée",
+                    event.extractionId());
+            return;
+        }
+        self.reevaluateDocumentAnalysisJobAfterFailedExtraction(caseFileId);
+    }
+
+    /**
+     * SF-121-05 : point d'entrée transactionnel appelé par {@link #onExtractionFailed}.
+     * Réutilise exactement la logique de complétion de {@link #recomputeDocumentAnalysisJobCompletion} ;
+     * la garde de statut la rend idempotente.
+     */
+    @Transactional
+    public void reevaluateDocumentAnalysisJobAfterFailedExtraction(UUID caseFileId) {
+        recomputeDocumentAnalysisJobCompletion(caseFileId);
     }
 
     private String buildAggregatedPrompt(List<ChunkAnalysis> chunkAnalyses) {
