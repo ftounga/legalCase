@@ -3,6 +3,7 @@ package fr.ailegalcase.workspace;
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.ProcedureCheckRequalifiedEvent;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.auth.UserRepository;
 
 import java.util.List;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final EmailSendRepository emailSendRepository;
+    private final UserRepository userRepository;
     private final boolean mailEnabled;
     private final String frontendUrl;
     private final String mailFrom;
@@ -31,12 +33,14 @@ public class EmailService {
 
     public EmailService(JavaMailSender mailSender,
                         EmailSendRepository emailSendRepository,
+                        UserRepository userRepository,
                         @Value("${app.mail.enabled:false}") boolean mailEnabled,
                         @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
                         @Value("${app.mail.from:${spring.mail.username:}}") String mailFrom,
                         @Value("${app.contact.team-email:ai-legalcase@ng-itconsulting.com}") String contactTeamEmail) {
         this.mailSender = mailSender;
         this.emailSendRepository = emailSendRepository;
+        this.userRepository = userRepository;
         this.mailEnabled = mailEnabled;
         this.frontendUrl = frontendUrl;
         this.mailFrom = mailFrom;
@@ -301,6 +305,11 @@ public class EmailService {
             log.debug("Mail disabled — {} skipped for {}", type, user.getEmail());
             return;
         }
+        // F-248 SF-248-01 : email non-transactionnel — respecter l'opt-out de l'utilisateur.
+        if (user.isMarketingEmailsOptedOut()) {
+            log.info("User {} opted out of marketing emails — {} skipped", user.getId(), type);
+            return;
+        }
         if (emailSendRepository.existsByUserAndEmailType(user, type)) {
             log.info("Onboarding email {} already sent for user {} — skipping", type, user.getId());
             return;
@@ -310,7 +319,7 @@ public class EmailService {
             message.setFrom(mailFrom);
             message.setTo(user.getEmail());
             message.setSubject(subject);
-            message.setText(body);
+            message.setText(body + unsubscribeFooter(user));
             mailSender.send(message);
 
             EmailSend record = new EmailSend();
@@ -387,6 +396,24 @@ public class EmailService {
                 ? user.getFirstName() : "Maître";
     }
 
+    /**
+     * F-248 SF-248-01 : pied de page de désinscription ajouté aux emails non-transactionnels
+     * (onboarding, newsletter). Assure paresseusement le {@code marketingUnsubscribeToken} :
+     * s'il est absent, en génère un et le persiste. Le token est ensuite stable.
+     * Les emails transactionnels n'appellent jamais cette méthode.
+     */
+    private String unsubscribeFooter(User user) {
+        if (user.getMarketingUnsubscribeToken() == null) {
+            user.setMarketingUnsubscribeToken(UUID.randomUUID());
+            userRepository.save(user);
+            log.debug("Generated marketing unsubscribe token for user {}", user.getId());
+        }
+        return "\n\n--\n" +
+                "Vous recevez cet email car vous avez un compte AI LegalCase.\n" +
+                "Pour ne plus recevoir nos emails d'information, cliquez ici :\n" +
+                frontendUrl + "/unsubscribe?token=" + user.getMarketingUnsubscribeToken();
+    }
+
     // ── Monthly newsletter ────────────────────────────────────────────────────
 
     @Transactional
@@ -395,6 +422,11 @@ public class EmailService {
                                        String monthLabel) {
         if (!mailEnabled) {
             log.debug("Mail disabled — newsletter skipped for {}", user.getEmail());
+            return;
+        }
+        // F-248 SF-248-01 : email non-transactionnel — respecter l'opt-out de l'utilisateur.
+        if (user.isMarketingEmailsOptedOut()) {
+            log.info("User {} opted out of marketing emails — newsletter skipped", user.getId());
             return;
         }
         String subject = "[AI LegalCase] Votre récapitulatif de " + monthLabel;
@@ -409,7 +441,8 @@ public class EmailService {
                 featureDescription + "\n\n" +
                 "Accédez à votre espace :\n" +
                 frontendUrl + "\n\n" +
-                "L'équipe AI LegalCase";
+                "L'équipe AI LegalCase" +
+                unsubscribeFooter(user);
 
         try {
             SimpleMailMessage message = new SimpleMailMessage();

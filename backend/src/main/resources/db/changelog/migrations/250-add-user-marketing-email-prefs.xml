@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="250-add-user-marketing-email-prefs" author="legalcase">
+        <comment>
+            F-248 SF-248-01 : préférences de désabonnement des emails non-transactionnels
+            (conformité RGPD art. 21 / LCEN art. L34-5).
+
+            - marketing_emails_opted_out : opt-out global des emails non-transactionnels
+              (onboarding F-73 + newsletter mensuelle). Défaut false : tout utilisateur
+              reçoit ces emails par défaut. Les emails transactionnels ne sont pas
+              concernés.
+            - marketing_unsubscribe_token : token public porté par le lien de
+              désinscription. Nullable : généré paresseusement côté Java (UUID.randomUUID())
+              au premier envoi d'un email non-transactionnel — pas de backfill SQL ici pour
+              rester portable H2 / PostgreSQL (pas de dépendance à gen_random_uuid() /
+              RANDOM_UUID()). Index unique : un token identifie un seul utilisateur.
+
+            Réversible : drop des deux colonnes.
+        </comment>
+
+        <addColumn tableName="users">
+            <column name="marketing_emails_opted_out" type="boolean"
+                    defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="marketing_unsubscribe_token" type="uuid"/>
+        </addColumn>
+
+        <createIndex tableName="users"
+                     indexName="ux_users_marketing_unsubscribe_token"
+                     unique="true">
+            <column name="marketing_unsubscribe_token"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="users" indexName="ux_users_marketing_unsubscribe_token"/>
+            <dropColumn tableName="users" columnName="marketing_unsubscribe_token"/>
+            <dropColumn tableName="users" columnName="marketing_emails_opted_out"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

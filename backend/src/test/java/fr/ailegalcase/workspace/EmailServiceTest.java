@@ -2,6 +2,7 @@ package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.auth.UserRepository;
 import fr.ailegalcase.contact.ContactRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class EmailServiceTest {
 
     @Mock private JavaMailSender mailSender;
     @Mock private EmailSendRepository emailSendRepository;
+    @Mock private UserRepository userRepository;
 
     private User user;
 
@@ -38,11 +40,11 @@ class EmailServiceTest {
     }
 
     private EmailService enabledService() {
-        return new EmailService(mailSender, emailSendRepository, true, "http://localhost:4200", "noreply@test.com", "team@test.com");
+        return new EmailService(mailSender, emailSendRepository, userRepository, true, "http://localhost:4200", "noreply@test.com", "team@test.com");
     }
 
     private EmailService disabledService() {
-        return new EmailService(mailSender, emailSendRepository, false, "http://localhost:4200", "noreply@test.com", "team@test.com");
+        return new EmailService(mailSender, emailSendRepository, userRepository, false, "http://localhost:4200", "noreply@test.com", "team@test.com");
     }
 
     // U-01 : mail activé → JavaMailSender.send() appelé avec les bons paramètres
@@ -189,5 +191,93 @@ class EmailServiceTest {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(captor.capture());
         assertThat(captor.getValue().getText()).contains("terminé");
+    }
+
+    // ── F-248 SF-248-01 : opt-out emails non-transactionnels ──────────────────
+
+    // S1 : sendOnboardingWelcome court-circuité si l'utilisateur est désinscrit
+    @Test
+    void sendOnboardingWelcome_whenOptedOut_doesNotSend() {
+        user.setMarketingEmailsOptedOut(true);
+
+        enabledService().sendOnboardingWelcome(user);
+
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+        verify(emailSendRepository, never()).save(any(EmailSend.class));
+    }
+
+    // S2 : sendMonthlyNewsletter court-circuité si l'utilisateur est désinscrit
+    @Test
+    void sendMonthlyNewsletter_whenOptedOut_doesNotSend() {
+        user.setMarketingEmailsOptedOut(true);
+
+        enabledService().sendMonthlyNewsletter(user, 3, 2, 5, "Conclusions", "Génération de conclusions", "avril 2026");
+
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+        verify(emailSendRepository, never()).save(any(EmailSend.class));
+    }
+
+    // S3 : email transactionnel (sendAnalysisDone) TOUJOURS envoyé même si opt-out
+    //      — l'opt-out porte sur le User, sendAnalysisDone prend un email : on vérifie
+    //      simplement qu'aucune garde d'opt-out ne s'applique à ce funnel.
+    @Test
+    void sendAnalysisDone_whenUserOptedOut_stillSends() {
+        user.setMarketingEmailsOptedOut(true);
+
+        enabledService().sendAnalysisDone(user.getEmail(), UUID.randomUUID(), "Dossier Dupont", JobType.CASE_ANALYSIS);
+
+        verify(mailSender).send(any(SimpleMailMessage.class));
+    }
+
+    // S4 : email transactionnel — aucun pied de page de désinscription
+    @Test
+    void sendAnalysisDone_hasNoUnsubscribeFooter() {
+        enabledService().sendAnalysisDone(user.getEmail(), UUID.randomUUID(), "Dossier Dupont", JobType.CASE_ANALYSIS);
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getText()).doesNotContain("/unsubscribe?token=");
+    }
+
+    // S5 : email non-transactionnel — pied de page + token généré si absent
+    @Test
+    void sendOnboardingWelcome_generatesTokenAndAddsFooter() {
+        when(emailSendRepository.existsByUserAndEmailType(user, EmailSend.EmailType.ONBOARDING_WELCOME)).thenReturn(false);
+        assertThat(user.getMarketingUnsubscribeToken()).isNull();
+
+        enabledService().sendOnboardingWelcome(user);
+
+        assertThat(user.getMarketingUnsubscribeToken()).isNotNull();
+        verify(userRepository).save(user);
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getText())
+                .contains("http://localhost:4200/unsubscribe?token=" + user.getMarketingUnsubscribeToken());
+    }
+
+    // S6 : token déjà présent → réutilisé, pas régénéré
+    @Test
+    void sendOnboardingWelcome_reusesExistingToken() {
+        UUID existingToken = UUID.randomUUID();
+        user.setMarketingUnsubscribeToken(existingToken);
+        when(emailSendRepository.existsByUserAndEmailType(user, EmailSend.EmailType.ONBOARDING_WELCOME)).thenReturn(false);
+
+        enabledService().sendOnboardingWelcome(user);
+
+        assertThat(user.getMarketingUnsubscribeToken()).isEqualTo(existingToken);
+        verify(userRepository, never()).save(user);
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getText()).contains("/unsubscribe?token=" + existingToken);
+    }
+
+    // S7 : newsletter — pied de page de désinscription présent
+    @Test
+    void sendMonthlyNewsletter_hasUnsubscribeFooter() {
+        enabledService().sendMonthlyNewsletter(user, 3, 2, 5, "Conclusions", "Génération de conclusions", "avril 2026");
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getText()).contains("/unsubscribe?token=" + user.getMarketingUnsubscribeToken());
     }
 }
