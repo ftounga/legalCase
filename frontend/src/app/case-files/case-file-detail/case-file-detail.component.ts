@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
-import { Subscription, forkJoin, of } from 'rxjs';
+import { Subscription, forkJoin, of, retry } from 'rxjs';
 import { catchError, filter, map, tap } from 'rxjs/operators';
 import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -189,6 +189,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   synthesisLoading = signal(false);
   questionsLoading = signal(false);
   questionsLoaded = signal(false);
+  // SF-98-54 : passe à true dès que le 1er chargement des jobs d'analyse réussit.
+  analysisJobsLoaded = signal(false);
   // SF-170-02 : section Documents repliable en accordéon, dépliée par défaut, sans persistance.
   // Le toggle manuel reste possible intra-session pour gagner de l'espace vertical sur dossiers riches,
   // mais aucun état n'est sauvegardé entre rechargements.
@@ -272,6 +274,26 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // (réponse Q&A OU check procédural validé). Le chat n'est pas chargé côté case-file-detail,
   // le backend validera via la condition complète (Q&A + chat + checks).
   readonly hasAnyAnalysis = computed(() => this.synthesis() !== null);
+
+  /**
+   * SF-98-54 — Pré-requis « analyse terminée » de la section Conclusions, en
+   * tri-état. Vaut `undefined` tant que l'état des jobs d'analyse n'est pas
+   * connu (jobs pas encore chargés, ou chargement en échec) : le composant
+   * `conclusions-section` laisse alors le backend trancher (409
+   * ANALYSIS_NOT_READY). Une fois les jobs chargés, booléen réel selon la
+   * présence d'un job CASE_ANALYSIS DONE. Évite que le bouton « Générer les
+   * conclusions » soit grisé à tort pendant le chargement (notamment au
+   * retour de navigation, où le composant est recréé et la synthèse rechargée).
+   */
+  readonly hasCompletedAnalysis = computed<boolean | undefined>(() => {
+    if (!this.analysisJobsLoaded()) {
+      return undefined;
+    }
+    return this.analysisJobs().some(
+      j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE',
+    );
+  });
+
   readonly canEnrichSynthesis = computed(() => {
     if (this.synthesis() === null) return false;
     const hasAnyAnswer = this.questions().some(q => q.answerText !== null);
@@ -842,6 +864,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   loadAnalysisJobs(caseFileId: string, forceStart = false): void {
     this.analysisJobService.getJobs(caseFileId).subscribe({
       next: jobs => {
+        // SF-98-54 : l'état des jobs d'analyse est désormais connu (succès) —
+        // débloque le tri-état `hasCompletedAnalysis`.
+        this.analysisJobsLoaded.set(true);
         // SF-159-04 : log diagnostique de toute transition vers FAILED.
         this.detectAndLogFailedTransition(caseFileId, jobs, 'loadAnalysisJobs');
         // Don't overwrite placeholders while waiting for backend to pick up upload or analysis trigger
@@ -1278,7 +1303,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   }
 
   loadSynthesis(caseFileId: string): void {
-    this.caseAnalysisService.getAnalysis(caseFileId).subscribe({
+    // SF-98-54 : retry sur échec transitoire — un getAnalysis échoué ne doit
+    // pas laisser la synthèse durablement absente sans recours.
+    this.caseAnalysisService.getAnalysis(caseFileId)
+      .pipe(retry({ count: 2, delay: 1000 }))
+      .subscribe({
       next: result => {
         // F-124 : détecter une nouvelle version de synthèse pour rafraîchir le dashboard décisionnel.
         // On compare avec lastCompletedSynthesisVersion (signal qui survit au reset synthesis=null
