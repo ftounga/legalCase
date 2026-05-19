@@ -151,7 +151,8 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 procedureCheckAlignmentService,
                 pieceManquanteAlignmentServiceForTest(),
                 risqueAlignmentServiceForTest(),
-                aiQuestionAlignmentServiceForTest());
+                aiQuestionAlignmentServiceForTest(),
+                mock(DashboardTileCrashRecorder.class));
     }
 
     /** F-194 SF-194-01 — mock du service avec deserializeAlignment vide pour ne pas perturber les tests F-193. */

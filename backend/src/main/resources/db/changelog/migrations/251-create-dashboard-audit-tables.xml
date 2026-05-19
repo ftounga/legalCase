@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="251-create-dashboard-tile-crashes" author="legalcase">
+        <comment>
+            F-180 SF-180-01 : table runtime des crashes de mappers DashboardTile
+            de F-167.
+
+            Complément RUNTIME du garde-fou STATIQUE DashboardTileToolIdIntegrityIT
+            (SF-DT-36-03, CI build-time) : ici on persiste chaque exception réelle
+            jetée en production par un mapper tileFromXxx(), catchée par addSafely().
+
+            Persistance en DB plutôt que grep logs JVM : robuste au redémarrage
+            d'instance (un grep dépend de la JVM courante — un restart perd les WARN
+            antérieurs) et permet une rétention 30j (vs 7j visibles dans ELK).
+
+            Pas de workspace_id : table d'observabilité produit globale (même
+            pattern que les tables backlog_* de F-178). case_file_id stocké pour
+            usage interne futur — JAMAIS exposé par l'API (PII). exception_message
+            tronqué à 2000 caractères côté service avant INSERT.
+        </comment>
+
+        <createTable tableName="dashboard_tile_crashes">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tool_id" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid"/>
+            <column name="exception_class" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="exception_message" type="varchar(2000)"/>
+            <column name="occurred_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="dashboard_tile_crashes"
+                     indexName="idx_dashboard_tile_crashes_occurred_at">
+            <column name="occurred_at"/>
+        </createIndex>
+
+        <createIndex tableName="dashboard_tile_crashes"
+                     indexName="idx_dashboard_tile_crashes_tool_id">
+            <column name="tool_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dashboard_tile_crashes"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="251-create-dashboard-audit-runs" author="legalcase">
+        <comment>
+            F-180 SF-180-01 : table historisée des runs d'audit dashboard.
+
+            Une row = un snapshot d'audit produit soit par le @Scheduled hebdo
+            (lundi 8h UTC), soit par le bouton "Relancer maintenant" du
+            super-admin. Chaque run sérialise en TEXT JSON les 3 panels :
+            crashed_json (mappers en erreur 168h), dormant_json (tables 0 row),
+            active_json (tables >=1 row triées par count desc).
+
+            Colonnes JSON en TEXT (pas jsonb) pour compatibilité H2 profil dev
+            — même pattern que prudhome_fiches / regime_communaute_legale_be_analyses.
+
+            L'endpoint GET /dashboard-audit/latest lit la dernière row par ran_at
+            DESC : il ne recalcule pas (un run = 95+ count(*), coûteux).
+        </comment>
+
+        <createTable tableName="dashboard_audit_runs">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="ran_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="crashed_json" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dormant_json" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active_json" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="dashboard_audit_runs"
+                     indexName="idx_dashboard_audit_runs_ran_at">
+            <column name="ran_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dashboard_audit_runs"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -164,6 +164,8 @@ public class CaseFileDashboardService {
     private final RisqueAlignmentService risqueAlignmentService;
     // F-196 SF-196-01 — questions complémentaires F-94 matérialisées sur la dernière analyse DONE.
     private final AiQuestionAlignmentService aiQuestionAlignmentService;
+    // F-180 SF-180-01 — persistance des crashes de mappers DashboardTile (audit super-admin).
+    private final DashboardTileCrashRecorder crashRecorder;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -275,7 +277,8 @@ public class CaseFileDashboardService {
                                      ProcedureCheckAlignmentService procedureCheckAlignmentService,
                                      PieceManquanteAlignmentService pieceManquanteAlignmentService,
                                      RisqueAlignmentService risqueAlignmentService,
-                                     AiQuestionAlignmentService aiQuestionAlignmentService) {
+                                     AiQuestionAlignmentService aiQuestionAlignmentService,
+                                     DashboardTileCrashRecorder crashRecorder) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -388,6 +391,7 @@ public class CaseFileDashboardService {
         this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
         this.risqueAlignmentService = risqueAlignmentService;
         this.aiQuestionAlignmentService = aiQuestionAlignmentService;
+        this.crashRecorder = crashRecorder;
     }
 
     @Transactional(readOnly = true)
@@ -443,122 +447,122 @@ public class CaseFileDashboardService {
     List<DashboardTile> assembleTiles(UUID caseFileId) {
         List<DashboardTile> tiles = new ArrayList<>();
         // ── SF-167-01 — pilotes ──────────────────────────────────────────────
-        addSafely(tiles, () -> tileFromLicenciementAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndemniteComparatifAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAncienneteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromImmigrationTitleDecisionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromImmigrationWorkRightAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromImmigrationRecoursAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromChangementStatutAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPartageImmobilierAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromCalendrierGardeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromChecklistDivorceAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-08-licenciement-validity", caseFileId, () -> tileFromLicenciementAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-09-comparateur-indemnites", caseFileId, () -> tileFromIndemniteComparatifAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-07-anciennete-conges-prime", caseFileId, () -> tileFromAncienneteAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-05-arbre-decisionnel-titre", caseFileId, () -> tileFromImmigrationTitleDecisionAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-07-droit-au-travail", caseFileId, () -> tileFromImmigrationWorkRightAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-06-recours", caseFileId, () -> tileFromImmigrationRecoursAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-11-changement-statut", caseFileId, () -> tileFromChangementStatutAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-05-partage-immobilier", caseFileId, () -> tileFromPartageImmobilierAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-06-calendrier-garde", caseFileId, () -> tileFromCalendrierGardeAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-07-checklist-divorce", caseFileId, () -> tileFromChecklistDivorceAnalysis(caseFileId));
         // ── SF-167-02 — extension Travail FR + BE ────────────────────────────
-        addSafely(tiles, () -> tileFromRuptureConvAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromHarcelementNulliteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDiscriminationAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromLicenciementEconomiqueAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPseAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromInaptitudeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromLicenciementNulDetectionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndemnitePrecariteCddAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndemniteFinMissionInterimAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromHeuresSupAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRappelSalaireAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromTravailDissimuleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRequalificationCddCdiAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRequalificationInterimCdiAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromNonConcurrenceAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndemnitePreavisAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndemniteCongesPayesAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromProtectionRpAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromTransactionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDocumentsFinContratAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAtMpAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromReferePrudhomalAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromContestationAreAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRuptureConvIndemniteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromMotifGraveBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAvantagesConventionnelsBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromCreditTempsBeAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-10-rupture-conv-validity", caseFileId, () -> tileFromRuptureConvAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-11-harcelement-licenciement-nul", caseFileId, () -> tileFromHarcelementNulliteAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-12-discrimination-dommages-interets", caseFileId, () -> tileFromDiscriminationAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-13-licenciement-economique", caseFileId, () -> tileFromLicenciementEconomiqueAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-14-pse-validite", caseFileId, () -> tileFromPseAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-15-inaptitude", caseFileId, () -> tileFromInaptitudeAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-16-licenciement-nul-detection", caseFileId, () -> tileFromLicenciementNulDetectionAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-17-indemnite-precarite-cdd", caseFileId, () -> tileFromIndemnitePrecariteCddAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-18-fin-mission-interim", caseFileId, () -> tileFromIndemniteFinMissionInterimAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-19-heures-sup", caseFileId, () -> tileFromHeuresSupAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-20-rappel-salaire", caseFileId, () -> tileFromRappelSalaireAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-21-travail-dissimule", caseFileId, () -> tileFromTravailDissimuleAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-22-requalification-cdd-cdi", caseFileId, () -> tileFromRequalificationCddCdiAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-23-requalification-interim-cdi", caseFileId, () -> tileFromRequalificationInterimCdiAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-24-non-concurrence", caseFileId, () -> tileFromNonConcurrenceAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-25-indemnite-preavis", caseFileId, () -> tileFromIndemnitePreavisAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-26-conges-payes-indemnite", caseFileId, () -> tileFromIndemniteCongesPayesAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-30-protection-rp", caseFileId, () -> tileFromProtectionRpAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-31-transaction", caseFileId, () -> tileFromTransactionAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-32-documents-fin-contrat", caseFileId, () -> tileFromDocumentsFinContratAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-33-at-mp", caseFileId, () -> tileFromAtMpAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-34-refere-prudhomal", caseFileId, () -> tileFromReferePrudhomalAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-35-contestation-are-fr", caseFileId, () -> tileFromContestationAreAnalysis(caseFileId));
+        addSafely(tiles, "F-132-rupture-conv-indemnite", caseFileId, () -> tileFromRuptureConvIndemniteAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-27-motif-grave-be", caseFileId, () -> tileFromMotifGraveBeAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-28-avantages-conventionnels-be", caseFileId, () -> tileFromAvantagesConventionnelsBeAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-29-credit-temps-be", caseFileId, () -> tileFromCreditTempsBeAnalysis(caseFileId));
         // ── SF-DT-36-03 — correctif câblage des 16 outils orphelins du dashboard
-        addSafely(tiles, () -> tileFromProcedureNulliteLicenciementAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromJldRetentionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDublinRecoursAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromVictimeViolencesL4256Analysis(caseFileId));
-        addSafely(tiles, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromContributionConjointBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDivorceDcBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDivorceDdiBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromLiquidationPartageBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromMediationFamilialePreSaisineAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPacteSuccessoralBe2018Analysis(caseFileId));
-        addSafely(tiles, () -> tileFromRegimeCommunauteLegaleBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromTribunalFamilleBeMesuresProvisoiresAnalysis(caseFileId));
+        addSafely(tiles, "F-DT-36-procedure-nullite-licenciement", caseFileId, () -> tileFromProcedureNulliteLicenciementAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-24-victime-violences-l4256-fr", caseFileId, () -> tileFromVictimeViolencesL4256Analysis(caseFileId));
+        addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
+        addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
+        addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
+        addSafely(tiles, "contribution-conjoint-be", caseFileId, () -> tileFromContributionConjointBeAnalysis(caseFileId));
+        addSafely(tiles, "divorce-dc-be", caseFileId, () -> tileFromDivorceDcBeAnalysis(caseFileId));
+        addSafely(tiles, "divorce-ddi-3voies-be", caseFileId, () -> tileFromDivorceDdiBeAnalysis(caseFileId));
+        addSafely(tiles, "liquidation-partage-be", caseFileId, () -> tileFromLiquidationPartageBeAnalysis(caseFileId));
+        addSafely(tiles, "mediation-familiale-pre-saisine", caseFileId, () -> tileFromMediationFamilialePreSaisineAnalysis(caseFileId));
+        addSafely(tiles, "pacte-successoral-be-2018", caseFileId, () -> tileFromPacteSuccessoralBe2018Analysis(caseFileId));
+        addSafely(tiles, "regime-mat-be-communaute-legale", caseFileId, () -> tileFromRegimeCommunauteLegaleBeAnalysis(caseFileId));
+        addSafely(tiles, "tribunal-famille-be-mesures-prov", caseFileId, () -> tileFromTribunalFamilleBeMesuresProvisoiresAnalysis(caseFileId));
         // ── SF-167-03 — extension Famille FR + BE ────────────────────────────
-        addSafely(tiles, () -> tileFromDivorceAlterationAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDivorceFauteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDivorceAccepteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDivorceDesunionIrremediableBeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromMesuresProvisoiresAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRevisionsPostDivorceAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromOrdonnanceProtectionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRecompensesAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromCommunauteUniverselleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPartageJudiciaireAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAdoptionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromContestationPaterniteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRecherchePaterniteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromReconnaissancePaterneleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPossessionEtatAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAutoriteParentaleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromChangementResidenceAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDesaccordsParentauxAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPacsDissolutionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromSeparationCorpsAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndivisionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromOrdonnanceRequeteAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDevolutionLegaleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromDonationAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromIndivisionSuccessoraleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPartageSuccessoralAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRapportSuccessionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromReserveHereditaireAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromTestamentValiditeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromMajeursProtegesAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromChangementEtatCivilAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromPmaGpaBioethiqueAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-08-divorce-alteration", caseFileId, () -> tileFromDivorceAlterationAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-09-divorce-faute", caseFileId, () -> tileFromDivorceFauteAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-10-divorce-accepte", caseFileId, () -> tileFromDivorceAccepteAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-11-desunion-irremediable-be", caseFileId, () -> tileFromDivorceDesunionIrremediableBeAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-12-mesures-provisoires", caseFileId, () -> tileFromMesuresProvisoiresAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-13-revisions-post-divorce", caseFileId, () -> tileFromRevisionsPostDivorceAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-14-ordonnance-protection", caseFileId, () -> tileFromOrdonnanceProtectionAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-15-recompenses", caseFileId, () -> tileFromRecompensesAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-16-communaute-universelle", caseFileId, () -> tileFromCommunauteUniverselleAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-17-partage-judiciaire", caseFileId, () -> tileFromPartageJudiciaireAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-18-adoption", caseFileId, () -> tileFromAdoptionAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-18-contestation-paternite", caseFileId, () -> tileFromContestationPaterniteAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-18-recherche-paternite", caseFileId, () -> tileFromRecherchePaterniteAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-18-reconnaissance-paternelle", caseFileId, () -> tileFromReconnaissancePaterneleAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-18-possession-etat", caseFileId, () -> tileFromPossessionEtatAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-19-autorite-parentale", caseFileId, () -> tileFromAutoriteParentaleAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-19-changement-residence", caseFileId, () -> tileFromChangementResidenceAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-19-desaccords-parentaux", caseFileId, () -> tileFromDesaccordsParentauxAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-20-pacs-dissolution", caseFileId, () -> tileFromPacsDissolutionAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-21-separation-corps", caseFileId, () -> tileFromSeparationCorpsAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-22-indivision", caseFileId, () -> tileFromIndivisionAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-23-ordonnance-requete", caseFileId, () -> tileFromOrdonnanceRequeteAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-devolution-legale", caseFileId, () -> tileFromDevolutionLegaleAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-donation", caseFileId, () -> tileFromDonationAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-indivision-successorale", caseFileId, () -> tileFromIndivisionSuccessoraleAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-partage-successoral", caseFileId, () -> tileFromPartageSuccessoralAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-rapport-succession", caseFileId, () -> tileFromRapportSuccessionAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-reserve-heriditaire", caseFileId, () -> tileFromReserveHereditaireAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-24-testament-validite", caseFileId, () -> tileFromTestamentValiditeAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-25-majeurs-proteges", caseFileId, () -> tileFromMajeursProtegesAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-26-changement-etat-civil", caseFileId, () -> tileFromChangementEtatCivilAnalysis(caseFileId));
+        addSafely(tiles, "F-FA-27-pma-gpa", caseFileId, () -> tileFromPmaGpaBioethiqueAnalysis(caseFileId));
         // ── SF-167-04 — extension Immigration FR + BE ────────────────────────
-        addSafely(tiles, () -> tileFromOqtfAvecDelaiAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromOqtfSansDelaiAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromReferesAdminAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAesEtudiantAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAesFamilleAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAesHumanitaireAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAesMetiersTensionAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAsileAvanceAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromNaturalisationAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromRegimeAlgerienAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromMineursImmigrationAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromMesuresEloignementAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromAnnexe13BeAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromBelgian9bisAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromBelgian9terAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromBelgian40bisAnalysis(caseFileId));
-        addSafely(tiles, () -> tileFromBelgian40terAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-08-oqtf-avec-delai-fr", caseFileId, () -> tileFromOqtfAvecDelaiAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-08-oqtf-sans-delai-fr", caseFileId, () -> tileFromOqtfSansDelaiAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-08-referes-admin-fr", caseFileId, () -> tileFromReferesAdminAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-09-aes-etudiant", caseFileId, () -> tileFromAesEtudiantAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-09-aes-famille", caseFileId, () -> tileFromAesFamilleAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-09-aes-humanitaire", caseFileId, () -> tileFromAesHumanitaireAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-09-aes-metiers-tension", caseFileId, () -> tileFromAesMetiersTensionAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-12-asile-avance", caseFileId, () -> tileFromAsileAvanceAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-13-naturalisation", caseFileId, () -> tileFromNaturalisationAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-17-regime-algerien", caseFileId, () -> tileFromRegimeAlgerienAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-19-mineurs", caseFileId, () -> tileFromMineursImmigrationAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-20-mesures-eloignement", caseFileId, () -> tileFromMesuresEloignementAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-08-annexe13-be", caseFileId, () -> tileFromAnnexe13BeAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-14-9bis-humanitaire-be", caseFileId, () -> tileFromBelgian9bisAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-14-9ter-medical-be", caseFileId, () -> tileFromBelgian9terAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-14-40bis-cohabitant-ue-be", caseFileId, () -> tileFromBelgian40bisAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-14-40ter-familial-belge-be", caseFileId, () -> tileFromBelgian40terAnalysis(caseFileId));
         // ── F-192 SF-192-01 — pistes RETAINED matérialisées ───────────────────
-        addSafely(tiles, () -> tileFromRetainedPistesAlignment(caseFileId));
+        addSafely(tiles, "F-192-retained-pistes-summary", caseFileId, () -> tileFromRetainedPistesAlignment(caseFileId));
         // ── F-193 SF-193-01 — checks F-96 matérialisés ─────────────────────
-        addSafely(tiles, () -> tileFromProcedureChecksAlignment(caseFileId));
+        addSafely(tiles, "F-193-procedure-checks-summary", caseFileId, () -> tileFromProcedureChecksAlignment(caseFileId));
         // ── F-194 SF-194-01 — pièces manquantes markables matérialisées ───
-        addSafely(tiles, () -> tileFromPiecesManquantesAlignment(caseFileId));
+        addSafely(tiles, "F-194-pieces-summary", caseFileId, () -> tileFromPiecesManquantesAlignment(caseFileId));
         // ── F-195 SF-195-01 — risques markables matérialisés ───────────────
-        addSafely(tiles, () -> tileFromRisquesAlignment(caseFileId));
+        addSafely(tiles, "F-195-risques-summary", caseFileId, () -> tileFromRisquesAlignment(caseFileId));
         // ── F-196 SF-196-01 — questions complémentaires F-94 matérialisées ─
-        addSafely(tiles, () -> tileFromAiQuestionsAlignment(caseFileId));
+        addSafely(tiles, "F-196-questions-summary", caseFileId, () -> tileFromAiQuestionsAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -840,14 +844,22 @@ public class CaseFileDashboardService {
                 alertLevel);
     }
 
-    private void addSafely(List<DashboardTile> tiles, Supplier<DashboardTile> supplier) {
+    /**
+     * F-167 SF-167-01 — fail-open per tile : un mapper qui crashe ne fait pas
+     * planter le dashboard. F-180 SF-180-01 — en plus du WARN, le crash est
+     * persisté en base via {@link DashboardTileCrashRecorder} (robuste au
+     * redémarrage JVM, historisé 30j) et exploité par l'audit super-admin.
+     */
+    private void addSafely(List<DashboardTile> tiles, String toolId, UUID caseFileId,
+                           Supplier<DashboardTile> supplier) {
         try {
             DashboardTile t = supplier.get();
             if (t != null) {
                 tiles.add(t);
             }
         } catch (Exception e) {
-            log.warn("F-167 SF-167-01 — fail-open per tile: {}", e.toString());
+            log.warn("F-167 SF-167-01 — fail-open per tile {}: {}", toolId, e.toString());
+            crashRecorder.record(toolId, caseFileId, e);
         }
     }
 
