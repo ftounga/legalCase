@@ -300,6 +300,33 @@ class AiQuestionServiceTest {
         assertThat(prompt).contains("RC_CONSENTEMENT");
     }
 
+    // SF-250-07 — Remédiation critereCode lot Immigration BE
+
+    // U-SF-250-07-01 : le prompt questions immigration-BE contient IM08_MOTIF_OQT_BE annoté BELGIQUE UNIQUEMENT
+    @Test
+    void systemPrompt_containsIm08OqtBeCodeForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "BELGIQUE");
+        assertThat(prompt).as("IM08_MOTIF_OQT_BE doit être dans le prompt questions").contains("IM08_MOTIF_OQT_BE");
+        assertThat(prompt).as("Annotation BELGIQUE UNIQUEMENT requise pour IM08_MOTIF_OQT_BE").contains("BELGIQUE UNIQUEMENT");
+        // Non-régression codes FR
+        assertThat(prompt).contains("IM08_MOTIF_OQTF");
+        assertThat(prompt).contains("IM11_TITRE_ACTUEL");
+    }
+
+    // U-SF-250-07-02 : le prompt questions immigration contient BE_9TER_* et IM17_VOIE_REGIME_ALGERIEN
+    @Test
+    void systemPrompt_containsBe9terAndIm17CodesForQuestions() {
+        String prompt = AiQuestionService.buildSystemPrompt("DROIT_DE_L_IMMIGRATION", "BELGIQUE");
+        assertThat(prompt).as("BE_9TER_MALADIE_GRAVE doit être dans le prompt questions").contains("BE_9TER_MALADIE_GRAVE");
+        assertThat(prompt).as("BE_9TER_SOINS_BE doit être dans le prompt questions").contains("BE_9TER_SOINS_BE");
+        assertThat(prompt).as("BE_9TER_SOINS_INACCESSIBLES doit être dans le prompt questions").contains("BE_9TER_SOINS_INACCESSIBLES");
+        assertThat(prompt).as("BE_9TER_MENACE_ORDRE_PUBLIC doit être dans le prompt questions").contains("BE_9TER_MENACE_ORDRE_PUBLIC");
+        assertThat(prompt).as("IM17_VOIE_REGIME_ALGERIEN doit être dans le prompt questions").contains("IM17_VOIE_REGIME_ALGERIEN");
+        // Non-régression codes SF-250-05, SF-250-06
+        assertThat(prompt).contains("IM24_DATE_ORDONNANCE_PROTECTION");
+        assertThat(prompt).contains("IM20_DISPOSITIF_ELOIGNEMENT");
+    }
+
     // SF-250-06 — Remédiation critereCode lot Immigration FR — titres / asile / éloignement
 
     // U-SF-250-06-01 : le prompt questions immigration-FR contient les codes IM11_, IM12_, IM13_
