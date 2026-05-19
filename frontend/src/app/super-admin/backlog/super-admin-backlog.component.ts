@@ -16,8 +16,11 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { AuthService } from '../../core/services/auth.service';
 import { BacklogAdminService } from '../../core/services/backlog-admin.service';
+import { DashboardAuditService } from '../../core/services/dashboard-audit.service';
+import { DashboardAuditReport } from '../../core/models/dashboard-audit.model';
 import {
   BacklogDomain,
   BacklogFeatureSummary,
@@ -85,7 +88,7 @@ const STATUS_MARKETING_LABELS: Record<BacklogMarketingStatus, string> = {
     MatTabsModule, MatTableModule, MatPaginatorModule,
     MatFormFieldModule, MatSelectModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatDialogModule,
-    MatButtonToggleModule,
+    MatButtonToggleModule, MatSortModule,
     BacklogStatusBadgeComponent,
   ],
   templateUrl: './super-admin-backlog.component.html',
@@ -133,6 +136,54 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
   resyncing = signal(false);
   selectedTabIndex = signal(0);
 
+  // ── F-180 SF-180-02 — Tab « Audit dashboard » ──────────────────────────
+  readonly crashedColumns = ['toolId', 'crashCount', 'lastExceptionClass', 'lastExceptionMessage', 'lastOccurredAt'];
+  readonly activeColumns = ['tableName', 'rowCount'];
+
+  auditReport = signal<DashboardAuditReport | null>(null);
+  auditLoaded = signal(false);
+  auditLoading = signal(false);
+  auditRunning = signal(false);
+  auditError = signal(false);
+  crashedSort = signal<Sort>({ active: 'crashCount', direction: 'desc' });
+  activeSort = signal<Sort>({ active: 'rowCount', direction: 'desc' });
+
+  /** Mappers en erreur triés selon l'en-tête MatSort cliqué. */
+  sortedCrashedMappers = computed(() => {
+    const report = this.auditReport();
+    if (!report) return [];
+    const sort = this.crashedSort();
+    const rows = [...report.crashedMappers];
+    if (!sort.active || sort.direction === '') return rows;
+    const dir = sort.direction === 'asc' ? 1 : -1;
+    return rows.sort((a, b) => {
+      switch (sort.active) {
+        case 'crashCount': return (a.crashCount - b.crashCount) * dir;
+        case 'lastOccurredAt': return a.lastOccurredAt.localeCompare(b.lastOccurredAt) * dir;
+        case 'toolId': return a.toolId.localeCompare(b.toolId) * dir;
+        case 'lastExceptionClass': return a.lastExceptionClass.localeCompare(b.lastExceptionClass) * dir;
+        default: return 0;
+      }
+    });
+  });
+
+  /** Tiles actives triées selon l'en-tête MatSort cliqué (rowCount desc par défaut). */
+  sortedActiveTiles = computed(() => {
+    const report = this.auditReport();
+    if (!report) return [];
+    const sort = this.activeSort();
+    const rows = [...report.activeTiles];
+    if (!sort.active || sort.direction === '') return rows;
+    const dir = sort.direction === 'asc' ? 1 : -1;
+    return rows.sort((a, b) => {
+      switch (sort.active) {
+        case 'rowCount': return (a.rowCount - b.rowCount) * dir;
+        case 'tableName': return a.tableName.localeCompare(b.tableName) * dir;
+        default: return 0;
+      }
+    });
+  });
+
   // SF-178-05 — Vue kanban (Produit only)
   viewMode = signal<'list' | 'kanban'>('list');
   readonly kanbanColumns: ReadonlyArray<{ key: BacklogStatus | 'OTHER'; label: string }> = [
@@ -168,6 +219,7 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
     private router: Router,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
+    private dashboardAuditService: DashboardAuditService,
   ) {}
 
   openFeatureDetail(code: string): void {
@@ -219,6 +271,9 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
     this.selectedTabIndex.set(index);
     if (index === 1 && !this.marketingLoaded()) {
       this.loadMarketing();
+    }
+    if (index === 2 && !this.auditLoaded()) {
+      this.loadAudit();
     }
   }
 
@@ -313,6 +368,69 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
         });
       },
     });
+  }
+
+  // ── F-180 SF-180-02 — Audit dashboard ──────────────────────────────────
+
+  loadAudit(): void {
+    this.auditLoading.set(true);
+    this.auditError.set(false);
+    this.dashboardAuditService.getLatest().subscribe({
+      next: report => {
+        this.auditReport.set(report);
+        this.auditLoaded.set(true);
+        this.auditLoading.set(false);
+      },
+      error: err => {
+        this.auditLoading.set(false);
+        this.auditError.set(true);
+        if (err?.status === 403) {
+          this.router.navigate(['/case-files']);
+          return;
+        }
+        this.snackBar.open('Erreur lors du chargement de l\'audit dashboard', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error'],
+        });
+      },
+    });
+  }
+
+  triggerAuditRun(): void {
+    if (this.auditRunning()) return;
+    this.auditRunning.set(true);
+    this.dashboardAuditService.runAudit().subscribe({
+      next: report => {
+        this.auditReport.set(report);
+        this.auditLoaded.set(true);
+        this.auditRunning.set(false);
+        this.snackBar.open('Audit relancé', 'Fermer', {
+          duration: 3000, panelClass: ['snack-success'],
+        });
+      },
+      error: err => {
+        this.auditRunning.set(false);
+        if (err?.status === 403) {
+          this.router.navigate(['/case-files']);
+          return;
+        }
+        this.snackBar.open('Échec de la relance de l\'audit', 'Fermer', {
+          duration: 5000, panelClass: ['snack-error'],
+        });
+      },
+    });
+  }
+
+  onCrashedSortChange(sort: Sort): void {
+    this.crashedSort.set(sort);
+  }
+
+  onActiveSortChange(sort: Sort): void {
+    this.activeSort.set(sort);
+  }
+
+  /** Commande kubectl logs suggérée pour investiguer un crash de mapper. */
+  kubectlLogsHint(toolId: string): string {
+    return `kubectl logs deploy/legalcase-backend | grep "fail-open per tile ${toolId}"`;
   }
 
   // ── Freshness + Resync ─────────────────────────────────────────────────
