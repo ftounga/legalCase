@@ -68,6 +68,34 @@ Cette page n'impacte aucun écran cabinet et n'ajoute pas d'entrée de menu. Ell
 
 **État terminal** : un hub récurrent n'a pas d'état terminal. L'état terminal d'une *visite* = l'avocat est orienté en quelques secondes (il a cliqué vers le dossier à traiter, ou constaté l'absence d'urgence).
 
+## Parcours écran — Création d'un workspace supplémentaire (F-156)
+
+> Ajouté au passage F-156 (restriction de la création d'un workspace supplémentaire aux plans TEAM / PRO). Ce parcours traverse le **workspace switcher** du header — un avocat qui opère plusieurs entités juridiques (cabinet A + activité de conseil, double inscription FR/BE, holding/filiale…) crée des workspaces additionnels pour cloisonner ses données.
+
+**Écrans traversés** :
+- **Header** — `WorkspaceSwitcherComponent` (F-154) — visible depuis tout l'app authentifié.
+- **Dialog modal** — `WorkspaceCreateDialogComponent` (existant, enrichi par F-156).
+- **Stripe Checkout** — page externe, hors app.
+- **Dashboard du nouveau workspace** — écran de niveau workspace standard, avec banderole d'état temporaire (`WorkspaceStatusBanner`, nouveau).
+
+**Parcours réel** :
+1. L'avocat clique sur le **workspace switcher** du header → dropdown listant ses workspaces.
+2. Option **« + Créer un workspace »** au bas du dropdown — visible **uniquement si OWNER TEAM ou PRO** (invisible pour FREE et SOLO).
+3. Clic → dialog modal avec champ « Nom du workspace » + **cards plan TEAM / PRO** (mutuellement exclusives, prix issus du pricing F-123) + bouton « Créer + payer » (disabled tant que nom et plan ne sont pas tous deux renseignés).
+4. Submit → `POST /api/v1/workspaces` → réponse `201` avec `stripeCheckoutUrl` → **redirection navigateur** (pas `router.navigate`) vers Stripe Checkout.
+5. Paiement chez Stripe → redirection vers `/workspaces?workspace_created=success&workspace_id=<id>`.
+6. Handler de route → **bascule automatique** sur le nouveau workspace via le switcher.
+7. Dashboard du nouveau workspace : banderole d'état `PENDING_PAYMENT` (« Paiement en cours d'activation… ») jusqu'à réception du webhook `customer.subscription.created` ; puis banderole de bienvenue 5 s.
+8. Tant que `PENDING_PAYMENT`, les **actions d'écriture** (créer dossier, inviter, uploader) sont visuellement désactivées + tooltip explicatif — évite que l'avocat crée du contenu qui sera perdu si le paiement échoue.
+
+**Cas FREE / SOLO** : l'option « + Créer un workspace » n'apparaît pas. Si l'avocat bricole une URL `/workspaces/new`, un guard `WorkspacePlanGuard` le redirige vers `WorkspaceUpgradeRequiredPageComponent` (titre « Création d'un workspace supplémentaire », sous-titre « TEAM ou PRO requis », CTA « Découvrir les plans » → ouvre `/pricing` en nouvelle page).
+
+**Cas annulation Stripe** : retour sur `/workspaces?workspace_created=cancelled&workspace_id=<id>` → snackbar « Création annulée — aucun frais prélevé » + bascule sur le workspace d'origine. Le workspace `PENDING_PAYMENT` créé en step 4 sera nettoyé par le cron backend (24 h max).
+
+**Blocs primaires ajoutés** : aucun nouveau bloc principal d'écran applicatif — la feature vit dans des écrans existants (switcher dropdown + dialog) + une banderole fine d'état transitoire (~40-48 px).
+
+**État terminal** : l'avocat travaille dans le nouveau workspace (statut `ACTIVE` confirmé), prêt à inviter ses membres ou créer son premier dossier. Le workspace d'origine reste accessible à tout moment via le switcher.
+
 ## Historique des passages
 
 | Date | Feature | Apport au parcours |
@@ -76,3 +104,4 @@ Cette page n'impacte aucun écran cabinet et n'ajoute pas d'entrée de menu. Ell
 | 2026-05-19 | F-247 résiliation self-service (cadrage écran SF-247-00b) | Écran Abonnement enrichi : section de résiliation self-service en bas de page (visible si plan payant + OWNER) + bandeau « résiliation programmée » en haut. Verdict GO. |
 | 2026-05-19 | F-248 désabonnement emails (cadrage écran SF-248-00b) | Ajout du parcours périphérique de désinscription email (email → page publique `/unsubscribe`). N'impacte aucun écran cabinet applicatif. Verdict GO avec ajustements. |
 | 2026-05-19 | F-249 refonte futuriste dashboard d'accueil (cadrage écran SF-249-00b) | Création de la section « Tableau de bord d'accueil ». Le hero d'accueil absorbe la barre KPI (charge d'écran constante ~5 blocs primaires). Verdict GO avec ajustements. |
+| 2026-05-19 | F-156 création workspace supplémentaire TEAM/PRO (cadrage écran SF-156-00b) | Ajout du parcours « Création d'un workspace supplémentaire » — switcher dropdown + dialog enrichi + Stripe Checkout + banderole `PENDING_PAYMENT` + page d'erreur FREE/SOLO. Aucun nouvel écran applicatif, juste une banderole fine. Verdict GO. |
