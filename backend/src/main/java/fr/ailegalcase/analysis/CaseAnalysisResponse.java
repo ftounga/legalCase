@@ -935,7 +935,23 @@ public record CaseAnalysisResponse(
             String dateRequeteOP,
             String dateAudienceAOMP,
             Integer nbEnfantsACharge,
-            Double revenusAnnuelsEpoux) {
+            Double revenusAnnuelsEpoux,
+            // SF-246-09 : 7 champs IA filiation / adoption pour pré-fill des
+            // 4 outils décisionnels F-FA-18 (contestation-paternite,
+            // recherche-paternite, reconnaissance-paternelle, adoption).
+            // Famille FR uniquement, tous nullables — le prompt impose null hors FR
+            // / hors certitude. Sous-objet IA source :
+            // `famille_extracted_data.filiation_detection`.
+            // `dateNaissanceEnfantDetectee` (reconnaissance) ≠
+            // `dateNaissanceEnfantRechercheDetectee` (recherche de paternité) :
+            // deux contextes juridiques distincts (art. 316 vs 327 Cciv).
+            String dateEtablissementFiliationDetectee,
+            String dateConnaissanceVeriteDetectee,
+            String dateMajoriteEnfantDetectee,
+            String dateNaissanceEnfantRechercheDetectee,
+            String dateNaissanceEnfantDetectee,
+            Integer ageAdoptantDetecte,
+            Integer ageAdopteDetecte) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1016,6 +1032,14 @@ public record CaseAnalysisResponse(
             private String dateAudienceAOMP;
             private Integer nbEnfantsACharge;
             private Double revenusAnnuelsEpoux;
+            // SF-246-09 : 7 champs IA filiation / adoption (F-FA-18), nullables.
+            private String dateEtablissementFiliationDetectee;
+            private String dateConnaissanceVeriteDetectee;
+            private String dateMajoriteEnfantDetectee;
+            private String dateNaissanceEnfantRechercheDetectee;
+            private String dateNaissanceEnfantDetectee;
+            private Integer ageAdoptantDetecte;
+            private Integer ageAdopteDetecte;
 
             private Builder() {}
 
@@ -1086,6 +1110,14 @@ public record CaseAnalysisResponse(
             public Builder dateAudienceAOMP(String v) { this.dateAudienceAOMP = v; return this; }
             public Builder nbEnfantsACharge(Integer v) { this.nbEnfantsACharge = v; return this; }
             public Builder revenusAnnuelsEpoux(Double v) { this.revenusAnnuelsEpoux = v; return this; }
+            // SF-246-09 : setters des 7 champs IA filiation / adoption (F-FA-18).
+            public Builder dateEtablissementFiliationDetectee(String v) { this.dateEtablissementFiliationDetectee = v; return this; }
+            public Builder dateConnaissanceVeriteDetectee(String v) { this.dateConnaissanceVeriteDetectee = v; return this; }
+            public Builder dateMajoriteEnfantDetectee(String v) { this.dateMajoriteEnfantDetectee = v; return this; }
+            public Builder dateNaissanceEnfantRechercheDetectee(String v) { this.dateNaissanceEnfantRechercheDetectee = v; return this; }
+            public Builder dateNaissanceEnfantDetectee(String v) { this.dateNaissanceEnfantDetectee = v; return this; }
+            public Builder ageAdoptantDetecte(Integer v) { this.ageAdoptantDetecte = v; return this; }
+            public Builder ageAdopteDetecte(Integer v) { this.ageAdopteDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1121,7 +1153,11 @@ public record CaseAnalysisResponse(
                         // SF-246-08 : 7 champs IA vie commune & protection.
                         dateSeparation, patrimoineCommunEur,
                         dateConclusionPacs, dateRequeteOP, dateAudienceAOMP,
-                        nbEnfantsACharge, revenusAnnuelsEpoux);
+                        nbEnfantsACharge, revenusAnnuelsEpoux,
+                        // SF-246-09 : 7 champs IA filiation / adoption.
+                        dateEtablissementFiliationDetectee, dateConnaissanceVeriteDetectee,
+                        dateMajoriteEnfantDetectee, dateNaissanceEnfantRechercheDetectee,
+                        dateNaissanceEnfantDetectee, ageAdoptantDetecte, ageAdopteDetecte);
             }
         }
     }
@@ -2448,6 +2484,33 @@ public record CaseAnalysisResponse(
                 || dateAudienceAOMP != null
                 || nbEnfantsACharge != null
                 || revenusAnnuelsEpoux != null;
+        // SF-246-09 : sous-objet `filiation_detection` — 7 champs IA filiation /
+        // adoption pour pré-fill des 4 outils F-FA-18. Absent → tous null
+        // (no-op gracieux des prefillFromAi() frontend). Dates via isoDateOrNull()
+        // (§5.1 — YYYY-MM-DD strict), âges via boundedIntOrNull(_, _, 0, 120).
+        // `dateNaissanceEnfantDetectee` (reconnaissance art. 316) ≠
+        // `dateNaissanceEnfantRechercheDetectee` (recherche de paternité art. 327) :
+        // deux contextes juridiques distincts — le prompt nomme chaque concept sans
+        // ambiguïté (invariant cadrage §5.1.1).
+        // `ageAdoptantDetecte` / `ageAdopteDetecte` : extraits directement en âge
+        // (pas calculés à partir d'une date) — l'âge à la date de la requête est
+        // l'unité pertinente du formulaire adoption (art. 343+ Cciv).
+        JsonNode fd = node.get("filiation_detection");
+        boolean fdObject = fd != null && fd.isObject();
+        String dateEtablissementFiliationDetectee = fdObject ? isoDateOrNull(fd, "date_etablissement_filiation") : null;
+        String dateConnaissanceVeriteDetectee = fdObject ? isoDateOrNull(fd, "date_connaissance_verite") : null;
+        String dateMajoriteEnfantDetectee = fdObject ? isoDateOrNull(fd, "date_majorite_enfant") : null;
+        String dateNaissanceEnfantRechercheDetectee = fdObject ? isoDateOrNull(fd, "date_naissance_enfant_recherche") : null;
+        String dateNaissanceEnfantDetectee = fdObject ? isoDateOrNull(fd, "date_naissance_enfant") : null;
+        Integer ageAdoptantDetecte = fdObject ? boundedIntOrNull(fd, "age_adoptant", 0, 120) : null;
+        Integer ageAdopteDetecte = fdObject ? boundedIntOrNull(fd, "age_adopte", 0, 120) : null;
+        boolean filiationDetectionPresent = dateEtablissementFiliationDetectee != null
+                || dateConnaissanceVeriteDetectee != null
+                || dateMajoriteEnfantDetectee != null
+                || dateNaissanceEnfantRechercheDetectee != null
+                || dateNaissanceEnfantDetectee != null
+                || ageAdoptantDetecte != null
+                || ageAdopteDetecte != null;
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
                 && !pd && !sc && !ind && !or
@@ -2457,7 +2520,8 @@ public record CaseAnalysisResponse(
                 && dateAcceptationPV == null
                 && !successionDetectionPresent
                 && !regimeMatrimonialDetectionPresent
-                && !vieCommuneDetectionPresent) {
+                && !vieCommuneDetectionPresent
+                && !filiationDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -2533,6 +2597,14 @@ public record CaseAnalysisResponse(
                 .dateAudienceAOMP(dateAudienceAOMP)
                 .nbEnfantsACharge(nbEnfantsACharge)
                 .revenusAnnuelsEpoux(revenusAnnuelsEpoux)
+                // SF-246-09 : 7 champs IA filiation / adoption (F-FA-18).
+                .dateEtablissementFiliationDetectee(dateEtablissementFiliationDetectee)
+                .dateConnaissanceVeriteDetectee(dateConnaissanceVeriteDetectee)
+                .dateMajoriteEnfantDetectee(dateMajoriteEnfantDetectee)
+                .dateNaissanceEnfantRechercheDetectee(dateNaissanceEnfantRechercheDetectee)
+                .dateNaissanceEnfantDetectee(dateNaissanceEnfantDetectee)
+                .ageAdoptantDetecte(ageAdoptantDetecte)
+                .ageAdopteDetecte(ageAdopteDetecte)
                 .build();
     }
 

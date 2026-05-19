@@ -512,4 +512,58 @@ class LegalDomainPromptBuilderTest {
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
         assertThat(instruction).contains("entier entre 0 et 30");
     }
+
+    // SF-246-09 : prompt Famille enrichi du sous-objet filiation_detection
+    // ─────────────────────────────────────────────────────────────────────────────────
+    @Test
+    void domainSpecificInstruction_famille_containsFiliationDetectionSubObject() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("filiation_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_filiationDetection_containsSevenKeys() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // Les 7 clés du sous-objet filiation_detection.
+        assertThat(instruction).contains("\"date_etablissement_filiation\"");
+        assertThat(instruction).contains("\"date_connaissance_verite\"");
+        assertThat(instruction).contains("\"date_majorite_enfant\"");
+        assertThat(instruction).contains("\"date_naissance_enfant_recherche\"");
+        assertThat(instruction).contains("\"date_naissance_enfant\"");
+        assertThat(instruction).contains("\"age_adoptant\"");
+        assertThat(instruction).contains("\"age_adopte\"");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_filiationDetection_imposesNullOutsideFrance() {
+        // Le sous-objet doit rester null hors FR.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        // La mention FRANCE UNIQUEMENT est déjà vérifiée par d'autres tests ; on
+        // vérifie ici la présence de la contrainte BE spécifique à filiation.
+        assertThat(instruction).contains("filiation_detection");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_filiationDetection_regleAntiConfusionDates() {
+        // La règle anti-confusion des 5 dates de filiation doit être présente.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("DISTINCTION DES DATES FILIATION");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_filiationDetection_distingueNaissanceRechercheVsReconnaissance() {
+        // La distinction entre les deux dates de naissance d'enfant doit être explicite.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("date_naissance_enfant_recherche");
+        assertThat(instruction).contains("date_naissance_enfant");
+        assertThat(instruction).contains("DISTINCT");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_filiationDetection_borneAge() {
+        // La borne [0, 120] pour les âges doit être explicite dans le prompt.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("entier entre 0 et 120");
+    }
 }

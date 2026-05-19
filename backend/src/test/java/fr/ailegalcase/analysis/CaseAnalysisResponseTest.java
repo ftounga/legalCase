@@ -3576,4 +3576,244 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateSeparation()).isEqualTo("2023-06-15");
         assertThat(f.nbEnfantsACharge()).isEqualTo(1);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // SF-246-09 : pré-fill IA F-FA-18 — sous-objet filiation_detection
+    // ─────────────────────────────────────────────────────────────────────────────────
+
+    /** Cas nominal : tous les 7 champs renseignés. */
+    @Test
+    void extractFamilleData_filiationDetection_nominalCase_allSevenFields() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true,
+                    "filiation_detection": {
+                      "date_etablissement_filiation": "2010-05-12",
+                      "date_connaissance_verite": "2024-02-01",
+                      "date_majorite_enfant": "2028-05-12",
+                      "date_naissance_enfant_recherche": "2020-07-03",
+                      "date_naissance_enfant": "2015-11-20",
+                      "age_adoptant": 42,
+                      "age_adopte": 7
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateEtablissementFiliationDetectee()).isEqualTo("2010-05-12");
+        assertThat(f.dateConnaissanceVeriteDetectee()).isEqualTo("2024-02-01");
+        assertThat(f.dateMajoriteEnfantDetectee()).isEqualTo("2028-05-12");
+        assertThat(f.dateNaissanceEnfantRechercheDetectee()).isEqualTo("2020-07-03");
+        assertThat(f.dateNaissanceEnfantDetectee()).isEqualTo("2015-11-20");
+        assertThat(f.ageAdoptantDetecte()).isEqualTo(42);
+        assertThat(f.ageAdopteDetecte()).isEqualTo(7);
+    }
+
+    /** Sous-objet absent → 7 champs null, pas d'exception. */
+    @Test
+    void extractFamilleData_filiationDetection_absent_allSevenFieldsNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateEtablissementFiliationDetectee()).isNull();
+        assertThat(f.dateConnaissanceVeriteDetectee()).isNull();
+        assertThat(f.dateMajoriteEnfantDetectee()).isNull();
+        assertThat(f.dateNaissanceEnfantRechercheDetectee()).isNull();
+        assertThat(f.dateNaissanceEnfantDetectee()).isNull();
+        assertThat(f.ageAdoptantDetecte()).isNull();
+        assertThat(f.ageAdopteDetecte()).isNull();
+    }
+
+    /** Sous-objet explicitement null → 7 champs null. */
+    @Test
+    void extractFamilleData_filiationDetection_null_allSevenFieldsNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true,
+                    "filiation_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateEtablissementFiliationDetectee()).isNull();
+        assertThat(f.dateNaissanceEnfantDetectee()).isNull();
+        assertThat(f.ageAdoptantDetecte()).isNull();
+    }
+
+    /** Date non ISO → champ null (fail-open). */
+    @Test
+    void extractFamilleData_filiationDetection_dateMalFormee_rejetee() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true,
+                    "filiation_detection": {
+                      "date_etablissement_filiation": "12/05/2010",
+                      "date_connaissance_verite": "1er février 2024"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateEtablissementFiliationDetectee()).isNull();
+        assertThat(f.dateConnaissanceVeriteDetectee()).isNull();
+    }
+
+    /** Âge hors plage [0, 120] → null. */
+    @Test
+    void extractFamilleData_filiationDetection_ageHorsPlage_null() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "adoption_envisagee": true,
+                    "filiation_detection": {
+                      "age_adoptant": 150,
+                      "age_adopte": -3
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.ageAdoptantDetecte()).isNull();
+        assertThat(f.ageAdopteDetecte()).isNull();
+    }
+
+    /** Âge à 0 → accepté (limite basse inclusive). */
+    @Test
+    void extractFamilleData_filiationDetection_ageZero_accepte() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "adoption_envisagee": true,
+                    "filiation_detection": {
+                      "age_adopte": 0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.ageAdopteDetecte()).isEqualTo(0);
+    }
+
+    /**
+     * Fixture multi-dates — invariant cadrage §5.1.6 :
+     * date d'établissement filiation ≠ date connaissance vérité ≠ date majorité
+     * → chaque champ rempli avec la bonne date, aucune confusion.
+     */
+    @Test
+    void extractFamilleData_filiationDetection_multiDates_contestationPaternite_noConfusion() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true,
+                    "filiation_detection": {
+                      "date_etablissement_filiation": "2000-03-15",
+                      "date_connaissance_verite": "2023-07-20",
+                      "date_majorite_enfant": "2018-03-15"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Chaque date rattachée au bon champ — aucune confusion.
+        assertThat(f.dateEtablissementFiliationDetectee()).isEqualTo("2000-03-15");
+        assertThat(f.dateConnaissanceVeriteDetectee()).isEqualTo("2023-07-20");
+        assertThat(f.dateMajoriteEnfantDetectee()).isEqualTo("2018-03-15");
+        // Les deux dates de naissance d'enfant ne sont pas renseignées (non présentes dans ce dossier).
+        assertThat(f.dateNaissanceEnfantRechercheDetectee()).isNull();
+        assertThat(f.dateNaissanceEnfantDetectee()).isNull();
+    }
+
+    /**
+     * Fixture distinction naissance — invariant §5.1.6 (2ème cas) :
+     * date naissance enfant recherche (art. 327) ≠ date naissance enfant reconnaissance (art. 316).
+     * Le dossier mentionne les deux en contextes distincts → chaque champ au bon endroit.
+     */
+    @Test
+    void extractFamilleData_filiationDetection_distingueNaissanceRechercheVsReconnaissance() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recherche_paternite_envisagee": true,
+                    "reconnaissance_paternelle_envisagee": true,
+                    "filiation_detection": {
+                      "date_naissance_enfant_recherche": "2020-07-03",
+                      "date_naissance_enfant": "2015-11-20"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateNaissanceEnfantRechercheDetectee()).isEqualTo("2020-07-03");
+        assertThat(f.dateNaissanceEnfantDetectee()).isEqualTo("2015-11-20");
+        // Aucune confusion entre les deux.
+        assertThat(f.dateNaissanceEnfantRechercheDetectee())
+            .isNotEqualTo(f.dateNaissanceEnfantDetectee());
+    }
+
+    /** Seul filiation_detection présent (sans flag boolean) → f non null. */
+    @Test
+    void extractFamilleData_filiationDetection_seulChampNonNull_retourneNonNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "filiation_detection": {
+                      "age_adoptant": 30
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.ageAdoptantDetecte()).isEqualTo(30);
+    }
+
+    /** Coexistence avec vie_commune_detection : les deux sous-objets sont lus. */
+    @Test
+    void extractFamilleData_filiationDetection_coexistenceAvecVieCommuneDetection() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true,
+                    "vie_commune_detection": {
+                      "date_separation": "2022-01-01"
+                    },
+                    "filiation_detection": {
+                      "date_etablissement_filiation": "2005-04-10"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // vie_commune_detection intact.
+        assertThat(f.dateSeparation()).isEqualTo("2022-01-01");
+        // filiation_detection intact.
+        assertThat(f.dateEtablissementFiliationDetectee()).isEqualTo("2005-04-10");
+    }
 }
