@@ -1,0 +1,84 @@
+<div class="unsubscribe-page">
+  <mat-card class="unsubscribe-card">
+    <mat-card-content>
+      <img src="/legalcase-logo.png" alt="AI LegalCase" class="unsubscribe-logo" />
+
+      @switch (state()) {
+        @case ('loading') {
+          <div class="state-center">
+            <mat-spinner diameter="40" />
+            <p class="state-text">Traitement en cours…</p>
+          </div>
+        }
+
+        @case ('unsubscribed') {
+          <div class="state-center">
+            <mat-icon class="icon-success">check_circle</mat-icon>
+            <h2 class="state-title">Vous êtes désinscrit</h2>
+            <p class="state-text">
+              Vous êtes désinscrit des emails d'information de LegalCase.
+            </p>
+            <p class="state-text state-note">
+              Les emails liés à vos dossiers (analyse terminée, alertes de délai)
+              continuent d'être envoyés.
+            </p>
+            <button
+              mat-stroked-button
+              [disabled]="actionInProgress()"
+              (click)="resubscribe()">
+              Me réabonner
+            </button>
+            <a class="back-link" routerLink="/">Retour à LegalCase</a>
+          </div>
+        }
+
+        @case ('resubscribed') {
+          <div class="state-center">
+            <mat-icon class="icon-success">mark_email_read</mat-icon>
+            <h2 class="state-title">Vous êtes réabonné</h2>
+            <p class="state-text">
+              Vous recevrez à nouveau les emails d'information de LegalCase.
+            </p>
+            <button
+              mat-stroked-button
+              [disabled]="actionInProgress()"
+              (click)="unsubscribe()">
+              Me désinscrire
+            </button>
+            <a class="back-link" routerLink="/">Retour à LegalCase</a>
+          </div>
+        }
+
+        @case ('no-token') {
+          <div class="state-center">
+            <mat-icon class="icon-error">error_outline</mat-icon>
+            <h2 class="state-title">Lien invalide</h2>
+            <p class="state-text">Lien de désinscription invalide ou incomplet.</p>
+            <a class="back-link" routerLink="/">Retour à LegalCase</a>
+          </div>
+        }
+
+        @case ('not-found') {
+          <div class="state-center">
+            <mat-icon class="icon-error">error_outline</mat-icon>
+            <h2 class="state-title">Lien invalide</h2>
+            <p class="state-text">Ce lien de désinscription n'est pas valide.</p>
+            <a class="back-link" routerLink="/">Retour à LegalCase</a>
+          </div>
+        }
+
+        @case ('error') {
+          <div class="state-center">
+            <mat-icon class="icon-error">cloud_off</mat-icon>
+            <h2 class="state-title">Une erreur est survenue</h2>
+            <p class="state-text">
+              Impossible de traiter votre demande pour le moment. Veuillez réessayer.
+            </p>
+            <button mat-flat-button color="primary" (click)="retry()">Réessayer</button>
+            <a class="back-link" routerLink="/">Retour à LegalCase</a>
+          </div>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
