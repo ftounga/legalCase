@@ -97,7 +97,14 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-02-pension-alimentaire",
             "F-FA-04-liquidation-communaute",
             // Checklist référentielle — pas de résultat décisionnel persisté.
-            "F-IM-01-checklist-pieces"
+            "F-IM-01-checklist-pieces",
+            // ⚠️ TODO — outil livré par SF-207-01 backend (prescription Travail BE)
+            // sans tuile dashboard câblée. Cas équivalent au bug F-DT-36 corrigé
+            // par SF-DT-36-03. À traiter par une SF complémentaire dans F-207 :
+            // soit câbler la tile dans CaseFileDashboardService.assembleTiles()
+            // (le résultat est calculé et persisté), soit confirmer qu'il s'agit
+            // d'un outil info-only sans persistance et reclasser ici définitivement.
+            "prescription-be-litige-travail"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
