@@ -317,6 +317,10 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, familleNode, "pma_gpa_envisagee");
         // === F-210 — 1 flag procédural Famille FR ===
         addBooleanFlagIfTrue(detected, familleNode, "mediation_familiale_pre_saisine_pertinente");
+        // === SF-216-01 — 1 flag CONTEXTUAL Famille FR : prestation compensatoire ===
+        // Lire depuis sous-objet `prestation_compensatoire_detection.envisagee` (pattern prompt SF-216-01).
+        addBooleanFlagIfTrueNested(detected, familleNode, "prestation_compensatoire_detection", "envisagee",
+                "prestation_compensatoire_envisagee");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");
@@ -377,6 +381,36 @@ public class DecisionToolVisibilityService {
         }
         if (isTrue) {
             addIfPresent(detected, field, "true");
+        }
+    }
+
+    /**
+     * SF-216-01 : variante de {@link #addBooleanFlagIfTrue} pour un flag boolean
+     * stocké dans un sous-objet JSON imbriqué ({@code parent → nestedObject → nestedField}).
+     * La clé insérée dans {@code detected} est {@code triggerKey} (nom du champ dans
+     * {@code decision_tool_visibility_rules.trigger_field}).
+     * Skip silencieux si le sous-objet ou le champ est absent / null / non-booléen.
+     */
+    private static void addBooleanFlagIfTrueNested(Map<String, Set<String>> detected,
+                                                    JsonNode parent,
+                                                    String nestedObject,
+                                                    String nestedField,
+                                                    String triggerKey) {
+        if (parent == null || parent.isMissingNode()) return;
+        JsonNode sub = parent.path(nestedObject);
+        if (sub == null || sub.isMissingNode() || sub.isNull() || !sub.isObject()) return;
+        JsonNode v = sub.path(nestedField);
+        if (v == null || v.isMissingNode() || v.isNull()) return;
+        boolean isTrue;
+        if (v.isBoolean()) {
+            isTrue = v.asBoolean();
+        } else if (v.isTextual()) {
+            isTrue = "true".equalsIgnoreCase(v.asText());
+        } else {
+            isTrue = false;
+        }
+        if (isTrue) {
+            addIfPresent(detected, triggerKey, "true");
         }
     }
 

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="271-create-prestation-compensatoire-analyses" author="legalcase">
+        <comment>
+            SF-216-01 : table dédiée à l'outil décisionnel "Prestation compensatoire"
+            (F-FA-01, FRANCE — art. 270-281 Cciv + Cass. 1ère civ. 8/10/2014 n°13-21.804).
+
+            Restauration suite à la suppression DELETE migration 191 (F-191 audit Top-10).
+            Outil P0 — rang 1 des outils famille FR.
+
+            Calcule le montant indicatif capital + rente mensuelle + forme recommandée
+            en fonction de la durée du mariage, des revenus annuels, du patrimoine propre
+            et de l'âge des époux (art. 272 Cciv).
+
+            Forme recommandée : capital si demandeur &lt; 60 ans et durée &lt; 20 ans ;
+            rente si durée ≥ 20 ans OU demandeur ≥ 60 ans (Cass. 1ère civ. 2014).
+            Avantage matrimonial imputable sur la prestation (art. 270 al. 2 Cciv).
+
+            Outil single-country FRANCE — en BE, la contribution alimentaire entre
+            ex-époux relève de l'art. 301 CC BE (outil F-217-SF-217-09 distinct).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-216-02 (migration 272) — couplé à
+            l'entrée TOOL_REGISTRY livrée dans le même lot (pattern SF-210-01 /
+            mediation-familiale, SF-206-02 / F-DT-42).
+        </comment>
+
+        <createTable tableName="prestation_compensatoire_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_prestation_compensatoire_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="prestation_compensatoire_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_prestation_compensatoire_analyses_case_file"/>
+
+        <createIndex tableName="prestation_compensatoire_analyses"
+                     indexName="idx_prestation_compensatoire_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="prestation_compensatoire_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

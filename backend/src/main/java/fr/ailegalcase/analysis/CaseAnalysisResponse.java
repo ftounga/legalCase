@@ -2285,7 +2285,19 @@ public record CaseAnalysisResponse(
             String dateHomologationBeDetectee,         // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD
             // --- regime-communaute-legale-be (F-217-SF-217-03) ---
             String dateMariageBeDetectee,              // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD (acte mariage BE)
-            Boolean contratMariageSigneBeDetecte) {    // BELGIQUE UNIQUEMENT — contrat notarié (CC art. 1.2.59+ BE)
+            Boolean contratMariageSigneBeDetecte,      // BELGIQUE UNIQUEMENT — contrat notarié (CC art. 1.2.59+ BE)
+            // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+            // Source : `famille_extracted_data.vie_commune_detection` (4 champs FR)
+            //        + `famille_extracted_data.prestation_compensatoire_detection` (1 flag).
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // `dureeMariageAnnees` (FR) ≠ `dureeMariageAnneesBeDetectee` (BE).
+            // `revenusAnnuelsEpoux1/2` ≠ `revenusAnnuelsEpoux` (SF-246-08 générique).
+            Integer dureeMariageAnnees,                // FR — [0, 80] ans (acte mariage)
+            Double revenusAnnuelsEpoux1,               // FR — >= 0 EUR/an (epoux 1, fiche de paie)
+            Double revenusAnnuelsEpoux2,               // FR — >= 0 EUR/an (epoux 2, fiche de paie)
+            Integer ageEpoux1Annees,                   // FR — [0, 120] ans (piece d'identite)
+            Integer ageEpoux2Annees,                   // FR — [0, 120] ans (piece d'identite)
+            Boolean prestationCompensatoireEnvisagee) { // FR — CONTEXTUAL : mention art. 270 / disparite niveaux de vie
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2620,6 +2632,19 @@ public record CaseAnalysisResponse(
             public Builder dateHomologationBeDetectee(String v) { this.dateHomologationBeDetectee = v; return this; }
             public Builder dateMariageBeDetectee(String v) { this.dateMariageBeDetectee = v; return this; }
             public Builder contratMariageSigneBeDetecte(Boolean v) { this.contratMariageSigneBeDetecte = v; return this; }
+            // SF-216-01 : setters des 6 champs IA prestation compensatoire + vie commune FR.
+            private Integer dureeMariageAnnees;
+            private Double revenusAnnuelsEpoux1;
+            private Double revenusAnnuelsEpoux2;
+            private Integer ageEpoux1Annees;
+            private Integer ageEpoux2Annees;
+            private Boolean prestationCompensatoireEnvisagee;
+            public Builder dureeMariageAnnees(Integer v) { this.dureeMariageAnnees = v; return this; }
+            public Builder revenusAnnuelsEpoux1(Double v) { this.revenusAnnuelsEpoux1 = v; return this; }
+            public Builder revenusAnnuelsEpoux2(Double v) { this.revenusAnnuelsEpoux2 = v; return this; }
+            public Builder ageEpoux1Annees(Integer v) { this.ageEpoux1Annees = v; return this; }
+            public Builder ageEpoux2Annees(Integer v) { this.ageEpoux2Annees = v; return this; }
+            public Builder prestationCompensatoireEnvisagee(Boolean v) { this.prestationCompensatoireEnvisagee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2740,7 +2765,14 @@ public record CaseAnalysisResponse(
                         dateNotificationProjetBeDetectee,
                         dateHomologationBeDetectee,
                         dateMariageBeDetectee,
-                        contratMariageSigneBeDetecte);
+                        contratMariageSigneBeDetecte,
+                        // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+                        dureeMariageAnnees,
+                        revenusAnnuelsEpoux1,
+                        revenusAnnuelsEpoux2,
+                        ageEpoux1Annees,
+                        ageEpoux2Annees,
+                        prestationCompensatoireEnvisagee);
             }
         }
     }
@@ -5056,6 +5088,25 @@ public record CaseAnalysisResponse(
                 || dateHomologationBeDetectee != null
                 || dateMariageBeDetectee != null
                 || contratMariageSigneBeDetecte != null;
+        // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+        // `duree_mariage_annees_fr` et `revenus_annuels_epoux1/2_eur` étendent le
+        // sous-objet `vie_commune_detection` déjà présent (SF-246-08).
+        // `prestation_compensatoire_detection.envisagee` = flag CONTEXTUAL.
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        Integer dureeMariageAnnesFr = vcdObject ? boundedIntOrNull(vcd, "duree_mariage_annees_fr", 0, 80) : null;
+        Double revenusAnnuelsEpoux1Fr = vcdObject ? nonNegativeDoubleOrNull(vcd, "revenus_annuels_epoux1_eur") : null;
+        Double revenusAnnuelsEpoux2Fr = vcdObject ? nonNegativeDoubleOrNull(vcd, "revenus_annuels_epoux2_eur") : null;
+        Integer ageEpoux1AnneesFr = vcdObject ? boundedIntOrNull(vcd, "age_epoux1_annees", 0, 120) : null;
+        Integer ageEpoux2AnneesFr = vcdObject ? boundedIntOrNull(vcd, "age_epoux2_annees", 0, 120) : null;
+        JsonNode pcd = node.get("prestation_compensatoire_detection");
+        Boolean prestationCompensatoireEnvisagee = (pcd != null && pcd.isObject())
+                ? booleanOrNull(pcd, "envisagee") : null;
+        boolean sf216_01Present = dureeMariageAnnesFr != null
+                || revenusAnnuelsEpoux1Fr != null
+                || revenusAnnuelsEpoux2Fr != null
+                || ageEpoux1AnneesFr != null
+                || ageEpoux2AnneesFr != null
+                || prestationCompensatoireEnvisagee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5094,7 +5145,8 @@ public record CaseAnalysisResponse(
                 && !filiationV2DetectionPresent
                 && !protectionDivorceV2Present
                 && dateSeparationBe == null
-                && !familleBev2Present) {
+                && !familleBev2Present
+                && !sf216_01Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5262,6 +5314,13 @@ public record CaseAnalysisResponse(
                 .dateHomologationBeDetectee(dateHomologationBeDetectee)
                 .dateMariageBeDetectee(dateMariageBeDetectee)
                 .contratMariageSigneBeDetecte(contratMariageSigneBeDetecte)
+                // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+                .dureeMariageAnnees(dureeMariageAnnesFr)
+                .revenusAnnuelsEpoux1(revenusAnnuelsEpoux1Fr)
+                .revenusAnnuelsEpoux2(revenusAnnuelsEpoux2Fr)
+                .ageEpoux1Annees(ageEpoux1AnneesFr)
+                .ageEpoux2Annees(ageEpoux2AnneesFr)
+                .prestationCompensatoireEnvisagee(prestationCompensatoireEnvisagee)
                 .build();
     }
 
