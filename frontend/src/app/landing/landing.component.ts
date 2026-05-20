@@ -107,7 +107,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
     const title = 'AI LegalCase — 92 outils décisionnels pour avocats : Travail, Immigration, Famille (FR/BE)';
     const description = 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA. Calculateurs, scorings, comparateurs, générateurs sur droit du travail, immigration et famille — France et Belgique. OCR + Vision pour extraire scans dégradés et photos de SMS. Essai gratuit 14 jours.';
     const shortDescription = 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Travail, Immigration, Famille — France et Belgique. Essai gratuit 14 jours.';
-    const url = 'https://legalcase.ng-itconsulting.com/';
+    const url = 'https://legalcase.fr/';
 
     this.title.setTitle(title);
     this.meta.updateTag({ name: 'description', content: description });
@@ -167,7 +167,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       ],
       'applicationCategory': 'BusinessApplication',
       'operatingSystem': 'Web',
-      'url': 'https://legalcase.ng-itconsulting.com',
+      'url': 'https://legalcase.fr',
       'offers': {
         '@type': 'Offer',
         'price': '0',

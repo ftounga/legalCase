@@ -169,7 +169,7 @@ export const CGU: LegalSection[] = [
   {
     heading: '1. Objet',
     content: `
-      <p>Les présentes Conditions Générales d'Utilisation régissent l'accès et l'utilisation du service <strong>AI LegalCase</strong>, accessible à l'adresse <a href="https://legalcase.ng-itconsulting.com">legalcase.ng-itconsulting.com</a>, édité par <strong>NG-CONSULTING</strong> (SAS, capital 100 €, RCS Paris 995 322 450, 60 rue François 1er, 75008 Paris).</p>
+      <p>Les présentes Conditions Générales d'Utilisation régissent l'accès et l'utilisation du service <strong>AI LegalCase</strong>, accessible à l'adresse <a href="https://legalcase.fr">legalcase.fr</a>, édité par <strong>NG-CONSULTING</strong> (SAS, capital 100 €, RCS Paris 995 322 450, 60 rue François 1er, 75008 Paris).</p>
       <p>En créant un compte ou en utilisant le service, l'Utilisateur accepte sans réserve les présentes CGU.</p>
     `
   },

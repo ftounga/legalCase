@@ -13,6 +13,7 @@ configMapGenerator:
     literals:
       - APP_FRONTEND_URL=https://legalcase.fr
       - APP_ALLOWED_FRONTEND_URLS=https://legalcase.fr,https://legalcase.ng-itconsulting.com
+      - BLOG_PUBLIC_BASE_URL=https://legalcase.fr
       - SENTRY_ENV=production
       - AWS_TEXTRACT_ENABLED=true
       - AWS_TEXTRACT_REGION=eu-west-3
@@ -22,6 +23,10 @@ patches:
     target:
       kind: Ingress
       name: legalcase-ingress
+  - path: ingress-legacy-patch.yaml
+    target:
+      kind: Ingress
+      name: legalcase-ingress-legacy
   - path: service-account-patch.yaml
     target:
       kind: ServiceAccount

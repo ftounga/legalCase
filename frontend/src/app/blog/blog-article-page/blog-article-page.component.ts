@@ -102,7 +102,7 @@ export class BlogArticlePageComponent implements OnInit {
       'publisher': {
         '@type': 'Organization',
         'name': 'LegalCase',
-        'url': 'https://legalcase.ng-itconsulting.com',
+        'url': 'https://legalcase.fr',
       },
       'datePublished': article.publishedAt,
       'inLanguage': 'fr',

@@ -125,12 +125,21 @@ kubectl rollout restart deployment/legalcase-backend deployment/legalcase-fronte
 
 ## Vérifier la santé de l'application
 
+> Note F-143 SF-143-02 — Les anciens hosts `*.ng-itconsulting.com` renvoient maintenant
+> `301 Moved Permanently` vers `legalcase.fr` (resp. `staging.legalcase.fr`).
+> Utiliser les hosts canoniques `legalcase.fr` dans les commandes officielles.
+> `curl -L` suit le 301 ; `curl -sI` montre la redirection (utile pour valider la bascule).
+
 ```bash
 # Health check staging
-curl -s https://staging.legalcase.ng-itconsulting.com/api/actuator/health
+curl -s https://staging.legalcase.fr/api/actuator/health
 
-# Health check production (quand déployé)
-curl -s https://legalcase.ng-itconsulting.com/api/actuator/health
+# Health check production
+curl -s https://legalcase.fr/api/actuator/health
+
+# Validation de la bascule 301 (doit renvoyer 301 + Location vers legalcase.fr)
+curl -sI https://staging.legalcase.ng-itconsulting.com/ | grep -E "HTTP|Location"
+curl -sI https://legalcase.ng-itconsulting.com/ | grep -E "HTTP|Location"
 
 # Certificats TLS
 kubectl get certificate -n staging

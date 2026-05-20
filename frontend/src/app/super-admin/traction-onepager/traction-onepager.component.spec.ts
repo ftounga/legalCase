@@ -96,7 +96,7 @@ describe('TractionOnePagerComponent', () => {
     // Contact pré-rempli depuis le user connecté
     expect(component.form.get('contact.name')?.value).toBe('Franck Tounga');
     expect(component.form.get('contact.email')?.value).toBe('admin@test.com');
-    expect(component.form.get('contact.url')?.value).toBe('https://legalcase.ng-itconsulting.com');
+    expect(component.form.get('contact.url')?.value).toBe('https://legalcase.fr');
   }));
 
   // T-02 — Formulaire invalide si headline vide → bouton désactivé

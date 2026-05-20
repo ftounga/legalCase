@@ -190,6 +190,9 @@ jurisprudence:
     max-searches-per-case: ${JURISPRUDENCE_WEB_SEARCH_MAX_PER_CASE:10}
 
 blog:
+  # F-143 SF-143-02 — URL canonique publique utilisée par SitemapController (/api/sitemap.xml, /api/robots.txt).
+  # Override par BLOG_PUBLIC_BASE_URL côté overlays K8s (staging.legalcase.fr / legalcase.fr).
+  public-base-url: ${BLOG_PUBLIC_BASE_URL:https://legalcase.fr}
   ia:
     budget:
       anthropic-eur: ${BLOG_IA_BUDGET_ANTHROPIC_EUR:30}
