@@ -468,7 +468,8 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
     if (!userDate) return null;
     const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('DATE_DEBUT_SYMPTOMES');
 
-    const aiDate = (this.aiDataSignal() as any)?.dateDebutSymptomes;
+    // SF-246-20 : lecture du champ typé be9terDateDebutSymptomes (alias aspirationnel supprimé).
+    const aiDate = this.aiDataSignal()?.be9terDateDebutSymptomes;
     if (typeof aiDate === 'string' && aiDate.length > 0 && aiDate !== userDate) {
       builder.addSource('IA', {
         expectedDisplay: aiDate,

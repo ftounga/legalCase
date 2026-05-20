@@ -377,11 +377,8 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
    * SF-155-08 : pré-fill IA depuis aiData. Règles fail-open :
    * - aiData absent → no-op (l'avocat saisit manuellement)
    * - dateDepotProcedure (string) → dateDepotDemande + provenance IA
-   * - Les autres fields n'ont pas de correspondance IA native dans
-   *   `ImmigrationExtractedData` aujourd'hui. Le mécanisme est en place
-   *   (signal `provenance*` + handler `on*Change`) pour une intégration
-   *   future sans nouvelle régression structurelle — cf. règle CLAUDE.md
-   *   ligne 190 (RÈGLE FONDAMENTALE A).
+   * - SF-246-20 : dateEntreeBelgique — champ typé be9bisDateEntreeBelgique (plus de cast as any).
+   * - SF-246-20 : dureePresenceMois — champ typé be9bisDureePresenceMois (calculé backend).
    */
   private prefillFromAi(): void {
     // F-236 SF-236-02 : délègue au helper pur partagé.
@@ -397,19 +394,20 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
       this.provenanceDateDepot.set('IA');
     }
 
-    // 2. Autres fields : pas de mapping IA natif aujourd'hui. No-op gracieux.
-    //    Crochet prêt pour des extractions futures (ex. dateEntreeBelgique
-    //    depuis un Annexe 26 détecté). Cast `as any` volontaire — préfigure
-    //    l'évolution du modèle sans forcer la main à la spec actuelle.
-    const aiSignal = this.aiDataSignal();
-    const extendedAi = aiSignal as any;
-    if (extendedAi
-        && typeof extendedAi.dateEntreeBelgique === 'string'
-        && extendedAi.dateEntreeBelgique.length > 0
-        && (this.dateEntreeBelgique() === null
-            || this.provenanceDateEntreeBelgique() === 'IA')) {
-      this.dateEntreeBelgique.set(extendedAi.dateEntreeBelgique);
+    // SF-246-20 : dateEntreeBelgique — champ typé be9bisDateEntreeBelgique (plus de cast as any).
+    const dateEntree = Belgian9bisPrefillRules.computeDateEntreeBelgique(input);
+    if (dateEntree !== null
+        && (this.dateEntreeBelgique() === null || this.provenanceDateEntreeBelgique() === 'IA')) {
+      this.dateEntreeBelgique.set(dateEntree);
       this.provenanceDateEntreeBelgique.set('IA');
+    }
+
+    // SF-246-20 : dureePresenceMois — champ typé be9bisDureePresenceMois (calculé backend).
+    const duree = Belgian9bisPrefillRules.computeDureePresenceMois(input);
+    if (duree !== null
+        && (this.dureePresenceMois() === 0 || this.provenanceDureePresenceMois() === 'IA')) {
+      this.dureePresenceMois.set(duree);
+      this.provenanceDureePresenceMois.set('IA');
     }
   }
 

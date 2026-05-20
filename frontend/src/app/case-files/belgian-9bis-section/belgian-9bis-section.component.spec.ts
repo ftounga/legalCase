@@ -348,14 +348,11 @@ describe('Belgian9bisSectionComponent', () => {
     expect(component.provenanceDateEntreeBelgique()).toBeNull();
   });
 
-  it('SF-155-08 — pré-fill IA dateEntreeBelgique : si extension future "as any" présente, le mécanisme rempli', () => {
-    // Simule une extension future du modèle ImmigrationExtractedData.
-    // Le composant accepte ce champ via `as any` (no-op gracieux jusqu'à la SF
-    // d'extension du modèle backend).
+  it('SF-155-08 — pré-fill IA dateEntreeBelgique : champ typé be9bisDateEntreeBelgique branché (SF-246-20)', () => {
+    // SF-246-20 : be9bisDateEntreeBelgique est désormais un champ typé dans ImmigrationExtractedData.
     component.aiData = {
       dateDepotProcedure: '2026-03-15',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      dateEntreeBelgique: '2022-09-10',
+      be9bisDateEntreeBelgique: '2022-09-10',
     } as any;
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);

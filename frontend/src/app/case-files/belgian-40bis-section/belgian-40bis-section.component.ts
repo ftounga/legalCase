@@ -152,8 +152,9 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
   menaceOrdrePublic = signal<boolean>(false);
   dateDepotDemande = signal<string | null>(null);
 
-  // Provenance IA — seules 2 valeurs réellement extraites aujourd'hui
-  // (best-effort : `dateDepotProcedure` + `nationaliteUe` côté regroupant).
+  // Provenance IA
+  /** SF-246-20 : provenance lienFamilial branché via be40bisLienFamilial. */
+  provenanceLienFamilial = signal<'IA' | null>(null);
   provenanceDateDepot = signal<'IA' | null>(null);
   provenanceRegroupantCitoyenUe = signal<'IA' | null>(null);
 
@@ -280,6 +281,14 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
     if (!userLien) return null;
     const builder = CoherenceAlertBuilder.forField<Belgian40bisAlertField>('LIEN_FAMILIAL')
       .withSeverity('WARNING');
+    // SF-246-20 : lecture du champ typé be40bisLienFamilial pour l'alerte F-IA-03.
+    const aiLien = this.aiDataSignal()?.be40bisLienFamilial;
+    if (typeof aiLien === 'string' && aiLien.length > 0 && aiLien !== userLien) {
+      builder.addSource('IA', {
+        expectedDisplay: aiLien,
+        reason: `Analyse du dossier : lien familial détecté ${aiLien}`,
+      });
+    }
     const piece = this.findPieceManquante(['IM14_LIEN_FAMILIAL', 'IM14_40BIS_LIEN']);
     if (piece) builder.addPieceManquante(piece);
     return builder.build();
@@ -319,6 +328,7 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
   // Handlers onChange — effacent la provenance IA au 1er changement manuel.
   onLienFamilialChange(value: LienFamilial | null): void {
     this.lienFamilial.set(value);
+    this.provenanceLienFamilial.set(null);
   }
 
   onCategorieActiviteChange(value: RegroupantActiviteCategorie | null): void {
@@ -385,6 +395,14 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
             || ue !== this.regroupantCitoyenUe())) {
       this.regroupantCitoyenUe.set(ue);
       this.provenanceRegroupantCitoyenUe.set('IA');
+    }
+
+    // SF-246-20 : lienFamilial — champ typé be40bisLienFamilial.
+    const lien = Belgian40bisPrefillRules.computeLienFamilial(input);
+    if (lien !== null
+        && (this.lienFamilial() === null || this.provenanceLienFamilial() === 'IA')) {
+      this.lienFamilial.set(lien);
+      this.provenanceLienFamilial.set('IA');
     }
   }
 

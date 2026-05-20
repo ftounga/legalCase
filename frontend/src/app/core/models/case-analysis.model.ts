@@ -606,6 +606,28 @@ export interface TravailExtractedData {
    * Pré-fill F-DT-29 credit-temps-be.
    */
   dateDemandeCreditTemps?: string | null;
+  // -------------------------------------------------------------------------
+  // SF-206-01 — sous-objet `abandon_poste_detail` (FRANCE uniquement)
+  // Pré-fill F-DT-42 (abandon de poste / présomption de démission).
+  // Tous nullables — restent `null` pour un dossier Travail BE (mécanisme
+  // franco-français de la loi 21/12/2022).
+  // -------------------------------------------------------------------------
+  /** Date de présentation de la mise en demeure de reprendre le poste (ISO YYYY-MM-DD). */
+  abandonPosteDateMiseEnDemeure?: string | null;
+  /** Mode de notification de la MED (LRAR | REMISE_MAIN_PROPRE | AUTRE). */
+  abandonPosteModeNotification?: string | null;
+  /** Délai accordé par l'employeur au salarié pour reprendre / justifier (en jours). */
+  abandonPosteDelaiAccordeJours?: number | null;
+  /** Motif d'absence invoqué (AUCUN | MEDICAL | DROIT_RETRAIT | DROIT_GREVE | MODIFICATION_CONTRAT_REFUSEE | DEFAUT_PAIEMENT_SALAIRE | AUTRE). */
+  abandonPosteMotifAbsence?: string | null;
+  /** Date de reprise du poste ou de justification de l'absence (ISO YYYY-MM-DD). */
+  abandonPosteDateReprise?: string | null;
+  /** True si la MED mentionne le délai imparti (D.1237-2-1). */
+  abandonPosteMedMentionneDelai?: boolean | null;
+  /** True si la MED mentionne les conséquences (présomption de démission). */
+  abandonPosteMedMentionneConsequences?: boolean | null;
+  /** True si reprise ou justification effectivement intervenue dans le délai. */
+  abandonPosteRepriseDansDelai?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
@@ -728,6 +750,13 @@ export interface ImmigrationExtractedData {
   asileDateDecisionAnterieure?: string | null;
   eloiDureePresenceIrreguliereMois?: number | null;
   eloiMotifMenace?: string | null;
+  // SF-246-20 : lot Immigration BE
+  be9bisDateEntreeBelgique?: string | null;
+  be9bisDureePresenceMois?: number | null;
+  be9terDateDebutSymptomes?: string | null;
+  be40bisLienFamilial?: string | null;
+  be40terLienFamilial?: string | null;
+  be40terRevenusMensuelsNets?: number | null;
 }
 
 export interface CaseAnalysisVersionSummary {

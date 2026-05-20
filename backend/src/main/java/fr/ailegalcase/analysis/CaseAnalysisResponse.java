@@ -1306,7 +1306,20 @@ public record CaseAnalysisResponse(
              * Motif de menace pour l'ordre public / sécurité.
              * Whitelist 5 codes : ORDRE_PUBLIC / SECURITE_ETAT / TERRORISME / RECIDIVE_GRAVE / AUTRE.
              */
-            String eloiMotifMenace) {
+            String eloiMotifMenace,
+            // SF-246-20 : pré-fill lot Immigration BE (9bis / 9ter / 40bis / 40ter)
+            /** Date d'entrée en Belgique ISO YYYY-MM-DD non-future (Annexe 26 / passeport) — art. 9bis. */
+            String be9bisDateEntreeBelgique,
+            /** Durée de présence en Belgique en mois entiers calculée depuis be9bisDateEntreeBelgique. */
+            Integer be9bisDureePresenceMois,
+            /** Date de début des symptômes ISO YYYY-MM-DD non-future (certificat médical) — art. 9ter. */
+            String be9terDateDebutSymptomes,
+            /** Lien familial art. 40bis — whitelist 5 codes LIENS_FAMILIAUX_40BIS_CODES. */
+            String be40bisLienFamilial,
+            /** Lien familial art. 40ter — whitelist 5 codes LIENS_FAMILIAUX_40TER_CODES (distinct de 40bis). */
+            String be40terLienFamilial,
+            /** Revenus mensuels nets du regroupant belge (> 0, ≤ MAX_BE_REVENUS_MENSUELS_NETS). */
+            Integer be40terRevenusMensuelsNets) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -1380,7 +1393,14 @@ public record CaseAnalysisResponse(
                     .algerienPresenceReguliereMois(algerienPresenceReguliereMois)
                     .asileDateDecisionAnterieure(asileDateDecisionAnterieure)
                     .eloiDureePresenceIrreguliereMois(eloiDureePresenceIrreguliereMois)
-                    .eloiMotifMenace(eloiMotifMenace);
+                    .eloiMotifMenace(eloiMotifMenace)
+                    // SF-246-20 : lot Immigration BE
+                    .be9bisDateEntreeBelgique(be9bisDateEntreeBelgique)
+                    .be9bisDureePresenceMois(be9bisDureePresenceMois)
+                    .be9terDateDebutSymptomes(be9terDateDebutSymptomes)
+                    .be40bisLienFamilial(be40bisLienFamilial)
+                    .be40terLienFamilial(be40terLienFamilial)
+                    .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets);
         }
 
         public static final class Builder {
@@ -1448,6 +1468,13 @@ public record CaseAnalysisResponse(
             private String asileDateDecisionAnterieure;
             private Integer eloiDureePresenceIrreguliereMois;
             private String eloiMotifMenace;
+            // SF-246-20 : lot Immigration BE
+            private String be9bisDateEntreeBelgique;
+            private Integer be9bisDureePresenceMois;
+            private String be9terDateDebutSymptomes;
+            private String be40bisLienFamilial;
+            private String be40terLienFamilial;
+            private Integer be40terRevenusMensuelsNets;
 
             private Builder() {}
 
@@ -1514,6 +1541,13 @@ public record CaseAnalysisResponse(
             public Builder asileDateDecisionAnterieure(String v) { this.asileDateDecisionAnterieure = v; return this; }
             public Builder eloiDureePresenceIrreguliereMois(Integer v) { this.eloiDureePresenceIrreguliereMois = v; return this; }
             public Builder eloiMotifMenace(String v) { this.eloiMotifMenace = v; return this; }
+            // SF-246-20 : lot Immigration BE
+            public Builder be9bisDateEntreeBelgique(String v) { this.be9bisDateEntreeBelgique = v; return this; }
+            public Builder be9bisDureePresenceMois(Integer v) { this.be9bisDureePresenceMois = v; return this; }
+            public Builder be9terDateDebutSymptomes(String v) { this.be9terDateDebutSymptomes = v; return this; }
+            public Builder be40bisLienFamilial(String v) { this.be40bisLienFamilial = v; return this; }
+            public Builder be40terLienFamilial(String v) { this.be40terLienFamilial = v; return this; }
+            public Builder be40terRevenusMensuelsNets(Integer v) { this.be40terRevenusMensuelsNets = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -1539,7 +1573,11 @@ public record CaseAnalysisResponse(
                         natDureeResidenceReguliereAnnees, natDureeMariageAnnees, natAgeDemandeur,
                         mineursDateNaissance, algerienPresenceReguliereMois,
                         asileDateDecisionAnterieure, eloiDureePresenceIrreguliereMois,
-                        eloiMotifMenace);
+                        eloiMotifMenace,
+                        be9bisDateEntreeBelgique, be9bisDureePresenceMois,
+                        be9terDateDebutSymptomes,
+                        be40bisLienFamilial, be40terLienFamilial,
+                        be40terRevenusMensuelsNets);
             }
         }
     }
@@ -1621,6 +1659,29 @@ public record CaseAnalysisResponse(
     static final Set<String> ELOI_MOTIFS_MENACE_CODES = Set.of(
             "ORDRE_PUBLIC", "SECURITE_ETAT", "TERRORISME", "RECIDIVE_GRAVE", "AUTRE"
     );
+
+    /**
+     * SF-246-20 : lien familial art. 40bis — 5 codes distincts du 40ter.
+     * Alignés sur l'enum {@code LienFamilial} du frontend (belgian-40bis.model.ts).
+     */
+    static final Set<String> LIENS_FAMILIAUX_40BIS_CODES = Set.of(
+            "CONJOINT", "PARTENAIRE_ENREGISTRE",
+            "DESCENDANT_MINEUR", "DESCENDANT_MAJEUR_CHARGE", "ASCENDANT_CHARGE"
+    );
+
+    /**
+     * SF-246-20 : lien familial art. 40ter — 5 codes distincts du 40bis.
+     * Alignés sur l'enum {@code LienFamilial} du frontend (belgian-40ter.model.ts).
+     * Codes différents : PARTENAIRE_LEGAL_ENREGISTRE (pas PARTENAIRE_ENREGISTRE) +
+     * ASCENDANT_CHARGE_HANDICAP (pas ASCENDANT_CHARGE).
+     */
+    static final Set<String> LIENS_FAMILIAUX_40TER_CODES = Set.of(
+            "CONJOINT", "PARTENAIRE_LEGAL_ENREGISTRE",
+            "DESCENDANT_MINEUR", "DESCENDANT_MAJEUR_CHARGE", "ASCENDANT_CHARGE_HANDICAP"
+    );
+
+    /** SF-246-20 : borne max revenus mensuels nets regroupant belge (plausibilité). */
+    static final int MAX_BE_REVENUS_MENSUELS_NETS = 30_000;
 
     /** SF-246-19 : borne max rémunération contrat (plausibilité). */
     static final int MAX_CHANGEMENT_REMUNERATION_EUR = 500_000;
@@ -3672,6 +3733,54 @@ public record CaseAnalysisResponse(
                 root, "eloi_duree_presence_irreguliere_mois", 0, MAX_PRESENCE_MOIS);
         String eloiMotifMenace = normalizeEnumCode(
                 textOrNull(root, "eloi_motif_menace"), ELOI_MOTIFS_MENACE_CODES);
+        // SF-246-20 : lot Immigration BE — sous-objet immigration_be_detection_v2
+        JsonNode beDet = root.get("immigration_be_detection_v2");
+        // 9bis : date d'entrée en Belgique + durée calculée
+        String be9bisDateEntreeBelgique = null;
+        Integer be9bisDureePresenceMois = null;
+        if (beDet != null && beDet.isObject()) {
+            String be9bisRaw = textOrNull(beDet, "be_9bis_date_entree_belgique");
+            if (be9bisRaw != null && be9bisRaw.matches(ISO_DATE_PATTERN_STR)) {
+                String todayStr4 = java.time.LocalDate.now().toString();
+                if (be9bisRaw.compareTo(todayStr4) <= 0) {
+                    be9bisDateEntreeBelgique = be9bisRaw;
+                    java.time.LocalDate entree = java.time.LocalDate.parse(be9bisRaw);
+                    java.time.LocalDate today = java.time.LocalDate.now();
+                    be9bisDureePresenceMois = (int) java.time.temporal.ChronoUnit.MONTHS.between(entree, today);
+                }
+            }
+        }
+        // 9ter : date de début des symptômes
+        String be9terDateDebutSymptomes = null;
+        if (beDet != null && beDet.isObject()) {
+            String be9terRaw = textOrNull(beDet, "be_9ter_date_debut_symptomes");
+            if (be9terRaw != null && be9terRaw.matches(ISO_DATE_PATTERN_STR)) {
+                String todayStr5 = java.time.LocalDate.now().toString();
+                if (be9terRaw.compareTo(todayStr5) <= 0) {
+                    be9terDateDebutSymptomes = be9terRaw;
+                }
+            }
+        }
+        // 40bis : lien familial (whitelist 40bis — distinct de 40ter)
+        String be40bisLienFamilial = null;
+        if (beDet != null && beDet.isObject()) {
+            be40bisLienFamilial = normalizeEnumCode(
+                    textOrNull(beDet, "be_40bis_lien_familial"), LIENS_FAMILIAUX_40BIS_CODES);
+        }
+        // 40ter : lien familial (whitelist 40ter — distinct de 40bis) + revenus
+        String be40terLienFamilial = null;
+        Integer be40terRevenusMensuelsNets = null;
+        if (beDet != null && beDet.isObject()) {
+            be40terLienFamilial = normalizeEnumCode(
+                    textOrNull(beDet, "be_40ter_lien_familial"), LIENS_FAMILIAUX_40TER_CODES);
+            JsonNode revenusNode = beDet.get("be_40ter_revenus_mensuels_nets");
+            if (revenusNode != null && !revenusNode.isNull() && revenusNode.isInt()) {
+                int rev = revenusNode.asInt();
+                if (rev > 0 && rev <= MAX_BE_REVENUS_MENSUELS_NETS) {
+                    be40terRevenusMensuelsNets = rev;
+                }
+            }
+        }
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -3698,7 +3807,10 @@ public record CaseAnalysisResponse(
                 && natDureeResidenceReguliereAnnees == null && natDureeMariageAnnees == null
                 && natAgeDemandeur == null && mineursDateNaissance == null
                 && algerienPresenceReguliereMois == null && asileDateDecisionAnterieure == null
-                && eloiDureePresenceIrreguliereMois == null && eloiMotifMenace == null) return null;
+                && eloiDureePresenceIrreguliereMois == null && eloiMotifMenace == null
+                && be9bisDateEntreeBelgique == null && be9terDateDebutSymptomes == null
+                && be40bisLienFamilial == null && be40terLienFamilial == null
+                && be40terRevenusMensuelsNets == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -3771,6 +3883,13 @@ public record CaseAnalysisResponse(
                 .asileDateDecisionAnterieure(asileDateDecisionAnterieure)
                 .eloiDureePresenceIrreguliereMois(eloiDureePresenceIrreguliereMois)
                 .eloiMotifMenace(eloiMotifMenace)
+                // SF-246-20 : lot Immigration BE
+                .be9bisDateEntreeBelgique(be9bisDateEntreeBelgique)
+                .be9bisDureePresenceMois(be9bisDureePresenceMois)
+                .be9terDateDebutSymptomes(be9terDateDebutSymptomes)
+                .be40bisLienFamilial(be40bisLienFamilial)
+                .be40terLienFamilial(be40terLienFamilial)
+                .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets)
                 .build();
     }
 

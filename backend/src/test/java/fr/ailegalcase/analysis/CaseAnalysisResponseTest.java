@@ -1962,6 +1962,241 @@ class CaseAnalysisResponseTest {
         assertThat(im.eloiMotifMenace()).isNull();
     }
 
+    // SF-246-20 : lot Immigration BE (9bis / 9ter / 40bis / 40ter)
+    @Test
+    void from_immigration_sf246_20_be9bis_date_entree_nominal() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_9bis_date_entree_belgique": "2019-03-15"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be9bisDateEntreeBelgique()).isEqualTo("2019-03-15");
+        assertThat(im.be9bisDureePresenceMois()).isNotNull();
+        assertThat(im.be9bisDureePresenceMois()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    void from_immigration_sf246_20_be9bis_future_date_rejected() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_9bis_date_entree_belgique": "2099-01-01"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be9bisDateEntreeBelgique()).isNull();
+        assertThat(im.be9bisDureePresenceMois()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_be9bis_nonIso_rejected() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_9bis_date_entree_belgique": "15/03/2019"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be9bisDateEntreeBelgique()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_be9ter_date_debut_symptomes_nominal() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_9ter_date_debut_symptomes": "2021-07-10"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be9terDateDebutSymptomes()).isEqualTo("2021-07-10");
+    }
+
+    @Test
+    void from_immigration_sf246_20_be9ter_future_date_rejected() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_9ter_date_debut_symptomes": "2099-12-31"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be9terDateDebutSymptomes()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40bis_lien_familial_conjoint() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40bis_lien_familial": "CONJOINT"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40bisLienFamilial()).isEqualTo("CONJOINT");
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40bis_lien_familial_descendant_mineur() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40bis_lien_familial": "DESCENDANT_MINEUR"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40bisLienFamilial()).isEqualTo("DESCENDANT_MINEUR");
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40bis_lien_familial_invalid_returns_null() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40bis_lien_familial": "INCONNU"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40bisLienFamilial()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40ter_lien_familial_conjoint() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40ter_lien_familial": "CONJOINT"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40terLienFamilial()).isEqualTo("CONJOINT");
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40ter_lien_familial_partenaire_legal() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40ter_lien_familial": "PARTENAIRE_LEGAL_ENREGISTRE"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40terLienFamilial()).isEqualTo("PARTENAIRE_LEGAL_ENREGISTRE");
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40ter_lien_familial_invalid_returns_null() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40ter_lien_familial": "ASCENDANT_CHARGE"
+                  }
+                }
+                """)).immigrationExtractedData();
+        // ASCENDANT_CHARGE est dans 40bis, pas 40ter — whitelist distincte
+        assertThat(im).isNotNull();
+        assertThat(im.be40terLienFamilial()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40ter_revenus_mensuels_nominal() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40ter_revenus_mensuels_nets": 2500
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40terRevenusMensuelsNets()).isEqualTo(2500);
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40ter_revenus_zero_returns_null() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40ter_revenus_mensuels_nets": 0
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40terRevenusMensuelsNets()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_be40ter_revenus_trop_eleves_returns_null() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40ter_revenus_mensuels_nets": 50000
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40terRevenusMensuelsNets()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_sous_objet_absent_all_null() throws Exception {
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B"
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be9bisDateEntreeBelgique()).isNull();
+        assertThat(im.be9bisDureePresenceMois()).isNull();
+        assertThat(im.be9terDateDebutSymptomes()).isNull();
+        assertThat(im.be40bisLienFamilial()).isNull();
+        assertThat(im.be40terLienFamilial()).isNull();
+        assertThat(im.be40terRevenusMensuelsNets()).isNull();
+    }
+
+    @Test
+    void from_immigration_sf246_20_whitelist_distinction_40bis_vs_40ter() throws Exception {
+        // Invariant : PARTENAIRE_ENREGISTRE est valide pour 40bis, pas pour 40ter.
+        // PARTENAIRE_LEGAL_ENREGISTRE est valide pour 40ter, pas pour 40bis.
+        var im = CaseAnalysisResponse.from(analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "immigration_be_detection_v2": {
+                    "be_40bis_lien_familial": "PARTENAIRE_ENREGISTRE",
+                    "be_40ter_lien_familial": "PARTENAIRE_LEGAL_ENREGISTRE"
+                  }
+                }
+                """)).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.be40bisLienFamilial()).isEqualTo("PARTENAIRE_ENREGISTRE");
+        assertThat(im.be40terLienFamilial()).isEqualTo("PARTENAIRE_LEGAL_ENREGISTRE");
+    }
+
     // SF-166-01 : 8 flags décisionnels niveau 3 (F-DT-20/21/24/30/31/33/34/35) — Travail FR uniquement
     @Test
     void from_travailExtractedData_rappelSalaireDetecte_isolated_true_othersFalse() {

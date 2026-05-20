@@ -318,12 +318,9 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
    * Pré-fill IA depuis aiData. Règles fail-open (graceful) :
    * - passe silencieusement si aiData absent
    * - chaque champ est indépendant (prefill partiel OK)
-   * - lienFamilial hors-whitelist → skip
-   * - revenus négatifs / non numériques → skip
+   * - lienFamilial hors-whitelist 40ter → skip
+   * - revenus négatifs / > 30 000 → skip (SF-246-20 : champ typé be40terRevenusMensuelsNets)
    * - date dans le futur → skip
-   * - aucun champ revenusNetsMensuels n'existe encore dans
-   *   ImmigrationExtractedData : lookup générique via cast (évite
-   *   d'ajouter une dépendance backend pour cette SF).
    */
   private prefillFromAi(): void {
     // F-236 SF-236-02 : délègue au helper pur partagé.
@@ -360,9 +357,9 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
     if (!userLien) return null;
     const builder = CoherenceAlertBuilder.forField<IM14_40terAlertField>('LIEN_FAMILIAL')
       .withSeverity('WARNING');
+    // SF-246-20 : lecture du champ typé be40terLienFamilial (alias aspirationnels supprimés).
     const ai = this.aiDataSignal();
-    const aiAny = (ai ?? {}) as Record<string, unknown>;
-    const aiLienRaw = aiAny['lienFamilialBe'] ?? aiAny['lienFamilial'];
+    const aiLienRaw = ai?.be40terLienFamilial;
     if (
       typeof aiLienRaw === 'string' &&
       LIENS_FAMILIAUX_WHITELIST.has(aiLienRaw as LienFamilial) &&
@@ -382,9 +379,9 @@ export class Belgian40terSectionComponent implements OnInit, OnChanges {
     if (userRevenus === null || userRevenus === undefined) return null;
     const builder = CoherenceAlertBuilder.forField<IM14_40terAlertField>('REVENUS_MENSUELS')
       .withSeverity('WARNING');
+    // SF-246-20 : lecture du champ typé be40terRevenusMensuelsNets (alias aspirationnels supprimés).
     const ai = this.aiDataSignal();
-    const aiAny = (ai ?? {}) as Record<string, unknown>;
-    const aiRevenus = aiAny['revenusNetsMensuels'] ?? aiAny['revenusMensuelsNets'];
+    const aiRevenus = ai?.be40terRevenusMensuelsNets;
     if (
       typeof aiRevenus === 'number' &&
       !isNaN(aiRevenus) &&
