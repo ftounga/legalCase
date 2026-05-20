@@ -87,6 +87,7 @@ import { LicenciementNulDetectionSectionComponent } from '../licenciement-nul-de
 import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nullite-licenciement-section/procedure-nullite-licenciement-section.component';
 import { AbandonPostePresomptionDemissionSectionComponent } from '../abandon-poste-presomption-demission-section/abandon-poste-presomption-demission-section.component';
 import { CongesPayesArretMaladieSectionComponent } from '../conges-payes-arret-maladie-section/conges-payes-arret-maladie-section.component';
+import { PriseActeRuptureSectionComponent } from '../prise-acte-rupture-section/prise-acte-rupture-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
@@ -731,6 +732,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
           // F-163 SF-163-02b — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      ['F-DT-39-prise-acte-rupture', {
+        displayLabel: 'Prise d\'acte de la rupture (FR)',
+        component: PriseActeRuptureSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-206-06 : pré-fill IA réel (11 champs `prise_acte_detail` projetés
+          // à plat dans travailExtractedData, FR uniquement). Validation F-IA-03
+          // sur 5 champs croisables (DT39_DEFAUT_PAIEMENT, DT39_HARCELEMENT,
+          // DT39_MANQUEMENT_SECURITE, DT39_MODIFICATION_CONTRAT,
+          // DT39_GRIEF_IMPOSSIBLE_POURSUITE) via F-96 / questions IA / pièces.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
@@ -2425,6 +2444,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-IM-19-mineurs', 'DIAGNOSTIC'],
     ['F-FA-05-partage-immobilier', 'DIAGNOSTIC'],
     ['F-FA-06-calendrier-garde', 'DIAGNOSTIC'],
+    // SF-206-06 : prise d'acte de la rupture aux torts de l'employeur (FR,
+    // Cass. soc. 25/06/2003 n°01-42.679). Groupe F-169 « Rupture — initiative
+    // salarié / torts employeur » — diagnostic de solidité AVANT notification.
+    ['F-DT-39-prise-acte-rupture', 'DIAGNOSTIC'],
     // F-198 SF-198-03 : rattrapage F-FA-04 (DELETE par migration 191).
     ['F-FA-04-liquidation-communaute', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
