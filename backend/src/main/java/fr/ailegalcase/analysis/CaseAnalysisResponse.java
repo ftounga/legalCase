@@ -1425,6 +1425,26 @@ public record CaseAnalysisResponse(
     /** SF-246-29 : longueur max du texte d'atteinte à liberté fondamentale. */
     private static final int MAX_RPE_ATTEINTE_LIBERTE_LENGTH = 500;
 
+    /** SF-212-02 : longueur max du résumé des faits reprochés (F-DT-36). */
+    static final int MAX_FAUTE_GRAVE_FAITS_REPROCHES_LENGTH = 500;
+
+    /**
+     * SF-212-02 : borne haute ancienneté en mois pour le pré-fill F-DT-36
+     * (50 ans = 600 mois). Au-delà, la valeur est jugée aberrante par
+     * {@code boundedIntOrNull} et ramenée à {@code null}.
+     */
+    static final int MAX_FAUTE_GRAVE_ANCIENNETE_MOIS = 600;
+
+    /**
+     * SF-212-02 : codes de qualification de la faute disciplinaire (F-DT-36)
+     * — alignés sur l'enum
+     * {@code LicenciementFauteGraveLourdCalculator.QualificationFaute} (FR
+     * uniquement, L.1234-1 s. CT).
+     */
+    static final Set<String> QUALIFICATION_FAUTE_CODES = Set.of(
+            "FAUTE_SIMPLE", "FAUTE_GRAVE", "FAUTE_LOURDE"
+    );
+
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
      * d'abandon de poste — alignés sur l'enum
@@ -3528,6 +3548,13 @@ public record CaseAnalysisResponse(
             // null pour la BE.
             JsonNode ruptureEssai = node.get("rupture_periode_essai_detail");
             boolean hasRuptureEssai = ruptureEssai != null && ruptureEssai.isObject();
+            // SF-212-02 : sous-objet pour pré-fill F-DT-36 (licenciement pour
+            // faute grave / faute lourde). Peut être absent (dossier sans
+            // document disciplinaire ou dossier BE) → tous les 6 champs null.
+            // Le prompt impose null pour la BE (distinction faute grave/lourde
+            // strictement française — L.1234-1 s. CT).
+            JsonNode fauteGrave = node.get("faute_grave_detail");
+            boolean hasFauteGrave = fauteGrave != null && fauteGrave.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -3805,6 +3832,21 @@ public record CaseAnalysisResponse(
                     .rpeLettreRuptureMotivee(hasRuptureEssai ? booleanOrNull(ruptureEssai, "lettre_rupture_motivee") : null)
                     .rpeMotifsAveresParPieces(hasRuptureEssai ? booleanOrNull(ruptureEssai, "motifs_averes_par_pieces") : null)
                     .rpeCcnPlusFavorableRespectee(hasRuptureEssai ? booleanOrNull(ruptureEssai, "ccn_plus_favorable_respectee") : null)
+                    // SF-212-02 : 6 champs IA pour pré-fill F-DT-36 (faute grave /
+                    // faute lourde, FRANCE uniquement). Texte tronqué à 500 car.
+                    // pour les faits reprochés, liste de dates ISO (peut être vide),
+                    // qualification employeur normalisée sur enum 3 valeurs (code
+                    // hors whitelist → null), booléen tri-état pour l'intention de
+                    // nuire (null si non déterminable), ancienneté entière bornée
+                    // [0, 600] mois, salaire mensuel brut strictement positif. Tous
+                    // null si sous-objet `faute_grave_detail` absent (dossier sans
+                    // document disciplinaire ou dossier BE).
+                    .fauteGraveFaitsReproches(hasFauteGrave ? truncatedTextOrNull(fauteGrave, "faute_grave_faits_reproches", MAX_FAUTE_GRAVE_FAITS_REPROCHES_LENGTH) : null)
+                    .fauteGraveDatesFaits(hasFauteGrave ? extractStringList(fauteGrave, "faute_grave_dates_faits") : null)
+                    .fauteGraveQualificationEmployeur(hasFauteGrave ? normalizeEnumCode(textOrNull(fauteGrave, "faute_grave_qualification_employeur"), QUALIFICATION_FAUTE_CODES) : null)
+                    .fauteGraveIntentionNuireAlleeguee(hasFauteGrave ? booleanOrNull(fauteGrave, "faute_grave_intention_nuire_alleeguee") : null)
+                    .fauteGraveAncienneteMois(hasFauteGrave ? boundedIntOrNull(fauteGrave, "faute_grave_anciennete_mois", 0, MAX_FAUTE_GRAVE_ANCIENNETE_MOIS) : null)
+                    .fauteGraveSalaireMensuelBrut(hasFauteGrave ? positiveDoubleOrNull(fauteGrave, "faute_grave_salaire_mensuel_brut") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }
