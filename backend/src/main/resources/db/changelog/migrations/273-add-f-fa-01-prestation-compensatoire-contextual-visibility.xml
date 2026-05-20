@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="273-add-f-fa-01-prestation-compensatoire-contextual-visibility" author="legalcase">
+        <comment>
+            SF-216-02 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Prestation compensatoire" (F-FA-01, FRANCE).
+
+            Migration ALWAYS_ON → CONTEXTUAL : l'outil n'apparaît désormais que si
+            le pipeline IA détecte une mention de prestation compensatoire, d'une
+            référence à l'art. 270 Cciv, ou d'une disparité documentée de niveaux
+            de vie entre les époux — trigger `prestation_compensatoire_envisagee`
+            lu depuis le sous-objet `prestation_compensatoire_detection.envisagee`
+            de `famille_extracted_data` par DecisionToolVisibilityService
+            (méthode addBooleanFlagIfTrueNested, SF-216-01).
+
+            Suppression de l'entrée ALWAYS_ON id='f1a04001-0000-0000-0000-ee0000019801'
+            insérée par migration 212 (SF-198-01), puis ré-insertion en mode CONTEXTUAL
+            avec le même tool_id 'F-FA-01-prestation-compensatoire'.
+
+            UUID namespace dédié F-216 : f1a04001-0000-0000-0000-ff0000021601.
+
+            Base juridique : art. 270-281 Cciv + Cass. 1ère civ. 8/10/2014
+            n°13-21.804. Outil single-country FRANCE — la contribution alimentaire
+            entre ex-époux en BE relève de l'art. 301 CC BE (outil F-217 distinct).
+
+            Le garde-fou CI DecisionToolVisibilityIntegrityIT et TOOL_REGISTRY
+            (decisional-tools-panel.component.ts — entrée F-FA-01 existante
+            depuis SF-198-01) restent compatibles.
+
+            priority 98 — rang élevé pour un outil P0 famille (au-dessus de la
+            médiation familiale priority 96, en dessous du score DC priority 40).
+        </comment>
+
+        <sql splitStatements="true">
+-- Suppression de l'entrée ALWAYS_ON héritée de la migration 212.
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-ee0000019801';
+
+-- Insertion en mode CONTEXTUAL.
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ff0000021601', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-01-prestation-compensatoire',
+        'CONTEXTUAL', 'prestation_compensatoire_envisagee', 'true', 98);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-ff0000021601';
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000019801', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-01-prestation-compensatoire',
+        'ALWAYS_ON', NULL, NULL, 10);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
