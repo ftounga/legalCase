@@ -1767,7 +1767,16 @@ public record CaseAnalysisResponse(
             // --- adoption (F-FA-18-10) ---
             String formeAdoptionDemandeeDetected,     // whitelist PLENIERE|SIMPLE
             Boolean pupilleEtatDetected,
-            Boolean adoptantMarieDetected) {           // adoptant marié (art. 343 Cciv)
+            Boolean adoptantMarieDetected,              // adoptant marié (art. 343 Cciv)
+            // SF-246-27 : 8 champs IA protection majeurs / PMA / médiation / divorce (F-FA protection & divorce).
+            String regimeProtectionMajeursDetected,   // whitelist SAUVEGARDE_JUSTICE|HABILITATION_FAMILIALE|CURATELLE_SIMPLE|CURATELLE_RENFORCEE|TUTELLE|MANDAT_PROTECTION_FUTURE
+            String dateCertificatMedicalMajeursDetected, // ISO YYYY-MM-DD
+            String datePmaDetected,                   // ISO YYYY-MM-DD (PMA — art. L2141-2 CSP)
+            String dateReconnaissanceAnterieurePmaDetected, // ISO YYYY-MM-DD (reconnaissance antérieure PMA)
+            String dateDonGametesDetected,            // ISO YYYY-MM-DD (don de gamètes — art. L2143-3 CSP)
+            String motifSaisineMediationDetected,     // whitelist AUTORITE_PARENTALE|CONTRIBUTION_ENTRETIEN|DROIT_VISITE|RESIDENCE|AUTRE
+            String dateAssignationDivorce,            // ISO YYYY-MM-DD — partagé divorce-accepte + divorce-alteration (FR)
+            String dateAudienceHomologationDcBe) {    // ISO YYYY-MM-DD — BELGIQUE UNIQUEMENT divorce-dc-be
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1911,6 +1920,15 @@ public record CaseAnalysisResponse(
             private String formeAdoptionDemandeeDetected;
             private Boolean pupilleEtatDetected;
             private Boolean adoptantMarieDetected;
+            // SF-246-27 : 8 champs IA protection majeurs / PMA / médiation / divorce.
+            private String regimeProtectionMajeursDetected;
+            private String dateCertificatMedicalMajeursDetected;
+            private String datePmaDetected;
+            private String dateReconnaissanceAnterieurePmaDetected;
+            private String dateDonGametesDetected;
+            private String motifSaisineMediationDetected;
+            private String dateAssignationDivorce;
+            private String dateAudienceHomologationDcBe;
 
             private Builder() {}
 
@@ -2044,6 +2062,15 @@ public record CaseAnalysisResponse(
             public Builder formeAdoptionDemandeeDetected(String v) { this.formeAdoptionDemandeeDetected = v; return this; }
             public Builder pupilleEtatDetected(Boolean v) { this.pupilleEtatDetected = v; return this; }
             public Builder adoptantMarieDetected(Boolean v) { this.adoptantMarieDetected = v; return this; }
+            // SF-246-27 setters
+            public Builder regimeProtectionMajeursDetected(String v) { this.regimeProtectionMajeursDetected = v; return this; }
+            public Builder dateCertificatMedicalMajeursDetected(String v) { this.dateCertificatMedicalMajeursDetected = v; return this; }
+            public Builder datePmaDetected(String v) { this.datePmaDetected = v; return this; }
+            public Builder dateReconnaissanceAnterieurePmaDetected(String v) { this.dateReconnaissanceAnterieurePmaDetected = v; return this; }
+            public Builder dateDonGametesDetected(String v) { this.dateDonGametesDetected = v; return this; }
+            public Builder motifSaisineMediationDetected(String v) { this.motifSaisineMediationDetected = v; return this; }
+            public Builder dateAssignationDivorce(String v) { this.dateAssignationDivorce = v; return this; }
+            public Builder dateAudienceHomologationDcBe(String v) { this.dateAudienceHomologationDcBe = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2136,7 +2163,16 @@ public record CaseAnalysisResponse(
                         motifsSerieuxRechercheDetected,
                         formeAdoptionDemandeeDetected,
                         pupilleEtatDetected,
-                        adoptantMarieDetected);
+                        adoptantMarieDetected,
+                        // SF-246-27 : 8 champs IA protection majeurs / PMA / médiation / divorce.
+                        regimeProtectionMajeursDetected,
+                        dateCertificatMedicalMajeursDetected,
+                        datePmaDetected,
+                        dateReconnaissanceAnterieurePmaDetected,
+                        dateDonGametesDetected,
+                        motifSaisineMediationDetected,
+                        dateAssignationDivorce,
+                        dateAudienceHomologationDcBe);
             }
         }
     }
@@ -4171,6 +4207,38 @@ public record CaseAnalysisResponse(
                 || formeAdoptionDemandeeDetected != null
                 || pupilleEtatDetected != null
                 || adoptantMarieDetected != null;
+        // SF-246-27 : sous-objet `protection_divorce_detection_v2` — 8 champs D2/D3.
+        // majeurs-proteges (2), pma-gpa-bioethique (3), mediation-familiale (1),
+        // divorce-accepte + divorce-alteration (1 partagé), divorce-dc-be (1, BE uniquement).
+        java.util.Set<String> REGIME_PROTECTION_WHITELIST = java.util.Set.of(
+                "SAUVEGARDE_JUSTICE", "HABILITATION_FAMILIALE",
+                "CURATELLE_SIMPLE", "CURATELLE_RENFORCEE",
+                "TUTELLE", "MANDAT_PROTECTION_FUTURE");
+        java.util.Set<String> MOTIF_MEDIATION_WHITELIST = java.util.Set.of(
+                "AUTORITE_PARENTALE", "CONTRIBUTION_ENTRETIEN",
+                "DROIT_VISITE", "RESIDENCE", "AUTRE");
+        JsonNode pdv2 = node.get("protection_divorce_detection_v2");
+        boolean pdv2Object = pdv2 != null && pdv2.isObject();
+        String regimeProtectionMajeursDetected = pdv2Object
+                ? whitelistedOrNull(stringOrNull(pdv2, "regime_protection_majeurs"),
+                        REGIME_PROTECTION_WHITELIST.toArray(String[]::new)) : null;
+        String dateCertificatMedicalMajeursDetected = pdv2Object ? isoDateOrNull(pdv2, "date_certificat_medical_majeurs") : null;
+        String datePmaDetected = pdv2Object ? isoDateOrNull(pdv2, "date_pma") : null;
+        String dateReconnaissanceAnterieurePmaDetected = pdv2Object ? isoDateOrNull(pdv2, "date_reconnaissance_anterieure_pma") : null;
+        String dateDonGametesDetected = pdv2Object ? isoDateOrNull(pdv2, "date_don_gametes") : null;
+        String motifSaisineMediationDetected = pdv2Object
+                ? whitelistedOrNull(stringOrNull(pdv2, "motif_saisine_mediation"),
+                        MOTIF_MEDIATION_WHITELIST.toArray(String[]::new)) : null;
+        String dateAssignationDivorce = pdv2Object ? isoDateOrNull(pdv2, "date_assignation_divorce") : null;
+        String dateAudienceHomologationDcBe = pdv2Object ? isoDateOrNull(pdv2, "date_audience_homologation_dc_be") : null;
+        boolean protectionDivorceV2Present = regimeProtectionMajeursDetected != null
+                || dateCertificatMedicalMajeursDetected != null
+                || datePmaDetected != null
+                || dateReconnaissanceAnterieurePmaDetected != null
+                || dateDonGametesDetected != null
+                || motifSaisineMediationDetected != null
+                || dateAssignationDivorce != null
+                || dateAudienceHomologationDcBe != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -4206,7 +4274,8 @@ public record CaseAnalysisResponse(
                 && !cecDetectionPresent
                 && !successionV2DetectionPresent
                 && !communautePartageProtectionV2Present
-                && !filiationV2DetectionPresent) {
+                && !filiationV2DetectionPresent
+                && !protectionDivorceV2Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -4346,6 +4415,15 @@ public record CaseAnalysisResponse(
                 .formeAdoptionDemandeeDetected(formeAdoptionDemandeeDetected)
                 .pupilleEtatDetected(pupilleEtatDetected)
                 .adoptantMarieDetected(adoptantMarieDetected)
+                // SF-246-27 : 8 champs IA protection majeurs / PMA / médiation / divorce.
+                .regimeProtectionMajeursDetected(regimeProtectionMajeursDetected)
+                .dateCertificatMedicalMajeursDetected(dateCertificatMedicalMajeursDetected)
+                .datePmaDetected(datePmaDetected)
+                .dateReconnaissanceAnterieurePmaDetected(dateReconnaissanceAnterieurePmaDetected)
+                .dateDonGametesDetected(dateDonGametesDetected)
+                .motifSaisineMediationDetected(motifSaisineMediationDetected)
+                .dateAssignationDivorce(dateAssignationDivorce)
+                .dateAudienceHomologationDcBe(dateAudienceHomologationDcBe)
                 .build();
     }
 

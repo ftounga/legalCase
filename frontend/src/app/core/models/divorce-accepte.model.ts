@@ -620,4 +620,77 @@ export interface FamilleExtractedData {
    * `autorite_parentale_detection.date_fin_calendrier`.
    */
   dateFinCalendrierDetectee?: string | null;
+  /**
+   * SF-246-27 : régime de protection juridique d'un majeur demandé ou en vigueur
+   * (art. 425+ Cciv). Source backend réelle :
+   * `protection_divorce_detection_v2.regime_protection_majeurs`.
+   * Valeurs : SAUVEGARDE_JUSTICE | HABILITATION_FAMILIALE | CURATELLE_SIMPLE |
+   * CURATELLE_RENFORCEE | TUTELLE | MANDAT_PROTECTION_FUTURE.
+   * Remplace le champ aspirationnel `regimeProtectionDemande`.
+   */
+  regimeProtectionMajeursDetected?:
+    | 'SAUVEGARDE_JUSTICE'
+    | 'HABILITATION_FAMILIALE'
+    | 'CURATELLE_SIMPLE'
+    | 'CURATELLE_RENFORCEE'
+    | 'TUTELLE'
+    | 'MANDAT_PROTECTION_FUTURE'
+    | null;
+  /**
+   * SF-246-27 : date du certificat médical circonstancié établissant l'altération
+   * des facultés du majeur à protéger (art. 431 Cciv), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_certificat_medical_majeurs`.
+   * Remplace le champ aspirationnel `dateCertificatMedicalDetected`.
+   */
+  dateCertificatMedicalMajeursDetected?: string | null;
+  /**
+   * SF-246-27 : date de début du protocole PMA (assistance médicale à la procréation,
+   * art. L2141-2 CSP), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_pma`.
+   * DISTINCT de `dateReconnaissanceAnterieurePmaDetected` et `dateDonGametesDetected`.
+   */
+  datePmaDetected?: string | null;
+  /**
+   * SF-246-27 : date de la reconnaissance anticipée effectuée devant notaire avant
+   * le début de la PMA (art. L2141-5 al. 2 CSP), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_reconnaissance_anterieure_pma`.
+   * DISTINCT de `datePmaDetected` et `dateDonGametesDetected`.
+   */
+  dateReconnaissanceAnterieurePmaDetected?: string | null;
+  /**
+   * SF-246-27 : date du don de gamètes (art. L2143-3 CSP — droit d'accès aux
+   * origines personnelles), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_don_gametes`.
+   * DISTINCT de `datePmaDetected` et `dateReconnaissanceAnterieurePmaDetected`.
+   */
+  dateDonGametesDetected?: string | null;
+  /**
+   * SF-246-27 : motif principal de saisine du médiateur familial (art. 373-2-10 Cciv),
+   * source réelle.
+   * Source backend réelle : `protection_divorce_detection_v2.motif_saisine_mediation`.
+   * Valeurs : AUTORITE_PARENTALE | CONTRIBUTION_ENTRETIEN | DROIT_VISITE | RESIDENCE | AUTRE.
+   * Remplace le champ aspirationnel `motifSaisineMediationDetecte`.
+   */
+  motifSaisineMediationDetected?:
+    | 'AUTORITE_PARENTALE'
+    | 'CONTRIBUTION_ENTRETIEN'
+    | 'DROIT_VISITE'
+    | 'RESIDENCE'
+    | 'AUTRE'
+    | null;
+  /**
+   * SF-246-27 : date de l'assignation en divorce (FR uniquement — divorce-accepte +
+   * divorce-alteration, art. 56 CPC), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_assignation_divorce`.
+   * DISTINCT de la date de la requête en divorce et de la date de la convention CMU.
+   */
+  dateAssignationDivorce?: string | null;
+  /**
+   * SF-246-27 : BELGIQUE UNIQUEMENT — date de l'audience d'homologation de la convention
+   * de divorce par consentement commun (DC) devant le tribunal de la famille belge
+   * (art. 1288bis C.jud.BE), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_audience_homologation_dc_be`.
+   * Pour un dossier France, ce champ est null.
+   */
+  dateAudienceHomologationDcBe?: string | null;
 }

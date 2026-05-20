@@ -9,16 +9,19 @@ import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contr
  * <p>12 champs pré-remplissables depuis `aiData` (`FamilleExtractedData`) :
  * <ol>
  *   <li>`regimeProtectionDemande` (string enum 6 valeurs) — depuis
- *   `ai.regimeProtectionDemande` (validé contre `VALID_REGIMES`).</li>
+ *   `ai.regimeProtectionMajeursDetected` (SF-246-27 — source réelle).
+ *   Anciennement `ai.regimeProtectionDemande` (aspirationnel, conservé pour
+ *   rétro-compat runtime mais source réelle désormais prioritaire).</li>
  *   <li>`altertationFacultesMentales` (boolean) — depuis
  *   `ai.altertationFacultesMentales`. Pré-fill seulement si `true`
- *   (saisie avocat préservée sinon — sémantique runtime).</li>
+ *   (sémantique runtime : `false` ne surcharge pas la valeur par défaut).</li>
  *   <li>`altertationFacultesPhysiques` (boolean) — depuis
  *   `ai.altertationFacultesPhysiques`. Pré-fill seulement si `true`.</li>
  *   <li>`certificatMedicalCirconstancie` (boolean) — depuis
  *   `ai.certificatMedicalCirconstancieDetected`. Pré-fill seulement si `true`.</li>
  *   <li>`dateCertificatMedical` (string ISO YYYY-MM-DD) — depuis
- *   `ai.dateCertificatMedicalDetected`.</li>
+ *   `ai.dateCertificatMedicalMajeursDetected` (SF-246-27 — source réelle).
+ *   Anciennement `ai.dateCertificatMedicalDetected` (aspirationnel).</li>
  *   <li>`consentementPersonneAProteger` (boolean) — depuis
  *   `ai.consentementPersonneAProtegerDetected`. Pré-fill seulement si `true`.</li>
  *   <li>`demandeurFamilial` (string enum 6 valeurs) — depuis
@@ -85,7 +88,9 @@ export const MajeursProtegesPrefillRules = {
   computeRegimeProtectionDemande(input: PrefillCountInput): string | null {
     const ai = input.aiData;
     if (!ai) return null;
-    const raw = ai.regimeProtectionDemande;
+    // SF-246-27 : source réelle `regimeProtectionMajeursDetected` (prioritaire).
+    // Fallback sur `regimeProtectionDemande` (aspirationnel, rétro-compat).
+    const raw = (ai as any).regimeProtectionMajeursDetected ?? ai.regimeProtectionDemande;
     if (typeof raw !== 'string' || raw.length === 0) return null;
     const upper = raw.toUpperCase();
     return VALID_REGIMES.has(upper) ? upper : null;
@@ -117,9 +122,12 @@ export const MajeursProtegesPrefillRules = {
   computeDateCertificatMedical(input: PrefillCountInput): string | null {
     const ai = input.aiData;
     if (!ai) return null;
-    if (typeof ai.dateCertificatMedicalDetected !== 'string') return null;
-    if (!ISO_DATE_RE.test(ai.dateCertificatMedicalDetected)) return null;
-    return ai.dateCertificatMedicalDetected;
+    // SF-246-27 : source réelle `dateCertificatMedicalMajeursDetected` (prioritaire).
+    // Fallback sur `dateCertificatMedicalDetected` (aspirationnel, rétro-compat).
+    const raw = (ai as any).dateCertificatMedicalMajeursDetected ?? ai.dateCertificatMedicalDetected;
+    if (typeof raw !== 'string') return null;
+    if (!ISO_DATE_RE.test(raw)) return null;
+    return raw;
   },
 
   computeConsentementPersonneAProteger(input: PrefillCountInput): boolean | null {

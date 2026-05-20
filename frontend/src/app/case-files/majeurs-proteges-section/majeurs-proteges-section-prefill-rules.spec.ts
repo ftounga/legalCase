@@ -94,6 +94,41 @@ describe('MajeursProtegesPrefillRules', () => {
     expect(Rules.computePrefillCount(input)).toBe(1);
   });
 
+  // ── SF-246-27 : source réelle regimeProtectionMajeursDetected ─────────
+  it('SF-246-27 : lit regimeProtectionMajeursDetected (source réelle, prioritaire)', () => {
+    const input = { aiData: { regimeProtectionMajeursDetected: 'CURATELLE_RENFORCEE' } as any };
+    expect(Rules.computeRegimeProtectionDemande(input)).toBe('CURATELLE_RENFORCEE');
+    expect(Rules.computePrefillCount(input)).toBe(1);
+  });
+
+  it('SF-246-27 : regimeProtectionMajeursDetected hors whitelist → null', () => {
+    const input = { aiData: { regimeProtectionMajeursDetected: 'TUTELLE_ALLEGEE' } as any };
+    expect(Rules.computeRegimeProtectionDemande(input)).toBeNull();
+    expect(Rules.computePrefillCount(input)).toBe(0);
+  });
+
+  it('SF-246-27 : lit dateCertificatMedicalMajeursDetected (source réelle, prioritaire)', () => {
+    const input = { aiData: { dateCertificatMedicalMajeursDetected: '2024-03-15' } as any };
+    expect(Rules.computeDateCertificatMedical(input)).toBe('2024-03-15');
+    expect(Rules.computePrefillCount(input)).toBe(1);
+  });
+
+  it('SF-246-27 : dateCertificatMedicalMajeursDetected mal formée → null', () => {
+    const input = { aiData: { dateCertificatMedicalMajeursDetected: '15-03-2024' } as any };
+    expect(Rules.computeDateCertificatMedical(input)).toBeNull();
+  });
+
+  it('SF-246-27 : source réelle prioritaire sur aspirationnel (régime)', () => {
+    const input = {
+      aiData: {
+        regimeProtectionMajeursDetected: 'TUTELLE',
+        regimeProtectionDemande: 'SAUVEGARDE_JUSTICE',
+      } as any,
+    };
+    // regimeProtectionMajeursDetected prioritaire
+    expect(Rules.computeRegimeProtectionDemande(input)).toBe('TUTELLE');
+  });
+
   // ── Cas N (nominal — 12 champs) ───────────────────────────────────────
   it('returns N=12 when all 12 fields alimentent', () => {
     const input = {
