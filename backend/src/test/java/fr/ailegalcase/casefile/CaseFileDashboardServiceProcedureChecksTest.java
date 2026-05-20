@@ -148,6 +148,8 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(Belgian9terRepository.class),
                 mock(Belgian40bisRepository.class),
                 mock(Belgian40terRepository.class),
+                mock(PrescriptionBeLitigeTravailRepository.class),
+                mock(C4OnemChecklistRepository.class),
                 retainedPisteAlignmentService,
                 procedureCheckAlignmentService,
                 pieceManquanteAlignmentServiceForTest(),

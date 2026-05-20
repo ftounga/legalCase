@@ -156,6 +156,16 @@ public class CaseFileDashboardService {
     private final Belgian9terRepository belgian9terRepo;
     private final Belgian40bisRepository belgian40bisRepo;
     private final Belgian40terRepository belgian40terRepo;
+    // F-207 SF-207-01 — Prescription Travail BE (1 an post-rupture L.03/07/1978 + CCT 109 ;
+    // 5 ans arriérés salaire pendant le contrat). Tuile dashboard couplée à
+    // l'outil seedé `prescription-be-litige-travail` (migration 252/253). Orphan
+    // résorbé par F-245 hotfix CI master (DashboardTileToolIdIntegrityIT).
+    private final PrescriptionBeLitigeTravailRepository prescriptionBeLitigeTravailRepo;
+    // F-207 SF-207-02 — Checklist C4 ONEM Travail BE (art. 144 AR 25/11/1991 ;
+    // mentions obligatoires + risque exclusion faute grave 4-52 semaines).
+    // Tuile dashboard couplée à l'outil seedé `c4-onem-checklist` (migration
+    // 254/255). Orphan résorbé par F-245 hotfix CI master.
+    private final C4OnemChecklistRepository c4OnemChecklistRepo;
     // F-192 SF-192-01 — pistes RETAINED matérialisées sur la dernière analyse DONE.
     private final RetainedPisteAlignmentService retainedPisteAlignmentService;
     // F-193 SF-193-01 — checks F-96 matérialisés sur la dernière analyse DONE.
@@ -276,6 +286,8 @@ public class CaseFileDashboardService {
                                      Belgian9terRepository belgian9terRepo,
                                      Belgian40bisRepository belgian40bisRepo,
                                      Belgian40terRepository belgian40terRepo,
+                                     PrescriptionBeLitigeTravailRepository prescriptionBeLitigeTravailRepo,
+                                     C4OnemChecklistRepository c4OnemChecklistRepo,
                                      RetainedPisteAlignmentService retainedPisteAlignmentService,
                                      ProcedureCheckAlignmentService procedureCheckAlignmentService,
                                      PieceManquanteAlignmentService pieceManquanteAlignmentService,
@@ -390,6 +402,8 @@ public class CaseFileDashboardService {
         this.belgian9terRepo = belgian9terRepo;
         this.belgian40bisRepo = belgian40bisRepo;
         this.belgian40terRepo = belgian40terRepo;
+        this.prescriptionBeLitigeTravailRepo = prescriptionBeLitigeTravailRepo;
+        this.c4OnemChecklistRepo = c4OnemChecklistRepo;
         this.retainedPisteAlignmentService = retainedPisteAlignmentService;
         this.procedureCheckAlignmentService = procedureCheckAlignmentService;
         this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
@@ -559,6 +573,10 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-14-9ter-medical-be", caseFileId, () -> tileFromBelgian9terAnalysis(caseFileId));
         addSafely(tiles, "F-IM-14-40bis-cohabitant-ue-be", caseFileId, () -> tileFromBelgian40bisAnalysis(caseFileId));
         addSafely(tiles, "F-IM-14-40ter-familial-belge-be", caseFileId, () -> tileFromBelgian40terAnalysis(caseFileId));
+        // ── F-207 SF-207-01 — Prescription Travail BE (orphan résorbé F-245 hotfix) ─
+        addSafely(tiles, "prescription-be-litige-travail", caseFileId, () -> tileFromPrescriptionBeLitigeTravailAnalysis(caseFileId));
+        // ── F-207 SF-207-02 — Checklist C4 ONEM Travail BE (orphan résorbé F-245 hotfix) ─
+        addSafely(tiles, "c4-onem-checklist", caseFileId, () -> tileFromC4OnemChecklistAnalysis(caseFileId));
         // ── F-192 SF-192-01 — pistes RETAINED matérialisées ───────────────────
         addSafely(tiles, "F-192-retained-pistes-summary", caseFileId, () -> tileFromRetainedPistesAlignment(caseFileId));
         // ── F-193 SF-193-01 — checks F-96 matérialisés ─────────────────────
@@ -2097,6 +2115,72 @@ public class CaseFileDashboardService {
         }).orElse(null);
     }
 
+    /**
+     * F-207 SF-207-02 — Checklist C4 ONEM (Travail BE).
+     *
+     * <p>Verdict {@code CONFORME} / {@code NON_CONFORME} / {@code RISQUE_EXCLUSION_FAUTE_GRAVE}
+     * (art. 144 AR 25/11/1991 ; mentions obligatoires + risque exclusion ONEM
+     * 4-52 semaines en cas de faute grave). Tuile câblée par F-245 hotfix CI
+     * master pour résorber l'orphan détecté par {@code DashboardTileToolIdIntegrityIT}.</p>
+     */
+    private DashboardTile tileFromC4OnemChecklistAnalysis(UUID caseFileId) {
+        return c4OnemChecklistRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), C4OnemChecklistResult.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String alert = mapVerdictC4Onem(verdict);
+                String secondary;
+                if (r.exclusionOnemRange() != null) {
+                    secondary = "Exclusion ONEM "
+                            + r.exclusionOnemRange().minSemaines()
+                            + "-" + r.exclusionOnemRange().maxSemaines() + " sem.";
+                } else if (r.mentionsManquantes() != null && !r.mentionsManquantes().isEmpty()) {
+                    secondary = r.mentionsManquantes().size() + " mention(s) manquante(s)";
+                } else {
+                    secondary = "Mentions conformes";
+                }
+                return new DashboardTile(
+                        "c4-onem-checklist",
+                        "DOCUMENTS",
+                        "C4 ONEM",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-207 SF-207-01 — Prescription d'une action de droit du travail belge.
+     *
+     * <p>Verdict {@code PRESCRIT} / {@code IMMINENT} / {@code NON_PRESCRIT}
+     * (Loi 03/07/1978 art. 15 + CCT 109 art. 11 ; 5 ans arriérés salaire pendant
+     * le contrat). Tuile cablée par F-245 hotfix CI master pour résorber
+     * l'orphan détecté par {@code DashboardTileToolIdIntegrityIT}.</p>
+     */
+    private DashboardTile tileFromPrescriptionBeLitigeTravailAnalysis(UUID caseFileId) {
+        return prescriptionBeLitigeTravailRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PrescriptionBeLitigeTravailResult.class);
+                String alert = mapVerdictPrescription(r.verdict());
+                String secondary = r.dateLimitePrescription() != null
+                        ? "Échéance " + r.dateLimitePrescription() + " (" + r.joursRestants() + " j)"
+                        : r.joursRestants() + " j restants";
+                return new DashboardTile(
+                        "prescription-be-litige-travail",
+                        "DELAIS",
+                        "Prescription Travail BE",
+                        r.verdict() != null ? r.verdict() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
     // ---- SF-167-03 — Mappers Famille FR + BE -------------------------------
 
     /** F-FA-08 Divorce pour altération définitive du lien conjugal (FR). */
@@ -3231,6 +3315,38 @@ public class CaseFileDashboardService {
             case "NULLE", "ILLEGALE_REQUALIF_LICENCIEMENT" -> "ALERT";
             case "RISQUE_ABUSIVE" -> "WARNING";
             case "REGULIERE" -> "OK";
+            default -> null;
+        };
+    }
+
+    /**
+     * F-207 SF-207-02 — mapping verdict C4 ONEM → {@code alertLevel} de la tuile
+     * dashboard. Convention : {@code RISQUE_EXCLUSION_FAUTE_GRAVE} = ALERT
+     * (risque pécuniaire majeur ONEM 4-52 sem.), {@code NON_CONFORME} = WARNING
+     * (mentions manquantes — rectification possible), {@code CONFORME} = OK.
+     */
+    private static String mapVerdictC4Onem(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "CONFORME" -> "OK";
+            case "NON_CONFORME" -> "WARNING";
+            case "RISQUE_EXCLUSION_FAUTE_GRAVE" -> "ALERT";
+            default -> null;
+        };
+    }
+
+    /**
+     * F-207 SF-207-01 — mapping verdict prescription Travail BE → {@code alertLevel}
+     * de la tuile dashboard. Convention : {@code PRESCRIT} = ALERT (délai dépassé,
+     * action irrecevable), {@code IMMINENT} = WARNING (≤ 30 j restants),
+     * {@code NON_PRESCRIT} = OK (délai confortable).
+     */
+    private static String mapVerdictPrescription(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "NON_PRESCRIT" -> "OK";
+            case "IMMINENT" -> "WARNING";
+            case "PRESCRIT" -> "ALERT";
             default -> null;
         };
     }

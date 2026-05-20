@@ -144,6 +144,8 @@ class CaseFileDashboardServiceTest {
     private Belgian9terRepository belgian9terRepo;
     private Belgian40bisRepository belgian40bisRepo;
     private Belgian40terRepository belgian40terRepo;
+    private PrescriptionBeLitigeTravailRepository prescriptionBeLitigeTravailRepo;
+    private C4OnemChecklistRepository c4OnemChecklistRepo;
     private fr.ailegalcase.analysis.RetainedPisteAlignmentService retainedPisteAlignmentService;
     private fr.ailegalcase.analysis.ProcedureCheckAlignmentService procedureCheckAlignmentService;
     private fr.ailegalcase.analysis.PieceManquanteAlignmentService pieceManquanteAlignmentService;
@@ -258,6 +260,8 @@ class CaseFileDashboardServiceTest {
         belgian9terRepo = mock(Belgian9terRepository.class);
         belgian40bisRepo = mock(Belgian40bisRepository.class);
         belgian40terRepo = mock(Belgian40terRepository.class);
+        prescriptionBeLitigeTravailRepo = mock(PrescriptionBeLitigeTravailRepository.class);
+        c4OnemChecklistRepo = mock(C4OnemChecklistRepository.class);
         retainedPisteAlignmentService = mock(fr.ailegalcase.analysis.RetainedPisteAlignmentService.class);
         when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
         procedureCheckAlignmentService = mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class);
@@ -377,6 +381,8 @@ class CaseFileDashboardServiceTest {
         when(belgian9terRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(belgian40bisRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(belgian40terRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(prescriptionBeLitigeTravailRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(c4OnemChecklistRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
 
         service = new CaseFileDashboardService(
                 objectMapper,
@@ -425,6 +431,8 @@ class CaseFileDashboardServiceTest {
                 regimeAlgerienRepo, mineursImmigrationRepo, mesuresEloignementRepo,
                 annexe13BeRepo, belgian9bisRepo, belgian9terRepo,
                 belgian40bisRepo, belgian40terRepo,
+                prescriptionBeLitigeTravailRepo,
+                c4OnemChecklistRepo,
                 retainedPisteAlignmentService,
                 procedureCheckAlignmentService,
                 pieceManquanteAlignmentService,

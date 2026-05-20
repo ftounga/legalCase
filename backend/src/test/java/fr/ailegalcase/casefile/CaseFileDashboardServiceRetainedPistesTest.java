@@ -145,6 +145,8 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(Belgian9terRepository.class),
                 mock(Belgian40bisRepository.class),
                 mock(Belgian40terRepository.class),
+                mock(PrescriptionBeLitigeTravailRepository.class),
+                mock(C4OnemChecklistRepository.class),
                 retainedPisteAlignmentService,
                 mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class),
                 mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class),
