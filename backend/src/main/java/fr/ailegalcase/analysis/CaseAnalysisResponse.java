@@ -414,7 +414,21 @@ public record CaseAnalysisResponse(
             String dateNaissanceSalarie,
             Integer anneesCarriereSalarie,
             Boolean metierLourdDetecte,
-            Boolean entrepriseEnDifficulteDetectee) {
+            Boolean entrepriseEnDifficulteDetectee,
+            // SF-207-07 : 3 champs IA Travail BE pour pré-fill F-207-07 outil
+            // RCC BE indemnité complémentaire (CCT 17 art. 5 ; loi 03/07/1978 ;
+            // AR 03/05/2007). Tous nullables — Travail BE uniquement, restent
+            // null pour un dossier FR. dateNaissanceSalarie (SF-207-06) est
+            // réutilisé en amont du calcul de l'âge légal de pension.
+            // - remunerationNetteReferenceRccDetectee : rémunération NETTE
+            //   mensuelle de référence (€), base du / 2 de l'art. 5 CCT 17.
+            // - allocationOnemMensuelleEstimee : allocation ONEM mensuelle (€)
+            //   estimée — l'avocat la fournit (formule ONEM hors scope IA).
+            // - dateDebutRccEnvisagee : date début effective RCC (ISO),
+            //   base du comptage des mensualités jusqu'à pension.
+            Double remunerationNetteReferenceRccDetectee,
+            Double allocationOnemMensuelleEstimee,
+            String dateDebutRccEnvisagee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -576,7 +590,11 @@ public record CaseAnalysisResponse(
                     .dateNaissanceSalarie(dateNaissanceSalarie)
                     .anneesCarriereSalarie(anneesCarriereSalarie)
                     .metierLourdDetecte(metierLourdDetecte)
-                    .entrepriseEnDifficulteDetectee(entrepriseEnDifficulteDetectee);
+                    .entrepriseEnDifficulteDetectee(entrepriseEnDifficulteDetectee)
+                    // SF-207-07 — rcc_be_indemnite_detection (BELGIQUE uniquement)
+                    .remunerationNetteReferenceRccDetectee(remunerationNetteReferenceRccDetectee)
+                    .allocationOnemMensuelleEstimee(allocationOnemMensuelleEstimee)
+                    .dateDebutRccEnvisagee(dateDebutRccEnvisagee);
         }
 
         public static final class Builder {
@@ -733,6 +751,10 @@ public record CaseAnalysisResponse(
             private Integer anneesCarriereSalarie;
             private Boolean metierLourdDetecte;
             private Boolean entrepriseEnDifficulteDetectee;
+            // SF-207-07 — rcc_be_indemnite_detection (BELGIQUE uniquement)
+            private Double remunerationNetteReferenceRccDetectee;
+            private Double allocationOnemMensuelleEstimee;
+            private String dateDebutRccEnvisagee;
 
             private Builder() {}
 
@@ -884,6 +906,10 @@ public record CaseAnalysisResponse(
             public Builder anneesCarriereSalarie(Integer v) { this.anneesCarriereSalarie = v; return this; }
             public Builder metierLourdDetecte(Boolean v) { this.metierLourdDetecte = v; return this; }
             public Builder entrepriseEnDifficulteDetectee(Boolean v) { this.entrepriseEnDifficulteDetectee = v; return this; }
+            // SF-207-07 — rcc_be_indemnite_detection (BELGIQUE uniquement)
+            public Builder remunerationNetteReferenceRccDetectee(Double v) { this.remunerationNetteReferenceRccDetectee = v; return this; }
+            public Builder allocationOnemMensuelleEstimee(Double v) { this.allocationOnemMensuelleEstimee = v; return this; }
+            public Builder dateDebutRccEnvisagee(String v) { this.dateDebutRccEnvisagee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -963,7 +989,11 @@ public record CaseAnalysisResponse(
                         abandonPosteMedMentionneConsequences, abandonPosteRepriseDansDelai,
                         // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
                         dateNaissanceSalarie, anneesCarriereSalarie,
-                        metierLourdDetecte, entrepriseEnDifficulteDetectee);
+                        metierLourdDetecte, entrepriseEnDifficulteDetectee,
+                        // SF-207-07 — rcc_be_indemnite_detection (BELGIQUE uniquement)
+                        remunerationNetteReferenceRccDetectee,
+                        allocationOnemMensuelleEstimee,
+                        dateDebutRccEnvisagee);
             }
         }
     }
@@ -3172,6 +3202,15 @@ public record CaseAnalysisResponse(
                     .anneesCarriereSalarie(boundedIntOrNull(node, "annees_carriere_salarie", 0, MAX_CARRIERE_RCC_BE))
                     .metierLourdDetecte(booleanOrNull(node, "metier_lourd_detecte"))
                     .entrepriseEnDifficulteDetectee(booleanOrNull(node, "entreprise_en_difficulte_detectee"))
+                    // SF-207-07 : 3 champs IA Travail BE pour pré-fill F-207-07
+                    // RCC BE indemnité complémentaire. Le prompt impose null hors
+                    // Belgique. Les 2 montants sont extraits via doubleOrNull
+                    // (pas de borne haute — peuvent être de l'ordre de plusieurs
+                    // milliers € / mois). dateDebutRccEnvisagee validée ISO
+                    // YYYY-MM-DD (fail-open → null si non ISO).
+                    .remunerationNetteReferenceRccDetectee(doubleOrNull(node, "remuneration_nette_reference_rcc_detectee"))
+                    .allocationOnemMensuelleEstimee(doubleOrNull(node, "allocation_onem_mensuelle_estimee"))
+                    .dateDebutRccEnvisagee(isoDateOrNull(node, "date_debut_rcc_envisagee"))
                     // SF-246-21 : 5 sous-objets thématiques Travail FR (FR uniquement, null dossier BE).
                     .cddDureeMois(extract246_21CddDureeMois(node))
                     .cddDateFinDernierContrat(extract246_21CddDateFin(node))
