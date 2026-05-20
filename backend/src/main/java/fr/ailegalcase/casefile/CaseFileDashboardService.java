@@ -90,6 +90,8 @@ public class CaseFileDashboardService {
     private final ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo;
     // SF-DT-38-02 : qualification rupture période d'essai (FR, F-DT-38).
     private final RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo;
+    // SF-206-01 : F-DT-42 abandon de poste / présomption de démission (FR)
+    private final AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -222,6 +224,7 @@ public class CaseFileDashboardService {
                                      CreditTempsBeRepository creditTempsBeRepo,
                                      ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo,
                                      RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo,
+                                     AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -338,6 +341,7 @@ public class CaseFileDashboardService {
         this.creditTempsBeRepo = creditTempsBeRepo;
         this.procedureNulliteLicenciementRepo = procedureNulliteLicenciementRepo;
         this.rupturePeriodeEssaiRepo = rupturePeriodeEssaiRepo;
+        this.abandonPostePresomptionDemissionRepo = abandonPostePresomptionDemissionRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -507,6 +511,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-DT-36-procedure-nullite-licenciement", caseFileId, () -> tileFromProcedureNulliteLicenciementAnalysis(caseFileId));
         // SF-DT-38-02 : qualification rupture période d'essai (FR, F-DT-38).
         addSafely(tiles, "F-DT-38-rupture-periode-essai", caseFileId, () -> tileFromRupturePeriodeEssaiAnalysis(caseFileId));
+        // SF-206-01 : F-DT-42 abandon de poste / présomption de démission (FR)
+        addSafely(tiles, "F-DT-42-abandon-poste-presomption-demission", caseFileId, () -> tileFromAbandonPostePresomptionDemissionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
@@ -1341,6 +1347,33 @@ public class CaseFileDashboardService {
                         verdict != null ? verdict : "—",
                         secondary,
                         mapVerdictRupturePeriodeEssai(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-DT-42 Abandon de poste / présomption de démission (FR) — SF-206-01.
+     *
+     * <p>Tile diagnostic alignée sur le verdict de solidité de la contestation
+     * (SOLIDE / INCERTAINE / DIFFICILE) ; secondary value = score 0-100.</p>
+     */
+    private DashboardTile tileFromAbandonPostePresomptionDemissionAnalysis(UUID caseFileId) {
+        return abandonPostePresomptionDemissionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), AbandonPostePresomptionDemissionResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String primary = libelleVerdictAbandonPoste(verdict);
+                String secondary = "Score " + r.scoreContestation() + "/100";
+                return new DashboardTile(
+                        "F-DT-42-abandon-poste-presomption-demission",
+                        "DIAGNOSTIC",
+                        "Abandon de poste",
+                        primary,
+                        secondary,
+                        mapVerdictAbandonPoste(verdict));
             } catch (Exception ex) {
                 return null;
             }
@@ -3320,6 +3353,23 @@ public class CaseFileDashboardService {
     }
 
     /**
+     * SF-206-01 — mapping du verdict F-DT-42 (abandon de poste / présomption
+     * de démission, FR) → {@code alertLevel} de la tuile dashboard. Du point
+     * de vue de l'avocat du salarié : une contestation solide est une
+     * <b>opportunité</b> (verdict OK / vert), une contestation difficile est
+     * un signal d'alerte (rouge — la présomption opère).
+     */
+    private static String mapVerdictAbandonPoste(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "CONTESTATION_SOLIDE" -> "OK";
+            case "CONTESTATION_INCERTAINE" -> "WARNING";
+            case "CONTESTATION_DIFFICILE" -> "ALERT";
+            default -> null;
+        };
+    }
+
+    /**
      * F-207 SF-207-02 — mapping verdict C4 ONEM → {@code alertLevel} de la tuile
      * dashboard. Convention : {@code RISQUE_EXCLUSION_FAUTE_GRAVE} = ALERT
      * (risque pécuniaire majeur ONEM 4-52 sem.), {@code NON_CONFORME} = WARNING
@@ -3348,6 +3398,17 @@ public class CaseFileDashboardService {
             case "IMMINENT" -> "WARNING";
             case "PRESCRIT" -> "ALERT";
             default -> null;
+        };
+    }
+
+    /** SF-206-01 — libellé court du verdict abandon de poste pour la tile primary. */
+    private static String libelleVerdictAbandonPoste(String verdict) {
+        if (verdict == null) return "—";
+        return switch (verdict) {
+            case "CONTESTATION_SOLIDE" -> "Contestation solide";
+            case "CONTESTATION_INCERTAINE" -> "Contestation incertaine";
+            case "CONTESTATION_DIFFICILE" -> "Contestation difficile";
+            default -> "—";
         };
     }
 

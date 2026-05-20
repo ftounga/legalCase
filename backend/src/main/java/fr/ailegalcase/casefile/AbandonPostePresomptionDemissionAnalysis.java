@@ -1,0 +1,65 @@
+package fr.ailegalcase.casefile;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * SF-206-01 : entity 1:1 par dossier portant la dernière analyse de contestation
+ * d'une présomption de démission par abandon de poste (FR — loi 21/12/2022).
+ *
+ * <p>Stocke un snapshot JSON complet (inputs + résultat) pour pouvoir restituer
+ * l'écran de l'avocat tel qu'il l'avait laissé.</p>
+ */
+@Entity
+@Table(name = "abandon_poste_presomption_demission_analyses")
+@Getter
+@Setter
+public class AbandonPostePresomptionDemissionAnalysis {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "case_file_id", nullable = false, unique = true)
+    private CaseFile caseFile;
+
+    /** Snapshot JSON sérialisé (inputs + outputs) — source de vérité pour le GET. */
+    @Column(name = "snapshot_data", nullable = false, columnDefinition = "TEXT")
+    private String snapshotData = "{}";
+
+    @Column(name = "country", nullable = false, length = 20)
+    private String country;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    void onPrePersist() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    void onPreUpdate() {
+        this.updatedAt = Instant.now();
+    }
+}
