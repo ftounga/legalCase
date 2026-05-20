@@ -73,6 +73,7 @@ import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-s
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 import { LicenciementNulDetectionSectionComponent } from '../licenciement-nul-detection-section/licenciement-nul-detection-section.component';
 import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nullite-licenciement-section/procedure-nullite-licenciement-section.component';
+import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
@@ -568,6 +569,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02b — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      ['F-DT-38-rupture-periode-essai', {
+        displayLabel: 'Rupture de période d\'essai (FR)',
+        component: RupturePeriodeEssaiSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-38-02 : pré-fill IA basé sur les champs déjà extraits par
+          // le pipeline (9 champs — typeContrat, dateEntree, dateLicenciement,
+          // motifLicenciement, motifNullitePressenti, atMpDetecte,
+          // conventionCollective, salaireBrutMensuel). Pré-fill exhaustif F-246
+          // (sous-objet rupture_periode_essai_detail) différé à une SF dédiée.
+          aiData: ctx.synthesis?.travailExtractedData,
           // F-163 SF-163-02b — propage le flag standalone (default false).
           standaloneMode: ctx.standaloneMode ?? false,
         }),
@@ -2131,6 +2148,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-14-pse-validite', 'VALIDITE'],
     ['F-DT-16-licenciement-nul-detection', 'VALIDITE'],
     ['F-DT-36-procedure-nullite-licenciement', 'VALIDITE'],
+    // F-DT-38 SF-DT-38-02 : qualification rupture période d'essai (FR).
+    ['F-DT-38-rupture-periode-essai', 'VALIDITE'],
     ['F-DT-22-requalification-cdd-cdi', 'VALIDITE'],
     ['F-DT-23-requalification-interim-cdi', 'VALIDITE'],
     ['F-DT-24-non-concurrence', 'VALIDITE'],

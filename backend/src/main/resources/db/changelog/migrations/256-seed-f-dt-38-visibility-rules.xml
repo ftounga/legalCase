@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="256-seed-f-dt-38-visibility-rules" author="legalcase">
+        <comment>
+            SF-DT-38-02 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Rupture de période d'essai (qualification régulière /
+            abusive / nulle / illégale)" (F-DT-38, FRANCE), table créée par
+            SF-DT-38-01 (migration 255).
+
+            Le seed est porté par la SF frontend — et non par la SF backend —
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-DT-36-02
+            (migration 231) + SF-211-05 (migration 228). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil apparaît dans
+            tous les dossiers travail FR où une rupture est détectée. Critère
+            de gating : trigger `type_rupture` valeurs LICENCIEMENT,
+            LICENCIEMENT_ECONOMIQUE, DEMISSION (la rupture d'essai peut être à
+            l'initiative employeur OU salarié, donc on couvre les 3 valeurs).
+            Le component RupturePeriodeEssaiSectionComponent applique en plus
+            un gating frontend FR-only (workspaceCountry === 'FRANCE'). priority 58
+            (juste après F-DT-36 priority 57).
+
+            Source signal terrain : 2ᵉ démo Marjolaine RENVERSEZ 18/05/2026 +
+            mail détaillé 19/05/2026 18:38 fixant le scope juridique.
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20000038X.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000381', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-38-rupture-periode-essai', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 58);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000382', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-38-rupture-periode-essai', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 58);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000383', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-38-rupture-periode-essai', 'CONTEXTUAL', 'type_rupture', 'DEMISSION', 58);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN ('f1a04001-0000-0000-0000-eeee20000381', 'f1a04001-0000-0000-0000-eeee20000382', 'f1a04001-0000-0000-0000-eeee20000383');
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -76,6 +76,8 @@ class CaseFileDashboardServiceTest {
     private CreditTempsBeRepository creditTempsBeRepo;
     // SF-DT-36-03 — 16 outils orphelins du dashboard (correctif câblage)
     private ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo;
+    // SF-DT-38-02 — qualification rupture période d'essai (FR, F-DT-38).
+    private RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo;
     private JldRetentionRepository jldRetentionRepo;
     private DublinRecoursRepository dublinRecoursRepo;
     private CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -191,6 +193,7 @@ class CaseFileDashboardServiceTest {
         avantagesConventionnelsBeRepo = mock(AvantagesConventionnelsBeRepository.class);
         creditTempsBeRepo = mock(CreditTempsBeRepository.class);
         procedureNulliteLicenciementRepo = mock(ProcedureNulliteLicenciementRepository.class);
+        rupturePeriodeEssaiRepo = mock(RupturePeriodeEssaiRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
         crrvRefusVisaRepo = mock(CrrvRefusVisaRepository.class);
@@ -309,6 +312,7 @@ class CaseFileDashboardServiceTest {
         when(avantagesConventionnelsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(creditTempsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(procedureNulliteLicenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(rupturePeriodeEssaiRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(jldRetentionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(dublinRecoursRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(crrvRefusVisaRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -394,6 +398,7 @@ class CaseFileDashboardServiceTest {
                 referePrudhomalRepo, contestationAreRepo, motifGraveBeRepo,
                 avantagesConventionnelsBeRepo, creditTempsBeRepo,
                 procedureNulliteLicenciementRepo,
+                rupturePeriodeEssaiRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
                 acceptationRenonciationSuccessionRepo, autoriteParentaleBeRepo,

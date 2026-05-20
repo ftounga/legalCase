@@ -83,6 +83,7 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(AvantagesConventionnelsBeRepository.class),
                 mock(CreditTempsBeRepository.class),
                 mock(ProcedureNulliteLicenciementRepository.class),
+                mock(RupturePeriodeEssaiRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
                 mock(CrrvRefusVisaRepository.class),

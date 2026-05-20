@@ -88,6 +88,8 @@ public class CaseFileDashboardService {
     // ils calculaient et persistaient leur résultat sans émettre de tuile
     // (audit transversal : F-DT-36 + F-IM-21/22/23/24 + 11 outils Famille BE).
     private final ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo;
+    // SF-DT-38-02 : qualification rupture période d'essai (FR, F-DT-38).
+    private final RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -209,6 +211,7 @@ public class CaseFileDashboardService {
                                      AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo,
                                      CreditTempsBeRepository creditTempsBeRepo,
                                      ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo,
+                                     RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -322,6 +325,7 @@ public class CaseFileDashboardService {
         this.avantagesConventionnelsBeRepo = avantagesConventionnelsBeRepo;
         this.creditTempsBeRepo = creditTempsBeRepo;
         this.procedureNulliteLicenciementRepo = procedureNulliteLicenciementRepo;
+        this.rupturePeriodeEssaiRepo = rupturePeriodeEssaiRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -487,6 +491,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-DT-29-credit-temps-be", caseFileId, () -> tileFromCreditTempsBeAnalysis(caseFileId));
         // ── SF-DT-36-03 — correctif câblage des 16 outils orphelins du dashboard
         addSafely(tiles, "F-DT-36-procedure-nullite-licenciement", caseFileId, () -> tileFromProcedureNulliteLicenciementAnalysis(caseFileId));
+        // SF-DT-38-02 : qualification rupture période d'essai (FR, F-DT-38).
+        addSafely(tiles, "F-DT-38-rupture-periode-essai", caseFileId, () -> tileFromRupturePeriodeEssaiAnalysis(caseFileId));
         addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
@@ -1288,6 +1294,35 @@ public class CaseFileDashboardService {
                         verdict != null ? verdict : "—",
                         secondary,
                         mapVerdictNullite(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-DT-38 Rupture de période d'essai (FR) — SF-DT-38-02.
+     *
+     * <p>Tuile dashboard pour l'outil de qualification d'une rupture pendant
+     * la période d'essai. Verdict 4 niveaux : REGULIERE / RISQUE_ABUSIVE /
+     * NULLE (rouge avec mention réintégration) / ILLEGALE_REQUALIF_LICENCIEMENT
+     * (rouge). Affiche le verdict + le nombre d'anomalies détectées + le score.</p>
+     */
+    private DashboardTile tileFromRupturePeriodeEssaiAnalysis(UUID caseFileId) {
+        return rupturePeriodeEssaiRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), RupturePeriodeEssaiResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                int nbAnomalies = r.anomaliesDetectees() != null ? r.anomaliesDetectees().size() : 0;
+                String secondary = nbAnomalies + " anomalie(s) — score " + r.scoreIrregularite() + "/100";
+                return new DashboardTile(
+                        "F-DT-38-rupture-periode-essai",
+                        "VALIDITE",
+                        "Rupture période d'essai",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        mapVerdictRupturePeriodeEssai(verdict));
             } catch (Exception ex) {
                 return null;
             }
@@ -3180,6 +3215,22 @@ public class CaseFileDashboardService {
             case "NULLITE_AVEREE" -> "ALERT";
             case "NULLITE_PROBABLE" -> "WARNING";
             case "PROCEDURE_REGULIERE" -> "OK";
+            default -> null;
+        };
+    }
+
+    /**
+     * SF-DT-38-02 — mapping verdict F-DT-38 → {@code alertLevel} de la tuile
+     * dashboard. NULLE et ILLEGALE_REQUALIF_LICENCIEMENT sont les deux états
+     * critiques (rouge) ; RISQUE_ABUSIVE est WARNING (or) ; REGULIERE est OK
+     * (navy).
+     */
+    private static String mapVerdictRupturePeriodeEssai(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "NULLE", "ILLEGALE_REQUALIF_LICENCIEMENT" -> "ALERT";
+            case "RISQUE_ABUSIVE" -> "WARNING";
+            case "REGULIERE" -> "OK";
             default -> null;
         };
     }

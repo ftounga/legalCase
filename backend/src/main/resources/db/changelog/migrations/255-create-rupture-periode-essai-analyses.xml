@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="255-create-rupture-periode-essai-analyses" author="legalcase">
+        <comment>
+            SF-DT-38-01 : table dédiée à l'outil décisionnel "Rupture de période
+            d'essai (qualification régulière / abusive / nulle / illégale)"
+            (F-DT-38, FRANCE).
+
+            Analyse les 12 critères factuels (durée légale L.1221-19, renouvellement
+            L.1221-23, délai de prévenance L.1221-25, motif lié aux compétences,
+            protections L.1132-1 / L.1225-1 / L.1226-9, atteinte liberté
+            fondamentale, dispositions CCN plus favorables) et rend un verdict en
+            4 niveaux : REGULIERE / RISQUE_ABUSIVE / NULLE /
+            ILLEGALE_REQUALIF_LICENCIEMENT.
+
+            Source signal terrain : 2ᵉ démo Marjolaine RENVERSEZ 18/05/2026 +
+            mail détaillé 19/05/2026 18:38 fixant le scope juridique.
+
+            Outil single-country FRANCE — pendant BE = feature jumelle F-DT-39
+            backlog post-livraison FR si signal terrain BE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-DT-38-02 (migration ~256) — couplé à
+            l'entrée TOOL_REGISTRY, conformément au précédent SF-211-05 : un seed
+            de visibilité ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="rupture_periode_essai_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rupture_periode_essai_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rupture_periode_essai_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rupture_periode_essai_analyses_case_file"/>
+
+        <createIndex tableName="rupture_periode_essai_analyses"
+                     indexName="idx_rupture_periode_essai_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rupture_periode_essai_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
