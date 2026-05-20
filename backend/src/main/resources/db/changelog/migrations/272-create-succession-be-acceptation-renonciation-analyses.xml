@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="272-create-succession-be-acceptation-renonciation-analyses" author="legalcase">
+        <comment>
+            SF-217-12 : table dédiée à l'outil décisionnel "Analyse d'option
+            successorale belge — acceptation pure / sous bénéfice d'inventaire /
+            renonciation" (BELGIQUE).
+
+            Calcule l'arbre des trois options successorales de l'héritier belge,
+            le délai d'option de 4 mois (à vérifier — CC art. 774+ nouveau)
+            potentiellement raccourci sur mise en demeure d'un créancier, et
+            détecte les actes d'héritier valant acceptation tacite (CC art. 779
+            ancien / équivalent réformé — à vérifier : encaissement de créance,
+            paiement de dette, vente d'un bien, prise de possession).
+
+            Rend un verdict en 7 niveaux : OPTION_LIBRE_DELAI_OK /
+            OPTION_RECOMMANDEE_BENEFICE_INVENTAIRE / OPTION_RECOMMANDEE_RENONCIATION
+            / ACCEPTATION_TACITE_PROBABLE / DELAI_CRITIQUE / DELAI_DEPASSE /
+            QUALIFICATION_INCOMPLETE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution
+            UI et la ré-édition du formulaire sans recalcul (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-217-13 — couplé à l'entrée TOOL_REGISTRY,
+            conformément au précédent SF-211-05 / SF-DT-36-02 : un seed de visibilité
+            ne doit pas exister sans son entrée frontend (garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="succession_be_acceptation_renonciation_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_succession_be_accept_renonc_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="succession_be_acceptation_renonciation_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_succession_be_accept_renonc_analyses_case_file"/>
+
+        <createIndex tableName="succession_be_acceptation_renonciation_analyses"
+                     indexName="idx_succession_be_accept_renonc_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="succession_be_acceptation_renonciation_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
