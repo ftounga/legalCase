@@ -56,7 +56,7 @@ import { JldRetentionSectionComponent } from '../jld-retention-section/jld-reten
 import { DublinRecoursSectionComponent } from '../dublin-recours-section/dublin-recours-section.component';
 import { CrrvRefusVisaSectionComponent } from '../crrv-refus-visa-section/crrv-refus-visa-section.component';
 import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l4256-section/victime-violences-l4256-section.component';
-// SF-214-01 stub : entrée TOOL_REGISTRY F-IM-25 — composant complet livré en SF-214-02.
+// SF-214-02 : composant complet F-IM-25 étranger malade L.425-9 CESEDA (FR).
 import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
@@ -1110,9 +1110,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
-      // SF-214-01 stub : F-IM-25 étranger malade L.425-9 CESEDA (FR).
-      // Entrée TOOL_REGISTRY requise par DecisionToolVisibilityIntegrityIT
-      // (seed migration 272). Composant complet livré en SF-214-02.
+      // SF-214-02 : composant complet F-IM-25 étranger malade L.425-9 CESEDA (FR).
+      // Pré-fill IA via static getPrefillCount + EtrangerMaladePrefillRules.
       ['F-IM-25-etranger-malade-l4259-fr', {
         displayLabel: 'Étranger malade — L.425-9 (FR)',
         component: EtrangerMaladeSectionComponent,
