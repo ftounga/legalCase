@@ -61,6 +61,8 @@ import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhom
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
 // SF-207-01b : section décisionnelle prescription Travail BE (BE-only, ALWAYS_ON).
 import { PrescriptionBeLitigeTravailSectionComponent } from '../prescription-be-litige-travail-section/prescription-be-litige-travail-section.component';
+// SF-207-04 : section décisionnelle C4 ONEM checklist (BE-only, ALWAYS_ON).
+import { C4OnemChecklistSectionComponent } from '../c4-onem-checklist-section/c4-onem-checklist-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -420,6 +422,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // Pré-fill IA depuis 2 champs TravailExtractedData (Travail BE) :
           // `dateRuptureContrat` + `motifRupture` (mapping → typeCreance).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-04 : C4 ONEM checklist conformité (BE, ALWAYS_ON). Placée juste
+      // après prescription Travail BE car les 2 outils sont les déclencheurs P1
+      // de la séquence Travail BE (cf. SF-207-00b-ux-coherence — délai
+      // critique + conformité du document employeur en tête).
+      // Substance BE-only — AR 25/11/1991 art. 92 (mentions) + art. 144
+      // (exclusion faute grave 4-52 sem.).
+      ['F-207-c4-onem-checklist', {
+        displayLabel: 'C4 ONEM — checklist conformité (BE)',
+        component: C4OnemChecklistSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA depuis TravailExtractedData (Travail BE) — 10 champs
+          // potentiels : raisonSocialeEmployeur / numeroBce / nomSalarie /
+          // dateEntree (→ dateEntreeService) / dateRuptureContrat (→ dateSortieService) /
+          // categorieOnem / motifExplicite (+ fallbacks motifLicenciement / motifRupture) /
+          // fauteGrave détecté / preavisPresteJours / dernierSalaireMensuelBrut.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
@@ -2141,6 +2166,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-03-prescription-litige', 'DELAIS'],
     // SF-207-01b : prescription Travail BE (Loi 03/07/1978 art. 15 + CCT 109 art. 11).
     ['prescription-be-litige-travail', 'DELAIS'],
+    // SF-207-04 : C4 ONEM checklist conformité (BE, AR 25/11/1991 art. 92).
+    // Thème DOCUMENTS — l'outil vérifie la conformité d'un document remis par
+    // l'employeur (parallèle FR : F-DT-32 documents-fin-contrat).
+    ['F-207-c4-onem-checklist', 'DOCUMENTS'],
     ['F-DT-29-credit-temps-be', 'DELAIS'],
     ['F-DT-33-at-mp', 'DELAIS'],
     ['F-DT-34-refere-prudhomal', 'DELAIS'],

@@ -376,6 +376,28 @@ export interface TravailExtractedData {
   dateRuptureContrat?: string | null;
   motifRupture?: string | null;
   /**
+   * SF-207-04 (frontend) : 6 champs IA additionnels extraits pour pré-fill du
+   * F-207 C4 ONEM checklist (AR 25/11/1991 art. 92 — 10 mentions obligatoires).
+   * Tous nullables — Travail BE uniquement, restent `null` pour un dossier FR.
+   * Source backend : extension `TravailExtractedData` SF-207-02-backend.
+   *
+   * - `raisonSocialeEmployeur` : dénomination juridique de l'employeur sur le C4
+   *   (duplicate explicite de `nomEmployeur` rattaché au document C4 — la mini-spec
+   *   SF-207-02 impose le naming spécifique).
+   * - `numeroBce` : Numéro BCE (Banque-Carrefour des Entreprises) — 10 chiffres.
+   * - `categorieOnem` : code de catégorie du C4 (ex. « 9 » = faute grave).
+   * - `motifExplicite` : formulation littérale du motif de fin de contrat
+   *   inscrite sur le C4 (longueur ≥ 5 caractères côté backend validation).
+   * - `preavisPresteJours` : préavis effectivement presté en jours.
+   * - `dernierSalaireMensuelBrut` : dernier salaire brut mensuel.
+   */
+  raisonSocialeEmployeur?: string | null;
+  numeroBce?: string | null;
+  categorieOnem?: string | null;
+  motifExplicite?: string | null;
+  preavisPresteJours?: number | null;
+  dernierSalaireMensuelBrut?: number | null;
+  /**
    * SF-246-22 : type de procédure travail identifié par le pipeline IA pour pré-fill
    * F-136 `travail-procedure` (calendrier procédural FR + BE).
    * Codes admis (6 exacts — 3 FR + 3 BE) :

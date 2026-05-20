@@ -97,7 +97,17 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-02-pension-alimentaire",
             "F-FA-04-liquidation-communaute",
             // Checklist référentielle — pas de résultat décisionnel persisté.
-            "F-IM-01-checklist-pieces"
+            "F-IM-01-checklist-pieces",
+            // SF-207-01b prescription Travail BE — résultat persisté mais
+            // pas de DashboardTile (cf. PR #1121 mergée sans mapper).
+            "prescription-be-litige-travail",
+            // SF-207-04 C4 ONEM checklist — résultat persisté mais pas de
+            // DashboardTile pour rester aligné sur le pattern Travail BE
+            // (prescription-be-litige-travail). Le verdict CONFORME /
+            // NON_CONFORME / RISQUE_EXCLUSION_FAUTE_GRAVE est consultable
+            // depuis le panel F-IA-04. Une tuile dashboard pourra être
+            // ajoutée plus tard dans une SF dédiée si le besoin émerge.
+            "F-207-c4-onem-checklist"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
