@@ -264,6 +264,21 @@ public record CaseAnalysisResponse(
             String dateNotificationDecisionOnem,
             String dateDecisionDirecteur,
             Boolean recoursAdminDejaForme,
+            // SF-207-04 : 2 champs IA Travail BE pour pré-fill F-207-04 outil
+            // déclaration AT Fedris (Loi 10/04/1971 art. 62 — délai 8 jours
+            // de l'employeur à compter de la connaissance de l'accident).
+            // Tous nullables — Travail BE uniquement, restent null pour un
+            // dossier FR (le régime FR AT employeur 48h L.441-1 CSS est
+            // juridiquement distinct — géré par AtMpCalculator / F-DT-33).
+            // dateAccident : date de survenance de l'accident du travail
+            // (format ISO YYYY-MM-DD). Point de départ par défaut si la
+            // date de connaissance employeur n'est pas documentée.
+            // dateConnaissanceAccidentEmployeur : date à laquelle l'employeur
+            // a eu connaissance de l'accident (ISO YYYY-MM-DD) — point de
+            // départ effectif du délai de 8 jours (art. 62 al. 1). Reste
+            // null si non distincte de la date d'accident ou non détectable.
+            String dateAccident,
+            String dateConnaissanceAccidentEmployeur,
             // SF-246-22 : type de procédure travail et date déclencheur pour pré-fill
             // F-136 travail-procedure (FR+BE). 6 codes whitelistés (3 FR + 3 BE) :
             // PRUDHOMMES_FR, APPEL_CA_SOCIALE_FR, CASSATION_SOCIALE_FR,
@@ -456,6 +471,8 @@ public record CaseAnalysisResponse(
                     .dateNotificationDecisionOnem(dateNotificationDecisionOnem)
                     .dateDecisionDirecteur(dateDecisionDirecteur)
                     .recoursAdminDejaForme(recoursAdminDejaForme)
+                    .dateAccident(dateAccident)
+                    .dateConnaissanceAccidentEmployeur(dateConnaissanceAccidentEmployeur)
                     .procedureTravailDetectee(procedureTravailDetectee)
                     .dateDeclencheurProcedure(dateDeclencheurProcedure)
                     // SF-246-21 — requalification_detection
@@ -590,6 +607,9 @@ public record CaseAnalysisResponse(
             private String dateNotificationDecisionOnem;
             private String dateDecisionDirecteur;
             private Boolean recoursAdminDejaForme;
+            // SF-207-04 — 2 champs IA Travail BE pour pré-fill F-207-04 déclaration AT Fedris.
+            private String dateAccident;
+            private String dateConnaissanceAccidentEmployeur;
             // SF-246-22 — type de procédure travail + date déclencheur pour pré-fill F-136.
             private String procedureTravailDetectee;
             private String dateDeclencheurProcedure;
@@ -723,6 +743,8 @@ public record CaseAnalysisResponse(
             public Builder dateNotificationDecisionOnem(String v) { this.dateNotificationDecisionOnem = v; return this; }
             public Builder dateDecisionDirecteur(String v) { this.dateDecisionDirecteur = v; return this; }
             public Builder recoursAdminDejaForme(Boolean v) { this.recoursAdminDejaForme = v; return this; }
+            public Builder dateAccident(String v) { this.dateAccident = v; return this; }
+            public Builder dateConnaissanceAccidentEmployeur(String v) { this.dateConnaissanceAccidentEmployeur = v; return this; }
             public Builder procedureTravailDetectee(String v) { this.procedureTravailDetectee = v; return this; }
             public Builder dateDeclencheurProcedure(String v) { this.dateDeclencheurProcedure = v; return this; }
             // SF-246-21 — requalification_detection
@@ -809,6 +831,8 @@ public record CaseAnalysisResponse(
                         motifExplicite, preavisPresteJours, dernierSalaireMensuelBrut,
                         // SF-207-03 — contestation_c4_onem_detection
                         dateNotificationDecisionOnem, dateDecisionDirecteur, recoursAdminDejaForme,
+                        // SF-207-04 — at_fedris_declaration_detection
+                        dateAccident, dateConnaissanceAccidentEmployeur,
                         procedureTravailDetectee, dateDeclencheurProcedure,
                         // SF-246-21 — requalification_detection
                         cddDureeMois, cddDateFinDernierContrat, cddNouveauDateDebut,
@@ -2717,6 +2741,11 @@ public record CaseAnalysisResponse(
                     .dateNotificationDecisionOnem(isoDateOrNull(node, "date_notification_decision_onem"))
                     .dateDecisionDirecteur(isoDateOrNull(node, "date_decision_directeur"))
                     .recoursAdminDejaForme(booleanOrNull(node, "recours_admin_deja_forme"))
+                    // SF-207-04 : 2 champs IA Travail BE pour pré-fill F-207-04
+                    // déclaration AT Fedris. Le prompt impose null hors Belgique.
+                    // Dates validées ISO YYYY-MM-DD (fail-open → null si non ISO).
+                    .dateAccident(isoDateOrNull(node, "date_accident"))
+                    .dateConnaissanceAccidentEmployeur(isoDateOrNull(node, "date_connaissance_accident_employeur"))
                     // SF-246-22 : type de procédure travail + date déclencheur pour pré-fill
                     // F-136 travail-procedure (FR+BE). Sous-objet procedure_travail_detection.
                     .procedureTravailDetectee(extractProcedureTravailCode(node))
