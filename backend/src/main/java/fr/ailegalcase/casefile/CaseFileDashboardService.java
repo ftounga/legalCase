@@ -98,6 +98,8 @@ public class CaseFileDashboardService {
     private final PriseActeRuptureRepository priseActeRuptureRepo;
     // SF-206-07 : F-DT-40 résiliation judiciaire du contrat de travail aux torts de l'employeur (FR)
     private final ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
+    // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
+    private final EtrangerMaladeRepository etrangerMaladeRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -234,6 +236,7 @@ public class CaseFileDashboardService {
                                      CongesPayesArretMaladieRepository congesPayesArretMaladieRepo,
                                      PriseActeRuptureRepository priseActeRuptureRepo,
                                      ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo,
+                                     EtrangerMaladeRepository etrangerMaladeRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -354,6 +357,7 @@ public class CaseFileDashboardService {
         this.congesPayesArretMaladieRepo = congesPayesArretMaladieRepo;
         this.priseActeRuptureRepo = priseActeRuptureRepo;
         this.resiliationJudiciaireCphRepo = resiliationJudiciaireCphRepo;
+        this.etrangerMaladeRepo = etrangerMaladeRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -535,6 +539,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
         addSafely(tiles, "F-IM-24-victime-violences-l4256-fr", caseFileId, () -> tileFromVictimeViolencesL4256Analysis(caseFileId));
+        // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
+        addSafely(tiles, "F-IM-25-etranger-malade-l4259-fr", caseFileId, () -> tileFromEtrangerMaladeAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1587,6 +1593,40 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "Titre L.425-6 violences",
                         score != null ? score : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-IM-25 Étranger malade L.425-9 CESEDA (FR) — SF-214-01.
+     * Thème VALIDITE : éligibilité à la protection médicale.
+     * Mapping alertLevel :
+     * ELIGIBLE_PROBABLE → OK ; ELIGIBLE_SOUS_RESERVE → WARNING ;
+     * NON_ELIGIBLE → ALERT ; EN_ATTENTE_AVIS_OFII → null.
+     */
+    private DashboardTile tileFromEtrangerMaladeAnalysis(UUID caseFileId) {
+        return etrangerMaladeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), EtrangerMaladeResult.class);
+                String verdict = r.verdict();
+                String secondary = r.delaiRecoursTA() != null
+                        ? "Délai recours TA : " + r.delaiRecoursTA()
+                        : (r.motifRecours() != null ? r.motifRecours() : "—");
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "ELIGIBLE_PROBABLE" -> "OK";
+                    case "ELIGIBLE_SOUS_RESERVE" -> "WARNING";
+                    case "NON_ELIGIBLE" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-25-etranger-malade-l4259-fr",
+                        "VALIDITE",
+                        "Étranger malade L.425-9",
+                        verdict != null ? verdict : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {

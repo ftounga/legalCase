@@ -719,7 +719,14 @@ public final class LegalDomainPromptBuilder {
                 "be_40ter_revenus_mensuels_nets" : Revenus mensuels nets du citoyen belge regroupant (art. 40ter Loi 15/12/1980), en EUR entier. Extraire depuis les fiches de salaire, attestation employeur ou avertissement-extrait de rôle. Entier > 0 et ≤ 30 000. Null si non déterminable.
               }
               Règle NO-OP : si aucun des champs ci-dessus n'est trouvé dans les documents, poser null pour tous les champs du sous-objet (ne pas inventer).
+            SF-214-01 — F-IM-25 Étranger malade L.425-9 CESEDA (FRANCE UNIQUEMENT). 5 champs pour pré-fill outil décisionnel. Null pour tout dossier belge.
+            "etranger_malade_detecte" : booléen — true UNIQUEMENT si le dossier comporte des indices factuels d'une procédure L.425-9 CESEDA (pathologie grave mentionnée, avis médical OFII, demande de titre pour raisons de santé). False par défaut. Null pour dossier belge.
+            "etranger_malade_pathologie" : pathologie principale du patient telle qu'elle figure dans le certificat médical ou le rapport médical, en texte libre (≤ 200 caractères). Null si non détectable dans les pièces ou dossier belge. Ne JAMAIS inventer ou inférer une pathologie non explicitement documentée.
+            "etranger_malade_traitement_disponible" : booléen — true si un document médical au dossier indique explicitement que le traitement est disponible dans le pays d'origine du requérant ; false si un document médical indique explicitement qu'il n'est PAS disponible ou accessible. Null si la disponibilité n'est pas mentionnée dans les pièces ou dossier belge. Ce champ est central pour l'éligibilité L.425-9 — ne pas inférer.
+            "etranger_malade_avis_ofii" : avis rendu par le collège médical de l'OFII, CLASSER dans l'une de ces 3 valeurs EXACTES (null si non déterminable ou dossier belge) : "FAVORABLE" (avis favorable à la délivrance du titre L.425-9), "DEFAVORABLE" (avis défavorable — ouvre délai de recours TA 2 mois CJA), "EN_COURS" (avis sollicité mais pas encore rendu).
+            "etranger_mala_date_avis_ofii" : date de l'avis rendu par le collège médical de l'OFII au format YYYY-MM-DD. Date non future obligatoire. Null si l'avis n'est pas encore rendu, si la date n'est pas lisible dans les pièces, ou pour un dossier belge. À ne pas confondre avec "date_depot_procedure" (date de dépôt du dossier OFII).
             """;
+
 
     private LegalDomainPromptBuilder() {}
 
