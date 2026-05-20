@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="258-create-at-fedris-declaration-analyses" author="legalcase">
+        <comment>
+            SF-207-04 : table dédiée à l'outil décisionnel "Déclaration AT Fedris"
+            (F-207). Calculateur du délai de 8 jours pour la déclaration d'un
+            accident du travail par l'employeur belge à Fedris (organisme fédéral
+            BE — fusion 2017 ex-Fonds des Accidents du Travail).
+            Base juridique : Loi du 10 avril 1971 sur les accidents du travail,
+            art. 62 (obligation de déclaration de l'employeur dans les 8 jours
+            calendaires à compter de la connaissance de l'accident) ;
+            AR du 21 décembre 1971 art. 25 (modalités). Sanction en cas de
+            dépassement : préjudice indemnisation salarié + intérêts moratoires +
+            responsabilité civile de l'employeur.
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté FR
+            pour préserver l'isolation, pattern SF-207-01 / SF-207-02 / SF-207-03).
+            Modes : prospectif (DELAI_OUVERT/IMMINENT/DEPASSE avec seuil 2 jours
+            inclus) + rétrospectif (DECLARATION_DANS_LES_TEMPS/HORS_DELAI selon
+            dateDeclarationEffectuee vs dateLimite).
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (dateAccident, dateConnaissanceEmployeur, dateActionEnvisagee,
+            dateDeclarationEffectuee) + outputs (verdict, dateLimiteDeclaration,
+            joursRestants, regleAppliquee, baseJuridique, formuleCalcul,
+            consequencesNonRespect, country).
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY seront
+            livrées côté frontend SF-207-04b (à venir).
+        </comment>
+
+        <createTable tableName="at_fedris_declaration_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_at_fedris_declaration_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="at_fedris_declaration_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_at_fedris_declaration_case_file"/>
+
+        <createIndex tableName="at_fedris_declaration_analyses"
+                     indexName="idx_at_fedris_declaration_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="at_fedris_declaration_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
