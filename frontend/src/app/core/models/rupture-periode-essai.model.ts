@@ -28,16 +28,40 @@ export type TypeContratEssai = 'CDI' | 'CDD' | 'INTERIM';
 /** Auteur de la rupture. */
 export type AuteurRupture = 'EMPLOYEUR' | 'SALARIE';
 
-/** Motif de discrimination (subset L.1132-1). */
+/**
+ * Motif de discrimination L.1132-1 (liste exhaustive 2026).
+ *
+ * SF-DT-38-02 : 6 valeurs legacy conservées pour rétrocompat.
+ * SF-252-01 (audit 2026-05-20) : +17 motifs L.1132-1 manquants.
+ */
 export type DiscriminationMotif =
+  // SF-DT-38-02 (legacy)
   | 'RACE_ORIGINE'
   | 'SEXE'
   | 'GROSSESSE'
   | 'SANTE'
   | 'SYNDICAL'
-  | 'AUTRE';
+  | 'AUTRE'
+  // SF-252-01 — L.1132-1 motifs exhaustifs
+  | 'MOEURS'
+  | 'ORIENTATION_SEXUELLE'
+  | 'IDENTITE_GENRE'
+  | 'AGE'
+  | 'SITUATION_FAMILLE'
+  | 'CARACTERISTIQUES_GENETIQUES'
+  | 'VULNERABILITE_ECONOMIQUE'
+  | 'OPINIONS_POLITIQUES'
+  | 'CONVICTIONS_RELIGIEUSES'
+  | 'APPARENCE_PHYSIQUE'
+  | 'NOM_DE_FAMILLE'
+  | 'LIEU_DE_RESIDENCE'
+  | 'DOMICILIATION_BANCAIRE'
+  | 'PERTE_AUTONOMIE'
+  | 'HANDICAP'
+  | 'CAPACITE_LANGUE_FRANCAISE'
+  | 'FONCTIONS_JURIDICTIONNELLES';
 
-/** Codes des 12 anomalies. */
+/** Codes des anomalies (12 SF-DT-38-01 + 5 SF-252-01). */
 export type RupturePeriodeEssaiCodeAnomalie =
   | 'PERIODE_ESSAI_ABSENTE'
   | 'DUREE_ESSAI_DEPASSEE'
@@ -50,7 +74,13 @@ export type RupturePeriodeEssaiCodeAnomalie =
   | 'GROSSESSE_PROTECTION_VIOLEE'
   | 'AT_MP_PROTECTION_VIOLEE'
   | 'ATTEINTE_LIBERTE_FONDAMENTALE'
-  | 'CONVENTION_COLLECTIVE_NON_RESPECTEE';
+  | 'CONVENTION_COLLECTIVE_NON_RESPECTEE'
+  // SF-252-01 — 5 protections nullité additionnelles (audit 2026-05-20)
+  | 'SALARIE_PROTEGE_SANS_AUTORISATION'
+  | 'LANCEUR_ALERTE_PROTECTION_VIOLEE'
+  | 'TEMOIN_HARCELEMENT_PROTECTION_VIOLEE'
+  | 'DROIT_RETRAIT_PROTECTION_VIOLEE'
+  | 'GROSSESSE_NOTIFIEE_POST_RUPTURE';
 
 /**
  * Requête POST `/api/v1/case-files/{caseFileId}/rupture-periode-essai`.
@@ -80,6 +110,14 @@ export interface RupturePeriodeEssaiRequest {
   conventionCollectiveApplicable: boolean | null;
   conventionCollectivePlusFavorableRespectee: boolean | null;
   salaireMensuelBrut: number | null;
+  // SF-252-01 — 7 nouveaux champs (audit F-DT-38 2026-05-20)
+  salarieProtege: boolean | null;
+  autorisationInspectionTravailObtenue: boolean | null;
+  lanceurAlerte: boolean | null;
+  temoinOuVictimeHarcelement: boolean | null;
+  droitDeRetraitExerce: boolean | null;
+  grossesseDeclareePostRupture: boolean | null;
+  dateNotificationGrossesse: string | null;
 }
 
 /** Anomalie détectée (élément de `anomaliesDetectees`). */

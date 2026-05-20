@@ -66,7 +66,13 @@ public final class RupturePeriodeEssaiCalculator {
         GROSSESSE_PROTECTION_VIOLEE,
         AT_MP_PROTECTION_VIOLEE,
         ATTEINTE_LIBERTE_FONDAMENTALE,
-        CONVENTION_COLLECTIVE_NON_RESPECTEE
+        CONVENTION_COLLECTIVE_NON_RESPECTEE,
+        // SF-252-01 — 5 protections nullité additionnelles (2026-05-20)
+        SALARIE_PROTEGE_SANS_AUTORISATION,    // L.2411-1 et s.
+        LANCEUR_ALERTE_PROTECTION_VIOLEE,     // L.1132-3-3
+        TEMOIN_HARCELEMENT_PROTECTION_VIOLEE, // L.1132-3-1, L.1152-2, L.1153-2/3
+        DROIT_RETRAIT_PROTECTION_VIOLEE,      // L.4131-3
+        GROSSESSE_NOTIFIEE_POST_RUPTURE       // L.1225-5 (notif ≤ 15j)
     }
 
     /** Catégorie socio-professionnelle déterminant la durée légale L.1221-19. */
@@ -89,14 +95,39 @@ public final class RupturePeriodeEssaiCalculator {
         SALARIE
     }
 
-    /** Motif de discrimination invoqué (subset L.1132-1). */
+    /**
+     * Motif de discrimination invoqué (L.1132-1 — liste exhaustive 2026).
+     *
+     * <p>Les 6 premières valeurs sont héritées de SF-DT-38-01 (rétrocompatibilité —
+     * dossiers persistés et tests existants). SF-252-01 ajoute les 17 motifs de
+     * la liste L.1132-1 manquants pour couvrir l'exhaustivité du Code du travail.</p>
+     */
     public enum DiscriminationMotif {
+        // SF-DT-38-01 (legacy, conservés pour rétrocompat)
         RACE_ORIGINE,
         SEXE,
         GROSSESSE,
         SANTE,
         SYNDICAL,
-        AUTRE
+        AUTRE,
+        // SF-252-01 — L.1132-1 motifs exhaustifs ajoutés (2026-05-20)
+        MOEURS,
+        ORIENTATION_SEXUELLE,
+        IDENTITE_GENRE,
+        AGE,
+        SITUATION_FAMILLE,
+        CARACTERISTIQUES_GENETIQUES,
+        VULNERABILITE_ECONOMIQUE,
+        OPINIONS_POLITIQUES,
+        CONVICTIONS_RELIGIEUSES,
+        APPARENCE_PHYSIQUE,
+        NOM_DE_FAMILLE,
+        LIEU_DE_RESIDENCE,
+        DOMICILIATION_BANCAIRE,
+        PERTE_AUTONOMIE,
+        HANDICAP,
+        CAPACITE_LANGUE_FRANCAISE,
+        FONCTIONS_JURIDICTIONNELLES
     }
 
     /** Anomalie détectée — structure exposée dans la réponse API. */
@@ -421,6 +452,97 @@ public final class RupturePeriodeEssaiCalculator {
                             + "à indemnisation — à confirmer par la clause exacte."));
         }
 
+        // SF-252-01 — 5 protections nullité additionnelles (audit 2026-05-20)
+
+        // 13 — SALARIE_PROTEGE_SANS_AUTORISATION (L.2411-1 et s.)
+        // Élus CSE, délégués syndicaux, conseillers prud'homaux, membres CSSCT, etc. :
+        // la rupture nécessite une autorisation préalable de l'inspection du travail,
+        // même pendant la période d'essai (Cass. soc., jurisprudence constante).
+        if (Boolean.TRUE.equals(in.salarieProtege())
+                && !Boolean.TRUE.equals(in.autorisationInspectionTravailObtenue())) {
+            codes.add(CodeAnomalie.SALARIE_PROTEGE_SANS_AUTORISATION);
+            anomalies.add(new Anomalie(
+                    CodeAnomalie.SALARIE_PROTEGE_SANS_AUTORISATION,
+                    "Rupture d'un salarié protégé sans autorisation de l'inspection du travail",
+                    "Art. L.2411-1 et s. C. trav.",
+                    Gravite.AVERE,
+                    "Le salarié bénéficie d'un statut protecteur (élu CSE / DS / conseiller "
+                            + "prud'homal / membre CSSCT…). Sa rupture, y compris pendant la "
+                            + "période d'essai, exige une autorisation préalable de l'inspection "
+                            + "du travail. À défaut, la rupture est nulle de plein droit ; le "
+                            + "salarié peut demander sa réintégration et le rappel des salaires."));
+        }
+
+        // 14 — LANCEUR_ALERTE_PROTECTION_VIOLEE (L.1132-3-3)
+        if (Boolean.TRUE.equals(in.lanceurAlerte())) {
+            codes.add(CodeAnomalie.LANCEUR_ALERTE_PROTECTION_VIOLEE);
+            anomalies.add(new Anomalie(
+                    CodeAnomalie.LANCEUR_ALERTE_PROTECTION_VIOLEE,
+                    "Rupture en violation de la protection du lanceur d'alerte",
+                    "Art. L.1132-3-3 C. trav. (loi Sapin II du 09/12/2016, renforcée Waserman 21/03/2022)",
+                    Gravite.AVERE,
+                    "Le salarié lanceur d'alerte (signalement d'un crime, délit, menace ou "
+                            + "atteinte grave à l'intérêt général dans les conditions L.1132-3-3) "
+                            + "bénéficie d'une protection absolue. Toute rupture pour ce motif, "
+                            + "y compris en période d'essai, est nulle de plein droit — "
+                            + "réintégration possible + rappel des salaires."));
+        }
+
+        // 15 — TEMOIN_HARCELEMENT_PROTECTION_VIOLEE (L.1132-3-1, L.1152-2, L.1153-2 et s.)
+        if (Boolean.TRUE.equals(in.temoinOuVictimeHarcelement())) {
+            codes.add(CodeAnomalie.TEMOIN_HARCELEMENT_PROTECTION_VIOLEE);
+            anomalies.add(new Anomalie(
+                    CodeAnomalie.TEMOIN_HARCELEMENT_PROTECTION_VIOLEE,
+                    "Rupture en représailles d'un témoignage / d'une dénonciation de harcèlement",
+                    "Art. L.1132-3-1, L.1152-2, L.1153-2 et L.1153-3 C. trav.",
+                    Gravite.AVERE,
+                    "Aucun salarié ne peut être sanctionné, licencié ou faire l'objet d'une "
+                            + "mesure discriminatoire pour avoir relaté ou témoigné de faits de "
+                            + "harcèlement moral ou sexuel, ou de faits de discrimination. "
+                            + "Cette protection s'applique pendant la période d'essai — toute "
+                            + "rupture pour ce motif est nulle."));
+        }
+
+        // 16 — DROIT_RETRAIT_PROTECTION_VIOLEE (L.4131-3)
+        if (Boolean.TRUE.equals(in.droitDeRetraitExerce())) {
+            codes.add(CodeAnomalie.DROIT_RETRAIT_PROTECTION_VIOLEE);
+            anomalies.add(new Anomalie(
+                    CodeAnomalie.DROIT_RETRAIT_PROTECTION_VIOLEE,
+                    "Rupture sanctionnant l'exercice du droit de retrait",
+                    "Art. L.4131-3 C. trav.",
+                    Gravite.AVERE,
+                    "Aucune sanction, aucune retenue de salaire ne peut être prise à l'encontre "
+                            + "d'un salarié ou d'un groupe de salariés qui se sont retirés d'une "
+                            + "situation de travail dont ils avaient un motif raisonnable de "
+                            + "penser qu'elle présentait un danger grave et imminent pour leur "
+                            + "vie ou leur santé. La rupture d'essai pour ce motif est nulle."));
+        }
+
+        // 17 — GROSSESSE_NOTIFIEE_POST_RUPTURE (L.1225-5)
+        // La salariée dispose de 15 jours après la rupture pour notifier sa grossesse
+        // à l'employeur (certificat médical). Si la grossesse est antérieure à la
+        // rupture, la nullité rétroagit (Cass. soc. 26/10/2017, n° 16-12.554).
+        if (Boolean.TRUE.equals(in.grossesseDeclareePostRupture())
+                && in.dateRupture() != null
+                && in.dateNotificationGrossesse() != null) {
+            long delaiNotifJours = ChronoUnit.DAYS.between(
+                    in.dateRupture(), in.dateNotificationGrossesse());
+            if (delaiNotifJours >= 0 && delaiNotifJours <= 15) {
+                codes.add(CodeAnomalie.GROSSESSE_NOTIFIEE_POST_RUPTURE);
+                anomalies.add(new Anomalie(
+                        CodeAnomalie.GROSSESSE_NOTIFIEE_POST_RUPTURE,
+                        "Grossesse notifiée à l'employeur dans les 15 jours suivant la rupture",
+                        "Art. L.1225-5 C. trav.",
+                        Gravite.AVERE,
+                        "La salariée a notifié sa grossesse à l'employeur le "
+                                + in.dateNotificationGrossesse() + " (" + delaiNotifJours
+                                + " jour(s) après la rupture du " + in.dateRupture()
+                                + "). Dans ce délai légal de 15 jours, et si la grossesse est "
+                                + "antérieure à la rupture, celle-ci est nulle rétroactivement — "
+                                + "réintégration possible avec rappel des salaires."));
+            }
+        }
+
         return anomalies;
     }
 
@@ -429,12 +551,20 @@ public final class RupturePeriodeEssaiCalculator {
     // ----------------------------------------------------------------------
 
     private static Verdict verdictPour(RupturePeriodeEssaiInput in, List<Anomalie> anomalies) {
-        // Priorité 1 — nullité (protections L.1132-1 / L.1225-1 / L.1226-9 / liberté fondamentale)
+        // Priorité 1 — nullité (protections L.1132-1 / L.1225-1 / L.1226-9 / liberté fondamentale
+        // + SF-252-01 : salarié protégé, lanceur d'alerte, témoin harcèlement, droit de retrait,
+        // grossesse notifiée post-rupture)
         boolean nullite = anomalies.stream().anyMatch(a ->
                 a.code() == CodeAnomalie.DISCRIMINATION_AVEREE
                         || a.code() == CodeAnomalie.GROSSESSE_PROTECTION_VIOLEE
                         || a.code() == CodeAnomalie.AT_MP_PROTECTION_VIOLEE
-                        || a.code() == CodeAnomalie.ATTEINTE_LIBERTE_FONDAMENTALE);
+                        || a.code() == CodeAnomalie.ATTEINTE_LIBERTE_FONDAMENTALE
+                        // SF-252-01
+                        || a.code() == CodeAnomalie.SALARIE_PROTEGE_SANS_AUTORISATION
+                        || a.code() == CodeAnomalie.LANCEUR_ALERTE_PROTECTION_VIOLEE
+                        || a.code() == CodeAnomalie.TEMOIN_HARCELEMENT_PROTECTION_VIOLEE
+                        || a.code() == CodeAnomalie.DROIT_RETRAIT_PROTECTION_VIOLEE
+                        || a.code() == CodeAnomalie.GROSSESSE_NOTIFIEE_POST_RUPTURE);
         if (nullite) {
             return Verdict.NULLE;
         }
@@ -638,6 +768,36 @@ public final class RupturePeriodeEssaiCalculator {
         if (Boolean.TRUE.equals(in.conventionCollectiveApplicable())) {
             msgs.add("Identifier précisément la convention collective applicable et ses "
                     + "clauses sur la période d'essai (durée, préavis, formalités).");
+        }
+
+        // SF-252-01 — Pièces à produire pour les 5 nouvelles protections nullité
+        if (Boolean.TRUE.equals(in.salarieProtege())) {
+            msgs.add("Salarié protégé : produire le mandat (élu CSE / DS / conseiller "
+                    + "prud'homal / etc.) ET, s'il existe, le PV de la demande d'autorisation "
+                    + "déposée auprès de l'inspection du travail (ou l'absence formelle de "
+                    + "celle-ci).");
+        }
+        if (Boolean.TRUE.equals(in.lanceurAlerte())) {
+            msgs.add("Lanceur d'alerte : produire le signalement initial (canal interne ou "
+                    + "externe), les accusés de réception, et toute pièce démontrant le lien "
+                    + "entre le signalement et la rupture.");
+        }
+        if (Boolean.TRUE.equals(in.temoinOuVictimeHarcelement())) {
+            msgs.add("Témoin / victime de harcèlement : produire le témoignage formel, "
+                    + "le signalement à l'employeur ou au CSE, et toute pièce médicale "
+                    + "(arrêt, certificat) caractérisant le harcèlement.");
+        }
+        if (Boolean.TRUE.equals(in.droitDeRetraitExerce())) {
+            msgs.add("Droit de retrait : produire le signalement écrit du danger grave et "
+                    + "imminent (au CSE, à l'employeur ou à l'inspection du travail) et toute "
+                    + "preuve du danger (rapport, photos, attestations, accident postérieur).");
+        }
+        if (Boolean.TRUE.equals(in.grossesseDeclareePostRupture())
+                && in.dateNotificationGrossesse() != null) {
+            msgs.add("Grossesse notifiée post-rupture : produire (a) le certificat médical "
+                    + "de grossesse daté ANTÉRIEUREMENT à la rupture, et (b) la LRAR ou "
+                    + "tout courrier de notification à l'employeur dans les 15 jours suivant "
+                    + "la rupture (art. L.1225-5).");
         }
 
         return msgs;

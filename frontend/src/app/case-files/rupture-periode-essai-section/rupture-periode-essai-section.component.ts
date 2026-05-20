@@ -126,6 +126,14 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   conventionCollectiveApplicable = signal<boolean>(false);
   conventionCollectivePlusFavorableRespectee = signal<boolean>(true);
   salaireMensuelBrut = signal<number | null>(null);
+  // SF-252-01 — 7 nouveaux champs (audit F-DT-38 2026-05-20)
+  salarieProtege = signal<boolean>(false);
+  autorisationInspectionTravailObtenue = signal<boolean | null>(null);
+  lanceurAlerte = signal<boolean>(false);
+  temoinOuVictimeHarcelement = signal<boolean>(false);
+  droitDeRetraitExerce = signal<boolean>(false);
+  grossesseDeclareePostRupture = signal<boolean>(false);
+  dateNotificationGrossesse = signal<string | null>(null);
 
   // Provenance signals (badges IA) — `'IA'` tant que la valeur vient de l'IA,
   // `null` après modification manuelle.
@@ -153,6 +161,14 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   provenanceLettreMotivee = signal<'IA' | null>(null);
   provenanceMotifsAveres = signal<'IA' | null>(null);
   provenanceCcnPlusFavorable = signal<'IA' | null>(null);
+  // SF-252-01 — 7 signaux de provenance additionnels
+  provenanceSalarieProtege = signal<'IA' | null>(null);
+  provenanceAutorisationIT = signal<'IA' | null>(null);
+  provenanceLanceurAlerte = signal<'IA' | null>(null);
+  provenanceTemoinHarcelement = signal<'IA' | null>(null);
+  provenanceDroitRetrait = signal<'IA' | null>(null);
+  provenanceGrossessePostRupture = signal<'IA' | null>(null);
+  provenanceDateNotifGrossesse = signal<'IA' | null>(null);
 
   // Options listes
   readonly categorieOptions: { value: CategorieSocioProfessionnelle; label: string }[] = [
@@ -171,11 +187,31 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   ];
   readonly discriminationOptions: { value: DiscriminationMotif | 'AUCUNE'; label: string }[] = [
     { value: 'AUCUNE', label: 'Aucune discrimination invoquée' },
+    // SF-DT-38-02 legacy
     { value: 'RACE_ORIGINE', label: 'Race / origine' },
     { value: 'SEXE', label: 'Sexe' },
     { value: 'GROSSESSE', label: 'Grossesse / maternité' },
-    { value: 'SANTE', label: 'État de santé / handicap' },
-    { value: 'SYNDICAL', label: 'Activité syndicale / RP' },
+    { value: 'SANTE', label: 'État de santé (générique)' },
+    { value: 'SYNDICAL', label: 'Activité syndicale / mutualiste' },
+    // SF-252-01 — 17 motifs L.1132-1 exhaustifs (audit 2026-05-20)
+    { value: 'MOEURS', label: 'Mœurs' },
+    { value: 'ORIENTATION_SEXUELLE', label: 'Orientation sexuelle' },
+    { value: 'IDENTITE_GENRE', label: 'Identité de genre' },
+    { value: 'AGE', label: 'Âge' },
+    { value: 'SITUATION_FAMILLE', label: 'Situation de famille' },
+    { value: 'CARACTERISTIQUES_GENETIQUES', label: 'Caractéristiques génétiques' },
+    { value: 'VULNERABILITE_ECONOMIQUE', label: 'Vulnérabilité économique' },
+    { value: 'OPINIONS_POLITIQUES', label: 'Opinions politiques' },
+    { value: 'CONVICTIONS_RELIGIEUSES', label: 'Convictions religieuses' },
+    { value: 'APPARENCE_PHYSIQUE', label: 'Apparence physique' },
+    { value: 'NOM_DE_FAMILLE', label: 'Nom de famille' },
+    { value: 'LIEU_DE_RESIDENCE', label: 'Lieu de résidence' },
+    { value: 'DOMICILIATION_BANCAIRE', label: 'Domiciliation bancaire' },
+    { value: 'PERTE_AUTONOMIE', label: 'Perte d\'autonomie' },
+    { value: 'HANDICAP', label: 'Handicap' },
+    { value: 'CAPACITE_LANGUE_FRANCAISE', label: 'Capacité à s\'exprimer en langue française' },
+    { value: 'FONCTIONS_JURIDICTIONNELLES', label: 'Exercice de fonctions juridictionnelles' },
+    // Catch-all
     { value: 'AUTRE', label: 'Autre motif discriminatoire L.1132-1' },
   ];
 
@@ -356,6 +392,43 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
       this.conventionCollectivePlusFavorableRespectee.set(ccn);
       this.provenanceCcnPlusFavorable.set('IA');
     }
+
+    // SF-252-01 — 7 nouveaux champs pré-remplis
+    const rpeSp = rules.computeSalarieProtege(ruleInput);
+    if (rpeSp !== null) {
+      this.salarieProtege.set(rpeSp);
+      this.provenanceSalarieProtege.set('IA');
+    }
+    const rpeAit = rules.computeAutorisationInspectionTravailObtenue(ruleInput);
+    if (rpeAit !== null) {
+      this.autorisationInspectionTravailObtenue.set(rpeAit);
+      this.provenanceAutorisationIT.set('IA');
+    }
+    const rpeLa = rules.computeLanceurAlerte(ruleInput);
+    if (rpeLa !== null) {
+      this.lanceurAlerte.set(rpeLa);
+      this.provenanceLanceurAlerte.set('IA');
+    }
+    const rpeTh = rules.computeTemoinOuVictimeHarcelement(ruleInput);
+    if (rpeTh !== null) {
+      this.temoinOuVictimeHarcelement.set(rpeTh);
+      this.provenanceTemoinHarcelement.set('IA');
+    }
+    const rpeDre = rules.computeDroitDeRetraitExerce(ruleInput);
+    if (rpeDre !== null) {
+      this.droitDeRetraitExerce.set(rpeDre);
+      this.provenanceDroitRetrait.set('IA');
+    }
+    const rpeGpr = rules.computeGrossesseDeclareePostRupture(ruleInput);
+    if (rpeGpr !== null) {
+      this.grossesseDeclareePostRupture.set(rpeGpr);
+      this.provenanceGrossessePostRupture.set('IA');
+    }
+    const rpeDng = rules.computeDateNotificationGrossesse(ruleInput);
+    if (rpeDng !== null) {
+      this.dateNotificationGrossesse.set(rpeDng);
+      this.provenanceDateNotifGrossesse.set('IA');
+    }
   }
 
   toggleCollapse(): void {
@@ -513,6 +586,16 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
       conventionCollectivePlusFavorableRespectee: this.conventionCollectiveApplicable()
         ? this.conventionCollectivePlusFavorableRespectee() : null,
       salaireMensuelBrut: this.salaireMensuelBrut(),
+      // SF-252-01 — 7 nouveaux champs (audit F-DT-38 2026-05-20)
+      salarieProtege: this.salarieProtege(),
+      autorisationInspectionTravailObtenue: this.salarieProtege()
+        ? this.autorisationInspectionTravailObtenue() : null,
+      lanceurAlerte: this.lanceurAlerte(),
+      temoinOuVictimeHarcelement: this.temoinOuVictimeHarcelement(),
+      droitDeRetraitExerce: this.droitDeRetraitExerce(),
+      grossesseDeclareePostRupture: this.grossesseDeclareePostRupture(),
+      dateNotificationGrossesse: this.grossesseDeclareePostRupture()
+        ? this.dateNotificationGrossesse() : null,
     };
     this.calculating.set(true);
     this.service.calculate(this.caseFileId, request).subscribe({
@@ -574,6 +657,14 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     this.conventionCollectiveApplicable.set(r.conventionCollectiveApplicable ?? false);
     this.conventionCollectivePlusFavorableRespectee.set(r.conventionCollectivePlusFavorableRespectee ?? true);
     this.salaireMensuelBrut.set(r.salaireMensuelBrut);
+    // SF-252-01 — hydrate des 7 nouveaux champs
+    this.salarieProtege.set(r.salarieProtege ?? false);
+    this.autorisationInspectionTravailObtenue.set(r.autorisationInspectionTravailObtenue ?? null);
+    this.lanceurAlerte.set(r.lanceurAlerte ?? false);
+    this.temoinOuVictimeHarcelement.set(r.temoinOuVictimeHarcelement ?? false);
+    this.droitDeRetraitExerce.set(r.droitDeRetraitExerce ?? false);
+    this.grossesseDeclareePostRupture.set(r.grossesseDeclareePostRupture ?? false);
+    this.dateNotificationGrossesse.set(r.dateNotificationGrossesse ?? null);
     // Reset provenance — valeurs persistées = saisie avocat.
     this.provenanceTypeContrat.set(null);
     this.provenanceDateDebutContrat.set(null);
@@ -599,6 +690,14 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     this.provenanceLettreMotivee.set(null);
     this.provenanceMotifsAveres.set(null);
     this.provenanceCcnPlusFavorable.set(null);
+    // SF-252-01 — reset des 7 nouveaux signaux
+    this.provenanceSalarieProtege.set(null);
+    this.provenanceAutorisationIT.set(null);
+    this.provenanceLanceurAlerte.set(null);
+    this.provenanceTemoinHarcelement.set(null);
+    this.provenanceDroitRetrait.set(null);
+    this.provenanceGrossessePostRupture.set(null);
+    this.provenanceDateNotifGrossesse.set(null);
   }
 
   // ---------------------------------------------------------------------------

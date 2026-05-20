@@ -499,6 +499,16 @@ public record CaseAnalysisResponse(
             Boolean rpeLettreRuptureMotivee,
             Boolean rpeMotifsAveresParPieces,
             Boolean rpeCcnPlusFavorableRespectee,
+            // SF-252-01 : 7 champs IA pour pré-fill F-DT-38 — 5 protections nullité
+            // additionnelles + grossesse post-rupture (audit 2026-05-20). Sous-objet
+            // `rupture_periode_essai_detail` enrichi. FR uniquement, nullables.
+            Boolean rpeSalarieProtege,
+            Boolean rpeAutorisationInspectionTravail,
+            Boolean rpeLanceurAlerte,
+            Boolean rpeTemoinHarcelement,
+            Boolean rpeDroitRetraitExerce,
+            Boolean rpeGrossesseDeclareePostRupture,
+            String rpeDateNotificationGrossesse,
             // SF-212-01 : 6 champs IA pour pré-fill F-DT-36-licenciement-faute-grave-lourde
             // (Travail FR uniquement, nullables). Sous-objet `faute_grave_detail`.
             // La distinction faute grave / faute lourde (L. 1234-1 CT ; L. 1234-9 CT)
@@ -726,6 +736,14 @@ public record CaseAnalysisResponse(
                     .rpeLettreRuptureMotivee(rpeLettreRuptureMotivee)
                     .rpeMotifsAveresParPieces(rpeMotifsAveresParPieces)
                     .rpeCcnPlusFavorableRespectee(rpeCcnPlusFavorableRespectee)
+                    // SF-252-01 — 7 protections nullité additionnelles (FR uniquement)
+                    .rpeSalarieProtege(rpeSalarieProtege)
+                    .rpeAutorisationInspectionTravail(rpeAutorisationInspectionTravail)
+                    .rpeLanceurAlerte(rpeLanceurAlerte)
+                    .rpeTemoinHarcelement(rpeTemoinHarcelement)
+                    .rpeDroitRetraitExerce(rpeDroitRetraitExerce)
+                    .rpeGrossesseDeclareePostRupture(rpeGrossesseDeclareePostRupture)
+                    .rpeDateNotificationGrossesse(rpeDateNotificationGrossesse)
                     // SF-212-01 — faute_grave_detail (FRANCE uniquement)
                     .fauteGraveFaitsReproches(fauteGraveFaitsReproches)
                     .fauteGraveDatesFaits(fauteGraveDatesFaits)
@@ -943,6 +961,14 @@ public record CaseAnalysisResponse(
             private Boolean rpeLettreRuptureMotivee;
             private Boolean rpeMotifsAveresParPieces;
             private Boolean rpeCcnPlusFavorableRespectee;
+            // SF-252-01 — 7 protections nullité additionnelles (FR uniquement)
+            private Boolean rpeSalarieProtege;
+            private Boolean rpeAutorisationInspectionTravail;
+            private Boolean rpeLanceurAlerte;
+            private Boolean rpeTemoinHarcelement;
+            private Boolean rpeDroitRetraitExerce;
+            private Boolean rpeGrossesseDeclareePostRupture;
+            private String rpeDateNotificationGrossesse;
             // SF-212-01 — faute_grave_detail (FRANCE uniquement)
             private String fauteGraveFaitsReproches;
             private List<String> fauteGraveDatesFaits;
@@ -1155,6 +1181,14 @@ public record CaseAnalysisResponse(
             public Builder rpeLettreRuptureMotivee(Boolean v) { this.rpeLettreRuptureMotivee = v; return this; }
             public Builder rpeMotifsAveresParPieces(Boolean v) { this.rpeMotifsAveresParPieces = v; return this; }
             public Builder rpeCcnPlusFavorableRespectee(Boolean v) { this.rpeCcnPlusFavorableRespectee = v; return this; }
+            // SF-252-01 — 7 protections nullité additionnelles (FR uniquement)
+            public Builder rpeSalarieProtege(Boolean v) { this.rpeSalarieProtege = v; return this; }
+            public Builder rpeAutorisationInspectionTravail(Boolean v) { this.rpeAutorisationInspectionTravail = v; return this; }
+            public Builder rpeLanceurAlerte(Boolean v) { this.rpeLanceurAlerte = v; return this; }
+            public Builder rpeTemoinHarcelement(Boolean v) { this.rpeTemoinHarcelement = v; return this; }
+            public Builder rpeDroitRetraitExerce(Boolean v) { this.rpeDroitRetraitExerce = v; return this; }
+            public Builder rpeGrossesseDeclareePostRupture(Boolean v) { this.rpeGrossesseDeclareePostRupture = v; return this; }
+            public Builder rpeDateNotificationGrossesse(String v) { this.rpeDateNotificationGrossesse = v; return this; }
             // SF-212-01 — faute_grave_detail (FRANCE uniquement)
             public Builder fauteGraveFaitsReproches(String v) { this.fauteGraveFaitsReproches = v; return this; }
             public Builder fauteGraveDatesFaits(List<String> v) { this.fauteGraveDatesFaits = v; return this; }
@@ -1276,6 +1310,10 @@ public record CaseAnalysisResponse(
                         rpeMotifLieCompetences, rpeMotifEconomique,
                         rpeAtteinteLiberteFondamentale, rpeLettreRuptureMotivee,
                         rpeMotifsAveresParPieces, rpeCcnPlusFavorableRespectee,
+                        // SF-252-01 — 7 protections nullité additionnelles (FR uniquement)
+                        rpeSalarieProtege, rpeAutorisationInspectionTravail,
+                        rpeLanceurAlerte, rpeTemoinHarcelement, rpeDroitRetraitExerce,
+                        rpeGrossesseDeclareePostRupture, rpeDateNotificationGrossesse,
                         // SF-212-01 — faute_grave_detail (FRANCE uniquement)
                         fauteGraveFaitsReproches, fauteGraveDatesFaits,
                         fauteGraveQualificationEmployeur, fauteGraveIntentionNuireAlleeguee,
@@ -3832,6 +3870,16 @@ public record CaseAnalysisResponse(
                     .rpeLettreRuptureMotivee(hasRuptureEssai ? booleanOrNull(ruptureEssai, "lettre_rupture_motivee") : null)
                     .rpeMotifsAveresParPieces(hasRuptureEssai ? booleanOrNull(ruptureEssai, "motifs_averes_par_pieces") : null)
                     .rpeCcnPlusFavorableRespectee(hasRuptureEssai ? booleanOrNull(ruptureEssai, "ccn_plus_favorable_respectee") : null)
+                    // SF-252-01 — 7 protections nullité additionnelles (FR uniquement,
+                    // null hors FR). Sous-objet `rupture_periode_essai_detail` enrichi
+                    // par le prompt avec les définitions juridiques.
+                    .rpeSalarieProtege(hasRuptureEssai ? booleanOrNull(ruptureEssai, "salarie_protege") : null)
+                    .rpeAutorisationInspectionTravail(hasRuptureEssai ? booleanOrNull(ruptureEssai, "autorisation_inspection_travail_obtenue") : null)
+                    .rpeLanceurAlerte(hasRuptureEssai ? booleanOrNull(ruptureEssai, "lanceur_alerte") : null)
+                    .rpeTemoinHarcelement(hasRuptureEssai ? booleanOrNull(ruptureEssai, "temoin_ou_victime_harcelement") : null)
+                    .rpeDroitRetraitExerce(hasRuptureEssai ? booleanOrNull(ruptureEssai, "droit_de_retrait_exerce") : null)
+                    .rpeGrossesseDeclareePostRupture(hasRuptureEssai ? booleanOrNull(ruptureEssai, "grossesse_declaree_post_rupture") : null)
+                    .rpeDateNotificationGrossesse(hasRuptureEssai ? isoDateOrNull(ruptureEssai, "date_notification_grossesse") : null)
                     // SF-212-02 : 6 champs IA pour pré-fill F-DT-36 (faute grave /
                     // faute lourde, FRANCE uniquement). Texte tronqué à 500 car.
                     // pour les faits reprochés, liste de dates ISO (peut être vide),

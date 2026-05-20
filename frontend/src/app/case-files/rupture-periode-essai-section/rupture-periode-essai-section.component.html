@@ -302,6 +302,99 @@
               }
             </div>
 
+            <!-- SF-252-01 — Bloc protections nullité additionnelles (audit 2026-05-20) -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Protections nullité additionnelles (SF-252-01)</span>
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="salarieProtege()"
+                    (ngModelChange)="salarieProtege.set($event); provenanceSalarieProtege.set(null)"
+                    name="salarieProtege">
+                  Salarié protégé (élu CSE, DS, conseiller prud'homal…) — L.2411-1
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceSalarieProtege() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              @if (salarieProtege()) {
+                <div class="rpe-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="autorisationInspectionTravailObtenue()"
+                      (ngModelChange)="autorisationInspectionTravailObtenue.set($event); provenanceAutorisationIT.set(null)"
+                      name="autorisationInspectionTravailObtenue">
+                    Autorisation préalable de l'inspection du travail obtenue
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceAutorisationIT() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="lanceurAlerte()"
+                    (ngModelChange)="lanceurAlerte.set($event); provenanceLanceurAlerte.set(null)"
+                    name="lanceurAlerte">
+                  Lanceur d'alerte (lois Sapin II / Waserman) — L.1132-3-3
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceLanceurAlerte() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="temoinOuVictimeHarcelement()"
+                    (ngModelChange)="temoinOuVictimeHarcelement.set($event); provenanceTemoinHarcelement.set(null)"
+                    name="temoinOuVictimeHarcelement">
+                  Témoin ou victime de harcèlement (L.1132-3-1 / L.1152-2 / L.1153-2)
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceTemoinHarcelement() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="droitDeRetraitExerce()"
+                    (ngModelChange)="droitDeRetraitExerce.set($event); provenanceDroitRetrait.set(null)"
+                    name="droitDeRetraitExerce">
+                  Exercice du droit de retrait (danger grave et imminent) — L.4131-3
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceDroitRetrait() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="grossesseDeclareePostRupture()"
+                    (ngModelChange)="grossesseDeclareePostRupture.set($event); provenanceGrossessePostRupture.set(null)"
+                    name="grossesseDeclareePostRupture">
+                  Grossesse déclarée APRÈS la rupture (L.1225-5 — délai 15 jours)
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceGrossessePostRupture() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              @if (grossesseDeclareePostRupture()) {
+                <mat-form-field appearance="outline" class="rpe-inset-field">
+                  <mat-label>Date de notification de la grossesse à l'employeur</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateNotificationGrossesse()"
+                         (ngModelChange)="dateNotificationGrossesse.set($event); provenanceDateNotifGrossesse.set(null)"
+                         name="dateNotificationGrossesse" />
+                  <mat-hint>Format YYYY-MM-DD — doit intervenir dans les 15 jours suivant la rupture pour caractériser la nullité rétroactive</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateNotifGrossesse() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              }
+            </div>
+
             <!-- Bloc Convention collective + Salaire -->
             <div class="rpe-block rpe-full">
               <span class="rpe-block-label">Convention collective &amp; salaire</span>

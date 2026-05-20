@@ -41,7 +41,16 @@ public record RupturePeriodeEssaiInput(
         Boolean motifsAveresParPieces,
         Boolean conventionCollectiveApplicable,
         Boolean conventionCollectivePlusFavorableRespectee,
-        Double salaireMensuelBrut
+        Double salaireMensuelBrut,
+        // SF-252-01 — 7 nouveaux champs pour les 6 protections nullité additionnelles
+        // (audit F-DT-38 du 2026-05-20). Tous nullables.
+        Boolean salarieProtege,                       // L.2411-1 (élu CSE, DS, etc.)
+        Boolean autorisationInspectionTravailObtenue, // L.2411-1 (autorisation reçue ?)
+        Boolean lanceurAlerte,                        // L.1132-3-3
+        Boolean temoinOuVictimeHarcelement,           // L.1132-3-1 / L.1152-2 / L.1153-2-3
+        Boolean droitDeRetraitExerce,                 // L.4131-3
+        Boolean grossesseDeclareePostRupture,         // L.1225-5 (déclarée APRÈS rupture)
+        LocalDate dateNotificationGrossesse           // L.1225-5 (date notif employeur)
 ) {
 
     /** Builder utilitaire — facilite la lisibilité des tests unitaires. */
@@ -69,6 +78,14 @@ public record RupturePeriodeEssaiInput(
         private Boolean conventionCollectiveApplicable;
         private Boolean conventionCollectivePlusFavorableRespectee;
         private Double salaireMensuelBrut;
+        // SF-252-01
+        private Boolean salarieProtege;
+        private Boolean autorisationInspectionTravailObtenue;
+        private Boolean lanceurAlerte;
+        private Boolean temoinOuVictimeHarcelement;
+        private Boolean droitDeRetraitExerce;
+        private Boolean grossesseDeclareePostRupture;
+        private LocalDate dateNotificationGrossesse;
 
         public Builder categorieSocioProfessionnelle(CategorieSocioProfessionnelle v) { this.categorieSocioProfessionnelle = v; return this; }
         public Builder typeContrat(TypeContrat v) { this.typeContrat = v; return this; }
@@ -93,6 +110,13 @@ public record RupturePeriodeEssaiInput(
         public Builder conventionCollectiveApplicable(Boolean v) { this.conventionCollectiveApplicable = v; return this; }
         public Builder conventionCollectivePlusFavorableRespectee(Boolean v) { this.conventionCollectivePlusFavorableRespectee = v; return this; }
         public Builder salaireMensuelBrut(Double v) { this.salaireMensuelBrut = v; return this; }
+        public Builder salarieProtege(Boolean v) { this.salarieProtege = v; return this; }
+        public Builder autorisationInspectionTravailObtenue(Boolean v) { this.autorisationInspectionTravailObtenue = v; return this; }
+        public Builder lanceurAlerte(Boolean v) { this.lanceurAlerte = v; return this; }
+        public Builder temoinOuVictimeHarcelement(Boolean v) { this.temoinOuVictimeHarcelement = v; return this; }
+        public Builder droitDeRetraitExerce(Boolean v) { this.droitDeRetraitExerce = v; return this; }
+        public Builder grossesseDeclareePostRupture(Boolean v) { this.grossesseDeclareePostRupture = v; return this; }
+        public Builder dateNotificationGrossesse(LocalDate v) { this.dateNotificationGrossesse = v; return this; }
 
         public RupturePeriodeEssaiInput build() {
             return new RupturePeriodeEssaiInput(
@@ -105,7 +129,10 @@ public record RupturePeriodeEssaiInput(
                     grossesseAuMomentRupture, arretAccidentTravailEnCours,
                     atteinteLiberteFondamentale, lettreRuptureMotivee, motifsAveresParPieces,
                     conventionCollectiveApplicable, conventionCollectivePlusFavorableRespectee,
-                    salaireMensuelBrut
+                    salaireMensuelBrut,
+                    salarieProtege, autorisationInspectionTravailObtenue,
+                    lanceurAlerte, temoinOuVictimeHarcelement, droitDeRetraitExerce,
+                    grossesseDeclareePostRupture, dateNotificationGrossesse
             );
         }
     }

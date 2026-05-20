@@ -36,7 +36,15 @@ public record RupturePeriodeEssaiRequest(
         Boolean motifsAveresParPieces,
         Boolean conventionCollectiveApplicable,
         Boolean conventionCollectivePlusFavorableRespectee,
-        Double salaireMensuelBrut
+        Double salaireMensuelBrut,
+        // SF-252-01 — 7 nouveaux champs (audit F-DT-38 2026-05-20)
+        Boolean salarieProtege,
+        Boolean autorisationInspectionTravailObtenue,
+        Boolean lanceurAlerte,
+        Boolean temoinOuVictimeHarcelement,
+        Boolean droitDeRetraitExerce,
+        Boolean grossesseDeclareePostRupture,
+        LocalDate dateNotificationGrossesse
 ) {
 
     RupturePeriodeEssaiInput toInput() {
@@ -50,7 +58,10 @@ public record RupturePeriodeEssaiRequest(
                 grossesseAuMomentRupture, arretAccidentTravailEnCours,
                 atteinteLiberteFondamentale, lettreRuptureMotivee, motifsAveresParPieces,
                 conventionCollectiveApplicable, conventionCollectivePlusFavorableRespectee,
-                salaireMensuelBrut
+                salaireMensuelBrut,
+                salarieProtege, autorisationInspectionTravailObtenue,
+                lanceurAlerte, temoinOuVictimeHarcelement, droitDeRetraitExerce,
+                grossesseDeclareePostRupture, dateNotificationGrossesse
         );
     }
 }
