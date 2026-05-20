@@ -84,6 +84,7 @@ import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licen
 import { LicenciementNulDetectionSectionComponent } from '../licenciement-nul-detection-section/licenciement-nul-detection-section.component';
 import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nullite-licenciement-section/procedure-nullite-licenciement-section.component';
 import { AbandonPostePresomptionDemissionSectionComponent } from '../abandon-poste-presomption-demission-section/abandon-poste-presomption-demission-section.component';
+import { CongesPayesArretMaladieSectionComponent } from '../conges-payes-arret-maladie-section/conges-payes-arret-maladie-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
@@ -683,6 +684,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // à plat dans travailExtractedData, FR uniquement). Validation F-IA-03
           // sur 4 champs croisables (DATE_MISE_EN_DEMEURE, DELAI_ACCORDE,
           // MENTIONS_MED, MOTIF_LEGITIME) via F-96 / questions IA / pièces.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02b — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      ['F-DT-75-conges-payes-arret-maladie', {
+        displayLabel: 'Congés payés acquis pendant arrêt maladie (FR)',
+        component: CongesPayesArretMaladieSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-206-04 : pré-fill IA réel (5 champs `conges_payes_arret_maladie_detail`
+          // projetés à plat dans travailExtractedData + `salaireBrutMensuel` déjà
+          // extrait, FR uniquement). Validation F-IA-03 sur 3 champs croisables
+          // (TYPE_ARRET, DUREE_ARRET, SALARIE_EN_POSTE) via F-96 / questions IA /
+          // pièces.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
@@ -2244,6 +2264,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-21-travail-dissimule', 'INDEMNITES'],
     ['F-DT-25-indemnite-preavis', 'INDEMNITES'],
     ['F-DT-26-conges-payes-indemnite', 'INDEMNITES'],
+    // SF-206-04 : rappel de CP acquis pendant arrêt maladie (FR, L.3141-5 /
+    // L.3141-5-1 CT, loi 22/04/2024). Groupe F-169 « Rappels et indemnités
+    // salariales » — c'est un rappel de droits, pas une rupture.
+    ['F-DT-75-conges-payes-arret-maladie', 'INDEMNITES'],
     ['F-DT-28-avantages-conventionnels-be', 'INDEMNITES'],
     ['F-DT-31-transaction', 'INDEMNITES'],
     ['F-DT-35-contestation-are-fr', 'INDEMNITES'],

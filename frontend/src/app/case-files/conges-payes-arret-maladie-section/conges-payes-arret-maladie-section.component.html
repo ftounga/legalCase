@@ -1,0 +1,257 @@
+<section class="cpm-section">
+  <header class="cpm-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cpm-body">
+    <mat-icon class="cpm-icon">event_available</mat-icon>
+    <span class="cpm-title">CONGÉS PAYÉS ACQUIS PENDANT ARRÊT MALADIE</span>
+    @if (result()) {
+      <span class="cpm-chip-summary"
+            [class.cpm-chip-summary--significant]="result()!.verdict === 'RAPPEL_SIGNIFICATIF'"
+            [class.cpm-chip-summary--limited]="result()!.verdict === 'RAPPEL_LIMITE'"
+            [class.cpm-chip-summary--none]="result()!.verdict === 'PAS_DE_RAPPEL'"
+            [class.cpm-chip-summary--danger]="result()!.verdict === 'ACTION_FORCLOSE'">
+        {{ result()!.joursCpRappel }} j · {{ result()!.valorisationIndicativeEur | number:'1.0-0' }} €
+      </span>
+    }
+    <mat-icon class="cpm-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cpm-body" class="cpm-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="cpm-country-banner" data-testid="cpm-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (régime L.3141-5 / L.3141-5-1 C. trav. — loi 22/04/2024 art. 37). Aucun équivalent direct en droit belge.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cpm-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="cpm-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="cpm-form" (ngSubmit)="calculate()">
+            <!-- Bloc arrêt maladie -->
+            <div class="cpm-block cpm-full">
+              <span class="cpm-block-label">Arrêt maladie / AT-MP</span>
+
+              <div class="cpm-field-with-alert">
+                <mat-form-field appearance="outline" class="cpm-inline-field">
+                  <mat-label>Type d'arrêt</mat-label>
+                  <mat-select
+                      [ngModel]="typeArret()"
+                      (ngModelChange)="onTypeArretChange($event)"
+                      name="typeArret">
+                    @for (opt of typeArretOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceTypeArret() === 'IA') {
+                  <span class="cpm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().TYPE_ARRET; as alert) {
+                  <span class="cpm-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="cpm-field-with-alert">
+                <mat-form-field appearance="outline" class="cpm-inline-field">
+                  <mat-label>Nombre de mois d'arrêt cumulés</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="nombreMoisArret()"
+                         (ngModelChange)="onNombreMoisArretChange($event)"
+                         name="nombreMoisArret" />
+                </mat-form-field>
+                @if (provenanceNombreMoisArret() === 'IA') {
+                  <span class="cpm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DUREE_ARRET; as alert) {
+                  <span class="cpm-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc situation salarié -->
+            <div class="cpm-block cpm-full">
+              <span class="cpm-block-label">Situation du salarié</span>
+
+              <div class="cpm-field-with-alert">
+                <div class="cpm-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieEncoreEnPoste()"
+                      (ngModelChange)="onSalarieEnPosteChange($event)"
+                      name="salarieEncoreEnPoste">
+                    Le salarié est encore en poste
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceSalarieEnPoste() === 'IA') {
+                  <span class="cpm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().SALARIE_EN_POSTE; as alert) {
+                  <span class="cpm-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              @if (!salarieEncoreEnPoste()) {
+                <mat-form-field appearance="outline" class="cpm-inset-field">
+                  <mat-label>Date de rupture du contrat</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRuptureContrat()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateRuptureContrat" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="cpm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              }
+            </div>
+
+            <!-- Bloc chiffrage -->
+            <div class="cpm-block cpm-full">
+              <span class="cpm-block-label">Éléments de chiffrage</span>
+
+              <mat-form-field appearance="outline" class="cpm-inline-field">
+                <mat-label>Jours de CP déjà accordés par l'employeur</mat-label>
+                <input matInput type="number" min="0" step="0.5"
+                       [ngModel]="joursCpDejaAccordes()"
+                       (ngModelChange)="onJoursDejaAccordesChange($event)"
+                       name="joursCpDejaAccordes" />
+              </mat-form-field>
+              @if (provenanceJoursDejaAccordes() === 'IA') {
+                <span class="cpm-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="cpm-inline-field">
+                <mat-label>Salaire brut mensuel (€)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="salaireBrutMensuel()"
+                       (ngModelChange)="onSalaireBrutMensuelChange($event)"
+                       name="salaireBrutMensuel" />
+              </mat-form-field>
+              @if (provenanceSalaireBrutMensuel() === 'IA') {
+                <span class="cpm-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <div class="cpm-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cpm-result">
+            <!-- Bannière verdict — 4 niveaux (orange RAPPEL_SIGNIFICATIF / rouge ACTION_FORCLOSE) -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Bandeau alerte explicite si action forclose -->
+            @if (!result()!.actionEncoreOuverte) {
+              <div class="cpm-forclose-banner" data-testid="cpm-forclose-banner">
+                <mat-icon>error_outline</mat-icon>
+                <span>Action forclose au {{ result()!.dateLimiteAction }} — le délai de prescription est dépassé à la date du calcul.</span>
+              </div>
+            }
+
+            <!-- Chiffrage : jours acquis / jours rappel / valorisation -->
+            <div class="cpm-figures-block">
+              <div class="cpm-figure">
+                <span class="cpm-figure-label">Jours de CP acquis</span>
+                <span class="cpm-figure-value">{{ result()!.joursCpAcquis }} j</span>
+              </div>
+              <div class="cpm-figure">
+                <span class="cpm-figure-label">Jours de rappel</span>
+                <span class="cpm-figure-value">{{ result()!.joursCpRappel }} j</span>
+              </div>
+              <div class="cpm-figure">
+                <span class="cpm-figure-label">Valorisation indicative</span>
+                <span class="cpm-figure-value">{{ result()!.valorisationIndicativeEur | number:'1.0-2' }} €</span>
+              </div>
+            </div>
+
+            <!-- Échéance inter-onglets (SF-206-00b) — date limite d'action -->
+            @if (result()!.dateLimiteAction) {
+              <div class="cpm-deadline-block" data-testid="cpm-deadline-suivi-note">
+                <mat-icon>event</mat-icon>
+                <div class="cpm-deadline-content">
+                  <span class="cpm-deadline-label">Date limite d'action</span>
+                  <span class="cpm-deadline-date">{{ result()!.dateLimiteAction }}</span>
+                  <span class="cpm-deadline-suivi-note">
+                    Cette échéance est suivie dans l'onglet <strong>Suivi</strong>.
+                  </span>
+                </div>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="cpm-bases-block">
+                <span class="cpm-bases-label">Bases juridiques</span>
+                <div class="cpm-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="cpm-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="cpm-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="cpm-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

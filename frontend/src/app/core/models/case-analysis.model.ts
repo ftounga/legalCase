@@ -651,6 +651,22 @@ export interface TravailExtractedData {
   abandonPosteMedMentionneConsequences?: boolean | null;
   /** True si reprise ou justification effectivement intervenue dans le délai. */
   abandonPosteRepriseDansDelai?: boolean | null;
+  // -------------------------------------------------------------------------
+  // SF-206-03 — sous-objet `conges_payes_arret_maladie_detail` (FRANCE only)
+  // Pré-fill F-DT-75 (congés payés acquis pendant arrêt maladie).
+  // Tous nullables — restent `null` pour un dossier Travail BE (régime
+  // L.3141-5 / L.3141-5-1 CT purement français — loi 22/04/2024 art. 37).
+  // -------------------------------------------------------------------------
+  /** Type d'arrêt (MALADIE_NON_PROFESSIONNELLE | ACCIDENT_TRAVAIL_MALADIE_PRO). */
+  cpArretMaladieType?: string | null;
+  /** Nombre de mois cumulés d'arrêt maladie / AT-MP non décomptés par l'employeur. */
+  cpArretMaladieNombreMois?: number | null;
+  /** True si le salarié est encore en poste (vs sorti, contrat rompu). */
+  cpArretMaladieSalarieEnPoste?: boolean | null;
+  /** Date de rupture du contrat — requis si salarié sorti pour calculer le délai d'action (ISO YYYY-MM-DD). */
+  cpArretMaladieDateRupture?: string | null;
+  /** Jours de CP déjà accordés / décomptés par l'employeur (pour calcul du rappel net). */
+  cpArretMaladieJoursDejaAccordes?: number | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
