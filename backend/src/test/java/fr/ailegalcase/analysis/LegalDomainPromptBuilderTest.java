@@ -714,4 +714,66 @@ class LegalDomainPromptBuilderTest {
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
         assertThat(instruction).contains("YYYY-MM-DD");
     }
+
+    // ----------------------------------------------------------------------
+    // SF-246-29 : prompt Travail enrichi du sous-objet rupture_periode_essai_detail
+    // (pré-fill exhaustif F-DT-38, qualification rupture pendant période d'essai,
+    // FRANCE uniquement). 14 clés ajoutées au sous-objet, 2 whitelists d'enum.
+    // ----------------------------------------------------------------------
+    @Test
+    void domainSpecificInstruction_travail_containsRupturePeriodeEssaiDetailSubObject() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        // Le conteneur lui-même
+        assertThat(instruction).contains("rupture_periode_essai_detail");
+        // Les 14 clés du sous-objet
+        assertThat(instruction).contains("categorie_socio_professionnelle");
+        assertThat(instruction).contains("duree_cdd_mois");
+        assertThat(instruction).contains("duree_periode_essai_mois");
+        assertThat(instruction).contains("renouvellement_invoque");
+        assertThat(instruction).contains("accord_branche_renouvellement");
+        assertThat(instruction).contains("accord_ecrit_salarie_renouvellement");
+        assertThat(instruction).contains("auteur_rupture");
+        assertThat(instruction).contains("delai_prevenance_jours_appliques");
+        assertThat(instruction).contains("motif_lie_competences_professionnelles");
+        assertThat(instruction).contains("motif_economique_ou_organisationnel");
+        assertThat(instruction).contains("atteinte_liberte_fondamentale");
+        assertThat(instruction).contains("lettre_rupture_motivee");
+        assertThat(instruction).contains("motifs_averes_par_pieces");
+        assertThat(instruction).contains("ccn_plus_favorable_respectee");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_rupturePeriodeEssai_listsCategorieSocioCodes() {
+        // Whitelist 3 codes pour categorie_socio_professionnelle.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("OUVRIER_EMPLOYE");
+        assertThat(instruction).contains("AGENT_MAITRISE_TECHNICIEN");
+        assertThat(instruction).contains("CADRE");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_rupturePeriodeEssai_listsAuteurRuptureCodes() {
+        // Whitelist 2 codes pour auteur_rupture.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("EMPLOYEUR");
+        assertThat(instruction).contains("SALARIE");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_rupturePeriodeEssai_explicitlyExcludeBE() {
+        // Le sous-objet est FR uniquement — null / omis pour la BE (statut unique 2014).
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("rupture_periode_essai_detail");
+        assertThat(instruction).contains("Loi 26/12/2013");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_rupturePeriodeEssai_citesLegalReferences() {
+        // Le prompt cite L.1221-19 à L.1221-25 (cadre légal de l'essai) + jurisprudence.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("L.1221-19");
+        assertThat(instruction).contains("L.1221-25");
+        // Référence Cass. soc. 20/11/2007 (motif rattaché aux compétences)
+        assertThat(instruction).contains("20/11/2007");
+    }
 }

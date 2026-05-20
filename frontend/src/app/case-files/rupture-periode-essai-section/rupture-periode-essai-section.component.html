@@ -43,6 +43,9 @@
                   }
                 </mat-select>
               </mat-form-field>
+              @if (provenanceCategorie() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               <mat-form-field appearance="outline" class="rpe-inset-field">
                 <mat-label>Type de contrat</mat-label>
@@ -66,6 +69,9 @@
                          (ngModelChange)="onDureeCddChange($event)"
                          name="dureeCddMois" />
                 </mat-form-field>
+                @if (provenanceDureeCdd() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
               }
 
               <mat-form-field appearance="outline" class="rpe-inset-field">
@@ -91,6 +97,9 @@
                        (ngModelChange)="onDureeEssaiChange($event)"
                        name="dureePeriodeEssaiContractuelleMois" />
               </mat-form-field>
+              @if (provenanceDureeEssai() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               <div class="rpe-toggle-row">
                 <mat-slide-toggle
@@ -100,24 +109,33 @@
                   Renouvellement invoqué (L.1221-23)
                 </mat-slide-toggle>
               </div>
+              @if (provenanceRenouvellement() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               @if (renouvellementInvoque()) {
                 <div class="rpe-toggle-row">
                   <mat-slide-toggle
                       [ngModel]="accordBrancheRenouvellement()"
-                      (ngModelChange)="accordBrancheRenouvellement.set($event)"
+                      (ngModelChange)="onAccordBrancheChange($event)"
                       name="accordBrancheRenouvellement">
                     Accord de branche autorisant le renouvellement
                   </mat-slide-toggle>
                 </div>
+                @if (provenanceAccordBranche() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
                 <div class="rpe-toggle-row">
                   <mat-slide-toggle
                       [ngModel]="accordEcritSalarieRenouvellement()"
-                      (ngModelChange)="accordEcritSalarieRenouvellement.set($event)"
+                      (ngModelChange)="onAccordEcritSalarieChange($event)"
                       name="accordEcritSalarieRenouvellement">
                     Accord exprès écrit du salarié obtenu
                   </mat-slide-toggle>
                 </div>
+                @if (provenanceAccordEcritSalarie() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
               }
             </div>
 
@@ -135,6 +153,9 @@
                   }
                 </mat-select>
               </mat-form-field>
+              @if (provenanceAuteur() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               <mat-form-field appearance="outline" class="rpe-inset-field">
                 <mat-label>Date de rupture</mat-label>
@@ -155,6 +176,9 @@
                        name="delaiPrevenanceJoursAppliques" />
                 <mat-hint>L.1221-25 : 24h / 48h / 2 sem. / 1 mois (employeur) — 24h / 48h (salarié)</mat-hint>
               </mat-form-field>
+              @if (provenancePrevenance() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
             </div>
 
             <!-- Bloc Motif -->
@@ -175,20 +199,26 @@
               <div class="rpe-toggle-row">
                 <mat-slide-toggle
                     [ngModel]="motifLieAuxCompetencesProfessionnelles()"
-                    (ngModelChange)="motifLieAuxCompetencesProfessionnelles.set($event)"
+                    (ngModelChange)="onMotifLieCompetencesChange($event)"
                     name="motifLieAuxCompetencesProfessionnelles">
                   Motif lié aux compétences professionnelles (Cass. soc. 20/11/2007)
                 </mat-slide-toggle>
               </div>
+              @if (provenanceMotifLieCompetences() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               <div class="rpe-toggle-row">
                 <mat-slide-toggle
                     [ngModel]="motifEconomiqueOuOrganisationnel()"
-                    (ngModelChange)="motifEconomiqueOuOrganisationnel.set($event)"
+                    (ngModelChange)="onMotifEconomiqueChange($event)"
                     name="motifEconomiqueOuOrganisationnel">
                   Motif économique / organisationnel déguisé
                 </mat-slide-toggle>
               </div>
+              @if (provenanceMotifEconomique() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               <div class="rpe-toggle-row">
                 <mat-slide-toggle
@@ -198,6 +228,9 @@
                   Lettre de rupture motivée (atténuation possible si motifs avérés)
                 </mat-slide-toggle>
               </div>
+              @if (provenanceLettreMotivee() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
 
               @if (lettreRuptureMotivee()) {
                 <div class="rpe-toggle-row">
@@ -208,6 +241,9 @@
                     Motifs avérés par les pièces du dossier
                   </mat-slide-toggle>
                 </div>
+                @if (provenanceMotifsAveres() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
               }
             </div>
 
@@ -261,6 +297,9 @@
                           name="atteinteLiberteFondamentale"></textarea>
                 <mat-hint>Ex. licenciement consécutif à expression opinion politique, religieuse, vie privée…</mat-hint>
               </mat-form-field>
+              @if (provenanceAtteinteLiberte() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
             </div>
 
             <!-- Bloc Convention collective + Salaire -->
@@ -288,6 +327,9 @@
                     Dispositions CCN plus favorables respectées
                   </mat-slide-toggle>
                 </div>
+                @if (provenanceCcnPlusFavorable() === 'IA') {
+                  <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
               }
 
               <mat-form-field appearance="outline" class="rpe-inset-field">
