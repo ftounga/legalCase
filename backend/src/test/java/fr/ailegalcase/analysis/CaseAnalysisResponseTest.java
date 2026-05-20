@@ -4728,6 +4728,177 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateNaissanceDemandeurDetectee()).isEqualTo("2000-12-01");
     }
 
+    // ===== SF-246-24 — extractFamilleData : succession_detection_v2 =====
+
+    @Test
+    void extractFamilleData_successionV2_casNominal_tousLesChamps() throws Exception {
+        // Cas nominal : sous-objet complet avec toutes les valeurs valides.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection_v2": {
+                      "qualite_heritier": "PREMIER_RANG",
+                      "actes_equivalent_acceptation_dejas_poses": true,
+                      "dettes_incertaines": false,
+                      "conjoint_survivant": true,
+                      "qualite_du_demandeur_reserve": "HERITIER_RESERVATAIRE_DESCENDANT",
+                      "qualite_heritier_rapport": "DESCENDANT",
+                      "donation_dispense_de_rapport": false,
+                      "nature_presumee_non_rapportable": true,
+                      "tous_descendants_communs_avec_conjoint": true,
+                      "forme_donation": "NOTARIEE",
+                      "saine_esprit_donateur": true,
+                      "respect_quotite_disponible": true,
+                      "forme_testament": "OLOGRAPHE",
+                      "saine_esprit_testateur": true,
+                      "legs_excede_quotite_disponible": false
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteHeritierDetectee()).isEqualTo("PREMIER_RANG");
+        assertThat(f.actesEquivalentAcceptationDejaPosesDetected()).isTrue();
+        assertThat(f.dettesIncertainesDetected()).isFalse();
+        assertThat(f.conjointSurvivantDetected()).isTrue();
+        assertThat(f.qualiteDuDemandeurReserveDetecte()).isEqualTo("HERITIER_RESERVATAIRE_DESCENDANT");
+        assertThat(f.qualiteHeritierRapportDetectee()).isEqualTo("DESCENDANT");
+        assertThat(f.donationDispenseDeRapportDetected()).isFalse();
+        assertThat(f.naturePresumeeNonRapportableDetected()).isTrue();
+        assertThat(f.tousDescendantsCommunsAvecConjointDetected()).isTrue();
+        assertThat(f.formeDonationDetectee()).isEqualTo("NOTARIEE");
+        assertThat(f.saineDEspritDonateurDetected()).isTrue();
+        assertThat(f.respectQuotiteDisponibleDetected()).isTrue();
+        assertThat(f.formeTestamentDetectee()).isEqualTo("OLOGRAPHE");
+        assertThat(f.saineDEspritTestateurDetected()).isTrue();
+        assertThat(f.legsExcedeQuotiteDisponibleDetected()).isFalse();
+    }
+
+    @Test
+    void extractFamilleData_successionV2_sousObjetAbsent_tousNulls() throws Exception {
+        // Sous-objet absent → no-op gracieux : tous les 15 champs null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteHeritierDetectee()).isNull();
+        assertThat(f.actesEquivalentAcceptationDejaPosesDetected()).isNull();
+        assertThat(f.dettesIncertainesDetected()).isNull();
+        assertThat(f.conjointSurvivantDetected()).isNull();
+        assertThat(f.qualiteDuDemandeurReserveDetecte()).isNull();
+        assertThat(f.qualiteHeritierRapportDetectee()).isNull();
+        assertThat(f.donationDispenseDeRapportDetected()).isNull();
+        assertThat(f.naturePresumeeNonRapportableDetected()).isNull();
+        assertThat(f.tousDescendantsCommunsAvecConjointDetected()).isNull();
+        assertThat(f.formeDonationDetectee()).isNull();
+        assertThat(f.saineDEspritDonateurDetected()).isNull();
+        assertThat(f.respectQuotiteDisponibleDetected()).isNull();
+        assertThat(f.formeTestamentDetectee()).isNull();
+        assertThat(f.saineDEspritTestateurDetected()).isNull();
+        assertThat(f.legsExcedeQuotiteDisponibleDetected()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionV2_valeursHorsWhitelist_retourneNull() throws Exception {
+        // Valeurs hors whitelist → toutes whitelistées retournent null (fail-open).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection_v2": {
+                      "qualite_heritier": "TROISIEME_RANG",
+                      "qualite_du_demandeur_reserve": "LEGATAIRE_UNIVERSEL",
+                      "qualite_heritier_rapport": "NEVEU",
+                      "forme_donation": "ORALE",
+                      "forme_testament": "INTERNATIONAL"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Chaînes hors whitelist → null
+        assertThat(f.qualiteHeritierDetectee()).isNull();
+        assertThat(f.qualiteDuDemandeurReserveDetecte()).isNull();
+        assertThat(f.qualiteHeritierRapportDetectee()).isNull();
+        assertThat(f.formeDonationDetectee()).isNull();
+        assertThat(f.formeTestamentDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionV2_boolNonParseable_retourneNull() throws Exception {
+        // Valeur de type string pour un booléen → booleanOrNull() retourne null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection_v2": {
+                      "conjoint_survivant": "oui",
+                      "dettes_incertaines": 1,
+                      "actes_equivalent_acceptation_dejas_poses": "peut-etre"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.conjointSurvivantDetected()).isNull();
+        assertThat(f.dettesIncertainesDetected()).isNull();
+        assertThat(f.actesEquivalentAcceptationDejaPosesDetected()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_successionV2_seulSousObjet_remonteLeRecord() throws Exception {
+        // Seul succession_detection_v2 renseigné (aucun flag booléen FR/BE) → record non null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_detection_v2": {
+                      "conjoint_survivant": true
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.conjointSurvivantDetected()).isTrue();
+    }
+
+    @Test
+    void extractFamilleData_successionV2_whitelistInsensibleCasse_normaliseEnMajuscules() throws Exception {
+        // Les valeurs en minuscules passent la whitelist (normalisées en MAJUSCULES).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "succession_envisagee": true,
+                    "succession_detection_v2": {
+                      "qualite_heritier": "premier_rang",
+                      "forme_donation": "manuelle",
+                      "qualite_heritier_rapport": "conjoint_survivant"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteHeritierDetectee()).isEqualTo("PREMIER_RANG");
+        assertThat(f.formeDonationDetectee()).isEqualTo("MANUELLE");
+        assertThat(f.qualiteHeritierRapportDetectee()).isEqualTo("CONJOINT_SURVIVANT");
+    }
+
     // ===== SF-246-22 — extractTravailData : procedure_travail_detection =====
 
     @Test

@@ -1630,7 +1630,32 @@ public record CaseAnalysisResponse(
             // Sous-objet IA source : `famille_extracted_data.changement_etat_civil_detection`.
             // Distinct des dates de naissance d'enfant (SF-246-09 — acteurs différents) et de
             // la date de la requête (fait juridique différent).
-            String dateNaissanceDemandeurDetectee) {
+            String dateNaissanceDemandeurDetectee,
+            // SF-246-24 : 15 champs booléens/énumérés `*Detected` pour résorber la dette D2
+            // du lot Famille FR successions/libéralités (7 outils F-FA-24).
+            // Source : `famille_extracted_data.succession_detection_v2`.
+            // Famille FR uniquement, tous nullables — le prompt impose null hors FR / hors certitude.
+            // --- acceptation-renonciation (F-FA-24) ---
+            String qualiteHeritierDetectee,           // 'PREMIER_RANG' | 'SECOND_RANG'
+            Boolean actesEquivalentAcceptationDejaPosesDetected,
+            Boolean dettesIncertainesDetected,
+            // --- reserve-heriditaire (F-FA-24) ---
+            Boolean conjointSurvivantDetected,
+            String qualiteDuDemandeurReserveDetecte,  // 'HERITIER_RESERVATAIRE_DESCENDANT' | 'CONJOINT_SURVIVANT'
+            // --- rapport-succession (F-FA-24) ---
+            String qualiteHeritierRapportDetectee,    // 'DESCENDANT' | 'CONJOINT_SURVIVANT'
+            Boolean donationDispenseDeRapportDetected,
+            Boolean naturePresumeeNonRapportableDetected,
+            // --- devolution-legale (F-FA-24) —— conjointSurvivantDetected mutualisé ci-dessus ---
+            Boolean tousDescendantsCommunsAvecConjointDetected,
+            // --- donation (F-FA-24) ---
+            String formeDonationDetectee,             // 'NOTARIEE' | 'MANUELLE' | 'INDIRECTE' | 'DEGUISEE'
+            Boolean saineDEspritDonateurDetected,
+            Boolean respectQuotiteDisponibleDetected,
+            // --- testament-validite (F-FA-24) ---
+            String formeTestamentDetectee,            // 'OLOGRAPHE' | 'AUTHENTIQUE' | 'MYSTIQUE'
+            Boolean saineDEspritTestateurDetected,
+            Boolean legsExcedeQuotiteDisponibleDetected) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1727,6 +1752,22 @@ public record CaseAnalysisResponse(
             private java.util.List<String> fautesDetectees;
             // SF-246-11 : date de naissance du demandeur pour pré-fill F-FA-26 (Famille FR).
             private String dateNaissanceDemandeurDetectee;
+            // SF-246-24 : 15 champs booléens/énumérés D2 successions/libéralités (F-FA-24).
+            private String qualiteHeritierDetectee;
+            private Boolean actesEquivalentAcceptationDejaPosesDetected;
+            private Boolean dettesIncertainesDetected;
+            private Boolean conjointSurvivantDetected;
+            private String qualiteDuDemandeurReserveDetecte;
+            private String qualiteHeritierRapportDetectee;
+            private Boolean donationDispenseDeRapportDetected;
+            private Boolean naturePresumeeNonRapportableDetected;
+            private Boolean tousDescendantsCommunsAvecConjointDetected;
+            private String formeDonationDetectee;
+            private Boolean saineDEspritDonateurDetected;
+            private Boolean respectQuotiteDisponibleDetected;
+            private String formeTestamentDetectee;
+            private Boolean saineDEspritTestateurDetected;
+            private Boolean legsExcedeQuotiteDisponibleDetected;
 
             private Builder() {}
 
@@ -1813,6 +1854,22 @@ public record CaseAnalysisResponse(
             public Builder fautesDetectees(java.util.List<String> v) { this.fautesDetectees = v; return this; }
             // SF-246-11 : setter date de naissance demandeur F-FA-26.
             public Builder dateNaissanceDemandeurDetectee(String v) { this.dateNaissanceDemandeurDetectee = v; return this; }
+            // SF-246-24 : setters des 15 champs booléens/énumérés D2 successions/libéralités.
+            public Builder qualiteHeritierDetectee(String v) { this.qualiteHeritierDetectee = v; return this; }
+            public Builder actesEquivalentAcceptationDejaPosesDetected(Boolean v) { this.actesEquivalentAcceptationDejaPosesDetected = v; return this; }
+            public Builder dettesIncertainesDetected(Boolean v) { this.dettesIncertainesDetected = v; return this; }
+            public Builder conjointSurvivantDetected(Boolean v) { this.conjointSurvivantDetected = v; return this; }
+            public Builder qualiteDuDemandeurReserveDetecte(String v) { this.qualiteDuDemandeurReserveDetecte = v; return this; }
+            public Builder qualiteHeritierRapportDetectee(String v) { this.qualiteHeritierRapportDetectee = v; return this; }
+            public Builder donationDispenseDeRapportDetected(Boolean v) { this.donationDispenseDeRapportDetected = v; return this; }
+            public Builder naturePresumeeNonRapportableDetected(Boolean v) { this.naturePresumeeNonRapportableDetected = v; return this; }
+            public Builder tousDescendantsCommunsAvecConjointDetected(Boolean v) { this.tousDescendantsCommunsAvecConjointDetected = v; return this; }
+            public Builder formeDonationDetectee(String v) { this.formeDonationDetectee = v; return this; }
+            public Builder saineDEspritDonateurDetected(Boolean v) { this.saineDEspritDonateurDetected = v; return this; }
+            public Builder respectQuotiteDisponibleDetected(Boolean v) { this.respectQuotiteDisponibleDetected = v; return this; }
+            public Builder formeTestamentDetectee(String v) { this.formeTestamentDetectee = v; return this; }
+            public Builder saineDEspritTestateurDetected(Boolean v) { this.saineDEspritTestateurDetected = v; return this; }
+            public Builder legsExcedeQuotiteDisponibleDetected(Boolean v) { this.legsExcedeQuotiteDisponibleDetected = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1858,7 +1915,23 @@ public record CaseAnalysisResponse(
                         // SF-246-03 : codes de faute détectés (F-FA-09).
                         fautesDetectees,
                         // SF-246-11 : date de naissance demandeur F-FA-26.
-                        dateNaissanceDemandeurDetectee);
+                        dateNaissanceDemandeurDetectee,
+                        // SF-246-24 : 15 champs booléens/énumérés D2 successions/libéralités (F-FA-24).
+                        qualiteHeritierDetectee,
+                        actesEquivalentAcceptationDejaPosesDetected,
+                        dettesIncertainesDetected,
+                        conjointSurvivantDetected,
+                        qualiteDuDemandeurReserveDetecte,
+                        qualiteHeritierRapportDetectee,
+                        donationDispenseDeRapportDetected,
+                        naturePresumeeNonRapportableDetected,
+                        tousDescendantsCommunsAvecConjointDetected,
+                        formeDonationDetectee,
+                        saineDEspritDonateurDetected,
+                        respectQuotiteDisponibleDetected,
+                        formeTestamentDetectee,
+                        saineDEspritTestateurDetected,
+                        legsExcedeQuotiteDisponibleDetected);
             }
         }
     }
@@ -3727,6 +3800,76 @@ public record CaseAnalysisResponse(
                 ? isoDateOrNull(cecd, "date_naissance_demandeur")
                 : null;
         boolean cecDetectionPresent = dateNaissanceDemandeurDetectee != null;
+        // SF-246-24 : sous-objet `succession_detection_v2` — 15 champs booléens/énumérés de
+        // qualification juridique successorale pour pré-fill des 7 outils F-FA-24.
+        // Complémentaire à `succession_detection` (SF-246-06) ; les deux coexistent.
+        // Famille FR uniquement — prompt impose null pour dossiers BE.
+        JsonNode sdv2 = node.get("succession_detection_v2");
+        boolean sdv2Object = sdv2 != null && sdv2.isObject();
+        String qualiteHeritierDetectee = sdv2Object
+                ? whitelistedOrNull(stringOrNull(sdv2, "qualite_heritier"), "PREMIER_RANG", "SECOND_RANG")
+                : null;
+        Boolean actesEquivalentAcceptationDejaPosesDetected = sdv2Object
+                ? booleanOrNull(sdv2, "actes_equivalent_acceptation_dejas_poses")
+                : null;
+        Boolean dettesIncertainesDetected = sdv2Object
+                ? booleanOrNull(sdv2, "dettes_incertaines")
+                : null;
+        Boolean conjointSurvivantDetected = sdv2Object
+                ? booleanOrNull(sdv2, "conjoint_survivant")
+                : null;
+        String qualiteDuDemandeurReserveDetecte = sdv2Object
+                ? whitelistedOrNull(stringOrNull(sdv2, "qualite_du_demandeur_reserve"),
+                        "HERITIER_RESERVATAIRE_DESCENDANT", "CONJOINT_SURVIVANT")
+                : null;
+        String qualiteHeritierRapportDetectee = sdv2Object
+                ? whitelistedOrNull(stringOrNull(sdv2, "qualite_heritier_rapport"),
+                        "DESCENDANT", "CONJOINT_SURVIVANT")
+                : null;
+        Boolean donationDispenseDeRapportDetected = sdv2Object
+                ? booleanOrNull(sdv2, "donation_dispense_de_rapport")
+                : null;
+        Boolean naturePresumeeNonRapportableDetected = sdv2Object
+                ? booleanOrNull(sdv2, "nature_presumee_non_rapportable")
+                : null;
+        Boolean tousDescendantsCommunsAvecConjointDetected = sdv2Object
+                ? booleanOrNull(sdv2, "tous_descendants_communs_avec_conjoint")
+                : null;
+        String formeDonationDetectee = sdv2Object
+                ? whitelistedOrNull(stringOrNull(sdv2, "forme_donation"),
+                        "NOTARIEE", "MANUELLE", "INDIRECTE", "DEGUISEE")
+                : null;
+        Boolean saineDEspritDonateurDetected = sdv2Object
+                ? booleanOrNull(sdv2, "saine_esprit_donateur")
+                : null;
+        Boolean respectQuotiteDisponibleDetected = sdv2Object
+                ? booleanOrNull(sdv2, "respect_quotite_disponible")
+                : null;
+        String formeTestamentDetectee = sdv2Object
+                ? whitelistedOrNull(stringOrNull(sdv2, "forme_testament"),
+                        "OLOGRAPHE", "AUTHENTIQUE", "MYSTIQUE")
+                : null;
+        Boolean saineDEspritTestateurDetected = sdv2Object
+                ? booleanOrNull(sdv2, "saine_esprit_testateur")
+                : null;
+        Boolean legsExcedeQuotiteDisponibleDetected = sdv2Object
+                ? booleanOrNull(sdv2, "legs_excede_quotite_disponible")
+                : null;
+        boolean successionV2DetectionPresent = qualiteHeritierDetectee != null
+                || actesEquivalentAcceptationDejaPosesDetected != null
+                || dettesIncertainesDetected != null
+                || conjointSurvivantDetected != null
+                || qualiteDuDemandeurReserveDetecte != null
+                || qualiteHeritierRapportDetectee != null
+                || donationDispenseDeRapportDetected != null
+                || naturePresumeeNonRapportableDetected != null
+                || tousDescendantsCommunsAvecConjointDetected != null
+                || formeDonationDetectee != null
+                || saineDEspritDonateurDetected != null
+                || respectQuotiteDisponibleDetected != null
+                || formeTestamentDetectee != null
+                || saineDEspritTestateurDetected != null
+                || legsExcedeQuotiteDisponibleDetected != null;
 
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
@@ -3741,7 +3884,8 @@ public record CaseAnalysisResponse(
                 && !filiationDetectionPresent
                 && !autoriteParentaleDetectionPresent
                 && !divorceFauteDetectionPresent
-                && !cecDetectionPresent) {
+                && !cecDetectionPresent
+                && !successionV2DetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -3833,6 +3977,23 @@ public record CaseAnalysisResponse(
                 .fautesDetectees(fautesDetectees)
                 // SF-246-11 : date de naissance demandeur pour pré-fill F-FA-26.
                 .dateNaissanceDemandeurDetectee(dateNaissanceDemandeurDetectee)
+                // SF-246-24 : 15 champs booléens/énumérés de qualification juridique
+                // successorale — sous-objet `succession_detection_v2`.
+                .qualiteHeritierDetectee(qualiteHeritierDetectee)
+                .actesEquivalentAcceptationDejaPosesDetected(actesEquivalentAcceptationDejaPosesDetected)
+                .dettesIncertainesDetected(dettesIncertainesDetected)
+                .conjointSurvivantDetected(conjointSurvivantDetected)
+                .qualiteDuDemandeurReserveDetecte(qualiteDuDemandeurReserveDetecte)
+                .qualiteHeritierRapportDetectee(qualiteHeritierRapportDetectee)
+                .donationDispenseDeRapportDetected(donationDispenseDeRapportDetected)
+                .naturePresumeeNonRapportableDetected(naturePresumeeNonRapportableDetected)
+                .tousDescendantsCommunsAvecConjointDetected(tousDescendantsCommunsAvecConjointDetected)
+                .formeDonationDetectee(formeDonationDetectee)
+                .saineDEspritDonateurDetected(saineDEspritDonateurDetected)
+                .respectQuotiteDisponibleDetected(respectQuotiteDisponibleDetected)
+                .formeTestamentDetectee(formeTestamentDetectee)
+                .saineDEspritTestateurDetected(saineDEspritTestateurDetected)
+                .legsExcedeQuotiteDisponibleDetected(legsExcedeQuotiteDisponibleDetected)
                 .build();
     }
 

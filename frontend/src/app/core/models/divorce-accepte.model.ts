@@ -206,18 +206,17 @@ export interface FamilleExtractedData {
   /** SF-FA-17-02 : valeur estimée des biens en indivision (€). */
   valeurBiensIndivisionEur?: number | null;
   /**
-   * SF-FA-24-02 : pré-fill outil "Dévolution légale successorale"
-   * (F-FA-24, art. 731 et s. Cciv). Tous les champs sont optionnels —
-   * le composant est no-op gracieux si l'IA ne les a pas détectés.
-   *
-   * `conjointSurvivantDetected` : présence d'un conjoint survivant.
+   * SF-246-24 : présence d'un conjoint survivant dans la succession (art. 756-757-3 Cciv).
+   * Champ mutualisé entre les outils reserve-heriditaire et devolution-legale.
+   * Source backend réelle : `succession_detection_v2.conjoint_survivant`.
    */
   conjointSurvivantDetected?: boolean | null;
   /** SF-FA-24-02 : nombre de descendants détecté par l'IA. */
   nbDescendantsDetecte?: number | null;
   /**
-   * SF-FA-24-02 : descendants tous communs au défunt + au conjoint
-   * (vs famille recomposée). Détermine si l'option ¼/usufruit est ouverte.
+   * SF-246-24 : tous les descendants du défunt sont-ils issus de l'union avec le conjoint
+   * survivant ? (art. 757 Cciv — détermine si l'option ¼ PJ vs usufruit total est ouverte).
+   * Source backend réelle : `succession_detection_v2.tous_descendants_communs_avec_conjoint`.
    */
   tousDescendantsCommunsAvecConjointDetected?: boolean | null;
   /** SF-FA-24-02 : nombre de frères/sœurs détecté par l'IA. */
@@ -245,11 +244,26 @@ export interface FamilleExtractedData {
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
   /**
-   * SF-FA-24-04 : pré-fill validité testament (art. 967-1035 Cciv).
+   * SF-246-24 : forme juridique du testament (art. 967-1035 Cciv) — OLOGRAPHE, AUTHENTIQUE ou
+   * MYSTIQUE. Source backend réelle : `succession_detection_v2.forme_testament`.
    */
   formeTestamentDetectee?: string | null;
+  /**
+   * SF-246-06 : date de rédaction du testament (ISO YYYY-MM-DD). Source backend réelle :
+   * `succession_detection.date_redaction_testament`.
+   */
   dateRedactionTestamentDetectee?: string | null;
+  /**
+   * SF-246-24 : le testateur était-il sain d'esprit lors de la rédaction du testament ?
+   * (art. 901 Cciv — capacité mentale). Source backend réelle :
+   * `succession_detection_v2.saine_esprit_testateur`.
+   */
   saineDEspritTestateurDetected?: boolean | null;
+  /**
+   * SF-246-24 : le legs excède-t-il la quotité disponible, portant atteinte à la réserve ?
+   * (art. 912-920 Cciv — legs réductible). Source backend réelle :
+   * `succession_detection_v2.legs_excede_quotite_disponible`.
+   */
   legsExcedeQuotiteDisponibleDetected?: boolean | null;
   /**
    * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 Cciv).
@@ -304,11 +318,25 @@ export interface FamilleExtractedData {
   pereDesigneRefuseADNDetected?: boolean | null;
   motifsSerieuxRechercheDetected?: boolean | null;
   /**
-   * SF-FA-24-06 : pré-fill validité donation entre vifs (art. 893-958 Cciv).
+   * SF-246-24 : forme juridique de la donation (art. 931-939 Cciv) — NOTARIEE, MANUELLE,
+   * INDIRECTE ou DEGUISEE. Source backend réelle : `succession_detection_v2.forme_donation`.
    */
   formeDonationDetectee?: string | null;
+  /**
+   * SF-246-06 : date de l'acte de donation (ISO YYYY-MM-DD). Source backend réelle :
+   * `succession_detection.date_donation`.
+   */
   dateDonationDetectee?: string | null;
+  /**
+   * SF-246-24 : le donateur était-il sain d'esprit au moment de la donation ?
+   * (art. 901 Cciv — capacité mentale). Source backend réelle :
+   * `succession_detection_v2.saine_esprit_donateur`.
+   */
   saineDEspritDonateurDetected?: boolean | null;
+  /**
+   * SF-246-24 : la donation respecte-t-elle la quotité disponible (art. 912-919-2 Cciv) ?
+   * Source backend réelle : `succession_detection_v2.respect_quotite_disponible`.
+   */
   respectQuotiteDisponibleDetected?: boolean | null;
   /**
    * SF-FA-24-08 : pré-fill réserve héréditaire (art. 913 + 914-1 + 920-928 Cciv).
@@ -317,6 +345,10 @@ export interface FamilleExtractedData {
   montantSuccessionEurDetecte?: number | null;
   montantLibsTotalEurDetecte?: number | null;
   dateOuvertureSuccessionDetectee?: string | null;
+  /**
+   * SF-246-24 : qualité du demandeur de la réserve héréditaire (art. 913 Cciv).
+   * Source backend réelle : `succession_detection_v2.qualite_du_demandeur_reserve`.
+   */
   qualiteDuDemandeurReserveDetecte?:
     | 'HERITIER_RESERVATAIRE_DESCENDANT'
     | 'CONJOINT_SURVIVANT'
@@ -350,15 +382,34 @@ export interface FamilleExtractedData {
    */
   typeIndivisionSuccessoraleDetecte?: string | null;
   /**
-   * SF-FA-24-14 : pré-fill rapport à succession (art. 843-863 + 919 Cciv).
+   * SF-246-06 : montant des donations reçues par l'héritier pour rapport à succession
+   * (art. 843 Cciv). Source backend réelle : `succession_detection.montant_donations_recues_eur`.
    */
   montantDonationsRecuesEurDetecte?: number | null;
+  /**
+   * SF-246-06 : valeur de la donation réévaluée au jour du partage (art. 860 Cciv).
+   * Source backend réelle : `succession_detection.valeur_donation_au_jour_partage_eur`.
+   */
   valeurDonationAuJourPartageEurDetectee?: number | null;
+  /**
+   * SF-246-24 : qualité de l'héritier tenu au rapport à succession (art. 843 Cciv).
+   * DESCENDANT ou CONJOINT_SURVIVANT. Source backend réelle :
+   * `succession_detection_v2.qualite_heritier_rapport`.
+   * Distinct de `qualiteHeritierDetectee` (acceptation-renonciation, art. 734-754 Cciv).
+   */
   qualiteHeritierRapportDetectee?:
     | 'DESCENDANT'
     | 'CONJOINT_SURVIVANT'
     | null;
+  /**
+   * SF-246-24 : la donation comporte-t-elle une clause de dispense de rapport (art. 843 al.1 Cciv) ?
+   * Source backend réelle : `succession_detection_v2.donation_dispense_de_rapport`.
+   */
   donationDispenseDeRapportDetected?: boolean | null;
+  /**
+   * SF-246-24 : la nature présumée de la libéralité est-elle non rapportable (legs, art. 843 al.2 Cciv) ?
+   * Source backend réelle : `succession_detection_v2.nature_presumee_non_rapportable`.
+   */
   naturePresumeeNonRapportableDetected?: boolean | null;
   /**
    * F-210 SF-210-02 : flag pivot "médiation familiale obligatoire pré-saisine
@@ -384,11 +435,23 @@ export interface FamilleExtractedData {
   actifBrutSuccessionEurDetecte?: number | null;
   /** F-210 SF-210-04 : passif succession détecté (€). */
   passifSuccessionEurDetecte?: number | null;
-  /** F-210 SF-210-04 : qualité héritier détectée (PREMIER_RANG / SECOND_RANG). */
+  /**
+   * SF-246-24 : qualité héritier détectée pour l'outil acceptation-renonciation
+   * (art. 734-754 Cciv). PREMIER_RANG = descendants ; SECOND_RANG = ascendants et
+   * collatéraux privilégiés. Source backend réelle : `succession_detection_v2.qualite_heritier`.
+   * Distinct de `qualiteHeritierRapportDetectee` (rapport à succession, art. 843 Cciv).
+   */
   qualiteHeritierDetectee?: 'PREMIER_RANG' | 'SECOND_RANG' | null;
-  /** F-210 SF-210-04 : actes équivalents acceptation détectés (art. 783). */
+  /**
+   * SF-246-24 : des actes équivalant à une acceptation tacite (art. 783 Cciv) ont-ils
+   * déjà été posés ? Source backend réelle : `succession_detection_v2.actes_equivalent_acceptation_dejas_poses`.
+   */
   actesEquivalentAcceptationDejaPosesDetected?: boolean | null;
-  /** F-210 SF-210-04 : dettes incertaines détectées. */
+  /**
+   * SF-246-24 : la succession comporte-t-elle des dettes incertaines ou à risque élevé ?
+   * (motif d'acceptation à concurrence de l'actif net art. 787+ ou de renonciation)
+   * Source backend réelle : `succession_detection_v2.dettes_incertaines`.
+   */
   dettesIncertainesDetected?: boolean | null;
   /**
    * SF-246-03 : codes de fautes matrimoniales détectées par le pipeline IA pour
