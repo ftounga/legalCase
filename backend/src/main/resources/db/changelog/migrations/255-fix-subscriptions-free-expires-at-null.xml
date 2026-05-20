@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="255-fix-subscriptions-free-expires-at-null" author="ailegalcase">
+        <comment>
+            F-251 SF-251-01 — corrige les souscriptions FREE provisionnées hors
+            chaîne WorkspaceService.createWorkspace (canal bypass IHM super-admin)
+            qui avaient expires_at NULL. Applique
+            COALESCE(started_at, NOW()) + 14 jours pour rétablir l'affichage trial
+            côté avocat et armer PlanLimitService.isExpiredFree.
+
+            Idempotent : la clause WHERE expires_at IS NULL fait que la migration
+            ré-exécutée ne touchera plus aucune row.
+
+            Plans payants (SOLO/TEAM/PRO) délibérément exclus — leur expires_at
+            est piloté par les webhooks Stripe et peut être légitimement NULL.
+
+            Cas historique : workspace 5d07e421-3e3c-4076-91a1-9ff8e8aaf7b8
+            (compte démo Marjolaine RENVERSEZ) — diagnostic 2026-05-19.
+        </comment>
+        <sql dbms="postgresql">
+            UPDATE subscriptions
+            SET expires_at = COALESCE(started_at, NOW()) + INTERVAL '14 days'
+            WHERE plan_code = 'FREE'
+              AND expires_at IS NULL;
+        </sql>
+        <sql dbms="h2">
+            UPDATE subscriptions
+            SET expires_at = DATEADD('DAY', 14, COALESCE(started_at, NOW()))
+            WHERE plan_code = 'FREE'
+              AND expires_at IS NULL;
+        </sql>
+        <rollback>
+            <!--
+                No-op assumé : impossible de restaurer NULL aveuglément sans
+                perdre les rows qui auraient été légitimement complétées par
+                d'autres flux (création nominale ou SF-251-02 @PrePersist) après
+                cette migration. Pour rollback réel, restaurer depuis backup.
+            -->
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
