@@ -178,7 +178,11 @@ export interface FamilleExtractedData {
    * `IDENTIFICATION_GENRE` / `AUTRE`) — toute autre valeur ignorée.
    */
   motifChangementDetecte?: string | null;
-  /** SF-FA-26-02 : date de naissance du demandeur (ISO YYYY-MM-DD). */
+  /**
+   * SF-FA-26-02 / SF-246-11 : date de naissance du demandeur du changement
+   * d'état civil (ISO YYYY-MM-DD). Source backend réelle (SF-246-11) :
+   * `changement_etat_civil_detection.date_naissance_demandeur`.
+   */
   dateNaissanceDemandeurDetectee?: string | null;
   /** SF-FA-26-02 : demandeur majeur détecté par l'IA. */
   majeurDemandeurDetected?: boolean | null;

@@ -474,8 +474,9 @@ export class ChangementEtatCivilSectionComponent implements OnInit, OnChanges {
    * par défaut indique modification manuelle).
    */
   private prefillFromAi(): void {
-    // F-236 SF-236-02 — délégation au helper partagé.
-    const h = { aiData: this.aiDataSignal() };
+    // SF-246-11 + F-236 SF-236-02 — délégation au helper partagé.
+    // workspaceCountry transmis : computeDateNaissance() applique le guard FR.
+    const h = { aiData: this.aiDataSignal(), workspaceCountry: this.workspaceCountry };
 
     const t = ChangementEtatCivilPrefillRules.computeTypeChangement(h);
     if (t !== null && (this.typeChangement() === null || this.provenanceTypeChangement() === 'IA')) {

@@ -4616,6 +4616,118 @@ class CaseAnalysisResponseTest {
         assertThat(f.fautesDetectees()).hasSize(8);
     }
 
+    // =========================================================================
+    // SF-246-11 — changement_etat_civil_detection (dateNaissanceDemandeurDetectee)
+    // =========================================================================
+
+    @Test
+    void extractFamilleData_cecDetection_casNominal_dateNaissancePresenteIso() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_etat_civil_envisage": true,
+                    "changement_etat_civil_detection": {
+                      "date_naissance_demandeur": "1985-03-22"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateNaissanceDemandeurDetectee()).isEqualTo("1985-03-22");
+    }
+
+    @Test
+    void extractFamilleData_cecDetection_sousObjetAbsent_dateNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_etat_civil_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateNaissanceDemandeurDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_cecDetection_dateNonIso_retourneNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_etat_civil_envisage": true,
+                    "changement_etat_civil_detection": {
+                      "date_naissance_demandeur": "22/03/1985"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Format non-ISO rejeté par isoDateOrNull().
+        assertThat(f.dateNaissanceDemandeurDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_cecDetection_multidates_nePrendsQueNaissanceDemandeur() throws Exception {
+        // Invariant §5.1.6 : fixture avec date de naissance demandeur + date de requête.
+        // L'extracteur ne lit que "date_naissance_demandeur" — pas la date de requête.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_etat_civil_envisage": true,
+                    "changement_etat_civil_detection": {
+                      "date_naissance_demandeur": "1990-07-15",
+                      "date_requete": "2026-01-10"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Seule la date de naissance est extraite — la date de requête est ignorée.
+        assertThat(f.dateNaissanceDemandeurDetectee()).isEqualTo("1990-07-15");
+    }
+
+    @Test
+    void extractFamilleData_cecDetection_sousObjetNull_dateNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_etat_civil_envisage": true,
+                    "changement_etat_civil_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateNaissanceDemandeurDetectee()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_cecDetection_remonteLeRecord_memeQuandSeulChampPresent() throws Exception {
+        // Seul changement_etat_civil_detection présent → FamilleExtractedData non null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "changement_etat_civil_detection": {
+                      "date_naissance_demandeur": "2000-12-01"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateNaissanceDemandeurDetectee()).isEqualTo("2000-12-01");
+    }
+
     // ===== SF-246-22 — extractTravailData : procedure_travail_detection =====
 
     @Test
