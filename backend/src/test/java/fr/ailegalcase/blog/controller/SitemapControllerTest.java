@@ -71,4 +71,21 @@ class SitemapControllerTest {
         assertThat(body).contains("Disallow: /super-admin/");
         assertThat(body).contains("Sitemap: https://legalcase.example.com/sitemap.xml");
     }
+
+    /**
+     * F-143 SF-143-02 — la valeur par défaut de {@code blog.public-base-url}
+     * doit être {@code https://legalcase.fr} (host canonique post-bascule 301).
+     * Vérification non-régression contre un retour accidentel à l'ancien host.
+     */
+    @Test
+    void sitemap_defaultBaseUrl_pointsToLegalcaseFr() {
+        SitemapController c = new SitemapController(queryService, "https://legalcase.fr");
+        when(queryService.sitemapEntries()).thenReturn(List.of());
+
+        ResponseEntity<String> response = c.sitemap();
+
+        String xml = response.getBody();
+        assertThat(xml).contains("<loc>https://legalcase.fr/</loc>");
+        assertThat(xml).doesNotContain("ng-itconsulting");
+    }
 }

@@ -26,7 +26,7 @@ import {
 } from './traction-onepager.model';
 import { fadeInUp } from '../../shared/animations';
 
-const DEFAULT_CONTACT_URL = 'https://legalcase.ng-itconsulting.com';
+const DEFAULT_CONTACT_URL = 'https://legalcase.fr';
 const MAX_VERBATIMS = 2;
 const MAX_PARTNERS = 10;
 

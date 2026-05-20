@@ -31,7 +31,7 @@ public class SitemapController {
     private final String publicBaseUrl;
 
     public SitemapController(BlogArticleQueryService queryService,
-                             @Value("${blog.public-base-url:https://legalcase.ng-itconsulting.com}") String publicBaseUrl) {
+                             @Value("${blog.public-base-url:https://legalcase.fr}") String publicBaseUrl) {
         this.queryService = queryService;
         this.publicBaseUrl = publicBaseUrl.endsWith("/")
                 ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1)

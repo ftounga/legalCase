@@ -10,4 +10,4 @@ Disallow: /invite
 Disallow: /share/
 Disallow: /api/
 
-Sitemap: https://legalcase.ng-itconsulting.com/api/sitemap.xml
+Sitemap: https://legalcase.fr/api/sitemap.xml

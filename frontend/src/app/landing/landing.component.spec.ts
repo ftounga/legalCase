@@ -50,7 +50,7 @@ describe('LandingComponent', () => {
   it('insère un link rel="canonical"', () => {
     const link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     expect(link).not.toBeNull();
-    expect(link?.href).toContain('legalcase.ng-itconsulting.com');
+    expect(link?.href).toContain('legalcase.fr');
   });
 
   it('affiche le titre principal — repositionnement plateforme outils décisionnels', () => {
