@@ -1,0 +1,260 @@
+<section class="sba-section">
+  <header class="sba-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="sba-body">
+    <mat-icon class="sba-icon">gavel</mat-icon>
+    <span class="sba-title">ACCEPTATION / RENONCIATION À SUCCESSION — CC art. 774+ BE</span>
+    @if (result()) {
+      <span class="sba-chip-summary"
+            [class.sba-chip-summary--ok]="result()!.verdict === 'OPTION_LIBRE_DELAI_OK'"
+            [class.sba-chip-summary--medium]="result()!.verdict === 'OPTION_RECOMMANDEE_BENEFICE_INVENTAIRE' || result()!.verdict === 'OPTION_RECOMMANDEE_RENONCIATION'"
+            [class.sba-chip-summary--ko]="result()!.verdict === 'ACCEPTATION_TACITE_PROBABLE' || result()!.verdict === 'DELAI_CRITIQUE' || result()!.verdict === 'DELAI_DEPASSE'"
+            [class.sba-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ optionRecommandeeLabel(result()!.optionRecommandee) }}
+      </span>
+    }
+    <mat-icon class="sba-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="sba-body" class="sba-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="sba-country-banner" data-testid="sba-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — option successorale (CC art. 774+ nouveau). L'équivalent français (CC art. 768+) repose sur des délais (4 mois en BE / 4 mois en FR ; mise en demeure 2 mois en BE — à vérifier) et formes distinctes, et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="sba-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="sba-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="sba-form" (ngSubmit)="calculate()">
+            <!-- Bloc défunt + héritier -->
+            <div class="sba-block sba-full">
+              <span class="sba-block-label">Succession et héritier</span>
+
+              <div class="sba-field-with-alert">
+                <mat-form-field appearance="outline" class="sba-inline-field">
+                  <mat-label>Date du décès</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDeces()"
+                         (ngModelChange)="dateDeces.set($event || null)"
+                         name="dateDeces" required />
+                </mat-form-field>
+                @if (coherenceAlerts().DATE_DECES; as alert) {
+                  <span class="sba-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="sba-inline-field">
+                <mat-label>Qualité d'héritier du client</mat-label>
+                <mat-select [ngModel]="qualiteHeritier()"
+                            (ngModelChange)="qualiteHeritier.set($event)"
+                            name="qualiteHeritier" required>
+                  @for (opt of qualiteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="sba-inline-field">
+                <mat-label>État du patrimoine successoral</mat-label>
+                <mat-select [ngModel]="etatPatrimoineSuccessoral()"
+                            (ngModelChange)="etatPatrimoineSuccessoral.set($event)"
+                            name="etatPatrimoineSuccessoral" required>
+                  @for (opt of etatPatrimoineOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc actes accomplis -->
+            <div class="sba-block sba-full">
+              <span class="sba-block-label">Actes éventuellement accomplis</span>
+              <p class="sba-block-hint">
+                Cocher tout acte déjà réalisé par le client. Les actes marqués
+                « acceptation tacite » valent acceptation pure et simple (CC
+                art. 779 ancien / équivalent réformé — à vérifier).
+              </p>
+              @for (opt of acteOptions; track opt.value) {
+                <div class="sba-checkbox-row">
+                  <label class="sba-checkbox">
+                    <input type="checkbox"
+                           [checked]="isActeChecked(opt.value)"
+                           (change)="toggleActe(opt.value, $any($event.target).checked)" />
+                    {{ opt.label }}
+                    @if (opt.tacite) {
+                      <span class="sba-tacite-tag">acceptation tacite</span>
+                    }
+                  </label>
+                </div>
+              }
+            </div>
+
+            <!-- Bloc volonté + créancier -->
+            <div class="sba-block sba-full">
+              <span class="sba-block-label">Volonté du client et créanciers</span>
+
+              <mat-form-field appearance="outline" class="sba-inline-field">
+                <mat-label>Volonté exprimée par le client</mat-label>
+                <mat-select [ngModel]="volonteClient()"
+                            (ngModelChange)="volonteClient.set($event)"
+                            name="volonteClient" required>
+                  @for (opt of volonteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div class="sba-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="miseEnDemeureCreancier()"
+                    (ngModelChange)="onMiseEnDemeureChange($event)"
+                    name="miseEnDemeureCreancier">
+                  Un créancier a mis en demeure le client d'opter
+                </mat-slide-toggle>
+              </div>
+
+              @if (miseEnDemeureCreancier()) {
+                <mat-form-field appearance="outline" class="sba-inline-field">
+                  <mat-label>Date de la mise en demeure</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateMiseEnDemeureCreancier()"
+                         (ngModelChange)="dateMiseEnDemeureCreancier.set($event || null)"
+                         name="dateMiseEnDemeureCreancier" required />
+                </mat-form-field>
+                <p class="sba-block-hint">
+                  La mise en demeure d'un créancier raccourcit le délai d'option
+                  à 2 mois post mise en demeure (à vérifier — CC art. 774+).
+                </p>
+              }
+
+              <mat-form-field appearance="outline" class="sba-comment-field">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event || null)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="sba-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="sba-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'option</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="sba-result">
+            <!-- Bannière verdict -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Option recommandée + délai -->
+            <div class="sba-summary-grid">
+              <div class="sba-summary-card">
+                <span class="sba-summary-label">Option recommandée</span>
+                <span class="sba-summary-value">{{ optionRecommandeeLabel(result()!.optionRecommandee) }}</span>
+              </div>
+              @if (result()!.dateLimiteOption) {
+                <div class="sba-summary-card">
+                  <span class="sba-summary-label">Date limite d'option</span>
+                  <span class="sba-summary-value">{{ result()!.dateLimiteOption }}</span>
+                </div>
+              }
+              @if (result()!.joursRestants != null) {
+                <div class="sba-summary-card">
+                  <span class="sba-summary-label">Jours restants</span>
+                  <span class="sba-summary-value">{{ result()!.joursRestants }}</span>
+                </div>
+              }
+              <div class="sba-summary-card">
+                <span class="sba-summary-label">Statut du délai</span>
+                <span [class]="delaiStatutClass(result()!.delaiStatut)">
+                  {{ delaiStatutLabel(result()!.delaiStatut) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Risques -->
+            @if (result()!.risques.length) {
+              <div class="sba-list-block">
+                <span class="sba-list-label">Risques identifiés</span>
+                <ul class="sba-list">
+                  @for (r of result()!.risques; track r.code) {
+                    <li class="sba-item" data-testid="sba-risque">
+                      <div class="sba-item-row">
+                        <span class="sba-item-libelle-text">{{ r.libelle }}</span>
+                        <span [class]="severiteClass(r.severite)">{{ severiteLabel(r.severite) }}</span>
+                      </div>
+                      <span class="sba-item-fondement">{{ r.fondement }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Actions concrètes -->
+            @if (result()!.actionsConcretes.length) {
+              <div class="sba-list-block">
+                <span class="sba-list-label">Actions concrètes à poser</span>
+                <ul class="sba-actions-list">
+                  @for (a of result()!.actionsConcretes; track a) {
+                    <li>{{ a }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="sba-bases-block">
+                <span class="sba-bases-label">Bases juridiques</span>
+                <div class="sba-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="sba-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="sba-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="sba-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

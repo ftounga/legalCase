@@ -1,0 +1,467 @@
+/**
+ * F-217 SF-217-13 : styles outil "Succession BE — acceptation / renonciation".
+ * Aligné sur `regime-communaute-legale-be-section`.
+ *
+ * Palette navy/or/vert/rouge. Rouge réservé aux verdicts critiques :
+ * ACCEPTATION_TACITE_PROBABLE, DELAI_CRITIQUE, DELAI_DEPASSE et au statut de
+ * délai CRITIQUE / DEPASSE. Or pour les recommandations B.I. / renonciation.
+ * Vert pour OPTION_LIBRE_DELAI_OK. Navy info pour QUALIFICATION_INCOMPLETE.
+ */
+
+.sba-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.sba-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.sba-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.sba-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.sba-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok      { background: rgba(34, 139, 34, 0.10); color: #1f7a3a; }
+  &--medium  { background: rgba(201, 165, 75, 0.15); color: #8a6a16; }
+  &--ko      { background: rgba(220, 53, 69, 0.10); color: #B11A28; }
+  &--info    { background: rgba(26, 58, 92, 0.10); color: #1A3A5C; }
+}
+
+.sba-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.sba-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.sba-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.sba-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; }
+}
+
+.sba-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.sba-full { width: 100%; }
+
+.sba-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon { color: #F59E0B; font-size: 20px; width: 20px; height: 20px; }
+}
+
+.sba-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.sba-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.sba-block-hint {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.sba-inline-field {
+  width: 100%;
+  max-width: 360px;
+}
+
+.sba-comment-field { max-width: 100%; }
+
+.sba-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.sba-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.sba-checkbox {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sba-tacite-tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(201, 165, 75, 0.15);
+  color: #8a6a16;
+}
+
+.sba-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sba-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #F59E0B; }
+}
+
+.sba-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+.sba-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sba-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon { font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; }
+
+  // Vert — OPTION_LIBRE_DELAI_OK.
+  &--ok {
+    background: rgba(34, 139, 34, 0.08);
+    border-left: 4px solid #1f7a3a;
+    color: #1f7a3a;
+    mat-icon { color: #1f7a3a; }
+  }
+
+  // Or — OPTION_RECOMMANDEE_BENEFICE_INVENTAIRE / OPTION_RECOMMANDEE_RENONCIATION.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+
+  // Navy info — QUALIFICATION_INCOMPLETE.
+  &--info {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Rouge — ACCEPTATION_TACITE_PROBABLE / DELAI_CRITIQUE / DELAI_DEPASSE.
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.sba-summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sba-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: rgba(26, 35, 48, 0.02);
+}
+
+.sba-summary-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.sba-summary-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.sba-delai-statut {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &--ok {
+    background: rgba(34, 139, 34, 0.10);
+    color: #1f7a3a;
+  }
+  &--danger {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.sba-list-block { display: flex; flex-direction: column; gap: 8px; }
+
+.sba-list-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.sba-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sba-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+}
+
+.sba-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sba-item-libelle-text {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.sba-severite {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &--high {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--low {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+}
+
+.sba-item-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.sba-actions-list {
+  list-style: disc inside;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.sba-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.sba-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.sba-bases-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sba-base-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(26, 35, 48, 0.05);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.sba-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.sba-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}

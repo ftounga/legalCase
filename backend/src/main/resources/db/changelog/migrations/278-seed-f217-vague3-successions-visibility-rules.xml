@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="278-seed-f217-vague3-successions-visibility-rules" author="legalcase">
+        <comment>
+            F-217 SF-217-13 — seed `decision_tool_visibility_rules` pour les 2
+            outils décisionnels de la Vague 3 Famille BE (successions) :
+              - `succession-be-devolution-reserve` (CC Livre 4 BE réformé, loi
+                31/07/2017 en vigueur 01/09/2018) — table d'analyse créée par
+                SF-217-11 (migration 277).
+              - `succession-be-acceptation-renonciation` (CC art. 774+ nouveau —
+                option successorale, délai 4 mois) — table d'analyse créée par
+                SF-217-12 (migration 272).
+
+            Le seed est porté par la SF frontend (et non par les SF backend)
+            pour rester couplé aux entrées TOOL_REGISTRY livrées dans le même
+            commit (decisional-tools-panel.component.ts). Précédents : SF-217-03
+            (migration 235 — Vague 1 régime+liquidation), SF-217-05 (238 —
+            autorité parentale), SF-217-07 (240 — contribution alimentaire),
+            SF-217-09 (242 — contribution conjoint). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode ALWAYS_ON, DROIT_FAMILLE / BELGIQUE pour les 2 outils : toute
+            analyse d'un dossier successoral belge mobilise la qualification de
+            la dévolution et l'arbitrage acceptation / renonciation — ce sont
+            des situations *toujours pertinentes*, pas des situations à
+            détecter (cf. SF-217-00-coherence.md ajustement n° 1, pattern
+            Vague 1 / Vague 2 F-217). Pas de flag pivot IA requis. priority 70.
+
+            Numéro 278 = numéro libre suivant (273-277 déjà pris par
+            SF-FA-01 / SF-217-12 / SF-214-01 / SF-DT-36-01 / SF-217-11). UUID
+            namespace dédié F-217 : f1a04001-0000-0000-0000-eeee2170000X (007
+            et 008 — 001-005 déjà utilisés par les Vagues 1 et 2 ;
+            006 réservé F-207 namespace distinct mais conflit potentiel — on
+            saute à 007).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700007', 'DROIT_FAMILLE', 'BELGIQUE', 'succession-be-devolution-reserve', 'ALWAYS_ON', NULL, NULL, 70);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700008', 'DROIT_FAMILLE', 'BELGIQUE', 'succession-be-acceptation-renonciation', 'ALWAYS_ON', NULL, NULL, 70);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN ('f1a04001-0000-0000-0000-eeee21700007', 'f1a04001-0000-0000-0000-eeee21700008');
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

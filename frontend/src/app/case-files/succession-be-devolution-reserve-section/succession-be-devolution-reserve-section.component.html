@@ -1,0 +1,256 @@
+<section class="sbd-section">
+  <header class="sbd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="sbd-body">
+    <mat-icon class="sbd-icon">family_restroom</mat-icon>
+    <span class="sbd-title">DÉVOLUTION & RÉSERVE HÉRÉDITAIRE — CC LIVRE 4 BE (loi 31/07/2017)</span>
+    @if (result()) {
+      <span class="sbd-chip-summary"
+            [class.sbd-chip-summary--ok]="result()!.verdict === 'RESERVE_RESPECTEE'"
+            [class.sbd-chip-summary--info]="result()!.verdict === 'DEVOLUTION_ETABLIE' || result()!.verdict === 'QUALIFICATION_INCOMPLETE'"
+            [class.sbd-chip-summary--ko]="result()!.verdict === 'QUOTITE_DEPASSEE'">
+        {{ result()!.heritiers.length }} héritier(s) · réserve {{ result()!.reserveGlobaleFraction }}
+      </span>
+    }
+    <mat-icon class="sbd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="sbd-body" class="sbd-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="sbd-country-banner" data-testid="sbd-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — dévolution / réserve héréditaire post-réforme du 31/07/2017 (Livre 4 CC BE). L'équivalent français (CC art. 912+) repose sur des mécanismes distincts (réserve 1/2-2/3-3/4 selon le nombre d'enfants) et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="sbd-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="sbd-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="sbd-form" (ngSubmit)="calculate()">
+            <!-- Bloc défunt -->
+            <div class="sbd-block sbd-full">
+              <span class="sbd-block-label">Défunt</span>
+
+              <div class="sbd-field-with-alert">
+                <mat-form-field appearance="outline" class="sbd-inline-field">
+                  <mat-label>Date du décès</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDeces()"
+                         (ngModelChange)="dateDeces.set($event || null)"
+                         name="dateDeces" required />
+                </mat-form-field>
+                @if (coherenceAlerts().DATE_DECES; as alert) {
+                  <span class="sbd-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="sbd-inline-field">
+                <mat-label>État civil du défunt</mat-label>
+                <mat-select [ngModel]="etatCivilDefunt()"
+                            (ngModelChange)="etatCivilDefunt.set($event)"
+                            name="etatCivilDefunt" required>
+                  @for (opt of etatCivilOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              @if (marie()) {
+                <mat-form-field appearance="outline" class="sbd-inline-field">
+                  <mat-label>Régime matrimonial du défunt</mat-label>
+                  <mat-select [ngModel]="regimeMatrimonialDefunt()"
+                              (ngModelChange)="regimeMatrimonialDefunt.set($event)"
+                              name="regimeMatrimonialDefunt" required>
+                    @for (opt of regimeMatrimonialOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc descendants -->
+            <div class="sbd-block sbd-full">
+              <span class="sbd-block-label">Descendants</span>
+
+              <mat-form-field appearance="outline" class="sbd-inline-field">
+                <mat-label>Nombre d'enfants vivants</mat-label>
+                <input matInput type="number" min="0" max="20"
+                       [ngModel]="nombreEnfantsVivants()"
+                       (ngModelChange)="onNombreEnfantsVivantsChange($event)"
+                       name="nombreEnfantsVivants" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="sbd-inline-field">
+                <mat-label>Enfants prédécédés laissant des descendants (représentation)</mat-label>
+                <input matInput type="number" min="0" max="20"
+                       [ngModel]="nombreEnfantsPredecedesAvecDescendants()"
+                       (ngModelChange)="onNombreEnfantsPredecedesChange($event)"
+                       name="nombreEnfantsPredecedes" />
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc autres héritiers -->
+            <div class="sbd-block sbd-full">
+              <span class="sbd-block-label">Autres héritiers (en l'absence de descendants)</span>
+              <div class="sbd-checkbox-row">
+                <label class="sbd-checkbox">
+                  <input type="checkbox"
+                         [checked]="presenceParentsVivants()"
+                         (change)="presenceParentsVivants.set($any($event.target).checked)" />
+                  Parents vivants du défunt
+                </label>
+              </div>
+              <div class="sbd-checkbox-row">
+                <label class="sbd-checkbox">
+                  <input type="checkbox"
+                         [checked]="presenceFreresSoeursOuDescendants()"
+                         (change)="presenceFreresSoeursOuDescendants.set($any($event.target).checked)" />
+                  Frères / sœurs ou descendants (collatéraux privilégiés)
+                </label>
+              </div>
+            </div>
+
+            <!-- Bloc patrimoine -->
+            <div class="sbd-block sbd-full">
+              <span class="sbd-block-label">Patrimoine successoral</span>
+
+              <mat-form-field appearance="outline" class="sbd-inline-field">
+                <mat-label>Masse successorale (€)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="masseSuccessoraleEur()"
+                       (ngModelChange)="onMasseChange($event)"
+                       name="masseSuccessoraleEur" required />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="sbd-inline-field">
+                <mat-label>Libéralités consenties (€)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="libertesConsentiesEur()"
+                       (ngModelChange)="onLiberalitesChange($event)"
+                       name="libertesConsentiesEur" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="sbd-comment-field">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event || null)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="sbd-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="sbd-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la dévolution</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="sbd-result">
+            <!-- Bannière verdict — rouge réservé à QUOTITE_DEPASSEE -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Synthèse réserve / quotité -->
+            <div class="sbd-synthese-grid">
+              <div class="sbd-synthese-card">
+                <span class="sbd-synthese-value">{{ result()!.reserveGlobaleFraction }}</span>
+                <span class="sbd-synthese-label">Réserve globale ({{ result()!.reserveGlobaleEur }} €)</span>
+              </div>
+              <div class="sbd-synthese-card">
+                <span class="sbd-synthese-value">{{ result()!.quotiteDisponibleFraction }}</span>
+                <span class="sbd-synthese-label">Quotité disponible ({{ result()!.quotiteDisponibleEur }} €)</span>
+              </div>
+              <div class="sbd-synthese-card">
+                <span class="sbd-synthese-value">{{ result()!.libertesConsentiesEur }}</span>
+                <span class="sbd-synthese-label">Libéralités consenties (€)</span>
+              </div>
+              @if (result()!.depassementQuotiteEur > 0) {
+                <div class="sbd-synthese-card sbd-synthese-card--danger">
+                  <span class="sbd-synthese-value">{{ result()!.depassementQuotiteEur }}</span>
+                  <span class="sbd-synthese-label">Dépassement (€) — réduction</span>
+                </div>
+              }
+            </div>
+
+            <!-- Héritiers -->
+            @if (result()!.heritiers.length) {
+              <div class="sbd-list-block">
+                <span class="sbd-list-label">Héritiers</span>
+                <ul class="sbd-list">
+                  @for (h of result()!.heritiers; track h.libelle) {
+                    <li class="sbd-item" data-testid="sbd-heritier">
+                      <div class="sbd-item-row">
+                        <span class="sbd-item-libelle-text">{{ h.libelle }}</span>
+                        <span class="sbd-heritier-code">{{ heritierCodeLabel(h.code) }}</span>
+                        @if (h.quotePartGlobaleFraction) {
+                          <span class="sbd-quote">
+                            Part globale : {{ h.quotePartGlobaleFraction }}@if (h.quotePartGlobaleEur != null) { ({{ h.quotePartGlobaleEur }} €) }
+                          </span>
+                        }
+                        @if (h.quotePartReserveFraction && h.quotePartReserveFraction !== '0') {
+                          <span class="sbd-quote">
+                            Réserve : {{ h.quotePartReserveFraction }}@if (h.quotePartReserveEur != null) { ({{ h.quotePartReserveEur }} €) }
+                          </span>
+                        }
+                      </div>
+                      <span class="sbd-item-fondement">{{ h.fondement }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="sbd-bases-block">
+                <span class="sbd-bases-label">Bases juridiques</span>
+                <div class="sbd-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="sbd-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="sbd-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="sbd-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
