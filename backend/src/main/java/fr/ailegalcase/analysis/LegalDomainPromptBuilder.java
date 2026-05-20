@@ -2,7 +2,11 @@ package fr.ailegalcase.analysis;
 
 public final class LegalDomainPromptBuilder {
 
-    private static final String FAMILLE_INSTRUCTION = """
+    // SF-246-25 : FAMILLE_INSTRUCTION dépasse 65 535 octets → découpée en 2 parties.
+    // Les deux parties sont non-final pour éviter que le compilateur ne les fusionne
+    // en une constante de classe unique dépassant la limite du pool de constantes JVM.
+    @SuppressWarnings("RedundantFieldInitialization")
+    private static String FAMILLE_INSTRUCTION_P1 = """
 
             ========== RÈGLE CRITIQUE DE CLASSIFICATION — À APPLIQUER EN PREMIER ==========
             Identifier le MÉCANISME FACTUEL (pièce signée / décision notifiée),
@@ -132,6 +136,10 @@ public final class LegalDomainPromptBuilder {
                 - "nb_enfants_a_charge" : entier entre 0 et 30 ou null. Nombre d'enfants communs à charge au moment de la révision post-divorce (pension / prestation compensatoire). Null si non dénombrable de façon fiable.
                 - "revenus_annuels_epoux_eur" : nombre strictement positif (euros) ou null. Revenus annuels nets de l'époux débiteur de la pension ou prestation compensatoire à réviser, tel que mentionné dans les pièces (fiche de paie, avis d'imposition, déclaration de revenus). Préciser "nets annuels" — ne pas convertir un net mensuel en annuel sauf si la pièce mentionne un revenu mensuel et que l'annuel est calculable. Null si non chiffré.
               **DISTINCTION DES DATES VIE COMMUNE — règle anti-confusion** : `date_separation` (cessation de la vie commune), `date_conclusion_pacs` (formation du PACS), `date_requete_op` (dépôt de la requête OP) et `date_audience_aomp` (audience AOMP) sont QUATRE concepts distincts. Chaque date n'est à renseigner que si la pièce la rattache explicitement à ce concept précis. En cas de doute → null.
+            """;
+
+    @SuppressWarnings("RedundantFieldInitialization")
+    private static String FAMILLE_INSTRUCTION_P2 = """
             SF-246-09 — Sous-objet `filiation_detection` (filiation / adoption, FRANCE UNIQUEMENT).
               "filiation_detection" : objet OU null. Renseigne-le UNIQUEMENT pour un dossier de droit de la famille FRANCE comportant une question de filiation (contestation de paternité, recherche de paternité, reconnaissance paternelle) ou une procédure d'adoption documentée dans les pièces. Pour un dossier famille BELGIQUE, ce sous-objet DOIT rester null (les actions de filiation BE relèvent d'autres outils distincts). Si aucune question de filiation / adoption n'est documentée, retourne null pour tout le sous-objet. Chaque champ interne est nullable : mets null plutôt qu'une valeur approximative dès que la pièce ne permet pas une lecture certaine. Ces 7 champs peuplent le pré-remplissage des 4 outils décisionnels F-FA-18 (contestation-paternite, recherche-paternite, reconnaissance-paternelle, adoption). Les champs internes :
                 - "date_etablissement_filiation" : chaîne ISO YYYY-MM-DD ou null. **Date d'établissement du lien de filiation** contesté (date de l'acte de naissance portant la filiation litigieuse, ou date de l'acte de reconnaissance antérieur). Distincte de la date de naissance de l'enfant et de la date de connaissance de la vérité. Null si non documentée ou ambiguë. Pertinent pour l'outil contestation-paternite.
@@ -177,6 +185,29 @@ public final class LegalDomainPromptBuilder {
                 - "date_debut_calendrier" : chaîne ISO YYYY-MM-DD ou null. **Date de début de la période pour laquelle un calendrier de garde est demandé ou en vigueur** (ex. rentrée scolaire à venir, début d'une nouvelle ordonnance provisoire). Pertinent principalement pour l'outil calendrier-garde. Null si non documentée.
                 - "date_fin_calendrier" : chaîne ISO YYYY-MM-DD ou null. **Date de fin de la période du calendrier de garde demandé ou en vigueur** (ex. fin d'année scolaire, terme d'une ordonnance provisoire). Distincte de `date_debut_calendrier`. Null si non documentée.
               **RÈGLE LISTE D'ÂGES** : un dossier de famille comporte couramment plusieurs enfants. Extraire tous les âges identifiables ; exclure un âge non fiable plutôt que de l'approximer. Si un dossier mentionne "deux enfants de 10 et 7 ans" → `[10, 7]`. Si seulement l'un des âges est mentionné → `[10]`. Si aucun âge n'est mentionné → null (jamais `[]`).
+            SF-246-25 — Sous-objet `communaute_partage_protection_detection_v2` (régimes matrimoniaux / vie commune / protection — qualifications juridiques, FRANCE UNIQUEMENT).
+              "communaute_partage_protection_detection_v2" : objet OU null. Renseigne-le UNIQUEMENT pour un dossier famille FRANCE comportant un contrat de mariage en communauté universelle, une demande de partage judiciaire, une ordonnance de protection, une dissolution de PACS, une séparation de corps, une indivision ou des mesures provisoires documentés. Pour un dossier famille BELGIQUE, ce sous-objet DOIT rester null. Complémentaire à `regime_matrimonial_detection` et `vie_commune_detection` qui portent les dates/montants ; ce sous-objet porte les QUALIFICATIONS JURIDIQUES booléennes et énumérées. Chaque champ interne est nullable. Ces 17 champs peuplent le pré-remplissage des 8 outils F-FA-12/14/16/17/20/21/22. Les champs internes :
+                - "contrat_notarie" : booléen ou null. **Le régime de communauté universelle est-il établi par un contrat notarié ?** (art. 1526 Cciv). true si un acte notarié de contrat de mariage en communauté universelle est produit ; false si le régime légal s'applique sans contrat ; null si non documenté. Alimente communauté-universelle.
+                - "enfants_non_communs" : booléen ou null. **Y a-t-il des enfants non communs aux deux époux ?** (art. 1527 al. 2 Cciv — impact sur la clause d'attribution intégrale). true si au moins un enfant d'une union antérieure est documenté ; false si tous les enfants sont communs ; null si non documenté. Alimente communauté-universelle.
+                - "clause_attribution_integrale" : booléen ou null. **Le contrat comporte-t-il une clause d'attribution intégrale de la communauté au conjoint survivant ?** (art. 1527 Cciv). true si expressément stipulée ; false si explicitement absente ; null si non mentionnée. Alimente communauté-universelle.
+                - "pv_difficultes_etablis" : booléen ou null. **Un PV de difficultés a-t-il été établi par le notaire conformément à l'art. 1366 CPC ?** (préalable obligatoire au partage judiciaire). true si documenté ; false si absent explicitement ; null si non mentionné. Alimente partage-judiciaire.
+                - "tentative_amiable_epuisee" : booléen ou null. **La tentative de partage amiable a-t-elle été épuisée ?** (art. 840 Cciv). true si documentée (lettres, PV notariaux infructueux) ; false si aucune tentative n'a été faite ; null si non documenté. Alimente partage-judiciaire.
+                - "violences_alleguees" : tableau de codes ou null. **Types de violences conjugales documentées pour l'ordonnance de protection** (art. 515-9 Cciv). Valeurs STRICTEMENT : "PHYSIQUES", "PSYCHOLOGIQUES", "SEXUELLES", "ECONOMIQUES", "MENACES_MORT". N'inclure que si documenté par une pièce probante. Jamais [] → null si aucune. Codes hors whitelist ignorés. Alimente ordonnance-protection.
+                - "preuves_violences" : tableau de codes ou null. **Types de preuves de violences présentes dans le dossier**. Valeurs STRICTEMENT : "CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL", "TEMOIGNAGES", "PHOTOS", "PLAINTE_DEPOSEE", "JUGEMENT_CORRECTIONNEL", "AUTRE". Jamais [] → null si aucune. Codes hors whitelist ignorés. Alimente ordonnance-protection.
+                - "danger_immediat" : booléen ou null. **Y a-t-il un péril immédiat pour la victime ?** (art. 515-10 Cciv — urgence OP). true si documenté ; false si situation sans péril immédiat ; null si indéterminable. Alimente ordonnance-protection et indivision.
+                - "presence_enfants" : booléen ou null. **Y a-t-il des enfants mineurs au foyer ?** true si documenté ; false si absence établie ; null si non documenté. Alimente ordonnance-protection.
+                - "logement_commun" : booléen ou null. **Les parties cohabitent-elles encore dans le logement commun ?** true si cohabitation documentée ; false si séparation physique documentée ; null si non documenté. Alimente ordonnance-protection et indivision.
+                - "victime_financierement_dependante" : booléen ou null. **La victime est-elle financièrement dépendante de l'auteur ?** (art. 515-9 Cciv). true si documenté (revenus nuls, absence de compte autonome) ; false si autonomie financière documentée ; null si non documenté. Alimente ordonnance-protection.
+                - "mode_dissolution_pacs" : chaîne ou null. **Mode de dissolution du PACS** (art. 515-7 Cciv). Valeurs STRICTEMENT : "DECLARATION_UNILATERALE", "DECLARATION_CONJOINTE", "MARIAGE_PARTENAIRES", "MARIAGE_TIERS", "DECES". Null si non documenté. Alimente pacs-dissolution.
+                - "regime_biens_pacs" : chaîne ou null. **Régime des biens du PACS** (art. 515-5 Cciv). Valeurs STRICTEMENT : "SEPARATION_BIENS", "INDIVISION_AMENAGEE", "INDIVISION_PAR_DEFAUT". Null si non documenté. Alimente pacs-dissolution.
+                - "creances_alleguees" : tableau de codes ou null. **Types de créances entre partenaires alléguées à la dissolution**. Valeurs STRICTEMENT : "CONTRIBUTION_DESEQUILIBRE", "INVESTISSEMENT_BIEN_PROPRE", "ENRICHISSEMENT_INJUSTE", "PRESTATION_TRAVAIL_NON_REMUNEREE", "AUCUNE". Jamais [] → null si aucune. Alimente pacs-dissolution.
+                - "patrimoine_commun_significatif" : booléen ou null. **Y a-t-il un patrimoine commun significatif à partager à la dissolution du PACS ?** true si biens communs documentés ; false si dissolution sans enjeu patrimonial ; null si non documenté. Alimente pacs-dissolution.
+                - "patrimoine_commun_bool" : booléen ou null. **Les époux sont-ils soumis à un régime de communauté ?** (art. 1400+ Cciv — communauté légale ou universelle). true si régime de communauté documenté ; false si séparation de biens ou participation aux acquêts documentée ; null si régime non identifiable. DISTINCT de `patrimoine_commun_eur` (montant €) et de `patrimoine_commun_significatif` (enjeu PACS). Alimente séparation-de-corps.
+                - "violences_alleguees_bool" : booléen ou null. **Des violences conjugales sont-elles alléguées dans la procédure AOMP (mesures provisoires) ?** true si alléguées dans les pièces AOMP ; false si absence explicitement documentée ; null si non abordé. DISTINCT de `violences_alleguees` (tableau de codes types OP). Alimente mesures-provisoires.
+              **RÈGLE BELGIQUE** : ce sous-objet DOIT être null pour un dossier famille BELGIQUE.
+              **RÈGLE BOOLÉENS** : true/false UNIQUEMENT si documenté avec certitude. En cas de doute → null.
+              **RÈGLE LISTES** : les tableaux ne contiennent QUE des codes de la whitelist. Liste vide après filtrage → null (jamais []).
+              **RÈGLE ANTI-DOUBLONS** : `patrimoine_commun_bool` ≠ `patrimoine_commun_significatif` ≠ `patrimoine_commun_eur`. `violences_alleguees_bool` ≠ `violences_alleguees[]`.
             """;
 
     private static final String TRAVAIL_INSTRUCTION = """
@@ -540,7 +571,7 @@ public final class LegalDomainPromptBuilder {
     public static String domainSpecificInstruction(String legalDomain) {
         if ("DROIT_DU_TRAVAIL".equals(legalDomain)) return TRAVAIL_INSTRUCTION;
         if ("DROIT_IMMIGRATION".equals(legalDomain)) return IMMIGRATION_INSTRUCTION;
-        if ("DROIT_FAMILLE".equals(legalDomain))     return FAMILLE_INSTRUCTION;
+        if ("DROIT_FAMILLE".equals(legalDomain))     return String.valueOf(FAMILLE_INSTRUCTION_P1) + FAMILLE_INSTRUCTION_P2;
         return "";
     }
 }

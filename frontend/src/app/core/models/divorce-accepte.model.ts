@@ -59,8 +59,18 @@ export interface FamilleExtractedData {
   revenusAnnuelsEpoux1Eur?: number | null;
   /** Revenus annuels bruts époux 2 (€). */
   revenusAnnuelsEpoux2Eur?: number | null;
-  /** Régime matrimonial : true si communauté ou participation aux acquêts. */
+  /**
+   * Régime matrimonial : true si communauté ou participation aux acquêts.
+   * SF-246-25 : désormais réel — source backend : `communaute_partage_protection_detection_v2.patrimoine_commun_bool`.
+   * Distinct de `patrimoineCommunEur` (montant €) et `patrimoineCommunSignificatifDetecte` (PACS).
+   */
   patrimoineCommun?: boolean | null;
+  /**
+   * SF-246-25 : flag global indiquant que des violences ont été alléguées dans le dossier.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.violences_alleguees_bool`.
+   * Distinct de `violencesAllegueesDetectees` (liste typée des codes de violence).
+   */
+  violencesAlleguees?: boolean | null;
   /** Date de signature du PV d'acceptation (ISO YYYY-MM-DD). */
   dateAcceptationPV?: string | null;
   /**
@@ -109,11 +119,40 @@ export interface FamilleExtractedData {
   urgenceDetectee?: boolean | null;
   /** SF-FA-14-02 : pré-fill ordonnance de protection. */
   dateRequeteOP?: string | null;
+  /**
+   * SF-246-25 : types de violences alléguées détectés par l'IA.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.violences_alleguees_detectees`.
+   * Codes ∈ {PHYSIQUES, PSYCHOLOGIQUES, SEXUELLES, ECONOMIQUES, MENACES_MORT}.
+   * Null si aucun code reconnu (jamais []).
+   */
   violencesAllegueesDetectees?: string[] | null;
+  /**
+   * SF-246-25 : types de preuves de violences détectées par l'IA.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.preuves_violences`.
+   * Codes ∈ {CONSTAT_HUISSIER, MAIN_COURANTE, CERTIFICAT_MEDICAL, TEMOIGNAGES,
+   * PHOTOS, PLAINTE_DEPOSEE, JUGEMENT_CORRECTIONNEL, AUTRE}.
+   * Null si aucun code reconnu (jamais []).
+   */
   preuvesViolencesDetectees?: string[] | null;
+  /**
+   * SF-246-25 : danger immédiat pour la victime détecté par l'IA.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.danger_immediat_detected`.
+   */
   dangerImmediatDetected?: boolean | null;
+  /**
+   * SF-246-25 : présence d'enfants dans le foyer détectée par l'IA.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.presence_enfants_detected`.
+   */
   presenceEnfantsDetected?: boolean | null;
+  /**
+   * SF-246-25 : logement commun (victime et auteur partagent le domicile) détecté.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.logement_commun_detected`.
+   */
   logementCommunDetected?: boolean | null;
+  /**
+   * SF-246-25 : victime financièrement dépendante de l'auteur des violences détectée.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.victime_financierement_dependante_detected`.
+   */
   victimeFinanciairementDependanteDetected?: boolean | null;
   demandeurDejaProtegeDetected?: boolean | null;
   /**
@@ -139,9 +178,32 @@ export interface FamilleExtractedData {
   modeResidenceActuel?: string | null;
   /** SF-FA-20-02 : dissolution PACS pré-fill. */
   dateConclusionPacs?: string | null;
+  /**
+   * SF-246-25 : mode de dissolution du PACS détecté par l'IA.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.mode_dissolution_pacs`.
+   * Codes ∈ {DECLARATION_UNILATERALE, DECLARATION_CONJOINTE, MARIAGE_PARTENAIRES, MARIAGE_TIERS, DECES}.
+   * Null si absent ou code inconnu.
+   */
   modeDissolutionPacsDetecte?: string | null;
+  /**
+   * SF-246-25 : régime des biens du PACS détecté par l'IA.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.regime_biens_pacs`.
+   * Codes ∈ {SEPARATION_BIENS, INDIVISION_AMENAGEE, INDIVISION_PAR_DEFAUT}.
+   * Null si absent ou code inconnu.
+   */
   regimeBiensPacsDetecte?: string | null;
+  /**
+   * SF-246-25 : créances alléguées entre partenaires PACS ou co-indivisaires.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.creances_alleguees`.
+   * Codes ∈ {CONTRIBUTION_DESEQUILIBRE, INVESTISSEMENT_BIEN_PROPRE,
+   * ENRICHISSEMENT_INJUSTE, PRESTATION_TRAVAIL_NON_REMUNEREE, AUCUNE}.
+   * Null si aucun code reconnu (jamais []).
+   */
   creancesAllegueesDetectees?: string[] | null;
+  /**
+   * SF-246-25 : patrimoine commun du PACS significatif détecté (impact sur partage).
+   * Source backend réelle : `communaute_partage_protection_detection_v2.patrimoine_commun_significatif_detecte`.
+   */
   patrimoineCommunSignificatifDetecte?: boolean | null;
   /** SF-FA-25-02 : majeurs protégés pré-fill. */
   regimeProtectionDemande?: string | null;
@@ -189,16 +251,17 @@ export interface FamilleExtractedData {
   /** SF-FA-26-02 : consentement parental détecté (mineur). */
   consentementParentalDetected?: boolean | null;
   /**
-   * SF-FA-17-02 : pré-fill outil "Partage judiciaire" (art. 840+ Cciv +
-   * 1364+ CPC). Toutes valeurs optionnelles — composant no-op gracieux.
+   * SF-FA-17-02 / SF-246-25 : pré-fill outil "Partage judiciaire" (art. 840+ Cciv + 1364+ CPC).
+   * Toutes valeurs optionnelles — composant no-op gracieux.
    *
-   * `pvDifficultesEtablisDetected` : PV de difficultés (art. 1366 CPC)
-   * dressé par le notaire — préalable obligatoire à la saisine.
+   * `pvDifficultesEtablisDetected` : PV de difficultés (art. 1366 CPC) dressé par le notaire —
+   * préalable obligatoire à la saisine.
+   * Source backend réelle : `communaute_partage_protection_detection_v2.pv_difficultes_etablis_detected`.
    */
   pvDifficultesEtablisDetected?: boolean | null;
   /**
-   * SF-FA-17-02 : tentative amiable épuisée (échec voie amiable —
-   * sinon refus pour défaut d'intérêt à agir).
+   * SF-246-25 : tentative amiable épuisée (échec voie amiable — sinon refus pour défaut d'intérêt à agir).
+   * Source backend réelle : `communaute_partage_protection_detection_v2.tentative_amiable_epuiseuee_detected`.
    */
   tentativeAmiableEpuiseueeDetected?: boolean | null;
   /** SF-FA-17-02 : nombre de co-indivisaires détecté par l'IA. */
@@ -237,10 +300,19 @@ export interface FamilleExtractedData {
    */
   dateNaissanceEnfantDetectee?: string | null;
   /**
-   * SF-FA-16-02 : pré-fill communauté universelle (art. 1526 + 1527 al. 2 Cciv).
+   * SF-FA-16-02 / SF-246-25 : pré-fill communauté universelle (art. 1526 + 1527 al. 2 Cciv).
+   * Source backend réelle : `communaute_partage_protection_detection_v2.contrat_notarie_detected`.
    */
   contratNotarieDetected?: boolean | null;
+  /**
+   * SF-246-25 : présence d'enfants non communs (art. 1527 al. 2 Cciv — action en retranchement possible).
+   * Source backend réelle : `communaute_partage_protection_detection_v2.enfants_non_communs_detected`.
+   */
   enfantsNonCommunsDetected?: boolean | null;
+  /**
+   * SF-246-25 : clause d'attribution intégrale de la communauté universelle (art. 1527 al. 1 Cciv).
+   * Source backend réelle : `communaute_partage_protection_detection_v2.clause_attribution_integrale_detected`.
+   */
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
   /**
