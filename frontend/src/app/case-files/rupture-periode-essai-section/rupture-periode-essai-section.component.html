@@ -1,0 +1,407 @@
+<section class="rpe-section">
+  <header class="rpe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rpe-body">
+    <mat-icon class="rpe-icon">gavel</mat-icon>
+    <span class="rpe-title">RUPTURE DE PÉRIODE D'ESSAI</span>
+    @if (result()) {
+      <span class="rpe-chip-summary"
+            [class.rpe-chip-summary--ok]="result()!.verdict === 'REGULIERE'"
+            [class.rpe-chip-summary--medium]="result()!.verdict === 'RISQUE_ABUSIVE'"
+            [class.rpe-chip-summary--ko]="result()!.verdict === 'NULLE' || result()!.verdict === 'ILLEGALE_REQUALIF_LICENCIEMENT'">
+        {{ result()!.scoreIrregularite }}/100 · {{ result()!.anomaliesDetectees.length }} anomalie(s)
+      </span>
+    }
+    <mat-icon class="rpe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rpe-body" class="rpe-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="rpe-country-banner" data-testid="rpe-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (rupture de période d'essai art. L.1221-19 à L.1221-25 Code du travail). Le pendant Belgique (phase initiale post-statut unique 2014) est planifié séparément (F-DT-39).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="rpe-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="rpe-form" (ngSubmit)="calculate()">
+            <!-- Bloc Contrat -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Contrat de travail</span>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Catégorie socio-professionnelle (L.1221-19)</mat-label>
+                <mat-select [ngModel]="categorieSocioProfessionnelle()"
+                            (ngModelChange)="onCategorieChange($event)"
+                            name="categorieSocioProfessionnelle">
+                  @for (opt of categorieOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Type de contrat</mat-label>
+                <mat-select [ngModel]="typeContrat()"
+                            (ngModelChange)="onTypeContratChange($event)"
+                            name="typeContrat">
+                  @for (opt of typeContratOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceTypeContrat() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              @if (typeContrat() === 'CDD' || typeContrat() === 'INTERIM') {
+                <mat-form-field appearance="outline" class="rpe-inset-field">
+                  <mat-label>Durée du CDD / mission (mois)</mat-label>
+                  <input matInput type="number" min="0" max="60"
+                         [ngModel]="dureeCddMois()"
+                         (ngModelChange)="onDureeCddChange($event)"
+                         name="dureeCddMois" />
+                </mat-form-field>
+              }
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Date de début de contrat</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateDebutContrat()"
+                       (ngModelChange)="onDateDebutChange($event)"
+                       name="dateDebutContrat" />
+              </mat-form-field>
+              @if (provenanceDateDebutContrat() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- Bloc Période d'essai -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Période d'essai</span>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Durée contractuelle de l'essai (mois)</mat-label>
+                <input matInput type="number" min="0" max="24" step="0.5"
+                       [ngModel]="dureePeriodeEssaiContractuelleMois()"
+                       (ngModelChange)="onDureeEssaiChange($event)"
+                       name="dureePeriodeEssaiContractuelleMois" />
+              </mat-form-field>
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="renouvellementInvoque()"
+                    (ngModelChange)="onRenouvellementChange($event)"
+                    name="renouvellementInvoque">
+                  Renouvellement invoqué (L.1221-23)
+                </mat-slide-toggle>
+              </div>
+
+              @if (renouvellementInvoque()) {
+                <div class="rpe-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="accordBrancheRenouvellement()"
+                      (ngModelChange)="accordBrancheRenouvellement.set($event)"
+                      name="accordBrancheRenouvellement">
+                    Accord de branche autorisant le renouvellement
+                  </mat-slide-toggle>
+                </div>
+                <div class="rpe-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="accordEcritSalarieRenouvellement()"
+                      (ngModelChange)="accordEcritSalarieRenouvellement.set($event)"
+                      name="accordEcritSalarieRenouvellement">
+                    Accord exprès écrit du salarié obtenu
+                  </mat-slide-toggle>
+                </div>
+              }
+            </div>
+
+            <!-- Bloc Rupture -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Rupture</span>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Auteur de la rupture</mat-label>
+                <mat-select [ngModel]="auteurRupture()"
+                            (ngModelChange)="onAuteurChange($event)"
+                            name="auteurRupture">
+                  @for (opt of auteurOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Date de rupture</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateRupture()"
+                       (ngModelChange)="onDateRuptureChange($event)"
+                       name="dateRupture" />
+              </mat-form-field>
+              @if (provenanceDateRupture() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Délai de prévenance effectivement appliqué (jours)</mat-label>
+                <input matInput type="number" min="0" max="60"
+                       [ngModel]="delaiPrevenanceJoursAppliques()"
+                       (ngModelChange)="onPrevenanceChange($event)"
+                       name="delaiPrevenanceJoursAppliques" />
+                <mat-hint>L.1221-25 : 24h / 48h / 2 sem. / 1 mois (employeur) — 24h / 48h (salarié)</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc Motif -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Motif invoqué</span>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Motif invoqué dans la notification</mat-label>
+                <textarea matInput rows="2"
+                          [ngModel]="motifInvoque()"
+                          (ngModelChange)="onMotifInvoqueChange($event)"
+                          name="motifInvoque"></textarea>
+              </mat-form-field>
+              @if (provenanceMotifInvoque() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="motifLieAuxCompetencesProfessionnelles()"
+                    (ngModelChange)="motifLieAuxCompetencesProfessionnelles.set($event)"
+                    name="motifLieAuxCompetencesProfessionnelles">
+                  Motif lié aux compétences professionnelles (Cass. soc. 20/11/2007)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="motifEconomiqueOuOrganisationnel()"
+                    (ngModelChange)="motifEconomiqueOuOrganisationnel.set($event)"
+                    name="motifEconomiqueOuOrganisationnel">
+                  Motif économique / organisationnel déguisé
+                </mat-slide-toggle>
+              </div>
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="lettreRuptureMotivee()"
+                    (ngModelChange)="onLettreMotiveeChange($event)"
+                    name="lettreRuptureMotivee">
+                  Lettre de rupture motivée (atténuation possible si motifs avérés)
+                </mat-slide-toggle>
+              </div>
+
+              @if (lettreRuptureMotivee()) {
+                <div class="rpe-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="motifsAveresParPieces()"
+                      (ngModelChange)="onMotifsAveresChange($event)"
+                      name="motifsAveresParPieces">
+                    Motifs avérés par les pièces du dossier
+                  </mat-slide-toggle>
+                </div>
+              }
+            </div>
+
+            <!-- Bloc Protections (nullité) -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Protections (nullité de plein droit)</span>
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Discrimination invoquée (L.1132-1)</mat-label>
+                <mat-select [ngModel]="discriminationInvoquee() || 'AUCUNE'"
+                            (ngModelChange)="onDiscriminationChange($event)"
+                            name="discriminationInvoquee">
+                  @for (opt of discriminationOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceDiscrimination() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="grossesseAuMomentRupture()"
+                    (ngModelChange)="onGrossesseChange($event)"
+                    name="grossesseAuMomentRupture">
+                  Grossesse / maternité au moment de la rupture (L.1225-1 et s.)
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceGrossesse() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="arretAccidentTravailEnCours()"
+                    (ngModelChange)="onArretAtChange($event)"
+                    name="arretAccidentTravailEnCours">
+                  Arrêt AT/MP en cours au moment de la rupture (L.1226-9)
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceArretAt() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Atteinte à une liberté fondamentale (si invoquée)</mat-label>
+                <textarea matInput rows="2"
+                          [ngModel]="atteinteLiberteFondamentale()"
+                          (ngModelChange)="onAtteinteLiberteChange($event)"
+                          name="atteinteLiberteFondamentale"></textarea>
+                <mat-hint>Ex. licenciement consécutif à expression opinion politique, religieuse, vie privée…</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc Convention collective + Salaire -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Convention collective &amp; salaire</span>
+
+              <div class="rpe-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="conventionCollectiveApplicable()"
+                    (ngModelChange)="onConventionApplicableChange($event)"
+                    name="conventionCollectiveApplicable">
+                  Convention collective applicable au contrat
+                </mat-slide-toggle>
+              </div>
+              @if (provenanceConventionApplicable() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+
+              @if (conventionCollectiveApplicable()) {
+                <div class="rpe-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="conventionCollectivePlusFavorableRespectee()"
+                      (ngModelChange)="onConventionRespecteeChange($event)"
+                      name="conventionCollectivePlusFavorableRespectee">
+                    Dispositions CCN plus favorables respectées
+                  </mat-slide-toggle>
+                </div>
+              }
+
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Salaire brut mensuel (euros)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="salaireMensuelBrut()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrut" />
+                <mat-hint>Utilisé pour la fourchette d'indemnité abus (1 à 6 mois × salaire)</mat-hint>
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <div class="rpe-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon>calculate</mat-icon>
+                }
+                Calculer la qualification
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <!-- Affichage du résultat -->
+          @let r = result()!;
+          <div [class]="verdictBannerClass(r.verdict)">
+            <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+            <span class="rpe-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+            <span class="rpe-score">{{ r.scoreIrregularite }}/100</span>
+          </div>
+
+          <div class="rpe-summary">
+            <div class="rpe-summary-row">
+              <span class="rpe-summary-label">Ancienneté au moment de la rupture</span>
+              <span class="rpe-summary-value">{{ r.ancienneteJoursAuMomentRupture }} jour(s)</span>
+            </div>
+            <div class="rpe-summary-row">
+              <span class="rpe-summary-label">Durée légale maximale de l'essai</span>
+              <span class="rpe-summary-value">{{ r.dureeLegaleMaximaleMois }} mois</span>
+            </div>
+            <div class="rpe-summary-row">
+              <span class="rpe-summary-label">Délai de prévenance légal requis</span>
+              <span class="rpe-summary-value">{{ r.delaiPrevenanceLegalJours }} jour(s) — {{ r.delaiPrevenanceRespecte ? 'Respecté' : 'NON respecté' }}</span>
+            </div>
+          </div>
+
+          @if (r.indemniteEstimee) {
+            <div class="rpe-indemnite">
+              <h4>Indemnité estimée (fourchette CPH)</h4>
+              <p>
+                <strong>{{ formatEuros(r.indemniteEstimee.montantMinEuros) }} à {{ formatEuros(r.indemniteEstimee.montantMaxEuros) }}</strong>
+                <br>
+                <small>{{ r.indemniteEstimee.baseCalcul }} — {{ r.indemniteEstimee.fondement }}</small>
+              </p>
+            </div>
+          }
+
+          @if (r.remedeReintegration) {
+            <div class="rpe-reintegration">
+              <mat-icon>person_add</mat-icon>
+              <div>
+                <strong>Remède principal : RÉINTÉGRATION + rappel salaires</strong>
+                <p>Demander la réintégration du salarié + le rappel des salaires entre la date de rupture et la date effective de réintégration. <em>Le plancher 6 mois L.1235-3-1 n'est PAS applicable à la rupture d'essai, mais en demandant la réintégration le salarié obtient bien plus</em> (Marjolaine 19/05/2026).</p>
+              </div>
+            </div>
+          }
+
+          @if (r.anomaliesDetectees.length > 0) {
+            <h4>Anomalies détectées ({{ r.anomaliesDetectees.length }})</h4>
+            <ul class="rpe-anomalies">
+              @for (anomalie of r.anomaliesDetectees; track anomalie.code) {
+                <li class="rpe-anomalie">
+                  <div class="rpe-anomalie-header">
+                    <span class="rpe-anomalie-libelle">{{ anomalie.libelle }}</span>
+                    <span [class]="anomalieGraviteClass(anomalie.gravite)">{{ anomalieGraviteLabel(anomalie.gravite) }}</span>
+                  </div>
+                  <p class="rpe-anomalie-fondement">{{ anomalie.fondement | legalCitations }}</p>
+                  <p class="rpe-anomalie-explication">{{ anomalie.explication }}</p>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (r.messages.length > 0) {
+            <ul class="rpe-messages">
+              @for (msg of r.messages; track $index) {
+                <li>{{ msg }}</li>
+              }
+            </ul>
+          }
+
+          @if (r.basesJuridiques.length > 0) {
+            <div class="rpe-bases">
+              <strong>Bases juridiques :</strong>
+              <ul>
+                @for (base of r.basesJuridiques; track $index) {
+                  <li>{{ base | legalCitations }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="rpe-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier la saisie
+            </button>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
