@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Entity
@@ -12,6 +13,14 @@ import java.util.UUID;
 @Getter
 @Setter
 public class Subscription {
+
+    /**
+     * F-251 SF-251-02 — durée par défaut de la période d'évaluation FREE
+     * appliquée par le garde-fou {@link #applyTrialExpiresAtFallback()}.
+     * Aligné sur le calcul nominal dans
+     * {@code WorkspaceService.createWorkspace}.
+     */
+    static final int FREE_TRIAL_DAYS = 14;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -54,4 +63,43 @@ public class Subscription {
     // un workspace FREE / sans abonnement Stripe n'a pas de période courante.
     @Column(name = "current_period_end")
     private Instant currentPeriodEnd;
+
+    /**
+     * F-251 SF-251-02 — garde-fou JPA défensif.
+     *
+     * <p>Empêche la création d'une souscription FREE avec {@code expiresAt}
+     * NULL : si le plan est FREE et que {@code expiresAt} n'est pas fourni,
+     * on le calcule depuis {@code startedAt + 14 jours} (ou {@code now() + 14j}
+     * si {@code startedAt} est lui aussi NULL).
+     *
+     * <p>Cas d'usage : un appel super-admin qui contournerait
+     * {@code WorkspaceService.createWorkspace} et persisterait directement une
+     * Subscription via le repository. Sans ce hook, le compte resterait FREE
+     * sans date d'expiration → {@code PlanLimitService.isExpiredFree} renverrait
+     * faux à perpétuité et l'IHM n'afficherait jamais la trial.
+     *
+     * <p>No-op pour :
+     * <ul>
+     *   <li>Plans payants (SOLO/TEAM/PRO) — leur cycle est piloté par Stripe.</li>
+     *   <li>FREE avec {@code expiresAt} déjà fourni — comportement défensif,
+     *       on respecte la valeur explicite.</li>
+     * </ul>
+     *
+     * <p><b>Limite connue</b> : ne couvre pas les INSERT SQL directs (ils
+     * contournent JPA). La skill {@code prospect-account-bootstrap} documente
+     * la procédure opérateur — voir SF-251-03 (optionnelle).
+     */
+    @PrePersist
+    void applyTrialExpiresAtFallback() {
+        if (!"FREE".equals(planCode)) {
+            return;
+        }
+        if (expiresAt != null) {
+            return;
+        }
+        if (startedAt == null) {
+            startedAt = Instant.now();
+        }
+        expiresAt = startedAt.plus(FREE_TRIAL_DAYS, ChronoUnit.DAYS);
+    }
 }
