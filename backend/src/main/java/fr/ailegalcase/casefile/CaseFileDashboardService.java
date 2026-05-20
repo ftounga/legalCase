@@ -92,6 +92,8 @@ public class CaseFileDashboardService {
     private final RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo;
     // SF-206-01 : F-DT-42 abandon de poste / présomption de démission (FR)
     private final AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo;
+    // SF-206-03 : F-DT-75 congés payés acquis pendant arrêt maladie (FR)
+    private final CongesPayesArretMaladieRepository congesPayesArretMaladieRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -225,6 +227,7 @@ public class CaseFileDashboardService {
                                      ProcedureNulliteLicenciementRepository procedureNulliteLicenciementRepo,
                                      RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo,
                                      AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo,
+                                     CongesPayesArretMaladieRepository congesPayesArretMaladieRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -342,6 +345,7 @@ public class CaseFileDashboardService {
         this.procedureNulliteLicenciementRepo = procedureNulliteLicenciementRepo;
         this.rupturePeriodeEssaiRepo = rupturePeriodeEssaiRepo;
         this.abandonPostePresomptionDemissionRepo = abandonPostePresomptionDemissionRepo;
+        this.congesPayesArretMaladieRepo = congesPayesArretMaladieRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -513,6 +517,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-DT-38-rupture-periode-essai", caseFileId, () -> tileFromRupturePeriodeEssaiAnalysis(caseFileId));
         // SF-206-01 : F-DT-42 abandon de poste / présomption de démission (FR)
         addSafely(tiles, "F-DT-42-abandon-poste-presomption-demission", caseFileId, () -> tileFromAbandonPostePresomptionDemissionAnalysis(caseFileId));
+        // SF-206-03 : F-DT-75 congés payés acquis pendant arrêt maladie (FR)
+        addSafely(tiles, "F-DT-75-conges-payes-arret-maladie", caseFileId, () -> tileFromCongesPayesArretMaladieAnalysis(caseFileId));
         addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
@@ -1374,6 +1380,37 @@ public class CaseFileDashboardService {
                         primary,
                         secondary,
                         mapVerdictAbandonPoste(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-DT-75 Congés payés acquis pendant arrêt maladie (FR) — SF-206-03.
+     *
+     * <p>Tile thème {@code INDEMNITES} (rappel de droits, pas une rupture).
+     * Mapping verdict : {@code RAPPEL_SIGNIFICATIF} → WARNING (montant à
+     * réclamer / action à engager), {@code RAPPEL_LIMITE} → OK, {@code
+     * PAS_DE_RAPPEL} → OK, {@code ACTION_FORCLOSE} → ALERT (délai dépassé).</p>
+     */
+    private DashboardTile tileFromCongesPayesArretMaladieAnalysis(UUID caseFileId) {
+        return congesPayesArretMaladieRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), CongesPayesArretMaladieResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String primary = libelleVerdictCongesPayesArretMaladie(verdict);
+                String secondary = r.joursCpRappel() != null
+                        ? r.joursCpRappel().toPlainString() + " j ouvrables de rappel"
+                        : "—";
+                return new DashboardTile(
+                        "F-DT-75-conges-payes-arret-maladie",
+                        "INDEMNITES",
+                        "Congés payés sur arrêt maladie",
+                        primary,
+                        secondary,
+                        mapVerdictCongesPayesArretMaladie(verdict));
             } catch (Exception ex) {
                 return null;
             }
@@ -3408,6 +3445,38 @@ public class CaseFileDashboardService {
             case "CONTESTATION_SOLIDE" -> "Contestation solide";
             case "CONTESTATION_INCERTAINE" -> "Contestation incertaine";
             case "CONTESTATION_DIFFICILE" -> "Contestation difficile";
+            default -> "—";
+        };
+    }
+
+    /**
+     * SF-206-03 — mapping du verdict F-DT-75 (congés payés sur arrêt maladie,
+     * FR) → {@code alertLevel} de la tuile dashboard. Du point de vue de
+     * l'avocat du salarié : un rappel significatif est une <b>opportunité
+     * monétaire</b> mais avec une <b>action à engager rapidement</b>
+     * (WARNING — call to action) ; un rappel limité ou pas de rappel n'appelle
+     * pas d'action urgente (OK) ; une action forclose est un signal d'alerte
+     * (rouge — délai dépassé).
+     */
+    private static String mapVerdictCongesPayesArretMaladie(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "RAPPEL_SIGNIFICATIF" -> "WARNING";
+            case "RAPPEL_LIMITE" -> "OK";
+            case "PAS_DE_RAPPEL" -> "OK";
+            case "ACTION_FORCLOSE" -> "ALERT";
+            default -> null;
+        };
+    }
+
+    /** SF-206-03 — libellé court du verdict F-DT-75 pour la tile primary. */
+    private static String libelleVerdictCongesPayesArretMaladie(String verdict) {
+        if (verdict == null) return "—";
+        return switch (verdict) {
+            case "RAPPEL_SIGNIFICATIF" -> "Rappel significatif";
+            case "RAPPEL_LIMITE" -> "Rappel limité";
+            case "PAS_DE_RAPPEL" -> "Pas de rappel";
+            case "ACTION_FORCLOSE" -> "Action forclose";
             default -> "—";
         };
     }
