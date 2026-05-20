@@ -246,6 +246,24 @@ public record CaseAnalysisResponse(
             String motifExplicite,
             Integer preavisPresteJours,
             java.math.BigDecimal dernierSalaireMensuelBrut,
+            // SF-207-03 : 3 champs IA Travail BE pour pré-fill F-207-03
+            // contestation C4 ONEM (double délai recours admin Directeur +
+            // recours tribunal du travail). Tous nullables — Travail BE
+            // uniquement, restent null pour un dossier FR (le régime FR
+            // contestation France Travail F-DT-35 est juridiquement distinct).
+            // dateNotificationDecisionOnem : date de notification de la
+            // décision ONEM contestée (format ISO YYYY-MM-DD). Point de
+            // départ du délai de 1 mois (AR 25/11/1991 art. 144).
+            // dateDecisionDirecteur : date de notification de la décision
+            // du Directeur sur le recours admin déjà formé (cas B —
+            // format ISO YYYY-MM-DD). Point de départ du délai de 3 mois
+            // (CJ art. 580, 2°). Reste null si recours admin non encore formé.
+            // recoursAdminDejaForme : booléen — true si le recours admin
+            // Directeur a déjà été formé (oriente vers cas B). Null si
+            // non détectable.
+            String dateNotificationDecisionOnem,
+            String dateDecisionDirecteur,
+            Boolean recoursAdminDejaForme,
             // SF-246-22 : type de procédure travail et date déclencheur pour pré-fill
             // F-136 travail-procedure (FR+BE). 6 codes whitelistés (3 FR + 3 BE) :
             // PRUDHOMMES_FR, APPEL_CA_SOCIALE_FR, CASSATION_SOCIALE_FR,
@@ -435,6 +453,9 @@ public record CaseAnalysisResponse(
                     .motifExplicite(motifExplicite)
                     .preavisPresteJours(preavisPresteJours)
                     .dernierSalaireMensuelBrut(dernierSalaireMensuelBrut)
+                    .dateNotificationDecisionOnem(dateNotificationDecisionOnem)
+                    .dateDecisionDirecteur(dateDecisionDirecteur)
+                    .recoursAdminDejaForme(recoursAdminDejaForme)
                     .procedureTravailDetectee(procedureTravailDetectee)
                     .dateDeclencheurProcedure(dateDeclencheurProcedure)
                     // SF-246-21 — requalification_detection
@@ -565,6 +586,10 @@ public record CaseAnalysisResponse(
             private String motifExplicite;
             private Integer preavisPresteJours;
             private java.math.BigDecimal dernierSalaireMensuelBrut;
+            // SF-207-03 — 3 champs IA Travail BE pour pré-fill F-207-03 contestation C4 ONEM.
+            private String dateNotificationDecisionOnem;
+            private String dateDecisionDirecteur;
+            private Boolean recoursAdminDejaForme;
             // SF-246-22 — type de procédure travail + date déclencheur pour pré-fill F-136.
             private String procedureTravailDetectee;
             private String dateDeclencheurProcedure;
@@ -695,6 +720,9 @@ public record CaseAnalysisResponse(
             public Builder motifExplicite(String v) { this.motifExplicite = v; return this; }
             public Builder preavisPresteJours(Integer v) { this.preavisPresteJours = v; return this; }
             public Builder dernierSalaireMensuelBrut(java.math.BigDecimal v) { this.dernierSalaireMensuelBrut = v; return this; }
+            public Builder dateNotificationDecisionOnem(String v) { this.dateNotificationDecisionOnem = v; return this; }
+            public Builder dateDecisionDirecteur(String v) { this.dateDecisionDirecteur = v; return this; }
+            public Builder recoursAdminDejaForme(Boolean v) { this.recoursAdminDejaForme = v; return this; }
             public Builder procedureTravailDetectee(String v) { this.procedureTravailDetectee = v; return this; }
             public Builder dateDeclencheurProcedure(String v) { this.dateDeclencheurProcedure = v; return this; }
             // SF-246-21 — requalification_detection
@@ -779,6 +807,8 @@ public record CaseAnalysisResponse(
                         dateRuptureContrat, motifRupture,
                         raisonSocialeEmployeur, numeroBce, categorieOnem,
                         motifExplicite, preavisPresteJours, dernierSalaireMensuelBrut,
+                        // SF-207-03 — contestation_c4_onem_detection
+                        dateNotificationDecisionOnem, dateDecisionDirecteur, recoursAdminDejaForme,
                         procedureTravailDetectee, dateDeclencheurProcedure,
                         // SF-246-21 — requalification_detection
                         cddDureeMois, cddDateFinDernierContrat, cddNouveauDateDebut,
@@ -2593,6 +2623,14 @@ public record CaseAnalysisResponse(
                     .motifExplicite(textOrNull(node, "motif_explicite"))
                     .preavisPresteJours(nonNegativeIntOrNull(node, "preavis_preste_jours"))
                     .dernierSalaireMensuelBrut(bigDecimalOrNull(node, "dernier_salaire_mensuel_brut"))
+                    // SF-207-03 : 3 champs IA Travail BE pour pré-fill F-207-03
+                    // contestation C4 ONEM. Le prompt impose null hors Belgique.
+                    // Dates validées ISO YYYY-MM-DD (fail-open → null si non ISO) ;
+                    // booléen extrait via booleanOrNull (peut rester null si IA
+                    // n'a pas pu trancher).
+                    .dateNotificationDecisionOnem(isoDateOrNull(node, "date_notification_decision_onem"))
+                    .dateDecisionDirecteur(isoDateOrNull(node, "date_decision_directeur"))
+                    .recoursAdminDejaForme(booleanOrNull(node, "recours_admin_deja_forme"))
                     // SF-246-22 : type de procédure travail + date déclencheur pour pré-fill
                     // F-136 travail-procedure (FR+BE). Sous-objet procedure_travail_detection.
                     .procedureTravailDetectee(extractProcedureTravailCode(node))
