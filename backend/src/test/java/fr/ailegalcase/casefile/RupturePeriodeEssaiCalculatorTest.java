@@ -424,4 +424,111 @@ class RupturePeriodeEssaiCalculatorTest {
         assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleMois(
                 CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.CDD, 12)).isEqualTo(1);
     }
+
+    // ============================================================================
+    // SF-252-01 — 5 protections nullité additionnelles + enum discrimination 23 motifs
+    // ============================================================================
+
+    @Test
+    void compute_salarieProtegeSansAutorisationInspectionTravail_NULLE() {
+        // L.2411-1 — rupture d'un élu CSE / DS / etc. sans autorisation IT = NULLE
+        var in = ruptureReguliere()
+                .salarieProtege(true)
+                .autorisationInspectionTravailObtenue(false)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.SALARIE_PROTEGE_SANS_AUTORISATION);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+        assertThat(r.remedeReintegration()).isTrue();
+    }
+
+    @Test
+    void compute_salarieProtegeAvecAutorisationInspectionTravail_pasAnomalie() {
+        // Autorisation obtenue → pas d'anomalie protection
+        var in = ruptureReguliere()
+                .salarieProtege(true)
+                .autorisationInspectionTravailObtenue(true)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).doesNotContain(CodeAnomalie.SALARIE_PROTEGE_SANS_AUTORISATION);
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
+    }
+
+    @Test
+    void compute_lanceurAlerte_NULLE() {
+        // L.1132-3-3 — lanceur d'alerte = NULLE de plein droit
+        var in = ruptureReguliere().lanceurAlerte(true).build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.LANCEUR_ALERTE_PROTECTION_VIOLEE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+        assertThat(r.remedeReintegration()).isTrue();
+    }
+
+    @Test
+    void compute_temoinOuVictimeHarcelement_NULLE() {
+        // L.1132-3-1 / L.1152-2 / L.1153-2 = NULLE
+        var in = ruptureReguliere().temoinOuVictimeHarcelement(true).build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.TEMOIN_HARCELEMENT_PROTECTION_VIOLEE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+        assertThat(r.remedeReintegration()).isTrue();
+    }
+
+    @Test
+    void compute_droitDeRetraitExerce_NULLE() {
+        // L.4131-3 — rupture sanctionnant l'exercice du droit de retrait = NULLE
+        var in = ruptureReguliere().droitDeRetraitExerce(true).build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.DROIT_RETRAIT_PROTECTION_VIOLEE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+        assertThat(r.remedeReintegration()).isTrue();
+    }
+
+    @Test
+    void compute_grossesseNotifieePostRupture_dansDelai15j_NULLE() {
+        // L.1225-5 — grossesse notifiée dans les 15 jours suivant la rupture = NULLE rétroactive
+        // Rupture 10/04, notification 20/04 = 10 jours → dans le délai
+        var in = ruptureReguliere()
+                .grossesseDeclareePostRupture(true)
+                .dateNotificationGrossesse(LocalDate.of(2025, 4, 20))
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.GROSSESSE_NOTIFIEE_POST_RUPTURE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+        assertThat(r.remedeReintegration()).isTrue();
+    }
+
+    @Test
+    void compute_grossesseNotifieePostRupture_horsDelai15j_pasAnomalie() {
+        // Rupture 10/04, notification 30/04 = 20 jours → hors délai → pas de nullité
+        var in = ruptureReguliere()
+                .grossesseDeclareePostRupture(true)
+                .dateNotificationGrossesse(LocalDate.of(2025, 4, 30))
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).doesNotContain(CodeAnomalie.GROSSESSE_NOTIFIEE_POST_RUPTURE);
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
+    }
+
+    @Test
+    void compute_discriminationOrientationSexuelle_NULLE() {
+        // SF-252-01 — enum L.1132-1 étendu : nouveau motif ORIENTATION_SEXUELLE
+        var in = ruptureReguliere()
+                .discriminationInvoquee(DiscriminationMotif.ORIENTATION_SEXUELLE)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.DISCRIMINATION_AVEREE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+    }
+
+    @Test
+    void compute_discriminationAge_NULLE() {
+        // SF-252-01 — enum L.1132-1 étendu : nouveau motif AGE
+        var in = ruptureReguliere()
+                .discriminationInvoquee(DiscriminationMotif.AGE)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.DISCRIMINATION_AVEREE);
+        assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+    }
 }

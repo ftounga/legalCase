@@ -801,6 +801,22 @@ export interface TravailExtractedData {
   rpeMotifsAveresParPieces?: boolean | null;
   /** CCN applicable prévoit des dispositions plus favorables effectivement respectées par la rupture. */
   rpeCcnPlusFavorableRespectee?: boolean | null;
+  // SF-252-01 — 7 nouveaux champs pour les 5 protections nullité additionnelles
+  // de F-DT-38 (audit 2026-05-20). FRANCE uniquement, nullables.
+  /** Salarié bénéficiant d'un statut protecteur L.2411-1 (élu CSE / DS / etc.). */
+  rpeSalarieProtege?: boolean | null;
+  /** Autorisation préalable de l'inspection du travail obtenue (L.2411-1 et s.). */
+  rpeAutorisationInspectionTravail?: boolean | null;
+  /** Lanceur d'alerte au sens de L.1132-3-3 (loi Sapin II / Waserman). */
+  rpeLanceurAlerte?: boolean | null;
+  /** Témoin ou victime de harcèlement (L.1132-3-1 / L.1152-2 / L.1153-2-3). */
+  rpeTemoinHarcelement?: boolean | null;
+  /** Exercice du droit de retrait L.4131-3 (danger grave et imminent). */
+  rpeDroitRetraitExerce?: boolean | null;
+  /** Grossesse déclarée à l'employeur APRÈS la rupture (L.1225-5). */
+  rpeGrossesseDeclareePostRupture?: boolean | null;
+  /** Date ISO YYYY-MM-DD de notification de la grossesse à l'employeur (L.1225-5). */
+  rpeDateNotificationGrossesse?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

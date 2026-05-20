@@ -80,6 +80,14 @@ export interface RupturePeriodeEssaiPrefillInput {
     | 'rpeLettreRuptureMotivee'
     | 'rpeMotifsAveresParPieces'
     | 'rpeCcnPlusFavorableRespectee'
+    // SF-252-01 — 7 champs IA additionnels (audit F-DT-38 2026-05-20)
+    | 'rpeSalarieProtege'
+    | 'rpeAutorisationInspectionTravail'
+    | 'rpeLanceurAlerte'
+    | 'rpeTemoinHarcelement'
+    | 'rpeDroitRetraitExerce'
+    | 'rpeGrossesseDeclareePostRupture'
+    | 'rpeDateNotificationGrossesse'
   > | null;
   workspaceCountry?: string;
 }
@@ -323,11 +331,77 @@ export function computeCcnPlusFavorableRespectee(
   return typeof v === 'boolean' ? v : null;
 }
 
+// ─── SF-252-01 — 7 nouvelles fonctions compute (audit F-DT-38 2026-05-20) ─────
+
+/** `salarieProtege` — true si élu CSE / DS / etc. (L.2411-1). */
+export function computeSalarieProtege(
+  input: RupturePeriodeEssaiPrefillInput,
+): boolean | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeSalarieProtege;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** `autorisationInspectionTravailObtenue` — true si autorisation IT obtenue. */
+export function computeAutorisationInspectionTravailObtenue(
+  input: RupturePeriodeEssaiPrefillInput,
+): boolean | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeAutorisationInspectionTravail;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** `lanceurAlerte` — true si lanceur d'alerte L.1132-3-3. */
+export function computeLanceurAlerte(
+  input: RupturePeriodeEssaiPrefillInput,
+): boolean | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeLanceurAlerte;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** `temoinOuVictimeHarcelement` — true si protection L.1132-3-1 / L.1152-2 / L.1153-2/3. */
+export function computeTemoinOuVictimeHarcelement(
+  input: RupturePeriodeEssaiPrefillInput,
+): boolean | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeTemoinHarcelement;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** `droitDeRetraitExerce` — true si exercice du droit de retrait L.4131-3. */
+export function computeDroitDeRetraitExerce(
+  input: RupturePeriodeEssaiPrefillInput,
+): boolean | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeDroitRetraitExerce;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** `grossesseDeclareePostRupture` — true si grossesse notifiée APRÈS rupture (L.1225-5). */
+export function computeGrossesseDeclareePostRupture(
+  input: RupturePeriodeEssaiPrefillInput,
+): boolean | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeGrossesseDeclareePostRupture;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** `dateNotificationGrossesse` — date ISO YYYY-MM-DD de notification employeur. */
+export function computeDateNotificationGrossesse(
+  input: RupturePeriodeEssaiPrefillInput,
+): string | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.rpeDateNotificationGrossesse;
+  return typeof v === 'string' && ISO_DATE_REGEX.test(v) ? v : null;
+}
+
 /**
  * Nombre exact de champs pré-remplissables — parité stricte avec
  * `prefillFromAi()` du composant.
  *
- * SF-246-29 : 23 champs au total (9 SF-DT-38-02 + 14 SF-246-29).
+ * SF-246-29 + SF-252-01 : 30 champs au total
+ * (9 SF-DT-38-02 + 14 SF-246-29 + 7 SF-252-01).
  */
 export function computePrefillCount(input: RupturePeriodeEssaiPrefillInput): number {
   if (!isFrance(input)) return 0;
@@ -357,6 +431,14 @@ export function computePrefillCount(input: RupturePeriodeEssaiPrefillInput): num
   if (computeLettreRuptureMotivee(input) !== null) count++;
   if (computeMotifsAveresParPieces(input) !== null) count++;
   if (computeCcnPlusFavorableRespectee(input) !== null) count++;
+  // SF-252-01 — 7 protections nullité additionnelles
+  if (computeSalarieProtege(input) !== null) count++;
+  if (computeAutorisationInspectionTravailObtenue(input) !== null) count++;
+  if (computeLanceurAlerte(input) !== null) count++;
+  if (computeTemoinOuVictimeHarcelement(input) !== null) count++;
+  if (computeDroitDeRetraitExerce(input) !== null) count++;
+  if (computeGrossesseDeclareePostRupture(input) !== null) count++;
+  if (computeDateNotificationGrossesse(input) !== null) count++;
   return count;
 }
 
@@ -386,5 +468,13 @@ export const RupturePeriodeEssaiSectionPrefillRules = {
   computeLettreRuptureMotivee,
   computeMotifsAveresParPieces,
   computeCcnPlusFavorableRespectee,
+  // SF-252-01
+  computeSalarieProtege,
+  computeAutorisationInspectionTravailObtenue,
+  computeLanceurAlerte,
+  computeTemoinOuVictimeHarcelement,
+  computeDroitDeRetraitExerce,
+  computeGrossesseDeclareePostRupture,
+  computeDateNotificationGrossesse,
   computePrefillCount,
 };
