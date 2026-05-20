@@ -37,6 +37,13 @@ class WorkspaceServiceIT {
     @MockBean
     private StripeCustomerService stripeCustomerService;
 
+    // SF-156-01 : nouvelles dépendances de WorkspaceService.
+    @MockBean
+    private fr.ailegalcase.billing.StripeCheckoutService stripeCheckoutService;
+
+    @MockBean
+    private fr.ailegalcase.billing.PlanLimitService planLimitService;
+
     @MockBean
     private EmailService emailService;
 

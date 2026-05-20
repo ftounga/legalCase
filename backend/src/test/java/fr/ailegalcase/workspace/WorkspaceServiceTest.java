@@ -39,6 +39,12 @@ class WorkspaceServiceTest {
     private StripeCustomerService stripeCustomerService;
 
     @Mock
+    private fr.ailegalcase.billing.StripeCheckoutService stripeCheckoutService;
+
+    @Mock
+    private fr.ailegalcase.billing.PlanLimitService planLimitService;
+
+    @Mock
     private EmailService emailService;
 
     private WorkspaceService service;
@@ -46,7 +52,8 @@ class WorkspaceServiceTest {
     @BeforeEach
     void setUp() {
         service = new WorkspaceService(workspaceRepository, workspaceMemberRepository,
-                authAccountRepository, subscriptionRepository, stripeCustomerService, emailService);
+                authAccountRepository, subscriptionRepository, stripeCustomerService,
+                stripeCheckoutService, planLimitService, emailService);
     }
 
     // U-01 : premier login → workspace FREE + expires_at 14j + membre OWNER créés

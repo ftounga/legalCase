@@ -33,10 +33,17 @@ public class WorkspaceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public WorkspaceResponse create(@AuthenticationPrincipal OidcUser oidcUser,
-                                    Principal principal,
-                                    @Valid @RequestBody CreateWorkspaceRequest request) {
-        return workspaceService.createWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), request.name(), request.legalDomain(), request.country(), principal);
+    public WorkspaceCreatedResponse create(@AuthenticationPrincipal OidcUser oidcUser,
+                                           Principal principal,
+                                           @Valid @RequestBody CreateWorkspaceRequest request) {
+        return workspaceService.createWorkspace(
+                oidcUser,
+                OAuthProviderResolver.resolve(principal).toUpperCase(),
+                request.name(),
+                request.legalDomain(),
+                request.country(),
+                request.plan(),
+                principal);
     }
 
     @PostMapping("/{id}/switch")

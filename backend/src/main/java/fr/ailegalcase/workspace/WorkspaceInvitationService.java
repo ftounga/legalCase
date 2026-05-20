@@ -32,6 +32,7 @@ public class WorkspaceInvitationService {
     private final EmailService emailService;
     private final PlanLimitService planLimitService;
     private final StripeSeatService stripeSeatService;
+    private final WorkspaceAccessGuard workspaceAccessGuard;
 
     public WorkspaceInvitationService(WorkspaceInvitationRepository workspaceInvitationRepository,
                                       WorkspaceMemberRepository workspaceMemberRepository,
@@ -39,7 +40,8 @@ public class WorkspaceInvitationService {
                                       CurrentUserResolver currentUserResolver,
                                       EmailService emailService,
                                       PlanLimitService planLimitService,
-                                      StripeSeatService stripeSeatService) {
+                                      StripeSeatService stripeSeatService,
+                                      WorkspaceAccessGuard workspaceAccessGuard) {
         this.workspaceInvitationRepository = workspaceInvitationRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.workspaceRepository = workspaceRepository;
@@ -47,6 +49,7 @@ public class WorkspaceInvitationService {
         this.emailService = emailService;
         this.planLimitService = planLimitService;
         this.stripeSeatService = stripeSeatService;
+        this.workspaceAccessGuard = workspaceAccessGuard;
     }
 
     @Transactional
@@ -54,6 +57,10 @@ public class WorkspaceInvitationService {
                                                         OidcUser oidcUser, String provider, Principal principal) {
         User requestingUser = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(requestingUser);
+
+        // SF-156-01 (CA8) : refuser l'invitation si workspace PENDING_PAYMENT
+        // ou CANCELLED — invariant SF-156-00 §1.
+        workspaceAccessGuard.requireActive(workspace);
 
         WorkspaceMember requestingMember = workspaceMemberRepository
                 .findByWorkspace_IdAndUser_Id(workspace.getId(), requestingUser.getId())

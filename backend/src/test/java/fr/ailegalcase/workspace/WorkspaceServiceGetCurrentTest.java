@@ -27,6 +27,8 @@ class WorkspaceServiceGetCurrentTest {
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private fr.ailegalcase.billing.SubscriptionRepository subscriptionRepository;
     @Mock private fr.ailegalcase.billing.StripeCustomerService stripeCustomerService;
+    @Mock private fr.ailegalcase.billing.StripeCheckoutService stripeCheckoutService;
+    @Mock private fr.ailegalcase.billing.PlanLimitService planLimitService;
     @Mock private EmailService emailService;
     @Mock private OidcUser oidcUser;
 
@@ -35,7 +37,8 @@ class WorkspaceServiceGetCurrentTest {
     @BeforeEach
     void setUp() {
         service = new WorkspaceService(workspaceRepository, workspaceMemberRepository,
-                authAccountRepository, subscriptionRepository, stripeCustomerService, emailService);
+                authAccountRepository, subscriptionRepository, stripeCustomerService,
+                stripeCheckoutService, planLimitService, emailService);
     }
 
     // U-01 : utilisateur avec workspace → retourne WorkspaceResponse

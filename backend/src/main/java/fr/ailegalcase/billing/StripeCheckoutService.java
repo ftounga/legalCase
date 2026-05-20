@@ -129,4 +129,82 @@ public class StripeCheckoutService {
             default     -> null;
         };
     }
+
+    /**
+     * SF-156-01 : crée une session Stripe Checkout pour l'activation d'un
+     * <strong>nouveau workspace</strong> en état {@code PENDING_PAYMENT}.
+     *
+     * <p>Diffère de {@link #createCheckoutSession} qui cible le workspace
+     * primary de l'utilisateur : ici on cible explicitement {@code newWorkspaceId}
+     * et on injecte cet ID dans la metadata Stripe pour que le webhook
+     * {@code customer.subscription.created} sache à quel workspace appliquer
+     * la transition {@code PENDING_PAYMENT → ACTIVE}.
+     *
+     * <p>Comportement :
+     * <ul>
+     *   <li>Stripe désactivé → retourne {@link java.util.Optional#empty()},
+     *       le service appelant doit activer le workspace immédiatement
+     *       (mode dev / test).</li>
+     *   <li>Plan invalide → {@code 400}.</li>
+     *   <li>Price ID non configuré → {@code 503}.</li>
+     *   <li>Erreur Stripe (API down, etc.) → propage une
+     *       {@link org.springframework.web.server.ResponseStatusException}
+     *       en {@code 502} pour que la transaction appelante rollback.</li>
+     * </ul>
+     *
+     * @param planCode "TEAM" ou "PRO"
+     * @param customerEmail email de l'OWNER (pour créer le customer Stripe)
+     * @param newWorkspaceId ID du workspace nouvellement créé (PENDING_PAYMENT)
+     * @return URL Stripe Checkout, ou {@link java.util.Optional#empty()} si
+     *         Stripe est désactivé
+     */
+    public java.util.Optional<String> createSubscriptionSessionForNewWorkspace(
+            String planCode, String customerEmail, java.util.UUID newWorkspaceId) {
+        if (!stripeEnabled) {
+            log.info("Stripe disabled — workspace {} sera activé immédiatement sans Checkout", newWorkspaceId);
+            return java.util.Optional.empty();
+        }
+        if (!"TEAM".equals(planCode) && !"PRO".equals(planCode)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Plan invalide pour création workspace : " + planCode);
+        }
+
+        String priceId = resolvePriceId(planCode);
+        if (priceId == null || priceId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Price ID non configuré pour le plan " + planCode);
+        }
+
+        // Création d'un customer Stripe dédié à ce nouveau workspace.
+        String customerId = stripeCustomerService.createCustomer(customerEmail, newWorkspaceId).orElse(null);
+
+        try {
+            Stripe.apiKey = secretKey;
+            SessionCreateParams.Builder params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+                    .setSuccessUrl(frontendUrl + "/workspaces?workspace_created=success&workspace_id=" + newWorkspaceId)
+                    .setCancelUrl(frontendUrl + "/workspaces?workspace_created=cancelled&workspace_id=" + newWorkspaceId)
+                    .addLineItem(SessionCreateParams.LineItem.builder()
+                            .setPrice(priceId)
+                            .setQuantity(1L)
+                            .build())
+                    .putMetadata("plan_code", planCode)
+                    .putMetadata("workspace_id", newWorkspaceId.toString())
+                    .putMetadata("workspace_creation", "true");
+
+            if (customerId != null) {
+                params.setCustomer(customerId);
+            } else {
+                params.setCustomerEmail(customerEmail);
+            }
+
+            Session session = Session.create(params.build());
+            return java.util.Optional.of(session.getUrl());
+        } catch (StripeException e) {
+            log.error("Failed to create Stripe checkout session for new workspace {}: {}",
+                    newWorkspaceId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Service de paiement indisponible — création du workspace annulée");
+        }
+    }
 }

@@ -10,6 +10,7 @@ import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.PaymentRequiredCode;
 import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
+import fr.ailegalcase.workspace.WorkspaceAccessGuard;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.data.domain.Page;
@@ -33,19 +34,22 @@ public class CaseFileService {
     private final PlanLimitService planLimitService;
     private final AuditLogRepository auditLogRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
+    private final WorkspaceAccessGuard workspaceAccessGuard;
 
     public CaseFileService(CaseFileRepository caseFileRepository,
                            CurrentUserResolver currentUserResolver,
                            WorkspaceMemberRepository workspaceMemberRepository,
                            PlanLimitService planLimitService,
                            AuditLogRepository auditLogRepository,
-                           CaseAnalysisRepository caseAnalysisRepository) {
+                           CaseAnalysisRepository caseAnalysisRepository,
+                           WorkspaceAccessGuard workspaceAccessGuard) {
         this.caseFileRepository = caseFileRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.planLimitService = planLimitService;
         this.auditLogRepository = auditLogRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
+        this.workspaceAccessGuard = workspaceAccessGuard;
     }
 
     @Transactional
@@ -56,6 +60,10 @@ public class CaseFileService {
                 .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
+
+        // SF-156-01 (CA8) : refuser la création de dossier sur un workspace
+        // PENDING_PAYMENT ou CANCELLED — invariant SF-156-00 §1.
+        workspaceAccessGuard.requireActive(workspace);
 
         long openCount = caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(workspace.getId(), "OPEN");
         int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId());

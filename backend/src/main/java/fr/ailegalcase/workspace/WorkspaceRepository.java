@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
@@ -14,6 +15,12 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
     long countByPlanCode(String planCode);
 
     long countByCreatedAtAfter(Instant since);
+
+    /**
+     * SF-156-01 : workspaces dans un statut donné créés avant un instant
+     * (utilisé par le cleanup des PENDING_PAYMENT > 24 h).
+     */
+    List<Workspace> findByStatusAndCreatedAtBefore(String status, Instant createdBefore);
 
     /**
      * SF-122-01 + SF-122-02 : incrémente les compteurs OCR atomiquement avec
