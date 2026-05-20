@@ -277,15 +277,29 @@ describe('RegimeCommunauteLegaleBeSectionComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // getPrefillCount = 0 (PREFILL_COUNT_ALWAYS_ZERO)
+  // SF-246-28 : levée PREFILL_COUNT_ALWAYS_ZERO — 2 champs possibles
   // ---------------------------------------------------------------------------
 
-  it('getPrefillCount() retourne 0 (V1 — aucun flag patrimonial extrait)', () => {
+  it('getPrefillCount() retourne 0 si aiData absent', () => {
     expect(RegimeCommunauteLegaleBeSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('getPrefillCount() retourne 2 si date mariage BE ISO + contrat mariage détectés', () => {
+    expect(
+      RegimeCommunauteLegaleBeSectionComponent.getPrefillCount({
+        aiData: {
+          dateMariageBeDetectee: '2015-06-20',
+          contratMariageSigneBeDetecte: true,
+        },
+      }),
+    ).toBe(2);
+  });
+
+  it('getPrefillCount() retourne 0 si l\'ancien champ dateMariage (sans suffix BE) est utilisé', () => {
+    // dateMariage (sans suffix BE) ne correspond pas à dateMariageBeDetectee
     expect(RegimeCommunauteLegaleBeSectionComponent.getPrefillCount({
       aiData: { dateMariage: '2015-06-20' },
     })).toBe(0);
-    expect(RegimeCommunauteLegaleBeSectionComponent.PREFILL_COUNT_ALWAYS_ZERO).toBe(true);
   });
 
   // ---------------------------------------------------------------------------

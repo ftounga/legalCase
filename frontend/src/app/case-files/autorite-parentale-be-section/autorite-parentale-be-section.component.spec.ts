@@ -32,9 +32,25 @@ describe('AutoriteParentaleBeSectionComponent', () => {
     expect(typeof AutoriteParentaleBeSectionComponent.getPrefillCount).toBe('function');
   });
 
-  it('getPrefillCount retourne 0 (PREFILL_COUNT_ALWAYS_ZERO)', () => {
+  // SF-246-28 : levée PREFILL_COUNT_ALWAYS_ZERO — 1 champ possible (modeHebergement)
+  it('getPrefillCount retourne 0 si aiData absent', () => {
     expect(AutoriteParentaleBeSectionComponent.getPrefillCount({})).toBe(0);
-    expect(AutoriteParentaleBeSectionComponent.PREFILL_COUNT_ALWAYS_ZERO).toBe(true);
+  });
+
+  it('getPrefillCount retourne 1 si modeHebergement BE détecté', () => {
+    expect(
+      AutoriteParentaleBeSectionComponent.getPrefillCount({
+        aiData: { modeHebergementPrincipalBeDetecte: 'HEBERGEMENT_EGALITAIRE' },
+      }),
+    ).toBe(1);
+  });
+
+  it('getPrefillCount retourne 0 si code modeHebergement hors whitelist', () => {
+    expect(
+      AutoriteParentaleBeSectionComponent.getPrefillCount({
+        aiData: { modeHebergementPrincipalBeDetecte: 'CODE_INCONNU' },
+      }),
+    ).toBe(0);
   });
 
   it('rendu nominal BE : titre + toggles affichés quand expanded', () => {

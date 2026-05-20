@@ -74,12 +74,9 @@ export class AutoriteParentaleBeSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'family_restroom';
 
   /**
-   * F-236 / F-237 — délègue au helper partagé.
-   * V1 : aucun flag d'autorité parentale extrait par l'IA → toujours 0
-   * (`PREFILL_COUNT_ALWAYS_ZERO`).
+   * SF-246-28 / F-236 / F-237 — délègue au helper partagé.
+   * 1 champ maximum : `modeHebergementPrincipal`.
    */
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
-
   static getPrefillCount(input: {
     aiData?: unknown;
     procedureChecks?: unknown[];
@@ -126,6 +123,9 @@ export class AutoriteParentaleBeSectionComponent implements OnInit, OnChanges {
   modeHebergementPrincipal = signal<ModeHebergementBe>('HEBERGEMENT_PRINCIPAL_UN_PARENT');
   commentaire = signal<string | null>(null);
 
+  /** SF-246-28 — badge auto_awesome : null = saisi manuellement, 'IA' = pré-rempli. */
+  provenanceModeHebergement = signal<'IA' | null>(null);
+
   constructor(
     private service: AutoriteParentaleBeService,
     private snackBar: MatSnackBar,
@@ -150,11 +150,20 @@ export class AutoriteParentaleBeSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Pré-fill IA — V1 : aucun flag d'autorité parentale dédié n'est extrait par
-   * le pipeline (`PREFILL_COUNT_ALWAYS_ZERO`). No-op assumé et documenté.
+   * SF-246-28 — Pré-fill IA réel.
+   * Pré-remplit `modeHebergementPrincipal` si l'IA a détecté un code valide
+   * dans `famille_be_detection_v2.mode_hebergement_principal_be`.
+   * No-op gracieux si `aiData` est null ou champ absent.
    */
   private prefillFromAi(): void {
-    // V1 : aucun champ pré-rempli — parité stricte avec getPrefillCount() = 0.
+    const mode = AutoriteParentaleBeSectionPrefillRules.computeModeHebergement({
+      aiData: this.aiData,
+    });
+    if (mode != null) {
+      this.modeHebergementPrincipal.set(mode as ModeHebergementBe);
+      this.provenanceModeHebergement.set('IA');
+      this.cdr.markForCheck();
+    }
   }
 
   toggleCollapse(): void {
@@ -171,6 +180,12 @@ export class AutoriteParentaleBeSectionComponent implements OnInit, OnChanges {
   }
 
   // --- Handlers ---
+
+  /** SF-246-28 — Reset provenance mode d'hébergement au changement manuel. */
+  onModeHebergementChange(value: ModeHebergementBe): void {
+    this.modeHebergementPrincipal.set(value);
+    this.provenanceModeHebergement.set(null);
+  }
 
   /** Désactiver la demande d'exclusive remet à zéro les motifs graves saisis. */
   onDemandeExclusiveChange(value: boolean): void {

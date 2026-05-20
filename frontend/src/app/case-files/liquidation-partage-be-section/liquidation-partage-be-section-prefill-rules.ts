@@ -1,36 +1,85 @@
 /**
- * F-217 SF-217-03 — Helper partagé pour l'outil "Liquidation-partage
- * post-divorce (Belgique)" (`liquidation-partage-be`). Module pur — runtime et
- * static appellent les mêmes fonctions (contrat F-236 SF-236-01 / F-237).
+ * SF-246-28 — Helper partagé pour l'outil "Liquidation-partage post-divorce
+ * (Belgique)" (`liquidation-partage-be`). Module pur — runtime et static
+ * appellent les mêmes fonctions (contrat F-236 SF-236-01 / F-237).
  *
- * `PREFILL_COUNT_ALWAYS_ZERO` : en V1 le pipeline IA n'extrait AUCUN flag
- * pivot dédié à l'avancement de la procédure de liquidation-partage
- * (désignation du notaire, projet de liquidation, contredits, homologation).
- * Aucun champ du formulaire n'est donc pré-rempli depuis l'analyse —
- * `computePrefillCount` retourne 0 de manière inconditionnelle. C'est un état
- * factuel documenté (pas une dette masquée, cf. SF-217-00) : l'extension IA
- * fera l'objet d'une SF ultérieure si le signal terrain émerge.
+ * SF-246-28 : levée de `PREFILL_COUNT_ALWAYS_ZERO`. Le pipeline IA extrait
+ * désormais 4 dates ISO depuis le sous-objet `famille_be_detection_v2` :
+ * `dateDesignationNotaireBeDetectee`, `dateOuvertureOperationsBeDetectee`,
+ * `dateNotificationProjetBeDetectee`, `dateHomologationBeDetectee`.
  */
 
-/** Constante de documentation : aucun pré-fill IA en V1. */
-export const PREFILL_COUNT_ALWAYS_ZERO = true;
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface LiquidationPartageBePrefillInput {
-  aiData?: unknown;
+  aiData?: FamilleExtractedData | null | unknown;
+}
+
+/** Date de désignation du notaire (ISO YYYY-MM-DD) ou null. */
+export function computeDateDesignationNotaire(
+  input: LiquidationPartageBePrefillInput,
+): string | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const d = ai.dateDesignationNotaireBeDetectee;
+  if (!d || !ISO_DATE_REGEX.test(d)) return null;
+  return d;
+}
+
+/** Date d'ouverture des opérations (ISO YYYY-MM-DD) ou null. */
+export function computeDateOuvertureOperations(
+  input: LiquidationPartageBePrefillInput,
+): string | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const d = ai.dateOuvertureOperationsBeDetectee;
+  if (!d || !ISO_DATE_REGEX.test(d)) return null;
+  return d;
+}
+
+/** Date de notification du projet (ISO YYYY-MM-DD) ou null. */
+export function computeDateNotificationProjet(
+  input: LiquidationPartageBePrefillInput,
+): string | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const d = ai.dateNotificationProjetBeDetectee;
+  if (!d || !ISO_DATE_REGEX.test(d)) return null;
+  return d;
+}
+
+/** Date d'homologation (ISO YYYY-MM-DD) ou null. */
+export function computeDateHomologation(
+  input: LiquidationPartageBePrefillInput,
+): string | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const d = ai.dateHomologationBeDetectee;
+  if (!d || !ISO_DATE_REGEX.test(d)) return null;
+  return d;
 }
 
 /**
- * V1 — aucun champ extrait par le pipeline IA → toujours 0.
- * Le paramètre est conservé pour la parité de signature avec les autres
- * helpers `*PrefillRules`.
+ * Compte le nombre de dates pré-remplies par l'IA pour le badge du panneau.
+ * SF-246-28 : 4 dates maximum.
  */
 export function computePrefillCount(
-  _input: LiquidationPartageBePrefillInput,
+  input: LiquidationPartageBePrefillInput,
 ): number {
-  return 0;
+  return [
+    computeDateDesignationNotaire(input),
+    computeDateOuvertureOperations(input),
+    computeDateNotificationProjet(input),
+    computeDateHomologation(input),
+  ].filter(v => v != null).length;
 }
 
 export const LiquidationPartageBeSectionPrefillRules = {
   computePrefillCount,
-  PREFILL_COUNT_ALWAYS_ZERO,
+  computeDateDesignationNotaire,
+  computeDateOuvertureOperations,
+  computeDateNotificationProjet,
+  computeDateHomologation,
 };

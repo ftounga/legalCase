@@ -72,12 +72,9 @@ export class ContributionConjointBeSectionComponent implements OnInit, OnChanges
   static readonly TOOL_ICON = 'volunteer_activism';
 
   /**
-   * F-236 / F-237 — délègue au helper partagé.
-   * V1 : aucun flag de pension entre ex-époux extrait par l'IA → toujours 0
-   * (`PREFILL_COUNT_ALWAYS_ZERO`).
+   * SF-246-28 / F-236 / F-237 — délègue au helper partagé.
+   * 3 champs maximum (dureeMariage, revenuCreancier, revenuDebiteur).
    */
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
-
   static getPrefillCount(input: {
     aiData?: unknown;
     procedureChecks?: unknown[];
@@ -123,6 +120,11 @@ export class ContributionConjointBeSectionComponent implements OnInit, OnChanges
   degradationEconomiqueLieeAuMariage = signal<boolean>(false);
   commentaire = signal<string | null>(null);
 
+  /** SF-246-28 — signaux de provenance (null = manuel, 'IA' = pré-rempli). */
+  provenanceDureeMariage = signal<'IA' | null>(null);
+  provenanceRevenuCreancier = signal<'IA' | null>(null);
+  provenanceRevenuDebiteur = signal<'IA' | null>(null);
+
   constructor(
     private service: ContributionConjointBeService,
     private snackBar: MatSnackBar,
@@ -147,11 +149,24 @@ export class ContributionConjointBeSectionComponent implements OnInit, OnChanges
   }
 
   /**
-   * Pré-fill IA — V1 : aucun flag de pension entre ex-époux dédié n'est
-   * extrait par le pipeline (`PREFILL_COUNT_ALWAYS_ZERO`). No-op assumé.
+   * SF-246-28 — Pré-fill IA réel pour les 3 champs Contribution Conjoint BE.
+   * No-op gracieux si `aiData` est null ou sous-objet absent.
    */
   private prefillFromAi(): void {
-    // V1 : aucun champ pré-rempli — parité stricte avec getPrefillCount() = 0.
+    const rules = ContributionConjointBeSectionPrefillRules;
+    const input = { aiData: this.aiData };
+    let changed = false;
+
+    const duree = rules.computeDureeMariage(input);
+    if (duree != null) { this.dureeMariageAnnees.set(duree); this.provenanceDureeMariage.set('IA'); changed = true; }
+
+    const rc = rules.computeRevenuCreancier(input);
+    if (rc != null) { this.revenuMensuelCreancier.set(rc); this.provenanceRevenuCreancier.set('IA'); changed = true; }
+
+    const rd = rules.computeRevenuDebiteur(input);
+    if (rd != null) { this.revenuMensuelDebiteur.set(rd); this.provenanceRevenuDebiteur.set('IA'); changed = true; }
+
+    if (changed) this.cdr.markForCheck();
   }
 
   toggleCollapse(): void {

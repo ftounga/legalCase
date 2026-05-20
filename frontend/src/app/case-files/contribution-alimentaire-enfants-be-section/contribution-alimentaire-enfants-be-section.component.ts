@@ -72,12 +72,9 @@ export class ContributionAlimentaireEnfantsBeSectionComponent implements OnInit,
   static readonly TOOL_ICON = 'savings';
 
   /**
-   * F-236 / F-237 — délègue au helper partagé.
-   * V1 : aucun flag de contribution alimentaire extrait par l'IA → toujours 0
-   * (`PREFILL_COUNT_ALWAYS_ZERO`).
+   * SF-246-28 / F-236 / F-237 — délègue au helper partagé.
+   * 6 champs maximum (nombreEnfants, revenus P1/P2, allocations, nuits P1/P2).
    */
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
-
   static getPrefillCount(input: {
     aiData?: unknown;
     procedureChecks?: unknown[];
@@ -126,6 +123,14 @@ export class ContributionAlimentaireEnfantsBeSectionComponent implements OnInit,
   fraisExtraordinairesMensuels = signal<number | null>(null);
   commentaire = signal<string | null>(null);
 
+  /** SF-246-28 — signaux de provenance (null = manuel, 'IA' = pré-rempli). */
+  provenanceNombreEnfants = signal<'IA' | null>(null);
+  provenanceRevenuParent1 = signal<'IA' | null>(null);
+  provenanceRevenuParent2 = signal<'IA' | null>(null);
+  provenanceAllocations = signal<'IA' | null>(null);
+  provenanceNuitsParent1 = signal<'IA' | null>(null);
+  provenanceNuitsParent2 = signal<'IA' | null>(null);
+
   constructor(
     private service: ContributionAlimentaireEnfantsBeService,
     private snackBar: MatSnackBar,
@@ -150,11 +155,33 @@ export class ContributionAlimentaireEnfantsBeSectionComponent implements OnInit,
   }
 
   /**
-   * Pré-fill IA — V1 : aucun flag de contribution alimentaire dédié n'est
-   * extrait par le pipeline (`PREFILL_COUNT_ALWAYS_ZERO`). No-op assumé.
+   * SF-246-28 — Pré-fill IA réel pour les 6 champs Contribution Alimentaire BE.
+   * No-op gracieux si `aiData` est null ou sous-objet absent.
    */
   private prefillFromAi(): void {
-    // V1 : aucun champ pré-rempli — parité stricte avec getPrefillCount() = 0.
+    const rules = ContributionAlimentaireEnfantsBeSectionPrefillRules;
+    const input = { aiData: this.aiData };
+    let changed = false;
+
+    const nb = rules.computeNombreEnfants(input);
+    if (nb != null) { this.nombreEnfants.set(nb); this.provenanceNombreEnfants.set('IA'); changed = true; }
+
+    const r1 = rules.computeRevenuParent1(input);
+    if (r1 != null) { this.revenuMensuelParent1.set(r1); this.provenanceRevenuParent1.set('IA'); changed = true; }
+
+    const r2 = rules.computeRevenuParent2(input);
+    if (r2 != null) { this.revenuMensuelParent2.set(r2); this.provenanceRevenuParent2.set('IA'); changed = true; }
+
+    const alloc = rules.computeAllocationsFamiliales(input);
+    if (alloc != null) { this.allocationsFamilialesMensuelles.set(alloc); this.provenanceAllocations.set('IA'); changed = true; }
+
+    const n1 = rules.computeNuitsParent1(input);
+    if (n1 != null) { this.nuitsHebergementParent1.set(n1); this.provenanceNuitsParent1.set('IA'); changed = true; }
+
+    const n2 = rules.computeNuitsParent2(input);
+    if (n2 != null) { this.nuitsHebergementParent2.set(n2); this.provenanceNuitsParent2.set('IA'); changed = true; }
+
+    if (changed) this.cdr.markForCheck();
   }
 
   toggleCollapse(): void {
