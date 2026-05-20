@@ -431,21 +431,17 @@ public record CaseAnalysisResponse(
             String dateDebutRccEnvisagee,
             // SF-206-03 : 5 champs IA pour pré-fill F-DT-75 (congés payés
             // acquis pendant arrêt maladie, Travail FR uniquement, nullables).
-            // Sous-objet `conges_payes_arret_maladie_detail`. Loi 22/04/2024
-            // art. 37 — L.3141-5 / L.3141-5-1 CT — Cass. soc. 13/09/2023. Le
-            // régime BE (Loi 28/06/1971 sur les vacances annuelles) est
-            // distinct : ces champs restent null pour un dossier travail BE.
-            // cpArretMaladieType : "MALADIE_NON_PROFESSIONNELLE" |
-            //                       "ACCIDENT_TRAVAIL_MALADIE_PRO".
-            // cpArretMaladieNombreMois : nombre de mois d'arrêt cumulés (≥ 1).
-            // cpArretMaladieSalarieEnPoste : booléen.
-            // cpArretMaladieDateRupture : ISO YYYY-MM-DD ou null.
-            // cpArretMaladieJoursDejaAccordes : jours décomptés par l'employeur.
             String cpArretMaladieType,
             Integer cpArretMaladieNombreMois,
             Boolean cpArretMaladieSalarieEnPoste,
             String cpArretMaladieDateRupture,
-            java.math.BigDecimal cpArretMaladieJoursDejaAccordes) {
+            java.math.BigDecimal cpArretMaladieJoursDejaAccordes,
+            // SF-207-08 : 3 champs IA Travail BE pour pré-fill F-207-08 outil
+            // outplacement BE obligatoire 45+ (CCT n°82 ; CCT n°82 bis ;
+            // Loi 05/09/2001 art. 13 ; AR 30/05/2018).
+            Double ancienneteSalarie,
+            String motifLicenciementDetecte,
+            Boolean offreOutplacementMentionnee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -617,7 +613,11 @@ public record CaseAnalysisResponse(
                     .cpArretMaladieNombreMois(cpArretMaladieNombreMois)
                     .cpArretMaladieSalarieEnPoste(cpArretMaladieSalarieEnPoste)
                     .cpArretMaladieDateRupture(cpArretMaladieDateRupture)
-                    .cpArretMaladieJoursDejaAccordes(cpArretMaladieJoursDejaAccordes);
+                    .cpArretMaladieJoursDejaAccordes(cpArretMaladieJoursDejaAccordes)
+                    // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
+                    .ancienneteSalarie(ancienneteSalarie)
+                    .motifLicenciementDetecte(motifLicenciementDetecte)
+                    .offreOutplacementMentionnee(offreOutplacementMentionnee);
         }
 
         public static final class Builder {
@@ -784,6 +784,10 @@ public record CaseAnalysisResponse(
             private Boolean cpArretMaladieSalarieEnPoste;
             private String cpArretMaladieDateRupture;
             private java.math.BigDecimal cpArretMaladieJoursDejaAccordes;
+            // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
+            private Double ancienneteSalarie;
+            private String motifLicenciementDetecte;
+            private Boolean offreOutplacementMentionnee;
 
             private Builder() {}
 
@@ -945,6 +949,10 @@ public record CaseAnalysisResponse(
             public Builder cpArretMaladieSalarieEnPoste(Boolean v) { this.cpArretMaladieSalarieEnPoste = v; return this; }
             public Builder cpArretMaladieDateRupture(String v) { this.cpArretMaladieDateRupture = v; return this; }
             public Builder cpArretMaladieJoursDejaAccordes(java.math.BigDecimal v) { this.cpArretMaladieJoursDejaAccordes = v; return this; }
+            // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
+            public Builder ancienneteSalarie(Double v) { this.ancienneteSalarie = v; return this; }
+            public Builder motifLicenciementDetecte(String v) { this.motifLicenciementDetecte = v; return this; }
+            public Builder offreOutplacementMentionnee(Boolean v) { this.offreOutplacementMentionnee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1032,7 +1040,11 @@ public record CaseAnalysisResponse(
                         // SF-206-03 — conges_payes_arret_maladie_detail (FRANCE uniquement)
                         cpArretMaladieType, cpArretMaladieNombreMois,
                         cpArretMaladieSalarieEnPoste, cpArretMaladieDateRupture,
-                        cpArretMaladieJoursDejaAccordes);
+                        cpArretMaladieJoursDejaAccordes,
+                        // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
+                        ancienneteSalarie,
+                        motifLicenciementDetecte,
+                        offreOutplacementMentionnee);
             }
         }
     }
@@ -3341,6 +3353,22 @@ public record CaseAnalysisResponse(
                     .remunerationNetteReferenceRccDetectee(doubleOrNull(node, "remuneration_nette_reference_rcc_detectee"))
                     .allocationOnemMensuelleEstimee(doubleOrNull(node, "allocation_onem_mensuelle_estimee"))
                     .dateDebutRccEnvisagee(isoDateOrNull(node, "date_debut_rcc_envisagee"))
+                    // SF-207-08 : 3 champs IA Travail BE pour pré-fill F-207-08
+                    // outplacement BE obligatoire 45+ (CCT 82 ; CCT 82 bis ;
+                    // Loi 05/09/2001 art. 13 ; AR 30/05/2018). Le prompt impose
+                    // null hors Belgique. ancienneteSalarie : Double années
+                    // avec décimales (pas de borne haute applicative — on borne
+                    // soft à [0, 60] côté prompt). motifLicenciementDetecte :
+                    // whitelist 4 valeurs. offreOutplacementMentionnee : booléen
+                    // tri-état (null = pas tranchable).
+                    .ancienneteSalarie(doubleOrNull(node, "anciennete_salarie"))
+                    .motifLicenciementDetecte(whitelistedOrNull(
+                            textOrNull(node, "motif_licenciement_detecte"),
+                            "LICENCIEMENT_ECONOMIQUE",
+                            "LICENCIEMENT_AUTRE",
+                            "FAUTE_GRAVE",
+                            "DEMISSION"))
+                    .offreOutplacementMentionnee(booleanOrNull(node, "offre_outplacement_mentionnee"))
                     // SF-246-21 : 5 sous-objets thématiques Travail FR (FR uniquement, null dossier BE).
                     .cddDureeMois(extract246_21CddDureeMois(node))
                     .cddDateFinDernierContrat(extract246_21CddDateFin(node))

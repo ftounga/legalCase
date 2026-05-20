@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="266-create-outplacement-be-analyses" author="legalcase">
+        <comment>
+            SF-207-08 : table dédiée à l'outil décisionnel "Outplacement BE
+            obligatoire 45+" (F-207). Analyseur de conformité de l'outplacement
+            obligatoire pour salariés ≥ 45 ans, ≥ 1 an d'ancienneté, licenciés
+            (hors faute grave / hors démission).
+
+            Substance juridique BE :
+              CCT n°82 ; CCT n°82 bis (variante temps partiel) ;
+              Loi du 5 septembre 2001 art. 13 ;
+              AR du 30 mai 2018 (sanction administrative employeur 1 800 €) ;
+              AR du 25 novembre 1991 art. 154 (sanction salarié 4 à 52 semaines).
+
+            5 verdicts conditionnels :
+              OUTPLACEMENT_NON_DU (âge &lt; 45 / ancienneté &lt; 1 / faute grave / démission)
+              OFFRE_NON_FAITE_SANCTION_EMPLOYEUR (1 800 €)
+              OFFRE_NON_CONFORME_SANCTION_EMPLOYEUR (1 800 €)
+              OFFRE_REFUSEE_SANCTION_SALARIE (4-52 semaines ONEM)
+              OFFRE_CONFORME_RESPECTEE
+
+            Calcul dateLimiteOffre = dateLicenciement + 15 jours calendaires
+            (fuseau Europe/Brussels). Sanction employeur en BigDecimal (HALF_EVEN,
+            scale 2). Ancienneté en BigDecimal années avec décimales.
+
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté FR).
+            Substance juridique BE pure (mémoire feedback_belgique_never_forget) ;
+            aucun équivalent FR direct (les dispositifs FR — CSP, congé reclassement —
+            relèvent de régimes juridiquement distincts).
+
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (dateLicenciement, dateNaissanceSalarie, ancienneteAnnees,
+            motifLicenciement, contratTempsPlein, offreOutplacementRecue,
+            dateOffreOutplacement, offreConformeCCT82, salarieAcceptantOffre)
+            + outputs (verdict, ageALaDateLicenciement,
+            obligationEmployeurApplicable, raisonNonObligation,
+            sanctionEmployeurEuros, sanctionSalarieRange, dateLimiteOffre,
+            delaiOffreRespecte, etapeSuivante, baseJuridique, formuleCalcul, country).
+
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY seront
+            livrées côté frontend SF-207-08b (à venir). Pattern identique aux
+            SF-207-01..07 — couplage backend/frontend pour le seed visibility
+            (mémoire feedback_pre_merge_visibility_seed_check).
+
+            DERNIÈRE SF backend de la feature F-207 (8/8 outils Travail BE livrés).
+        </comment>
+
+        <createTable tableName="outplacement_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_outplacement_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="outplacement_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_outplacement_be_case_file"/>
+
+        <createIndex tableName="outplacement_be_analyses"
+                     indexName="idx_outplacement_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="outplacement_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
