@@ -67,16 +67,7 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary",
-            // SF-206-07 (2026-05-20) : F-DT-40 résiliation judiciaire CPH —
-            // exclusion transitoire. La tuile dashboard est livrée backend
-            // (tileFromResiliationJudiciaireCphAnalysis dans
-            // CaseFileDashboardService) mais le seed visibility F-IA-04 et
-            // l'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts)
-            // sont reportés à SF-206-08 frontend — pattern prouvé F-DT-42 /
-            // F-DT-75 / F-DT-39 (résolutions structurelles SF-206-02, SF-206-04,
-            // SF-206-06). À résorber par la SF frontend SF-206-08.
-            "F-DT-40-resiliation-judiciaire-cph"
+            "F-196-questions-summary"
             // SF-206-02 (2026-05-20) : F-DT-42 retiré — résolution structurelle
             // complète (seed migration 263 + TOOL_REGISTRY frontend + tile mapper).
             // SF-206-04 (2026-05-20) : F-DT-75 retiré — résolution structurelle
@@ -87,6 +78,11 @@ class DashboardTileToolIdIntegrityIT {
             // complète (seed migration 268 + entrée TOOL_REGISTRY frontend dans
             // decisional-tools-panel.component.ts + tile mapper backend
             // `tileFromPriseActeRuptureAnalysis` déjà présent dans
+            // CaseFileDashboardService).
+            // SF-206-08 (2026-05-20) : F-DT-40 retiré — résolution structurelle
+            // complète (seed migration 270 + entrée TOOL_REGISTRY frontend dans
+            // decisional-tools-panel.component.ts + tile mapper backend
+            // `tileFromResiliationJudiciaireCphAnalysis` déjà présent dans
             // CaseFileDashboardService).
     );
 

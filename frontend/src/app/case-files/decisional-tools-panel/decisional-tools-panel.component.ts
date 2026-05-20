@@ -88,6 +88,7 @@ import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nulli
 import { AbandonPostePresomptionDemissionSectionComponent } from '../abandon-poste-presomption-demission-section/abandon-poste-presomption-demission-section.component';
 import { CongesPayesArretMaladieSectionComponent } from '../conges-payes-arret-maladie-section/conges-payes-arret-maladie-section.component';
 import { PriseActeRuptureSectionComponent } from '../prise-acte-rupture-section/prise-acte-rupture-section.component';
+import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
@@ -746,6 +747,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // sur 5 champs croisables (DT39_DEFAUT_PAIEMENT, DT39_HARCELEMENT,
           // DT39_MANQUEMENT_SECURITE, DT39_MODIFICATION_CONTRAT,
           // DT39_GRIEF_IMPOSSIBLE_POURSUITE) via F-96 / questions IA / pièces.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      ['F-DT-40-resiliation-judiciaire-cph', {
+        displayLabel: 'Résiliation judiciaire du contrat (FR)',
+        component: ResiliationJudiciaireCphSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-206-08 : pré-fill IA réel (12 champs `resiliation_judiciaire_detail`
+          // projetés à plat dans travailExtractedData, FR uniquement). Validation
+          // F-IA-03 sur 5 champs croisables (DT40_DEFAUT_PAIEMENT, DT40_HARCELEMENT,
+          // DT40_MANQUEMENT_SECURITE, DT40_MODIFICATION_CONTRAT,
+          // DT40_MANQUEMENTS_PERSISTANTS) via F-96 / questions IA / pièces.
+          // Outil jumeau de F-DT-39 (prise d'acte) — situation distincte : voie
+          // sans risque de rupture, salarié reste en poste pendant l'instance.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
@@ -2448,6 +2469,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Cass. soc. 25/06/2003 n°01-42.679). Groupe F-169 « Rupture — initiative
     // salarié / torts employeur » — diagnostic de solidité AVANT notification.
     ['F-DT-39-prise-acte-rupture', 'DIAGNOSTIC'],
+    // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
+    // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
+    // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative
+    // salarié / torts employeur » — outil jumeau de F-DT-39 mais voie sans
+    // risque (rejet ≠ rupture, salarié reste en poste pendant l'instance).
+    ['F-DT-40-resiliation-judiciaire-cph', 'DIAGNOSTIC'],
     // F-198 SF-198-03 : rattrapage F-FA-04 (DELETE par migration 191).
     ['F-FA-04-liquidation-communaute', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],

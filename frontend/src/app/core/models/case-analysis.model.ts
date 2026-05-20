@@ -713,6 +713,38 @@ export interface TravailExtractedData {
   priseActeGriefsPersistants?: boolean | null;
   /** Grief rendant impossible la poursuite du contrat (critère central Cass. soc. 26/03/2014 n°12-21.372). */
   priseActeGriefImpossiblePoursuite?: boolean | null;
+  // -------------------------------------------------------------------------
+  // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
+  // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
+  // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation
+  // judiciaire CPH avec effets licenciement sans cause à la date du jugement
+  // est un mécanisme franco-français — Cass. soc. 16/03/1989 ; Cass. soc.
+  // 20/01/1998 ; art. L.1411-1 CT ; art. 1224, 1227-1228 C. civ.).
+  // -------------------------------------------------------------------------
+  /** Défaut ou retard de paiement du salaire (Cass. soc. 20/03/2013 n°11-26.770). */
+  resiliationJudDefautPaiementSalaire?: boolean | null;
+  /** Montant cumulé d'impayés en € (seuil significatif backend : 1500 €). */
+  resiliationJudMontantImpayes?: number | null;
+  /** Harcèlement moral ou sexuel (L.1152-1 / L.1153-1 CT). */
+  resiliationJudHarcelement?: boolean | null;
+  /** Manquement à l'obligation de sécurité (L.4121-1 CT). */
+  resiliationJudManquementSecurite?: boolean | null;
+  /** Modification unilatérale d'un élément essentiel du contrat. */
+  resiliationJudModificationContrat?: boolean | null;
+  /** Déclassement professionnel / mise à l'écart. */
+  resiliationJudDeclassement?: boolean | null;
+  /** Discrimination (L.1132-1 CT). */
+  resiliationJudDiscrimination?: boolean | null;
+  /** Non-paiement des heures supplémentaires (L.3171-4 CT). */
+  resiliationJudHeuresSupNonPayees?: boolean | null;
+  /** Non-respect des durées maximales / temps de repos (L.3121-18 s. CT). */
+  resiliationJudNonRespectRepos?: boolean | null;
+  /** Manquements persistants au jour de la demande (Cass. soc. 30/03/2010 — critère central). */
+  resiliationJudManquementsPersistants?: boolean | null;
+  /** Salarié toujours en poste (vs sorti — rappel : la voie suppose le maintien du contrat). */
+  resiliationJudSalarieEnPoste?: boolean | null;
+  /** Licenciement intervenu en cours d'instance (Cass. soc. 21/12/2006 n°05-42.251 — bascule date d'effet). */
+  resiliationJudLicenciementEnCours?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

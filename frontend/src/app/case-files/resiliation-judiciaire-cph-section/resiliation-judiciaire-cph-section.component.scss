@@ -1,0 +1,526 @@
+/**
+ * SF-206-08 : styles outil "Résiliation judiciaire du contrat aux torts de
+ * l'employeur" (F-DT-40). Aligné sur le template canonique
+ * prise-acte-rupture-section (outil jumeau, SF-206-06).
+ *
+ * Palette verdict 3 niveaux :
+ *   - vert (RESILIATION_FAVORABLE — manquements graves et persistants)
+ *   - or (RESILIATION_INCERTAINE — issue incertaine)
+ *   - navy/grisé (RESILIATION_DEFAVORABLE — manquements insuffisants ; NON
+ *     rouge car le rejet ne rompt PAS le contrat, voie sans risque)
+ *
+ * Message persistant : bandeau vert d'information (voie moins risquée vs
+ * prise d'acte).
+ *
+ * Date d'effet probable : pill colorée distincte (navy DATE_DECISION /
+ * indigo DATE_LICENCIEMENT).
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées et
+ * les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.rjc-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.rjc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.rjc-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.rjc-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.rjc-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--favorable {
+    background: rgba(34, 139, 34, 0.10);
+    color: #1F6B1F;
+  }
+  &--incertaine {
+    background: rgba(201, 165, 75, 0.14);
+    color: #8C6D1F;
+  }
+  &--defavorable {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+}
+
+.rjc-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rjc-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.rjc-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE
+.rjc-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Message persistant — voie moins risquée vs prise d'acte
+.rjc-safety-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: rgba(34, 139, 34, 0.06);
+  border-left: 4px solid #1F6B1F;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1F4D1F;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1F6B1F;
+    flex-shrink: 0;
+  }
+}
+
+.rjc-safety-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong { color: #1F6B1F; }
+  em { color: #1A3A5C; font-style: italic; font-weight: 600; }
+}
+
+.rjc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.rjc-full {
+  width: 100%;
+}
+
+.rjc-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.rjc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.rjc-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.rjc-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.rjc-inset-field {
+  width: 100%;
+  max-width: 320px;
+  margin-left: 32px;
+  margin-top: 4px;
+}
+
+.rjc-inline-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+.rjc-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rjc-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.rjc-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.rjc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+
+.rjc-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Bannière verdict — 3 niveaux.
+.rjc-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Vert — RESILIATION_FAVORABLE (manquements graves et persistants).
+  &--favorable {
+    background: rgba(34, 139, 34, 0.08);
+    border-left: 4px solid #1F6B1F;
+    color: #1F6B1F;
+    mat-icon { color: #1F6B1F; }
+  }
+
+  // Or — RESILIATION_INCERTAINE (issue incertaine).
+  &--incertaine {
+    background: rgba(201, 165, 75, 0.12);
+    border-left: 4px solid #C9A54B;
+    color: #8C6D1F;
+    mat-icon { color: #C9A54B; }
+  }
+
+  // Navy/grisé — RESILIATION_DEFAVORABLE (manquements insuffisants).
+  // NON rouge : le rejet ne rompt PAS le contrat, voie sans risque.
+  &--defavorable {
+    background: rgba(26, 58, 92, 0.06);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.rjc-figures-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rjc-figure {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+
+  &--effet {
+    flex: 2 1 360px;
+  }
+}
+
+.rjc-figure-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rjc-figure-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+// Pill date d'effet probable — 2 niveaux distincts.
+.rjc-effet-pill {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  &--date-decision {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--date-licenciement {
+    background: rgba(76, 29, 149, 0.10);
+    color: #4C1D95;
+  }
+}
+
+// Liste des manquements retenus
+.rjc-manquements-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rjc-manquements-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rjc-manquements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rjc-manquement-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: rgba(201, 165, 75, 0.06);
+  border-left: 4px solid #c9a54b;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1a2330;
+}
+
+.rjc-manquement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.rjc-manquement-libelle {
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.rjc-manquement-poids {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(26, 58, 92, 0.10);
+  color: #1A3A5C;
+}
+
+.rjc-manquement-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+
+  code {
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.rjc-manquement-explication {
+  font-size: 12.5px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+}
+
+.rjc-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rjc-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rjc-bases-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rjc-base-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(26, 35, 48, 0.05);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rjc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.rjc-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
