@@ -96,6 +96,8 @@ public class CaseFileDashboardService {
     private final CongesPayesArretMaladieRepository congesPayesArretMaladieRepo;
     // SF-206-05 : F-DT-39 prise d'acte de la rupture aux torts de l'employeur (FR)
     private final PriseActeRuptureRepository priseActeRuptureRepo;
+    // SF-206-07 : F-DT-40 résiliation judiciaire du contrat de travail aux torts de l'employeur (FR)
+    private final ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -231,6 +233,7 @@ public class CaseFileDashboardService {
                                      AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo,
                                      CongesPayesArretMaladieRepository congesPayesArretMaladieRepo,
                                      PriseActeRuptureRepository priseActeRuptureRepo,
+                                     ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -350,6 +353,7 @@ public class CaseFileDashboardService {
         this.abandonPostePresomptionDemissionRepo = abandonPostePresomptionDemissionRepo;
         this.congesPayesArretMaladieRepo = congesPayesArretMaladieRepo;
         this.priseActeRuptureRepo = priseActeRuptureRepo;
+        this.resiliationJudiciaireCphRepo = resiliationJudiciaireCphRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -525,6 +529,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-DT-75-conges-payes-arret-maladie", caseFileId, () -> tileFromCongesPayesArretMaladieAnalysis(caseFileId));
         // SF-206-05 : F-DT-39 prise d'acte de la rupture aux torts de l'employeur (FR)
         addSafely(tiles, "F-DT-39-prise-acte-rupture", caseFileId, () -> tileFromPriseActeRuptureAnalysis(caseFileId));
+        // SF-206-07 : F-DT-40 résiliation judiciaire du contrat de travail aux torts de l'employeur (FR)
+        addSafely(tiles, "F-DT-40-resiliation-judiciaire-cph", caseFileId, () -> tileFromResiliationJudiciaireCphAnalysis(caseFileId));
         addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
@@ -1446,6 +1452,43 @@ public class CaseFileDashboardService {
                         primary,
                         secondary,
                         mapVerdictPriseActe(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-206-07 — F-DT-40 résiliation judiciaire du contrat de travail aux
+     * torts de l'employeur (FR — Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ;
+     * art. L.1411-1 CT ; art. 1224, 1227-1228 C.civ.).
+     *
+     * <p>Thème DIAGNOSTIC. Mapping verdict → alertLevel du point de vue de
+     * l'avocat du salarié : un verdict favorable est une opportunité
+     * contentieuse (OK), un verdict incertain appelle de l'attention (WARNING),
+     * un verdict défavorable est mappé en {@code OK} — choix structurel : la
+     * résiliation judiciaire est une <b>voie sans risque de rupture</b> (le
+     * rejet ne rompt pas le contrat, contrairement à la prise d'acte qui
+     * produit effet immédiat). Un verdict défavorable signifie "demande peu
+     * solide à éviter d'engager", ce qui n'est pas une catastrophe — c'est
+     * un signal d'orientation, pas d'alerte. Cohérent avec le rappel
+     * structurant du calculateur (« voie moins risquée que la prise d'acte »).</p>
+     */
+    private DashboardTile tileFromResiliationJudiciaireCphAnalysis(UUID caseFileId) {
+        return resiliationJudiciaireCphRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), ResiliationJudiciaireCphResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String primary = libelleVerdictResiliationJud(verdict);
+                String secondary = "Score " + r.scoreSolidite() + "/100";
+                return new DashboardTile(
+                        "F-DT-40-resiliation-judiciaire-cph",
+                        "DIAGNOSTIC",
+                        "Résiliation judiciaire CPH",
+                        primary,
+                        secondary,
+                        mapVerdictResiliationJud(verdict));
             } catch (Exception ex) {
                 return null;
             }
@@ -3510,6 +3553,39 @@ public class CaseFileDashboardService {
             case "PRISE_ACTE_FAVORABLE" -> "Prise d'acte favorable";
             case "PRISE_ACTE_RISQUEE" -> "Prise d'acte risquée";
             case "PRISE_ACTE_DEFAVORABLE" -> "Prise d'acte défavorable";
+            default -> "—";
+        };
+    }
+
+    /**
+     * SF-206-07 — mapping du verdict F-DT-40 (résiliation judiciaire CPH, FR)
+     * → {@code alertLevel} de la tuile dashboard. Du point de vue de l'avocat
+     * du salarié : une résiliation favorable est une opportunité (OK / vert),
+     * une résiliation incertaine est un signal d'attention (WARNING), une
+     * résiliation défavorable est mappée en {@code OK} — choix structurel :
+     * contrairement à la prise d'acte (effet immédiat sur le contrat), la
+     * résiliation judiciaire est une <b>voie sans risque de rupture</b>. Un
+     * rejet ne rompt PAS le contrat, le salarié reste en poste. Le verdict
+     * défavorable est donc un signal d'orientation ("ne pas engager
+     * l'instance") et non d'alerte rétrospective.
+     */
+    private static String mapVerdictResiliationJud(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "RESILIATION_FAVORABLE" -> "OK";
+            case "RESILIATION_INCERTAINE" -> "WARNING";
+            case "RESILIATION_DEFAVORABLE" -> "OK";
+            default -> null;
+        };
+    }
+
+    /** SF-206-07 — libellé court du verdict résiliation judiciaire pour la tile primary. */
+    private static String libelleVerdictResiliationJud(String verdict) {
+        if (verdict == null) return "—";
+        return switch (verdict) {
+            case "RESILIATION_FAVORABLE" -> "Résiliation favorable";
+            case "RESILIATION_INCERTAINE" -> "Résiliation incertaine";
+            case "RESILIATION_DEFAVORABLE" -> "Résiliation défavorable";
             default -> "—";
         };
     }

@@ -87,6 +87,7 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(AbandonPostePresomptionDemissionRepository.class),
                 mock(CongesPayesArretMaladieRepository.class),
                 mock(PriseActeRuptureRepository.class),
+                mock(ResiliationJudiciaireCphRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
                 mock(CrrvRefusVisaRepository.class),

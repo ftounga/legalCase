@@ -423,6 +423,25 @@ public record CaseAnalysisResponse(
             Boolean priseActeNonRespectRepos,
             Boolean priseActeGriefsPersistants,
             Boolean priseActeGriefImpossiblePoursuite,
+            // SF-206-07 : 12 champs IA pour pré-fill F-DT-40 (résiliation
+            // judiciaire du contrat de travail aux torts de l'employeur,
+            // Travail FR uniquement, nullables). Sous-objet
+            // `resiliation_judiciaire_detail`. La résiliation judiciaire CPH
+            // avec maintien en poste (Cass. soc. 16/03/1989 ; Cass. soc.
+            // 20/01/1998 ; art. L.1411-1 CT) est un mécanisme franco-français
+            // — ces champs restent null pour la BE.
+            Boolean resiliationJudDefautPaiementSalaire,
+            java.math.BigDecimal resiliationJudMontantImpayes,
+            Boolean resiliationJudHarcelement,
+            Boolean resiliationJudManquementSecurite,
+            Boolean resiliationJudModificationContrat,
+            Boolean resiliationJudDeclassement,
+            Boolean resiliationJudDiscrimination,
+            Boolean resiliationJudHeuresSupNonPayees,
+            Boolean resiliationJudNonRespectRepos,
+            Boolean resiliationJudManquementsPersistants,
+            Boolean resiliationJudSalarieEnPoste,
+            Boolean resiliationJudLicenciementEnCours,
             // SF-207-06 : 4 champs IA Travail BE pour pré-fill F-207-06 outil
             // RCC BE conditions d'éligibilité (CCT 17 ; CCT 17/13 ; AR 03/05/2007
             // art. 3 et 8). Tous nullables — Travail BE uniquement, restent null
@@ -627,6 +646,19 @@ public record CaseAnalysisResponse(
                     .priseActeNonRespectRepos(priseActeNonRespectRepos)
                     .priseActeGriefsPersistants(priseActeGriefsPersistants)
                     .priseActeGriefImpossiblePoursuite(priseActeGriefImpossiblePoursuite)
+                    // SF-206-07 — resiliation_judiciaire_detail (FRANCE uniquement)
+                    .resiliationJudDefautPaiementSalaire(resiliationJudDefautPaiementSalaire)
+                    .resiliationJudMontantImpayes(resiliationJudMontantImpayes)
+                    .resiliationJudHarcelement(resiliationJudHarcelement)
+                    .resiliationJudManquementSecurite(resiliationJudManquementSecurite)
+                    .resiliationJudModificationContrat(resiliationJudModificationContrat)
+                    .resiliationJudDeclassement(resiliationJudDeclassement)
+                    .resiliationJudDiscrimination(resiliationJudDiscrimination)
+                    .resiliationJudHeuresSupNonPayees(resiliationJudHeuresSupNonPayees)
+                    .resiliationJudNonRespectRepos(resiliationJudNonRespectRepos)
+                    .resiliationJudManquementsPersistants(resiliationJudManquementsPersistants)
+                    .resiliationJudSalarieEnPoste(resiliationJudSalarieEnPoste)
+                    .resiliationJudLicenciementEnCours(resiliationJudLicenciementEnCours)
                     // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
                     .dateNaissanceSalarie(dateNaissanceSalarie)
                     .anneesCarriereSalarie(anneesCarriereSalarie)
@@ -809,6 +841,19 @@ public record CaseAnalysisResponse(
             private Boolean priseActeNonRespectRepos;
             private Boolean priseActeGriefsPersistants;
             private Boolean priseActeGriefImpossiblePoursuite;
+            // SF-206-07 — resiliation_judiciaire_detail (FRANCE uniquement)
+            private Boolean resiliationJudDefautPaiementSalaire;
+            private java.math.BigDecimal resiliationJudMontantImpayes;
+            private Boolean resiliationJudHarcelement;
+            private Boolean resiliationJudManquementSecurite;
+            private Boolean resiliationJudModificationContrat;
+            private Boolean resiliationJudDeclassement;
+            private Boolean resiliationJudDiscrimination;
+            private Boolean resiliationJudHeuresSupNonPayees;
+            private Boolean resiliationJudNonRespectRepos;
+            private Boolean resiliationJudManquementsPersistants;
+            private Boolean resiliationJudSalarieEnPoste;
+            private Boolean resiliationJudLicenciementEnCours;
             // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
             private String dateNaissanceSalarie;
             private Integer anneesCarriereSalarie;
@@ -986,6 +1031,19 @@ public record CaseAnalysisResponse(
             public Builder priseActeNonRespectRepos(Boolean v) { this.priseActeNonRespectRepos = v; return this; }
             public Builder priseActeGriefsPersistants(Boolean v) { this.priseActeGriefsPersistants = v; return this; }
             public Builder priseActeGriefImpossiblePoursuite(Boolean v) { this.priseActeGriefImpossiblePoursuite = v; return this; }
+            // SF-206-07 — resiliation_judiciaire_detail (FRANCE uniquement)
+            public Builder resiliationJudDefautPaiementSalaire(Boolean v) { this.resiliationJudDefautPaiementSalaire = v; return this; }
+            public Builder resiliationJudMontantImpayes(java.math.BigDecimal v) { this.resiliationJudMontantImpayes = v; return this; }
+            public Builder resiliationJudHarcelement(Boolean v) { this.resiliationJudHarcelement = v; return this; }
+            public Builder resiliationJudManquementSecurite(Boolean v) { this.resiliationJudManquementSecurite = v; return this; }
+            public Builder resiliationJudModificationContrat(Boolean v) { this.resiliationJudModificationContrat = v; return this; }
+            public Builder resiliationJudDeclassement(Boolean v) { this.resiliationJudDeclassement = v; return this; }
+            public Builder resiliationJudDiscrimination(Boolean v) { this.resiliationJudDiscrimination = v; return this; }
+            public Builder resiliationJudHeuresSupNonPayees(Boolean v) { this.resiliationJudHeuresSupNonPayees = v; return this; }
+            public Builder resiliationJudNonRespectRepos(Boolean v) { this.resiliationJudNonRespectRepos = v; return this; }
+            public Builder resiliationJudManquementsPersistants(Boolean v) { this.resiliationJudManquementsPersistants = v; return this; }
+            public Builder resiliationJudSalarieEnPoste(Boolean v) { this.resiliationJudSalarieEnPoste = v; return this; }
+            public Builder resiliationJudLicenciementEnCours(Boolean v) { this.resiliationJudLicenciementEnCours = v; return this; }
             // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
             public Builder dateNaissanceSalarie(String v) { this.dateNaissanceSalarie = v; return this; }
             public Builder anneesCarriereSalarie(Integer v) { this.anneesCarriereSalarie = v; return this; }
@@ -1089,6 +1147,13 @@ public record CaseAnalysisResponse(
                         priseActeDiscrimination, priseActeHeuresSupNonPayees,
                         priseActeNonRespectRepos, priseActeGriefsPersistants,
                         priseActeGriefImpossiblePoursuite,
+                        // SF-206-07 — resiliation_judiciaire_detail (FRANCE uniquement)
+                        resiliationJudDefautPaiementSalaire, resiliationJudMontantImpayes,
+                        resiliationJudHarcelement, resiliationJudManquementSecurite,
+                        resiliationJudModificationContrat, resiliationJudDeclassement,
+                        resiliationJudDiscrimination, resiliationJudHeuresSupNonPayees,
+                        resiliationJudNonRespectRepos, resiliationJudManquementsPersistants,
+                        resiliationJudSalarieEnPoste, resiliationJudLicenciementEnCours,
                         // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
                         dateNaissanceSalarie, anneesCarriereSalarie,
                         metierLourdDetecte, entrepriseEnDifficulteDetectee,

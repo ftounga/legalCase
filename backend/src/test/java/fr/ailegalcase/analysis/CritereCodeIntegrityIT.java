@@ -95,6 +95,13 @@ class CritereCodeIntegrityIT {
             "DT39_MODIFICATION_CONTRAT",
             "DT39_GRIEF_IMPOSSIBLE_POURSUITE",
 
+            // ─── Droit du travail — Résiliation judiciaire CPH F-DT-40 ────────────────
+            "DT40_DEFAUT_PAIEMENT",
+            "DT40_HARCELEMENT",
+            "DT40_MANQUEMENT_SECURITE",
+            "DT40_MODIFICATION_CONTRAT",
+            "DT40_MANQUEMENTS_PERSISTANTS",
+
             // ─── Droit du travail — Harcèlement / licenciement nul F-DT-11 ─────────────
             "HLN_MOTIF_NULLITE",
 
