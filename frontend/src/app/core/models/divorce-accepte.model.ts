@@ -338,7 +338,9 @@ export interface FamilleExtractedData {
    */
   legsExcedeQuotiteDisponibleDetected?: boolean | null;
   /**
-   * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 Cciv).
+   * SF-FA-18-04 / SF-246-26 : pré-fill contestation de paternité (art. 332-335 Cciv).
+   * Qualité à agir du demandeur dans l'action en contestation.
+   * Source backend réelle : `filiation_detection_v2.qualite_aagir_contestation`.
    */
   qualiteAagirContestationDetected?:
     | 'PERE_DECLARE'
@@ -363,15 +365,32 @@ export interface FamilleExtractedData {
    * `filiation_detection.date_majorite_enfant`.
    */
   dateMajoriteEnfantDetectee?: string | null;
+  /**
+   * SF-246-26 : possession d'état conforme depuis 5 ans (art. 333 Cciv — fin de non-recevoir).
+   * Source backend réelle : `filiation_detection_v2.possession_etat_conforme_5ans`.
+   */
   possessionEtatConforme5AnsDetected?: boolean | null;
+  /**
+   * SF-246-26 : expertise ADN demandée dans l'action en contestation de paternité.
+   * Source backend réelle : `filiation_detection_v2.expertise_adn_demandee_contestation`.
+   * DISTINCT de `expertiseAdnDemandeeRechercheDetected` (action en recherche art. 327).
+   */
   expertiseAdnDemandeeDetected?: boolean | null;
+  /**
+   * SF-246-26 : motifs sérieux justifiant la contestation de paternité (art. 332 al. 2 Cciv).
+   * Source backend réelle : `filiation_detection_v2.motifs_serieux_contestation`.
+   * DISTINCT de `motifsSerieuxRechercheDetected` (recherche de paternité art. 340 Cciv).
+   */
   motifsSerieuxDetected?: boolean | null;
   /**
    * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique.
    */
   dispositifBioethiqueDetecte?: string | null;
   /**
-   * SF-FA-18-06 : pré-fill action en recherche de paternité (art. 327 + 340 Cciv).
+   * SF-FA-18-06 / SF-246-26 : pré-fill action en recherche de paternité (art. 327 + 340 Cciv).
+   * Qualité du demandeur dans l'action en recherche.
+   * Source backend réelle : `filiation_detection_v2.qualite_demandeur_recherche`.
+   * DISTINCT de `qualiteAagirContestationDetected` (contestation art. 332).
    */
   qualiteDuDemandeurRechercheDetected?:
     | 'ENFANT_MAJEUR'
@@ -385,9 +404,27 @@ export interface FamilleExtractedData {
    * DISTINCT de `dateNaissanceEnfantDetectee` (reconnaissance art. 316 Cciv).
    */
   dateNaissanceEnfantRechercheDetectee?: string | null;
+  /**
+   * SF-246-26 : présomption de possession d'état invoquée dans la recherche de paternité (art. 311-1 Cciv).
+   * Source backend réelle : `filiation_detection_v2.presomption_possession_etat_recherche`.
+   */
   presomptionPossessionEtatRechercheDetected?: boolean | null;
+  /**
+   * SF-246-26 : expertise ADN demandée dans l'action en recherche de paternité (art. 16-11 Cciv).
+   * Source backend réelle : `filiation_detection_v2.expertise_adn_demandee_recherche`.
+   * DISTINCT de `expertiseAdnDemandeeDetected` (contestation art. 332-335).
+   */
   expertiseAdnDemandeeRechercheDetected?: boolean | null;
+  /**
+   * SF-246-26 : le père désigné refuse l'expertise ADN ordonnée (art. 16-11 al. 3 Cciv).
+   * Source backend réelle : `filiation_detection_v2.pere_designe_refuse_adn`.
+   */
   pereDesigneRefuseADNDetected?: boolean | null;
+  /**
+   * SF-246-26 : motifs sérieux justifiant la présomption de paternité (art. 342 Cciv).
+   * Source backend réelle : `filiation_detection_v2.motifs_serieux_recherche`.
+   * DISTINCT de `motifsSerieuxDetected` (contestation art. 332 al. 2).
+   */
   motifsSerieuxRechercheDetected?: boolean | null;
   /**
    * SF-246-24 : forme juridique de la donation (art. 931-939 Cciv) — NOTARIEE, MANUELLE,
@@ -426,10 +463,20 @@ export interface FamilleExtractedData {
     | 'CONJOINT_SURVIVANT'
     | null;
   /**
-   * SF-FA-18-10 : pré-fill adoption (art. 343-370-2 Cciv).
+   * SF-FA-18-10 / SF-246-26 : pré-fill adoption (art. 343-370-2 Cciv).
+   * Forme d'adoption demandée (plénière vs simple).
+   * Source backend réelle : `filiation_detection_v2.forme_adoption_demandee`.
    */
   formeAdoptionDemandeeDetected?: 'PLENIERE' | 'SIMPLE' | null;
+  /**
+   * SF-246-26 : l'adopté est un pupille de l'État (art. L224-4 CASF).
+   * Source backend réelle : `filiation_detection_v2.pupille_etat`.
+   */
   pupilleEtatDetected?: boolean | null;
+  /**
+   * SF-246-26 : l'adoptant est marié (art. 343 Cciv — condition forme du demandeur).
+   * Source backend réelle : `filiation_detection_v2.adoptant_marie`.
+   */
   adoptantMarieDetected?: boolean | null;
   /**
    * SF-246-09 : âge de l'adoptant en années à la date de la requête d'adoption

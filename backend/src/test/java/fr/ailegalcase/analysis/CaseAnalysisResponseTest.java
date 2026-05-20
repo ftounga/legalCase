@@ -5677,4 +5677,146 @@ class CaseAnalysisResponseTest {
         assertThat(f.patrimoineCommun()).isNull();
         assertThat(f.violencesAlleguees()).isNull();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SF-246-26 — filiation_detection_v2
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void extractFamilleData_sf24626_filiationV2_nominal() throws Exception {
+        // SF-246-26 CA-1 : sous-objet complet → tous les 12 champs peuplés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "filiation_detection_v2": {
+                      "qualite_aagir_contestation": "PERE_DECLARE",
+                      "possession_etat_conforme_5ans": true,
+                      "expertise_adn_demandee_contestation": false,
+                      "motifs_serieux_contestation": true,
+                      "qualite_demandeur_recherche": "ENFANT_MAJEUR",
+                      "presomption_possession_etat_recherche": true,
+                      "expertise_adn_demandee_recherche": true,
+                      "pere_designe_refuse_adn": false,
+                      "motifs_serieux_recherche": true,
+                      "forme_adoption_demandee": "PLENIERE",
+                      "pupille_etat": true,
+                      "adoptant_marie": true
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteAagirContestationDetected()).isEqualTo("PERE_DECLARE");
+        assertThat(f.possessionEtatConforme5AnsDetected()).isTrue();
+        assertThat(f.expertiseAdnDemandeeDetected()).isFalse();
+        assertThat(f.motifsSerieuxDetected()).isTrue();
+        assertThat(f.qualiteDuDemandeurRechercheDetected()).isEqualTo("ENFANT_MAJEUR");
+        assertThat(f.presomptionPossessionEtatRechercheDetected()).isTrue();
+        assertThat(f.expertiseAdnDemandeeRechercheDetected()).isTrue();
+        assertThat(f.pereDesigneRefuseADNDetected()).isFalse();
+        assertThat(f.motifsSerieuxRechercheDetected()).isTrue();
+        assertThat(f.formeAdoptionDemandeeDetected()).isEqualTo("PLENIERE");
+        assertThat(f.pupilleEtatDetected()).isTrue();
+        assertThat(f.adoptantMarieDetected()).isTrue();
+    }
+
+    @Test
+    void extractFamilleData_sf24626_sousObjetAbsent_12ChampsNull() throws Exception {
+        // SF-246-26 CA-2 : pas de sous-objet filiation_detection_v2 → 12 champs null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "filiation_detection": {
+                      "date_naissance_enfant": "2020-03-15"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteAagirContestationDetected()).isNull();
+        assertThat(f.possessionEtatConforme5AnsDetected()).isNull();
+        assertThat(f.expertiseAdnDemandeeDetected()).isNull();
+        assertThat(f.motifsSerieuxDetected()).isNull();
+        assertThat(f.qualiteDuDemandeurRechercheDetected()).isNull();
+        assertThat(f.presomptionPossessionEtatRechercheDetected()).isNull();
+        assertThat(f.expertiseAdnDemandeeRechercheDetected()).isNull();
+        assertThat(f.pereDesigneRefuseADNDetected()).isNull();
+        assertThat(f.motifsSerieuxRechercheDetected()).isNull();
+        assertThat(f.formeAdoptionDemandeeDetected()).isNull();
+        assertThat(f.pupilleEtatDetected()).isNull();
+        assertThat(f.adoptantMarieDetected()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24626_qualiteAagirHorsWhitelist_null() throws Exception {
+        // SF-246-26 CA-3 : qualite_aagir_contestation hors whitelist → null.
+        // forme_adoption_demandee hors whitelist → null.
+        // `contestation_paternite_envisagee` force le guard.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "contestation_paternite_envisagee": true,
+                    "filiation_detection_v2": {
+                      "qualite_aagir_contestation": "QUALITE_INCONNUE",
+                      "qualite_demandeur_recherche": "CODE_INVALIDE",
+                      "forme_adoption_demandee": "INDEFINIE"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteAagirContestationDetected()).isNull();
+        assertThat(f.qualiteDuDemandeurRechercheDetected()).isNull();
+        assertThat(f.formeAdoptionDemandeeDetected()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24626_booleanNonParseable_null() throws Exception {
+        // SF-246-26 CA-4 : champs booléens non parsables (strings) → null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "recherche_paternite_envisagee": true,
+                    "filiation_detection_v2": {
+                      "possession_etat_conforme_5ans": "oui",
+                      "expertise_adn_demandee_contestation": "non",
+                      "pupille_etat": "maybe"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.possessionEtatConforme5AnsDetected()).isNull();
+        assertThat(f.expertiseAdnDemandeeDetected()).isNull();
+        assertThat(f.pupilleEtatDetected()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24626_sousObjetNullExplicite_12ChampsNull() throws Exception {
+        // SF-246-26 CA-5 : sous-objet présent mais null JSON → pas d'exception, 12 champs null.
+        // `adoption_envisagee` force le guard.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "adoption_envisagee": true,
+                    "filiation_detection_v2": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.qualiteAagirContestationDetected()).isNull();
+        assertThat(f.formeAdoptionDemandeeDetected()).isNull();
+        assertThat(f.adoptantMarieDetected()).isNull();
+        assertThat(f.pupilleEtatDetected()).isNull();
+    }
 }

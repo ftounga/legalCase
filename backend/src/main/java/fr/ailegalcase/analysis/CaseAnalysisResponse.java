@@ -1709,7 +1709,23 @@ public record CaseAnalysisResponse(
             // --- separation-corps (F-FA-21) ---
             Boolean patrimoineCommun,                 // régime communautaire (bool) — art. 1400+ Cciv
             // --- mesures-provisoires (F-FA-12) ---
-            Boolean violencesAlleguees) {              // violences alléguées (flag global bool)
+            Boolean violencesAlleguees,               // violences alléguées (flag global bool)
+            // SF-246-26 : sous-objet `filiation_detection_v2` — 12 champs D2 filiation / adoption.
+            // --- contestation-paternite (F-FA-18-04) ---
+            String qualiteAagirContestationDetected,  // whitelist PERE_DECLARE|PERE_BIOLOGIQUE_PRESUME|MERE|ENFANT_MAJEUR
+            Boolean possessionEtatConforme5AnsDetected,
+            Boolean expertiseAdnDemandeeDetected,
+            Boolean motifsSerieuxDetected,
+            // --- recherche-paternite (F-FA-18-06) ---
+            String qualiteDuDemandeurRechercheDetected, // whitelist ENFANT_MAJEUR|REPRESENTANT_LEGAL_MINEUR|MERE
+            Boolean presomptionPossessionEtatRechercheDetected,
+            Boolean expertiseAdnDemandeeRechercheDetected,
+            Boolean pereDesigneRefuseADNDetected,
+            Boolean motifsSerieuxRechercheDetected,
+            // --- adoption (F-FA-18-10) ---
+            String formeAdoptionDemandeeDetected,     // whitelist PLENIERE|SIMPLE
+            Boolean pupilleEtatDetected,
+            Boolean adoptantMarieDetected) {           // adoptant marié (art. 343 Cciv)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1840,6 +1856,19 @@ public record CaseAnalysisResponse(
             private Boolean patrimoineCommunSignificatifDetecte;
             private Boolean patrimoineCommun;
             private Boolean violencesAlleguees;
+            // SF-246-26 : 12 champs D2 filiation / adoption.
+            private String qualiteAagirContestationDetected;
+            private Boolean possessionEtatConforme5AnsDetected;
+            private Boolean expertiseAdnDemandeeDetected;
+            private Boolean motifsSerieuxDetected;
+            private String qualiteDuDemandeurRechercheDetected;
+            private Boolean presomptionPossessionEtatRechercheDetected;
+            private Boolean expertiseAdnDemandeeRechercheDetected;
+            private Boolean pereDesigneRefuseADNDetected;
+            private Boolean motifsSerieuxRechercheDetected;
+            private String formeAdoptionDemandeeDetected;
+            private Boolean pupilleEtatDetected;
+            private Boolean adoptantMarieDetected;
 
             private Builder() {}
 
@@ -1960,6 +1989,19 @@ public record CaseAnalysisResponse(
             public Builder patrimoineCommunSignificatifDetecte(Boolean v) { this.patrimoineCommunSignificatifDetecte = v; return this; }
             public Builder patrimoineCommun(Boolean v) { this.patrimoineCommun = v; return this; }
             public Builder violencesAlleguees(Boolean v) { this.violencesAlleguees = v; return this; }
+            // SF-246-26 setters
+            public Builder qualiteAagirContestationDetected(String v) { this.qualiteAagirContestationDetected = v; return this; }
+            public Builder possessionEtatConforme5AnsDetected(Boolean v) { this.possessionEtatConforme5AnsDetected = v; return this; }
+            public Builder expertiseAdnDemandeeDetected(Boolean v) { this.expertiseAdnDemandeeDetected = v; return this; }
+            public Builder motifsSerieuxDetected(Boolean v) { this.motifsSerieuxDetected = v; return this; }
+            public Builder qualiteDuDemandeurRechercheDetected(String v) { this.qualiteDuDemandeurRechercheDetected = v; return this; }
+            public Builder presomptionPossessionEtatRechercheDetected(Boolean v) { this.presomptionPossessionEtatRechercheDetected = v; return this; }
+            public Builder expertiseAdnDemandeeRechercheDetected(Boolean v) { this.expertiseAdnDemandeeRechercheDetected = v; return this; }
+            public Builder pereDesigneRefuseADNDetected(Boolean v) { this.pereDesigneRefuseADNDetected = v; return this; }
+            public Builder motifsSerieuxRechercheDetected(Boolean v) { this.motifsSerieuxRechercheDetected = v; return this; }
+            public Builder formeAdoptionDemandeeDetected(String v) { this.formeAdoptionDemandeeDetected = v; return this; }
+            public Builder pupilleEtatDetected(Boolean v) { this.pupilleEtatDetected = v; return this; }
+            public Builder adoptantMarieDetected(Boolean v) { this.adoptantMarieDetected = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2039,7 +2081,20 @@ public record CaseAnalysisResponse(
                         creancesAllegueesDetectees,
                         patrimoineCommunSignificatifDetecte,
                         patrimoineCommun,
-                        violencesAlleguees);
+                        violencesAlleguees,
+                        // SF-246-26 : 12 champs filiation_detection_v2
+                        qualiteAagirContestationDetected,
+                        possessionEtatConforme5AnsDetected,
+                        expertiseAdnDemandeeDetected,
+                        motifsSerieuxDetected,
+                        qualiteDuDemandeurRechercheDetected,
+                        presomptionPossessionEtatRechercheDetected,
+                        expertiseAdnDemandeeRechercheDetected,
+                        pereDesigneRefuseADNDetected,
+                        motifsSerieuxRechercheDetected,
+                        formeAdoptionDemandeeDetected,
+                        pupilleEtatDetected,
+                        adoptantMarieDetected);
             }
         }
     }
@@ -4023,6 +4078,48 @@ public record CaseAnalysisResponse(
         Boolean patrimoineCommunSignificatifDetecte = cppdObject ? booleanOrNull(cppd, "patrimoine_commun_significatif") : null;
         Boolean patrimoineCommun = cppdObject ? booleanOrNull(cppd, "patrimoine_commun_bool") : null;
         Boolean violencesAlleguees = cppdObject ? booleanOrNull(cppd, "violences_alleguees_bool") : null;
+        // SF-246-26 : sous-objet `filiation_detection_v2` — 12 champs D2 filiation / adoption.
+        // Complément du sous-objet `filiation_detection` (SF-246-09) qui porte les dates/âges ;
+        // ce sous-objet porte les QUALIFICATIONS JURIDIQUES booléennes et énumérées.
+        // France uniquement : sous-objet null si dossier belge (prompt le garantit).
+        java.util.Set<String> QUALITE_AAGIR_WHITELIST = java.util.Set.of(
+                "PERE_DECLARE", "PERE_BIOLOGIQUE_PRESUME", "MERE", "ENFANT_MAJEUR");
+        java.util.Set<String> QUALITE_DEMANDEUR_RECHERCHE_WHITELIST = java.util.Set.of(
+                "ENFANT_MAJEUR", "REPRESENTANT_LEGAL_MINEUR", "MERE");
+        java.util.Set<String> FORME_ADOPTION_WHITELIST = java.util.Set.of("PLENIERE", "SIMPLE");
+        JsonNode fdv2 = node.get("filiation_detection_v2");
+        boolean fdv2Object = fdv2 != null && fdv2.isObject();
+        String qualiteAagirContestationDetected = fdv2Object
+                ? whitelistedOrNull(stringOrNull(fdv2, "qualite_aagir_contestation"),
+                        QUALITE_AAGIR_WHITELIST.toArray(String[]::new)) : null;
+        Boolean possessionEtatConforme5AnsDetected = fdv2Object ? booleanOrNull(fdv2, "possession_etat_conforme_5ans") : null;
+        Boolean expertiseAdnDemandeeDetected = fdv2Object ? booleanOrNull(fdv2, "expertise_adn_demandee_contestation") : null;
+        Boolean motifsSerieuxDetected = fdv2Object ? booleanOrNull(fdv2, "motifs_serieux_contestation") : null;
+        String qualiteDuDemandeurRechercheDetected = fdv2Object
+                ? whitelistedOrNull(stringOrNull(fdv2, "qualite_demandeur_recherche"),
+                        QUALITE_DEMANDEUR_RECHERCHE_WHITELIST.toArray(String[]::new)) : null;
+        Boolean presomptionPossessionEtatRechercheDetected = fdv2Object ? booleanOrNull(fdv2, "presomption_possession_etat_recherche") : null;
+        Boolean expertiseAdnDemandeeRechercheDetected = fdv2Object ? booleanOrNull(fdv2, "expertise_adn_demandee_recherche") : null;
+        Boolean pereDesigneRefuseADNDetected = fdv2Object ? booleanOrNull(fdv2, "pere_designe_refuse_adn") : null;
+        Boolean motifsSerieuxRechercheDetected = fdv2Object ? booleanOrNull(fdv2, "motifs_serieux_recherche") : null;
+        String formeAdoptionDemandeeDetected = fdv2Object
+                ? whitelistedOrNull(stringOrNull(fdv2, "forme_adoption_demandee"),
+                        FORME_ADOPTION_WHITELIST.toArray(String[]::new)) : null;
+        Boolean pupilleEtatDetected = fdv2Object ? booleanOrNull(fdv2, "pupille_etat") : null;
+        Boolean adoptantMarieDetected = fdv2Object ? booleanOrNull(fdv2, "adoptant_marie") : null;
+        boolean filiationV2DetectionPresent = qualiteAagirContestationDetected != null
+                || possessionEtatConforme5AnsDetected != null
+                || expertiseAdnDemandeeDetected != null
+                || motifsSerieuxDetected != null
+                || qualiteDuDemandeurRechercheDetected != null
+                || presomptionPossessionEtatRechercheDetected != null
+                || expertiseAdnDemandeeRechercheDetected != null
+                || pereDesigneRefuseADNDetected != null
+                || motifsSerieuxRechercheDetected != null
+                || formeAdoptionDemandeeDetected != null
+                || pupilleEtatDetected != null
+                || adoptantMarieDetected != null;
+
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
                 || clauseAttributionIntegraleDetected != null
@@ -4056,7 +4153,8 @@ public record CaseAnalysisResponse(
                 && !divorceFauteDetectionPresent
                 && !cecDetectionPresent
                 && !successionV2DetectionPresent
-                && !communautePartageProtectionV2Present) {
+                && !communautePartageProtectionV2Present
+                && !filiationV2DetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -4183,6 +4281,19 @@ public record CaseAnalysisResponse(
                 .patrimoineCommunSignificatifDetecte(patrimoineCommunSignificatifDetecte)
                 .patrimoineCommun(patrimoineCommun)
                 .violencesAlleguees(violencesAlleguees)
+                // SF-246-26 : 12 champs D2 filiation / adoption.
+                .qualiteAagirContestationDetected(qualiteAagirContestationDetected)
+                .possessionEtatConforme5AnsDetected(possessionEtatConforme5AnsDetected)
+                .expertiseAdnDemandeeDetected(expertiseAdnDemandeeDetected)
+                .motifsSerieuxDetected(motifsSerieuxDetected)
+                .qualiteDuDemandeurRechercheDetected(qualiteDuDemandeurRechercheDetected)
+                .presomptionPossessionEtatRechercheDetected(presomptionPossessionEtatRechercheDetected)
+                .expertiseAdnDemandeeRechercheDetected(expertiseAdnDemandeeRechercheDetected)
+                .pereDesigneRefuseADNDetected(pereDesigneRefuseADNDetected)
+                .motifsSerieuxRechercheDetected(motifsSerieuxRechercheDetected)
+                .formeAdoptionDemandeeDetected(formeAdoptionDemandeeDetected)
+                .pupilleEtatDetected(pupilleEtatDetected)
+                .adoptantMarieDetected(adoptantMarieDetected)
                 .build();
     }
 
