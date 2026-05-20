@@ -2,17 +2,16 @@
  * F-243 — Helper partagé `DivorceDcBeSectionPrefillRules` (module pur sans imports Angular).
  *
  * <p>Pré-fill IA pour l'outil "Divorce par consentement mutuel — Belgique"
- * (F-FA-11 BE, CJ art. 1287-1304). Le seul signal IA actuellement
- * exploité est `aiData.dateAcceptationPV` (renommée dans le prompt F-241
- * en `date_accord_initial_divorce` mais conservée sous ce nom côté
- * `FamilleExtractedData` frontend pour rétro-compat) — la date de
- * signature de la convention préalable, format ISO `YYYY-MM-DD`.</p>
+ * (F-FA-11 BE, CJ art. 1287-1304).</p>
  *
- * <p>Champs pré-remplis :
+ * SF-246-27 : 2 champs pré-fillables (BELGIQUE UNIQUEMENT) :
  * <ul>
- *   <li><code>dateSignatureConvention</code> — quand <code>dateAcceptationPV</code>
- *       est une chaîne ISO `YYYY-MM-DD` valide.</li>
- * </ul></p>
+ *   <li><code>dateSignatureConvention</code> — depuis <code>dateAcceptationPV</code>
+ *       (date de signature de la convention préalable, format ISO `YYYY-MM-DD`).</li>
+ *   <li><code>dateAudienceHomologation</code> — depuis
+ *       <code>dateAudienceHomologationDcBe</code> (SF-246-27 — source réelle,
+ *       BELGIQUE UNIQUEMENT — art. 1288bis C.jud.BE).</li>
+ * </ul>
  *
  * <p>Les autres champs (conventions logement / biens / garde / contributions,
  * enfants mineurs, consentement des époux) ne sont pas pré-fillables de
@@ -37,14 +36,25 @@ export function computeDateSignatureConvention(input: DivorceDcBePrefillInput): 
   return typeof v === 'string' && ISO_DATE_REGEX.test(v) ? v : null;
 }
 
+/**
+ * SF-246-27 : BELGIQUE UNIQUEMENT — date de l'audience d'homologation de la
+ * convention DC (art. 1288bis C.jud.BE), ISO YYYY-MM-DD.
+ */
+export function computeDateAudienceHomologation(input: DivorceDcBePrefillInput): string | null {
+  const v = input.aiData?.dateAudienceHomologationDcBe;
+  return typeof v === 'string' && ISO_DATE_REGEX.test(v) ? v : null;
+}
+
 export function computePrefillCount(input: DivorceDcBePrefillInput): number {
   let n = 0;
   if (computeDateSignatureConvention(input) !== null) n++;
+  if (computeDateAudienceHomologation(input) !== null) n++;
   return n;
 }
 
 export const DivorceDcBeSectionPrefillRules = {
   ISO_DATE_REGEX,
   computeDateSignatureConvention,
+  computeDateAudienceHomologation,
   computePrefillCount,
 };

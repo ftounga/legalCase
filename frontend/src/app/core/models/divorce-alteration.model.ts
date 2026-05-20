@@ -76,4 +76,9 @@ export interface FamilleAiData {
   revenusAnnuelsEpoux2Eur?: number | null;
   /** Patrimoine commun significatif détecté. */
   patrimoineCommunSignificatif?: boolean | null;
+  /**
+   * SF-246-27 : date de l'assignation en divorce (art. 56 CPC), ISO YYYY-MM-DD.
+   * Source backend réelle : `protection_divorce_detection_v2.date_assignation_divorce`.
+   */
+  dateAssignationDivorce?: string | null;
 }

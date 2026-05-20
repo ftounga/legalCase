@@ -5819,4 +5819,138 @@ class CaseAnalysisResponseTest {
         assertThat(f.adoptantMarieDetected()).isNull();
         assertThat(f.pupilleEtatDetected()).isNull();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SF-246-27 — protection_divorce_detection_v2
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void extractFamilleData_sf24627_nominal_8ChampsRemplis() throws Exception {
+        // SF-246-27 CA-1 : sous-objet complet → tous les 8 champs peuplés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "protection_divorce_detection_v2": {
+                      "regime_protection_majeurs": "CURATELLE_RENFORCEE",
+                      "date_certificat_medical_majeurs": "2024-03-15",
+                      "date_pma": "2023-06-01",
+                      "date_reconnaissance_anterieure_pma": "2023-05-10",
+                      "date_don_gametes": "2023-07-22",
+                      "motif_saisine_mediation": "AUTORITE_PARENTALE",
+                      "date_assignation_divorce": "2024-11-04",
+                      "date_audience_homologation_dc_be": "2025-02-18"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeProtectionMajeursDetected()).isEqualTo("CURATELLE_RENFORCEE");
+        assertThat(f.dateCertificatMedicalMajeursDetected()).isEqualTo("2024-03-15");
+        assertThat(f.datePmaDetected()).isEqualTo("2023-06-01");
+        assertThat(f.dateReconnaissanceAnterieurePmaDetected()).isEqualTo("2023-05-10");
+        assertThat(f.dateDonGametesDetected()).isEqualTo("2023-07-22");
+        assertThat(f.motifSaisineMediationDetected()).isEqualTo("AUTORITE_PARENTALE");
+        assertThat(f.dateAssignationDivorce()).isEqualTo("2024-11-04");
+        assertThat(f.dateAudienceHomologationDcBe()).isEqualTo("2025-02-18");
+    }
+
+    @Test
+    void extractFamilleData_sf24627_sousObjetAbsent_8ChampsNull() throws Exception {
+        // SF-246-27 CA-2 : pas de sous-objet protection_divorce_detection_v2 → 8 champs null.
+        // `protection_majeur_envisagee` présent pour déclencher extractFamilleData non-null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "protection_majeur_envisagee": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeProtectionMajeursDetected()).isNull();
+        assertThat(f.dateCertificatMedicalMajeursDetected()).isNull();
+        assertThat(f.datePmaDetected()).isNull();
+        assertThat(f.dateReconnaissanceAnterieurePmaDetected()).isNull();
+        assertThat(f.dateDonGametesDetected()).isNull();
+        assertThat(f.motifSaisineMediationDetected()).isNull();
+        assertThat(f.dateAssignationDivorce()).isNull();
+        assertThat(f.dateAudienceHomologationDcBe()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24627_whitelistsRejettentCodesInconnus() throws Exception {
+        // SF-246-27 CA-3 : regime_protection_majeurs hors whitelist → null ;
+        // motif_saisine_mediation hors whitelist → null.
+        // `pma_gpa_envisagee` force le guard.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "pma_gpa_envisagee": true,
+                    "protection_divorce_detection_v2": {
+                      "regime_protection_majeurs": "TUTELLE_ALLEGEE",
+                      "motif_saisine_mediation": "PENSION_ALIMENTAIRE",
+                      "date_assignation_divorce": "2024-09-30"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeProtectionMajeursDetected()).isNull();
+        assertThat(f.motifSaisineMediationDetected()).isNull();
+        assertThat(f.dateAssignationDivorce()).isEqualTo("2024-09-30");
+    }
+
+    @Test
+    void extractFamilleData_sf24627_datesMalFormees_null() throws Exception {
+        // SF-246-27 CA-4 : dates partielles ou mal formées → null (isoDateOrNull strict).
+        // `divorce_alteration_lien_envisage` force le guard.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_alteration_lien_envisage": true,
+                    "protection_divorce_detection_v2": {
+                      "date_certificat_medical_majeurs": "2024-03",
+                      "date_pma": "01/06/2023",
+                      "date_assignation_divorce": "2024-11-04"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateCertificatMedicalMajeursDetected()).isNull();   // "2024-03" : partiel
+        assertThat(f.datePmaDetected()).isNull();                         // "01/06/2023" : mauvais séparateur
+        assertThat(f.dateAssignationDivorce()).isEqualTo("2024-11-04");  // format correct → peuplé
+    }
+
+    @Test
+    void extractFamilleData_sf24627_sousObjetNullExplicite_8ChampsNull() throws Exception {
+        // SF-246-27 CA-5 : sous-objet présent mais null JSON → pas d'exception, 8 champs null.
+        // `divorce_accepte_envisage` force le guard.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_accepte_envisage": true,
+                    "protection_divorce_detection_v2": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.regimeProtectionMajeursDetected()).isNull();
+        assertThat(f.dateCertificatMedicalMajeursDetected()).isNull();
+        assertThat(f.datePmaDetected()).isNull();
+        assertThat(f.dateReconnaissanceAnterieurePmaDetected()).isNull();
+        assertThat(f.dateDonGametesDetected()).isNull();
+        assertThat(f.motifSaisineMediationDetected()).isNull();
+        assertThat(f.dateAssignationDivorce()).isNull();
+        assertThat(f.dateAudienceHomologationDcBe()).isNull();
+    }
 }
