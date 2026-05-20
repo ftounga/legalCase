@@ -97,7 +97,15 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-02-pension-alimentaire",
             "F-FA-04-liquidation-communaute",
             // Checklist référentielle — pas de résultat décisionnel persisté.
-            "F-IM-01-checklist-pieces"
+            "F-IM-01-checklist-pieces",
+            // F-207 — exclusions transitoires (à résorber par la session F-207) :
+            // outils livrés sans mapper DashboardTile dans CaseFileDashboardService,
+            // hotfix de mitigation master-red posé par F-206 (2026-05-20).
+            // Le câblage des vraies tuiles revient à la SF F-207 propriétaire
+            // (mêmes mappings que prescription-be-litige-travail + c4-onem-checklist
+            // posés par #1141).
+            "at-fedris-declaration",
+            "contestation-c4-onem"
             // F-245 hotfix (2026-05-20) — prescription-be-litige-travail retiré ici :
             // la tuile dashboard est désormais câblée par
             // CaseFileDashboardService.tileFromPrescriptionBeLitigeTravailAnalysis().
