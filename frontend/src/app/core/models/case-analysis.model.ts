@@ -284,14 +284,10 @@ export interface TravailExtractedData {
   reclassementRespecteDetected?: DetectedAnswer | null;
   /** SF-155-04 : heures sup mentionnées dans le dossier pour pré-fill F-DT-19 (FR uniquement). */
   heuresSupMentionneesDansDossier?: HeuresSupMentionnees | null;
-  /**
-   * SF-FA-09-02 : codes faute détectés par le pipeline IA pour pré-fill F-FA-09
-   * (divorce pour faute, FR uniquement, art. 242 Cciv). No-op gracieux si
-   * absent — l'extraction LLM côté backend sera branchée ultérieurement.
-   * Codes attendus : ADULTERE, VIOLENCES, ABANDON, OUTRAGES, DEVOIR_ASSISTANCE,
-   * DEVOIR_FIDELITE, DEVOIR_COMMUNAUTE_VIE, AUTRE.
-   */
-  fautesDetectees?: string[] | null;
+  // SF-246-22 : suppression du vestige `fautesDetectees` — ce champ a été
+  // déplacé vers `FamilleExtractedData` par SF-246-03. Il n'a jamais été
+  // alimenté par le pipeline IA côté Travail (stub aspirationnel).
+  // Le composant `divorce-faute-section` utilise `FamilleExtractedData` — aucun impact.
   /**
    * SF-DT-29-02 : âge du demandeur en années entières pour pré-fill F-DT-29
    * (crédit-temps BE, AR 29/10/1997 fin de carrière nécessite âge ≥ 55/60).
@@ -379,6 +375,26 @@ export interface TravailExtractedData {
    */
   dateRuptureContrat?: string | null;
   motifRupture?: string | null;
+  /**
+   * SF-246-22 : type de procédure travail identifié par le pipeline IA pour pré-fill
+   * F-136 `travail-procedure` (calendrier procédural FR + BE).
+   * Codes admis (6 exacts — 3 FR + 3 BE) :
+   * `PRUDHOMMES_FR`, `APPEL_CA_SOCIALE_FR`, `CASSATION_SOCIALE_FR` (France),
+   * `TRIBUNAL_TRAVAIL_BE`, `COUR_TRAVAIL_BE`, `CASSATION_BE` (Belgique).
+   * Code hors whitelist → null. Gating pays appliqué par `TravailProcedurePrefillRules`
+   * (`_FR` pour workspace France, `_BE` pour workspace Belgique).
+   * Source backend réelle : `procedure_travail_detection.procedure_detectee`.
+   * Remplace le stub aspirationnel de l'ancien type d'intersection `TravailProcedureAiData`.
+   */
+  procedureTravailDetectee?: string | null;
+  /**
+   * SF-246-22 : date déclencheur de la procédure travail (date de saisine prud'homale,
+   * citation à comparaître, dépôt de requête) au format ISO YYYY-MM-DD.
+   * Null si non détectable ou si le sous-objet `procedure_travail_detection` est absent.
+   * Source backend réelle : `procedure_travail_detection.date_declencheur`.
+   * Remplace le stub aspirationnel de l'ancien type d'intersection `TravailProcedureAiData`.
+   */
+  dateDeclencheurProcedure?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

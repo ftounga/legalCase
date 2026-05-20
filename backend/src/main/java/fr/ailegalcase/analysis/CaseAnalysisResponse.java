@@ -245,7 +245,15 @@ public record CaseAnalysisResponse(
             String categorieOnem,
             String motifExplicite,
             Integer preavisPresteJours,
-            java.math.BigDecimal dernierSalaireMensuelBrut) {
+            java.math.BigDecimal dernierSalaireMensuelBrut,
+            // SF-246-22 : type de procédure travail et date déclencheur pour pré-fill
+            // F-136 travail-procedure (FR+BE). 6 codes whitelistés (3 FR + 3 BE) :
+            // PRUDHOMMES_FR, APPEL_CA_SOCIALE_FR, CASSATION_SOCIALE_FR,
+            // TRIBUNAL_TRAVAIL_BE, COUR_TRAVAIL_BE, CASSATION_BE.
+            // Codes hors whitelist exclus par extractTravailData().
+            // dateDeclencheurProcedure : format ISO YYYY-MM-DD ou null.
+            String procedureTravailDetectee,
+            String dateDeclencheurProcedure) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -339,7 +347,9 @@ public record CaseAnalysisResponse(
                     .categorieOnem(categorieOnem)
                     .motifExplicite(motifExplicite)
                     .preavisPresteJours(preavisPresteJours)
-                    .dernierSalaireMensuelBrut(dernierSalaireMensuelBrut);
+                    .dernierSalaireMensuelBrut(dernierSalaireMensuelBrut)
+                    .procedureTravailDetectee(procedureTravailDetectee)
+                    .dateDeclencheurProcedure(dateDeclencheurProcedure);
         }
 
         public static final class Builder {
@@ -424,6 +434,9 @@ public record CaseAnalysisResponse(
             private String motifExplicite;
             private Integer preavisPresteJours;
             private java.math.BigDecimal dernierSalaireMensuelBrut;
+            // SF-246-22 — type de procédure travail + date déclencheur pour pré-fill F-136.
+            private String procedureTravailDetectee;
+            private String dateDeclencheurProcedure;
 
             private Builder() {}
 
@@ -507,6 +520,8 @@ public record CaseAnalysisResponse(
             public Builder motifExplicite(String v) { this.motifExplicite = v; return this; }
             public Builder preavisPresteJours(Integer v) { this.preavisPresteJours = v; return this; }
             public Builder dernierSalaireMensuelBrut(java.math.BigDecimal v) { this.dernierSalaireMensuelBrut = v; return this; }
+            public Builder procedureTravailDetectee(String v) { this.procedureTravailDetectee = v; return this; }
+            public Builder dateDeclencheurProcedure(String v) { this.dateDeclencheurProcedure = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -544,7 +559,8 @@ public record CaseAnalysisResponse(
                         nonConcurrenceDatePriseEffet, nonConcurrenceSecteurActivite,
                         dateRuptureContrat, motifRupture,
                         raisonSocialeEmployeur, numeroBce, categorieOnem,
-                        motifExplicite, preavisPresteJours, dernierSalaireMensuelBrut);
+                        motifExplicite, preavisPresteJours, dernierSalaireMensuelBrut,
+                        procedureTravailDetectee, dateDeclencheurProcedure);
             }
         }
     }
@@ -2274,8 +2290,40 @@ public record CaseAnalysisResponse(
                     .motifExplicite(textOrNull(node, "motif_explicite"))
                     .preavisPresteJours(nonNegativeIntOrNull(node, "preavis_preste_jours"))
                     .dernierSalaireMensuelBrut(bigDecimalOrNull(node, "dernier_salaire_mensuel_brut"))
+                    // SF-246-22 : type de procédure travail + date déclencheur pour pré-fill
+                    // F-136 travail-procedure (FR+BE). Sous-objet procedure_travail_detection.
+                    .procedureTravailDetectee(extractProcedureTravailCode(node))
+                    .dateDeclencheurProcedure(extractProcedureTravailDate(node))
                     .build();
         } catch (Exception ignored) { return null; }
+    }
+
+    /**
+     * SF-246-22 : extrait et whitelizte le code de procédure travail depuis
+     * {@code travail_extracted_data.procedure_travail_detection.procedure_detectee}.
+     * Codes admis (6 exacts — 3 FR + 3 BE) :
+     * {@code PRUDHOMMES_FR, APPEL_CA_SOCIALE_FR, CASSATION_SOCIALE_FR,
+     * TRIBUNAL_TRAVAIL_BE, COUR_TRAVAIL_BE, CASSATION_BE}.
+     * Tout code hors whitelist → null (fail-open).
+     */
+    private static final java.util.Set<String> PROCEDURE_TRAVAIL_WHITELIST = java.util.Set.of(
+            "PRUDHOMMES_FR", "APPEL_CA_SOCIALE_FR", "CASSATION_SOCIALE_FR",
+            "TRIBUNAL_TRAVAIL_BE", "COUR_TRAVAIL_BE", "CASSATION_BE");
+
+    private static String extractProcedureTravailCode(JsonNode travailNode) {
+        JsonNode ptd = travailNode.get("procedure_travail_detection");
+        if (ptd == null || !ptd.isObject()) return null;
+        JsonNode codeNode = ptd.get("procedure_detectee");
+        if (codeNode == null || codeNode.isNull() || !codeNode.isTextual()) return null;
+        String code = codeNode.asText().trim().toUpperCase();
+        return PROCEDURE_TRAVAIL_WHITELIST.contains(code) ? code : null;
+    }
+
+    /** SF-246-22 : extrait la date déclencheur (ISO YYYY-MM-DD) depuis le sous-objet. */
+    private static String extractProcedureTravailDate(JsonNode travailNode) {
+        JsonNode ptd = travailNode.get("procedure_travail_detection");
+        if (ptd == null || !ptd.isObject()) return null;
+        return isoDateOrNull(ptd, "date_declencheur");
     }
 
     /** SF-155-04-00-BE-travail : upper-case puis check whitelist, null sinon (fail-open). */

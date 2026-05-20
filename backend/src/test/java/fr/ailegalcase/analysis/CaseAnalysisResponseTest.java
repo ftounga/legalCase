@@ -4615,4 +4615,139 @@ class CaseAnalysisResponseTest {
         assertThat(f).isNotNull();
         assertThat(f.fautesDetectees()).hasSize(8);
     }
+
+    // ===== SF-246-22 — extractTravailData : procedure_travail_detection =====
+
+    @Test
+    void extractTravailData_procedureTravailDetection_casNominal_FR() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_travail_detection": {
+                      "procedure_detectee": "PRUDHOMMES_FR",
+                      "date_declencheur": "2026-03-01"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.procedureTravailDetectee()).isEqualTo("PRUDHOMMES_FR");
+        assertThat(t.dateDeclencheurProcedure()).isEqualTo("2026-03-01");
+    }
+
+    @Test
+    void extractTravailData_procedureTravailDetection_casNominal_BE() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_travail_detection": {
+                      "procedure_detectee": "TRIBUNAL_TRAVAIL_BE",
+                      "date_declencheur": "2026-05-10"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.procedureTravailDetectee()).isEqualTo("TRIBUNAL_TRAVAIL_BE");
+        assertThat(t.dateDeclencheurProcedure()).isEqualTo("2026-05-10");
+    }
+
+    @Test
+    void extractTravailData_procedureTravailDetection_sousObjetAbsent_deuxChampsNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "IDCC_3043"
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.procedureTravailDetectee()).isNull();
+        assertThat(t.dateDeclencheurProcedure()).isNull();
+    }
+
+    @Test
+    void extractTravailData_procedureTravailDetection_codeHorsWhitelist_procedureNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_travail_detection": {
+                      "procedure_detectee": "TRIBUNAL_COMMERCE_FR",
+                      "date_declencheur": "2026-03-01"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.procedureTravailDetectee()).isNull();
+        assertThat(t.dateDeclencheurProcedure()).isEqualTo("2026-03-01");
+    }
+
+    @Test
+    void extractTravailData_procedureTravailDetection_dateNonISO_dateNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_travail_detection": {
+                      "procedure_detectee": "PRUDHOMMES_FR",
+                      "date_declencheur": "01/03/2026"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.procedureTravailDetectee()).isEqualTo("PRUDHOMMES_FR");
+        assertThat(t.dateDeclencheurProcedure()).isNull();
+    }
+
+    @Test
+    void extractTravailData_procedureTravailDetection_procedureSeule_dateDeclencheurAbsente() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_travail_detection": {
+                      "procedure_detectee": "CASSATION_SOCIALE_FR"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.procedureTravailDetectee()).isEqualTo("CASSATION_SOCIALE_FR");
+        assertThat(t.dateDeclencheurProcedure()).isNull();
+    }
+
+    @Test
+    void extractTravailData_procedureTravailDetection_tousSixCodes() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        for (String code : java.util.List.of(
+                "PRUDHOMMES_FR", "APPEL_CA_SOCIALE_FR", "CASSATION_SOCIALE_FR",
+                "TRIBUNAL_TRAVAIL_BE", "COUR_TRAVAIL_BE", "CASSATION_BE")) {
+            JsonNode root = mapper.readTree(String.format("""
+                    {
+                      "travail_extracted_data": {
+                        "procedure_travail_detection": {
+                          "procedure_detectee": "%s"
+                        }
+                      }
+                    }
+                    """, code));
+            var t = CaseAnalysisResponse.extractTravailData(root);
+            assertThat(t).isNotNull();
+            assertThat(t.procedureTravailDetectee())
+                    .as("code '%s' devrait être accepté", code)
+                    .isEqualTo(code);
+        }
+    }
 }

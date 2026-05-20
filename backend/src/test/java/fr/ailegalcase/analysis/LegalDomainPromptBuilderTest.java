@@ -674,4 +674,44 @@ class LegalDomainPromptBuilderTest {
         String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
         assertThat(instruction).contains("RÈGLE D'OR");
     }
+
+    // ===== SF-246-22 — TRAVAIL_INSTRUCTION : procedure_travail_detection =====
+
+    @Test
+    void domainSpecificInstruction_travail_contientProcedureTravailDetectionSousObjet() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("procedure_travail_detection");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_procedureTravailDetection_contientProcedureDetecteeCle() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("procedure_detectee");
+        assertThat(instruction).contains("date_declencheur");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_procedureTravailDetection_contientSixCodes() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("PRUDHOMMES_FR");
+        assertThat(instruction).contains("APPEL_CA_SOCIALE_FR");
+        assertThat(instruction).contains("CASSATION_SOCIALE_FR");
+        assertThat(instruction).contains("TRIBUNAL_TRAVAIL_BE");
+        assertThat(instruction).contains("COUR_TRAVAIL_BE");
+        assertThat(instruction).contains("CASSATION_BE");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_procedureTravailDetection_imposesGatingPays() {
+        // Le prompt doit imposer le gating pays (codes FR pour France, codes BE pour Belgique).
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("GATING PAYS");
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_procedureTravailDetection_dateISOStrict() {
+        // Le format de date doit être YYYY-MM-DD strict.
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("YYYY-MM-DD");
+    }
 }
