@@ -90,10 +90,15 @@ export interface NaturalisationRequest {
   etudesSuperieuresFrance?: boolean | null;
 }
 
-export interface NaturalisationResponse {
+/**
+ * SF-206-02 hotfix master-red : la Response ré-expose le snapshot d'inputs
+ * Request (ré-édition du formulaire après rechargement). Le composant
+ * `naturalisation-section` hydrate déjà ces champs depuis `r.*`. Aligne le
+ * contrat sur le pattern F-DT-36 / F-DT-42.
+ */
+export interface NaturalisationResponse extends NaturalisationRequest {
   caseFileId: string;
   country: 'FRANCE';
-  voieNaturalisation: string;
   voieRecommandee: string;
   verdictRecevabilite: VerdictRecevabilite;
   criteresNonRemplis: string[];
