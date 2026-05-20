@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="277-create-succession-be-devolution-reserve-analyses" author="legalcase">
+        <comment>
+            SF-217-11 : table dédiée à l'outil décisionnel "Succession BE —
+            dévolution légale et réserve héréditaire post-2017" (Vague 3 Famille
+            BE — Successions).
+
+            Arbre de dévolution + calcul de réserve héréditaire belge selon le
+            Livre 4 du Code civil réformé (loi du 31/07/2017, en vigueur
+            01/09/2018). Point central : réserve globale FIXE à 1/2 de la masse
+            quelle que soit le nombre d'enfants (CC art. 913 nouveau — à
+            vérifier) — différence majeure avec la France. Suppression de la
+            réserve des ascendants. Cohabitant légal non réservataire (CC art.
+            1477 — à vérifier).
+
+            Verdict en 4 niveaux : DEVOLUTION_ETABLIE (sans descendants ni
+            conjoint) / RESERVE_RESPECTEE (libéralités ≤ quotité disponible) /
+            QUOTITE_DEPASSEE (libéralités > quotité disponible, réduction
+            potentielle CC art. 920+ — à vérifier) / QUALIFICATION_INCOMPLETE
+            (marié sans régime matrimonial).
+
+            Outil single-country BELGIQUE.
+
+            Snapshot JSON complet (inputs + outputs : verdict, héritiers,
+            reserveGlobaleEur, quotiteDisponibleEur, depassementQuotiteEur,
+            basesJuridiques, messages) pour permettre la restitution et la
+            ré-édition du formulaire UI sans recalcul (pattern F-DT-36 /
+            SF-217-01 / SF-217-04).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la SF frontend
+            SF-217-13 (bundle Vague 3 successions) — couplé à l'entrée
+            TOOL_REGISTRY, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT (un seed de visibilité ne doit
+            pas exister sans son entrée frontend).
+        </comment>
+
+        <createTable tableName="succession_be_devolution_reserve_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_succession_be_dev_reserve_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="succession_be_devolution_reserve_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_succession_be_dev_reserve_case_file"/>
+
+        <createIndex tableName="succession_be_devolution_reserve_analyses"
+                     indexName="idx_succession_be_dev_reserve_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="succession_be_devolution_reserve_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
