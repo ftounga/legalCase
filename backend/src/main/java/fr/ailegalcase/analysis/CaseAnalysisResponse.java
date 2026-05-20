@@ -428,7 +428,24 @@ public record CaseAnalysisResponse(
             //   base du comptage des mensualités jusqu'à pension.
             Double remunerationNetteReferenceRccDetectee,
             Double allocationOnemMensuelleEstimee,
-            String dateDebutRccEnvisagee) {
+            String dateDebutRccEnvisagee,
+            // SF-206-03 : 5 champs IA pour pré-fill F-DT-75 (congés payés
+            // acquis pendant arrêt maladie, Travail FR uniquement, nullables).
+            // Sous-objet `conges_payes_arret_maladie_detail`. Loi 22/04/2024
+            // art. 37 — L.3141-5 / L.3141-5-1 CT — Cass. soc. 13/09/2023. Le
+            // régime BE (Loi 28/06/1971 sur les vacances annuelles) est
+            // distinct : ces champs restent null pour un dossier travail BE.
+            // cpArretMaladieType : "MALADIE_NON_PROFESSIONNELLE" |
+            //                       "ACCIDENT_TRAVAIL_MALADIE_PRO".
+            // cpArretMaladieNombreMois : nombre de mois d'arrêt cumulés (≥ 1).
+            // cpArretMaladieSalarieEnPoste : booléen.
+            // cpArretMaladieDateRupture : ISO YYYY-MM-DD ou null.
+            // cpArretMaladieJoursDejaAccordes : jours décomptés par l'employeur.
+            String cpArretMaladieType,
+            Integer cpArretMaladieNombreMois,
+            Boolean cpArretMaladieSalarieEnPoste,
+            String cpArretMaladieDateRupture,
+            java.math.BigDecimal cpArretMaladieJoursDejaAccordes) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -594,7 +611,13 @@ public record CaseAnalysisResponse(
                     // SF-207-07 — rcc_be_indemnite_detection (BELGIQUE uniquement)
                     .remunerationNetteReferenceRccDetectee(remunerationNetteReferenceRccDetectee)
                     .allocationOnemMensuelleEstimee(allocationOnemMensuelleEstimee)
-                    .dateDebutRccEnvisagee(dateDebutRccEnvisagee);
+                    .dateDebutRccEnvisagee(dateDebutRccEnvisagee)
+                    // SF-206-03 — conges_payes_arret_maladie_detail (FRANCE uniquement)
+                    .cpArretMaladieType(cpArretMaladieType)
+                    .cpArretMaladieNombreMois(cpArretMaladieNombreMois)
+                    .cpArretMaladieSalarieEnPoste(cpArretMaladieSalarieEnPoste)
+                    .cpArretMaladieDateRupture(cpArretMaladieDateRupture)
+                    .cpArretMaladieJoursDejaAccordes(cpArretMaladieJoursDejaAccordes);
         }
 
         public static final class Builder {
@@ -755,6 +778,12 @@ public record CaseAnalysisResponse(
             private Double remunerationNetteReferenceRccDetectee;
             private Double allocationOnemMensuelleEstimee;
             private String dateDebutRccEnvisagee;
+            // SF-206-03 — conges_payes_arret_maladie_detail (FRANCE uniquement)
+            private String cpArretMaladieType;
+            private Integer cpArretMaladieNombreMois;
+            private Boolean cpArretMaladieSalarieEnPoste;
+            private String cpArretMaladieDateRupture;
+            private java.math.BigDecimal cpArretMaladieJoursDejaAccordes;
 
             private Builder() {}
 
@@ -910,6 +939,12 @@ public record CaseAnalysisResponse(
             public Builder remunerationNetteReferenceRccDetectee(Double v) { this.remunerationNetteReferenceRccDetectee = v; return this; }
             public Builder allocationOnemMensuelleEstimee(Double v) { this.allocationOnemMensuelleEstimee = v; return this; }
             public Builder dateDebutRccEnvisagee(String v) { this.dateDebutRccEnvisagee = v; return this; }
+            // SF-206-03 — conges_payes_arret_maladie_detail (FRANCE uniquement)
+            public Builder cpArretMaladieType(String v) { this.cpArretMaladieType = v; return this; }
+            public Builder cpArretMaladieNombreMois(Integer v) { this.cpArretMaladieNombreMois = v; return this; }
+            public Builder cpArretMaladieSalarieEnPoste(Boolean v) { this.cpArretMaladieSalarieEnPoste = v; return this; }
+            public Builder cpArretMaladieDateRupture(String v) { this.cpArretMaladieDateRupture = v; return this; }
+            public Builder cpArretMaladieJoursDejaAccordes(java.math.BigDecimal v) { this.cpArretMaladieJoursDejaAccordes = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -993,7 +1028,11 @@ public record CaseAnalysisResponse(
                         // SF-207-07 — rcc_be_indemnite_detection (BELGIQUE uniquement)
                         remunerationNetteReferenceRccDetectee,
                         allocationOnemMensuelleEstimee,
-                        dateDebutRccEnvisagee);
+                        dateDebutRccEnvisagee,
+                        // SF-206-03 — conges_payes_arret_maladie_detail (FRANCE uniquement)
+                        cpArretMaladieType, cpArretMaladieNombreMois,
+                        cpArretMaladieSalarieEnPoste, cpArretMaladieDateRupture,
+                        cpArretMaladieJoursDejaAccordes);
             }
         }
     }
@@ -1115,6 +1154,15 @@ public record CaseAnalysisResponse(
     static final Set<String> ABANDON_POSTE_MOTIF_ABSENCE_CODES = Set.of(
             "AUCUN", "MEDICAL", "DROIT_RETRAIT", "DROIT_GREVE",
             "MODIFICATION_CONTRAT_REFUSEE", "DEFAUT_PAIEMENT_SALAIRE", "AUTRE"
+    );
+
+    /**
+     * SF-206-03 : codes de type d'arrêt maladie pour F-DT-75 (congés payés
+     * acquis pendant arrêt maladie) — alignés sur l'enum
+     * {@code CongesPayesArretMaladieCalculator.TypeArret} (FR uniquement).
+     */
+    static final Set<String> CP_ARRET_MALADIE_TYPE_CODES = Set.of(
+            "MALADIE_NON_PROFESSIONNELLE", "ACCIDENT_TRAVAIL_MALADIE_PRO"
     );
 
     /**
@@ -3120,6 +3168,11 @@ public record CaseAnalysisResponse(
             // dossier BE) → tous les champs null.
             JsonNode abandonPoste = node.get("abandon_poste_detail");
             boolean hasAbandonPoste = abandonPoste != null && abandonPoste.isObject();
+            // SF-206-03 : sous-objet pour pré-fill F-DT-75 (congés payés acquis
+            // pendant arrêt maladie). Peut être absent (dossier sans arrêt
+            // maladie long ou dossier BE) → tous les champs null.
+            JsonNode cpArretMaladie = node.get("conges_payes_arret_maladie_detail");
+            boolean hasCpArretMaladie = cpArretMaladie != null && cpArretMaladie.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -3334,6 +3387,17 @@ public record CaseAnalysisResponse(
                     .abandonPosteMedMentionneDelai(hasAbandonPoste ? booleanOrNull(abandonPoste, "med_mentionne_delai") : null)
                     .abandonPosteMedMentionneConsequences(hasAbandonPoste ? booleanOrNull(abandonPoste, "med_mentionne_consequences") : null)
                     .abandonPosteRepriseDansDelai(hasAbandonPoste ? booleanOrNull(abandonPoste, "reprise_dans_delai") : null)
+                    // SF-206-03 : 5 champs IA pour pré-fill F-DT-75 — typeArret
+                    // normalisé sur l'enum (code hors liste → null) ; nombreMois
+                    // borné [1, 1200] (limite plausible — 100 ans) ; salarieEnPoste
+                    // booléen ; dateRupture ISO YYYY-MM-DD validée (fail-open →
+                    // null si non ISO) ; joursDejaAccordes BigDecimal (préserve la
+                    // précision). Tous null si sous-objet absent.
+                    .cpArretMaladieType(hasCpArretMaladie ? normalizeEnumCode(textOrNull(cpArretMaladie, "type_arret"), CP_ARRET_MALADIE_TYPE_CODES) : null)
+                    .cpArretMaladieNombreMois(hasCpArretMaladie ? boundedIntOrNull(cpArretMaladie, "nombre_mois_arret", 1, 1200) : null)
+                    .cpArretMaladieSalarieEnPoste(hasCpArretMaladie ? booleanOrNull(cpArretMaladie, "salarie_encore_en_poste") : null)
+                    .cpArretMaladieDateRupture(hasCpArretMaladie ? isoDateOrNull(cpArretMaladie, "date_rupture_contrat") : null)
+                    .cpArretMaladieJoursDejaAccordes(hasCpArretMaladie ? bigDecimalOrNull(cpArretMaladie, "jours_cp_deja_accordes") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

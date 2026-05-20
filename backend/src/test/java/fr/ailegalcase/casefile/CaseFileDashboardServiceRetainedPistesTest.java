@@ -82,6 +82,7 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(ProcedureNulliteLicenciementRepository.class),
                 mock(RupturePeriodeEssaiRepository.class),
                 mock(AbandonPostePresomptionDemissionRepository.class),
+                mock(CongesPayesArretMaladieRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
                 mock(CrrvRefusVisaRepository.class),

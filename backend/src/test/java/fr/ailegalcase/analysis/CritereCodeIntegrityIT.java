@@ -83,6 +83,11 @@ class CritereCodeIntegrityIT {
             "DT42_MENTIONS_MED",
             "DT42_MOTIF_LEGITIME",
 
+            // ─── Droit du travail — Congés payés acquis pendant arrêt maladie F-DT-75 ─
+            "DT75_TYPE_ARRET",
+            "DT75_DUREE_ARRET",
+            "DT75_SALARIE_EN_POSTE",
+
             // ─── Droit du travail — Harcèlement / licenciement nul F-DT-11 ─────────────
             "HLN_MOTIF_NULLITE",
 
