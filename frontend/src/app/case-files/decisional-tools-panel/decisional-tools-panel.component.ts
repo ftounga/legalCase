@@ -65,6 +65,8 @@ import { PrescriptionBeLitigeTravailSectionComponent } from '../prescription-be-
 import { C4OnemChecklistSectionComponent } from '../c4-onem-checklist-section/c4-onem-checklist-section.component';
 // SF-207-03b : section décisionnelle contestation C4 ONEM (BE-only, ALWAYS_ON).
 import { ContestationC4OnemSectionComponent } from '../contestation-c4-onem-section/contestation-c4-onem-section.component';
+// SF-207-04b : section décisionnelle déclaration AT Fedris (BE-only, ALWAYS_ON).
+import { AtFedrisDeclarationSectionComponent } from '../at-fedris-declaration-section/at-fedris-declaration-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -456,6 +458,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['contestation-c4-onem', {
         displayLabel: 'Contestation C4 ONEM (BE)',
         component: ContestationC4OnemSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-04b : déclaration AT Fedris Travail BE (BE-only, ALWAYS_ON).
+      // Délai 8 jours calendaires employeur (Loi 10/04/1971 art. 62). 2 modes
+      // (prospectif / rétrospectif), 5 verdicts. 2 champs pré-remplis depuis
+      // `TravailExtractedData` (dateAccident, dateConnaissanceAccidentEmployeur).
+      ['at-fedris-declaration', {
+        displayLabel: 'Déclaration AT Fedris (BE)',
+        component: AtFedrisDeclarationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2201,6 +2219,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-207-03b : contestation C4 ONEM — double délai admin (1 mois) + tribunal
     // (3 mois). Thème DELAIS pour cohérence avec la nature du calculateur.
     ['contestation-c4-onem', 'DELAIS'],
+    // SF-207-04b : déclaration AT Fedris — délai 8 jours calendaires
+    // employeur (Loi 10/04/1971 art. 62). Thème DELAIS.
+    ['at-fedris-declaration', 'DELAIS'],
     ['F-DT-29-credit-temps-be', 'DELAIS'],
     ['F-DT-33-at-mp', 'DELAIS'],
     ['F-DT-34-refere-prudhomal', 'DELAIS'],
