@@ -92,10 +92,15 @@ export interface AsileAvanceRequest {
   presenceReguliere?: boolean | null;
 }
 
-export interface AsileAvanceResponse {
+/**
+ * SF-206-02 hotfix master-red : la Response ré-expose le snapshot d'inputs
+ * Request (ré-édition du formulaire après rechargement). Le composant
+ * `asile-avance-section` hydrate déjà ces champs depuis `r.*` (cf. ngOnInit
+ * load()). Aligne le contrat sur le pattern F-DT-36 / F-DT-42.
+ */
+export interface AsileAvanceResponse extends AsileAvanceRequest {
   caseFileId: string;
   country: 'FRANCE';
-  dispositifAsile: string;
   dispositifLibelle: string;
   verdictRecevabilite: VerdictAsileAvance;
   delaiInstructionMois: number;

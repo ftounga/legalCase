@@ -1,0 +1,507 @@
+/**
+ * SF-206-02 : styles outil "Abandon de poste / présomption de démission" (F-DT-42).
+ * Aligné sur le template canonique `procedure-nullite-licenciement-section`.
+ *
+ * Palette : navy/or/rouge classique. Rouge réservé au verdict CONTESTATION_DIFFICILE
+ * (présomption qui opère = signal d'alerte pour l'avocat du salarié).
+ * Inter pour le texte courant, JetBrains Mono pour `fondement` / bases
+ * juridiques. Espacements multiples de 4px.
+ */
+
+.apd-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.apd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.apd-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.apd-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.apd-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--ko {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.apd-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.apd-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.apd-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form
+.apd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.apd-full {
+  width: 100%;
+}
+
+// Résumé global "N incohérence(s)" — accent or.
+.apd-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Bloc de saisie regroupé visuellement
+.apd-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.apd-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.apd-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.apd-inset-field {
+  width: 100%;
+  max-width: 320px;
+  margin-left: 32px;
+  margin-top: 4px;
+}
+
+.apd-inline-field {
+  width: 100%;
+  max-width: 360px;
+}
+
+.apd-comment-field {
+  max-width: 100%;
+}
+
+.apd-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+// SF-206-02 : badge "Pré-rempli depuis l'analyse" (provenance IA).
+.apd-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// Badge alerte cohérence (popover trigger F-IA-03)
+.apd-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-left: 32px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.apd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+
+.apd-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Bannière verdict — navy SOLIDE / or INCERTAINE / rouge DIFFICILE.
+.apd-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Navy — CONTESTATION_SOLIDE (opportunité avocat salarié, présomption tombe).
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Or — CONTESTATION_INCERTAINE.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+
+  // Rouge — réservé à CONTESTATION_DIFFICILE (présomption opère).
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.apd-verdict-score {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+// Bloc échéance inter-onglets (SF-206-00b)
+.apd-deadline-block {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(201, 165, 75, 0.08);
+  border-left: 4px solid #c9a54b;
+  border-radius: 6px;
+
+  mat-icon {
+    color: #c9a54b;
+    flex-shrink: 0;
+  }
+}
+
+.apd-deadline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1a2330;
+}
+
+.apd-deadline-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-deadline-date {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.apd-deadline-suivi-note {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+
+  strong {
+    color: #1A3A5C;
+  }
+}
+
+// Liste des motifs détectés
+.apd-motifs-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apd-motifs-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-motifs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apd-motif {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+}
+
+.apd-motif-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.apd-motif-libelle {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.apd-motif-poids {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(26, 35, 48, 0.05);
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-motif-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-motif-explication {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+}
+
+// Bloc "aucun motif" — info navy
+.apd-no-motif {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Bases juridiques
+.apd-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apd-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-bases-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.apd-base-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(26, 35, 48, 0.05);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.apd-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.apd-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}

@@ -1,0 +1,315 @@
+<section class="apd-section">
+  <header class="apd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="apd-body">
+    <mat-icon class="apd-icon">no_accounts</mat-icon>
+    <span class="apd-title">ABANDON DE POSTE / PRÉSOMPTION DE DÉMISSION</span>
+    @if (result()) {
+      <span class="apd-chip-summary"
+            [class.apd-chip-summary--ok]="result()!.verdict === 'CONTESTATION_SOLIDE'"
+            [class.apd-chip-summary--medium]="result()!.verdict === 'CONTESTATION_INCERTAINE'"
+            [class.apd-chip-summary--ko]="result()!.verdict === 'CONTESTATION_DIFFICILE'">
+        {{ result()!.scoreContestation }}/100 · {{ result()!.motifsContestation.length }} motif(s)
+      </span>
+    }
+    <mat-icon class="apd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="apd-body" class="apd-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="apd-country-banner" data-testid="apd-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (présomption de démission par abandon de poste — loi 21/12/2022, L.1237-1-1 C. trav.). Aucun équivalent direct en droit belge.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="apd-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="apd-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="apd-form" (ngSubmit)="calculate()">
+            <!-- Bloc mise en demeure -->
+            <div class="apd-block apd-full">
+              <span class="apd-block-label">Mise en demeure (MED) de reprise du poste</span>
+
+              <div class="apd-field-with-alert">
+                <mat-form-field appearance="outline" class="apd-inline-field">
+                  <mat-label>Date de présentation de la MED</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateMiseEnDemeurePresentee()"
+                         (ngModelChange)="onDateMedChange($event)"
+                         name="dateMiseEnDemeurePresentee" />
+                </mat-form-field>
+                @if (provenanceDateMiseEnDemeure() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_MISE_EN_DEMEURE; as alert) {
+                  <span class="apd-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="apd-inline-field">
+                <mat-label>Mode de notification</mat-label>
+                <mat-select
+                    [ngModel]="modeNotificationMiseEnDemeure()"
+                    (ngModelChange)="onModeNotificationChange($event)"
+                    name="modeNotificationMiseEnDemeure">
+                  @for (opt of modeNotificationOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceModeNotification() === 'IA') {
+                <span class="apd-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="apd-field-with-alert">
+                <mat-form-field appearance="outline" class="apd-inline-field">
+                  <mat-label>Délai accordé par l'employeur (en jours)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="delaiAccordeJours()"
+                         (ngModelChange)="onDelaiAccordeChange($event)"
+                         name="delaiAccordeJours" />
+                </mat-form-field>
+                @if (provenanceDelaiAccordeJours() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DELAI_ACCORDE; as alert) {
+                  <span class="apd-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="apd-field-with-alert">
+                <div class="apd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="miseEnDemeureMentionneDelai()"
+                      (ngModelChange)="onMedMentionneDelaiChange($event)"
+                      name="miseEnDemeureMentionneDelai">
+                    La MED mentionne le délai imparti (D.1237-2-1)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceMedMentionneDelai() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="apd-field-with-alert">
+                <div class="apd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="miseEnDemeureMentionneConsequences()"
+                      (ngModelChange)="onMedMentionneConsequencesChange($event)"
+                      name="miseEnDemeureMentionneConsequences">
+                    La MED mentionne les conséquences (présomption de démission)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceMedMentionneConsequences() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MENTIONS_MED; as alert) {
+                  <span class="apd-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc motif d'absence du salarié -->
+            <div class="apd-block apd-full">
+              <span class="apd-block-label">Motif d'absence invoqué par le salarié</span>
+
+              <div class="apd-field-with-alert">
+                <mat-form-field appearance="outline" class="apd-inline-field">
+                  <mat-label>Motif d'absence</mat-label>
+                  <mat-select
+                      [ngModel]="motifAbsenceInvoque()"
+                      (ngModelChange)="onMotifAbsenceChange($event)"
+                      name="motifAbsenceInvoque">
+                    @for (opt of motifAbsenceOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifAbsence() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MOTIF_LEGITIME; as alert) {
+                  <span class="apd-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              @if (motifAbsenceInvoque() !== 'AUCUN') {
+                <mat-form-field appearance="outline" class="apd-inset-field apd-comment-field">
+                  <mat-label>Commentaire sur le motif (optionnel)</mat-label>
+                  <textarea matInput rows="2" maxlength="1000"
+                            [ngModel]="motifAbsenceCommentaire()"
+                            (ngModelChange)="motifAbsenceCommentaire.set($event || null)"
+                            name="motifAbsenceCommentaire"></textarea>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc reprise / justification -->
+            <div class="apd-block apd-full">
+              <span class="apd-block-label">Reprise du poste ou justification</span>
+
+              <div class="apd-field-with-alert">
+                <div class="apd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="repriseOuJustificationDansDelai()"
+                      (ngModelChange)="onRepriseDansDelaiChange($event)"
+                      name="repriseOuJustificationDansDelai">
+                    Reprise du poste ou justification intervenue dans le délai imparti
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceRepriseDansDelai() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (repriseOuJustificationDansDelai()) {
+                <mat-form-field appearance="outline" class="apd-inset-field">
+                  <mat-label>Date de reprise / justification</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRepriseOuJustification()"
+                         (ngModelChange)="onDateRepriseChange($event)"
+                         name="dateRepriseOuJustification" />
+                </mat-form-field>
+                @if (provenanceDateReprise() === 'IA') {
+                  <span class="apd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              }
+            </div>
+
+            <div class="apd-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la contestation</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="apd-result">
+            <!-- Bannière verdict — rouge réservé à CONTESTATION_DIFFICILE -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+              <span class="apd-verdict-score">Score : {{ result()!.scoreContestation }}/100</span>
+            </div>
+
+            <!-- Échéance inter-onglets (SF-206-00b) — date d'expiration du délai MED -->
+            @if (result()!.dateExpirationDelai) {
+              <div class="apd-deadline-block" data-testid="apd-deadline-suivi-note">
+                <mat-icon>event</mat-icon>
+                <div class="apd-deadline-content">
+                  <span class="apd-deadline-label">Expiration du délai imparti par la MED</span>
+                  <span class="apd-deadline-date">{{ result()!.dateExpirationDelai }}</span>
+                  <span class="apd-deadline-suivi-note">
+                    Cette échéance est suivie dans l'onglet <strong>Suivi</strong>.
+                  </span>
+                </div>
+              </div>
+            }
+
+            <!-- Liste des motifs de contestation détectés -->
+            @if (result()!.motifsContestation.length > 0) {
+              <div class="apd-motifs-block">
+                <span class="apd-motifs-label">
+                  {{ result()!.motifsContestation.length }} motif(s) de contestation détecté(s)
+                </span>
+                <ul class="apd-motifs-list">
+                  @for (motif of result()!.motifsContestation; track motif.code) {
+                    <li class="apd-motif">
+                      <div class="apd-motif-head">
+                        <span class="apd-motif-libelle">{{ motif.libelle }}</span>
+                        <span class="apd-motif-poids">Poids {{ motif.poids }}</span>
+                      </div>
+                      <span class="apd-motif-fondement">{{ motif.fondement }}</span>
+                      <span class="apd-motif-explication">{{ motif.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else {
+              <div class="apd-no-motif">
+                <mat-icon>info_outline</mat-icon>
+                <span>Aucune irrégularité détectée sur la base des éléments saisis. La présomption de démission paraît difficile à contester ; vérifier l'éventuel motif légitime non encore documenté.</span>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="apd-bases-block">
+                <span class="apd-bases-label">Bases juridiques</span>
+                <div class="apd-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="apd-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="apd-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="apd-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

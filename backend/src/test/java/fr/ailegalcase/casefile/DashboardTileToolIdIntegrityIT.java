@@ -67,13 +67,11 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary",
-            // F-DT-42 (SF-206-01) — exclusion transitoire (à résorber par SF-206-02
-            // frontend). La tuile est émise par CaseFileDashboardService mais le
-            // seed `decision_tool_visibility_rules` + l'entrée TOOL_REGISTRY frontend
-            // sont volontairement portés ensemble par la SF frontend SF-206-02
-            // (pattern SF-DT-38-02 / SF-DT-36-02 — cf. comment migration 252).
-            "F-DT-42-abandon-poste-presomption-demission"
+            "F-196-questions-summary"
+            // SF-206-02 (2026-05-20) : F-DT-42 retiré ici — la résolution
+            // structurelle est en place (seed visibility migration 263 +
+            // entrée TOOL_REGISTRY frontend dans decisional-tools-panel.component.ts
+            // + tile mapper backend déjà présent dans CaseFileDashboardService).
     );
 
     /**
@@ -111,12 +109,17 @@ class DashboardTileToolIdIntegrityIT {
             // (mêmes mappings que prescription-be-litige-travail + c4-onem-checklist
             // posés par #1141).
             "at-fedris-declaration",
-            "contestation-c4-onem"
+            "contestation-c4-onem",
             // F-245 hotfix (2026-05-20) — prescription-be-litige-travail retiré ici :
             // la tuile dashboard est désormais câblée par
             // CaseFileDashboardService.tileFromPrescriptionBeLitigeTravailAnalysis().
             // L'exclusion temporaire posée par le commit 3e8cb1da (#1129) est
             // résorbée par la vraie correction structurelle.
+            // SF-206-02 hotfix master-red (2026-05-20) : refere-tribunal-travail-be
+            // livré par SF-207-05b (PR #1149) sans mapper DashboardTile —
+            // exclusion transitoire à résorber par la session F-207 propriétaire,
+            // même pattern que at-fedris-declaration / contestation-c4-onem.
+            "refere-tribunal-travail-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

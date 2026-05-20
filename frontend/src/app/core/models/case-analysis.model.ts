@@ -606,6 +606,13 @@ export interface TravailExtractedData {
    * Pré-fill F-DT-29 credit-temps-be.
    */
   dateDemandeCreditTemps?: string | null;
+  /**
+   * F-DT-38 (rupture période d'essai) — flag accident du travail / maladie pro
+   * détecté dans le dossier (déclencheur protection rupture pendant arrêt AT/MP).
+   * Référencé par `RupturePeriodeEssaiSectionPrefillRules.computeArretAccidentTravail`.
+   * Dette frontend résorbée ici (le helper consommait un champ encore non typé).
+   */
+  atMpDetecte?: boolean | null;
   // -------------------------------------------------------------------------
   // SF-206-01 — sous-objet `abandon_poste_detail` (FRANCE uniquement)
   // Pré-fill F-DT-42 (abandon de poste / présomption de démission).
@@ -750,7 +757,16 @@ export interface ImmigrationExtractedData {
   asileDateDecisionAnterieure?: string | null;
   eloiDureePresenceIrreguliereMois?: number | null;
   eloiMotifMenace?: string | null;
-  // SF-246-20 : lot Immigration BE
+  /**
+   * SF-246-20 : pré-fill lot Immigration BE — 4 outils belgian-9bis / 9ter / 40bis / 40ter.
+   * BELGIQUE UNIQUEMENT — null pour dossiers FRANCE. Tous nullables.
+   * `be9bisDateEntreeBelgique` : date d'entrée en Belgique YYYY-MM-DD (art. 9bis, Annexe 26 / passeport), non future.
+   * `be9bisDureePresenceMois` : mois entiers depuis be9bisDateEntreeBelgique jusqu'à aujourd'hui (calculé backend).
+   * `be9terDateDebutSymptomes` : date du début des symptômes médicaux YYYY-MM-DD (art. 9ter, certificat médical), non future.
+   * `be40bisLienFamilial` : lien familial 40bis — whitelist CONJOINT / ENFANT / ASCENDANT / PARTENAIRE_ENREGISTRE.
+   * `be40terLienFamilial` : lien familial 40ter — même whitelist.
+   * `be40terRevenusMensuelsNets` : revenus mensuels nets du regroupant belge (€, > 0, ≤ 30 000).
+   */
   be9bisDateEntreeBelgique?: string | null;
   be9bisDureePresenceMois?: number | null;
   be9terDateDebutSymptomes?: string | null;

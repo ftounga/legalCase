@@ -81,6 +81,7 @@ import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-s
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 import { LicenciementNulDetectionSectionComponent } from '../licenciement-nul-detection-section/licenciement-nul-detection-section.component';
 import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nullite-licenciement-section/procedure-nullite-licenciement-section.component';
+import { AbandonPostePresomptionDemissionSectionComponent } from '../abandon-poste-presomption-demission-section/abandon-poste-presomption-demission-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
@@ -643,6 +644,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // travailExtractedData.procedure_licenciement_detection, FR uniquement).
           // Validation F-IA-03 sur 3 champs croisables (DATE_ENTRETIEN,
           // MOTIVATION, ENTRETIEN_TENU) via F-96 / questions IA / pièces.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02b — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      ['F-DT-42-abandon-poste-presomption-demission', {
+        displayLabel: 'Abandon de poste / présomption de démission (FR)',
+        component: AbandonPostePresomptionDemissionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-206-02 : pré-fill IA réel (8 champs `abandon_poste_detail` projetés
+          // à plat dans travailExtractedData, FR uniquement). Validation F-IA-03
+          // sur 4 champs croisables (DATE_MISE_EN_DEMEURE, DELAI_ACCORDE,
+          // MENTIONS_MED, MOTIF_LEGITIME) via F-96 / questions IA / pièces.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
@@ -2226,6 +2245,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-14-pse-validite', 'VALIDITE'],
     ['F-DT-16-licenciement-nul-detection', 'VALIDITE'],
     ['F-DT-36-procedure-nullite-licenciement', 'VALIDITE'],
+    // SF-206-02 : contestation de la présomption de démission (qualification
+    // de la rupture — la présomption peut être renversée).
+    ['F-DT-42-abandon-poste-presomption-demission', 'VALIDITE'],
     // F-DT-38 SF-DT-38-02 : qualification rupture période d'essai (FR).
     ['F-DT-38-rupture-periode-essai', 'VALIDITE'],
     ['F-DT-22-requalification-cdd-cdi', 'VALIDITE'],
