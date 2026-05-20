@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="256-create-contestation-c4-onem-analyses" author="legalcase">
+        <comment>
+            SF-207-03 : table dédiée à l'outil décisionnel "Contestation C4
+            ONEM" (F-207). Calculateur double délai :
+            (1) recours administratif au Directeur du Bureau du chômage,
+                1 mois après notification de la décision ONEM (AR 25/11/1991
+                art. 144) ;
+            (2) recours juridictionnel devant le tribunal du travail,
+                3 mois après notification de la décision du Directeur
+                (Code judiciaire art. 580, 2°).
+            Verdict 6 états ADMIN/TRIBUNAL × OUVERT/IMMINENT/PRESCRIT ;
+            étape suivante RECOURS_ADMIN_DIRECTEUR / RECOURS_TRIBUNAL_TRAVAIL
+            / FORCLUSION_TOTALE / AUCUNE.
+            Substance juridique BE-only (loi du 3 juillet 1978 relative aux
+            contrats de travail en filigrane) — jumeau BE structurel de
+            F-DT-35 contestation-are FR, pattern mirroré mais substance
+            distincte (cf. mémoire feedback_belgique_never_forget).
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté
+            FR pour préserver l'isolation, pattern SF-207-01 / SF-207-02).
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (dateNotificationDecisionOnem, dateActionEnvisagee,
+            recoursAdminDejaForme, dateDecisionDirecteur) + outputs (verdict,
+            paliers ADMIN/TRIBUNAL, etapeSuivante, baseJuridique,
+            formuleCalcul, country).
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY
+            seront livrées côté frontend SF-207-03b (à venir).
+        </comment>
+
+        <createTable tableName="contestation_c4_onem_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_contestation_c4_onem_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="contestation_c4_onem_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_contestation_c4_onem_case_file"/>
+
+        <createIndex tableName="contestation_c4_onem_analyses"
+                     indexName="idx_contestation_c4_onem_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="contestation_c4_onem_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
