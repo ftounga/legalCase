@@ -823,4 +823,45 @@ export interface FamilleExtractedData {
    * Null si absent.
    */
   contratMariageSigneBeDetecte?: boolean | null;
+
+  // ── SF-216-01 : 5 champs IA prestation compensatoire + vie commune FR ─────────
+  // Source backend réelle : `famille_extracted_data.vie_commune_detection`
+  //                       + `famille_extracted_data.prestation_compensatoire_detection`.
+  // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+
+  /**
+   * SF-216-01 : FRANCE — revenus annuels bruts de l'époux 1 (€/an, ≥ 0) détectés
+   * par l'IA (fiches de paie / avis d'imposition). Distinct de `revenusAnnuelsEpoux1Eur`
+   * (legacy DivorceAccepte, lié au calculateur SF-198 par convention historique).
+   * Source backend réelle : `vie_commune_detection.revenus_annuels_epoux1_eur`.
+   * Le record Java `FamilleExtractedData` expose ce champ via Jackson sous le nom
+   * `revenusAnnuelsEpoux1` (sans suffixe `Eur` — conserver l'alignement Jackson).
+   * Null si absent ou hors plage.
+   */
+  revenusAnnuelsEpoux1?: number | null;
+  /**
+   * SF-216-01 : FRANCE — revenus annuels bruts de l'époux 2 (€/an, ≥ 0) détectés
+   * par l'IA. Source backend : `vie_commune_detection.revenus_annuels_epoux2_eur`
+   * (Jackson : `revenusAnnuelsEpoux2`).
+   * Null si absent ou hors plage.
+   */
+  revenusAnnuelsEpoux2?: number | null;
+  /**
+   * SF-216-01 : FRANCE — âge en années entières [0, 120] de l'époux 1 détecté
+   * par l'IA (pièce d'identité). Source backend : `vie_commune_detection.age_epoux1_annees`.
+   * Null si absent ou hors plage.
+   */
+  ageEpoux1Annees?: number | null;
+  /**
+   * SF-216-01 : FRANCE — âge en années entières [0, 120] de l'époux 2 détecté
+   * par l'IA. Source backend : `vie_commune_detection.age_epoux2_annees`.
+   * Null si absent ou hors plage.
+   */
+  ageEpoux2Annees?: number | null;
+  /**
+   * SF-216-01 : FRANCE — flag CONTEXTUAL indiquant que la prestation compensatoire
+   * est envisagée dans le dossier (mention art. 270 / disparité niveaux de vie).
+   * Source backend : `prestation_compensatoire_detection.envisagee`.
+   */
+  prestationCompensatoireEnvisagee?: boolean | null;
 }
