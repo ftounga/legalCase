@@ -67,6 +67,8 @@ import { C4OnemChecklistSectionComponent } from '../c4-onem-checklist-section/c4
 import { ContestationC4OnemSectionComponent } from '../contestation-c4-onem-section/contestation-c4-onem-section.component';
 // SF-207-04b : section décisionnelle déclaration AT Fedris (BE-only, ALWAYS_ON).
 import { AtFedrisDeclarationSectionComponent } from '../at-fedris-declaration-section/at-fedris-declaration-section.component';
+// SF-207-05b : section décisionnelle référé tribunal du travail BE (BE-only, ALWAYS_ON).
+import { RefereTribunalTravailBeSectionComponent } from '../refere-tribunal-travail-be-section/refere-tribunal-travail-be-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -474,6 +476,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['at-fedris-declaration', {
         displayLabel: 'Déclaration AT Fedris (BE)',
         component: AtFedrisDeclarationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-05b : référé tribunal du travail BE (BE-only, ALWAYS_ON).
+      // CJ art. 584 — référé devant le président du tribunal du travail.
+      // Verdict 3 états (ELIGIBLE / INCERTAIN / NON_ELIGIBLE) sur score 0-5
+      // de 5 conditions cumulatives. 3 champs pré-remplis depuis
+      // `TravailExtractedData` (motifUrgenceDetecte, dateFaitGenerateurUrgence,
+      // perilImmediatPresume). Génération d'un squelette de requête copiable.
+      ['refere-tribunal-travail-be', {
+        displayLabel: 'Référé tribunal du travail (BE)',
+        component: RefereTribunalTravailBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2222,6 +2242,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-207-04b : déclaration AT Fedris — délai 8 jours calendaires
     // employeur (Loi 10/04/1971 art. 62). Thème DELAIS.
     ['at-fedris-declaration', 'DELAIS'],
+    // SF-207-05b : référé tribunal du travail BE (CJ art. 584). Thème DELAIS
+    // (procédure d'urgence — pas de thème URGENCES dédié à ce stade, cohérence
+    // avec les 4 outils BE Travail F-207 déjà classés DELAIS).
+    ['refere-tribunal-travail-be', 'DELAIS'],
     ['F-DT-29-credit-temps-be', 'DELAIS'],
     ['F-DT-33-at-mp', 'DELAIS'],
     ['F-DT-34-refere-prudhomal', 'DELAIS'],

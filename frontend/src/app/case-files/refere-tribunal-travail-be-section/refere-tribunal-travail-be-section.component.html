@@ -1,0 +1,235 @@
+<div class="refere-tt-be-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">gavel</mat-icon>
+    <span class="section-title">Référé tribunal du travail (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ humanizeVerdict(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="refere-tt-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Évaluation d'éligibilité au référé devant le président du tribunal
+            du travail (Code Judiciaire art. 584). 5 conditions cumulatives —
+            les champs avec un astérisque sont requis.
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Motif d'urgence (select) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif d'urgence *</mat-label>
+                <mat-select [ngModel]="motifUrgence()"
+                            (ngModelChange)="onMotifUrgenceChange($event)"
+                            name="motifUrgence" required>
+                  @for (m of motifOptions; track m) {
+                    <mat-option [value]="m">{{ humanizeMotif(m) }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceMotif() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 2. Date du fait générateur -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du fait générateur *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateFaitGenerateur()"
+                       (ngModelChange)="onDateFaitGenerateurChange($event)"
+                       name="dateFaitGenerateur" required />
+              </mat-form-field>
+              @if (provenanceDate() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 3. Description du motif (full width) -->
+            <div class="field-with-alert full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Description du motif d'urgence *</mat-label>
+                <textarea matInput
+                          rows="3"
+                          [ngModel]="motifUrgenceDescription()"
+                          (ngModelChange)="onMotifDescriptionChange($event)"
+                          name="motifUrgenceDescription"
+                          required></textarea>
+                @if (motifUrgence() === 'AUTRE') {
+                  <mat-hint>Description ≥ 30 caractères requise pour le motif AUTRE.</mat-hint>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date démarche amiable (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'une démarche amiable préalable (optionnel)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDemarcheAmiable()"
+                       (ngModelChange)="onDateDemarcheAmiableChange($event)"
+                       name="dateDemarcheAmiable" />
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Mesure provisoire (full width) -->
+            <div class="field-with-alert full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Mesure provisoire demandée *</mat-label>
+                <textarea matInput
+                          rows="2"
+                          [ngModel]="mesureProvisoireDemandee()"
+                          (ngModelChange)="onMesureProvisoireChange($event)"
+                          name="mesureProvisoireDemandee"
+                          required></textarea>
+                <mat-hint>Libellé précis (> 10 caractères) — un référé sans mesure précise est irrecevable.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Preuve d'urgence jointe -->
+            <div class="field-with-alert checkbox-row">
+              <mat-checkbox [ngModel]="preuveUrgenceJointe()"
+                            (ngModelChange)="onPreuveUrgenceJointeChange($event)"
+                            name="preuveUrgenceJointe">
+                Preuve d'urgence jointe au dossier
+              </mat-checkbox>
+            </div>
+
+            <!-- 7. Péril en demeure -->
+            <div class="field-with-alert checkbox-row">
+              <mat-checkbox [ngModel]="perilEnDemeure()"
+                            (ngModelChange)="onPerilEnDemeureChange($event)"
+                            name="perilEnDemeure">
+                Péril en demeure caractérisé
+              </mat-checkbox>
+              @if (provenancePeril() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 8. Compétence territoriale -->
+            <div class="field-with-alert checkbox-row full-width">
+              <mat-checkbox [ngModel]="competenceTerritorialeIdentifiee()"
+                            (ngModelChange)="onCompetenceTerritorialeChange($event)"
+                            name="competenceTerritorialeIdentifiee">
+                Compétence territoriale identifiée (CJ art. 627, 9° — domicile du salarié)
+              </mat-checkbox>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>gavel</mat-icon> Évaluer l'éligibilité au référé
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ humanizeVerdict(result()!.verdict) }}</span>
+              <span class="verdict-detail">
+                Score : {{ result()!.scoreConditions }} / 5 conditions cumulatives remplies.
+              </span>
+            </div>
+          </div>
+
+          <!-- Barre de progression du score 0-5 -->
+          <div class="score-section">
+            <div class="score-header">
+              <span class="rec-section-label">Score d'éligibilité</span>
+              <span class="score-value">{{ result()!.scoreConditions }} / 5</span>
+            </div>
+            <mat-progress-bar mode="determinate"
+                              [value]="scorePercent()"
+                              [color]="scoreBarColor(result()!.verdict)">
+            </mat-progress-bar>
+          </div>
+
+          @if (conditionsNonRempliesHumanisees().length > 0) {
+            <div class="rec-section">
+              <span class="rec-section-label">Conditions non remplies</span>
+              <ul class="conditions-list">
+                @for (c of conditionsNonRempliesHumanisees(); track c.code) {
+                  <li>{{ c.label }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result()!.requeteSquelette) {
+            <div class="rec-section">
+              <div class="requete-header">
+                <span class="rec-section-label">Squelette de requête</span>
+                <button mat-stroked-button
+                        (click)="copyRequete()"
+                        [disabled]="copying()">
+                  <mat-icon>content_copy</mat-icon>
+                  {{ copying() ? 'Copie…' : 'Copier la requête' }}
+                </button>
+              </div>
+              <textarea class="requete-textarea legal-mono"
+                        readonly
+                        [value]="result()!.requeteSquelette"
+                        rows="14"></textarea>
+            </div>
+          }
+
+          <div class="etape-card" [class]="etapeClass(result()!.etapeSuivante)">
+            <mat-icon class="etape-icon">{{ etapeIcon(result()!.etapeSuivante) }}</mat-icon>
+            <div class="etape-block">
+              <span class="etape-label">Étape suivante</span>
+              <span class="etape-detail">{{ humanizeEtape(result()!.etapeSuivante) }}</span>
+            </div>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

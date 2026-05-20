@@ -1,0 +1,312 @@
+// SF-207-05b — Section référé tribunal du travail BE. Charte F-IA-04 alignée
+// `c4-onem-checklist-section.component.scss` (palette navy/or info, vert
+// REFERE_ELIGIBLE, ambre REFERE_INCERTAIN, rouge REFERE_NON_ELIGIBLE).
+
+.refere-tt-be-section {}
+
+.section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #1A3A5C;
+
+  &:hover { opacity: 0.8; }
+
+  .section-icon { color: #C9973A; }
+  .section-title {
+    flex: 1; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .section-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 2px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+
+    &.verdict-ok       { background: #eafaf1; color: #1B7A3E; }
+    &.verdict-warn     { background: #FEF7E6; color: #92400E; }
+    &.verdict-critical { background: #FCE9E9; color: #9B1B1B; }
+  }
+  .section-chevron { color: #6B7A8D; font-size: 20px; }
+}
+
+.refere-tt-be-body {
+  padding: 0 4px;
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.questionnaire {
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.form-help {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+
+  .form-field {
+    width: 100%;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+
+  button mat-icon { margin-right: 4px; }
+}
+
+.empty-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f4f6f8;
+  border-radius: 8px;
+  padding: 16px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+
+  mat-icon { color: #6B7A8D; }
+}
+
+.field-with-alert {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #1A3A5C;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #C9973A; }
+}
+
+// Résultat — verdict + score + conditions + squelette + étape + base juridique.
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.verdict-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border-left: 4px solid transparent;
+
+  .verdict-icon { font-size: 28px; width: 28px; height: 28px; flex-shrink: 0; }
+
+  .verdict-block { display: flex; flex-direction: column; gap: 2px; }
+  .verdict-label {
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 16px;
+    letter-spacing: 0.2px;
+  }
+  .verdict-detail {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: #1A3A5C;
+  }
+
+  &.verdict-ok {
+    background: #eafaf1; border-left-color: #1B7A3E;
+    .verdict-icon, .verdict-label { color: #1B7A3E; }
+  }
+  &.verdict-warn {
+    background: #FEF7E6; border-left-color: #C9973A;
+    .verdict-icon, .verdict-label { color: #92400E; }
+  }
+  &.verdict-critical {
+    background: #FCE9E9; border-left-color: #9B1B1B;
+    .verdict-icon, .verdict-label { color: #9B1B1B; }
+  }
+}
+
+.score-section {
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .score-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .score-value {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A3A5C;
+  }
+
+  mat-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+  }
+}
+
+.rec-section {
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  padding: 14px 16px;
+
+  .rec-section-label {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7A8D;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  p {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1C2B3A;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .legal-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+}
+
+.requete-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  button mat-icon { margin-right: 4px; font-size: 16px; width: 16px; height: 16px; }
+}
+
+.conditions-list {
+  margin: 8px 0 0 0;
+  padding-left: 22px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C2B3A;
+  line-height: 1.6;
+
+  li { margin-bottom: 4px; }
+}
+
+.requete-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #E0E4EA;
+  border-radius: 6px;
+  padding: 12px;
+  background: #FAFBFC;
+  color: #1C2B3A;
+  resize: vertical;
+  min-height: 220px;
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: 'JetBrains Mono', monospace;
+
+  &:focus {
+    outline: none;
+    border-color: #C9973A;
+  }
+}
+
+// Encart étape suivante — coloré selon verdict (vert / ambre / info neutre).
+.etape-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border-left: 4px solid transparent;
+
+  .etape-icon { font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; }
+  .etape-block { display: flex; flex-direction: column; gap: 2px; }
+  .etape-label {
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #6B7A8D;
+  }
+  .etape-detail {
+    font-family: 'Inter', sans-serif; font-size: 14px; color: #1C2B3A;
+    line-height: 1.5;
+  }
+
+  &.etape-ok {
+    background: #eafaf1; border-left-color: #1B7A3E;
+    .etape-icon { color: #1B7A3E; }
+  }
+  &.etape-warn {
+    background: #FEF7E6; border-left-color: #C9973A;
+    .etape-icon { color: #92400E; }
+  }
+  &.etape-info {
+    background: #EAF2FB; border-left-color: #1A3A5C;
+    .etape-icon { color: #1A3A5C; }
+  }
+}
+
+.results-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  button mat-icon { margin-right: 4px; }
+}

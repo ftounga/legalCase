@@ -435,6 +435,22 @@ export interface TravailExtractedData {
    */
   dateAccident?: string | null;
   dateConnaissanceAccidentEmployeur?: string | null;
+  /**
+   * SF-207-05 / SF-207-05b : 3 champs IA Travail BE pour pré-fill F-207
+   * (référé tribunal du travail BE — CJ art. 584). BE-only — restent null
+   * pour FR (régime distinct du référé prud'homal R.1454-1 CT).
+   * `motifUrgenceDetecte` : code parmi la whitelist
+   *   {HARCELEMENT, SALAIRE_IMPAYE, MODIFICATION_UNILATERALE, AUTRE} détecté
+   *   par le pipeline IA sur le motif d'urgence (texte libre du dossier).
+   *   Toute valeur hors whitelist → null.
+   * `dateFaitGenerateurUrgence` : date du fait générateur de l'urgence (ISO
+   *   YYYY-MM-DD) — point de départ du raisonnement « urgence qualifiable ».
+   * `perilImmediatPresume` : flag présumant un péril en demeure caractérisé
+   *   (préjudice imminent / irréversible) — pré-fill du booléen `perilEnDemeure`.
+   */
+  motifUrgenceDetecte?: string | null;
+  dateFaitGenerateurUrgence?: string | null;
+  perilImmediatPresume?: boolean | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.
