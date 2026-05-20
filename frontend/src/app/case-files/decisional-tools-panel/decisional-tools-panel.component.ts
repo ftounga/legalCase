@@ -193,6 +193,9 @@ import { LiquidationPartageBeSectionComponent } from '../liquidation-partage-be-
 import { AutoriteParentaleBeSectionComponent } from '../autorite-parentale-be-section/autorite-parentale-be-section.component';
 import { ContributionAlimentaireEnfantsBeSectionComponent } from '../contribution-alimentaire-enfants-be-section/contribution-alimentaire-enfants-be-section.component';
 import { ContributionConjointBeSectionComponent } from '../contribution-conjoint-be-section/contribution-conjoint-be-section.component';
+// F-217 SF-217-13 — 2 sections décisionnelles Vague 3 Famille BE — Successions (backends mergés PR #1180 / #1181).
+import { SuccessionBeDevolutionReserveSectionComponent } from '../succession-be-devolution-reserve-section/succession-be-devolution-reserve-section.component';
+import { SuccessionBeAcceptationRenonciationSectionComponent } from '../succession-be-acceptation-renonciation-section/succession-be-acceptation-renonciation-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -2306,6 +2309,45 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // F-217 SF-217-13 : succession BE — dévolution légale et réserve
+      // héréditaire post-2017 (CC Livre 4 réformé, loi 31/07/2017).
+      // Migration 278 — ALWAYS_ON (toute analyse d'un dossier successoral
+      // belge mobilise la qualification de la dévolution / réserve). Backend
+      // SF-217-11 (PR #1180).
+      ['succession-be-devolution-reserve', {
+        displayLabel: 'Dévolution et réserve héréditaire (Belgique)',
+        component: SuccessionBeDevolutionReserveSectionComponent,
+        // Composant complet (form + verdict + héritiers + réserve + quotité).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // F-217 SF-217-13 : succession BE — acceptation / renonciation
+      // (CC art. 774+ nouveau — option successorale 4 mois).
+      // Migration 278 — ALWAYS_ON (tout héritier appelé doit opter dans les
+      // délais). Backend SF-217-12 (PR #1181).
+      ['succession-be-acceptation-renonciation', {
+        displayLabel: 'Acceptation / renonciation à succession (Belgique)',
+        component: SuccessionBeAcceptationRenonciationSectionComponent,
+        // Composant complet (form + verdict + option + délai + risques).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
     ]);
 
   /**
@@ -2404,6 +2446,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['regime-mat-be-communaute-legale', 'VALIDITE'],
     // F-217 SF-217-05 : autorité parentale BE — qualification / orientation procédurale.
     ['autorite-parentale-be', 'VALIDITE'],
+    // F-217 SF-217-13 : succession BE — quantification de la dévolution et
+    // analyse de validité de la réserve héréditaire (CC Livre 4 BE réformé).
+    ['succession-be-devolution-reserve', 'VALIDITE'],
     ['F-FA-18-contestation-paternite', 'VALIDITE'],
     ['F-FA-18-recherche-paternite', 'VALIDITE'],
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],
@@ -2440,6 +2485,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // F-210 — 2 outils urgences procédurales Famille FR.
     ['mediation-familiale-pre-saisine', 'DELAIS'],
     ['acceptation-renonciation-succession', 'DELAIS'],
+    // F-217 SF-217-13 : succession BE — option successorale 4 mois (CC art. 774+).
+    ['succession-be-acceptation-renonciation', 'DELAIS'],
     ['F-IM-06-recours', 'DELAIS'],
     ['F-IM-08-oqtf-avec-delai-fr', 'DELAIS'],
     ['F-IM-08-oqtf-sans-delai-fr', 'DELAIS'],
