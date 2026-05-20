@@ -5,54 +5,51 @@
 
 <mat-dialog-content class="wcd-content">
   <p class="wcd-intro">
-    Chaque workspace est isolé : ses dossiers, pièces, analyses et membres sont
-    séparés. Créez un workspace par cabinet, pays ou domaine juridique distinct.
+    Chaque workspace est isolé : dossiers, pièces, analyses et membres restent séparés.
+    Un workspace supplémentaire nécessite un abonnement <strong>TEAM</strong> ou <strong>PRO</strong>
+    facturé indépendamment du workspace principal.
   </p>
 
   <div class="wcd-section">
-    <label class="wcd-label" for="wcd-name">Nom du cabinet</label>
+    <label class="wcd-label" for="wcd-name">Nom du workspace</label>
     <mat-form-field appearance="outline" class="wcd-name-field">
       <input matInput id="wcd-name"
              type="text"
              [(ngModel)]="name"
              name="wsName"
-             maxlength="80"
-             placeholder="Ex. Cabinet Martin — Immigration France"
+             [maxlength]="maxNameLength"
+             placeholder="Ex. Cabinet Bordeaux"
              [disabled]="submitting()"
              autofocus />
-      <mat-hint align="end">{{ name.length }} / 80</mat-hint>
+      <mat-hint align="end">{{ name.length }} / {{ maxNameLength }}</mat-hint>
     </mat-form-field>
   </div>
 
   <div class="wcd-section">
-    <span class="wcd-label">Domaine juridique</span>
-    <div class="wcd-domain-grid">
-      @for (d of domains; track d.key) {
+    <span class="wcd-label">Plan</span>
+    <div class="wcd-plan-grid">
+      @for (p of plans; track p.key) {
         <button type="button"
-                class="wcd-domain-tile"
-                [class.wcd-domain-tile--active]="selectedDomain === d.key"
-                [style.borderColor]="selectedDomain === d.key ? d.color : '#D9DEE4'"
-                [style.backgroundColor]="selectedDomain === d.key ? d.bgColor : '#FFFFFF'"
+                class="wcd-plan-card"
+                [class.wcd-plan-card--active]="selectedPlan() === p.key"
                 [disabled]="submitting()"
-                (click)="selectDomain(d.key)">
-          <mat-icon [style.color]="d.color" class="wcd-domain-icon">{{ d.icon }}</mat-icon>
-          <span class="wcd-domain-label">{{ d.label }}</span>
-          <span class="wcd-domain-subtitle">{{ d.subtitle }}</span>
-        </button>
-      }
-    </div>
-  </div>
-
-  <div class="wcd-section">
-    <span class="wcd-label">Pays</span>
-    <div class="wcd-country-row">
-      @for (c of countries; track c.key) {
-        <button type="button"
-                class="wcd-country-chip"
-                [class.wcd-country-chip--active]="selectedCountry === c.key"
-                [disabled]="submitting()"
-                (click)="selectedCountry = c.key">
-          {{ c.label }}
+                [attr.aria-pressed]="selectedPlan() === p.key"
+                (click)="selectPlan(p.key)"
+                [attr.data-testid]="'wcd-plan-' + p.key">
+          <div class="wcd-plan-header">
+            <span class="wcd-plan-name">{{ p.label }}</span>
+            @if (selectedPlan() === p.key) {
+              <mat-icon class="wcd-plan-check">check_circle</mat-icon>
+            }
+          </div>
+          <span class="wcd-plan-tagline">{{ p.tagline }}</span>
+          <span class="wcd-plan-price">{{ p.priceLabel }}</span>
+          <span class="wcd-plan-seats">{{ p.seatsLabel }}</span>
+          <ul class="wcd-plan-features">
+            @for (f of p.features; track f) {
+              <li>{{ f }}</li>
+            }
+          </ul>
         </button>
       }
     </div>
@@ -65,12 +62,13 @@
   </button>
   <button mat-flat-button color="primary" type="button"
           (click)="submit()"
-          [disabled]="!canSubmit">
+          [disabled]="!canSubmit"
+          data-testid="wcd-submit">
     @if (submitting()) {
       <mat-spinner diameter="18" class="wcd-btn-spinner"></mat-spinner>
     } @else {
-      <mat-icon>check</mat-icon>
+      <mat-icon>credit_card</mat-icon>
     }
-    Créer
+    Créer + payer
   </button>
 </mat-dialog-actions>

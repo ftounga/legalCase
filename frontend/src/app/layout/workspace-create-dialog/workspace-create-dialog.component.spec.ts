@@ -5,28 +5,43 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
 import { WorkspaceCreateDialogComponent } from './workspace-create-dialog.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { Workspace } from '../../core/models/workspace.model';
+import { WorkspaceCreateResponse } from '../../core/models/workspace.model';
 
-describe('WorkspaceCreateDialogComponent', () => {
+describe('WorkspaceCreateDialogComponent (F-156 SF-156-02)', () => {
   let fixture: ComponentFixture<WorkspaceCreateDialogComponent>;
   let component: WorkspaceCreateDialogComponent;
   let workspaceServiceSpy: jest.Mocked<WorkspaceService>;
-  let dialogRefSpy: jest.Mocked<MatDialogRef<WorkspaceCreateDialogComponent, Workspace | null>>;
+  let dialogRefSpy: jest.Mocked<MatDialogRef<WorkspaceCreateDialogComponent>>;
   let snackBarSpy: jest.Mocked<MatSnackBar>;
 
-  const createdWorkspace: Workspace = {
-    id: 'ws-new',
-    name: 'Cabinet Immigration FR',
-    legalDomain: 'DROIT_IMMIGRATION',
-    country: 'FRANCE',
-    planCode: 'FREE',
-    status: 'ACTIVE',
-    primary: true,
-  } as Workspace;
+  const stripeResponse: WorkspaceCreateResponse = {
+    workspaceId: 'ws-new',
+    stripeCheckoutUrl: 'https://checkout.stripe.com/c/pay/cs_test_123',
+    status: 'PENDING_PAYMENT',
+  };
+
+  // window.location.href stub — on remplace l'objet location pour ne pas vraiment naviguer.
+  const originalLocation = window.location;
+
+  beforeAll(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: { href: '' },
+    });
+  });
+
+  afterAll(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: originalLocation,
+    });
+  });
 
   async function setup() {
     workspaceServiceSpy = {
-      createWorkspace: jest.fn(),
+      createWorkspaceWithPlan: jest.fn(),
     } as any;
     dialogRefSpy = { close: jest.fn() } as any;
     snackBarSpy = { open: jest.fn() } as any;
@@ -43,80 +58,143 @@ describe('WorkspaceCreateDialogComponent', () => {
     fixture = TestBed.createComponent(WorkspaceCreateDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    (window as any).location.href = '';
   }
 
+  // CA3 — bouton désactivé tant que name + plan non renseignés.
   it('U-01 — formulaire vide → bouton Créer désactivé', async () => {
     await setup();
     expect(component.canSubmit).toBe(false);
   });
 
-  it('U-02 — formulaire complet → bouton Créer activé', async () => {
+  it('U-02 — name vide + plan TEAM choisi → bouton désactivé', async () => {
     await setup();
-    component.name = 'Cabinet Test';
-    component.selectedDomain = 'DROIT_IMMIGRATION';
-    component.selectedCountry = 'FRANCE';
-    expect(component.canSubmit).toBe(true);
-  });
-
-  it('U-02b — nom avec seulement des espaces → bouton désactivé', async () => {
-    await setup();
-    component.name = '   ';
+    component.selectedPlan.set('TEAM');
     expect(component.canSubmit).toBe(false);
   });
 
-  it('U-03 — submit succès → createWorkspace appelé + dialog fermé avec le workspace', async () => {
+  it('U-03 — name renseigné + plan absent → bouton désactivé', async () => {
     await setup();
-    workspaceServiceSpy.createWorkspace.mockReturnValue(of(createdWorkspace));
-    component.name = '  Cabinet Test  ';
-    component.selectedDomain = 'DROIT_IMMIGRATION';
-    component.selectedCountry = 'FRANCE';
+    component.name = 'Cabinet Bordeaux';
+    expect(component.canSubmit).toBe(false);
+  });
+
+  it('U-04 — name + plan renseignés → bouton activé', async () => {
+    await setup();
+    component.name = 'Cabinet Bordeaux';
+    component.selectedPlan.set('TEAM');
+    expect(component.canSubmit).toBe(true);
+  });
+
+  it('U-04b — name avec uniquement des espaces → bouton désactivé', async () => {
+    await setup();
+    component.name = '   ';
+    component.selectedPlan.set('PRO');
+    expect(component.canSubmit).toBe(false);
+  });
+
+  // CA4 — cards plan rendues avec données pricing F-123
+  it('U-05 — 2 cards plan TEAM + PRO rendues dans le template', async () => {
+    await setup();
+    const el: HTMLElement = fixture.nativeElement;
+    const cards = el.querySelectorAll('.wcd-plan-card');
+    expect(cards.length).toBe(2);
+    const text = el.textContent || '';
+    expect(text).toContain('Team');
+    expect(text).toContain('Pro');
+    expect(text).toContain('219 €');
+    expect(text).toContain('429 €');
+    expect(text).toContain('3 utilisateurs inclus');
+    expect(text).toContain('5 utilisateurs inclus');
+  });
+
+  // CA5 — succès → window.location.href vers stripeCheckoutUrl
+  it('U-06 — submit succès → createWorkspaceWithPlan appelé puis redirection navigateur', async () => {
+    await setup();
+    workspaceServiceSpy.createWorkspaceWithPlan.mockReturnValue(of(stripeResponse));
+    component.name = '  Cabinet Bordeaux  ';
+    component.selectedPlan.set('TEAM');
 
     component.submit();
 
-    expect(workspaceServiceSpy.createWorkspace).toHaveBeenCalledWith(
-      'Cabinet Test', 'DROIT_IMMIGRATION', 'FRANCE'
-    );
-    expect(dialogRefSpy.close).toHaveBeenCalledWith(createdWorkspace);
-    expect(component.submitting()).toBe(false);
+    expect(workspaceServiceSpy.createWorkspaceWithPlan).toHaveBeenCalledWith('Cabinet Bordeaux', 'TEAM');
+    expect((window as any).location.href).toBe('https://checkout.stripe.com/c/pay/cs_test_123');
+    expect(dialogRefSpy.close).toHaveBeenCalledWith({ workspaceId: 'ws-new' });
   });
 
-  it('U-04 — submit erreur → snackbar affiché, dialog pas fermé, submitting revient à false', async () => {
+  // Cas erreur 403 PLAN_REQUIRED (CA défense en profondeur)
+  it('U-07 — erreur 403 PLAN_REQUIRED → snackbar + dialog fermé', async () => {
     await setup();
-    workspaceServiceSpy.createWorkspace.mockReturnValue(throwError(() => ({ status: 500 })));
-    component.name = 'Cabinet Test';
+    workspaceServiceSpy.createWorkspaceWithPlan.mockReturnValue(
+      throwError(() => ({ status: 403, error: { code: 'PLAN_REQUIRED' } }))
+    );
+    component.name = 'Cabinet Bordeaux';
+    component.selectedPlan.set('TEAM');
 
     component.submit();
 
     expect(snackBarSpy.open).toHaveBeenCalled();
+    const message = (snackBarSpy.open as jest.Mock).mock.calls[0][0];
+    expect(message).toContain('TEAM ou PRO requis');
+    expect(dialogRefSpy.close).toHaveBeenCalledWith(null);
+    expect(component.submitting()).toBe(false);
+  });
+
+  // Cas erreur 400 PLAN_INVALID
+  it('U-08 — erreur 400 PLAN_INVALID → snackbar, dialog reste ouvert', async () => {
+    await setup();
+    workspaceServiceSpy.createWorkspaceWithPlan.mockReturnValue(
+      throwError(() => ({ status: 400, error: { code: 'PLAN_INVALID' } }))
+    );
+    component.name = 'Cabinet Bordeaux';
+    component.selectedPlan.set('PRO');
+
+    component.submit();
+
+    expect(snackBarSpy.open).toHaveBeenCalled();
+    const message = (snackBarSpy.open as jest.Mock).mock.calls[0][0];
+    expect(message).toContain('Plan invalide');
     expect(dialogRefSpy.close).not.toHaveBeenCalled();
     expect(component.submitting()).toBe(false);
   });
 
-  it('U-05 — cancel → dialog fermé avec null', async () => {
+  // Cas erreur 502 Stripe down
+  it('U-09 — erreur 502 Stripe down → snackbar dédié, dialog reste ouvert', async () => {
+    await setup();
+    workspaceServiceSpy.createWorkspaceWithPlan.mockReturnValue(
+      throwError(() => ({ status: 502 }))
+    );
+    component.name = 'Cabinet Bordeaux';
+    component.selectedPlan.set('TEAM');
+
+    component.submit();
+
+    expect(snackBarSpy.open).toHaveBeenCalled();
+    const message = (snackBarSpy.open as jest.Mock).mock.calls[0][0];
+    expect(message).toContain('Service de paiement indisponible');
+    expect(dialogRefSpy.close).not.toHaveBeenCalled();
+  });
+
+  // CA13 — pas d'usage de window.alert/confirm/prompt
+  it('U-10 — cancel ferme le dialog avec null', async () => {
     await setup();
     component.cancel();
     expect(dialogRefSpy.close).toHaveBeenCalledWith(null);
   });
 
-  it('U-06 — selectDomain change selectedDomain', async () => {
+  it('U-11 — selectPlan met à jour selectedPlan', async () => {
     await setup();
-    component.selectDomain('DROIT_FAMILLE');
-    expect(component.selectedDomain).toBe('DROIT_FAMILLE');
+    component.selectPlan('PRO');
+    expect(component.selectedPlan()).toBe('PRO');
   });
 
-  it('U-07 — 3 tiles domaines rendues + 2 chips pays', async () => {
+  it('U-12 — submit bloque les re-soumissions pendant submitting', async () => {
     await setup();
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelectorAll('.wcd-domain-tile').length).toBe(3);
-    expect(el.querySelectorAll('.wcd-country-chip').length).toBe(2);
-  });
-
-  it('U-08 — submit bloque les clics pendant la requête', async () => {
-    await setup();
-    workspaceServiceSpy.createWorkspace.mockReturnValue(of(createdWorkspace));
-    component.name = 'Cabinet Test';
+    workspaceServiceSpy.createWorkspaceWithPlan.mockReturnValue(of(stripeResponse));
+    component.name = 'Cabinet Bordeaux';
+    component.selectedPlan.set('TEAM');
     component.submitting.set(true);
     component.submit();
-    expect(workspaceServiceSpy.createWorkspace).not.toHaveBeenCalled();
+    expect(workspaceServiceSpy.createWorkspaceWithPlan).not.toHaveBeenCalled();
   });
 });

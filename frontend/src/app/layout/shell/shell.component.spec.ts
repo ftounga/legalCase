@@ -210,52 +210,74 @@ describe('ShellComponent — workspace switcher', () => {
     expect(component.workspace()).toEqual(ws1);
   }));
 
-  // F-154 SF-154-01 — T-09 : openCreateWorkspaceDialog → switch + reload + navigate /case-files
-  it('openCreateWorkspaceDialog → succès création → switch vers nouveau workspace + navigate', fakeAsync(() => {
-    const navigateSpy = spyOn(router, 'navigate');
-    const newWs: any = { id: 'ws-new', name: 'Cabinet Immigration FR',
-      legalDomain: 'DROIT_IMMIGRATION', country: 'FRANCE', primary: true };
-    const afterClosedSubject = new (require('rxjs').Subject)();
+  // F-156 SF-156-02 — T-09 : openCreateWorkspaceDialog ouvre le dialog F-156 (la suite se passe via window.location → Stripe).
+  it('F-156 — openCreateWorkspaceDialog ouvre le MatDialog du sélecteur de plan', fakeAsync(() => {
     const dialog = TestBed.inject(MatDialog);
-    jest.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => afterClosedSubject.asObservable() } as any);
+    const openSpy = jest.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => of(null) } as any);
 
-    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ ...ws1, planCode: 'TEAM' }));
     workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
-    workspaceService.switchWorkspace.mockReturnValue(of(newWs));
 
     fixture.detectChanges();
     tick();
 
     component.openCreateWorkspaceDialog();
-    afterClosedSubject.next(newWs);
-    afterClosedSubject.complete();
     tick();
 
-    expect(workspaceService.switchWorkspace).toHaveBeenCalledWith('ws-new');
-    expect(component.workspace()).toEqual(newWs);
-    expect(navigateSpy).toHaveBeenCalledWith(['/case-files']);
+    expect(openSpy).toHaveBeenCalled();
   }));
 
-  // T-10 : dialog fermé sans résultat (annulation) → pas de switch
-  it('openCreateWorkspaceDialog → dialog annulé (null) → pas de switch ni navigate', fakeAsync(() => {
+  // F-156 SF-156-02 — T-10 : OWNER FREE qui force openCreateWorkspaceDialog → redirection upgrade-required (défense en profondeur)
+  it('F-156 — OWNER FREE qui appelle openCreateWorkspaceDialog → redirige vers /workspaces/upgrade-required', fakeAsync(() => {
     const navigateSpy = spyOn(router, 'navigate');
-    const afterClosedSubject = new (require('rxjs').Subject)();
     const dialog = TestBed.inject(MatDialog);
-    jest.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => afterClosedSubject.asObservable() } as any);
+    const openSpy = jest.spyOn(dialog, 'open');
 
-    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ ...ws1, planCode: 'FREE' }));
     workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
 
     fixture.detectChanges();
     tick();
 
     component.openCreateWorkspaceDialog();
-    afterClosedSubject.next(null);
-    afterClosedSubject.complete();
     tick();
 
-    expect(workspaceService.switchWorkspace).not.toHaveBeenCalled();
-    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalledWith(['/workspaces/upgrade-required']);
+  }));
+
+  // F-156 SF-156-02 — CA1 : OWNER TEAM voit l'option « + Créer un workspace » via canCreateWorkspace = true
+  it('F-156 — OWNER TEAM → canCreateWorkspace() = true', fakeAsync(() => {
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ ...ws1, planCode: 'TEAM' }));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    fixture.detectChanges();
+    tick();
+    expect(component.canCreateWorkspace()).toBe(true);
+  }));
+
+  it('F-156 — OWNER PRO → canCreateWorkspace() = true', fakeAsync(() => {
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ ...ws1, planCode: 'PRO' }));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    fixture.detectChanges();
+    tick();
+    expect(component.canCreateWorkspace()).toBe(true);
+  }));
+
+  // F-156 SF-156-02 — CA2 : OWNER FREE/SOLO → canCreateWorkspace = false (option masquée dans le template)
+  it('F-156 — OWNER FREE → canCreateWorkspace() = false', fakeAsync(() => {
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ ...ws1, planCode: 'FREE' }));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    fixture.detectChanges();
+    tick();
+    expect(component.canCreateWorkspace()).toBe(false);
+  }));
+
+  it('F-156 — OWNER SOLO → canCreateWorkspace() = false', fakeAsync(() => {
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({ ...ws1, planCode: 'SOLO' }));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    fixture.detectChanges();
+    tick();
+    expect(component.canCreateWorkspace()).toBe(false);
   }));
 });
 

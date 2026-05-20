@@ -1,0 +1,29 @@
+@switch (variant()) {
+  @case ('pending') {
+    <div class="wsb wsb--pending"
+         role="status"
+         aria-live="polite"
+         data-testid="workspace-status-banner-pending">
+      <mat-icon class="wsb__icon">hourglass_top</mat-icon>
+      <span class="wsb__text">Paiement en cours d'activation — vous pourrez créer des dossiers et inviter des membres dès que Stripe nous a confirmé la transaction.</span>
+    </div>
+  }
+  @case ('welcome') {
+    <div class="wsb wsb--welcome"
+         role="status"
+         aria-live="polite"
+         data-testid="workspace-status-banner-welcome">
+      <mat-icon class="wsb__icon">check_circle</mat-icon>
+      <span class="wsb__text">
+        Bienvenue dans « {{ workspaceName() }} » — invitez vos premiers membres ou créez votre premier dossier.
+      </span>
+      <button mat-icon-button
+              type="button"
+              class="wsb__close"
+              (click)="dismissWelcome()"
+              aria-label="Fermer le message de bienvenue">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+}

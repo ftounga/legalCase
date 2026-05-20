@@ -23,11 +23,16 @@
             {{ ws.name }}
           </button>
         }
-        <mat-divider></mat-divider>
-        <button mat-menu-item (click)="openCreateWorkspaceDialog()" class="ws-create-action">
-          <mat-icon class="ws-create-icon">add_business</mat-icon>
-          Créer un nouveau workspace
-        </button>
+        @if (canCreateWorkspace()) {
+          <mat-divider></mat-divider>
+          <button mat-menu-item
+                  (click)="openCreateWorkspaceDialog()"
+                  class="ws-create-action"
+                  data-testid="ws-switcher-create-option">
+            <mat-icon class="ws-create-icon">add_business</mat-icon>
+            Créer un nouveau workspace
+          </button>
+        }
       </mat-menu>
     }
     <span class="header-spacer"></span>
@@ -110,6 +115,7 @@
     <mat-sidenav-content class="shell-content">
       @if (ready()) {
         <app-trial-banner [workspace]="workspace()" />
+        <app-workspace-status-banner />
         <router-outlet />
       } @else {
         <div class="shell-loading">
