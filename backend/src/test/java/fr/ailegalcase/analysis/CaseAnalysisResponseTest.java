@@ -6486,4 +6486,247 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateDesignationNotaireBeDetectee()).isNotEqualTo(f.dateOuvertureOperationsBeDetectee());
         assertThat(f.dateNotificationProjetBeDetectee()).isNotEqualTo(f.dateHomologationBeDetectee());
     }
+
+    // ========================================================================
+    // SF-246-29 : pré-fill IA exhaustif F-DT-38 — sous-objet rupture_periode_essai_detail
+    // 14 nouveaux champs IA (2 enums whitelist, 3 entiers bornés, 8 booléens
+    // tri-état, 1 texte tronqué).
+    // ========================================================================
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_complet_parsed() {
+        // Cas nominal : sous-objet complet → 14 champs renseignés.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "categorie_socio_professionnelle": "CADRE",
+                      "duree_cdd_mois": null,
+                      "duree_periode_essai_mois": 4,
+                      "renouvellement_invoque": false,
+                      "accord_branche_renouvellement": null,
+                      "accord_ecrit_salarie_renouvellement": null,
+                      "auteur_rupture": "EMPLOYEUR",
+                      "delai_prevenance_jours_appliques": 14,
+                      "motif_lie_competences_professionnelles": true,
+                      "motif_economique_ou_organisationnel": false,
+                      "atteinte_liberte_fondamentale": null,
+                      "lettre_rupture_motivee": true,
+                      "motifs_averes_par_pieces": true,
+                      "ccn_plus_favorable_respectee": true
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeCategorieSocioProfessionnelle()).isEqualTo("CADRE");
+        assertThat(t.rpeDureeCddMois()).isNull();
+        assertThat(t.rpeDureePeriodeEssaiMois()).isEqualTo(4);
+        assertThat(t.rpeRenouvellementInvoque()).isFalse();
+        assertThat(t.rpeAccordBrancheRenouvellement()).isNull();
+        assertThat(t.rpeAccordEcritSalarieRenouvellement()).isNull();
+        assertThat(t.rpeAuteurRupture()).isEqualTo("EMPLOYEUR");
+        assertThat(t.rpeDelaiPrevenanceJours()).isEqualTo(14);
+        assertThat(t.rpeMotifLieCompetences()).isTrue();
+        assertThat(t.rpeMotifEconomique()).isFalse();
+        assertThat(t.rpeAtteinteLiberteFondamentale()).isNull();
+        assertThat(t.rpeLettreRuptureMotivee()).isTrue();
+        assertThat(t.rpeMotifsAveresParPieces()).isTrue();
+        assertThat(t.rpeCcnPlusFavorableRespectee()).isTrue();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_sousObjetAbsent_tousNull() {
+        // Sous-objet rupture_periode_essai_detail absent → 14 champs null, pas d'exception.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "salaire_brut_mensuel": 3200
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeCategorieSocioProfessionnelle()).isNull();
+        assertThat(t.rpeDureeCddMois()).isNull();
+        assertThat(t.rpeDureePeriodeEssaiMois()).isNull();
+        assertThat(t.rpeRenouvellementInvoque()).isNull();
+        assertThat(t.rpeAccordBrancheRenouvellement()).isNull();
+        assertThat(t.rpeAccordEcritSalarieRenouvellement()).isNull();
+        assertThat(t.rpeAuteurRupture()).isNull();
+        assertThat(t.rpeDelaiPrevenanceJours()).isNull();
+        assertThat(t.rpeMotifLieCompetences()).isNull();
+        assertThat(t.rpeMotifEconomique()).isNull();
+        assertThat(t.rpeAtteinteLiberteFondamentale()).isNull();
+        assertThat(t.rpeLettreRuptureMotivee()).isNull();
+        assertThat(t.rpeMotifsAveresParPieces()).isNull();
+        assertThat(t.rpeCcnPlusFavorableRespectee()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_categorieHorsWhitelist_null() {
+        // Code hors whitelist ("STAGIAIRE") → null (jamais de fallback).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "categorie_socio_professionnelle": "STAGIAIRE"
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeCategorieSocioProfessionnelle()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_auteurHorsWhitelist_null() {
+        // Code hors whitelist ("INTERIM") → null.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "auteur_rupture": "INTERIM"
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeAuteurRupture()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_dureePeriodeHorsBorne_null() {
+        // Durée d'essai > 24 mois → null (borne haute).
+        CaseAnalysis tooLarge = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "duree_periode_essai_mois": 50
+                    }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(tooLarge).travailExtractedData()
+                .rpeDureePeriodeEssaiMois()).isNull();
+
+        // Durée d'essai < 0 → null (borne basse).
+        CaseAnalysis negative = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "duree_periode_essai_mois": -1
+                    }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(negative).travailExtractedData()
+                .rpeDureePeriodeEssaiMois()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_delaiPrevenanceHorsBorne_null() {
+        // Délai > 30 jours → null.
+        CaseAnalysis tooLarge = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "delai_prevenance_jours_appliques": 100
+                    }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(tooLarge).travailExtractedData()
+                .rpeDelaiPrevenanceJours()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_dureeCddHorsBorne_null() {
+        // Durée CDD > 36 mois → null.
+        CaseAnalysis tooLarge = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "duree_cdd_mois": 99
+                    }
+                  }
+                }
+                """);
+        assertThat(CaseAnalysisResponse.from(tooLarge).travailExtractedData()
+                .rpeDureeCddMois()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_atteinteLiberteTronqueeA500() {
+        // Texte atteinte_liberte_fondamentale > 500 caractères → tronqué à 500.
+        String longText = "X".repeat(700);
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "atteinte_liberte_fondamentale": "%s"
+                    }
+                  }
+                }
+                """.formatted(longText));
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeAtteinteLiberteFondamentale()).hasSize(500);
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_booleenInvalide_null() {
+        // Une chaîne au lieu d'un booléen → null (booleanOrNull strict).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "lettre_rupture_motivee": "yes",
+                      "motifs_averes_par_pieces": "no"
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeLettreRuptureMotivee()).isNull();
+        assertThat(t.rpeMotifsAveresParPieces()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_rupturePeriodeEssai_partiel_seulementChampsRenseignes() {
+        // Sous-objet partiel : seuls les champs présents sont peuplés, les autres null.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_periode_essai_detail": {
+                      "categorie_socio_professionnelle": "OUVRIER_EMPLOYE",
+                      "duree_periode_essai_mois": 2
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rpeCategorieSocioProfessionnelle()).isEqualTo("OUVRIER_EMPLOYE");
+        assertThat(t.rpeDureePeriodeEssaiMois()).isEqualTo(2);
+        // Les 12 autres champs absents → null
+        assertThat(t.rpeDureeCddMois()).isNull();
+        assertThat(t.rpeRenouvellementInvoque()).isNull();
+        assertThat(t.rpeAuteurRupture()).isNull();
+        assertThat(t.rpeDelaiPrevenanceJours()).isNull();
+        assertThat(t.rpeMotifLieCompetences()).isNull();
+        assertThat(t.rpeLettreRuptureMotivee()).isNull();
+    }
 }

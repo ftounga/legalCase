@@ -138,6 +138,21 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   provenanceArretAt = signal<'IA' | null>(null);
   provenanceConventionApplicable = signal<'IA' | null>(null);
   provenanceSalaire = signal<'IA' | null>(null);
+  // SF-246-29 — 14 signaux de provenance additionnels (1 par nouveau champ pré-rempli)
+  provenanceCategorie = signal<'IA' | null>(null);
+  provenanceDureeCdd = signal<'IA' | null>(null);
+  provenanceDureeEssai = signal<'IA' | null>(null);
+  provenanceRenouvellement = signal<'IA' | null>(null);
+  provenanceAccordBranche = signal<'IA' | null>(null);
+  provenanceAccordEcritSalarie = signal<'IA' | null>(null);
+  provenanceAuteur = signal<'IA' | null>(null);
+  provenancePrevenance = signal<'IA' | null>(null);
+  provenanceMotifLieCompetences = signal<'IA' | null>(null);
+  provenanceMotifEconomique = signal<'IA' | null>(null);
+  provenanceAtteinteLiberte = signal<'IA' | null>(null);
+  provenanceLettreMotivee = signal<'IA' | null>(null);
+  provenanceMotifsAveres = signal<'IA' | null>(null);
+  provenanceCcnPlusFavorable = signal<'IA' | null>(null);
 
   // Options listes
   readonly categorieOptions: { value: CategorieSocioProfessionnelle; label: string }[] = [
@@ -253,6 +268,94 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
       this.salaireMensuelBrut.set(sal);
       this.provenanceSalaire.set('IA');
     }
+
+    // SF-246-29 — 14 nouveaux champs (sous-objet rupture_periode_essai_detail).
+    // Pré-fill seulement si la valeur courante = valeur initiale par défaut OU
+    // si la précédente provenance était déjà IA (cas ngOnChanges après refresh).
+    const cat = rules.computeCategorieSocioProfessionnelle(ruleInput);
+    if (cat && (this.categorieSocioProfessionnelle() === 'CADRE' || this.provenanceCategorie() === 'IA')) {
+      this.categorieSocioProfessionnelle.set(cat);
+      this.provenanceCategorie.set('IA');
+    }
+
+    const dCdd = rules.computeDureeCddMois(ruleInput);
+    if (dCdd !== null && (this.dureeCddMois() === null || this.provenanceDureeCdd() === 'IA')) {
+      this.dureeCddMois.set(dCdd);
+      this.provenanceDureeCdd.set('IA');
+    }
+
+    const dEssai = rules.computeDureePeriodeEssaiMois(ruleInput);
+    // Valeur initiale = 4 (cf. signal init) ; pré-fill si === 4 ou déjà IA
+    if (dEssai !== null && (this.dureePeriodeEssaiContractuelleMois() === 4 || this.provenanceDureeEssai() === 'IA')) {
+      this.dureePeriodeEssaiContractuelleMois.set(dEssai);
+      this.provenanceDureeEssai.set('IA');
+    }
+
+    const renou = rules.computeRenouvellementInvoque(ruleInput);
+    if (renou !== null) {
+      this.renouvellementInvoque.set(renou);
+      this.provenanceRenouvellement.set('IA');
+    }
+
+    const accBr = rules.computeAccordBrancheRenouvellement(ruleInput);
+    if (accBr !== null) {
+      this.accordBrancheRenouvellement.set(accBr);
+      this.provenanceAccordBranche.set('IA');
+    }
+
+    const accEc = rules.computeAccordEcritSalarieRenouvellement(ruleInput);
+    if (accEc !== null) {
+      this.accordEcritSalarieRenouvellement.set(accEc);
+      this.provenanceAccordEcritSalarie.set('IA');
+    }
+
+    const aut = rules.computeAuteurRupture(ruleInput);
+    if (aut && (this.auteurRupture() === 'EMPLOYEUR' || this.provenanceAuteur() === 'IA')) {
+      this.auteurRupture.set(aut);
+      this.provenanceAuteur.set('IA');
+    }
+
+    const prev = rules.computeDelaiPrevenanceJours(ruleInput);
+    if (prev !== null && (this.delaiPrevenanceJoursAppliques() === null || this.provenancePrevenance() === 'IA')) {
+      this.delaiPrevenanceJoursAppliques.set(prev);
+      this.provenancePrevenance.set('IA');
+    }
+
+    const mlc = rules.computeMotifLieCompetences(ruleInput);
+    if (mlc !== null) {
+      this.motifLieAuxCompetencesProfessionnelles.set(mlc);
+      this.provenanceMotifLieCompetences.set('IA');
+    }
+
+    const meco = rules.computeMotifEconomique(ruleInput);
+    if (meco !== null) {
+      this.motifEconomiqueOuOrganisationnel.set(meco);
+      this.provenanceMotifEconomique.set('IA');
+    }
+
+    const att = rules.computeAtteinteLiberteFondamentale(ruleInput);
+    if (att && (this.atteinteLiberteFondamentale() === null || this.provenanceAtteinteLiberte() === 'IA')) {
+      this.atteinteLiberteFondamentale.set(att);
+      this.provenanceAtteinteLiberte.set('IA');
+    }
+
+    const lm = rules.computeLettreRuptureMotivee(ruleInput);
+    if (lm !== null) {
+      this.lettreRuptureMotivee.set(lm);
+      this.provenanceLettreMotivee.set('IA');
+    }
+
+    const mav = rules.computeMotifsAveresParPieces(ruleInput);
+    if (mav !== null) {
+      this.motifsAveresParPieces.set(mav);
+      this.provenanceMotifsAveres.set('IA');
+    }
+
+    const ccn = rules.computeCcnPlusFavorableRespectee(ruleInput);
+    if (ccn !== null) {
+      this.conventionCollectivePlusFavorableRespectee.set(ccn);
+      this.provenanceCcnPlusFavorable.set('IA');
+    }
   }
 
   toggleCollapse(): void {
@@ -272,7 +375,10 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
 
   // --- Handlers : toute modification efface le badge IA ---
 
-  onCategorieChange(v: CategorieSocioProfessionnelle): void { this.categorieSocioProfessionnelle.set(v); }
+  onCategorieChange(v: CategorieSocioProfessionnelle): void {
+    this.categorieSocioProfessionnelle.set(v);
+    this.provenanceCategorie.set(null);
+  }
   onTypeContratChange(v: TypeContratEssai): void {
     this.typeContrat.set(v);
     this.provenanceTypeContrat.set(null);
@@ -280,6 +386,7 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   onDureeCddChange(v: string | null): void {
     const n = v == null || v === '' ? null : Number(v);
     this.dureeCddMois.set(Number.isFinite(n) ? n as number : null);
+    this.provenanceDureeCdd.set(null);
   }
   onDateDebutChange(v: string | null): void {
     this.dateDebutContrat.set(v || null);
@@ -292,22 +399,46 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   onDureeEssaiChange(v: string | null): void {
     const n = v == null || v === '' ? 0 : Number(v);
     this.dureePeriodeEssaiContractuelleMois.set(Number.isFinite(n) ? n as number : 0);
+    this.provenanceDureeEssai.set(null);
   }
   onRenouvellementChange(v: boolean): void {
     this.renouvellementInvoque.set(v);
+    this.provenanceRenouvellement.set(null);
     if (!v) {
       this.accordBrancheRenouvellement.set(false);
       this.accordEcritSalarieRenouvellement.set(false);
+      this.provenanceAccordBranche.set(null);
+      this.provenanceAccordEcritSalarie.set(null);
     }
   }
-  onAuteurChange(v: AuteurRupture): void { this.auteurRupture.set(v); }
+  onAccordBrancheChange(v: boolean): void {
+    this.accordBrancheRenouvellement.set(v);
+    this.provenanceAccordBranche.set(null);
+  }
+  onAccordEcritSalarieChange(v: boolean): void {
+    this.accordEcritSalarieRenouvellement.set(v);
+    this.provenanceAccordEcritSalarie.set(null);
+  }
+  onAuteurChange(v: AuteurRupture): void {
+    this.auteurRupture.set(v);
+    this.provenanceAuteur.set(null);
+  }
   onPrevenanceChange(v: string | null): void {
     const n = v == null || v === '' ? null : Number(v);
     this.delaiPrevenanceJoursAppliques.set(Number.isFinite(n) ? n as number : null);
+    this.provenancePrevenance.set(null);
   }
   onMotifInvoqueChange(v: string | null): void {
     this.motifInvoque.set(v || null);
     this.provenanceMotifInvoque.set(null);
+  }
+  onMotifLieCompetencesChange(v: boolean): void {
+    this.motifLieAuxCompetencesProfessionnelles.set(v);
+    this.provenanceMotifLieCompetences.set(null);
+  }
+  onMotifEconomiqueChange(v: boolean): void {
+    this.motifEconomiqueOuOrganisationnel.set(v);
+    this.provenanceMotifEconomique.set(null);
   }
   onDiscriminationChange(v: DiscriminationMotif | 'AUCUNE'): void {
     this.discriminationInvoquee.set(v === 'AUCUNE' ? null : v);
@@ -321,18 +452,34 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     this.arretAccidentTravailEnCours.set(v);
     this.provenanceArretAt.set(null);
   }
-  onAtteinteLiberteChange(v: string | null): void { this.atteinteLiberteFondamentale.set(v || null); }
+  onAtteinteLiberteChange(v: string | null): void {
+    this.atteinteLiberteFondamentale.set(v || null);
+    this.provenanceAtteinteLiberte.set(null);
+  }
   onLettreMotiveeChange(v: boolean): void {
     this.lettreRuptureMotivee.set(v);
-    if (!v) this.motifsAveresParPieces.set(false);
+    this.provenanceLettreMotivee.set(null);
+    if (!v) {
+      this.motifsAveresParPieces.set(false);
+      this.provenanceMotifsAveres.set(null);
+    }
   }
-  onMotifsAveresChange(v: boolean): void { this.motifsAveresParPieces.set(v); }
+  onMotifsAveresChange(v: boolean): void {
+    this.motifsAveresParPieces.set(v);
+    this.provenanceMotifsAveres.set(null);
+  }
   onConventionApplicableChange(v: boolean): void {
     this.conventionCollectiveApplicable.set(v);
     this.provenanceConventionApplicable.set(null);
-    if (!v) this.conventionCollectivePlusFavorableRespectee.set(true);
+    if (!v) {
+      this.conventionCollectivePlusFavorableRespectee.set(true);
+      this.provenanceCcnPlusFavorable.set(null);
+    }
   }
-  onConventionRespecteeChange(v: boolean): void { this.conventionCollectivePlusFavorableRespectee.set(v); }
+  onConventionRespecteeChange(v: boolean): void {
+    this.conventionCollectivePlusFavorableRespectee.set(v);
+    this.provenanceCcnPlusFavorable.set(null);
+  }
   onSalaireChange(v: string | null): void {
     const n = v == null || v === '' ? null : Number(v);
     this.salaireMensuelBrut.set(Number.isFinite(n) ? n as number : null);
@@ -437,6 +584,21 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     this.provenanceArretAt.set(null);
     this.provenanceConventionApplicable.set(null);
     this.provenanceSalaire.set(null);
+    // SF-246-29 — reset des 14 nouveaux signaux
+    this.provenanceCategorie.set(null);
+    this.provenanceDureeCdd.set(null);
+    this.provenanceDureeEssai.set(null);
+    this.provenanceRenouvellement.set(null);
+    this.provenanceAccordBranche.set(null);
+    this.provenanceAccordEcritSalarie.set(null);
+    this.provenanceAuteur.set(null);
+    this.provenancePrevenance.set(null);
+    this.provenanceMotifLieCompetences.set(null);
+    this.provenanceMotifEconomique.set(null);
+    this.provenanceAtteinteLiberte.set(null);
+    this.provenanceLettreMotivee.set(null);
+    this.provenanceMotifsAveres.set(null);
+    this.provenanceCcnPlusFavorable.set(null);
   }
 
   // ---------------------------------------------------------------------------

@@ -476,7 +476,29 @@ public record CaseAnalysisResponse(
             // Loi 05/09/2001 art. 13 ; AR 30/05/2018).
             Double ancienneteSalarie,
             String motifLicenciementDetecte,
-            Boolean offreOutplacementMentionnee) {
+            Boolean offreOutplacementMentionnee,
+            // SF-246-29 : 14 champs IA pour pré-fill exhaustif F-DT-38 (rupture
+            // de période d'essai, Travail FR uniquement, nullables). Sous-objet
+            // `rupture_periode_essai_detail`. La période d'essai (L.1221-19 à
+            // L.1221-25 CT) est un mécanisme franco-français — ces champs
+            // restent null pour la BE (statut unique 2014, Loi 26/12/2013
+            // abolissant la clause d'essai BE). Préfixe `rpe…` pour éviter
+            // toute collision avec les champs existants
+            // (grossesseAuMomentRupture, atMpDetecte, etc.).
+            String rpeCategorieSocioProfessionnelle,
+            Integer rpeDureeCddMois,
+            Integer rpeDureePeriodeEssaiMois,
+            Boolean rpeRenouvellementInvoque,
+            Boolean rpeAccordBrancheRenouvellement,
+            Boolean rpeAccordEcritSalarieRenouvellement,
+            String rpeAuteurRupture,
+            Integer rpeDelaiPrevenanceJours,
+            Boolean rpeMotifLieCompetences,
+            Boolean rpeMotifEconomique,
+            String rpeAtteinteLiberteFondamentale,
+            Boolean rpeLettreRuptureMotivee,
+            Boolean rpeMotifsAveresParPieces,
+            Boolean rpeCcnPlusFavorableRespectee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -677,7 +699,22 @@ public record CaseAnalysisResponse(
                     // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
                     .ancienneteSalarie(ancienneteSalarie)
                     .motifLicenciementDetecte(motifLicenciementDetecte)
-                    .offreOutplacementMentionnee(offreOutplacementMentionnee);
+                    .offreOutplacementMentionnee(offreOutplacementMentionnee)
+                    // SF-246-29 — rupture_periode_essai_detail (FRANCE uniquement)
+                    .rpeCategorieSocioProfessionnelle(rpeCategorieSocioProfessionnelle)
+                    .rpeDureeCddMois(rpeDureeCddMois)
+                    .rpeDureePeriodeEssaiMois(rpeDureePeriodeEssaiMois)
+                    .rpeRenouvellementInvoque(rpeRenouvellementInvoque)
+                    .rpeAccordBrancheRenouvellement(rpeAccordBrancheRenouvellement)
+                    .rpeAccordEcritSalarieRenouvellement(rpeAccordEcritSalarieRenouvellement)
+                    .rpeAuteurRupture(rpeAuteurRupture)
+                    .rpeDelaiPrevenanceJours(rpeDelaiPrevenanceJours)
+                    .rpeMotifLieCompetences(rpeMotifLieCompetences)
+                    .rpeMotifEconomique(rpeMotifEconomique)
+                    .rpeAtteinteLiberteFondamentale(rpeAtteinteLiberteFondamentale)
+                    .rpeLettreRuptureMotivee(rpeLettreRuptureMotivee)
+                    .rpeMotifsAveresParPieces(rpeMotifsAveresParPieces)
+                    .rpeCcnPlusFavorableRespectee(rpeCcnPlusFavorableRespectee);
         }
 
         public static final class Builder {
@@ -873,6 +910,21 @@ public record CaseAnalysisResponse(
             private Double ancienneteSalarie;
             private String motifLicenciementDetecte;
             private Boolean offreOutplacementMentionnee;
+            // SF-246-29 — rupture_periode_essai_detail (FRANCE uniquement)
+            private String rpeCategorieSocioProfessionnelle;
+            private Integer rpeDureeCddMois;
+            private Integer rpeDureePeriodeEssaiMois;
+            private Boolean rpeRenouvellementInvoque;
+            private Boolean rpeAccordBrancheRenouvellement;
+            private Boolean rpeAccordEcritSalarieRenouvellement;
+            private String rpeAuteurRupture;
+            private Integer rpeDelaiPrevenanceJours;
+            private Boolean rpeMotifLieCompetences;
+            private Boolean rpeMotifEconomique;
+            private String rpeAtteinteLiberteFondamentale;
+            private Boolean rpeLettreRuptureMotivee;
+            private Boolean rpeMotifsAveresParPieces;
+            private Boolean rpeCcnPlusFavorableRespectee;
 
             private Builder() {}
 
@@ -1063,6 +1115,21 @@ public record CaseAnalysisResponse(
             public Builder ancienneteSalarie(Double v) { this.ancienneteSalarie = v; return this; }
             public Builder motifLicenciementDetecte(String v) { this.motifLicenciementDetecte = v; return this; }
             public Builder offreOutplacementMentionnee(Boolean v) { this.offreOutplacementMentionnee = v; return this; }
+            // SF-246-29 — rupture_periode_essai_detail (FRANCE uniquement)
+            public Builder rpeCategorieSocioProfessionnelle(String v) { this.rpeCategorieSocioProfessionnelle = v; return this; }
+            public Builder rpeDureeCddMois(Integer v) { this.rpeDureeCddMois = v; return this; }
+            public Builder rpeDureePeriodeEssaiMois(Integer v) { this.rpeDureePeriodeEssaiMois = v; return this; }
+            public Builder rpeRenouvellementInvoque(Boolean v) { this.rpeRenouvellementInvoque = v; return this; }
+            public Builder rpeAccordBrancheRenouvellement(Boolean v) { this.rpeAccordBrancheRenouvellement = v; return this; }
+            public Builder rpeAccordEcritSalarieRenouvellement(Boolean v) { this.rpeAccordEcritSalarieRenouvellement = v; return this; }
+            public Builder rpeAuteurRupture(String v) { this.rpeAuteurRupture = v; return this; }
+            public Builder rpeDelaiPrevenanceJours(Integer v) { this.rpeDelaiPrevenanceJours = v; return this; }
+            public Builder rpeMotifLieCompetences(Boolean v) { this.rpeMotifLieCompetences = v; return this; }
+            public Builder rpeMotifEconomique(Boolean v) { this.rpeMotifEconomique = v; return this; }
+            public Builder rpeAtteinteLiberteFondamentale(String v) { this.rpeAtteinteLiberteFondamentale = v; return this; }
+            public Builder rpeLettreRuptureMotivee(Boolean v) { this.rpeLettreRuptureMotivee = v; return this; }
+            public Builder rpeMotifsAveresParPieces(Boolean v) { this.rpeMotifsAveresParPieces = v; return this; }
+            public Builder rpeCcnPlusFavorableRespectee(Boolean v) { this.rpeCcnPlusFavorableRespectee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1168,7 +1235,15 @@ public record CaseAnalysisResponse(
                         // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
                         ancienneteSalarie,
                         motifLicenciementDetecte,
-                        offreOutplacementMentionnee);
+                        offreOutplacementMentionnee,
+                        // SF-246-29 — rupture_periode_essai_detail (FRANCE uniquement)
+                        rpeCategorieSocioProfessionnelle, rpeDureeCddMois,
+                        rpeDureePeriodeEssaiMois, rpeRenouvellementInvoque,
+                        rpeAccordBrancheRenouvellement, rpeAccordEcritSalarieRenouvellement,
+                        rpeAuteurRupture, rpeDelaiPrevenanceJours,
+                        rpeMotifLieCompetences, rpeMotifEconomique,
+                        rpeAtteinteLiberteFondamentale, rpeLettreRuptureMotivee,
+                        rpeMotifsAveresParPieces, rpeCcnPlusFavorableRespectee);
             }
         }
     }
@@ -1281,6 +1356,38 @@ public record CaseAnalysisResponse(
     static final Set<String> ABANDON_POSTE_MODE_NOTIFICATION_CODES = Set.of(
             "LRAR", "REMISE_MAIN_PROPRE", "AUTRE"
     );
+
+    /**
+     * SF-246-29 : codes de catégorie socio-professionnelle pour pré-fill F-DT-38
+     * (rupture de période d'essai). Alignés sur l'enum {@code CategorieSocioProfessionnelle}
+     * du front (rupture-periode-essai.model.ts) et sur l'enum interne du
+     * Calculator. Détermine la durée légale max L.1221-19 CT (2 / 3 / 4 mois).
+     * Un code hors liste renvoyé par le LLM est ramené à {@code null} par
+     * {@code normalizeEnumCode}. FR uniquement.
+     */
+    static final Set<String> CATEGORIE_SOCIO_PROFESSIONNELLE_CODES = Set.of(
+            "OUVRIER_EMPLOYE", "AGENT_MAITRISE_TECHNICIEN", "CADRE"
+    );
+
+    /**
+     * SF-246-29 : codes d'auteur de la rupture de période d'essai pour pré-fill
+     * F-DT-38. Alignés sur l'enum {@code AuteurRupture} du front. FR uniquement.
+     */
+    static final Set<String> AUTEUR_RUPTURE_CODES = Set.of(
+            "EMPLOYEUR", "SALARIE"
+    );
+
+    /** SF-246-29 : borne haute durée période d'essai contractuelle en mois. */
+    private static final int MAX_RPE_DUREE_ESSAI_MOIS = 24;
+
+    /** SF-246-29 : borne haute durée CDD en mois. */
+    private static final int MAX_RPE_DUREE_CDD_MOIS = 36;
+
+    /** SF-246-29 : borne haute délai de prévenance en jours. */
+    private static final int MAX_RPE_DELAI_PREVENANCE_JOURS = 30;
+
+    /** SF-246-29 : longueur max du texte d'atteinte à liberté fondamentale. */
+    private static final int MAX_RPE_ATTEINTE_LIBERTE_LENGTH = 500;
 
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
@@ -3314,6 +3421,12 @@ public record CaseAnalysisResponse(
             // maladie long ou dossier BE) → tous les champs null.
             JsonNode cpArretMaladie = node.get("conges_payes_arret_maladie_detail");
             boolean hasCpArretMaladie = cpArretMaladie != null && cpArretMaladie.isObject();
+            // SF-246-29 : sous-objet pour pré-fill exhaustif F-DT-38 (rupture
+            // de période d'essai). Peut être absent (dossier sans contrat ni
+            // lettre, dossier BE) → tous les 14 champs null. Le prompt impose
+            // null pour la BE.
+            JsonNode ruptureEssai = node.get("rupture_periode_essai_detail");
+            boolean hasRuptureEssai = ruptureEssai != null && ruptureEssai.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -3571,6 +3684,26 @@ public record CaseAnalysisResponse(
                     .cpArretMaladieSalarieEnPoste(hasCpArretMaladie ? booleanOrNull(cpArretMaladie, "salarie_encore_en_poste") : null)
                     .cpArretMaladieDateRupture(hasCpArretMaladie ? isoDateOrNull(cpArretMaladie, "date_rupture_contrat") : null)
                     .cpArretMaladieJoursDejaAccordes(hasCpArretMaladie ? bigDecimalOrNull(cpArretMaladie, "jours_cp_deja_accordes") : null)
+                    // SF-246-29 : 14 champs IA pour pré-fill exhaustif F-DT-38 — 2
+                    // enums normalisés via normalizeEnumCode (codes hors whitelist
+                    // → null), 3 entiers bornés via boundedIntOrNull (hors plage →
+                    // null), 8 booléens via booleanOrNull (tri-état), 1 texte
+                    // tronqué via truncatedTextOrNull (≤ 500 car.). Tous null si
+                    // sous-objet rupture_periode_essai_detail absent (dossier BE).
+                    .rpeCategorieSocioProfessionnelle(hasRuptureEssai ? normalizeEnumCode(textOrNull(ruptureEssai, "categorie_socio_professionnelle"), CATEGORIE_SOCIO_PROFESSIONNELLE_CODES) : null)
+                    .rpeDureeCddMois(hasRuptureEssai ? boundedIntOrNull(ruptureEssai, "duree_cdd_mois", 0, MAX_RPE_DUREE_CDD_MOIS) : null)
+                    .rpeDureePeriodeEssaiMois(hasRuptureEssai ? boundedIntOrNull(ruptureEssai, "duree_periode_essai_mois", 0, MAX_RPE_DUREE_ESSAI_MOIS) : null)
+                    .rpeRenouvellementInvoque(hasRuptureEssai ? booleanOrNull(ruptureEssai, "renouvellement_invoque") : null)
+                    .rpeAccordBrancheRenouvellement(hasRuptureEssai ? booleanOrNull(ruptureEssai, "accord_branche_renouvellement") : null)
+                    .rpeAccordEcritSalarieRenouvellement(hasRuptureEssai ? booleanOrNull(ruptureEssai, "accord_ecrit_salarie_renouvellement") : null)
+                    .rpeAuteurRupture(hasRuptureEssai ? normalizeEnumCode(textOrNull(ruptureEssai, "auteur_rupture"), AUTEUR_RUPTURE_CODES) : null)
+                    .rpeDelaiPrevenanceJours(hasRuptureEssai ? boundedIntOrNull(ruptureEssai, "delai_prevenance_jours_appliques", 0, MAX_RPE_DELAI_PREVENANCE_JOURS) : null)
+                    .rpeMotifLieCompetences(hasRuptureEssai ? booleanOrNull(ruptureEssai, "motif_lie_competences_professionnelles") : null)
+                    .rpeMotifEconomique(hasRuptureEssai ? booleanOrNull(ruptureEssai, "motif_economique_ou_organisationnel") : null)
+                    .rpeAtteinteLiberteFondamentale(hasRuptureEssai ? truncatedTextOrNull(ruptureEssai, "atteinte_liberte_fondamentale", MAX_RPE_ATTEINTE_LIBERTE_LENGTH) : null)
+                    .rpeLettreRuptureMotivee(hasRuptureEssai ? booleanOrNull(ruptureEssai, "lettre_rupture_motivee") : null)
+                    .rpeMotifsAveresParPieces(hasRuptureEssai ? booleanOrNull(ruptureEssai, "motifs_averes_par_pieces") : null)
+                    .rpeCcnPlusFavorableRespectee(hasRuptureEssai ? booleanOrNull(ruptureEssai, "ccn_plus_favorable_respectee") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

@@ -745,6 +745,43 @@ export interface TravailExtractedData {
   resiliationJudSalarieEnPoste?: boolean | null;
   /** Licenciement intervenu en cours d'instance (Cass. soc. 21/12/2006 n°05-42.251 — bascule date d'effet). */
   resiliationJudLicenciementEnCours?: boolean | null;
+  // -------------------------------------------------------------------------
+  // SF-246-29 — sous-objet `rupture_periode_essai_detail` (FRANCE uniquement)
+  // Pré-fill exhaustif F-DT-38 (rupture de période d'essai — qualification
+  // régulière / abusive / nulle / illégale, L.1221-19 à L.1221-25 CT).
+  // Tous nullables — restent `null` pour un dossier Travail BE (la période
+  // d'essai a été abolie en droit belge par la Loi 26/12/2013 statut unique).
+  // Préfixe `rpe…` pour éviter toute collision avec les champs existants
+  // (grossesseAuMomentRupture, atMpDetecte, etc.).
+  // -------------------------------------------------------------------------
+  /** Catégorie socio-professionnelle — OUVRIER_EMPLOYE | AGENT_MAITRISE_TECHNICIEN | CADRE. Détermine durée légale max (L.1221-19). */
+  rpeCategorieSocioProfessionnelle?: string | null;
+  /** Durée du CDD en mois [0, 36] — détermine l'essai max selon le ratio L.1242-10. Null pour CDI / intérim. */
+  rpeDureeCddMois?: number | null;
+  /** Durée de la période d'essai PRÉVUE AU CONTRAT en mois [0, 24]. */
+  rpeDureePeriodeEssaiMois?: number | null;
+  /** Renouvellement de la période d'essai initialement notifié par l'employeur. */
+  rpeRenouvellementInvoque?: boolean | null;
+  /** L'accord de branche / CCN applicable PRÉVOIT le renouvellement (pré-requis L.1221-21). */
+  rpeAccordBrancheRenouvellement?: boolean | null;
+  /** Le salarié a expressément ACCEPTÉ PAR ÉCRIT le renouvellement (L.1221-23 — accord tacite refusé). */
+  rpeAccordEcritSalarieRenouvellement?: boolean | null;
+  /** Auteur de la rupture — EMPLOYEUR | SALARIE. */
+  rpeAuteurRupture?: string | null;
+  /** Délai de prévenance EFFECTIVEMENT respecté avant la prise d'effet de la rupture (jours [0, 30]). */
+  rpeDelaiPrevenanceJours?: number | null;
+  /** Motif rattaché à l'évaluation des aptitudes professionnelles (Cass. soc. 20/11/2007 — finalité de l'essai). */
+  rpeMotifLieCompetences?: boolean | null;
+  /** Motif réel économique / organisationnel (caractérise un détournement de la finalité de l'essai → abus). */
+  rpeMotifEconomique?: boolean | null;
+  /** Description (≤ 500 car.) d'une atteinte à une liberté fondamentale → caractérise verdict NULLE. */
+  rpeAtteinteLiberteFondamentale?: string | null;
+  /** Lettre de rupture écrite et formellement motivée présente aux pièces. */
+  rpeLettreRuptureMotivee?: boolean | null;
+  /** Motifs énoncés dans la lettre étayés par des pièces (évaluations, rapports d'incidents, courriers). */
+  rpeMotifsAveresParPieces?: boolean | null;
+  /** CCN applicable prévoit des dispositions plus favorables effectivement respectées par la rupture. */
+  rpeCcnPlusFavorableRespectee?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
