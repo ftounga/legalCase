@@ -85,13 +85,24 @@ export interface FamilleExtractedData {
    */
   capitalRestantDu?: number | null;
   /**
-   * SF-FA-11-02 : date de séparation effective (ISO YYYY-MM-DD) — pré-fill
-   * pour l'outil F-FA-11 désunion irrémédiable BE (art. 229 CC).
+   * SF-FA-11-02 : date de séparation effective FR (ISO YYYY-MM-DD) — pré-fill
+   * pour les outils Famille FR (séparation de corps, indivision, SF-246-08).
+   * Source backend réelle : `vie_commune_detection.date_separation` (FR uniquement).
+   * DISTINCT de `dateSeparationBe` (SF-246-12, divorce DDI belge).
    */
   dateSeparation?: string | null;
   /**
+   * SF-246-12 : date de la cessation effective de la vie commune — pré-fill
+   * pour l'outil F-FA-11 divorce-desunion-be (BELGIQUE UNIQUEMENT).
+   * Source backend réelle : `divorce_ddi_be_detection.date_separation_be`.
+   * CJ art. 1255 § 1 — point de départ du délai DDI.
+   * DISTINCT de `dateSeparation` (FR — `vie_commune_detection` SF-246-08).
+   */
+  dateSeparationBe?: string | null;
+  /**
    * SF-FA-11-02 : séparation consentue par les 2 époux — pré-fill pour
    * l'outil F-FA-11 désunion irrémédiable BE.
+   * Note : ce champ reste aspirationnel — aucune source backend ne l'extrait.
    */
   separationConsentue?: boolean | null;
   /** SF-FA-15-02 : régime matrimonial détecté par l'IA. */

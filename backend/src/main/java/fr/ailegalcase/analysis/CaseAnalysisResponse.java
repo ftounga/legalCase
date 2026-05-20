@@ -1841,7 +1841,12 @@ public record CaseAnalysisResponse(
             String dateDonGametesDetected,            // ISO YYYY-MM-DD (don de gamètes — art. L2143-3 CSP)
             String motifSaisineMediationDetected,     // whitelist AUTORITE_PARENTALE|CONTRIBUTION_ENTRETIEN|DROIT_VISITE|RESIDENCE|AUTRE
             String dateAssignationDivorce,            // ISO YYYY-MM-DD — partagé divorce-accepte + divorce-alteration (FR)
-            String dateAudienceHomologationDcBe) {    // ISO YYYY-MM-DD — BELGIQUE UNIQUEMENT divorce-dc-be
+            String dateAudienceHomologationDcBe,      // ISO YYYY-MM-DD — BELGIQUE UNIQUEMENT divorce-dc-be
+            // SF-246-12 : date de séparation effective pour pré-fill divorce-desunion-be
+            // (Famille BELGIQUE UNIQUEMENT, nullable). Distincte de dateSeparation FR (SF-246-08).
+            // Source : `famille_extracted_data.divorce_ddi_be_detection.date_separation_be`.
+            // CJ art. 1255 — date de la cessation effective de la vie commune entre les époux.
+            String dateSeparationBe) {                // ISO YYYY-MM-DD — BELGIQUE UNIQUEMENT
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2127,6 +2132,8 @@ public record CaseAnalysisResponse(
             public Builder formeAdoptionDemandeeDetected(String v) { this.formeAdoptionDemandeeDetected = v; return this; }
             public Builder pupilleEtatDetected(Boolean v) { this.pupilleEtatDetected = v; return this; }
             public Builder adoptantMarieDetected(Boolean v) { this.adoptantMarieDetected = v; return this; }
+            // SF-246-12 : champ BE divorce-desunion-be
+            private String dateSeparationBe;
             // SF-246-27 setters
             public Builder regimeProtectionMajeursDetected(String v) { this.regimeProtectionMajeursDetected = v; return this; }
             public Builder dateCertificatMedicalMajeursDetected(String v) { this.dateCertificatMedicalMajeursDetected = v; return this; }
@@ -2136,6 +2143,8 @@ public record CaseAnalysisResponse(
             public Builder motifSaisineMediationDetected(String v) { this.motifSaisineMediationDetected = v; return this; }
             public Builder dateAssignationDivorce(String v) { this.dateAssignationDivorce = v; return this; }
             public Builder dateAudienceHomologationDcBe(String v) { this.dateAudienceHomologationDcBe = v; return this; }
+            // SF-246-12 setter
+            public Builder dateSeparationBe(String v) { this.dateSeparationBe = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2237,7 +2246,9 @@ public record CaseAnalysisResponse(
                         dateDonGametesDetected,
                         motifSaisineMediationDetected,
                         dateAssignationDivorce,
-                        dateAudienceHomologationDcBe);
+                        dateAudienceHomologationDcBe,
+                        // SF-246-12 : date de séparation effective BE (divorce-desunion-be).
+                        dateSeparationBe);
             }
         }
     }
@@ -4322,6 +4333,15 @@ public record CaseAnalysisResponse(
                 || motifSaisineMediationDetected != null
                 || dateAssignationDivorce != null
                 || dateAudienceHomologationDcBe != null;
+        // SF-246-12 : sous-objet `divorce_ddi_be_detection` — date de séparation effective
+        // pour pré-fill F-FA-11 (divorce-desunion-be). BELGIQUE UNIQUEMENT, nullable.
+        // Distincte de `dateSeparation` FR (SF-246-08) — invariant cadrage §5.1.1.
+        // CJ art. 1255 — point de départ du délai de 6 mois (voie consensuelle)
+        // ou 1 an (voie unilatérale). Dossier FR → null (prompt impose null hors BE).
+        JsonNode ddiBe = node.get("divorce_ddi_be_detection");
+        String dateSeparationBe = (ddiBe != null && ddiBe.isObject())
+                ? isoDateOrNull(ddiBe, "date_separation_be")
+                : null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -4358,7 +4378,8 @@ public record CaseAnalysisResponse(
                 && !successionV2DetectionPresent
                 && !communautePartageProtectionV2Present
                 && !filiationV2DetectionPresent
-                && !protectionDivorceV2Present) {
+                && !protectionDivorceV2Present
+                && dateSeparationBe == null) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -4507,6 +4528,8 @@ public record CaseAnalysisResponse(
                 .motifSaisineMediationDetected(motifSaisineMediationDetected)
                 .dateAssignationDivorce(dateAssignationDivorce)
                 .dateAudienceHomologationDcBe(dateAudienceHomologationDcBe)
+                // SF-246-12 : date de séparation effective BE (divorce-desunion-be).
+                .dateSeparationBe(dateSeparationBe)
                 .build();
     }
 
