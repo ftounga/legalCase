@@ -116,6 +116,12 @@ jobs:
           RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # SF-INFRA-08 : signature CloudFront URLs téléchargement documents.
+          # Secrets optionnels — si vides, le backend retombe sur S3 présignées.
+          # Pour activer staging, alimenter ces deux secrets PUIS décommenter
+          # CLOUDFRONT_DOMAIN dans k8s/overlays/staging/kustomization.yaml.
+          CLOUDFRONT_KEY_PAIR_ID: ${{ secrets.CLOUDFRONT_KEY_PAIR_ID_STAGING }}
+          CLOUDFRONT_PRIVATE_KEY: ${{ secrets.CLOUDFRONT_PRIVATE_KEY_STAGING }}
         run: |
           kubectl create secret generic backend-secrets \
             --namespace=$NAMESPACE \
@@ -145,6 +151,8 @@ jobs:
             --from-literal=SPRING_RABBITMQ_USERNAME="$RABBITMQ_USER" \
             --from-literal=SPRING_RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
             --from-literal=SENTRY_DSN="$SENTRY_DSN" \
+            --from-literal=CLOUDFRONT_KEY_PAIR_ID="$CLOUDFRONT_KEY_PAIR_ID" \
+            --from-literal=CLOUDFRONT_PRIVATE_KEY="$CLOUDFRONT_PRIVATE_KEY" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create/update RabbitMQ K8s secret

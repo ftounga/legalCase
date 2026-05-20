@@ -19,6 +19,19 @@ configMapGenerator:
       - SENTRY_ENV=staging
       - AWS_TEXTRACT_ENABLED=true
       - AWS_TEXTRACT_REGION=eu-west-3
+      # SF-INFRA-08 : CloudFront devant le bucket S3 documents staging
+      # (cf. SF-INFRA-03 dans repo legalcase-infra). Domaine staging :
+      #   d2oaldre5efpif.cloudfront.net
+      #
+      # ACTIVATION EN 2 TEMPS (cf. mini-spec SF-INFRA-08 §Pré-requis runtime) :
+      #   1) Provisionner la CloudFront Key Pair (Terraform legalcase-infra)
+      #      et alimenter les GitHub secrets CLOUDFRONT_KEY_PAIR_ID +
+      #      CLOUDFRONT_PRIVATE_KEY (cf. .github/workflows/backend.yml).
+      #   2) Décommenter la ligne CLOUDFRONT_DOMAIN ci-dessous et re-déployer.
+      #
+      # Tant que la ligne reste commentée, le backend retombe sur les URLs
+      # S3 présignées natives (comportement historique). Pas de régression.
+      # - CLOUDFRONT_DOMAIN=d2oaldre5efpif.cloudfront.net
 
 patches:
   - path: service-account-patch.yaml
