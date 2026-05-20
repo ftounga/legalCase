@@ -67,7 +67,16 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary"
+            "F-196-questions-summary",
+            // SF-206-07 (2026-05-20) : F-DT-40 résiliation judiciaire CPH —
+            // exclusion transitoire. La tuile dashboard est livrée backend
+            // (tileFromResiliationJudiciaireCphAnalysis dans
+            // CaseFileDashboardService) mais le seed visibility F-IA-04 et
+            // l'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts)
+            // sont reportés à SF-206-08 frontend — pattern prouvé F-DT-42 /
+            // F-DT-75 / F-DT-39 (résolutions structurelles SF-206-02, SF-206-04,
+            // SF-206-06). À résorber par la SF frontend SF-206-08.
+            "F-DT-40-resiliation-judiciaire-cph"
             // SF-206-02 (2026-05-20) : F-DT-42 retiré — résolution structurelle
             // complète (seed migration 263 + TOOL_REGISTRY frontend + tile mapper).
             // SF-206-04 (2026-05-20) : F-DT-75 retiré — résolution structurelle
@@ -134,7 +143,16 @@ class DashboardTileToolIdIntegrityIT {
             // même pattern que at-fedris-declaration / contestation-c4-onem /
             // refere-tribunal-travail-be.
             "rcc-be-conditions",
-            "rcc-be-indemnite-complementaire"
+            "rcc-be-indemnite-complementaire",
+            // SF-206-07 hotfix master-red (2026-05-20) : outplacement-be-obligatoire-45
+            // livré par SF-207-08b-frontend (PR #1162) sans mapper DashboardTile
+            // côté backend — exclusion transitoire à résorber par la session F-207
+            // propriétaire, même pattern que at-fedris-declaration /
+            // contestation-c4-onem / refere-tribunal-travail-be / rcc-be-conditions /
+            // rcc-be-indemnite-complementaire. Issue master-red pré-existante à
+            // SF-206-07, levée ici par hotfix transitoire pour permettre le merge
+            // backend résiliation judiciaire (F-DT-40).
+            "outplacement-be-obligatoire-45"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

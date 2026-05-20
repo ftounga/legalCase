@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="269-create-resiliation-judiciaire-cph-analyses" author="legalcase">
+        <comment>
+            SF-206-07 : table dédiée à l'outil décisionnel "Résiliation judiciaire
+            du contrat de travail aux torts de l'employeur" (F-DT-40, FRANCE —
+            Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
+            art. 1224 / 1227-1228 C.civ., consolidé Cass. soc. 30/03/2010 et
+            Cass. soc. 21/12/2006).
+
+            Analyse, du point de vue de l'avocat du salarié, l'opportunité d'une
+            demande de résiliation judiciaire du contrat de travail aux torts
+            de l'employeur — voie procédurale dans laquelle le salarié reste en
+            poste pendant l'instance (contrairement à la prise d'acte qui rompt
+            immédiatement et unilatéralement le contrat). Le juge apprécie les
+            manquements AU JOUR DE SA DÉCISION (Cass. soc. 30/03/2010 n°08-44.236),
+            un grief régularisé ou non persistant pèse moins. En cas de succès,
+            la résiliation produit les effets d'un licenciement sans cause réelle
+            et sérieuse à la date de la décision — ou à la date du licenciement
+            si le salarié a été licencié en cours d'instance (Cass. soc.
+            21/12/2006 n°05-42.251).
+
+            8 manquements pondérés (mêmes griefs que F-DT-39 prise d'acte :
+            défaut paiement, harcèlement, sécurité, modification contrat,
+            déclassement, discrimination, heures sup, repos) + 3 modulateurs
+            spécifiques résiliation judiciaire (persistance au jour de la
+            demande, salarié toujours en poste, licenciement en cours
+            d'instance). Verdict en 3 niveaux : RESILIATION_FAVORABLE /
+            RESILIATION_INCERTAINE / RESILIATION_DEFAVORABLE. Score 0-100
+            (solidité de la demande). Date d'effet probable : DATE_DECISION
+            (effets licenciement sans cause à la date du jugement) ou
+            DATE_LICENCIEMENT (si licenciement intervenu en cours d'instance).
+
+            Outil distinct de F-DT-39 prise d'acte (audit F-191 explicite —
+            outils jumeaux mais non fusionnés : situations métier distinctes,
+            voie moins risquée car le rejet ne rompt pas le contrat).
+
+            Outil single-country FRANCE — la résiliation judiciaire CPH avec
+            effets licenciement / poursuite du contrat est un mécanisme
+            franco-français (pas d'équivalent BE direct ; en BE, le travailleur
+            lésé saisit le tribunal du travail en référé ou résolution
+            judiciaire — outil F-207-05 distinct).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-16 / F-DT-36 / F-DT-39 /
+            F-DT-42 / F-DT-75).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la SF frontend SF-206-08 (migration ultérieure) —
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-206-02
+            (migration 263) F-DT-42, SF-206-04 (migration 266) F-DT-75,
+            SF-206-06 (migration 268) F-DT-39. Sans ce couplage, le garde-fou
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Le mapper DashboardTile est livré en backend (avec tile_id
+            `F-DT-40-resiliation-judiciaire-cph`) — son couplage avec le seed
+            visibility est résorbé par la SF frontend SF-206-08 ; l'exclusion
+            transitoire `F-DT-40-resiliation-judiciaire-cph` est posée dans
+            DashboardTileToolIdIntegrityIT.KNOWN_SUMMARY_TILE_IDS (pattern
+            SF-206-01 / F-DT-42, SF-206-03 / F-DT-75, SF-206-05 / F-DT-39).
+        </comment>
+
+        <createTable tableName="resiliation_judiciaire_cph_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_resiliation_judiciaire_cph_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="resiliation_judiciaire_cph_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_resiliation_judiciaire_cph_analyses_case_file"/>
+
+        <createIndex tableName="resiliation_judiciaire_cph_analyses"
+                     indexName="idx_resiliation_judiciaire_cph_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="resiliation_judiciaire_cph_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
