@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="255-add-c4-onem-checklist-visibility" author="legalcase">
+        <comment>
+            F-207 SF-207-02b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Checklist C4 ONEM" (`c4-onem-checklist`), table d'analyse
+            créée par SF-207-02 (migration 254).
+
+            Le seed est porté par la SF frontend (et non backend) pour rester
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même commit
+            (decisional-tools-panel.component.ts). Précédents : SF-207-01b
+            (migration 253), SF-211-05 (migration 228), SF-217-03 (migration
+            235), SF-217-05 (migration 238), SF-217-07 (migration 240), SF-217-09
+            (migration 242). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (mémoire
+            feedback_pre_merge_visibility_seed_check).
+
+            Mode ALWAYS_ON, DROIT_DU_TRAVAIL / BELGIQUE : la vérification de
+            conformité du C4 ONEM (AR 25/11/1991 art. 92 + art. 144) est une
+            question systématique de tout dossier travail belge avec rupture
+            (virtuellement chaque dossier de rupture BE Travail implique un
+            C4 — situation toujours pertinente, pas une situation à détecter
+            via trigger_field IA). Pas de trigger_field boolean disponible
+            dans TravailExtractedData qui couvre précisément « C4 reçu ».
+            ALWAYS_ON BE / DROIT_DU_TRAVAIL = visible par défaut pour les
+            avocats BE Travail, pas pour les autres. priority 90 (placé juste
+            après prescription-be-litige-travail, séquence métier Travail BE
+            imposée par SF-207-00b-ux-coherence : délai d'abord, puis
+            conformité du document de fin de contrat).
+
+            UUID namespace dédié F-207 : f1a04001-0000-0000-0000-eeee20700002.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20700002', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'c4-onem-checklist', 'ALWAYS_ON', NULL, NULL, 90);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20700002';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
