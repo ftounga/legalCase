@@ -451,7 +451,7 @@ export class ContestationPaterniteSectionComponent implements OnInit, OnChanges 
     const h = { aiData: this.aiDataSignal() };
     const iaQ = ContestationPaternitePrefillRules.computeQualiteAagir(h);
     if (iaQ !== null && (this.qualiteAagir() === null || this.provenanceQualiteAagir() === 'IA')) {
-      this.qualiteAagir.set(iaQ as any);
+      this.qualiteAagir.set(iaQ as QualiteAagir);
       this.provenanceQualiteAagir.set('IA');
     }
     const iaDE = ContestationPaternitePrefillRules.computeDateEtablissement(h);

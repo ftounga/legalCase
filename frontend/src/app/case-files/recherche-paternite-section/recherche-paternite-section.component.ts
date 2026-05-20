@@ -451,7 +451,7 @@ export class RecherchePaterniteSectionComponent implements OnInit, OnChanges {
     const h = { aiData: this.aiDataSignal() };
     const iaQ = RecherchePaternitePrefillRules.computeQualite(h);
     if (iaQ !== null && (this.qualiteDuDemandeur() === null || this.provenanceQualite() === 'IA')) {
-      this.qualiteDuDemandeur.set(iaQ as any);
+      this.qualiteDuDemandeur.set(iaQ as QualiteDuDemandeurRecherche);
       this.provenanceQualite.set('IA');
     }
     const iaDN = RecherchePaternitePrefillRules.computeDateNaissance(h);
