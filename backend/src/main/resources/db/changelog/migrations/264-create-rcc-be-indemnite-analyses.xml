@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="264-create-rcc-be-indemnite-analyses" author="legalcase">
+        <comment>
+            SF-207-07 : table dédiée à l'outil décisionnel "RCC BE — indemnité
+            complémentaire" (F-207). Calculateur BigDecimal de l'indemnité
+            complémentaire RCC due par l'employeur belge au salarié RCC
+            (Régime de Chômage avec Complément d'entreprise, ex-prépension).
+
+            Formule (CCT 17 art. 5) :
+              indemniteAvantPlancher = max((remunNetteReference - allocOnem) / 2, 0)
+              indemnite              = max(indemniteAvantPlancher, planchersSectoriel)
+              moisRestants           = MONTHS(dateDebutRcc → dateNaissance + ageLegalPension)
+              montantTotal           = indemnite × moisRestants
+
+            Précision : centimes (BigDecimal HALF_EVEN, 2 décimales).
+
+            Base juridique : CCT n°17 art. 5 ; loi du 3 juillet 1978 ;
+            arrêté royal du 3 mai 2007.
+
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté FR).
+            Substance juridique BE pure (mémoire feedback_belgique_never_forget) ;
+            aucun équivalent FR direct (les régimes français d'aménagement
+            de fin de carrière relèvent de dispositifs distincts).
+
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (remunerationNetteReference, allocationOnemMensuelle,
+            dateNaissanceSalarie, dateDebutRcc, ageLegalPensionApplique,
+            planchersSectoriel) + outputs (indemniteMensuelleAvantPlancher,
+            indemniteMensuelleEmployeur, planchersSectorielApplique,
+            dateAgeLegalPension, moisRestantsJusquaPension,
+            montantTotalEmployeur, baseJuridique, formuleCalcul, country).
+
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY seront
+            livrées côté frontend SF-207-07b (à venir). Pattern identique aux
+            SF-207-01..06 — couplage backend/frontend pour le seed visibility
+            (mémoire feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="rcc_be_indemnite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rcc_be_indemnite_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rcc_be_indemnite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rcc_be_indemnite_case_file"/>
+
+        <createIndex tableName="rcc_be_indemnite_analyses"
+                     indexName="idx_rcc_be_indemnite_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rcc_be_indemnite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
