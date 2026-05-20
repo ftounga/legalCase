@@ -1623,7 +1623,14 @@ public record CaseAnalysisResponse(
             // Codes hors whitelist exclus par extractFamilleData(). Liste vide → null
             // (jamais [] — invariant cadrage §5.1.2). Source :
             // `famille_extracted_data.divorce_faute_detection.fautes_detectees`.
-            java.util.List<String> fautesDetectees) {
+            java.util.List<String> fautesDetectees,
+            // SF-246-11 : date de naissance du demandeur pour pré-fill F-FA-26
+            // (changement d'état civil — art. 60 / 61-1 / 61-5 Cciv ; loi 2022-301).
+            // Famille FR uniquement, nullable — le prompt impose null hors FR / hors certitude.
+            // Sous-objet IA source : `famille_extracted_data.changement_etat_civil_detection`.
+            // Distinct des dates de naissance d'enfant (SF-246-09 — acteurs différents) et de
+            // la date de la requête (fait juridique différent).
+            String dateNaissanceDemandeurDetectee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1718,6 +1725,8 @@ public record CaseAnalysisResponse(
             private String dateFinCalendrierDetectee;
             // SF-246-03 : codes de faute détectés pour pré-fill F-FA-09 (Famille FR).
             private java.util.List<String> fautesDetectees;
+            // SF-246-11 : date de naissance du demandeur pour pré-fill F-FA-26 (Famille FR).
+            private String dateNaissanceDemandeurDetectee;
 
             private Builder() {}
 
@@ -1802,6 +1811,8 @@ public record CaseAnalysisResponse(
             public Builder dateFinCalendrierDetectee(String v) { this.dateFinCalendrierDetectee = v; return this; }
             // SF-246-03 : setter codes de faute détectés (F-FA-09).
             public Builder fautesDetectees(java.util.List<String> v) { this.fautesDetectees = v; return this; }
+            // SF-246-11 : setter date de naissance demandeur F-FA-26.
+            public Builder dateNaissanceDemandeurDetectee(String v) { this.dateNaissanceDemandeurDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1845,7 +1856,9 @@ public record CaseAnalysisResponse(
                         // SF-246-10 : 3 champs IA autorité parentale.
                         agesEnfantsDetectes, dateDebutCalendrierDetectee, dateFinCalendrierDetectee,
                         // SF-246-03 : codes de faute détectés (F-FA-09).
-                        fautesDetectees);
+                        fautesDetectees,
+                        // SF-246-11 : date de naissance demandeur F-FA-26.
+                        dateNaissanceDemandeurDetectee);
             }
         }
     }
@@ -3706,6 +3719,14 @@ public record CaseAnalysisResponse(
             }
         }
         boolean divorceFauteDetectionPresent = fautesDetectees != null;
+        // SF-246-11 : sous-objet `changement_etat_civil_detection` — date de naissance du
+        // demandeur pour pré-fill F-FA-26 (changement d'état civil). Famille FR uniquement.
+        // null hors FR / hors certitude (prompt impose null pour les dossiers BE).
+        JsonNode cecd = node.get("changement_etat_civil_detection");
+        String dateNaissanceDemandeurDetectee = (cecd != null && cecd.isObject())
+                ? isoDateOrNull(cecd, "date_naissance_demandeur")
+                : null;
+        boolean cecDetectionPresent = dateNaissanceDemandeurDetectee != null;
 
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
@@ -3719,7 +3740,8 @@ public record CaseAnalysisResponse(
                 && !vieCommuneDetectionPresent
                 && !filiationDetectionPresent
                 && !autoriteParentaleDetectionPresent
-                && !divorceFauteDetectionPresent) {
+                && !divorceFauteDetectionPresent
+                && !cecDetectionPresent) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -3809,6 +3831,8 @@ public record CaseAnalysisResponse(
                 .dateFinCalendrierDetectee(dateFinCalendrierDetectee)
                 // SF-246-03 : codes de faute détectés pour pré-fill F-FA-09.
                 .fautesDetectees(fautesDetectees)
+                // SF-246-11 : date de naissance demandeur pour pré-fill F-FA-26.
+                .dateNaissanceDemandeurDetectee(dateNaissanceDemandeurDetectee)
                 .build();
     }
 
