@@ -1,0 +1,233 @@
+<div class="contestation-c4-onem-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">gavel</mat-icon>
+    <span class="section-title">Contestation C4 ONEM (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="contestation-c4-onem-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <p class="form-help">
+            Calcule les délais de contestation d'une décision C4 ONEM
+            (AR 25/11/1991 art. 144 — 1 mois pour le recours administratif ;
+            Code judiciaire art. 580 2° — 3 mois pour le recours juridictionnel).
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Toggle Cas A / Cas B -->
+            <div class="field-with-alert full-width radio-row">
+              <span class="radio-label">Recours administratif déjà formé ?</span>
+              <mat-radio-group class="radio-group"
+                               [ngModel]="recoursAdminDejaForme()"
+                               (ngModelChange)="onRecoursAdminChange($event)"
+                               name="recoursAdminDejaForme">
+                <mat-radio-button [value]="false">Non — pas encore de recours administratif</mat-radio-button>
+                <mat-radio-button [value]="true">Oui — décision du Directeur déjà reçue</mat-radio-button>
+              </mat-radio-group>
+              @if (provenanceRecoursAdmin() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().RECOURS_ADMIN; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('RECOURS_ADMIN')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 2. Date notification décision ONEM (requis) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de notification de la décision ONEM *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNotificationDecisionOnem()"
+                       (ngModelChange)="onDateNotificationChange($event)"
+                       name="dateNotificationDecisionOnem" required />
+              </mat-form-field>
+              @if (provenanceDateNotification() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 3. Date action envisagée (optionnel, défaut today) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'action envisagée (optionnel — défaut aujourd'hui)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateActionEnvisagee()"
+                       (ngModelChange)="onDateActionChange($event)"
+                       name="dateActionEnvisagee" />
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date décision Directeur — visible UNIQUEMENT si Cas B -->
+            @if (recoursAdminDejaForme()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de notification de la décision du Directeur *</mat-label>
+                  <input matInput
+                         type="date"
+                         [ngModel]="dateDecisionDirecteur()"
+                         (ngModelChange)="onDateDirecteurChange($event)"
+                         name="dateDecisionDirecteur" required />
+                </mat-form-field>
+                @if (provenanceDateDirecteur() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_DIRECTEUR; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_DIRECTEUR')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>gavel</mat-icon> Calculer les délais de contestation
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ verdictLabel(result()!.verdict) }}</span>
+              <span class="verdict-detail">{{ etapeSuivanteLabel(result()!.etapeSuivante) }}</span>
+            </div>
+          </div>
+
+          @if (isForclusionTotale()) {
+            <div class="alert-banner alert-critical">
+              <mat-icon>error</mat-icon>
+              <span>
+                Forclusion totale — recours administratif et tribunal du travail
+                tous deux prescrits. Étudier les exceptions (force majeure,
+                réouverture pour erreur manifeste).
+              </span>
+            </div>
+          }
+
+          @if (isSautPalierAdmin()) {
+            <div class="alert-banner alert-warning">
+              <mat-icon>info</mat-icon>
+              <span>
+                Saut du palier administratif possible — saisine directe du
+                tribunal du travail envisageable (Code judiciaire art. 580 2°).
+              </span>
+            </div>
+          }
+
+          <div class="rec-section">
+            <span class="rec-section-label">Paliers de recours</span>
+            <table class="paliers-table">
+              <thead>
+                <tr>
+                  <th>Palier</th>
+                  <th>Date limite</th>
+                  <th>Jours restants</th>
+                  <th>Base juridique</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of result()!.paliers; track p.type) {
+                  <tr>
+                    <td>{{ palierShortLabel(p.type) }}</td>
+                    <td>
+                      @if (p.dateLimite) {
+                        {{ p.dateLimite }}
+                      } @else {
+                        <span class="palier-indetermine">
+                          Indéterminé tant que la décision du Directeur n'est pas notifiée
+                        </span>
+                      }
+                    </td>
+                    <td [class]="joursRestantsClass(p)">
+                      @if (p.joursRestants !== null && p.joursRestants !== undefined) {
+                        {{ p.joursRestants }}
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td class="legal-mono">{{ p.baseJuridique }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Formule de calcul</span>
+            <p class="legal-mono">{{ result()!.formuleCalcul }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

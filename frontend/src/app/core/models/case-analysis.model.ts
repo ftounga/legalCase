@@ -413,6 +413,19 @@ export interface TravailExtractedData {
   motifExplicite?: string | null;
   preavisPresteJours?: number | null;
   dernierSalaireMensuelBrut?: number | null;
+  /**
+   * SF-207-03 / SF-207-03b : 3 champs IA Travail BE pour pré-fill F-207
+   * (contestation décision C4 ONEM). BE-only — restent null pour FR.
+   * `dateNotificationDecisionOnem` : date de notification de la décision
+   * ONEM contestée (ISO YYYY-MM-DD).
+   * `dateDecisionDirecteur` : date de notification de la décision du
+   * Directeur du Bureau du chômage sur le recours administratif (ISO).
+   * `recoursAdminDejaForme` : true si le recours administratif au
+   * Directeur a déjà été formé (Boolean nullable côté backend).
+   */
+  dateNotificationDecisionOnem?: string | null;
+  dateDecisionDirecteur?: string | null;
+  recoursAdminDejaForme?: boolean | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.

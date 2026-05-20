@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="257-add-contestation-c4-onem-visibility" author="legalcase">
+        <comment>
+            F-207 SF-207-03b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Contestation C4 ONEM" (`contestation-c4-onem`), table
+            d'analyse créée par SF-207-03 (migration 256).
+
+            Le seed est porté par la SF frontend (et non backend) pour rester
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même commit
+            (decisional-tools-panel.component.ts). Précédents : SF-207-02b
+            (migration 255), SF-207-01b (migration 253). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (mémoire
+            feedback_pre_merge_visibility_seed_check).
+
+            Mode ALWAYS_ON, DROIT_DU_TRAVAIL / BELGIQUE : tout dossier travail
+            belge avec rupture sera potentiellement concerné par une décision
+            ONEM contestable — l'outil reste pertinent en toute hypothèse,
+            même quand le C4 est conforme (ex. décision ONEM négative sur
+            l'allocation indépendamment de la conformité du document).
+            Pas de trigger_field IA boolean disponible qui couvre précisément
+            « décision ONEM reçue ». ALWAYS_ON BE / DROIT_DU_TRAVAIL = visible
+            par défaut pour les avocats BE Travail, pas pour les autres.
+            priority 91 — placé juste après c4-onem-checklist (priority 90 ;
+            séquence métier imposée par SF-207-00b-ux-coherence : vérifier la
+            conformité du C4 d'abord, puis calculer les délais de contestation).
+
+            UUID namespace dédié F-207 : f1a04001-0000-0000-0000-eeee20700003.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20700003', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'contestation-c4-onem', 'ALWAYS_ON', NULL, NULL, 91);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20700003';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
