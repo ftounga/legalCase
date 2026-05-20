@@ -1,0 +1,239 @@
+<div class="rcc-be-indemnite-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">euro</mat-icon>
+    <span class="section-title">RCC (BE) — indemnité complémentaire</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge">
+        {{ formatEuro(result()!.indemniteMensuelleEmployeur) }} / mois
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="rcc-be-indemnite-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calculateur de l'indemnité complémentaire RCC due par l'employeur belge
+            (CCT n°17 art. 5). Indemnité mensuelle =
+            (rémunération nette − allocation ONEM) ÷ 2 ; plancher sectoriel CCT
+            appliqué le cas échéant. Les champs avec un astérisque sont requis.
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Rémunération nette de référence -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération nette de référence *</mat-label>
+                <span matTextPrefix>€&nbsp;</span>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       [ngModel]="remunerationNetteReference()"
+                       (ngModelChange)="onRemunerationNetteChange($event)"
+                       name="remunerationNetteReference" required />
+                <mat-hint>Nette mensuelle à la rupture (€).</mat-hint>
+              </mat-form-field>
+              @if (provenanceRemunerationNette() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 2. Allocation ONEM mensuelle -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Allocation ONEM mensuelle *</mat-label>
+                <span matTextPrefix>€&nbsp;</span>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="allocationOnemMensuelle()"
+                       (ngModelChange)="onAllocationOnemChange($event)"
+                       name="allocationOnemMensuelle" required />
+                <mat-hint>Allocation de chômage ONEM (€/mois).</mat-hint>
+              </mat-form-field>
+              @if (provenanceAllocationOnem() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 3. Date de naissance du salarié -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance du salarié *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNaissanceSalarie()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissanceSalarie" required />
+              </mat-form-field>
+              @if (provenanceDateNaissance() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 4. Date de début du RCC -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de début du RCC *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDebutRcc()"
+                       (ngModelChange)="onDateDebutRccChange($event)"
+                       name="dateDebutRcc" required />
+                <mat-hint>Point de départ du versement des mensualités.</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateDebutRcc() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 5. Âge légal de la pension (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Âge légal de la pension (optionnel)</mat-label>
+                <input matInput
+                       type="number"
+                       min="60"
+                       max="75"
+                       step="1"
+                       [ngModel]="ageLegalPension()"
+                       (ngModelChange)="onAgeLegalPensionChange($event)"
+                       placeholder="(par défaut 66)"
+                       name="ageLegalPension" />
+                <mat-hint>Borné [60, 75]. Défaut 66 (67 à partir de 2030).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Plancher sectoriel (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Plancher sectoriel (optionnel)</mat-label>
+                <span matTextPrefix>€&nbsp;</span>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="planchersSectoriel()"
+                       (ngModelChange)="onPlanchersSectorielChange($event)"
+                       name="planchersSectoriel" />
+                <mat-hint>CCT sectorielle plus favorable (€/mois).</mat-hint>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>euro</mat-icon> Calculer l'indemnité
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+
+          <!-- 1. Carte « Indemnité mensuelle employeur » (mise en évidence) -->
+          <div class="indemnite-card">
+            <span class="indemnite-label">Indemnité mensuelle employeur</span>
+            <div class="indemnite-row">
+              <span class="indemnite-value">{{ formatEuro(result()!.indemniteMensuelleEmployeur) }}</span>
+              <span class="indemnite-unit">par mois</span>
+            </div>
+            @if (result()!.planchersSectorielApplique) {
+              <div class="plancher-badge">
+                <mat-icon>flag</mat-icon>
+                <span>Plancher sectoriel appliqué</span>
+                <span class="plancher-avant">
+                  (CCT 17 brute : {{ formatEuro(result()!.indemniteMensuelleAvantPlancher) }})
+                </span>
+              </div>
+            }
+          </div>
+
+          <!-- 2. Carte « Durée » -->
+          <div class="duree-card">
+            <span class="duree-label">Durée</span>
+            <span class="duree-value">{{ formatDuree(result()!.moisRestantsJusquaPension) }}</span>
+            @if (result()!.moisRestantsJusquaPension === 0) {
+              <div class="duree-info">
+                <mat-icon>info</mat-icon>
+                <span>RCC débute après l'âge légal de pension : aucune indemnité due.</span>
+              </div>
+            } @else {
+              <span class="duree-detail">
+                Jusqu'au {{ result()!.dateAgeLegalPension }}
+                (âge légal {{ result()!.ageLegalPensionApplique }} ans).
+              </span>
+            }
+          </div>
+
+          <!-- 3. Carte « Coût total employeur » -->
+          <div class="total-card">
+            <span class="total-label">Coût total employeur</span>
+            <span class="total-value">{{ formatEuro(result()!.montantTotalEmployeur) }}</span>
+            <span class="total-detail">
+              {{ formatEuro(result()!.indemniteMensuelleEmployeur) }} ×
+              {{ result()!.moisRestantsJusquaPension }} mois.
+            </span>
+          </div>
+
+          <!-- Encart Hypothèses -->
+          <div class="rec-section">
+            <span class="rec-section-label">Hypothèses</span>
+            <ul class="hypotheses-list">
+              <li>Rémunération nette de référence : {{ formatEuro(result()!.remunerationNetteReference) }} / mois.</li>
+              <li>Allocation ONEM mensuelle : {{ formatEuro(result()!.allocationOnemMensuelle) }}.</li>
+              @if (result()!.planchersSectoriel !== null) {
+                <li>Plancher sectoriel : {{ formatEuro(result()!.planchersSectoriel) }} / mois.</li>
+              }
+              <li>Âge légal de pension retenu : {{ result()!.ageLegalPensionApplique }} ans.</li>
+            </ul>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Formule de calcul</span>
+            <p class="legal-mono">{{ result()!.formuleCalcul }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

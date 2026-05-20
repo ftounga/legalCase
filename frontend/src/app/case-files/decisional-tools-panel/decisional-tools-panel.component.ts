@@ -71,6 +71,8 @@ import { AtFedrisDeclarationSectionComponent } from '../at-fedris-declaration-se
 import { RefereTribunalTravailBeSectionComponent } from '../refere-tribunal-travail-be-section/refere-tribunal-travail-be-section.component';
 // SF-207-06b : section décisionnelle RCC BE conditions d'éligibilité (BE-only, ALWAYS_ON).
 import { RccBeConditionsSectionComponent } from '../rcc-be-conditions-section/rcc-be-conditions-section.component';
+// SF-207-07b : section décisionnelle RCC BE indemnité complémentaire (BE-only, ALWAYS_ON).
+import { RccBeIndemniteComplementaireSectionComponent } from '../rcc-be-indemnite-complementaire-section/rcc-be-indemnite-complementaire-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -516,6 +518,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['rcc-be-conditions', {
         displayLabel: 'RCC BE — conditions d\'éligibilité',
         component: RccBeConditionsSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-07b : RCC BE — indemnité complémentaire (BE-only, ALWAYS_ON).
+      // CCT 17 art. 5 / Loi 03/07/1978 / AR 03/05/2007 — calculateur pur
+      // (€/mois + total) sans verdict. Placé directement après l'analyseur
+      // d'éligibilité rcc-be-conditions (séquence métier : conditions d'abord,
+      // indemnité ensuite). 4 champs pré-remplis depuis `TravailExtractedData`
+      // (remunerationNetteReferenceRccDetectee, allocationOnemMensuelleEstimee,
+      // dateNaissanceSalarie réutilisé SF-207-06, dateDebutRccEnvisagee).
+      ['rcc-be-indemnite-complementaire', {
+        displayLabel: 'RCC BE — indemnité complémentaire',
+        component: RccBeIndemniteComplementaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2227,6 +2248,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-31-transaction', 'INDEMNITES'],
     ['F-DT-35-contestation-are-fr', 'INDEMNITES'],
     ['F-132-rupture-conv-indemnite', 'INDEMNITES'],
+    // SF-207-07b : RCC BE — indemnité complémentaire (CCT 17 art. 5).
+    // Thème INDEMNITES (calculateur de montant, cohérent avec les autres
+    // chiffrages d'indemnité).
+    ['rcc-be-indemnite-complementaire', 'INDEMNITES'],
     ['F-FA-15-recompenses', 'INDEMNITES'],
     // F-198 SF-198-01/02/05 : rattrapage des outils Famille FR DELETE par migration 191.
     ['F-FA-01-prestation-compensatoire', 'INDEMNITES'],
