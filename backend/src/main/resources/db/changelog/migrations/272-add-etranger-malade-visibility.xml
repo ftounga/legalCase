@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="272-add-etranger-malade-visibility" author="legalcase">
+        <comment>
+            SF-214-01 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Étranger malade L.425-9 CESEDA"
+            (F-IM-25-etranger-malade-l4259-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une procédure médicale L.425-9 —
+            trigger `etranger_malade_detecte` = true (signal booléen extrait
+            par LegalDomainPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue).
+            priority 25 — après les outils F-IM-21/22/23/24 (priorities 21-24).
+
+            Source juridique : L.425-9 CESEDA (Ord. 2020-1733) ;
+            R.425-9 à R.425-16 CESEDA ; CE 7 avr. 2010 n° 301640 ;
+            Loi 7 mars 2016 (OFII).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-214 : f2140002-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140002-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-25-etranger-malade-l4259-fr', 'CONTEXTUAL', 'etranger_malade_detecte', 'true', 25);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140002-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -476,7 +476,18 @@ public record CaseAnalysisResponse(
             // Loi 05/09/2001 art. 13 ; AR 30/05/2018).
             Double ancienneteSalarie,
             String motifLicenciementDetecte,
-            Boolean offreOutplacementMentionnee) {
+            Boolean offreOutplacementMentionnee,
+            // SF-212-01 : 6 champs IA pour pré-fill F-DT-36-licenciement-faute-grave-lourde
+            // (Travail FR uniquement, nullables). Sous-objet `faute_grave_detail`.
+            // La distinction faute grave / faute lourde (L. 1234-1 CT ; L. 1234-9 CT)
+            // est un mécanisme franco-français — ces champs restent null pour la BE
+            // (le motif grave belge relève d'un outil distinct F-DT-27).
+            String fauteGraveFaitsReproches,
+            List<String> fauteGraveDatesFaits,
+            String fauteGraveQualificationEmployeur,
+            Boolean fauteGraveIntentionNuireAlleeguee,
+            Integer fauteGraveAncienneteMois,
+            Double fauteGraveSalaireMensuelBrut) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -677,7 +688,14 @@ public record CaseAnalysisResponse(
                     // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
                     .ancienneteSalarie(ancienneteSalarie)
                     .motifLicenciementDetecte(motifLicenciementDetecte)
-                    .offreOutplacementMentionnee(offreOutplacementMentionnee);
+                    .offreOutplacementMentionnee(offreOutplacementMentionnee)
+                    // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+                    .fauteGraveFaitsReproches(fauteGraveFaitsReproches)
+                    .fauteGraveDatesFaits(fauteGraveDatesFaits)
+                    .fauteGraveQualificationEmployeur(fauteGraveQualificationEmployeur)
+                    .fauteGraveIntentionNuireAlleeguee(fauteGraveIntentionNuireAlleeguee)
+                    .fauteGraveAncienneteMois(fauteGraveAncienneteMois)
+                    .fauteGraveSalaireMensuelBrut(fauteGraveSalaireMensuelBrut);
         }
 
         public static final class Builder {
@@ -873,6 +891,13 @@ public record CaseAnalysisResponse(
             private Double ancienneteSalarie;
             private String motifLicenciementDetecte;
             private Boolean offreOutplacementMentionnee;
+            // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+            private String fauteGraveFaitsReproches;
+            private List<String> fauteGraveDatesFaits;
+            private String fauteGraveQualificationEmployeur;
+            private Boolean fauteGraveIntentionNuireAlleeguee;
+            private Integer fauteGraveAncienneteMois;
+            private Double fauteGraveSalaireMensuelBrut;
 
             private Builder() {}
 
@@ -1063,6 +1088,13 @@ public record CaseAnalysisResponse(
             public Builder ancienneteSalarie(Double v) { this.ancienneteSalarie = v; return this; }
             public Builder motifLicenciementDetecte(String v) { this.motifLicenciementDetecte = v; return this; }
             public Builder offreOutplacementMentionnee(Boolean v) { this.offreOutplacementMentionnee = v; return this; }
+            // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+            public Builder fauteGraveFaitsReproches(String v) { this.fauteGraveFaitsReproches = v; return this; }
+            public Builder fauteGraveDatesFaits(List<String> v) { this.fauteGraveDatesFaits = v; return this; }
+            public Builder fauteGraveQualificationEmployeur(String v) { this.fauteGraveQualificationEmployeur = v; return this; }
+            public Builder fauteGraveIntentionNuireAlleeguee(Boolean v) { this.fauteGraveIntentionNuireAlleeguee = v; return this; }
+            public Builder fauteGraveAncienneteMois(Integer v) { this.fauteGraveAncienneteMois = v; return this; }
+            public Builder fauteGraveSalaireMensuelBrut(Double v) { this.fauteGraveSalaireMensuelBrut = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1168,7 +1200,11 @@ public record CaseAnalysisResponse(
                         // SF-207-08 — outplacement_be_detection (BELGIQUE uniquement)
                         ancienneteSalarie,
                         motifLicenciementDetecte,
-                        offreOutplacementMentionnee);
+                        offreOutplacementMentionnee,
+                        // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+                        fauteGraveFaitsReproches, fauteGraveDatesFaits,
+                        fauteGraveQualificationEmployeur, fauteGraveIntentionNuireAlleeguee,
+                        fauteGraveAncienneteMois, fauteGraveSalaireMensuelBrut);
             }
         }
     }
@@ -1533,7 +1569,43 @@ public record CaseAnalysisResponse(
             /** Lien familial art. 40ter — whitelist 5 codes LIENS_FAMILIAUX_40TER_CODES (distinct de 40bis). */
             String be40terLienFamilial,
             /** Revenus mensuels nets du regroupant belge (> 0, ≤ MAX_BE_REVENUS_MENSUELS_NETS). */
-            Integer be40terRevenusMensuelsNets) {
+            Integer be40terRevenusMensuelsNets,
+            // === SF-214 — F-214 P2 Immigration FR — vague 1 (outils F-IM-25 à F-IM-32) ===
+            // FRANCE UNIQUEMENT — null pour dossiers BE. Tous nullables / false par défaut.
+            // SF-214-01 : Étranger malade L. 425-9 CESEDA
+            /** true si mentions "maladie grave", "traitement indisponible", "OFII médical", "L.425-9" dans les pièces. */
+            boolean etrangerMaladeDetecte,
+            /** Pathologie principale extraite des certificats médicaux ou pièces médicales (texte libre ≤ 500 car.). */
+            String etrangerMaladePathologie,
+            /** true si les pièces indiquent que le traitement est disponible dans le pays d'origine. */
+            Boolean etrangerMaladeTraitementDisponible,
+            /** Avis du collège médical OFII : FAVORABLE | DEFAVORABLE | EN_ATTENTE (null si non rendu). */
+            String etrangerMaladeAvisOFII,
+            /** Date de l'avis OFII au format YYYY-MM-DD (non future). Null si non rendu ou non lisible. */
+            String etrangerMalaDateAvisOFII,
+            // SF-214-03 : Regroupement familial L. 434-1+ CESEDA
+            /** true si mentions "regroupement familial", "OFII", "rejoindre en France", "membre de famille", "visa long séjour famille". */
+            boolean regroupementFamilialEnvisage,
+            /** Ressources mensuelles nettes du regroupant en euros (extrait des bulletins de paie / déclaration fiscale). */
+            Double regroupementRessourcesMensuelles,
+            /** Type de regroupement : CONJOINT | ENFANT_MINEUR | AUTRE (null si non déterminable). */
+            String regroupementType,
+            // SF-214-05 : VPF liens personnels et familiaux L. 423-23 CESEDA
+            /** true si mentions "vie privée et familiale", "L.423-23", "liens familiaux en France", "atteinte disproportionnée". */
+            boolean viePriveeFamilialeDetectee,
+            /** Niveau d'intégration apprécié depuis les pièces : FORT | MOYEN | FAIBLE (null si non déterminable). */
+            String vpfNiveauIntegration,
+            // SF-214-07 : VLS-TS validation OFII 3 mois
+            /** true si les pièces indiquent que la validation OFII du VLS-TS a déjà été effectuée. */
+            Boolean vlsTsValidationOFIIEffectuee,
+            // SF-214-11 : AES présence prouvée (calculateur transversal 4 voies AES)
+            /** Dérivé : true si au moins un des 4 flags AES existants est true (déclenche l'outil calcul présence). */
+            boolean aesCalculPresenceDeclenche,
+            // SF-214-15 : Récépissé vs attestation de prolongation d'instruction
+            /** true si mentions "récépissé", "attestation de prolongation", "en cours de renouvellement", "attente de décision". */
+            boolean recouvrementTitreEnCours,
+            /** Type de document : RECEPISSE | ATTESTATION_PROLONGATION | INCONNU (null si non déterminable). */
+            String recepisseOuAttestationType) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -1614,7 +1686,22 @@ public record CaseAnalysisResponse(
                     .be9terDateDebutSymptomes(be9terDateDebutSymptomes)
                     .be40bisLienFamilial(be40bisLienFamilial)
                     .be40terLienFamilial(be40terLienFamilial)
-                    .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets);
+                    .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets)
+                    // SF-214 : F-IM-25 à F-IM-32 — vague 1
+                    .etrangerMaladeDetecte(etrangerMaladeDetecte)
+                    .etrangerMaladePathologie(etrangerMaladePathologie)
+                    .etrangerMaladeTraitementDisponible(etrangerMaladeTraitementDisponible)
+                    .etrangerMaladeAvisOFII(etrangerMaladeAvisOFII)
+                    .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII)
+                    .regroupementFamilialEnvisage(regroupementFamilialEnvisage)
+                    .regroupementRessourcesMensuelles(regroupementRessourcesMensuelles)
+                    .regroupementType(regroupementType)
+                    .viePriveeFamilialeDetectee(viePriveeFamilialeDetectee)
+                    .vpfNiveauIntegration(vpfNiveauIntegration)
+                    .vlsTsValidationOFIIEffectuee(vlsTsValidationOFIIEffectuee)
+                    .aesCalculPresenceDeclenche(aesCalculPresenceDeclenche)
+                    .recouvrementTitreEnCours(recouvrementTitreEnCours)
+                    .recepisseOuAttestationType(recepisseOuAttestationType);
         }
 
         public static final class Builder {
@@ -1689,6 +1776,21 @@ public record CaseAnalysisResponse(
             private String be40bisLienFamilial;
             private String be40terLienFamilial;
             private Integer be40terRevenusMensuelsNets;
+            // SF-214 : F-IM-25 à F-IM-32 — vague 1
+            private boolean etrangerMaladeDetecte;
+            private String etrangerMaladePathologie;
+            private Boolean etrangerMaladeTraitementDisponible;
+            private String etrangerMaladeAvisOFII;
+            private String etrangerMalaDateAvisOFII;
+            private boolean regroupementFamilialEnvisage;
+            private Double regroupementRessourcesMensuelles;
+            private String regroupementType;
+            private boolean viePriveeFamilialeDetectee;
+            private String vpfNiveauIntegration;
+            private Boolean vlsTsValidationOFIIEffectuee;
+            private boolean aesCalculPresenceDeclenche;
+            private boolean recouvrementTitreEnCours;
+            private String recepisseOuAttestationType;
 
             private Builder() {}
 
@@ -1762,6 +1864,21 @@ public record CaseAnalysisResponse(
             public Builder be40bisLienFamilial(String v) { this.be40bisLienFamilial = v; return this; }
             public Builder be40terLienFamilial(String v) { this.be40terLienFamilial = v; return this; }
             public Builder be40terRevenusMensuelsNets(Integer v) { this.be40terRevenusMensuelsNets = v; return this; }
+            // SF-214 : F-IM-25 à F-IM-32 — vague 1
+            public Builder etrangerMaladeDetecte(boolean v) { this.etrangerMaladeDetecte = v; return this; }
+            public Builder etrangerMaladePathologie(String v) { this.etrangerMaladePathologie = v; return this; }
+            public Builder etrangerMaladeTraitementDisponible(Boolean v) { this.etrangerMaladeTraitementDisponible = v; return this; }
+            public Builder etrangerMaladeAvisOFII(String v) { this.etrangerMaladeAvisOFII = v; return this; }
+            public Builder etrangerMalaDateAvisOFII(String v) { this.etrangerMalaDateAvisOFII = v; return this; }
+            public Builder regroupementFamilialEnvisage(boolean v) { this.regroupementFamilialEnvisage = v; return this; }
+            public Builder regroupementRessourcesMensuelles(Double v) { this.regroupementRessourcesMensuelles = v; return this; }
+            public Builder regroupementType(String v) { this.regroupementType = v; return this; }
+            public Builder viePriveeFamilialeDetectee(boolean v) { this.viePriveeFamilialeDetectee = v; return this; }
+            public Builder vpfNiveauIntegration(String v) { this.vpfNiveauIntegration = v; return this; }
+            public Builder vlsTsValidationOFIIEffectuee(Boolean v) { this.vlsTsValidationOFIIEffectuee = v; return this; }
+            public Builder aesCalculPresenceDeclenche(boolean v) { this.aesCalculPresenceDeclenche = v; return this; }
+            public Builder recouvrementTitreEnCours(boolean v) { this.recouvrementTitreEnCours = v; return this; }
+            public Builder recepisseOuAttestationType(String v) { this.recepisseOuAttestationType = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -1791,7 +1908,17 @@ public record CaseAnalysisResponse(
                         be9bisDateEntreeBelgique, be9bisDureePresenceMois,
                         be9terDateDebutSymptomes,
                         be40bisLienFamilial, be40terLienFamilial,
-                        be40terRevenusMensuelsNets);
+                        be40terRevenusMensuelsNets,
+                        // SF-214 : F-IM-25 à F-IM-32 — vague 1
+                        etrangerMaladeDetecte, etrangerMaladePathologie,
+                        etrangerMaladeTraitementDisponible, etrangerMaladeAvisOFII,
+                        etrangerMalaDateAvisOFII,
+                        regroupementFamilialEnvisage, regroupementRessourcesMensuelles,
+                        regroupementType,
+                        viePriveeFamilialeDetectee, vpfNiveauIntegration,
+                        vlsTsValidationOFIIEffectuee,
+                        aesCalculPresenceDeclenche,
+                        recouvrementTitreEnCours, recepisseOuAttestationType);
             }
         }
     }
@@ -2178,7 +2305,19 @@ public record CaseAnalysisResponse(
             String dateHomologationBeDetectee,         // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD
             // --- regime-communaute-legale-be (F-217-SF-217-03) ---
             String dateMariageBeDetectee,              // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD (acte mariage BE)
-            Boolean contratMariageSigneBeDetecte) {    // BELGIQUE UNIQUEMENT — contrat notarié (CC art. 1.2.59+ BE)
+            Boolean contratMariageSigneBeDetecte,      // BELGIQUE UNIQUEMENT — contrat notarié (CC art. 1.2.59+ BE)
+            // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+            // Source : `famille_extracted_data.vie_commune_detection` (4 champs FR)
+            //        + `famille_extracted_data.prestation_compensatoire_detection` (1 flag).
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // `dureeMariageAnnees` (FR) ≠ `dureeMariageAnneesBeDetectee` (BE).
+            // `revenusAnnuelsEpoux1/2` ≠ `revenusAnnuelsEpoux` (SF-246-08 générique).
+            Integer dureeMariageAnnees,                // FR — [0, 80] ans (acte mariage)
+            Double revenusAnnuelsEpoux1,               // FR — >= 0 EUR/an (epoux 1, fiche de paie)
+            Double revenusAnnuelsEpoux2,               // FR — >= 0 EUR/an (epoux 2, fiche de paie)
+            Integer ageEpoux1Annees,                   // FR — [0, 120] ans (piece d'identite)
+            Integer ageEpoux2Annees,                   // FR — [0, 120] ans (piece d'identite)
+            Boolean prestationCompensatoireEnvisagee) { // FR — CONTEXTUAL : mention art. 270 / disparite niveaux de vie
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2513,6 +2652,19 @@ public record CaseAnalysisResponse(
             public Builder dateHomologationBeDetectee(String v) { this.dateHomologationBeDetectee = v; return this; }
             public Builder dateMariageBeDetectee(String v) { this.dateMariageBeDetectee = v; return this; }
             public Builder contratMariageSigneBeDetecte(Boolean v) { this.contratMariageSigneBeDetecte = v; return this; }
+            // SF-216-01 : setters des 6 champs IA prestation compensatoire + vie commune FR.
+            private Integer dureeMariageAnnees;
+            private Double revenusAnnuelsEpoux1;
+            private Double revenusAnnuelsEpoux2;
+            private Integer ageEpoux1Annees;
+            private Integer ageEpoux2Annees;
+            private Boolean prestationCompensatoireEnvisagee;
+            public Builder dureeMariageAnnees(Integer v) { this.dureeMariageAnnees = v; return this; }
+            public Builder revenusAnnuelsEpoux1(Double v) { this.revenusAnnuelsEpoux1 = v; return this; }
+            public Builder revenusAnnuelsEpoux2(Double v) { this.revenusAnnuelsEpoux2 = v; return this; }
+            public Builder ageEpoux1Annees(Integer v) { this.ageEpoux1Annees = v; return this; }
+            public Builder ageEpoux2Annees(Integer v) { this.ageEpoux2Annees = v; return this; }
+            public Builder prestationCompensatoireEnvisagee(Boolean v) { this.prestationCompensatoireEnvisagee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2633,7 +2785,14 @@ public record CaseAnalysisResponse(
                         dateNotificationProjetBeDetectee,
                         dateHomologationBeDetectee,
                         dateMariageBeDetectee,
-                        contratMariageSigneBeDetecte);
+                        contratMariageSigneBeDetecte,
+                        // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+                        dureeMariageAnnees,
+                        revenusAnnuelsEpoux1,
+                        revenusAnnuelsEpoux2,
+                        ageEpoux1Annees,
+                        ageEpoux2Annees,
+                        prestationCompensatoireEnvisagee);
             }
         }
     }
@@ -4134,6 +4293,31 @@ public record CaseAnalysisResponse(
                 }
             }
         }
+        // SF-214 : extraction des champs F-IM-25 a F-IM-32 (vague 1), FRANCE UNIQUEMENT.
+        boolean etrangerMaladeDetecte = booleanOrFalse(root, "etranger_malade_detecte");
+        String etrangerMaladePathologie = textOrNull(root, "etranger_malade_pathologie");
+        Boolean etrangerMaladeTraitementDisponible = booleanOrNull(root, "etranger_malade_traitement_disponible");
+        String etrangerMaladeAvisOFII = normalizeEnumCode(textOrNull(root, "etranger_malade_avis_ofii"),
+                java.util.Set.of("FAVORABLE", "DEFAVORABLE", "EN_ATTENTE"));
+        String etrangerMalaDateAvisOFIIRaw = textOrNull(root, "etranger_mala_date_avis_ofii");
+        final String ISO_DATE_SF214 = "\\d{4}-\\d{2}-\\d{2}";
+        String etrangerMalaDateAvisOFII = (etrangerMalaDateAvisOFIIRaw != null
+                && etrangerMalaDateAvisOFIIRaw.matches(ISO_DATE_SF214)
+                && etrangerMalaDateAvisOFIIRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
+                ? etrangerMalaDateAvisOFIIRaw : null;
+        boolean regroupementFamilialEnvisage = booleanOrFalse(root, "regroupement_familial_envisage");
+        Double regroupementRessourcesMensuelles = doubleOrNull(root, "regroupement_ressources_mensuelles");
+        String regroupementType = normalizeEnumCode(textOrNull(root, "regroupement_type"),
+                java.util.Set.of("CONJOINT", "ENFANT_MINEUR", "AUTRE"));
+        boolean viePriveeFamilialeDetectee = booleanOrFalse(root, "vie_privee_familiale_detectee");
+        String vpfNiveauIntegration = normalizeEnumCode(textOrNull(root, "vpf_niveau_integration"),
+                java.util.Set.of("FORT", "MOYEN", "FAIBLE"));
+        Boolean vlsTsValidationOFIIEffectuee = booleanOrNull(root, "vls_ts_validation_ofii_effectuee");
+        boolean aesCalculPresenceDeclenche = aesMetiersTension || aesFamilial || aesHumanitaire || aesEtudiant;
+        boolean recouvrementTitreEnCours = booleanOrFalse(root, "recouvrement_titre_en_cours");
+        String recepisseOuAttestationType = normalizeEnumCode(textOrNull(root, "recepisse_ou_attestation_type"),
+                java.util.Set.of("RECEPISSE", "ATTESTATION_PROLONGATION", "INCONNU"));
+
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -4163,7 +4347,14 @@ public record CaseAnalysisResponse(
                 && eloiDureePresenceIrreguliereMois == null && eloiMotifMenace == null
                 && be9bisDateEntreeBelgique == null && be9terDateDebutSymptomes == null
                 && be40bisLienFamilial == null && be40terLienFamilial == null
-                && be40terRevenusMensuelsNets == null) return null;
+                && be40terRevenusMensuelsNets == null
+                // SF-214 : champs nullables seulement (les boolean primitifs ne sont jamais null)
+                && etrangerMaladePathologie == null && etrangerMaladeTraitementDisponible == null
+                && etrangerMaladeAvisOFII == null && etrangerMalaDateAvisOFII == null
+                && regroupementRessourcesMensuelles == null && regroupementType == null
+                && vpfNiveauIntegration == null && vlsTsValidationOFIIEffectuee == null
+                && recepisseOuAttestationType == null) return null;
+
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -4243,6 +4434,21 @@ public record CaseAnalysisResponse(
                 .be40bisLienFamilial(be40bisLienFamilial)
                 .be40terLienFamilial(be40terLienFamilial)
                 .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets)
+                // SF-214 : F-IM-25 à F-IM-32 — vague 1
+                .etrangerMaladeDetecte(etrangerMaladeDetecte)
+                .etrangerMaladePathologie(etrangerMaladePathologie)
+                .etrangerMaladeTraitementDisponible(etrangerMaladeTraitementDisponible)
+                .etrangerMaladeAvisOFII(etrangerMaladeAvisOFII)
+                .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII)
+                .regroupementFamilialEnvisage(regroupementFamilialEnvisage)
+                .regroupementRessourcesMensuelles(regroupementRessourcesMensuelles)
+                .regroupementType(regroupementType)
+                .viePriveeFamilialeDetectee(viePriveeFamilialeDetectee)
+                .vpfNiveauIntegration(vpfNiveauIntegration)
+                .vlsTsValidationOFIIEffectuee(vlsTsValidationOFIIEffectuee)
+                .aesCalculPresenceDeclenche(aesCalculPresenceDeclenche)
+                .recouvrementTitreEnCours(recouvrementTitreEnCours)
+                .recepisseOuAttestationType(recepisseOuAttestationType)
                 .build();
     }
 
@@ -4923,6 +5129,25 @@ public record CaseAnalysisResponse(
                 || dateHomologationBeDetectee != null
                 || dateMariageBeDetectee != null
                 || contratMariageSigneBeDetecte != null;
+        // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+        // `duree_mariage_annees_fr` et `revenus_annuels_epoux1/2_eur` étendent le
+        // sous-objet `vie_commune_detection` déjà présent (SF-246-08).
+        // `prestation_compensatoire_detection.envisagee` = flag CONTEXTUAL.
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        Integer dureeMariageAnnesFr = vcdObject ? boundedIntOrNull(vcd, "duree_mariage_annees_fr", 0, 80) : null;
+        Double revenusAnnuelsEpoux1Fr = vcdObject ? nonNegativeDoubleOrNull(vcd, "revenus_annuels_epoux1_eur") : null;
+        Double revenusAnnuelsEpoux2Fr = vcdObject ? nonNegativeDoubleOrNull(vcd, "revenus_annuels_epoux2_eur") : null;
+        Integer ageEpoux1AnneesFr = vcdObject ? boundedIntOrNull(vcd, "age_epoux1_annees", 0, 120) : null;
+        Integer ageEpoux2AnneesFr = vcdObject ? boundedIntOrNull(vcd, "age_epoux2_annees", 0, 120) : null;
+        JsonNode pcd = node.get("prestation_compensatoire_detection");
+        Boolean prestationCompensatoireEnvisagee = (pcd != null && pcd.isObject())
+                ? booleanOrNull(pcd, "envisagee") : null;
+        boolean sf216_01Present = dureeMariageAnnesFr != null
+                || revenusAnnuelsEpoux1Fr != null
+                || revenusAnnuelsEpoux2Fr != null
+                || ageEpoux1AnneesFr != null
+                || ageEpoux2AnneesFr != null
+                || prestationCompensatoireEnvisagee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -4961,7 +5186,8 @@ public record CaseAnalysisResponse(
                 && !filiationV2DetectionPresent
                 && !protectionDivorceV2Present
                 && dateSeparationBe == null
-                && !familleBev2Present) {
+                && !familleBev2Present
+                && !sf216_01Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5129,6 +5355,13 @@ public record CaseAnalysisResponse(
                 .dateHomologationBeDetectee(dateHomologationBeDetectee)
                 .dateMariageBeDetectee(dateMariageBeDetectee)
                 .contratMariageSigneBeDetecte(contratMariageSigneBeDetecte)
+                // SF-216-01 : 6 champs IA prestation compensatoire + vie commune FR.
+                .dureeMariageAnnees(dureeMariageAnnesFr)
+                .revenusAnnuelsEpoux1(revenusAnnuelsEpoux1Fr)
+                .revenusAnnuelsEpoux2(revenusAnnuelsEpoux2Fr)
+                .ageEpoux1Annees(ageEpoux1AnneesFr)
+                .ageEpoux2Annees(ageEpoux2AnneesFr)
+                .prestationCompensatoireEnvisagee(prestationCompensatoireEnvisagee)
                 .build();
     }
 

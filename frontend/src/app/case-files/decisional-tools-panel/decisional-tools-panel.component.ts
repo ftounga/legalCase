@@ -56,6 +56,8 @@ import { JldRetentionSectionComponent } from '../jld-retention-section/jld-reten
 import { DublinRecoursSectionComponent } from '../dublin-recours-section/dublin-recours-section.component';
 import { CrrvRefusVisaSectionComponent } from '../crrv-refus-visa-section/crrv-refus-visa-section.component';
 import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l4256-section/victime-violences-l4256-section.component';
+// SF-214-01 stub : entrée TOOL_REGISTRY F-IM-25 — composant complet livré en SF-214-02.
+import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1105,6 +1107,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
           // F-163 SF-163-02d — propage le flag standalone.
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-01 stub : F-IM-25 étranger malade L.425-9 CESEDA (FR).
+      // Entrée TOOL_REGISTRY requise par DecisionToolVisibilityIntegrityIT
+      // (seed migration 272). Composant complet livré en SF-214-02.
+      ['F-IM-25-etranger-malade-l4259-fr', {
+        displayLabel: 'Étranger malade — L.425-9 (FR)',
+        component: EtrangerMaladeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
@@ -2367,6 +2382,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-24-non-concurrence', 'VALIDITE'],
     ['F-DT-27-motif-grave-be', 'VALIDITE'],
     ['F-DT-30-protection-rp', 'VALIDITE'],
+    // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR) — analyseur d'éligibilité.
+    // Thème VALIDITE (analyse d'éligibilité protection médicale, CONTEXTUAL FR).
+    ['F-IM-25-etranger-malade-l4259-fr', 'VALIDITE'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],

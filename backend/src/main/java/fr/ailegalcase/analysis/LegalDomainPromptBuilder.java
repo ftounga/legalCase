@@ -267,6 +267,21 @@ public final class LegalDomainPromptBuilder {
               "divorce_ddi_be_detection" : objet OU null. **BELGIQUE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille BELGIQUE comportant une procédure de divorce pour désunion irrémédiable (DDI) documentée dans les pièces (CC art. 229 § 1 ou § 3 ; CJ art. 1255 § 1 ou § 2). Pour un dossier famille FRANCE, ce sous-objet DOIT rester null. Le champ interne :
                 - "date_separation_be" : chaîne ISO YYYY-MM-DD ou null. **BELGIQUE UNIQUEMENT** — date de la cessation effective de la vie commune entre les époux (CJ art. 1255 § 1). DISTINCT de `date_separation` FR (SF-246-08), de la date du mariage, de la date de la requête introductive d'instance, de la date de l'assignation et de `date_accord_initial_divorce` (SF-239). Null si non documentée avec certitude ou dossier FRANCE. Format YYYY-MM-DD strict.
               **RÈGLE NO-OP GRACIEUX** : si le sous-objet `divorce_ddi_be_detection` est absent ou null, l'extracteur retourne null pour `dateSeparationBe` sans erreur.
+            SF-216-01 — Extension de `vie_commune_detection` + nouveau sous-objet `prestation_compensatoire_detection` (FRANCE UNIQUEMENT).
+              Extension de `vie_commune_detection` (déjà défini en SF-246-08) — 5 nouveaux champs FRANCE :
+                - "duree_mariage_annees_fr" : entier [0,80] ou null. **FRANCE UNIQUEMENT** — Durée du mariage en années entières entre la date de mariage et la date de la requête en divorce (art. 270 Cciv). DISTINCT de `duree_mariage_annees_be` (sous-objet BE). Null si la date de mariage n'est pas documentée avec certitude. Alimente l'outil prestation-compensatoire.
+                - "revenus_annuels_epoux1_eur" : nombre ≥ 0 ou null. **FRANCE UNIQUEMENT** — Revenus annuels bruts de l'époux 1 (demandeur) en euros (bulletins de salaire, avis d'imposition, ou déclaration produite — art. 272 Cciv). DISTINCT de `revenus_annuels_epoux` (SF-246-08, générique). Retourner 0 si revenus nuls documentés. Null si non documentés. Alimente prestation-compensatoire.
+                - "revenus_annuels_epoux2_eur" : nombre ≥ 0 ou null. **FRANCE UNIQUEMENT** — Revenus annuels bruts de l'époux 2 (défendeur) en euros, mêmes critères que `revenus_annuels_epoux1_eur`. Retourner 0 si revenus nuls documentés. Null si non documentés. Alimente prestation-compensatoire.
+                - "age_epoux1_annees" : entier [0,120] ou null. **FRANCE UNIQUEMENT** — Âge de l'époux 1 en années entières extrait de la pièce d'identité, de l'acte de naissance ou d'un autre document d'état civil (art. 272 Cciv — l'âge conditionne la forme recommandée). Null si non documenté avec certitude. Alimente prestation-compensatoire.
+                - "age_epoux2_annees" : entier [0,120] ou null. **FRANCE UNIQUEMENT** — Âge de l'époux 2 en années entières, mêmes critères que `age_epoux1_annees`. Null si non documenté avec certitude. Alimente prestation-compensatoire.
+              **RÈGLE ANTI-DOUBLONS** : `duree_mariage_annees_fr` (sous-objet `vie_commune_detection`, FRANCE) et `duree_mariage_annees_be` (sous-objet `famille_be_detection_v2`, BELGIQUE) sont DEUX champs distincts portant chacun une durée de mariage mais relevant de juridictions différentes — ne jamais renseigner les deux pour le même dossier.
+              **RÈGLE NO-OP GRACIEUX** : si les 5 nouveaux champs sont absents de `vie_commune_detection`, l'extracteur retourne null pour ces champs sans erreur.
+
+              Nouveau sous-objet `prestation_compensatoire_detection` (FRANCE UNIQUEMENT) :
+              "prestation_compensatoire_detection" : objet OU null. **FRANCE UNIQUEMENT** — renseigne-le UNIQUEMENT si au moins une des conditions suivantes est réunie dans les pièces du dossier : (a) mention explicite de « prestation compensatoire » ou « art. 270 Cciv » ou « art. 272 Cciv » ; (b) constat d'une disparité documentée de niveaux de vie entre les époux (revenus ou patrimoine déséquilibrés). Pour un dossier famille BELGIQUE, ce sous-objet DOIT rester null. Le champ interne :
+                - "envisagee" : booléen ou null. **FRANCE UNIQUEMENT** — true si une demande de prestation compensatoire est envisagée, mentionnée ou demandée dans le dossier ; false si le dossier établit explicitement qu'aucune prestation n'est demandée ; null si aucune information ne permet de trancher.
+              **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour `prestationCompensatoireEnvisagee` sans erreur.
+              **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
             """;
 
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis
@@ -571,6 +586,17 @@ public final class LegalDomainPromptBuilder {
                 "documents_date_certificat_travail" : date du certificat de travail remis au salarié au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date d'établissement de l'attestation France Travail.
                 "documents_date_attestation_france_travail" : date de l'attestation France Travail (ex-Pôle Emploi) au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date du certificat de travail.
                 "documents_date_solde_tout_compte" : date du solde de tout compte signé au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date de fin de contrat.
+
+              SF-212-01 — Sous-objet `faute_grave_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si la lettre de licenciement, la lettre de convocation à entretien préalable ou tout autre document aux pièces mentionne une faute disciplinaire (grave, lourde ou simple) ou un licenciement disciplinaire. Laisser null si aucun indice de faute disciplinaire n'est présent.
+              "faute_grave_detail" : objet OU null. Si émis, contient EXACTEMENT les 6 clés suivantes :
+                "faute_grave_faits_reproches" : résumé factuel des faits reprochés au salarié, en texte libre (≤ 500 caractères). Extraire depuis la lettre de licenciement ou de convocation — NE PAS paraphraser, citer les termes-clés du document. Null si aucune lettre disciplinaire présente.
+                "faute_grave_dates_faits" : liste de dates des faits reprochés au format YYYY-MM-DD strict. Extraire depuis la lettre disciplinaire ou le rapport d'enquête. Tableau vide si non détectables (ne jamais renvoyer null pour ce champ — toujours un tableau, potentiellement vide).
+                "faute_grave_qualification_employeur" : qualification de la faute retenue par l'employeur dans la lettre de licenciement. Utiliser EXCLUSIVEMENT l'une de ces 3 valeurs EXACTES (null si non déterminable) : "FAUTE_SIMPLE" (faute ordinaire, sans gravité suffisante pour rupture immédiate), "FAUTE_GRAVE" (faute rendant impossible le maintien du salarié pendant le préavis — L.1234-1 CT), "FAUTE_LOURDE" (faute grave avec intention de nuire à l'employeur — L.1234-9 CT, Cass. soc. 18/06/2013 n°11-14.393). Si la lettre ne précise pas la qualification, laisser null — ne pas inférer.
+                "faute_grave_intention_nuire_alleeguee" : booléen. true si la lettre de licenciement ou un document aux pièces allègue explicitement une intention de nuire à l'employeur (critère distinctif de la faute lourde — L.1234-9 CT). false si aucune intention de nuire n'est alléguée. Null si non déterminable. Ne JAMAIS inférer une intention de nuire depuis la seule gravité des faits.
+                "faute_grave_anciennete_mois" : ancienneté du salarié au moment du licenciement disciplinaire, EN MOIS ENTIERS (entier ≥ 0, ≤ 600). Extraire depuis le contrat de travail, les bulletins de paie ou la lettre de licenciement. Null si non détectable. NE PAS confondre avec l'ancienneté en années (convertir en mois).
+                "faute_grave_salaire_mensuel_brut" : salaire brut mensuel de référence du salarié, en euros (décimal > 0). Extraire depuis les 3 derniers bulletins de paie ou le solde de tout compte. Null si non détectable. Utilisé pour calculer l'incidence financière (préavis, indemnité légale de licenciement — tous deux à 0 en cas de faute grave ou lourde).
+              Règle NO-OP faute_grave_detail : si aucun document disciplinaire n'est identifiable parmi les pièces, émettre "faute_grave_detail": null — ne jamais inventer de faute disciplinaire.
             """;
 
     /**
@@ -689,7 +715,14 @@ public final class LegalDomainPromptBuilder {
                 "be_40ter_revenus_mensuels_nets" : Revenus mensuels nets du citoyen belge regroupant (art. 40ter Loi 15/12/1980), en EUR entier. Extraire depuis les fiches de salaire, attestation employeur ou avertissement-extrait de rôle. Entier > 0 et ≤ 30 000. Null si non déterminable.
               }
               Règle NO-OP : si aucun des champs ci-dessus n'est trouvé dans les documents, poser null pour tous les champs du sous-objet (ne pas inventer).
+            SF-214-01 — F-IM-25 Étranger malade L.425-9 CESEDA (FRANCE UNIQUEMENT). 5 champs pour pré-fill outil décisionnel. Null pour tout dossier belge.
+            "etranger_malade_detecte" : booléen — true UNIQUEMENT si le dossier comporte des indices factuels d'une procédure L.425-9 CESEDA (pathologie grave mentionnée, avis médical OFII, demande de titre pour raisons de santé). False par défaut. Null pour dossier belge.
+            "etranger_malade_pathologie" : pathologie principale du patient telle qu'elle figure dans le certificat médical ou le rapport médical, en texte libre (≤ 200 caractères). Null si non détectable dans les pièces ou dossier belge. Ne JAMAIS inventer ou inférer une pathologie non explicitement documentée.
+            "etranger_malade_traitement_disponible" : booléen — true si un document médical au dossier indique explicitement que le traitement est disponible dans le pays d'origine du requérant ; false si un document médical indique explicitement qu'il n'est PAS disponible ou accessible. Null si la disponibilité n'est pas mentionnée dans les pièces ou dossier belge. Ce champ est central pour l'éligibilité L.425-9 — ne pas inférer.
+            "etranger_malade_avis_ofii" : avis rendu par le collège médical de l'OFII, CLASSER dans l'une de ces 3 valeurs EXACTES (null si non déterminable ou dossier belge) : "FAVORABLE" (avis favorable à la délivrance du titre L.425-9), "DEFAVORABLE" (avis défavorable — ouvre délai de recours TA 2 mois CJA), "EN_COURS" (avis sollicité mais pas encore rendu).
+            "etranger_mala_date_avis_ofii" : date de l'avis rendu par le collège médical de l'OFII au format YYYY-MM-DD. Date non future obligatoire. Null si l'avis n'est pas encore rendu, si la date n'est pas lisible dans les pièces, ou pour un dossier belge. À ne pas confondre avec "date_depot_procedure" (date de dépôt du dossier OFII).
             """;
+
 
     private LegalDomainPromptBuilder() {}
 

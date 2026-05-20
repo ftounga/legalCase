@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="271-create-etranger-malade-analyses" author="legalcase">
+        <comment>
+            SF-214-01 — table `etranger_malade_analyses` pour l'outil décisionnel
+            "Étranger malade L. 425-9 CESEDA" (F-IM-25, FRANCE).
+
+            Outil single-country FR : analyse l'éligibilité à la protection médicale
+            L. 425-9 (état de santé nécessitant soins indisponibles dans le pays
+            d'origine, avis collège médical OFII). Calcule le délai de recours TA
+            (2 mois CJA) contre un avis OFII défavorable.
+
+            Source juridique : L. 425-9 CESEDA (Ordonnance 2020-1733) ; R. 425-9 à
+            R. 425-16 CESEDA ; CE 7 avril 2010 n° 301640 ; Loi 7 mars 2016 (OFII).
+
+            UUID namespace F-214 : f2140001-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="etranger_malade_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_etranger_malade_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_depot_dossier_ofii" type="DATE"/>
+            <column name="pathologie_principale" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pays_origine" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="traitement_disponible_pays_origine" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="avis_ofii" type="VARCHAR(20)"/>
+            <column name="date_avis_ofii" type="DATE"/>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="etranger_malade_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

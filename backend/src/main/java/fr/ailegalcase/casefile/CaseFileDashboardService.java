@@ -98,6 +98,10 @@ public class CaseFileDashboardService {
     private final PriseActeRuptureRepository priseActeRuptureRepo;
     // SF-206-07 : F-DT-40 résiliation judiciaire du contrat de travail aux torts de l'employeur (FR)
     private final ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
+    // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
+    private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
+    // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
+    private final EtrangerMaladeRepository etrangerMaladeRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -234,6 +238,8 @@ public class CaseFileDashboardService {
                                      CongesPayesArretMaladieRepository congesPayesArretMaladieRepo,
                                      PriseActeRuptureRepository priseActeRuptureRepo,
                                      ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo,
+                                     LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
+                                     EtrangerMaladeRepository etrangerMaladeRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -354,6 +360,8 @@ public class CaseFileDashboardService {
         this.congesPayesArretMaladieRepo = congesPayesArretMaladieRepo;
         this.priseActeRuptureRepo = priseActeRuptureRepo;
         this.resiliationJudiciaireCphRepo = resiliationJudiciaireCphRepo;
+        this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
+        this.etrangerMaladeRepo = etrangerMaladeRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -531,10 +539,13 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-DT-39-prise-acte-rupture", caseFileId, () -> tileFromPriseActeRuptureAnalysis(caseFileId));
         // SF-206-07 : F-DT-40 résiliation judiciaire du contrat de travail aux torts de l'employeur (FR)
         addSafely(tiles, "F-DT-40-resiliation-judiciaire-cph", caseFileId, () -> tileFromResiliationJudiciaireCphAnalysis(caseFileId));
+        // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
+        addSafely(tiles, "F-DT-36-licenciement-faute-grave-lourde", caseFileId, () -> tileFromLicenciementFauteGraveLourdAnalysis(caseFileId));
         addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
         addSafely(tiles, "F-IM-24-victime-violences-l4256-fr", caseFileId, () -> tileFromVictimeViolencesL4256Analysis(caseFileId));
+        addSafely(tiles, "F-IM-25-etranger-malade-l4259-fr", caseFileId, () -> tileFromEtrangerMaladeAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1587,6 +1598,40 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "Titre L.425-6 violences",
                         score != null ? score : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-IM-25 Étranger malade L.425-9 CESEDA (FR) — SF-214-01.
+     * Thème VALIDITE : éligibilité à la protection médicale.
+     * Mapping alertLevel :
+     * ELIGIBLE_PROBABLE → OK ; ELIGIBLE_SOUS_RESERVE → WARNING ;
+     * NON_ELIGIBLE → ALERT ; EN_ATTENTE_AVIS_OFII → null.
+     */
+    private DashboardTile tileFromEtrangerMaladeAnalysis(UUID caseFileId) {
+        return etrangerMaladeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), EtrangerMaladeResult.class);
+                String verdict = r.verdict();
+                String secondary = r.delaiRecoursTA() != null
+                        ? "Délai recours TA : " + r.delaiRecoursTA()
+                        : (r.motifRecours() != null ? r.motifRecours() : "—");
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "ELIGIBLE_PROBABLE" -> "OK";
+                    case "ELIGIBLE_SOUS_RESERVE" -> "WARNING";
+                    case "NON_ELIGIBLE" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-25-etranger-malade-l4259-fr",
+                        "VALIDITE",
+                        "Étranger malade L.425-9",
+                        verdict != null ? verdict : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {
@@ -3654,6 +3699,61 @@ public class CaseFileDashboardService {
             case "CONTESTABLE" -> "WARNING";
             case "NUL", "IRRECEVABLE" -> "ALERT";
             default -> null;
+        };
+    }
+
+    /**
+     * SF-212-01 — F-DT-36-licenciement-faute-grave-lourde (FRANCE UNIQUEMENT).
+     *
+     * <p>Thème {@code DIAGNOSTIC} : qualification disciplinaire et impact
+     * financier sur les indemnités de rupture.
+     * Mapping alertLevel :
+     * <ul>
+     *   <li>{@code FAUTE_LOURDE} → {@code ALERT} (impact maximal, intention de nuire)</li>
+     *   <li>{@code FAUTE_GRAVE} → {@code WARNING} (perte préavis + IL légale)</li>
+     *   <li>{@code FAUTE_SIMPLE} → {@code OK} (droits préservés)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromLicenciementFauteGraveLourdAnalysis(UUID caseFileId) {
+        return licenciementFauteGraveLourdRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), LicenciementFauteGraveLourdResponse.class);
+                String qualification = r.qualificationRetenue() != null
+                        ? r.qualificationRetenue().name() : null;
+                String primary = libelleQualificationFauteGrave(qualification);
+                String secondary = java.text.NumberFormat.getNumberInstance(java.util.Locale.FRANCE)
+                        .format(Math.round(r.totalIndemnitesDuesEuros())) + " € d'indemnités dues";
+                return new DashboardTile(
+                        "F-DT-36-licenciement-faute-grave-lourde",
+                        "DIAGNOSTIC",
+                        "Faute grave / faute lourde",
+                        primary,
+                        secondary,
+                        mapAlertLevelQualificationFaute(qualification));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private static String libelleQualificationFauteGrave(String qualification) {
+        if (qualification == null) return "Qualification non déterminée";
+        return switch (qualification) {
+            case "FAUTE_LOURDE" -> "Faute lourde retenue";
+            case "FAUTE_GRAVE"  -> "Faute grave retenue";
+            case "FAUTE_SIMPLE" -> "Faute simple";
+            default             -> qualification;
+        };
+    }
+
+    private static String mapAlertLevelQualificationFaute(String qualification) {
+        if (qualification == null) return null;
+        return switch (qualification) {
+            case "FAUTE_LOURDE" -> "ALERT";
+            case "FAUTE_GRAVE"  -> "WARNING";
+            case "FAUTE_SIMPLE" -> "OK";
+            default             -> null;
         };
     }
 

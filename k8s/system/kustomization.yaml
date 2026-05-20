@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - metrics-server.yaml
   - cluster-autoscaler.yaml
+  - fluent-bit.yaml

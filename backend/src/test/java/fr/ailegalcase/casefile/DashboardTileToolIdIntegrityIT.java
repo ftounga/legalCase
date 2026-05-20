@@ -67,7 +67,13 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary"
+            "F-196-questions-summary",
+            // SF-212-01 (2026-05-20) — exclusion transitoire (à résorber par SF-212-02
+            // frontend). La tuile est émise par CaseFileDashboardService mais le
+            // seed `decision_tool_visibility_rules` (migration 273) + l'entrée
+            // TOOL_REGISTRY frontend sont portés ensemble par SF-212-02
+            // (pattern SF-206-01 — cf. commentaire migration 272).
+            "F-DT-36-licenciement-faute-grave-lourde"
             // SF-206-02 (2026-05-20) : F-DT-42 retiré — résolution structurelle
             // complète (seed migration 263 + TOOL_REGISTRY frontend + tile mapper).
             // SF-206-04 (2026-05-20) : F-DT-75 retiré — résolution structurelle
