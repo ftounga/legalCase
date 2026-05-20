@@ -67,17 +67,13 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary",
-            // SF-206-02 (2026-05-20) : F-DT-42 retiré ici — la résolution
-            // structurelle est en place (seed visibility migration 263 +
-            // entrée TOOL_REGISTRY frontend dans decisional-tools-panel.component.ts
-            // + tile mapper backend déjà présent dans CaseFileDashboardService).
-            // F-DT-75 (SF-206-03) — exclusion transitoire (à résorber par SF-206-04
-            // frontend). La tuile est émise par CaseFileDashboardService mais le
-            // seed `decision_tool_visibility_rules` + l'entrée TOOL_REGISTRY frontend
-            // sont volontairement portés ensemble par la SF frontend SF-206-04
-            // (pattern SF-206-01/02 / SF-DT-36-02 — cf. comment migration 264).
-            "F-DT-75-conges-payes-arret-maladie"
+            "F-196-questions-summary"
+            // SF-206-02 (2026-05-20) : F-DT-42 retiré — résolution structurelle
+            // complète (seed migration 263 + TOOL_REGISTRY frontend + tile mapper).
+            // SF-206-04 (2026-05-20) : F-DT-75 retiré — résolution structurelle
+            // complète (seed migration 266 + entrée TOOL_REGISTRY frontend dans
+            // decisional-tools-panel.component.ts + tile mapper backend déjà
+            // présent dans CaseFileDashboardService).
     );
 
     /**

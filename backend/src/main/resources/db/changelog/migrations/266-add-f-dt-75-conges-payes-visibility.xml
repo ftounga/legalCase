@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="266-add-f-dt-75-conges-payes-visibility" author="legalcase">
+        <comment>
+            SF-206-04 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Congés payés acquis pendant arrêt maladie"
+            (F-DT-75, FRANCE), table créée par SF-206-03 (migration 264).
+
+            Le seed est porté par la SF frontend — et non par la SF backend —
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-206-02
+            (migration 263), SF-DT-36-02 (migration 231), SF-207-05b
+            (migration 261). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte un arrêt maladie long (> 1 mois cumulé)
+            — trigger `arret_maladie_long_detecte` = true (signal métier
+            extrait par TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue).
+            priority 59 — juste après F-DT-42 (abandon-poste, priority 58).
+
+            Régime L.3141-5 / L.3141-5-1 CT — loi 22/04/2024 art. 37
+            transposant Cass. soc. 13/09/2023 n°22-17.340. Mécanisme purement
+            français — aucun équivalent direct en droit belge.
+
+            UUID namespace dédié F-206 : f1a04001-0000-0000-0000-eeee20000751.
+
+            Cette migration résorbe aussi l'exclusion transitoire de F-DT-75
+            dans `KNOWN_SUMMARY_TILE_IDS` (DashboardTileToolIdIntegrityIT —
+            cf. retrait dans le même commit).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000751', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-75-conges-payes-arret-maladie', 'CONTEXTUAL', 'arret_maladie_long_detecte', 'true', 59);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20000751';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
