@@ -684,6 +684,35 @@ export interface TravailExtractedData {
   cpArretMaladieDateRupture?: string | null;
   /** Jours de CP déjà accordés / décomptés par l'employeur (pour calcul du rappel net). */
   cpArretMaladieJoursDejaAccordes?: number | null;
+  // -------------------------------------------------------------------------
+  // SF-206-05 — sous-objet `prise_acte_detail` (FRANCE only)
+  // Pré-fill F-DT-39 (prise d'acte de la rupture aux torts de l'employeur).
+  // Tous nullables — restent `null` pour un dossier Travail BE (la prise
+  // d'acte CPH avec effets licenciement / démission est un mécanisme
+  // franco-français — Cass. soc. 25/06/2003 n°01-42.679).
+  // -------------------------------------------------------------------------
+  /** Défaut ou retard de paiement du salaire (Cass. soc. 20/03/2013 n°11-26.770). */
+  priseActeDefautPaiementSalaire?: boolean | null;
+  /** Montant cumulé d'impayés en € (seuil significatif backend : 1500 €). */
+  priseActeMontantImpayes?: number | null;
+  /** Harcèlement moral ou sexuel — bascule LICENCIEMENT_NUL (L.1152-3 / L.1153-4 CT). */
+  priseActeHarcelement?: boolean | null;
+  /** Manquement à l'obligation de sécurité (L.4121-1 CT). */
+  priseActeManquementSecurite?: boolean | null;
+  /** Modification unilatérale d'un élément essentiel du contrat. */
+  priseActeModificationContrat?: boolean | null;
+  /** Déclassement professionnel / mise à l'écart. */
+  priseActeDeclassement?: boolean | null;
+  /** Discrimination (L.1132-1 CT) — bascule LICENCIEMENT_NUL (L.1132-4 CT). */
+  priseActeDiscrimination?: boolean | null;
+  /** Non-paiement des heures supplémentaires (L.3171-4 CT). */
+  priseActeHeuresSupNonPayees?: boolean | null;
+  /** Non-respect des durées maximales / temps de repos (L.3121-18 s. CT). */
+  priseActeNonRespectRepos?: boolean | null;
+  /** Griefs actuels et persistants (vs anciens régularisés — Cass. soc. 26/03/2014 n°12-23.634). */
+  priseActeGriefsPersistants?: boolean | null;
+  /** Grief rendant impossible la poursuite du contrat (critère central Cass. soc. 26/03/2014 n°12-21.372). */
+  priseActeGriefImpossiblePoursuite?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

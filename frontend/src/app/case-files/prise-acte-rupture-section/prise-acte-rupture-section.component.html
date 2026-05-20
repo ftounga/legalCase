@@ -1,0 +1,368 @@
+<section class="par-section">
+  <header class="par-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="par-body">
+    <mat-icon class="par-icon">gavel</mat-icon>
+    <span class="par-title">PRISE D'ACTE DE LA RUPTURE</span>
+    @if (result()) {
+      <span class="par-chip-summary"
+            [class.par-chip-summary--favorable]="result()!.verdict === 'PRISE_ACTE_FAVORABLE'"
+            [class.par-chip-summary--risquee]="result()!.verdict === 'PRISE_ACTE_RISQUEE'"
+            [class.par-chip-summary--defavorable]="result()!.verdict === 'PRISE_ACTE_DEFAVORABLE'">
+        Score {{ result()!.scoreSolidite }} / 100
+      </span>
+    }
+    <mat-icon class="par-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="par-body" class="par-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="par-country-banner" data-testid="par-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (Cass. soc. 25/06/2003 n°01-42.679 — mécanisme franco-français). En droit belge, le travailleur lésé saisit le tribunal du travail en référé ou résolution judiciaire (outil F-207-05).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="par-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        <!-- Avertissement persistant — rupture immédiate -->
+        <div class="par-warning-banner" data-testid="par-warning-banner">
+          <mat-icon>warning_amber</mat-icon>
+          <div class="par-warning-content">
+            <strong>La prise d'acte est une rupture immédiate.</strong>
+            Un verdict défavorable signifie effets <em>démission</em> (perte d'indemnités + d'allocations chômage). À comparer avec l'outil <strong>résiliation judiciaire</strong>, qui maintient le contrat pendant l'instance.
+          </div>
+        </div>
+
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="par-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="par-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Griefs principaux (4 toggles) -->
+            <div class="par-block par-full">
+              <span class="par-block-label">Griefs principaux (manquements graves)</span>
+
+              <!-- Défaut de paiement -->
+              <div class="par-field-with-alert">
+                <div class="par-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="defautPaiementSalaire()"
+                      (ngModelChange)="onDefautPaiementChange($event)"
+                      name="defautPaiementSalaire">
+                    Défaut ou retard de paiement du salaire
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceDefautPaiement() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DEFAUT_PAIEMENT; as alert) {
+                  <span class="par-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Montant impayés (conditionnel) -->
+              @if (defautPaiementSalaire()) {
+                <mat-form-field appearance="outline" class="par-inset-field">
+                  <mat-label>Montant cumulé d'impayés (€)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="montantImpayesEur()"
+                         (ngModelChange)="onMontantImpayesChange($event)"
+                         name="montantImpayesEur" />
+                </mat-form-field>
+                @if (provenanceMontantImpayes() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              }
+
+              <!-- Harcèlement -->
+              <div class="par-field-with-alert">
+                <div class="par-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="harcelement()"
+                      (ngModelChange)="onHarcelementChange($event)"
+                      name="harcelement">
+                    Harcèlement moral ou sexuel (bascule LICENCIEMENT NUL)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceHarcelement() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().HARCELEMENT; as alert) {
+                  <span class="par-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Manquement sécurité -->
+              <div class="par-field-with-alert">
+                <div class="par-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="manquementSecurite()"
+                      (ngModelChange)="onManquementSecuriteChange($event)"
+                      name="manquementSecurite">
+                    Manquement à l'obligation de sécurité (L.4121-1 CT)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceManquementSecurite() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MANQUEMENT_SECURITE; as alert) {
+                  <span class="par-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Discrimination -->
+              <div class="par-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="discrimination()"
+                    (ngModelChange)="onDiscriminationChange($event)"
+                    name="discrimination">
+                  Discrimination (bascule LICENCIEMENT NUL — L.1132-4 CT)
+                </mat-slide-toggle>
+                @if (provenanceDiscrimination() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Griefs significatifs (4 toggles) -->
+            <div class="par-block par-full">
+              <span class="par-block-label">Griefs significatifs / marginaux</span>
+
+              <div class="par-field-with-alert">
+                <div class="par-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="modificationUnilateraleContrat()"
+                      (ngModelChange)="onModificationContratChange($event)"
+                      name="modificationUnilateraleContrat">
+                    Modification unilatérale d'un élément essentiel du contrat
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceModificationContrat() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MODIFICATION_CONTRAT; as alert) {
+                  <span class="par-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="par-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="declassement()"
+                    (ngModelChange)="onDeclassementChange($event)"
+                    name="declassement">
+                  Déclassement professionnel / mise à l'écart
+                </mat-slide-toggle>
+                @if (provenanceDeclassement() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="par-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="heuresSupNonPayees()"
+                    (ngModelChange)="onHeuresSupNonPayeesChange($event)"
+                    name="heuresSupNonPayees">
+                  Non-paiement des heures supplémentaires
+                </mat-slide-toggle>
+                @if (provenanceHeuresSupNonPayees() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="par-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="nonRespectDureesRepos()"
+                    (ngModelChange)="onNonRespectReposChange($event)"
+                    name="nonRespectDureesRepos">
+                  Non-respect des durées maximales / temps de repos
+                </mat-slide-toggle>
+                @if (provenanceNonRespectRepos() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Modulateurs jurisprudentiels -->
+            <div class="par-block par-full">
+              <span class="par-block-label">Modulateurs jurisprudentiels</span>
+
+              <div class="par-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="griefsActuelsEtPersistants()"
+                    (ngModelChange)="onGriefsPersistantsChange($event)"
+                    name="griefsActuelsEtPersistants">
+                  Griefs actuels et persistants (vs anciens régularisés — Cass. soc. 26/03/2014 n°12-23.634)
+                </mat-slide-toggle>
+                @if (provenanceGriefsPersistants() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="par-field-with-alert">
+                <div class="par-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="griefRendImpossiblePoursuite()"
+                      (ngModelChange)="onGriefImpossiblePoursuiteChange($event)"
+                      name="griefRendImpossiblePoursuite">
+                    Grief rendant impossible la poursuite du contrat (critère central Cass. soc. 26/03/2014 n°12-21.372)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceGriefImpossiblePoursuite() === 'IA') {
+                  <span class="par-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().GRIEF_IMPOSSIBLE_POURSUITE; as alert) {
+                  <span class="par-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 4 — Commentaire libre -->
+            <div class="par-block par-full">
+              <span class="par-block-label">Commentaire libre (facultatif)</span>
+              <mat-form-field appearance="outline" class="par-inline-field">
+                <mat-label>Précisions / contexte additionnel</mat-label>
+                <textarea matInput rows="3" maxlength="2000"
+                          [ngModel]="griefsCommentaire()"
+                          (ngModelChange)="onGriefsCommentaireChange($event)"
+                          name="griefsCommentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="par-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="par-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Score + effet probable -->
+            <div class="par-figures-block">
+              <div class="par-figure">
+                <span class="par-figure-label">Score de solidité</span>
+                <span class="par-figure-value">{{ result()!.scoreSolidite }} / 100</span>
+              </div>
+              <div class="par-figure par-figure--effet">
+                <span class="par-figure-label">Effet probable</span>
+                <span [class]="effetProbableClass(result()!.effetProbable)"
+                      data-testid="par-effet-probable">
+                  {{ effetProbableLabel(result()!.effetProbable) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Liste des griefs retenus -->
+            @if (result()!.griefsRetenus?.length) {
+              <div class="par-griefs-block">
+                <span class="par-griefs-label">Griefs retenus ({{ result()!.griefsRetenus.length }})</span>
+                <ul class="par-griefs-list">
+                  @for (g of result()!.griefsRetenus; track g.code) {
+                    <li class="par-grief-item" data-testid="par-grief-item">
+                      <div class="par-grief-header">
+                        <span class="par-grief-libelle">{{ g.libelle }}</span>
+                        <span class="par-grief-poids">+{{ g.poids }} pts</span>
+                      </div>
+                      <span class="par-grief-fondement" [innerHTML]="g.fondement | legalCitations"></span>
+                      <span class="par-grief-explication">{{ g.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="par-bases-block">
+                <span class="par-bases-label">Bases juridiques</span>
+                <div class="par-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="par-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="par-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="par-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

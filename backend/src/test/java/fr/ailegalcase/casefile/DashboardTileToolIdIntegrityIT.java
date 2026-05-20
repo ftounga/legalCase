@@ -67,21 +67,18 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary",
-            // SF-206-05 (2026-05-20) : exclusion transitoire F-DT-39 prise d'acte
-            // de la rupture — la tuile dashboard est livrée backend (mapper
-            // `tileFromPriseActeRuptureAnalysis` + thème DIAGNOSTIC) mais le seed
-            // `decision_tool_visibility_rules` + entrée TOOL_REGISTRY frontend
-            // sont livrés ensemble par SF-206-06 (pattern prouvé F-DT-42 /
-            // F-DT-75). À résorber par SF-206-06 (retrait de cette entrée +
-            // migration 268 visibility).
-            "F-DT-39-prise-acte-rupture"
+            "F-196-questions-summary"
             // SF-206-02 (2026-05-20) : F-DT-42 retiré — résolution structurelle
             // complète (seed migration 263 + TOOL_REGISTRY frontend + tile mapper).
             // SF-206-04 (2026-05-20) : F-DT-75 retiré — résolution structurelle
             // complète (seed migration 266 + entrée TOOL_REGISTRY frontend dans
             // decisional-tools-panel.component.ts + tile mapper backend déjà
             // présent dans CaseFileDashboardService).
+            // SF-206-06 (2026-05-20) : F-DT-39 retiré — résolution structurelle
+            // complète (seed migration 268 + entrée TOOL_REGISTRY frontend dans
+            // decisional-tools-panel.component.ts + tile mapper backend
+            // `tileFromPriseActeRuptureAnalysis` déjà présent dans
+            // CaseFileDashboardService).
     );
 
     /**

@@ -1,0 +1,525 @@
+/**
+ * SF-206-06 : styles outil "Prise d'acte de la rupture aux torts de
+ * l'employeur" (F-DT-39). Aligné sur le template canonique
+ * conges-payes-arret-maladie-section.
+ *
+ * Palette verdict 3 niveaux :
+ *   - vert/navy (PRISE_ACTE_FAVORABLE — effets licenciement probables)
+ *   - or (PRISE_ACTE_RISQUEE — issue incertaine)
+ *   - rouge (PRISE_ACTE_DEFAVORABLE — effets démission = catastrophe)
+ *
+ * Avertissement persistant : bandeau orange (rupture immédiate). Effet
+ * probable : pill colorée distincte du verdict (navy / rouge bordeaux /
+ * rouge intense).
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées et
+ * les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.par-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.par-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.par-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.par-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.par-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--favorable {
+    background: rgba(34, 139, 34, 0.10);
+    color: #1F6B1F;
+  }
+  &--risquee {
+    background: rgba(201, 165, 75, 0.14);
+    color: #8C6D1F;
+  }
+  &--defavorable {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.par-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.par-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.par-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE
+.par-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Avertissement persistant — rupture immédiate
+.par-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: rgba(234, 88, 12, 0.08);
+  border-left: 4px solid #EA580C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #EA580C;
+    flex-shrink: 0;
+  }
+}
+
+.par-warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong { color: #B45309; }
+  em { color: #B11A28; font-style: italic; font-weight: 600; }
+}
+
+.par-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.par-full {
+  width: 100%;
+}
+
+.par-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.par-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.par-block-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.par-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.par-inset-field {
+  width: 100%;
+  max-width: 320px;
+  margin-left: 32px;
+  margin-top: 4px;
+}
+
+.par-inline-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+.par-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.par-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.par-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.par-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+
+.par-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Bannière verdict — 3 niveaux.
+.par-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Vert/navy — PRISE_ACTE_FAVORABLE (effets licenciement probables).
+  &--favorable {
+    background: rgba(34, 139, 34, 0.08);
+    border-left: 4px solid #1F6B1F;
+    color: #1F6B1F;
+    mat-icon { color: #1F6B1F; }
+  }
+
+  // Or — PRISE_ACTE_RISQUEE (issue incertaine).
+  &--risquee {
+    background: rgba(201, 165, 75, 0.12);
+    border-left: 4px solid #C9A54B;
+    color: #8C6D1F;
+    mat-icon { color: #C9A54B; }
+  }
+
+  // Rouge — PRISE_ACTE_DEFAVORABLE (effets démission = catastrophe).
+  &--defavorable {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.par-figures-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.par-figure {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  background: var(--ds-surface, #ffffff);
+
+  &--effet {
+    flex: 2 1 360px;
+  }
+}
+
+.par-figure-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.par-figure-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+// Pill effet probable — 3 niveaux distincts du verdict.
+.par-effet-pill {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+
+  &--licenciement-sans-cause {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--licenciement-nul {
+    background: rgba(76, 29, 149, 0.10);
+    color: #4C1D95;
+  }
+  &--demission {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+// Liste des griefs retenus
+.par-griefs-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.par-griefs-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.par-griefs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.par-grief-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: rgba(201, 165, 75, 0.06);
+  border-left: 4px solid #c9a54b;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1a2330;
+}
+
+.par-grief-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.par-grief-libelle {
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.par-grief-poids {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(26, 58, 92, 0.10);
+  color: #1A3A5C;
+}
+
+.par-grief-fondement {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+
+  code {
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.par-grief-explication {
+  font-size: 12.5px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+}
+
+.par-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.par-bases-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.par-bases-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.par-base-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: rgba(26, 35, 48, 0.05);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.par-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.par-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}

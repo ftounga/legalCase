@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="268-add-f-dt-39-prise-acte-visibility" author="legalcase">
+        <comment>
+            SF-206-06 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Prise d'acte de la rupture aux torts de l'employeur"
+            (F-DT-39, FRANCE), table créée par SF-206-05 (migration 267).
+
+            Le seed est porté par la SF frontend — et non par la SF backend —
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-206-02
+            (migration 263), SF-206-04 (migration 266), SF-DT-36-02
+            (migration 231), SF-207-05b (migration 261). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte la prise d'acte envisagée — trigger
+            `prise_acte_envisagee` = true (signal métier extrait par
+            TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue).
+            priority 60 — juste après F-DT-75 (congés payés AM, priority 59).
+
+            Fondement : Cass. soc. 25/06/2003 n°01-42.679 (consécration), Cass.
+            soc. 26/03/2014 n°12-21.372 (critère : manquement grave empêchant
+            la poursuite), Cass. soc. 26/03/2014 n°12-23.634 (grief ancien
+            régularisé pèse moins). Verdict en 3 niveaux ; bascule
+            LICENCIEMENT_NUL sur harcèlement / discrimination.
+
+            Mécanisme purement français — en BE, le travailleur lésé saisit le
+            tribunal du travail en référé ou résolution judiciaire (outil
+            F-207-05 distinct).
+
+            UUID namespace dédié F-206 : f1a04001-0000-0000-0000-eeee20000391.
+
+            Cette migration résorbe aussi l'exclusion transitoire de F-DT-39
+            dans `KNOWN_SUMMARY_TILE_IDS` (DashboardTileToolIdIntegrityIT —
+            cf. retrait dans le même commit).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000391', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-39-prise-acte-rupture', 'CONTEXTUAL', 'prise_acte_envisagee', 'true', 60);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20000391';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
