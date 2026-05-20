@@ -252,6 +252,20 @@ export class DocumentsFinContratSectionComponent implements OnInit, OnChanges {
         this.provenanceDateFinContrat.set('IA');
       }
     }
+
+    // SF-246-21 : dates certificat travail, attestation France Travail, solde tout compte.
+    const dateCert = DocumentsFinContratSectionPrefillRules.computeDateCertificatTravail(ruleInput);
+    if (dateCert !== null && this.dateCertificatTravail() === null) {
+      this.dateCertificatTravail.set(dateCert);
+    }
+    const dateAttest = DocumentsFinContratSectionPrefillRules.computeDateAttestationFranceTravail(ruleInput);
+    if (dateAttest !== null && this.dateAttestationFranceTravail() === null) {
+      this.dateAttestationFranceTravail.set(dateAttest);
+    }
+    const dateSolde = DocumentsFinContratSectionPrefillRules.computeDateSoldeToutCompte(ruleInput);
+    if (dateSolde !== null && this.dateSouldeToutCompte() === null) {
+      this.dateSouldeToutCompte.set(dateSolde);
+    }
   }
 
   private loadSourceExplanations(): void {

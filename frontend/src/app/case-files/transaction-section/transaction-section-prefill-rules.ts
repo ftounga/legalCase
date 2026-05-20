@@ -104,6 +104,23 @@ export function computeRupture(input: TransactionPrefillInput): RupturePrealable
 }
 
 /**
+ * SF-246-21 : date de signature du protocole transactionnel (ISO).
+ * Distincte de dateLicenciement et de dateMiseEnDemeure.
+ */
+export function computeDateSignature(input: TransactionPrefillInput): string | null {
+  const v = input.aiData?.transactionDateSignature;
+  return typeof v === 'string' && ISO_DATE_REGEX.test(v) ? v : null;
+}
+
+/**
+ * SF-246-21 : montant de l'indemnité transactionnelle (€ > 0).
+ */
+export function computeIndemniteTransactionnelle(input: TransactionPrefillInput): number | null {
+  const v = input.aiData?.transactionIndemniteMontantEur;
+  return typeof v === 'number' && v > 0 ? v : null;
+}
+
+/**
  * Maître — compte les champs non-null. Strict miroir du runtime
  * `prefillFromAi()` de `TransactionSectionComponent`.
  */
@@ -112,6 +129,8 @@ export function computePrefillCount(input: TransactionPrefillInput): number {
   if (computeSalaire(input) !== null) n++;
   if (computeAnciennete(input) !== null) n++;
   if (computeRupture(input) !== null) n++;
+  if (computeDateSignature(input) !== null) n++;
+  if (computeIndemniteTransactionnelle(input) !== null) n++;
   return n;
 }
 
@@ -121,5 +140,7 @@ export const TransactionPrefillRules = {
   computeSalaire,
   computeAnciennete,
   computeRupture,
+  computeDateSignature,
+  computeIndemniteTransactionnelle,
   computePrefillCount,
 };

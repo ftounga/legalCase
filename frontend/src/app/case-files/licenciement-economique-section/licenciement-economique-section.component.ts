@@ -273,6 +273,16 @@ export class LicenciementEconomiqueSectionComponent implements OnInit, OnChanges
         this.provenanceDateNotification.set('IA');
       }
     }
+
+    // SF-246-21 : ancienneté en mois et âge du salarié.
+    const ancienneteMois = LicenciementEconomiqueSectionPrefillRules.computeSalarieAncienneteMois(ruleInput);
+    if (ancienneteMois !== null && this.salarieAncienneteMois() === null) {
+      this.salarieAncienneteMois.set(ancienneteMois);
+    }
+    const age = LicenciementEconomiqueSectionPrefillRules.computeSalarieAge(ruleInput);
+    if (age !== null && this.salarieAge() === null) {
+      this.salarieAge.set(age);
+    }
   }
 
   private loadSourceExplanations(): void {

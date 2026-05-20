@@ -1,5 +1,6 @@
 import {
   ReferePrudhomalSectionPrefillRules,
+  computeMontantProvision,
   computePrefillCount,
   monthsBetween,
   computeNatureCreance,
@@ -7,6 +8,7 @@ import {
 
 describe('ReferePrudhomalSectionPrefillRules', () => {
   const TODAY = '2025-01-15';
+  const FR = 'FRANCE';
 
   it('cas 0 — non-FRANCE retourne 0', () => {
     expect(
@@ -22,13 +24,13 @@ describe('ReferePrudhomalSectionPrefillRules', () => {
     expect(
       computePrefillCount({
         aiData: { dateLicenciement: '2024-05-01' },
-        workspaceCountry: 'FRANCE',
+        workspaceCountry: FR,
         todayIso: TODAY,
       }),
     ).toBe(1);
   });
 
-  it('cas N — 3 champs nominal', () => {
+  it('cas N — 3 champs nominaux (date + anciennete + natureCreance)', () => {
     expect(
       computePrefillCount({
         aiData: {
@@ -36,7 +38,7 @@ describe('ReferePrudhomalSectionPrefillRules', () => {
           dateEntree: '2020-01-01',
           heuresSupMentionneesDansDossier: { totalDeclarees25pct: 10 },
         },
-        workspaceCountry: 'FRANCE',
+        workspaceCountry: FR,
         todayIso: TODAY,
       }),
     ).toBe(3);
@@ -51,9 +53,42 @@ describe('ReferePrudhomalSectionPrefillRules', () => {
     expect(
       computeNatureCreance({
         aiData: { heuresSupMentionneesDansDossier: { totalDeclarees25pct: 0 } },
-        workspaceCountry: 'FRANCE',
+        workspaceCountry: FR,
       }),
     ).toBeNull();
+  });
+
+  // SF-246-21 — computeMontantProvision
+  describe('computeMontantProvision (SF-246-21)', () => {
+    it('non-FRANCE → null', () => {
+      expect(computeMontantProvision({ aiData: { refereMontantProvision: 8000 }, workspaceCountry: 'BELGIQUE' })).toBeNull();
+    });
+
+    it('montant absent → null', () => {
+      expect(computeMontantProvision({ aiData: {}, workspaceCountry: FR })).toBeNull();
+    });
+
+    it('montant ≤ 0 → null', () => {
+      expect(computeMontantProvision({ aiData: { refereMontantProvision: 0 }, workspaceCountry: FR })).toBeNull();
+    });
+
+    it('montant positif → retourne montant', () => {
+      expect(computeMontantProvision({ aiData: { refereMontantProvision: 8000 }, workspaceCountry: FR })).toBe(8000);
+    });
+  });
+
+  // count max = 4 quand tous les champs présents
+  it('tous les champs remplis → count = 4', () => {
+    expect(computePrefillCount({
+      aiData: {
+        dateLicenciement: '2024-05-01',
+        dateEntree: '2020-01-01',
+        heuresSupMentionneesDansDossier: { totalDeclarees25pct: 10 },
+        refereMontantProvision: 5000,
+      },
+      workspaceCountry: FR,
+      todayIso: TODAY,
+    })).toBe(4);
   });
 
   it('expose ReferePrudhomalSectionPrefillRules barrel', () => {

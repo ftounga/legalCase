@@ -486,6 +486,12 @@ export class ReferePrudhomalSectionComponent implements OnInit, OnChanges {
         this.provenanceNatureCreance.set('IA');
       }
     }
+
+    // SF-246-21 : montant de la provision demandée.
+    const montant = ReferePrudhomalSectionPrefillRules.computeMontantProvision(ruleInput);
+    if (montant !== null && this.montantProvisionDemandeeEur() === null) {
+      this.montantProvisionDemandeeEur.set(montant);
+    }
   }
 
   // ----- Builders alertes F-IA-03 -----

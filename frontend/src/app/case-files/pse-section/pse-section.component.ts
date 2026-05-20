@@ -51,6 +51,8 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import {
   PseSectionPrefillRules,
   computeDateProjet as computeDateProjetRule,
+  computeTailleEntrepriseSalaries as computeTailleEntrepriseRule,
+  computeNombreLicenciements as computeNombreLicenciementsRule,
 } from './pse-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
@@ -161,6 +163,9 @@ export class PseSectionComponent implements OnInit, OnChanges {
 
   /** Provenance IA pour les champs pré-remplissables. */
   provenanceDateProjet = signal<'IA' | null>(null);
+  /** SF-246-21 : provenance IA pour taille entreprise et nombre licenciements. */
+  provenanceTailleEntreprise = signal<'IA' | null>(null);
+  provenanceNombreLicenciements = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : map {sourceKey → explanations} pour le popover.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -387,10 +392,12 @@ export class PseSectionComponent implements OnInit, OnChanges {
   // Handlers onChange — effacent la provenance IA au 1er changement manuel.
   onTailleEntrepriseChange(value: number | null): void {
     this.tailleEntrepriseSalaries.set(value === null || value === undefined ? null : value);
+    this.provenanceTailleEntreprise.set(null);
   }
 
   onNombreLicenciementsChange(value: number | null): void {
     this.nombreLicenciementsEnvisages.set(value === null || value === undefined ? null : value);
+    this.provenanceNombreLicenciements.set(null);
   }
 
   onPeriodeJoursChange(value: number | null): void {
@@ -451,6 +458,24 @@ export class PseSectionComponent implements OnInit, OnChanges {
         this.provenanceDateProjet.set('IA');
       }
     }
+
+    // SF-246-21 : taille entreprise et nombre licenciements.
+    const iaTaille = computeTailleEntrepriseRule({ aiData: ai });
+    if (iaTaille !== null) {
+      if (this.tailleEntrepriseSalaries() === null
+          || this.provenanceTailleEntreprise() === 'IA') {
+        this.tailleEntrepriseSalaries.set(iaTaille);
+        this.provenanceTailleEntreprise.set('IA');
+      }
+    }
+    const iaNbLic = computeNombreLicenciementsRule({ aiData: ai });
+    if (iaNbLic !== null) {
+      if (this.nombreLicenciementsEnvisages() === null
+          || this.provenanceNombreLicenciements() === 'IA') {
+        this.nombreLicenciementsEnvisages.set(iaNbLic);
+        this.provenanceNombreLicenciements.set('IA');
+      }
+    }
   }
 
   calculate(): void {
@@ -496,6 +521,8 @@ export class PseSectionComponent implements OnInit, OnChanges {
         this.nombreLicenciementsEnvisages.set(null);
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceDateProjet.set(null);
+        this.provenanceTailleEntreprise.set(null);
+        this.provenanceNombreLicenciements.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

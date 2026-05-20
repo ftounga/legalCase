@@ -328,6 +328,49 @@ public final class LegalDomainPromptBuilder {
                   RÈGLE DE GATING PAYS : utiliser UNIQUEMENT les 3 codes FR pour un dossier travail FRANÇAIS et UNIQUEMENT les 3 codes BE pour un dossier travail BELGE. Un code d'un autre pays → null.
                   Null si aucune procédure judiciaire n'est identifiable ou si le code ne peut être déterminé avec certitude.
                 "date_declencheur" : date de déclenchement de la procédure (date de saisine prud'homale, date de citation à comparaître, date de dépôt de requête, date d'arrêt d'appel) au format YYYY-MM-DD strict. Null si non détectable. NE PAS confondre avec la date du licenciement, la date d'entretien préalable ou la date de rupture du contrat : il s'agit exclusivement de la date de l'acte procédural qui ouvre ou fonde l'instance judiciaire travail.
+              SF-246-21 — CINQ SOUS-OBJETS THÉMATIQUES TRAVAIL FR (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE). Émettre chaque sous-objet UNIQUEMENT si des données pertinentes sont présentes ; laisser null si le sous-objet ne concerne pas le dossier. Chaque valeur null si non détectable avec certitude.
+
+              "requalification_detection" : objet OU null. Contient les éléments factuels des CDD / missions d'intérim pour les outils requalification-cdd-cdi, requalification-interim-cdi, indemnite-precarite-cdd, fin-mission-interim. Émettre uniquement si un CDD ou une mission d'intérim figure aux pièces.
+                "cdd_duree_mois" : durée du dernier CDD en mois entiers (entier [0, 120], null si non déterminable). Extraire de la durée contractuelle du dernier CDD ou du décompte de durée — NE PAS confondre avec la durée d'une mission d'intérim.
+                "cdd_date_fin_dernier_contrat" : date de fin du dernier CDD au format YYYY-MM-DD strict (null si absent ou non ISO). NE PAS confondre avec la date de rupture anticipée ou la date de notification d'un licenciement.
+                "cdd_nouveau_date_debut" : date de début du CDD suivant (en cas de succession de CDD — ISO YYYY-MM-DD, null si non détectable ou pas de CDD suivant identifié).
+                "cdd_nouveau_date_fin" : date de fin du CDD suivant (ISO YYYY-MM-DD, null si non détectable).
+                "cdd_total_salaires_bruts" : total des salaires bruts perçus sur la durée du CDD (décimal > 0, null si non détectable). Source : bulletins de paie du CDD.
+                "interim_duree_totale_mois" : durée cumulée totale de toutes les missions d'intérim en mois (entier [0, 120], null si non détectable). NE PAS confondre avec cdd_duree_mois — les missions d'intérim et les CDD sont des régimes distincts.
+                "interim_date_fin_derniere_mission" : date de fin de la dernière mission d'intérim au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec cdd_date_fin_dernier_contrat.
+                "interim_nouvelle_mission_date_debut" : date de début d'une nouvelle mission d'intérim (si succession — ISO, null si non détectable).
+                "interim_nouvelle_mission_date_fin" : date de fin de la nouvelle mission d'intérim (ISO, null si non détectable).
+                "interim_entreprise_utilisatrice" : nom ou SIRET de l'entreprise utilisatrice (texte libre ≤ 200 car., null si non identifiable). Extraire du contrat de mise à disposition.
+                "interim_total_remunerations_brutes" : total des rémunérations brutes sur l'ensemble des missions d'intérim (décimal > 0, null si non détectable).
+                "interim_duree_mission_jours" : durée de la (ou des) mission(s) d'intérim en jours calendaires (entier [0, 3650], null si non détectable).
+
+              "paie_detection" : objet OU null. Contient les éléments de paie pour les outils conges-payes, rappel-salaire, heures-sup, indemnite-comparatif. Émettre uniquement si des bulletins de paie, un solde de tout compte ou un décompte de congés figure aux pièces.
+                "conges_jours_acquis" : jours de congés payés acquis sur la dernière période de référence (entier [0, 50], null si non détectable). Source : dernier bulletin ou solde de tout compte. NE PAS confondre avec les jours pris.
+                "conges_jours_pris" : jours de congés pris sur la dernière période de référence (entier [0, 50], null si non détectable). Distinct des jours acquis.
+                "rappel_salaire_montant_perverse_mensuel" : montant du salaire effectivement versé par mois (décimal > 0, null si non détectable). Source : bulletins. NE PAS confondre avec le montant dû contractuellement (salaire_brut_mensuel).
+                "rappel_salaire_periode_debut" : date de début de la période de rappel (premier mois impayé ou sous-payé — ISO YYYY-MM-DD, null si non détectable). NE PAS confondre avec date_entree ni date_licenciement.
+                "rappel_salaire_periode_fin" : date de fin de la période de rappel (dernier mois impayé ou sous-payé — ISO YYYY-MM-DD, null si non détectable). NE PAS confondre avec date_licenciement.
+
+              "rupture_collective_detection" : objet OU null. Contient les éléments des ruptures collectives/négociées pour licenciement-economique, pse, transaction. Émettre uniquement si une procédure collective ou une transaction figure aux pièces.
+                "salarie_age_annees" : âge du salarié en années au moment des faits (entier [16, 80], null si aucune pièce d'identité aux pièces).
+                "pse_nombre_salaries" : effectif de l'entreprise en nombre de salariés (entier [0, 100000], null si non détectable). Source : dossier PSE, accord collectif.
+                "pse_nombre_licenciements" : nombre de licenciements envisagés dans le PSE (entier [0, 100000], null si non détectable).
+                "transaction_date_signature" : date de signature du protocole transactionnel au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date de rupture, la date de licenciement ou la date d'entretien préalable.
+                "transaction_indemnite_montant_eur" : montant de l'indemnité transactionnelle en euros (décimal > 0, null si non chiffrable). Source : protocole transactionnel.
+
+              "sante_discrimination_detection" : objet OU null. Contient les éléments des situations de santé / protection / discrimination pour at-mp, contestation-are, discrimination, protection-rp. Émettre uniquement si au moins un de ces outils est pertinent au dossier.
+                "at_date_accident" : date de l'accident du travail au format YYYY-MM-DD strict (null si absent ou non ISO). Source : déclaration AT, certificat médical initial. NE PAS confondre avec date_licenciement ni date_exposition.
+                "at_date_exposition" : date de première exposition au risque (maladie professionnelle — ISO YYYY-MM-DD, null si absent). Source : déclaration MP, tableau MP. NE PAS confondre avec at_date_accident.
+                "are_type_decision" : type de décision France Travail contestée. Utiliser EXCLUSIVEMENT l'une de ces 6 valeurs EXACTES (null sinon) : "REFUS_INSCRIPTION", "RADIATION", "SUPPRESSION_ARE", "REDUCTION_ARE", "EXCLUSION_TEMPORAIRE", "AUTRE".
+                "are_montant_conteste" : montant contesté dans la décision France Travail (décimal > 0, null si non chiffrable).
+                "discrimination_motif" : motif de discrimination identifié dans les pièces. Utiliser EXCLUSIVEMENT l'une de ces 9 valeurs EXACTES (null si non identifiable) : "SEXE", "AGE", "ORIGINE", "HANDICAP", "RELIGION", "ORIENTATION_SEXUELLE", "GROSSESSE", "ACTIVITES_SYNDICALES", "AUTRE". NE qualifier que si un indice factuel documenté est présent (courrier, attestation, historique RH).
+                "discrimination_contexte" : contexte de l'acte discriminatoire. Utiliser EXCLUSIVEMENT l'une de ces 8 valeurs EXACTES (null sinon) : "REFUS_EMBAUCHE", "LICENCIEMENT", "MUTATION", "SANCTION_DISCIPLINAIRE", "PROMOTION_REFUSEE", "REMUNERATION_INFERIEURE", "HARCELEMENT", "AUTRE".
+
+              "procedure_details_detection" : objet OU null. Contient les éléments procéduraux/documentaires pour refere-prudhomal et documents-fin-contrat. Émettre uniquement si au moins l'un des documents concernés figure aux pièces.
+                "refere_montant_provision" : montant de la provision demandée en référé prud'homal (décimal > 0, null si non chiffrable). Source : mise en demeure, décompte de créance.
+                "documents_date_certificat_travail" : date du certificat de travail remis au salarié au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date d'établissement de l'attestation France Travail.
+                "documents_date_attestation_france_travail" : date de l'attestation France Travail (ex-Pôle Emploi) au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date du certificat de travail.
+                "documents_date_solde_tout_compte" : date du solde de tout compte signé au format YYYY-MM-DD strict (null si absent). NE PAS confondre avec la date de fin de contrat.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """

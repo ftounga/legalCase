@@ -4750,4 +4750,338 @@ class CaseAnalysisResponseTest {
                     .isEqualTo(code);
         }
     }
+
+    // =========================================================
+    // SF-246-21 — 5 nouveaux sous-objets
+    // =========================================================
+
+    // --- requalification_detection ---
+
+    @Test
+    void extractTravailData_sf24621_requalificationCdd_nominal() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "requalification_detection": {
+                      "cdd_duree_mois": 6,
+                      "cdd_date_fin_dernier_contrat": "2024-03-31",
+                      "cdd_nouveau_date_debut": "2024-04-01",
+                      "cdd_nouveau_date_fin": "2024-09-30",
+                      "cdd_total_salaires_bruts": 15000.0
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.cddDureeMois()).isEqualTo(6);
+        assertThat(t.cddDateFinDernierContrat()).isEqualTo("2024-03-31");
+        assertThat(t.cddNouveauDateDebut()).isEqualTo("2024-04-01");
+        assertThat(t.cddNouveauDateFin()).isEqualTo("2024-09-30");
+        assertThat(t.cddTotalSalairesBruts()).isEqualTo(15000.0);
+    }
+
+    @Test
+    void extractTravailData_sf24621_requalificationInterim_nominal() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "requalification_detection": {
+                      "interim_duree_totale_mois": 18,
+                      "interim_date_fin_derniere_mission": "2024-06-30",
+                      "interim_nouvelle_mission_date_debut": "2024-07-01",
+                      "interim_nouvelle_mission_date_fin": "2024-12-31",
+                      "interim_entreprise_utilisatrice": "ACME SA",
+                      "interim_total_remunerations_brutes": 25000.0,
+                      "interim_duree_mission_jours": 90
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.interimDureeTotaleMois()).isEqualTo(18);
+        assertThat(t.interimDateFinDerniereMission()).isEqualTo("2024-06-30");
+        assertThat(t.interimNouvellesMissionDateDebut()).isEqualTo("2024-07-01");
+        assertThat(t.interimNouvellesMissionDateFin()).isEqualTo("2024-12-31");
+        assertThat(t.interimEntrepriseUtilisatrice()).isEqualTo("ACME SA");
+        assertThat(t.interimTotalRemunerationsBrutes()).isEqualTo(25000.0);
+        assertThat(t.interimDureeMissionJours()).isEqualTo(90);
+    }
+
+    @Test
+    void extractTravailData_sf24621_requalification_valeursHorsBornes_nulles() throws Exception {
+        // cdd_duree_mois > 120 → null ; interim_duree_mission_jours > 3650 → null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "requalification_detection": {
+                      "cdd_duree_mois": 200,
+                      "interim_duree_mission_jours": 5000
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.cddDureeMois()).isNull();
+        assertThat(t.interimDureeMissionJours()).isNull();
+    }
+
+    // --- paie_detection ---
+
+    @Test
+    void extractTravailData_sf24621_paieDetection_nominal() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "paie_detection": {
+                      "conges_jours_acquis": 25,
+                      "conges_jours_pris": 18,
+                      "rappel_salaire_montant_perverse_mensuel": 2800.0,
+                      "rappel_salaire_periode_debut": "2023-01-01",
+                      "rappel_salaire_periode_fin": "2023-12-31"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.congesJoursAcquis()).isEqualTo(25);
+        assertThat(t.congesJoursPris()).isEqualTo(18);
+        assertThat(t.rappelSalaireMontantPerverseMensuel()).isEqualTo(2800.0);
+        assertThat(t.rappelSalairePeriodeDebut()).isEqualTo("2023-01-01");
+        assertThat(t.rappelSalairePeriodeFin()).isEqualTo("2023-12-31");
+    }
+
+    @Test
+    void extractTravailData_sf24621_paieDetection_congesHorsBornes_nuls() throws Exception {
+        // conges_jours_acquis > 50 → null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "paie_detection": {
+                      "conges_jours_acquis": 100,
+                      "conges_jours_pris": 55
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.congesJoursAcquis()).isNull();
+        assertThat(t.congesJoursPris()).isNull();
+    }
+
+    // --- rupture_collective_detection ---
+
+    @Test
+    void extractTravailData_sf24621_ruptureCollective_nominal() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_collective_detection": {
+                      "salarie_age_annees": 45,
+                      "pse_nombre_salaries": 250,
+                      "pse_nombre_licenciements": 30,
+                      "transaction_date_signature": "2024-05-15",
+                      "transaction_indemnite_montant_eur": 50000.0
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.salarieAgeAnnees()).isEqualTo(45);
+        assertThat(t.pseNombreSalaries()).isEqualTo(250);
+        assertThat(t.pseNombreLicenciements()).isEqualTo(30);
+        assertThat(t.transactionDateSignature()).isEqualTo("2024-05-15");
+        assertThat(t.transactionIndemniteMontantEur()).isEqualTo(50000.0);
+    }
+
+    @Test
+    void extractTravailData_sf24621_ruptureCollective_ageHorsBornes_nul() throws Exception {
+        // salarieAgeAnnees < 16 → null ; pseNombreSalaries > 100000 → null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "rupture_collective_detection": {
+                      "salarie_age_annees": 10,
+                      "pse_nombre_salaries": 200000
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.salarieAgeAnnees()).isNull();
+        assertThat(t.pseNombreSalaries()).isNull();
+    }
+
+    // --- sante_discrimination_detection ---
+
+    @Test
+    void extractTravailData_sf24621_santeDiscrimination_nominal() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "sante_discrimination_detection": {
+                      "at_date_accident": "2023-07-20",
+                      "at_date_exposition": "2020-01-01",
+                      "are_type_decision": "RADIATION",
+                      "are_montant_conteste": 3500.0,
+                      "discrimination_motif": "ACTIVITES_SYNDICALES",
+                      "discrimination_contexte": "LICENCIEMENT"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.atDateAccident()).isEqualTo("2023-07-20");
+        assertThat(t.atDateExposition()).isEqualTo("2020-01-01");
+        assertThat(t.areTypeDecision()).isEqualTo("RADIATION");
+        assertThat(t.areMontantConteste()).isEqualTo(3500.0);
+        assertThat(t.discriminationMotif()).isEqualTo("ACTIVITES_SYNDICALES");
+        assertThat(t.discriminationContexte()).isEqualTo("LICENCIEMENT");
+    }
+
+    @Test
+    void extractTravailData_sf24621_santeDiscrimination_codeAreInvalide_nul() throws Exception {
+        // are_type_decision hors whitelist → null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "sante_discrimination_detection": {
+                      "are_type_decision": "CODE_INCONNU"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.areTypeDecision()).isNull();
+    }
+
+    @Test
+    void extractTravailData_sf24621_santeDiscrimination_sixCodesAreValides() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        for (String code : java.util.List.of(
+                "REFUS_INSCRIPTION", "RADIATION", "SUPPRESSION_ARE",
+                "REDUCTION_ARE", "EXCLUSION_TEMPORAIRE", "AUTRE")) {
+            JsonNode root = mapper.readTree(String.format("""
+                    {
+                      "travail_extracted_data": {
+                        "sante_discrimination_detection": {
+                          "are_type_decision": "%s"
+                        }
+                      }
+                    }
+                    """, code));
+            var t = CaseAnalysisResponse.extractTravailData(root);
+            assertThat(t.areTypeDecision())
+                    .as("code ARE '%s' devrait être accepté", code)
+                    .isEqualTo(code);
+        }
+    }
+
+    @Test
+    void extractTravailData_sf24621_santeDiscrimination_neufMotifsDiscriminationValides() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        for (String code : java.util.List.of(
+                "ORIGINE", "SEXE", "HANDICAP", "AGE", "RELIGION",
+                "ORIENTATION_SEXUELLE", "GROSSESSE", "ACTIVITES_SYNDICALES", "AUTRE")) {
+            JsonNode root = mapper.readTree(String.format("""
+                    {
+                      "travail_extracted_data": {
+                        "sante_discrimination_detection": {
+                          "discrimination_motif": "%s"
+                        }
+                      }
+                    }
+                    """, code));
+            var t = CaseAnalysisResponse.extractTravailData(root);
+            assertThat(t.discriminationMotif())
+                    .as("motif '%s' devrait être accepté", code)
+                    .isEqualTo(code);
+        }
+    }
+
+    // --- procedure_details_detection ---
+
+    @Test
+    void extractTravailData_sf24621_procedureDetails_nominal() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_details_detection": {
+                      "refere_montant_provision": 8000.0,
+                      "documents_date_certificat_travail": "2024-03-01",
+                      "documents_date_attestation_france_travail": "2024-03-05",
+                      "documents_date_solde_tout_compte": "2024-03-10"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.refereMontantProvision()).isEqualTo(8000.0);
+        assertThat(t.documentsDateCertificatTravail()).isEqualTo("2024-03-01");
+        assertThat(t.documentsDateAttestationFranceTravail()).isEqualTo("2024-03-05");
+        assertThat(t.documentsDateSoldeToutCompte()).isEqualTo("2024-03-10");
+    }
+
+    @Test
+    void extractTravailData_sf24621_procedureDetails_dateMalFormatee_nulle() throws Exception {
+        // date non-ISO → null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "procedure_details_detection": {
+                      "documents_date_certificat_travail": "01/03/2024",
+                      "documents_date_attestation_france_travail": "not-a-date"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.documentsDateCertificatTravail()).isNull();
+        assertThat(t.documentsDateAttestationFranceTravail()).isNull();
+    }
+
+    @Test
+    void extractTravailData_sf24621_sousObjetsAbsents_tousNuls() throws Exception {
+        // Aucun des 5 sous-objets → tous les 32 champs null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "salaire_brut_mensuel": 3000
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.cddDureeMois()).isNull();
+        assertThat(t.interimDureeTotaleMois()).isNull();
+        assertThat(t.congesJoursAcquis()).isNull();
+        assertThat(t.salarieAgeAnnees()).isNull();
+        assertThat(t.atDateAccident()).isNull();
+        assertThat(t.areTypeDecision()).isNull();
+        assertThat(t.discriminationMotif()).isNull();
+        assertThat(t.refereMontantProvision()).isNull();
+        assertThat(t.documentsDateCertificatTravail()).isNull();
+    }
 }

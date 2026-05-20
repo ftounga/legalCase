@@ -321,6 +321,16 @@ export class TransactionSectionComponent implements OnInit, OnChanges {
         this.provenanceRupturePrealable.set('IA');
       }
     }
+
+    // SF-246-21 : date de signature et montant de l'indemnité transactionnelle.
+    const dateSign = TransactionPrefillRules.computeDateSignature(helperInput);
+    if (dateSign !== null && this.dateSignature() === null) {
+      this.dateSignature.set(dateSign);
+    }
+    const indemnite = TransactionPrefillRules.computeIndemniteTransactionnelle(helperInput);
+    if (indemnite !== null && this.indemniteTransactionnelleEur() === null) {
+      this.indemniteTransactionnelleEur.set(indemnite);
+    }
   }
 
   /**

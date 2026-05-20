@@ -413,15 +413,24 @@ export class ContestationAreSectionComponent implements OnInit, OnChanges {
     if (!this.showForm()) return;
 
     // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const date = ContestationAreSectionPrefillRules.computeDateNotificationDecision({
-      aiData: ai, workspaceCountry: this.workspaceCountry, todayIso: this.todayIso,
-    });
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry, todayIso: this.todayIso };
+    const date = ContestationAreSectionPrefillRules.computeDateNotificationDecision(ruleInput);
     if (date !== null) {
       if (this.dateNotificationDecision() === null
           || this.provenanceDateNotification() === 'IA') {
         this.dateNotificationDecision.set(date);
         this.provenanceDateNotification.set('IA');
       }
+    }
+
+    // SF-246-21 : type de décision ARE et montant contesté.
+    const typeDecision = ContestationAreSectionPrefillRules.computeAreTypeDecision(ruleInput);
+    if (typeDecision !== null && this.typeDecisionContestee() === null) {
+      this.typeDecisionContestee.set(typeDecision);
+    }
+    const montant = ContestationAreSectionPrefillRules.computeAreMontantConteste(ruleInput);
+    if (montant !== null && this.montantContesteEur() === null) {
+      this.montantContesteEur.set(montant);
     }
   }
 

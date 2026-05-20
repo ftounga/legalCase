@@ -214,7 +214,8 @@ export class DiscriminationSectionComponent implements OnInit, OnChanges {
     if (!ai) return;
 
     // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const salaire = DiscriminationSectionPrefillRules.computeSalaireMensuelReference({ aiData: ai });
+    const ruleInput = { aiData: ai };
+    const salaire = DiscriminationSectionPrefillRules.computeSalaireMensuelReference(ruleInput);
     if (salaire !== null) {
       // Ne pré-remplit QUE si le champ est encore vide ou déjà marqué 'IA'.
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
@@ -222,8 +223,16 @@ export class DiscriminationSectionComponent implements OnInit, OnChanges {
         this.provenanceSalaire.set('IA');
       }
     }
-    // Palier 2 future SF-DT-12-03 : mapping IA → motifDiscrimination /
-    // contexteActe quand le prompt IA travail extraira ces codes.
+
+    // SF-246-21 : motif de discrimination et contexte (mappés via whitelist).
+    const motif = DiscriminationSectionPrefillRules.computeDiscriminationMotif(ruleInput);
+    if (motif !== null && this.motifDiscrimination() === null) {
+      this.motifDiscrimination.set(motif);
+    }
+    const contexte = DiscriminationSectionPrefillRules.computeDiscriminationContexte(ruleInput);
+    if (contexte !== null && this.contexteActe() === null) {
+      this.contexteActe.set(contexte);
+    }
   }
 
   alertTooltip(alert: DiscriminationCoherenceAlert): string {
