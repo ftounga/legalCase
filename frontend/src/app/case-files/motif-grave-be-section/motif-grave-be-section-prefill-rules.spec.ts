@@ -3,6 +3,8 @@ import {
   computePrefillCount,
   computeDateNotificationRupture,
   computeSalaireMensuelReference,
+  computeDateConnaissanceFait,
+  computeDateNotificationMotifs,
 } from './motif-grave-be-section-prefill-rules';
 
 describe('MotifGraveBeSectionPrefillRules', () => {
@@ -31,6 +33,20 @@ describe('MotifGraveBeSectionPrefillRules', () => {
           aiData: { dateLicenciement: '2024-05-01', salaireBrutMensuel: 2500 },
         }),
       ).toBe(2);
+    });
+
+    it('SF-246-23 — tous les 4 champs renseignés retourne 4', () => {
+      expect(
+        computePrefillCount({
+          workspaceCountry: BE,
+          aiData: {
+            dateLicenciement: '2024-05-10',
+            salaireBrutMensuel: 3000,
+            dateConnaissanceFait: '2024-05-08',
+            dateNotificationMotifs: '2024-05-13',
+          },
+        }),
+      ).toBe(4);
     });
   });
 
@@ -80,5 +96,70 @@ describe('MotifGraveBeSectionPrefillRules', () => {
 
   it('expose barrel', () => {
     expect(MotifGraveBeSectionPrefillRules.computePrefillCount).toBe(computePrefillCount);
+  });
+
+  // SF-246-23 — computeDateConnaissanceFait
+
+  describe('computeDateConnaissanceFait (SF-246-23)', () => {
+    it('retourne la date si string non vide', () => {
+      expect(
+        computeDateConnaissanceFait({
+          workspaceCountry: BE,
+          aiData: { dateConnaissanceFait: '2024-05-08' },
+        }),
+      ).toBe('2024-05-08');
+    });
+
+    it('retourne null si string vide', () => {
+      expect(
+        computeDateConnaissanceFait({
+          workspaceCountry: BE,
+          aiData: { dateConnaissanceFait: '' },
+        }),
+      ).toBeNull();
+    });
+
+    it('retourne null si absente', () => {
+      expect(
+        computeDateConnaissanceFait({ workspaceCountry: BE, aiData: {} }),
+      ).toBeNull();
+    });
+
+    it('retourne null si pays ≠ BELGIQUE', () => {
+      expect(
+        computeDateConnaissanceFait({
+          workspaceCountry: 'FRANCE',
+          aiData: { dateConnaissanceFait: '2024-05-08' },
+        }),
+      ).toBeNull();
+    });
+  });
+
+  // SF-246-23 — computeDateNotificationMotifs
+
+  describe('computeDateNotificationMotifs (SF-246-23)', () => {
+    it('retourne la date si string non vide', () => {
+      expect(
+        computeDateNotificationMotifs({
+          workspaceCountry: BE,
+          aiData: { dateNotificationMotifs: '2024-05-13' },
+        }),
+      ).toBe('2024-05-13');
+    });
+
+    it('retourne null si absente', () => {
+      expect(
+        computeDateNotificationMotifs({ workspaceCountry: BE, aiData: {} }),
+      ).toBeNull();
+    });
+
+    it('retourne null si pays ≠ BELGIQUE', () => {
+      expect(
+        computeDateNotificationMotifs({
+          workspaceCountry: 'FRANCE',
+          aiData: { dateNotificationMotifs: '2024-05-13' },
+        }),
+      ).toBeNull();
+    });
   });
 });

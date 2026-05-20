@@ -310,7 +310,37 @@ public record CaseAnalysisResponse(
             Double refereMontantProvision,
             String documentsDateCertificatTravail,
             String documentsDateAttestationFranceTravail,
-            String documentsDateSoldeToutCompte) {
+            String documentsDateSoldeToutCompte,
+            // SF-246-23 — sous-objet `travail_be_detection` : 6 champs BELGIQUE
+            // UNIQUEMENT pour pré-fill des 3 outils F-DT-27/F-DT-28/F-DT-29.
+            // Tous nullables — restent null pour un dossier Travail FRANCE.
+            // motif-grave-be (F-DT-27) :
+            //   dateConnaissanceFait : date à laquelle l'employeur a eu connaissance
+            //     du fait constituant le motif grave (ISO YYYY-MM-DD). Point de départ
+            //     du délai de 3 j ouvrables art. 35 Loi 03/07/1978. Distincte de
+            //     dateLicenciement (date notification rupture).
+            //   dateNotificationMotifs : date à laquelle l'employeur a notifié les
+            //     motifs au travailleur par lettre recommandée (ISO YYYY-MM-DD). Point
+            //     d'arrivée du 2e délai de 3 j ouvrables. Strictement postérieure à
+            //     dateConnaissanceFait.
+            // avantages-conventionnels-be (F-DT-28) :
+            //   commissionParitaireBe : numéro/libellé de la commission paritaire BE
+            //     (ex. "CP 200", "SCP 200.01") — concept distinct de conventionCollective
+            //     (domaine FR). Borné ≤ 20 car.
+            //   joursTravaillesAnneePrecedenteBe : jours de travail effectif (ou
+            //     assimilés) au cours de l'année précédente [0, 365].
+            //   joursPrestesBe : jours effectivement prestés depuis le 1er avril de
+            //     l'exercice courant [0, 365].
+            // credit-temps-be (F-DT-29) :
+            //   dateDemandeCreditTemps : date à laquelle le travailleur a formellement
+            //     introduit sa demande de crédit-temps (ISO YYYY-MM-DD). NE PAS
+            //     confondre avec la date d'entrée en vigueur du crédit-temps.
+            String dateConnaissanceFait,       // BELGIQUE — motif-grave-be
+            String dateNotificationMotifs,     // BELGIQUE — motif-grave-be
+            String commissionParitaireBe,      // BELGIQUE — avantages-conventionnels-be
+            Integer joursTravaillesAnneePrecedenteBe, // BELGIQUE — avantages-conventionnels-be
+            Integer joursPrestesBe,            // BELGIQUE — avantages-conventionnels-be
+            String dateDemandeCreditTemps) {   // BELGIQUE — credit-temps-be
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -443,7 +473,14 @@ public record CaseAnalysisResponse(
                     .refereMontantProvision(refereMontantProvision)
                     .documentsDateCertificatTravail(documentsDateCertificatTravail)
                     .documentsDateAttestationFranceTravail(documentsDateAttestationFranceTravail)
-                    .documentsDateSoldeToutCompte(documentsDateSoldeToutCompte);
+                    .documentsDateSoldeToutCompte(documentsDateSoldeToutCompte)
+                    // SF-246-23 — travail_be_detection (BELGIQUE uniquement)
+                    .dateConnaissanceFait(dateConnaissanceFait)
+                    .dateNotificationMotifs(dateNotificationMotifs)
+                    .commissionParitaireBe(commissionParitaireBe)
+                    .joursTravaillesAnneePrecedenteBe(joursTravaillesAnneePrecedenteBe)
+                    .joursPrestesBe(joursPrestesBe)
+                    .dateDemandeCreditTemps(dateDemandeCreditTemps);
         }
 
         public static final class Builder {
@@ -568,6 +605,13 @@ public record CaseAnalysisResponse(
             private String documentsDateCertificatTravail;
             private String documentsDateAttestationFranceTravail;
             private String documentsDateSoldeToutCompte;
+            // SF-246-23 — travail_be_detection (BELGIQUE uniquement)
+            private String dateConnaissanceFait;
+            private String dateNotificationMotifs;
+            private String commissionParitaireBe;
+            private Integer joursTravaillesAnneePrecedenteBe;
+            private Integer joursPrestesBe;
+            private String dateDemandeCreditTemps;
 
             private Builder() {}
 
@@ -690,6 +734,13 @@ public record CaseAnalysisResponse(
             public Builder documentsDateCertificatTravail(String v) { this.documentsDateCertificatTravail = v; return this; }
             public Builder documentsDateAttestationFranceTravail(String v) { this.documentsDateAttestationFranceTravail = v; return this; }
             public Builder documentsDateSoldeToutCompte(String v) { this.documentsDateSoldeToutCompte = v; return this; }
+            // SF-246-23 — travail_be_detection (BELGIQUE uniquement)
+            public Builder dateConnaissanceFait(String v) { this.dateConnaissanceFait = v; return this; }
+            public Builder dateNotificationMotifs(String v) { this.dateNotificationMotifs = v; return this; }
+            public Builder commissionParitaireBe(String v) { this.commissionParitaireBe = v; return this; }
+            public Builder joursTravaillesAnneePrecedenteBe(Integer v) { this.joursTravaillesAnneePrecedenteBe = v; return this; }
+            public Builder joursPrestesBe(Integer v) { this.joursPrestesBe = v; return this; }
+            public Builder dateDemandeCreditTemps(String v) { this.dateDemandeCreditTemps = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -750,7 +801,12 @@ public record CaseAnalysisResponse(
                         // SF-246-21 — procedure_details_detection
                         refereMontantProvision,
                         documentsDateCertificatTravail, documentsDateAttestationFranceTravail,
-                        documentsDateSoldeToutCompte);
+                        documentsDateSoldeToutCompte,
+                        // SF-246-23 — travail_be_detection (BELGIQUE uniquement)
+                        dateConnaissanceFait, dateNotificationMotifs,
+                        commissionParitaireBe,
+                        joursTravaillesAnneePrecedenteBe, joursPrestesBe,
+                        dateDemandeCreditTemps);
             }
         }
     }
@@ -892,6 +948,12 @@ public record CaseAnalysisResponse(
 
     /** Jours de congés payés — borne haute plausible (hors forfait). */
     static final int MAX_CONGES_JOURS = 50;
+
+    // SF-246-23 — bornes pour les champs travail_be_detection.
+    /** Jours de travail/prestés BE — borne haute plausible (≤ 365 j/an). */
+    static final int MAX_JOURS_TRAVAIL_BE = 365;
+    /** Longueur max commission paritaire BE (code court ex. "CP 200.01"). */
+    static final int MAX_COMMISSION_PARITAIRE_BE_LENGTH = 20;
 
     /** Âge maximal plausible du salarié (lic-éco). */
     static final int MAX_SALARIE_AGE_ANNEES = 80;
@@ -2415,6 +2477,10 @@ public record CaseAnalysisResponse(
             // F-DT-24. Peut être absent (clause non détectée, dossier BE) → 3 champs null.
             JsonNode clauseNc = node.get("clause_non_concurrence_detail");
             boolean hasClauseNc = clauseNc != null && clauseNc.isObject();
+            // SF-246-23 : sous-objet travail_be_detection (BELGIQUE UNIQUEMENT).
+            // Peut être absent (dossier FR, pièces insuffisantes) → 6 champs null.
+            JsonNode travailBe = node.get("travail_be_detection");
+            boolean hasTravailBe = travailBe != null && travailBe.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -2531,6 +2597,15 @@ public record CaseAnalysisResponse(
                     // F-136 travail-procedure (FR+BE). Sous-objet procedure_travail_detection.
                     .procedureTravailDetectee(extractProcedureTravailCode(node))
                     .dateDeclencheurProcedure(extractProcedureTravailDate(node))
+                    // SF-246-23 : sous-objet travail_be_detection (BELGIQUE uniquement).
+                    // 2 dates motif grave, CP + jours avantages conventionnels, date demande crédit-temps.
+                    // Toutes null si sous-objet absent (dossier FR ou pièces insuffisantes).
+                    .dateConnaissanceFait(hasTravailBe ? isoDateOrNull(travailBe, "date_connaissance_fait") : null)
+                    .dateNotificationMotifs(hasTravailBe ? isoDateOrNull(travailBe, "date_notification_motifs") : null)
+                    .commissionParitaireBe(hasTravailBe ? truncatedTextOrNull(travailBe, "commission_paritaire_be", MAX_COMMISSION_PARITAIRE_BE_LENGTH) : null)
+                    .joursTravaillesAnneePrecedenteBe(hasTravailBe ? boundedIntOrNull(travailBe, "jours_travailles_annee_precedente_be", 0, MAX_JOURS_TRAVAIL_BE) : null)
+                    .joursPrestesBe(hasTravailBe ? boundedIntOrNull(travailBe, "jours_prestes_be", 0, MAX_JOURS_TRAVAIL_BE) : null)
+                    .dateDemandeCreditTemps(hasTravailBe ? isoDateOrNull(travailBe, "date_demande_credit_temps") : null)
                     // SF-246-21 : 5 sous-objets thématiques Travail FR (FR uniquement, null dossier BE).
                     .cddDureeMois(extract246_21CddDureeMois(node))
                     .cddDateFinDernierContrat(extract246_21CddDateFin(node))
