@@ -94,6 +94,8 @@ public class CaseFileDashboardService {
     private final AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo;
     // SF-206-03 : F-DT-75 congés payés acquis pendant arrêt maladie (FR)
     private final CongesPayesArretMaladieRepository congesPayesArretMaladieRepo;
+    // SF-206-05 : F-DT-39 prise d'acte de la rupture aux torts de l'employeur (FR)
+    private final PriseActeRuptureRepository priseActeRuptureRepo;
     private final JldRetentionRepository jldRetentionRepo;
     private final DublinRecoursRepository dublinRecoursRepo;
     private final CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -228,6 +230,7 @@ public class CaseFileDashboardService {
                                      RupturePeriodeEssaiRepository rupturePeriodeEssaiRepo,
                                      AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo,
                                      CongesPayesArretMaladieRepository congesPayesArretMaladieRepo,
+                                     PriseActeRuptureRepository priseActeRuptureRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
                                      CrrvRefusVisaRepository crrvRefusVisaRepo,
@@ -346,6 +349,7 @@ public class CaseFileDashboardService {
         this.rupturePeriodeEssaiRepo = rupturePeriodeEssaiRepo;
         this.abandonPostePresomptionDemissionRepo = abandonPostePresomptionDemissionRepo;
         this.congesPayesArretMaladieRepo = congesPayesArretMaladieRepo;
+        this.priseActeRuptureRepo = priseActeRuptureRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
         this.crrvRefusVisaRepo = crrvRefusVisaRepo;
@@ -519,6 +523,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-DT-42-abandon-poste-presomption-demission", caseFileId, () -> tileFromAbandonPostePresomptionDemissionAnalysis(caseFileId));
         // SF-206-03 : F-DT-75 congés payés acquis pendant arrêt maladie (FR)
         addSafely(tiles, "F-DT-75-conges-payes-arret-maladie", caseFileId, () -> tileFromCongesPayesArretMaladieAnalysis(caseFileId));
+        // SF-206-05 : F-DT-39 prise d'acte de la rupture aux torts de l'employeur (FR)
+        addSafely(tiles, "F-DT-39-prise-acte-rupture", caseFileId, () -> tileFromPriseActeRuptureAnalysis(caseFileId));
         addSafely(tiles, "F-IM-21-jld-retention-fr", caseFileId, () -> tileFromJldRetentionAnalysis(caseFileId));
         addSafely(tiles, "F-IM-22-dublin-recours-fr", caseFileId, () -> tileFromDublinRecoursAnalysis(caseFileId));
         addSafely(tiles, "F-IM-23-crrv-refus-visa-fr", caseFileId, () -> tileFromCrrvRefusVisaAnalysis(caseFileId));
@@ -1411,6 +1417,35 @@ public class CaseFileDashboardService {
                         primary,
                         secondary,
                         mapVerdictCongesPayesArretMaladie(verdict));
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * F-DT-39 Prise d'acte de la rupture aux torts de l'employeur (FR) —
+     * SF-206-05. Thème {@code DIAGNOSTIC} (groupe F-169 "Rupture — initiative
+     * salarié / torts employeur"). Du point de vue de l'avocat du salarié :
+     * un verdict favorable est une opportunité contentieuse (OK), un verdict
+     * défavorable est une catastrophe potentielle (ALERT — la prise d'acte
+     * notifiée à tort produit les effets d'une démission).
+     */
+    private DashboardTile tileFromPriseActeRuptureAnalysis(UUID caseFileId) {
+        return priseActeRuptureRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(
+                        e.getSnapshotData(), PriseActeRuptureResponse.class);
+                String verdict = r.verdict() != null ? r.verdict().name() : null;
+                String primary = libelleVerdictPriseActe(verdict);
+                String secondary = "Score " + r.scoreSolidite() + "/100";
+                return new DashboardTile(
+                        "F-DT-39-prise-acte-rupture",
+                        "DIAGNOSTIC",
+                        "Prise d'acte de la rupture",
+                        primary,
+                        secondary,
+                        mapVerdictPriseActe(verdict));
             } catch (Exception ex) {
                 return null;
             }
@@ -3445,6 +3480,36 @@ public class CaseFileDashboardService {
             case "CONTESTATION_SOLIDE" -> "Contestation solide";
             case "CONTESTATION_INCERTAINE" -> "Contestation incertaine";
             case "CONTESTATION_DIFFICILE" -> "Contestation difficile";
+            default -> "—";
+        };
+    }
+
+    /**
+     * SF-206-05 — mapping du verdict F-DT-39 (prise d'acte de la rupture, FR)
+     * → {@code alertLevel} de la tuile dashboard. Du point de vue de l'avocat
+     * du salarié : une prise d'acte favorable est une opportunité (OK / vert),
+     * une prise d'acte risquée est un signal d'attention (WARNING), une prise
+     * d'acte défavorable est une catastrophe (ALERT — la prise d'acte
+     * notifiée à tort produit les effets d'une démission, perte des
+     * indemnités de licenciement et des allocations chômage).
+     */
+    private static String mapVerdictPriseActe(String verdict) {
+        if (verdict == null) return null;
+        return switch (verdict) {
+            case "PRISE_ACTE_FAVORABLE" -> "OK";
+            case "PRISE_ACTE_RISQUEE" -> "WARNING";
+            case "PRISE_ACTE_DEFAVORABLE" -> "ALERT";
+            default -> null;
+        };
+    }
+
+    /** SF-206-05 — libellé court du verdict prise d'acte pour la tile primary. */
+    private static String libelleVerdictPriseActe(String verdict) {
+        if (verdict == null) return "—";
+        return switch (verdict) {
+            case "PRISE_ACTE_FAVORABLE" -> "Prise d'acte favorable";
+            case "PRISE_ACTE_RISQUEE" -> "Prise d'acte risquée";
+            case "PRISE_ACTE_DEFAVORABLE" -> "Prise d'acte défavorable";
             default -> "—";
         };
     }

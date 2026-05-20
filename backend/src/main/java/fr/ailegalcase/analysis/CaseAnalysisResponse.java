@@ -407,6 +407,22 @@ public record CaseAnalysisResponse(
             Boolean abandonPosteMedMentionneDelai,
             Boolean abandonPosteMedMentionneConsequences,
             Boolean abandonPosteRepriseDansDelai,
+            // SF-206-05 : 11 champs IA pour pré-fill F-DT-39 (prise d'acte de la
+            // rupture aux torts de l'employeur, Travail FR uniquement, nullables).
+            // Sous-objet `prise_acte_detail`. La prise d'acte CPH avec effets
+            // licenciement / démission (Cass. soc. 25/06/2003 n°01-42.679) est un
+            // mécanisme franco-français — ces champs restent null pour la BE.
+            Boolean priseActeDefautPaiementSalaire,
+            java.math.BigDecimal priseActeMontantImpayes,
+            Boolean priseActeHarcelement,
+            Boolean priseActeManquementSecurite,
+            Boolean priseActeModificationContrat,
+            Boolean priseActeDeclassement,
+            Boolean priseActeDiscrimination,
+            Boolean priseActeHeuresSupNonPayees,
+            Boolean priseActeNonRespectRepos,
+            Boolean priseActeGriefsPersistants,
+            Boolean priseActeGriefImpossiblePoursuite,
             // SF-207-06 : 4 champs IA Travail BE pour pré-fill F-207-06 outil
             // RCC BE conditions d'éligibilité (CCT 17 ; CCT 17/13 ; AR 03/05/2007
             // art. 3 et 8). Tous nullables — Travail BE uniquement, restent null
@@ -599,6 +615,18 @@ public record CaseAnalysisResponse(
                     .abandonPosteMedMentionneDelai(abandonPosteMedMentionneDelai)
                     .abandonPosteMedMentionneConsequences(abandonPosteMedMentionneConsequences)
                     .abandonPosteRepriseDansDelai(abandonPosteRepriseDansDelai)
+                    // SF-206-05 — prise_acte_detail (FRANCE uniquement)
+                    .priseActeDefautPaiementSalaire(priseActeDefautPaiementSalaire)
+                    .priseActeMontantImpayes(priseActeMontantImpayes)
+                    .priseActeHarcelement(priseActeHarcelement)
+                    .priseActeManquementSecurite(priseActeManquementSecurite)
+                    .priseActeModificationContrat(priseActeModificationContrat)
+                    .priseActeDeclassement(priseActeDeclassement)
+                    .priseActeDiscrimination(priseActeDiscrimination)
+                    .priseActeHeuresSupNonPayees(priseActeHeuresSupNonPayees)
+                    .priseActeNonRespectRepos(priseActeNonRespectRepos)
+                    .priseActeGriefsPersistants(priseActeGriefsPersistants)
+                    .priseActeGriefImpossiblePoursuite(priseActeGriefImpossiblePoursuite)
                     // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
                     .dateNaissanceSalarie(dateNaissanceSalarie)
                     .anneesCarriereSalarie(anneesCarriereSalarie)
@@ -769,6 +797,18 @@ public record CaseAnalysisResponse(
             private Boolean abandonPosteMedMentionneDelai;
             private Boolean abandonPosteMedMentionneConsequences;
             private Boolean abandonPosteRepriseDansDelai;
+            // SF-206-05 — prise_acte_detail (FRANCE uniquement)
+            private Boolean priseActeDefautPaiementSalaire;
+            private java.math.BigDecimal priseActeMontantImpayes;
+            private Boolean priseActeHarcelement;
+            private Boolean priseActeManquementSecurite;
+            private Boolean priseActeModificationContrat;
+            private Boolean priseActeDeclassement;
+            private Boolean priseActeDiscrimination;
+            private Boolean priseActeHeuresSupNonPayees;
+            private Boolean priseActeNonRespectRepos;
+            private Boolean priseActeGriefsPersistants;
+            private Boolean priseActeGriefImpossiblePoursuite;
             // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
             private String dateNaissanceSalarie;
             private Integer anneesCarriereSalarie;
@@ -934,6 +974,18 @@ public record CaseAnalysisResponse(
             public Builder abandonPosteMedMentionneDelai(Boolean v) { this.abandonPosteMedMentionneDelai = v; return this; }
             public Builder abandonPosteMedMentionneConsequences(Boolean v) { this.abandonPosteMedMentionneConsequences = v; return this; }
             public Builder abandonPosteRepriseDansDelai(Boolean v) { this.abandonPosteRepriseDansDelai = v; return this; }
+            // SF-206-05 — prise_acte_detail (FRANCE uniquement)
+            public Builder priseActeDefautPaiementSalaire(Boolean v) { this.priseActeDefautPaiementSalaire = v; return this; }
+            public Builder priseActeMontantImpayes(java.math.BigDecimal v) { this.priseActeMontantImpayes = v; return this; }
+            public Builder priseActeHarcelement(Boolean v) { this.priseActeHarcelement = v; return this; }
+            public Builder priseActeManquementSecurite(Boolean v) { this.priseActeManquementSecurite = v; return this; }
+            public Builder priseActeModificationContrat(Boolean v) { this.priseActeModificationContrat = v; return this; }
+            public Builder priseActeDeclassement(Boolean v) { this.priseActeDeclassement = v; return this; }
+            public Builder priseActeDiscrimination(Boolean v) { this.priseActeDiscrimination = v; return this; }
+            public Builder priseActeHeuresSupNonPayees(Boolean v) { this.priseActeHeuresSupNonPayees = v; return this; }
+            public Builder priseActeNonRespectRepos(Boolean v) { this.priseActeNonRespectRepos = v; return this; }
+            public Builder priseActeGriefsPersistants(Boolean v) { this.priseActeGriefsPersistants = v; return this; }
+            public Builder priseActeGriefImpossiblePoursuite(Boolean v) { this.priseActeGriefImpossiblePoursuite = v; return this; }
             // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
             public Builder dateNaissanceSalarie(String v) { this.dateNaissanceSalarie = v; return this; }
             public Builder anneesCarriereSalarie(Integer v) { this.anneesCarriereSalarie = v; return this; }
@@ -1030,6 +1082,13 @@ public record CaseAnalysisResponse(
                         abandonPosteDelaiAccordeJours, abandonPosteMotifAbsence,
                         abandonPosteDateReprise, abandonPosteMedMentionneDelai,
                         abandonPosteMedMentionneConsequences, abandonPosteRepriseDansDelai,
+                        // SF-206-05 — prise_acte_detail (FRANCE uniquement)
+                        priseActeDefautPaiementSalaire, priseActeMontantImpayes,
+                        priseActeHarcelement, priseActeManquementSecurite,
+                        priseActeModificationContrat, priseActeDeclassement,
+                        priseActeDiscrimination, priseActeHeuresSupNonPayees,
+                        priseActeNonRespectRepos, priseActeGriefsPersistants,
+                        priseActeGriefImpossiblePoursuite,
                         // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
                         dateNaissanceSalarie, anneesCarriereSalarie,
                         metierLourdDetecte, entrepriseEnDifficulteDetectee,
@@ -3180,6 +3239,11 @@ public record CaseAnalysisResponse(
             // dossier BE) → tous les champs null.
             JsonNode abandonPoste = node.get("abandon_poste_detail");
             boolean hasAbandonPoste = abandonPoste != null && abandonPoste.isObject();
+            // SF-206-05 : sous-objet pour pré-fill F-DT-39 (prise d'acte de la
+            // rupture aux torts de l'employeur). Peut être absent (dossier sans
+            // prise d'acte envisagée ou dossier BE) → tous les 11 champs null.
+            JsonNode priseActe = node.get("prise_acte_detail");
+            boolean hasPriseActe = priseActe != null && priseActe.isObject();
             // SF-206-03 : sous-objet pour pré-fill F-DT-75 (congés payés acquis
             // pendant arrêt maladie). Peut être absent (dossier sans arrêt
             // maladie long ou dossier BE) → tous les champs null.
@@ -3415,6 +3479,22 @@ public record CaseAnalysisResponse(
                     .abandonPosteMedMentionneDelai(hasAbandonPoste ? booleanOrNull(abandonPoste, "med_mentionne_delai") : null)
                     .abandonPosteMedMentionneConsequences(hasAbandonPoste ? booleanOrNull(abandonPoste, "med_mentionne_consequences") : null)
                     .abandonPosteRepriseDansDelai(hasAbandonPoste ? booleanOrNull(abandonPoste, "reprise_dans_delai") : null)
+                    // SF-206-05 : 11 champs IA pour pré-fill F-DT-39 (prise d'acte
+                    // de la rupture aux torts de l'employeur, FR uniquement).
+                    // Booléens via booleanOrNull(), montant en BigDecimal pour préserver
+                    // la précision et accepter une borne stricte >= 0 (signum() côté
+                    // calculator). Tous null si sous-objet prise_acte_detail absent.
+                    .priseActeDefautPaiementSalaire(hasPriseActe ? booleanOrNull(priseActe, "defaut_paiement_salaire") : null)
+                    .priseActeMontantImpayes(hasPriseActe ? bigDecimalOrNull(priseActe, "montant_impayes_eur") : null)
+                    .priseActeHarcelement(hasPriseActe ? booleanOrNull(priseActe, "harcelement") : null)
+                    .priseActeManquementSecurite(hasPriseActe ? booleanOrNull(priseActe, "manquement_securite") : null)
+                    .priseActeModificationContrat(hasPriseActe ? booleanOrNull(priseActe, "modification_unilaterale_contrat") : null)
+                    .priseActeDeclassement(hasPriseActe ? booleanOrNull(priseActe, "declassement") : null)
+                    .priseActeDiscrimination(hasPriseActe ? booleanOrNull(priseActe, "discrimination") : null)
+                    .priseActeHeuresSupNonPayees(hasPriseActe ? booleanOrNull(priseActe, "heures_sup_non_payees") : null)
+                    .priseActeNonRespectRepos(hasPriseActe ? booleanOrNull(priseActe, "non_respect_durees_repos") : null)
+                    .priseActeGriefsPersistants(hasPriseActe ? booleanOrNull(priseActe, "griefs_actuels_et_persistants") : null)
+                    .priseActeGriefImpossiblePoursuite(hasPriseActe ? booleanOrNull(priseActe, "grief_rend_impossible_poursuite") : null)
                     // SF-206-03 : 5 champs IA pour pré-fill F-DT-75 — typeArret
                     // normalisé sur l'enum (code hors liste → null) ; nombreMois
                     // borné [1, 1200] (limite plausible — 100 ans) ; salarieEnPoste
