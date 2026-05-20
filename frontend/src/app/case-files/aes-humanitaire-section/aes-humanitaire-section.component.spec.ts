@@ -180,7 +180,7 @@ describe('AesHumanitaireSectionComponent (SF-IM-09-07)', () => {
 
   it('pré-fill IA : dateEntreeFrance + dateDepotDemande + provenance IA', () => {
     component.aiData = ({
-      dateEntreeFrance: '2020-01-15',
+      aesDateEntreeFrance: '2020-01-15',
       dateDepotProcedure: '2026-02-10',
     } as unknown) as ImmigrationExtractedData;
     component.ngOnInit();
@@ -205,7 +205,7 @@ describe('AesHumanitaireSectionComponent (SF-IM-09-07)', () => {
 
   it('onDateEntreeChange / onMotifChange / onDateDepotChange effacent les badges IA', () => {
     component.aiData = ({
-      dateEntreeFrance: '2020-01-15',
+      aesDateEntreeFrance: '2020-01-15',
       dateDepotProcedure: '2026-02-10',
     } as unknown) as ImmigrationExtractedData;
     component.ngOnInit();
@@ -229,7 +229,7 @@ describe('AesHumanitaireSectionComponent (SF-IM-09-07)', () => {
   });
 
   it('coherence alert DATE_ENTREE_FRANCE si divergence avec IA', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as ImmigrationExtractedData;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -338,7 +338,7 @@ describe('AesHumanitaireSectionComponent (SF-IM-09-07)', () => {
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
 
-    const newAi = ({ dateEntreeFrance: '2019-03-10' } as unknown) as ImmigrationExtractedData;
+    const newAi = ({ aesDateEntreeFrance: '2019-03-10' } as unknown) as ImmigrationExtractedData;
     component.aiData = newAi;
     component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
 
@@ -347,7 +347,7 @@ describe('AesHumanitaireSectionComponent (SF-IM-09-07)', () => {
   });
 
   it('alertes masquées si form caché (showForm=false)', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as ImmigrationExtractedData;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();

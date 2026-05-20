@@ -142,7 +142,7 @@ describe('AesFamilleSectionComponent', () => {
   });
 
   it('pré-fill IA : dateEntreeFrance + dureePresenceMois (calculé) + provenance IA', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as never;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as never;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -164,7 +164,7 @@ describe('AesFamilleSectionComponent', () => {
   });
 
   it('onDateEntreeChange efface le badge IA', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as never;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as never;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -176,7 +176,7 @@ describe('AesFamilleSectionComponent', () => {
   });
 
   it('coherence alert DUREE_PRESENCE si écart > 6 mois entre IA et saisie', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as never;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as never;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -190,7 +190,7 @@ describe('AesFamilleSectionComponent', () => {
   });
 
   it('coherence alert DATE_ENTREE_FRANCE si divergence avec IA', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as never;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as never;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -261,7 +261,7 @@ describe('AesFamilleSectionComponent', () => {
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
 
-    const newAi = ({ dateEntreeFrance: '2019-03-10' } as unknown) as never;
+    const newAi = ({ aesDateEntreeFrance: '2019-03-10' } as unknown) as never;
     component.aiData = newAi;
     component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
 
@@ -270,7 +270,7 @@ describe('AesFamilleSectionComponent', () => {
   });
 
   it('alertes masquées si form caché (showForm=false)', () => {
-    component.aiData = ({ dateEntreeFrance: '2020-01-15' } as unknown) as never;
+    component.aiData = ({ aesDateEntreeFrance: '2020-01-15' } as unknown) as never;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
