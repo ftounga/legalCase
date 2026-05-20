@@ -265,14 +265,27 @@ export class RappelSalaireSectionComponent implements OnInit, OnChanges {
     if (this.workspaceCountry !== 'FRANCE') return;
 
     // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const salaire = RappelSalaireSectionPrefillRules.computeMontantSalaireDuMensuel({
-      aiData: ai, workspaceCountry: this.workspaceCountry,
-    });
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+    const salaire = RappelSalaireSectionPrefillRules.computeMontantSalaireDuMensuel(ruleInput);
     if (salaire !== null) {
       if (this.montantSalaireDuMensuelEur() === null || this.provenanceMontantDu() === 'IA') {
         this.montantSalaireDuMensuelEur.set(salaire);
         this.provenanceMontantDu.set('IA');
       }
+    }
+
+    // SF-246-21 : montant salaire perversé mensuel et périodes.
+    const perverse = RappelSalaireSectionPrefillRules.computeMontantSalairePerverseMensuel(ruleInput);
+    if (perverse !== null && this.montantSalairePerVerseMensuelEur() === null) {
+      this.montantSalairePerVerseMensuelEur.set(perverse);
+    }
+    const periodeDebut = RappelSalaireSectionPrefillRules.computePeriodeDebut(ruleInput);
+    if (periodeDebut !== null && this.periodeDebut() === null) {
+      this.periodeDebut.set(periodeDebut);
+    }
+    const periodeFin = RappelSalaireSectionPrefillRules.computePeriodeFin(ruleInput);
+    if (periodeFin !== null && this.periodeFin() === null) {
+      this.periodeFin.set(periodeFin);
     }
 
     // 2. Convention collective (normalisée + matchée vs liste référentiel).

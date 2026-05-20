@@ -246,6 +246,24 @@ export class RequalificationCddCdiSectionComponent implements OnInit, OnChanges 
         this.provenanceSalaire.set('IA');
       }
     }
+
+    // SF-246-21 : durée CDD, dates dernier contrat et nouveau contrat.
+    const duree = RequalificationCddCdiSectionPrefillRules.computeDureeCddMois({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (duree !== null && this.dureeContratMois() === null) {
+      this.dureeContratMois.set(duree);
+    }
+    const dateFin = RequalificationCddCdiSectionPrefillRules.computeDateFinDernierContrat({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (dateFin !== null && this.dateFinDernierContrat() === null) {
+      this.dateFinDernierContrat.set(dateFin);
+    }
+    const newDebut = RequalificationCddCdiSectionPrefillRules.computeNewCddDateDebut({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (newDebut !== null && this.newCddDateDebut() === null) {
+      this.newCddDateDebut.set(newDebut);
+    }
+    const newFin = RequalificationCddCdiSectionPrefillRules.computeNewCddDateFin({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (newFin !== null && this.newCddDateFin() === null) {
+      this.newCddDateFin.set(newFin);
+    }
   }
 
   private loadSourceExplanations(): void {

@@ -216,15 +216,21 @@ export class IndemnitePrecariteCddSectionComponent implements OnInit, OnChanges 
     if (this.workspaceCountry !== 'FRANCE') return;
 
     // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const salaire = IndemnitePrecariteCddSectionPrefillRules.computeSalaireMensuelReference({
-      aiData: ai, workspaceCountry: this.workspaceCountry,
-    });
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+    const salaire = IndemnitePrecariteCddSectionPrefillRules.computeSalaireMensuelReference(ruleInput);
     if (salaire !== null) {
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
         this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
         this.recomputeTotalSalaires();
       }
+    }
+
+    // SF-246-21 : durée CDD en mois.
+    const duree = IndemnitePrecariteCddSectionPrefillRules.computeDureeCddMois(ruleInput);
+    if (duree !== null && this.dureeCddMois() === null) {
+      this.dureeCddMois.set(duree);
+      this.recomputeTotalSalaires();
     }
   }
 

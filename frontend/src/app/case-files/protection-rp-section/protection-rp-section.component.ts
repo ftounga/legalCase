@@ -49,6 +49,8 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import {
   ProtectionRpSectionPrefillRules,
   computeMotifLicenciement as computeMotifLicenciementRule,
+  computeDatePresumeeRupture as computeDatePresumeeRuptureRule,
+  computeSalaireMensuelBrut as computeSalaireMensuelBrutRule,
 } from './protection-rp-section-prefill-rules';
 
 /**
@@ -361,13 +363,24 @@ export class ProtectionRpSectionComponent implements OnInit, OnChanges {
     if (!ai) return;
 
     // F-236 SF-236-02 : motifLicenciement calculé par le helper partagé (parité static).
-    const iaMotif = computeMotifLicenciementRule({ aiData: ai });
+    const ruleInput = { aiData: ai };
+    const iaMotif = computeMotifLicenciementRule(ruleInput);
     if (iaMotif) {
       if (this.motifLicenciement() === null
           || this.provenanceMotifLicenciement() === 'IA') {
         this.motifLicenciement.set(iaMotif);
         this.provenanceMotifLicenciement.set('IA');
       }
+    }
+
+    // SF-246-21 : date présumée de la rupture et salaire mensuel brut.
+    const dateRupture = computeDatePresumeeRuptureRule(ruleInput);
+    if (dateRupture !== null && this.datePresumeeRupture() === null) {
+      this.datePresumeeRupture.set(dateRupture);
+    }
+    const salaire = computeSalaireMensuelBrutRule(ruleInput);
+    if (salaire !== null && this.salaireMensuelBrutEur() === null) {
+      this.salaireMensuelBrutEur.set(salaire);
     }
   }
 

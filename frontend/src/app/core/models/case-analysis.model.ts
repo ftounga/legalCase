@@ -413,6 +413,99 @@ export interface TravailExtractedData {
   motifExplicite?: string | null;
   preavisPresteJours?: number | null;
   dernierSalaireMensuelBrut?: number | null;
+  // -------------------------------------------------------------------------
+  // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
+  // FR uniquement — null pour dossier Travail BE.
+  // -------------------------------------------------------------------------
+  /** Durée du dernier CDD en mois [0, 120]. Source : contrat CDD. */
+  cddDureeMois?: number | null;
+  /** Date de fin du dernier CDD (ISO YYYY-MM-DD). */
+  cddDateFinDernierContrat?: string | null;
+  /** Date de début du CDD suivant — succession de CDD (ISO). */
+  cddNouveauDateDebut?: string | null;
+  /** Date de fin du CDD suivant (ISO). */
+  cddNouveauDateFin?: string | null;
+  /** Total des salaires bruts sur la durée du CDD (€ > 0). */
+  cddTotalSalairesBruts?: number | null;
+  /** Durée totale cumulée des missions d'intérim en mois [0, 120]. */
+  interimDureeTotaleMois?: number | null;
+  /** Date de fin de la dernière mission d'intérim (ISO YYYY-MM-DD). */
+  interimDateFinDerniereMission?: string | null;
+  /** Date de début d'une nouvelle mission d'intérim (ISO). */
+  interimNouvellesMissionDateDebut?: string | null;
+  /** Date de fin d'une nouvelle mission d'intérim (ISO). */
+  interimNouvellesMissionDateFin?: string | null;
+  /** Nom ou SIRET de l'entreprise utilisatrice (≤ 200 car.). */
+  interimEntrepriseUtilisatrice?: string | null;
+  /** Total des rémunérations brutes sur toutes missions (€ > 0). */
+  interimTotalRemunerationsBrutes?: number | null;
+  /** Durée de la mission d'intérim en jours calendaires [0, 3650]. */
+  interimDureeMissionJours?: number | null;
+  // -------------------------------------------------------------------------
+  // SF-246-21 — sous-objet `paie_detection`
+  // FR uniquement — null pour dossier Travail BE.
+  // -------------------------------------------------------------------------
+  /** Jours de congés payés acquis [0, 50]. Source : bulletins / STC. */
+  congesJoursAcquis?: number | null;
+  /** Jours de congés payés pris [0, 50]. */
+  congesJoursPris?: number | null;
+  /** Salaire effectivement versé par mois (€ > 0). Distinct du montant dû. */
+  rappelSalaireMontantPerverseMensuel?: number | null;
+  /** Date de début de la période de rappel — premier mois impayé (ISO). */
+  rappelSalairePeriodeDebut?: string | null;
+  /** Date de fin de la période de rappel — dernier mois impayé (ISO). */
+  rappelSalairePeriodeFin?: string | null;
+  // -------------------------------------------------------------------------
+  // SF-246-21 — sous-objet `rupture_collective_detection`
+  // FR uniquement — null pour dossier Travail BE.
+  // -------------------------------------------------------------------------
+  /** Âge du salarié en années [16, 80] — extractible si pièce d'identité aux pièces. */
+  salarieAgeAnnees?: number | null;
+  /** Effectif de l'entreprise (PSE) en nb salariés [0, 100000]. */
+  pseNombreSalaries?: number | null;
+  /** Nombre de licenciements envisagés dans le PSE [0, 100000]. */
+  pseNombreLicenciements?: number | null;
+  /** Date de signature du protocole transactionnel (ISO YYYY-MM-DD). */
+  transactionDateSignature?: string | null;
+  /** Montant de l'indemnité transactionnelle (€ > 0). */
+  transactionIndemniteMontantEur?: number | null;
+  // -------------------------------------------------------------------------
+  // SF-246-21 — sous-objet `sante_discrimination_detection`
+  // FR uniquement — null pour dossier Travail BE.
+  // -------------------------------------------------------------------------
+  /** Date de l'accident du travail (ISO YYYY-MM-DD) — distincte de dateLicenciement. */
+  atDateAccident?: string | null;
+  /** Date de première exposition au risque MP (ISO). Distincte de atDateAccident. */
+  atDateExposition?: string | null;
+  /**
+   * Type de décision France Travail contestée — whitelist :
+   * REFUS_INSCRIPTION | RADIATION | SUPPRESSION_ARE | REDUCTION_ARE | EXCLUSION_TEMPORAIRE | AUTRE
+   */
+  areTypeDecision?: string | null;
+  /** Montant contesté dans la décision France Travail (€ > 0). */
+  areMontantConteste?: number | null;
+  /**
+   * Motif de discrimination — whitelist :
+   * SEXE | AGE | ORIGINE | HANDICAP | RELIGION | ORIENTATION_SEXUELLE | GROSSESSE | ACTIVITES_SYNDICALES | AUTRE
+   */
+  discriminationMotif?: string | null;
+  /**
+   * Contexte de l'acte discriminatoire — whitelist :
+   * REFUS_EMBAUCHE | LICENCIEMENT | MUTATION | SANCTION_DISCIPLINAIRE | PROMOTION_REFUSEE | REMUNERATION_INFERIEURE | HARCELEMENT | AUTRE
+   */
+  discriminationContexte?: string | null;
+  // -------------------------------------------------------------------------
+  // SF-246-21 — sous-objet `procedure_details_detection`
+  // FR uniquement — null pour dossier Travail BE.
+  // -------------------------------------------------------------------------
+  /** Montant de la provision demandée en référé prud'homal (€ > 0). */
+  refereMontantProvision?: number | null;
+  /** Date du certificat de travail (ISO YYYY-MM-DD). */
+  documentsDateCertificatTravail?: string | null;
+  /** Date de l'attestation France Travail (ISO YYYY-MM-DD). */
+  documentsDateAttestationFranceTravail?: string | null;
+  /** Date du solde de tout compte signé (ISO YYYY-MM-DD). */
+  documentsDateSoldeToutCompte?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

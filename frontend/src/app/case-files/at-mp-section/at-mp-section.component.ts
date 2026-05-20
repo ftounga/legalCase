@@ -47,6 +47,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import {
   AtMpSectionPrefillRules,
   computeDateAccident as computeDateAccidentRule,
+  computeDateExposition as computeDateExpositionRule,
 } from './at-mp-section-prefill-rules';
 
 /**
@@ -166,8 +167,10 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
   expertiseMedicaleProduite = signal<boolean>(false);
   datePremierAvisCpam = signal<string | null>(null);
 
-  /** Provenance IA pour les champs pré-remplissables (uniquement dateAccident pour V1). */
+  /** Provenance IA pour les champs pré-remplissables. */
   provenanceDateAccident = signal<'IA' | null>(null);
+  /** SF-246-21 : provenance IA pour dateExposition (MP). */
+  provenanceDateExposition = signal<'IA' | null>(null);
 
   /** Listes pour mat-radio. */
   readonly dispositifOptions = ATMP_DISPOSITIF_LABELS;
@@ -397,6 +400,7 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
 
   onDateExpositionChange(value: string | null): void {
     this.dateExposition.set(value || null);
+    this.provenanceDateExposition.set(null);
   }
 
   onTauxFixeChange(value: number | null): void {
@@ -440,6 +444,16 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
           || this.provenanceDateAccident() === 'IA') {
         this.dateAccident.set(iaDate);
         this.provenanceDateAccident.set('IA');
+      }
+    }
+
+    // SF-246-21 : dateExposition pour le dispositif MP.
+    const iaExposition = computeDateExpositionRule({ aiData: ai });
+    if (iaExposition && this.dispositif() === 'RECONNAISSANCE_MP') {
+      if (this.dateExposition() === null
+          || this.provenanceDateExposition() === 'IA') {
+        this.dateExposition.set(iaExposition);
+        this.provenanceDateExposition.set('IA');
       }
     }
   }
@@ -511,6 +525,7 @@ export class AtMpSectionComponent implements OnInit, OnChanges {
         this.result.set(r);
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceDateAccident.set(null);
+        this.provenanceDateExposition.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },

@@ -249,6 +249,28 @@ export class RequalificationInterimCdiSectionComponent implements OnInit, OnChan
         this.provenanceSalaire.set('IA');
       }
     }
+
+    // SF-246-21 : durée totale missions, date fin dernière mission, nouvelle mission.
+    const duree = RequalificationInterimCdiSectionPrefillRules.computeDureeMissionsTotaleMois({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (duree !== null && this.dureeMissionsTotaleMois() === null) {
+      this.dureeMissionsTotaleMois.set(duree);
+    }
+    const dateFin = RequalificationInterimCdiSectionPrefillRules.computeDateFinDerniereMission({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (dateFin !== null && this.dateFinDerniereMission() === null) {
+      this.dateFinDerniereMission.set(dateFin);
+    }
+    const newDebut = RequalificationInterimCdiSectionPrefillRules.computeNewMissionDateDebut({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (newDebut !== null && this.newMissionDateDebut() === null) {
+      this.newMissionDateDebut.set(newDebut);
+    }
+    const newFin = RequalificationInterimCdiSectionPrefillRules.computeNewMissionDateFin({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (newFin !== null && this.newMissionDateFin() === null) {
+      this.newMissionDateFin.set(newFin);
+    }
+    const entreprise = RequalificationInterimCdiSectionPrefillRules.computeNewMissionEntrepriseUtilisatrice({ aiData: ai, workspaceCountry: this.workspaceCountry });
+    if (entreprise !== null && this.newMissionEntrepriseUtilisatrice() === '') {
+      this.newMissionEntrepriseUtilisatrice.set(entreprise);
+    }
   }
 
   private loadSourceExplanations(): void {

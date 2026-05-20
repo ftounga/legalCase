@@ -219,15 +219,28 @@ export class FinMissionInterimSectionComponent implements OnInit, OnChanges {
     if (this.workspaceCountry !== 'FRANCE') return;
 
     // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const salaire = FinMissionInterimSectionPrefillRules.computeSalaireMensuelReference({
-      aiData: ai, workspaceCountry: this.workspaceCountry,
-    });
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+    const salaire = FinMissionInterimSectionPrefillRules.computeSalaireMensuelReference(ruleInput);
     if (salaire !== null) {
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
         this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
         this.recomputeTotalRemunerations();
       }
+    }
+
+    // SF-246-21 : total rémunérations brutes, durée mission jours, date fin mission.
+    const totalRem = FinMissionInterimSectionPrefillRules.computeTotalRemunerationsBrutes(ruleInput);
+    if (totalRem !== null && this.totalRemunerationsBrutesEur() === null) {
+      this.totalRemunerationsBrutesEur.set(totalRem);
+    }
+    const dureeJours = FinMissionInterimSectionPrefillRules.computeDureeMissionJours(ruleInput);
+    if (dureeJours !== null && this.dureeMissionJours() === null) {
+      this.dureeMissionJours.set(dureeJours);
+    }
+    const dateFin = FinMissionInterimSectionPrefillRules.computeDateFinMission(ruleInput);
+    if (dateFin !== null && this.dateFinMission() === null) {
+      this.dateFinMission.set(dateFin);
     }
   }
 

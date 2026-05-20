@@ -1,11 +1,14 @@
 /**
  * F-236 SF-236-02 — Helper partagé pour l'outil "Référé prud'homal" (FR).
+ * SF-246-21 : branchement d'1 champ depuis `procedure_details_detection`
+ * (refereMontantProvision — € > 0).
  * Module pur — runtime et static appellent les mêmes fonctions.
  *
  * Logique miroir :
- *   `dateMiseEnDemeure  ← aiData.dateLicenciement` (ISO, <= today)
+ *   `dateMiseEnDemeure     ← aiData.dateLicenciement` (ISO, <= today)
  *   `ancienneteContratMois ← monthsBetween(dateEntree, dateLicenciement || today)`
- *   `natureCreance      ← HEURES_SUPPLEMENTAIRES` si IA détecte heures sup > 0
+ *   `natureCreance         ← HEURES_SUPPLEMENTAIRES` si IA détecte heures sup > 0
+ *   `montantProvision      ← aiData.refereMontantProvision` (SF-246-21, € > 0)
  */
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -19,6 +22,8 @@ export interface RefereProhomalPrefillInput {
       totalDeclarees50pct?: number | null;
       horsContingent?: number | null;
     } | null;
+    // SF-246-21 — procedure_details_detection
+    refereMontantProvision?: number | null;
   } | null;
   workspaceCountry?: string;
   /** Date "now" ISO injectable pour les tests (YYYY-MM-DD). */
@@ -71,11 +76,19 @@ export function computeNatureCreance(input: RefereProhomalPrefillInput): string 
   return hasHeuresSup ? 'HEURES_SUPPLEMENTAIRES' : null;
 }
 
+/** SF-246-21 : montant de la provision demandée en référé (€ > 0). */
+export function computeMontantProvision(input: RefereProhomalPrefillInput): number | null {
+  if (input.workspaceCountry !== 'FRANCE') return null;
+  const v = input.aiData?.refereMontantProvision;
+  return typeof v === 'number' && v > 0 ? v : null;
+}
+
 export function computePrefillCount(input: RefereProhomalPrefillInput): number {
   let count = 0;
   if (computeDateMiseEnDemeure(input) !== null) count++;
   if (computeAncienneteContratMois(input) !== null) count++;
   if (computeNatureCreance(input) !== null) count++;
+  if (computeMontantProvision(input) !== null) count++;
   return count;
 }
 
@@ -83,6 +96,7 @@ export const ReferePrudhomalSectionPrefillRules = {
   computeDateMiseEnDemeure,
   computeAncienneteContratMois,
   computeNatureCreance,
+  computeMontantProvision,
   computePrefillCount,
   monthsBetween,
 };

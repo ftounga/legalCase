@@ -253,7 +253,64 @@ public record CaseAnalysisResponse(
             // Codes hors whitelist exclus par extractTravailData().
             // dateDeclencheurProcedure : format ISO YYYY-MM-DD ou null.
             String procedureTravailDetectee,
-            String dateDeclencheurProcedure) {
+            String dateDeclencheurProcedure,
+            // SF-246-21 — sous-objet `requalification_detection` :
+            // CDD : durée [0,120] mois, dates fin/début/fin du contrat suivant (ISO).
+            // Intérim : durée totale [0,120] mois, dates fin/début/fin mission suivante (ISO),
+            // entreprise utilisatrice (≤ 200 car.), total rémunérations brutes (€ > 0),
+            // durée mission en jours [0,3650]. Tous FR uniquement, null pour dossier BE.
+            Integer cddDureeMois,
+            String cddDateFinDernierContrat,
+            String cddNouveauDateDebut,
+            String cddNouveauDateFin,
+            Double cddTotalSalairesBruts,
+            Integer interimDureeTotaleMois,
+            String interimDateFinDerniereMission,
+            String interimNouvellesMissionDateDebut,
+            String interimNouvellesMissionDateFin,
+            String interimEntrepriseUtilisatrice,
+            Double interimTotalRemunerationsBrutes,
+            Integer interimDureeMissionJours,
+            // SF-246-21 — sous-objet `paie_detection` :
+            // CP : jours acquis [0,50] et jours pris [0,50] (bulletins/solde TC).
+            // Rappel salaire : montant versé (€ > 0), période début/fin (ISO).
+            // Tous FR uniquement, null pour dossier BE.
+            Integer congesJoursAcquis,
+            Integer congesJoursPris,
+            Double rappelSalaireMontantPerverseMensuel,
+            String rappelSalairePeriodeDebut,
+            String rappelSalairePeriodeFin,
+            // SF-246-21 — sous-objet `rupture_collective_detection` :
+            // Lic éco : âge salarié [16,80] ans (si pièce d'identité aux pièces).
+            // PSE : nb salariés [0,100000], nb licenciements [0,100000].
+            // Transaction : date de signature (ISO), indemnité (€ > 0).
+            // Tous FR uniquement, null pour dossier BE.
+            Integer salarieAgeAnnees,
+            Integer pseNombreSalaries,
+            Integer pseNombreLicenciements,
+            String transactionDateSignature,
+            Double transactionIndemniteMontantEur,
+            // SF-246-21 — sous-objet `sante_discrimination_detection` :
+            // AT/MP : date accident AT (ISO, distincte de dateLicenciement),
+            //   date exposition MP (ISO).
+            // ARE : type décision contestée (whitelist), montant contesté (€ > 0).
+            // Discrimination : motif (whitelist), contexte (whitelist).
+            // Tous FR uniquement, null pour dossier BE.
+            String atDateAccident,
+            String atDateExposition,
+            String areTypeDecision,
+            Double areMontantConteste,
+            String discriminationMotif,
+            String discriminationContexte,
+            // SF-246-21 — sous-objet `procedure_details_detection` :
+            // Référé prud'homal : montant de la provision demandée (€ > 0).
+            // Documents fin de contrat : dates certificat travail / attestation
+            //   France Travail / solde de tout compte (toutes ISO YYYY-MM-DD).
+            // Tous FR uniquement, null pour dossier BE.
+            Double refereMontantProvision,
+            String documentsDateCertificatTravail,
+            String documentsDateAttestationFranceTravail,
+            String documentsDateSoldeToutCompte) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -349,7 +406,44 @@ public record CaseAnalysisResponse(
                     .preavisPresteJours(preavisPresteJours)
                     .dernierSalaireMensuelBrut(dernierSalaireMensuelBrut)
                     .procedureTravailDetectee(procedureTravailDetectee)
-                    .dateDeclencheurProcedure(dateDeclencheurProcedure);
+                    .dateDeclencheurProcedure(dateDeclencheurProcedure)
+                    // SF-246-21 — requalification_detection
+                    .cddDureeMois(cddDureeMois)
+                    .cddDateFinDernierContrat(cddDateFinDernierContrat)
+                    .cddNouveauDateDebut(cddNouveauDateDebut)
+                    .cddNouveauDateFin(cddNouveauDateFin)
+                    .cddTotalSalairesBruts(cddTotalSalairesBruts)
+                    .interimDureeTotaleMois(interimDureeTotaleMois)
+                    .interimDateFinDerniereMission(interimDateFinDerniereMission)
+                    .interimNouvellesMissionDateDebut(interimNouvellesMissionDateDebut)
+                    .interimNouvellesMissionDateFin(interimNouvellesMissionDateFin)
+                    .interimEntrepriseUtilisatrice(interimEntrepriseUtilisatrice)
+                    .interimTotalRemunerationsBrutes(interimTotalRemunerationsBrutes)
+                    .interimDureeMissionJours(interimDureeMissionJours)
+                    // SF-246-21 — paie_detection
+                    .congesJoursAcquis(congesJoursAcquis)
+                    .congesJoursPris(congesJoursPris)
+                    .rappelSalaireMontantPerverseMensuel(rappelSalaireMontantPerverseMensuel)
+                    .rappelSalairePeriodeDebut(rappelSalairePeriodeDebut)
+                    .rappelSalairePeriodeFin(rappelSalairePeriodeFin)
+                    // SF-246-21 — rupture_collective_detection
+                    .salarieAgeAnnees(salarieAgeAnnees)
+                    .pseNombreSalaries(pseNombreSalaries)
+                    .pseNombreLicenciements(pseNombreLicenciements)
+                    .transactionDateSignature(transactionDateSignature)
+                    .transactionIndemniteMontantEur(transactionIndemniteMontantEur)
+                    // SF-246-21 — sante_discrimination_detection
+                    .atDateAccident(atDateAccident)
+                    .atDateExposition(atDateExposition)
+                    .areTypeDecision(areTypeDecision)
+                    .areMontantConteste(areMontantConteste)
+                    .discriminationMotif(discriminationMotif)
+                    .discriminationContexte(discriminationContexte)
+                    // SF-246-21 — procedure_details_detection
+                    .refereMontantProvision(refereMontantProvision)
+                    .documentsDateCertificatTravail(documentsDateCertificatTravail)
+                    .documentsDateAttestationFranceTravail(documentsDateAttestationFranceTravail)
+                    .documentsDateSoldeToutCompte(documentsDateSoldeToutCompte);
         }
 
         public static final class Builder {
@@ -437,6 +531,43 @@ public record CaseAnalysisResponse(
             // SF-246-22 — type de procédure travail + date déclencheur pour pré-fill F-136.
             private String procedureTravailDetectee;
             private String dateDeclencheurProcedure;
+            // SF-246-21 — requalification_detection (CDD + intérim)
+            private Integer cddDureeMois;
+            private String cddDateFinDernierContrat;
+            private String cddNouveauDateDebut;
+            private String cddNouveauDateFin;
+            private Double cddTotalSalairesBruts;
+            private Integer interimDureeTotaleMois;
+            private String interimDateFinDerniereMission;
+            private String interimNouvellesMissionDateDebut;
+            private String interimNouvellesMissionDateFin;
+            private String interimEntrepriseUtilisatrice;
+            private Double interimTotalRemunerationsBrutes;
+            private Integer interimDureeMissionJours;
+            // SF-246-21 — paie_detection (CP + rappel salaire)
+            private Integer congesJoursAcquis;
+            private Integer congesJoursPris;
+            private Double rappelSalaireMontantPerverseMensuel;
+            private String rappelSalairePeriodeDebut;
+            private String rappelSalairePeriodeFin;
+            // SF-246-21 — rupture_collective_detection (lic-éco + PSE + transaction)
+            private Integer salarieAgeAnnees;
+            private Integer pseNombreSalaries;
+            private Integer pseNombreLicenciements;
+            private String transactionDateSignature;
+            private Double transactionIndemniteMontantEur;
+            // SF-246-21 — sante_discrimination_detection (AT/MP + ARE + discrimination)
+            private String atDateAccident;
+            private String atDateExposition;
+            private String areTypeDecision;
+            private Double areMontantConteste;
+            private String discriminationMotif;
+            private String discriminationContexte;
+            // SF-246-21 — procedure_details_detection (référé + documents fin contrat)
+            private Double refereMontantProvision;
+            private String documentsDateCertificatTravail;
+            private String documentsDateAttestationFranceTravail;
+            private String documentsDateSoldeToutCompte;
 
             private Builder() {}
 
@@ -522,6 +653,43 @@ public record CaseAnalysisResponse(
             public Builder dernierSalaireMensuelBrut(java.math.BigDecimal v) { this.dernierSalaireMensuelBrut = v; return this; }
             public Builder procedureTravailDetectee(String v) { this.procedureTravailDetectee = v; return this; }
             public Builder dateDeclencheurProcedure(String v) { this.dateDeclencheurProcedure = v; return this; }
+            // SF-246-21 — requalification_detection
+            public Builder cddDureeMois(Integer v) { this.cddDureeMois = v; return this; }
+            public Builder cddDateFinDernierContrat(String v) { this.cddDateFinDernierContrat = v; return this; }
+            public Builder cddNouveauDateDebut(String v) { this.cddNouveauDateDebut = v; return this; }
+            public Builder cddNouveauDateFin(String v) { this.cddNouveauDateFin = v; return this; }
+            public Builder cddTotalSalairesBruts(Double v) { this.cddTotalSalairesBruts = v; return this; }
+            public Builder interimDureeTotaleMois(Integer v) { this.interimDureeTotaleMois = v; return this; }
+            public Builder interimDateFinDerniereMission(String v) { this.interimDateFinDerniereMission = v; return this; }
+            public Builder interimNouvellesMissionDateDebut(String v) { this.interimNouvellesMissionDateDebut = v; return this; }
+            public Builder interimNouvellesMissionDateFin(String v) { this.interimNouvellesMissionDateFin = v; return this; }
+            public Builder interimEntrepriseUtilisatrice(String v) { this.interimEntrepriseUtilisatrice = v; return this; }
+            public Builder interimTotalRemunerationsBrutes(Double v) { this.interimTotalRemunerationsBrutes = v; return this; }
+            public Builder interimDureeMissionJours(Integer v) { this.interimDureeMissionJours = v; return this; }
+            // SF-246-21 — paie_detection
+            public Builder congesJoursAcquis(Integer v) { this.congesJoursAcquis = v; return this; }
+            public Builder congesJoursPris(Integer v) { this.congesJoursPris = v; return this; }
+            public Builder rappelSalaireMontantPerverseMensuel(Double v) { this.rappelSalaireMontantPerverseMensuel = v; return this; }
+            public Builder rappelSalairePeriodeDebut(String v) { this.rappelSalairePeriodeDebut = v; return this; }
+            public Builder rappelSalairePeriodeFin(String v) { this.rappelSalairePeriodeFin = v; return this; }
+            // SF-246-21 — rupture_collective_detection
+            public Builder salarieAgeAnnees(Integer v) { this.salarieAgeAnnees = v; return this; }
+            public Builder pseNombreSalaries(Integer v) { this.pseNombreSalaries = v; return this; }
+            public Builder pseNombreLicenciements(Integer v) { this.pseNombreLicenciements = v; return this; }
+            public Builder transactionDateSignature(String v) { this.transactionDateSignature = v; return this; }
+            public Builder transactionIndemniteMontantEur(Double v) { this.transactionIndemniteMontantEur = v; return this; }
+            // SF-246-21 — sante_discrimination_detection
+            public Builder atDateAccident(String v) { this.atDateAccident = v; return this; }
+            public Builder atDateExposition(String v) { this.atDateExposition = v; return this; }
+            public Builder areTypeDecision(String v) { this.areTypeDecision = v; return this; }
+            public Builder areMontantConteste(Double v) { this.areMontantConteste = v; return this; }
+            public Builder discriminationMotif(String v) { this.discriminationMotif = v; return this; }
+            public Builder discriminationContexte(String v) { this.discriminationContexte = v; return this; }
+            // SF-246-21 — procedure_details_detection
+            public Builder refereMontantProvision(Double v) { this.refereMontantProvision = v; return this; }
+            public Builder documentsDateCertificatTravail(String v) { this.documentsDateCertificatTravail = v; return this; }
+            public Builder documentsDateAttestationFranceTravail(String v) { this.documentsDateAttestationFranceTravail = v; return this; }
+            public Builder documentsDateSoldeToutCompte(String v) { this.documentsDateSoldeToutCompte = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -560,7 +728,29 @@ public record CaseAnalysisResponse(
                         dateRuptureContrat, motifRupture,
                         raisonSocialeEmployeur, numeroBce, categorieOnem,
                         motifExplicite, preavisPresteJours, dernierSalaireMensuelBrut,
-                        procedureTravailDetectee, dateDeclencheurProcedure);
+                        procedureTravailDetectee, dateDeclencheurProcedure,
+                        // SF-246-21 — requalification_detection
+                        cddDureeMois, cddDateFinDernierContrat, cddNouveauDateDebut,
+                        cddNouveauDateFin, cddTotalSalairesBruts,
+                        interimDureeTotaleMois, interimDateFinDerniereMission,
+                        interimNouvellesMissionDateDebut, interimNouvellesMissionDateFin,
+                        interimEntrepriseUtilisatrice, interimTotalRemunerationsBrutes,
+                        interimDureeMissionJours,
+                        // SF-246-21 — paie_detection
+                        congesJoursAcquis, congesJoursPris,
+                        rappelSalaireMontantPerverseMensuel, rappelSalairePeriodeDebut,
+                        rappelSalairePeriodeFin,
+                        // SF-246-21 — rupture_collective_detection
+                        salarieAgeAnnees, pseNombreSalaries, pseNombreLicenciements,
+                        transactionDateSignature, transactionIndemniteMontantEur,
+                        // SF-246-21 — sante_discrimination_detection
+                        atDateAccident, atDateExposition,
+                        areTypeDecision, areMontantConteste,
+                        discriminationMotif, discriminationContexte,
+                        // SF-246-21 — procedure_details_detection
+                        refereMontantProvision,
+                        documentsDateCertificatTravail, documentsDateAttestationFranceTravail,
+                        documentsDateSoldeToutCompte);
             }
         }
     }
@@ -688,6 +878,53 @@ public record CaseAnalysisResponse(
      * {@code boundedIntOrNull} et ramenée à {@code null} — invariant mini-spec.
      */
     static final int MAX_AGE_DEMANDEUR_ANNEES = 100;
+
+    // SF-246-21 : bornes et whitelists pour les 5 sous-objets thématiques.
+
+    /** Durée CDD/intérim maximale plausible en mois (10 ans). */
+    static final int MAX_DUREE_CDD_INTERIM_MOIS = 120;
+
+    /** Durée de mission intérim maximale en jours (~10 ans). */
+    static final int MAX_DUREE_MISSION_JOURS = 3650;
+
+    /** Longueur max entreprise utilisatrice intérim (≤ 200 car.). */
+    static final int MAX_INTERIM_ENTREPRISE_LENGTH = 200;
+
+    /** Jours de congés payés — borne haute plausible (hors forfait). */
+    static final int MAX_CONGES_JOURS = 50;
+
+    /** Âge maximal plausible du salarié (lic-éco). */
+    static final int MAX_SALARIE_AGE_ANNEES = 80;
+
+    /** Âge minimal légal du salarié. */
+    static final int MIN_SALARIE_AGE_ANNEES = 16;
+
+    /** Effectifs PSE maximal plausible. */
+    static final int MAX_PSE_NOMBRE = 100_000;
+
+    /**
+     * SF-246-21 : codes whitelistés pour `are_type_decision`
+     * (enum frontend {@code TypeDecisionContestee}).
+     */
+    static final Set<String> ARE_TYPE_DECISION_CODES = Set.of(
+            "REFUS_INSCRIPTION", "RADIATION", "SUPPRESSION_ARE",
+            "REDUCTION_ARE", "EXCLUSION_TEMPORAIRE", "AUTRE");
+
+    /**
+     * SF-246-21 : codes whitelistés pour `discrimination_motif`
+     * (enum frontend {@code MotifDiscrimination}).
+     */
+    static final Set<String> DISCRIMINATION_MOTIF_CODES = Set.of(
+            "SEXE", "AGE", "ORIGINE", "HANDICAP", "RELIGION",
+            "ORIENTATION_SEXUELLE", "GROSSESSE", "ACTIVITES_SYNDICALES", "AUTRE");
+
+    /**
+     * SF-246-21 : codes whitelistés pour `discrimination_contexte`
+     * (enum frontend {@code ContexteActe}).
+     */
+    static final Set<String> DISCRIMINATION_CONTEXTE_CODES = Set.of(
+            "REFUS_EMBAUCHE", "LICENCIEMENT", "MUTATION", "SANCTION_DISCIPLINAIRE",
+            "PROMOTION_REFUSEE", "REMUNERATION_INFERIEURE", "HARCELEMENT", "AUTRE");
 
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
@@ -2294,8 +2531,247 @@ public record CaseAnalysisResponse(
                     // F-136 travail-procedure (FR+BE). Sous-objet procedure_travail_detection.
                     .procedureTravailDetectee(extractProcedureTravailCode(node))
                     .dateDeclencheurProcedure(extractProcedureTravailDate(node))
+                    // SF-246-21 : 5 sous-objets thématiques Travail FR (FR uniquement, null dossier BE).
+                    .cddDureeMois(extract246_21CddDureeMois(node))
+                    .cddDateFinDernierContrat(extract246_21CddDateFin(node))
+                    .cddNouveauDateDebut(extract246_21CddNouveauDateDebut(node))
+                    .cddNouveauDateFin(extract246_21CddNouveauDateFin(node))
+                    .cddTotalSalairesBruts(extract246_21CddTotalSalaires(node))
+                    .interimDureeTotaleMois(extract246_21InterimDureeTotale(node))
+                    .interimDateFinDerniereMission(extract246_21InterimDateFin(node))
+                    .interimNouvellesMissionDateDebut(extract246_21InterimNouvellesMissionDateDebut(node))
+                    .interimNouvellesMissionDateFin(extract246_21InterimNouvellesMissionDateFin(node))
+                    .interimEntrepriseUtilisatrice(extract246_21InterimEntreprise(node))
+                    .interimTotalRemunerationsBrutes(extract246_21InterimTotalRemunerations(node))
+                    .interimDureeMissionJours(extract246_21InterimDureeMissionJours(node))
+                    .congesJoursAcquis(extract246_21CongesJoursAcquis(node))
+                    .congesJoursPris(extract246_21CongesJoursPris(node))
+                    .rappelSalaireMontantPerverseMensuel(extract246_21RappelMontantPerverse(node))
+                    .rappelSalairePeriodeDebut(extract246_21RappelPeriodeDebut(node))
+                    .rappelSalairePeriodeFin(extract246_21RappelPeriodeFin(node))
+                    .salarieAgeAnnees(extract246_21SalarieAge(node))
+                    .pseNombreSalaries(extract246_21PseNombreSalaries(node))
+                    .pseNombreLicenciements(extract246_21PseNombreLicenciements(node))
+                    .transactionDateSignature(extract246_21TransactionDateSignature(node))
+                    .transactionIndemniteMontantEur(extract246_21TransactionIndemnite(node))
+                    .atDateAccident(extract246_21AtDateAccident(node))
+                    .atDateExposition(extract246_21AtDateExposition(node))
+                    .areTypeDecision(extract246_21AreTypeDecision(node))
+                    .areMontantConteste(extract246_21AreMontantConteste(node))
+                    .discriminationMotif(extract246_21DiscriminationMotif(node))
+                    .discriminationContexte(extract246_21DiscriminationContexte(node))
+                    .refereMontantProvision(extract246_21RefereMontantProvision(node))
+                    .documentsDateCertificatTravail(extract246_21DocumentsDateCertificat(node))
+                    .documentsDateAttestationFranceTravail(extract246_21DocumentsDateAttestation(node))
+                    .documentsDateSoldeToutCompte(extract246_21DocumentsDateSolde(node))
                     .build();
         } catch (Exception ignored) { return null; }
+    }
+
+    // -----------------------------------------------------------------------
+    // SF-246-21 : méthodes d'extraction des 5 sous-objets thématiques
+    // -----------------------------------------------------------------------
+
+    /** Retourne le nœud `requalification_detection` ou null si absent/non-objet. */
+    private static JsonNode getRequalificationNode(JsonNode travailNode) {
+        JsonNode n = travailNode.get("requalification_detection");
+        return (n != null && n.isObject()) ? n : null;
+    }
+
+    /** Retourne le nœud `paie_detection` ou null. */
+    private static JsonNode getPaieNode(JsonNode travailNode) {
+        JsonNode n = travailNode.get("paie_detection");
+        return (n != null && n.isObject()) ? n : null;
+    }
+
+    /** Retourne le nœud `rupture_collective_detection` ou null. */
+    private static JsonNode getRuptureCollectiveNode(JsonNode travailNode) {
+        JsonNode n = travailNode.get("rupture_collective_detection");
+        return (n != null && n.isObject()) ? n : null;
+    }
+
+    /** Retourne le nœud `sante_discrimination_detection` ou null. */
+    private static JsonNode getSanteDiscriminationNode(JsonNode travailNode) {
+        JsonNode n = travailNode.get("sante_discrimination_detection");
+        return (n != null && n.isObject()) ? n : null;
+    }
+
+    /** Retourne le nœud `procedure_details_detection` ou null. */
+    private static JsonNode getProcedureDetailsNode(JsonNode travailNode) {
+        JsonNode n = travailNode.get("procedure_details_detection");
+        return (n != null && n.isObject()) ? n : null;
+    }
+
+    // --- requalification_detection — CDD ---
+
+    private static Integer extract246_21CddDureeMois(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "cdd_duree_mois", 0, MAX_DUREE_CDD_INTERIM_MOIS) : null;
+    }
+
+    private static String extract246_21CddDateFin(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "cdd_date_fin_dernier_contrat") : null;
+    }
+
+    private static String extract246_21CddNouveauDateDebut(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "cdd_nouveau_date_debut") : null;
+    }
+
+    private static String extract246_21CddNouveauDateFin(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "cdd_nouveau_date_fin") : null;
+    }
+
+    private static Double extract246_21CddTotalSalaires(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? positiveDoubleOrNull(n, "cdd_total_salaires_bruts") : null;
+    }
+
+    // --- requalification_detection — intérim ---
+
+    private static Integer extract246_21InterimDureeTotale(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "interim_duree_totale_mois", 0, MAX_DUREE_CDD_INTERIM_MOIS) : null;
+    }
+
+    private static String extract246_21InterimDateFin(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "interim_date_fin_derniere_mission") : null;
+    }
+
+    private static String extract246_21InterimNouvellesMissionDateDebut(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "interim_nouvelle_mission_date_debut") : null;
+    }
+
+    private static String extract246_21InterimNouvellesMissionDateFin(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "interim_nouvelle_mission_date_fin") : null;
+    }
+
+    private static String extract246_21InterimEntreprise(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? truncatedTextOrNull(n, "interim_entreprise_utilisatrice", MAX_INTERIM_ENTREPRISE_LENGTH) : null;
+    }
+
+    private static Double extract246_21InterimTotalRemunerations(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? positiveDoubleOrNull(n, "interim_total_remunerations_brutes") : null;
+    }
+
+    private static Integer extract246_21InterimDureeMissionJours(JsonNode travailNode) {
+        JsonNode n = getRequalificationNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "interim_duree_mission_jours", 0, MAX_DUREE_MISSION_JOURS) : null;
+    }
+
+    // --- paie_detection ---
+
+    private static Integer extract246_21CongesJoursAcquis(JsonNode travailNode) {
+        JsonNode n = getPaieNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "conges_jours_acquis", 0, MAX_CONGES_JOURS) : null;
+    }
+
+    private static Integer extract246_21CongesJoursPris(JsonNode travailNode) {
+        JsonNode n = getPaieNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "conges_jours_pris", 0, MAX_CONGES_JOURS) : null;
+    }
+
+    private static Double extract246_21RappelMontantPerverse(JsonNode travailNode) {
+        JsonNode n = getPaieNode(travailNode);
+        return n != null ? positiveDoubleOrNull(n, "rappel_salaire_montant_perverse_mensuel") : null;
+    }
+
+    private static String extract246_21RappelPeriodeDebut(JsonNode travailNode) {
+        JsonNode n = getPaieNode(travailNode);
+        return n != null ? isoDateOrNull(n, "rappel_salaire_periode_debut") : null;
+    }
+
+    private static String extract246_21RappelPeriodeFin(JsonNode travailNode) {
+        JsonNode n = getPaieNode(travailNode);
+        return n != null ? isoDateOrNull(n, "rappel_salaire_periode_fin") : null;
+    }
+
+    // --- rupture_collective_detection ---
+
+    private static Integer extract246_21SalarieAge(JsonNode travailNode) {
+        JsonNode n = getRuptureCollectiveNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "salarie_age_annees", MIN_SALARIE_AGE_ANNEES, MAX_SALARIE_AGE_ANNEES) : null;
+    }
+
+    private static Integer extract246_21PseNombreSalaries(JsonNode travailNode) {
+        JsonNode n = getRuptureCollectiveNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "pse_nombre_salaries", 0, MAX_PSE_NOMBRE) : null;
+    }
+
+    private static Integer extract246_21PseNombreLicenciements(JsonNode travailNode) {
+        JsonNode n = getRuptureCollectiveNode(travailNode);
+        return n != null ? boundedIntOrNull(n, "pse_nombre_licenciements", 0, MAX_PSE_NOMBRE) : null;
+    }
+
+    private static String extract246_21TransactionDateSignature(JsonNode travailNode) {
+        JsonNode n = getRuptureCollectiveNode(travailNode);
+        return n != null ? isoDateOrNull(n, "transaction_date_signature") : null;
+    }
+
+    private static Double extract246_21TransactionIndemnite(JsonNode travailNode) {
+        JsonNode n = getRuptureCollectiveNode(travailNode);
+        return n != null ? positiveDoubleOrNull(n, "transaction_indemnite_montant_eur") : null;
+    }
+
+    // --- sante_discrimination_detection ---
+
+    private static String extract246_21AtDateAccident(JsonNode travailNode) {
+        JsonNode n = getSanteDiscriminationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "at_date_accident") : null;
+    }
+
+    private static String extract246_21AtDateExposition(JsonNode travailNode) {
+        JsonNode n = getSanteDiscriminationNode(travailNode);
+        return n != null ? isoDateOrNull(n, "at_date_exposition") : null;
+    }
+
+    private static String extract246_21AreTypeDecision(JsonNode travailNode) {
+        JsonNode n = getSanteDiscriminationNode(travailNode);
+        return n != null ? normalizeEnumCode(textOrNull(n, "are_type_decision"), ARE_TYPE_DECISION_CODES) : null;
+    }
+
+    private static Double extract246_21AreMontantConteste(JsonNode travailNode) {
+        JsonNode n = getSanteDiscriminationNode(travailNode);
+        return n != null ? positiveDoubleOrNull(n, "are_montant_conteste") : null;
+    }
+
+    private static String extract246_21DiscriminationMotif(JsonNode travailNode) {
+        JsonNode n = getSanteDiscriminationNode(travailNode);
+        return n != null ? normalizeEnumCode(textOrNull(n, "discrimination_motif"), DISCRIMINATION_MOTIF_CODES) : null;
+    }
+
+    private static String extract246_21DiscriminationContexte(JsonNode travailNode) {
+        JsonNode n = getSanteDiscriminationNode(travailNode);
+        return n != null ? normalizeEnumCode(textOrNull(n, "discrimination_contexte"), DISCRIMINATION_CONTEXTE_CODES) : null;
+    }
+
+    // --- procedure_details_detection ---
+
+    private static Double extract246_21RefereMontantProvision(JsonNode travailNode) {
+        JsonNode n = getProcedureDetailsNode(travailNode);
+        return n != null ? positiveDoubleOrNull(n, "refere_montant_provision") : null;
+    }
+
+    private static String extract246_21DocumentsDateCertificat(JsonNode travailNode) {
+        JsonNode n = getProcedureDetailsNode(travailNode);
+        return n != null ? isoDateOrNull(n, "documents_date_certificat_travail") : null;
+    }
+
+    private static String extract246_21DocumentsDateAttestation(JsonNode travailNode) {
+        JsonNode n = getProcedureDetailsNode(travailNode);
+        return n != null ? isoDateOrNull(n, "documents_date_attestation_france_travail") : null;
+    }
+
+    private static String extract246_21DocumentsDateSolde(JsonNode travailNode) {
+        JsonNode n = getProcedureDetailsNode(travailNode);
+        return n != null ? isoDateOrNull(n, "documents_date_solde_tout_compte") : null;
     }
 
     /**

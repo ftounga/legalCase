@@ -265,6 +265,16 @@ export class CongesPayesSectionComponent implements OnInit, OnChanges {
         this.provenanceDateRupture.set('IA');
       }
     }
+
+    // SF-246-21 : jours acquis et jours pris.
+    const joursAcquis = CongesPayesSectionPrefillRules.computeJoursAcquis(ruleInput);
+    if (joursAcquis !== null && this.joursAcquisAnnee() === null) {
+      this.joursAcquisAnnee.set(joursAcquis);
+    }
+    const joursPris = CongesPayesSectionPrefillRules.computeJoursPris(ruleInput);
+    if (joursPris !== null && this.joursPris() === null) {
+      this.joursPris.set(joursPris);
+    }
   }
 
   private loadSourceExplanations(): void {
