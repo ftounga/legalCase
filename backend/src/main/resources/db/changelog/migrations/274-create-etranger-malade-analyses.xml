@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="271-create-etranger-malade-analyses" author="legalcase">
+    <changeSet id="274-create-etranger-malade-analyses" author="legalcase">
         <comment>
             SF-214-01 — table `etranger_malade_analyses` pour l'outil décisionnel
             "Étranger malade L. 425-9 CESEDA" (F-IM-25, FRANCE).

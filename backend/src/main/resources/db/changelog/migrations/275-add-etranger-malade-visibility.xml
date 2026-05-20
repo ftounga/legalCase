@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="272-add-etranger-malade-visibility" author="legalcase">
+    <changeSet id="275-add-etranger-malade-visibility" author="legalcase">
         <comment>
             SF-214-01 — seed `decision_tool_visibility_rules` pour l'outil
             décisionnel "Étranger malade L.425-9 CESEDA"
