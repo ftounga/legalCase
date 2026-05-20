@@ -17,6 +17,15 @@ configMapGenerator:
       - SENTRY_ENV=production
       - AWS_TEXTRACT_ENABLED=true
       - AWS_TEXTRACT_REGION=eu-west-3
+      # SF-INFRA-08 : CloudFront prod — placeholder à remplacer une fois
+      # SF-INFRA-03 prod terminée (repo legalcase-infra). Tant que le
+      # placeholder n'est pas remplacé OU que la ligne n'est pas commentée,
+      # le pod backend prod refusera de démarrer (les secrets de signature
+      # ne sont pas encore présents). Activation en 2 temps :
+      # 1) ajouter CLOUDFRONT_KEY_PAIR_ID/CLOUDFRONT_PRIVATE_KEY au Secret
+      #    backend-secrets via le workflow CI/CD ;
+      # 2) remplacer le placeholder par le domaine CloudFront prod réel.
+      # - CLOUDFRONT_DOMAIN=CLOUDFRONT_DOMAIN_PROD_PLACEHOLDER
 
 patches:
   - path: ingress-patch.yaml

@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import java.time.Duration;
 
 import java.io.InputStream;
+import java.util.Optional;
 
 @Service
 public class S3StorageService implements StorageService {
@@ -23,11 +24,19 @@ public class S3StorageService implements StorageService {
     private final S3Client s3Client;
     private final S3Presigner presigner;
     private final StorageProperties props;
+    private final CloudFrontProperties cloudFrontProps;
+    private final Optional<CloudFrontUrlSigner> cloudFrontSigner;
 
-    public S3StorageService(S3Client s3Client, S3Presigner presigner, StorageProperties props) {
+    public S3StorageService(S3Client s3Client,
+                            S3Presigner presigner,
+                            StorageProperties props,
+                            CloudFrontProperties cloudFrontProps,
+                            Optional<CloudFrontUrlSigner> cloudFrontSigner) {
         this.s3Client = s3Client;
         this.presigner = presigner;
         this.props = props;
+        this.cloudFrontProps = cloudFrontProps;
+        this.cloudFrontSigner = cloudFrontSigner;
     }
 
     @PostConstruct
@@ -73,6 +82,11 @@ public class S3StorageService implements StorageService {
 
     @Override
     public String presignedDownloadUrl(String key, int expirationMinutes) {
+        // SF-INFRA-08 : si CloudFront est configuré, génère une URL signée CDN ;
+        // sinon fallback URL S3 présignée native (dev local, MinIO).
+        if (cloudFrontProps.isEnabled() && cloudFrontSigner.isPresent()) {
+            return cloudFrontSigner.get().signedUrl(key, expirationMinutes * 60L);
+        }
         var presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofMinutes(expirationMinutes))
                 .getObjectRequest(r -> r.bucket(props.getBucket()).key(key))
