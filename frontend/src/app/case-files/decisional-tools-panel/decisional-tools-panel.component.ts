@@ -63,6 +63,8 @@ import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-
 import { PrescriptionBeLitigeTravailSectionComponent } from '../prescription-be-litige-travail-section/prescription-be-litige-travail-section.component';
 // SF-207-02b : section décisionnelle checklist C4 ONEM (BE-only, ALWAYS_ON).
 import { C4OnemChecklistSectionComponent } from '../c4-onem-checklist-section/c4-onem-checklist-section.component';
+// SF-207-03b : section décisionnelle contestation C4 ONEM (BE-only, ALWAYS_ON).
+import { ContestationC4OnemSectionComponent } from '../contestation-c4-onem-section/contestation-c4-onem-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -437,6 +439,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['c4-onem-checklist', {
         displayLabel: 'Checklist C4 ONEM (BE)',
         component: C4OnemChecklistSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-03b : contestation C4 ONEM Travail BE (BE-only, ALWAYS_ON).
+      // Insertion immédiate après `c4-onem-checklist` — séquence métier :
+      // vérifier la conformité du C4 d'abord, puis calculer les délais de
+      // contestation (admin 1 mois + tribunal 3 mois). 3 champs pré-remplis
+      // depuis `TravailExtractedData` (extension SF-207-03 backend).
+      ['contestation-c4-onem', {
+        displayLabel: 'Contestation C4 ONEM (BE)',
+        component: ContestationC4OnemSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2179,6 +2198,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-03-prescription-litige', 'DELAIS'],
     // SF-207-01b : prescription Travail BE (Loi 03/07/1978 art. 15 + CCT 109 art. 11).
     ['prescription-be-litige-travail', 'DELAIS'],
+    // SF-207-03b : contestation C4 ONEM — double délai admin (1 mois) + tribunal
+    // (3 mois). Thème DELAIS pour cohérence avec la nature du calculateur.
+    ['contestation-c4-onem', 'DELAIS'],
     ['F-DT-29-credit-temps-be', 'DELAIS'],
     ['F-DT-33-at-mp', 'DELAIS'],
     ['F-DT-34-refere-prudhomal', 'DELAIS'],
