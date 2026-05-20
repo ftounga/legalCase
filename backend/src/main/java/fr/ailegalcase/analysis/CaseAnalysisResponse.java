@@ -1679,7 +1679,37 @@ public record CaseAnalysisResponse(
             // --- testament-validite (F-FA-24) ---
             String formeTestamentDetectee,            // 'OLOGRAPHE' | 'AUTHENTIQUE' | 'MYSTIQUE'
             Boolean saineDEspritTestateurDetected,
-            Boolean legsExcedeQuotiteDisponibleDetected) {
+            Boolean legsExcedeQuotiteDisponibleDetected,
+            // SF-246-25 : 17 champs booléens/énumérés `*Detected` pour résorber la dette D2
+            // du lot Famille FR régimes matrimoniaux, vie commune & protection
+            // (8 outils : communaute-universelle, partage-judiciaire, ordonnance-protection,
+            //  mesures-provisoires, revisions-post-divorce, pacs-dissolution, separation-corps,
+            //  indivision).
+            // Source : `famille_extracted_data.communaute_partage_protection_detection_v2`.
+            // Famille FR uniquement, tous nullables — le prompt impose null hors FR / hors certitude.
+            // --- communaute-universelle (F-FA-16) ---
+            Boolean contratNotarieDetected,           // art. 1526+ Cciv
+            Boolean enfantsNonCommunsDetected,        // art. 1527 al. 2 Cciv
+            Boolean clauseAttributionIntegraleDetected,  // art. 1527 Cciv
+            // --- partage-judiciaire (F-FA-17) ---
+            Boolean pvDifficultesEtablisDetected,     // art. 1366 CPC
+            Boolean tentativeAmiableEpuiseueeDetected,  // défaut d'intérêt à agir si non épuisé
+            // --- ordonnance-protection / indivision (F-FA-14 + F-FA-22) ---
+            java.util.List<String> violencesAllegueesDetectees,  // whitelist PHYSIQUES|PSYCHOLOGIQUES|SEXUELLES|ECONOMIQUES|MENACES_MORT
+            java.util.List<String> preuvesViolencesDetectees,    // whitelist CONSTAT_HUISSIER|MAIN_COURANTE|CERTIFICAT_MEDICAL|TEMOIGNAGES|PHOTOS|PLAINTE_DEPOSEE|JUGEMENT_CORRECTIONNEL|AUTRE
+            Boolean dangerImmediatDetected,           // péril immédiat (art. 515-10 Cciv)
+            Boolean presenceEnfantsDetected,          // mineurs sous la garde commune
+            Boolean logementCommunDetected,           // cohabitation effective au moment de la requête
+            Boolean victimeFinanciairementDependanteDetected,  // dépendance économique (art. 515-9 Cciv)
+            // --- pacs-dissolution (F-FA-20) ---
+            String modeDissolutionPacsDetecte,        // 'DECLARATION_UNILATERALE'|'DECLARATION_CONJOINTE'|'MARIAGE_PARTENAIRES'|'MARIAGE_TIERS'|'DECES'
+            String regimeBiensPacsDetecte,            // 'SEPARATION_BIENS'|'INDIVISION_AMENAGEE'|'INDIVISION_PAR_DEFAUT'
+            java.util.List<String> creancesAllegueesDetectees,  // whitelist CONTRIBUTION_DESEQUILIBRE|INVESTISSEMENT_BIEN_PROPRE|ENRICHISSEMENT_INJUSTE|PRESTATION_TRAVAIL_NON_REMUNEREE|AUCUNE
+            Boolean patrimoineCommunSignificatifDetecte,  // patrimoine commun existant et significatif
+            // --- separation-corps (F-FA-21) ---
+            Boolean patrimoineCommun,                 // régime communautaire (bool) — art. 1400+ Cciv
+            // --- mesures-provisoires (F-FA-12) ---
+            Boolean violencesAlleguees) {              // violences alléguées (flag global bool)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -1792,6 +1822,24 @@ public record CaseAnalysisResponse(
             private String formeTestamentDetectee;
             private Boolean saineDEspritTestateurDetected;
             private Boolean legsExcedeQuotiteDisponibleDetected;
+            // SF-246-25 : 17 champs booléens/énumérés D2 régimes & vie commune
+            private Boolean contratNotarieDetected;
+            private Boolean enfantsNonCommunsDetected;
+            private Boolean clauseAttributionIntegraleDetected;
+            private Boolean pvDifficultesEtablisDetected;
+            private Boolean tentativeAmiableEpuiseueeDetected;
+            private java.util.List<String> violencesAllegueesDetectees;
+            private java.util.List<String> preuvesViolencesDetectees;
+            private Boolean dangerImmediatDetected;
+            private Boolean presenceEnfantsDetected;
+            private Boolean logementCommunDetected;
+            private Boolean victimeFinanciairementDependanteDetected;
+            private String modeDissolutionPacsDetecte;
+            private String regimeBiensPacsDetecte;
+            private java.util.List<String> creancesAllegueesDetectees;
+            private Boolean patrimoineCommunSignificatifDetecte;
+            private Boolean patrimoineCommun;
+            private Boolean violencesAlleguees;
 
             private Builder() {}
 
@@ -1894,6 +1942,24 @@ public record CaseAnalysisResponse(
             public Builder formeTestamentDetectee(String v) { this.formeTestamentDetectee = v; return this; }
             public Builder saineDEspritTestateurDetected(Boolean v) { this.saineDEspritTestateurDetected = v; return this; }
             public Builder legsExcedeQuotiteDisponibleDetected(Boolean v) { this.legsExcedeQuotiteDisponibleDetected = v; return this; }
+            // SF-246-25 : setters des 17 champs booléens/énumérés D2 régimes & vie commune.
+            public Builder contratNotarieDetected(Boolean v) { this.contratNotarieDetected = v; return this; }
+            public Builder enfantsNonCommunsDetected(Boolean v) { this.enfantsNonCommunsDetected = v; return this; }
+            public Builder clauseAttributionIntegraleDetected(Boolean v) { this.clauseAttributionIntegraleDetected = v; return this; }
+            public Builder pvDifficultesEtablisDetected(Boolean v) { this.pvDifficultesEtablisDetected = v; return this; }
+            public Builder tentativeAmiableEpuiseueeDetected(Boolean v) { this.tentativeAmiableEpuiseueeDetected = v; return this; }
+            public Builder violencesAllegueesDetectees(java.util.List<String> v) { this.violencesAllegueesDetectees = v; return this; }
+            public Builder preuvesViolencesDetectees(java.util.List<String> v) { this.preuvesViolencesDetectees = v; return this; }
+            public Builder dangerImmediatDetected(Boolean v) { this.dangerImmediatDetected = v; return this; }
+            public Builder presenceEnfantsDetected(Boolean v) { this.presenceEnfantsDetected = v; return this; }
+            public Builder logementCommunDetected(Boolean v) { this.logementCommunDetected = v; return this; }
+            public Builder victimeFinanciairementDependanteDetected(Boolean v) { this.victimeFinanciairementDependanteDetected = v; return this; }
+            public Builder modeDissolutionPacsDetecte(String v) { this.modeDissolutionPacsDetecte = v; return this; }
+            public Builder regimeBiensPacsDetecte(String v) { this.regimeBiensPacsDetecte = v; return this; }
+            public Builder creancesAllegueesDetectees(java.util.List<String> v) { this.creancesAllegueesDetectees = v; return this; }
+            public Builder patrimoineCommunSignificatifDetecte(Boolean v) { this.patrimoineCommunSignificatifDetecte = v; return this; }
+            public Builder patrimoineCommun(Boolean v) { this.patrimoineCommun = v; return this; }
+            public Builder violencesAlleguees(Boolean v) { this.violencesAlleguees = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -1955,7 +2021,25 @@ public record CaseAnalysisResponse(
                         respectQuotiteDisponibleDetected,
                         formeTestamentDetectee,
                         saineDEspritTestateurDetected,
-                        legsExcedeQuotiteDisponibleDetected);
+                        legsExcedeQuotiteDisponibleDetected,
+                        // SF-246-25 : 17 champs booléens/énumérés D2 régimes & vie commune.
+                        contratNotarieDetected,
+                        enfantsNonCommunsDetected,
+                        clauseAttributionIntegraleDetected,
+                        pvDifficultesEtablisDetected,
+                        tentativeAmiableEpuiseueeDetected,
+                        violencesAllegueesDetectees,
+                        preuvesViolencesDetectees,
+                        dangerImmediatDetected,
+                        presenceEnfantsDetected,
+                        logementCommunDetected,
+                        victimeFinanciairementDependanteDetected,
+                        modeDissolutionPacsDetecte,
+                        regimeBiensPacsDetecte,
+                        creancesAllegueesDetectees,
+                        patrimoineCommunSignificatifDetecte,
+                        patrimoineCommun,
+                        violencesAlleguees);
             }
         }
     }
@@ -3899,6 +3983,63 @@ public record CaseAnalysisResponse(
                 || formeTestamentDetectee != null
                 || saineDEspritTestateurDetected != null
                 || legsExcedeQuotiteDisponibleDetected != null;
+        // SF-246-25 : sous-objet `communaute_partage_protection_detection_v2` — 17 champs
+        // booléens/énumérés pour les 8 outils régimes & vie commune. Absent → tous null.
+        // Listes via listOrNullWhitelisted() (jamais [] — invariant §5.1.2).
+        java.util.Set<String> VIOLENCE_WHITELIST = java.util.Set.of(
+                "PHYSIQUES", "PSYCHOLOGIQUES", "SEXUELLES", "ECONOMIQUES", "MENACES_MORT");
+        java.util.Set<String> PREUVE_WHITELIST = java.util.Set.of(
+                "CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL",
+                "TEMOIGNAGES", "PHOTOS", "PLAINTE_DEPOSEE", "JUGEMENT_CORRECTIONNEL", "AUTRE");
+        java.util.Set<String> CREANCE_WHITELIST = java.util.Set.of(
+                "CONTRIBUTION_DESEQUILIBRE", "INVESTISSEMENT_BIEN_PROPRE",
+                "ENRICHISSEMENT_INJUSTE", "PRESTATION_TRAVAIL_NON_REMUNEREE", "AUCUNE");
+        java.util.Set<String> MODE_PACS_WHITELIST = java.util.Set.of(
+                "DECLARATION_UNILATERALE", "DECLARATION_CONJOINTE",
+                "MARIAGE_PARTENAIRES", "MARIAGE_TIERS", "DECES");
+        java.util.Set<String> REGIME_PACS_WHITELIST = java.util.Set.of(
+                "SEPARATION_BIENS", "INDIVISION_AMENAGEE", "INDIVISION_PAR_DEFAUT");
+        JsonNode cppd = node.get("communaute_partage_protection_detection_v2");
+        boolean cppdObject = cppd != null && cppd.isObject();
+        Boolean contratNotarieDetected = cppdObject ? booleanOrNull(cppd, "contrat_notarie") : null;
+        Boolean enfantsNonCommunsDetected = cppdObject ? booleanOrNull(cppd, "enfants_non_communs") : null;
+        Boolean clauseAttributionIntegraleDetected = cppdObject ? booleanOrNull(cppd, "clause_attribution_integrale") : null;
+        Boolean pvDifficultesEtablisDetected = cppdObject ? booleanOrNull(cppd, "pv_difficultes_etablis") : null;
+        Boolean tentativeAmiableEpuiseueeDetected = cppdObject ? booleanOrNull(cppd, "tentative_amiable_epuisee") : null;
+        java.util.List<String> violencesAllegueesDetectees = cppdObject
+                ? listOrNullWhitelisted(cppd, "violences_alleguees", VIOLENCE_WHITELIST) : null;
+        java.util.List<String> preuvesViolencesDetectees = cppdObject
+                ? listOrNullWhitelisted(cppd, "preuves_violences", PREUVE_WHITELIST) : null;
+        Boolean dangerImmediatDetected = cppdObject ? booleanOrNull(cppd, "danger_immediat") : null;
+        Boolean presenceEnfantsDetected = cppdObject ? booleanOrNull(cppd, "presence_enfants") : null;
+        Boolean logementCommunDetected = cppdObject ? booleanOrNull(cppd, "logement_commun") : null;
+        Boolean victimeFinanciairementDependanteDetected = cppdObject ? booleanOrNull(cppd, "victime_financierement_dependante") : null;
+        String modeDissolutionPacsDetecte = cppdObject
+                ? whitelistedOrNull(stringOrNull(cppd, "mode_dissolution_pacs"), MODE_PACS_WHITELIST.toArray(String[]::new)) : null;
+        String regimeBiensPacsDetecte = cppdObject
+                ? whitelistedOrNull(stringOrNull(cppd, "regime_biens_pacs"), REGIME_PACS_WHITELIST.toArray(String[]::new)) : null;
+        java.util.List<String> creancesAllegueesDetectees = cppdObject
+                ? listOrNullWhitelisted(cppd, "creances_alleguees", CREANCE_WHITELIST) : null;
+        Boolean patrimoineCommunSignificatifDetecte = cppdObject ? booleanOrNull(cppd, "patrimoine_commun_significatif") : null;
+        Boolean patrimoineCommun = cppdObject ? booleanOrNull(cppd, "patrimoine_commun_bool") : null;
+        Boolean violencesAlleguees = cppdObject ? booleanOrNull(cppd, "violences_alleguees_bool") : null;
+        boolean communautePartageProtectionV2Present = contratNotarieDetected != null
+                || enfantsNonCommunsDetected != null
+                || clauseAttributionIntegraleDetected != null
+                || pvDifficultesEtablisDetected != null
+                || tentativeAmiableEpuiseueeDetected != null
+                || violencesAllegueesDetectees != null
+                || preuvesViolencesDetectees != null
+                || dangerImmediatDetected != null
+                || presenceEnfantsDetected != null
+                || logementCommunDetected != null
+                || victimeFinanciairementDependanteDetected != null
+                || modeDissolutionPacsDetecte != null
+                || regimeBiensPacsDetecte != null
+                || creancesAllegueesDetectees != null
+                || patrimoineCommunSignificatifDetecte != null
+                || patrimoineCommun != null
+                || violencesAlleguees != null;
 
         if (!dcm && !dal && !dfa && !dac && !rev && !op && !rec && !rcu && !pj
                 && !ado && !rp && !cp && !rche && !pe && !cr && !dp
@@ -3914,7 +4055,8 @@ public record CaseAnalysisResponse(
                 && !autoriteParentaleDetectionPresent
                 && !divorceFauteDetectionPresent
                 && !cecDetectionPresent
-                && !successionV2DetectionPresent) {
+                && !successionV2DetectionPresent
+                && !communautePartageProtectionV2Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -4023,7 +4165,46 @@ public record CaseAnalysisResponse(
                 .formeTestamentDetectee(formeTestamentDetectee)
                 .saineDEspritTestateurDetected(saineDEspritTestateurDetected)
                 .legsExcedeQuotiteDisponibleDetected(legsExcedeQuotiteDisponibleDetected)
+                // SF-246-25 : 17 champs booléens/énumérés D2 régimes & vie commune.
+                .contratNotarieDetected(contratNotarieDetected)
+                .enfantsNonCommunsDetected(enfantsNonCommunsDetected)
+                .clauseAttributionIntegraleDetected(clauseAttributionIntegraleDetected)
+                .pvDifficultesEtablisDetected(pvDifficultesEtablisDetected)
+                .tentativeAmiableEpuiseueeDetected(tentativeAmiableEpuiseueeDetected)
+                .violencesAllegueesDetectees(violencesAllegueesDetectees)
+                .preuvesViolencesDetectees(preuvesViolencesDetectees)
+                .dangerImmediatDetected(dangerImmediatDetected)
+                .presenceEnfantsDetected(presenceEnfantsDetected)
+                .logementCommunDetected(logementCommunDetected)
+                .victimeFinanciairementDependanteDetected(victimeFinanciairementDependanteDetected)
+                .modeDissolutionPacsDetecte(modeDissolutionPacsDetecte)
+                .regimeBiensPacsDetecte(regimeBiensPacsDetecte)
+                .creancesAllegueesDetectees(creancesAllegueesDetectees)
+                .patrimoineCommunSignificatifDetecte(patrimoineCommunSignificatifDetecte)
+                .patrimoineCommun(patrimoineCommun)
+                .violencesAlleguees(violencesAlleguees)
                 .build();
+    }
+
+    /**
+     * SF-246-25 : extraction d'une liste de codes whitelistés depuis un nœud JSON.
+     * Retourne {@code null} si la liste serait vide après filtrage (jamais [] —
+     * invariant cadrage §5.1.2). Codes normalisés en MAJUSCULES avant filtrage.
+     */
+    private static java.util.List<String> listOrNullWhitelisted(
+            JsonNode parent, String field, java.util.Set<String> whitelist) {
+        JsonNode arrNode = parent.get(field);
+        if (arrNode == null || !arrNode.isArray() || arrNode.isEmpty()) return null;
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (JsonNode item : arrNode) {
+            if (item.isTextual()) {
+                String code = item.asText().trim().toUpperCase(java.util.Locale.ROOT);
+                if (whitelist.contains(code) && !result.contains(code)) {
+                    result.add(code);
+                }
+            }
+        }
+        return result.isEmpty() ? null : java.util.Collections.unmodifiableList(result);
     }
 
     /**

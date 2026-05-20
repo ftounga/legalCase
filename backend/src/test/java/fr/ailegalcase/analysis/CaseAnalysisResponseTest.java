@@ -5501,4 +5501,180 @@ class CaseAnalysisResponseTest {
         assertThat(t.commissionParitaireBe()).isNull();
         assertThat(t.dateDemandeCreditTemps()).isNull();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SF-246-25 — communaute_partage_protection_detection_v2
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void extractFamilleData_sf24625_communautePartageProtection_nominal() throws Exception {
+        // SF-246-25 CA-1 : sous-objet complet → tous les 17 champs peuplés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "communaute_partage_protection_detection_v2": {
+                      "contrat_notarie": true,
+                      "enfants_non_communs": false,
+                      "clause_attribution_integrale": true,
+                      "pv_difficultes_etablis": true,
+                      "tentative_amiable_epuisee": true,
+                      "violences_alleguees": ["PHYSIQUES", "PSYCHOLOGIQUES"],
+                      "preuves_violences": ["CERTIFICAT_MEDICAL", "PLAINTE_DEPOSEE"],
+                      "danger_immediat": true,
+                      "presence_enfants": true,
+                      "logement_commun": true,
+                      "victime_financierement_dependante": false,
+                      "mode_dissolution_pacs": "DECLARATION_CONJOINTE",
+                      "regime_biens_pacs": "SEPARATION_BIENS",
+                      "creances_alleguees": ["CONTRIBUTION_DESEQUILIBRE"],
+                      "patrimoine_commun_significatif": true,
+                      "patrimoine_commun_bool": true,
+                      "violences_alleguees_bool": true
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.contratNotarieDetected()).isTrue();
+        assertThat(f.enfantsNonCommunsDetected()).isFalse();
+        assertThat(f.clauseAttributionIntegraleDetected()).isTrue();
+        assertThat(f.pvDifficultesEtablisDetected()).isTrue();
+        assertThat(f.tentativeAmiableEpuiseueeDetected()).isTrue();
+        assertThat(f.violencesAllegueesDetectees()).containsExactly("PHYSIQUES", "PSYCHOLOGIQUES");
+        assertThat(f.preuvesViolencesDetectees()).containsExactly("CERTIFICAT_MEDICAL", "PLAINTE_DEPOSEE");
+        assertThat(f.dangerImmediatDetected()).isTrue();
+        assertThat(f.presenceEnfantsDetected()).isTrue();
+        assertThat(f.logementCommunDetected()).isTrue();
+        assertThat(f.victimeFinanciairementDependanteDetected()).isFalse();
+        assertThat(f.modeDissolutionPacsDetecte()).isEqualTo("DECLARATION_CONJOINTE");
+        assertThat(f.regimeBiensPacsDetecte()).isEqualTo("SEPARATION_BIENS");
+        assertThat(f.creancesAllegueesDetectees()).containsExactly("CONTRIBUTION_DESEQUILIBRE");
+        assertThat(f.patrimoineCommunSignificatifDetecte()).isTrue();
+        assertThat(f.patrimoineCommun()).isTrue();
+        assertThat(f.violencesAlleguees()).isTrue();
+    }
+
+    @Test
+    void extractFamilleData_sf24625_sousObjetAbsent_17ChampsNull() throws Exception {
+        // SF-246-25 CA-2 : pas de sous-objet communaute_partage_protection_detection_v2 → 17 champs null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "vie_commune_detection": {
+                      "patrimoine_commun_eur": 50000
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.contratNotarieDetected()).isNull();
+        assertThat(f.enfantsNonCommunsDetected()).isNull();
+        assertThat(f.clauseAttributionIntegraleDetected()).isNull();
+        assertThat(f.pvDifficultesEtablisDetected()).isNull();
+        assertThat(f.tentativeAmiableEpuiseueeDetected()).isNull();
+        assertThat(f.violencesAllegueesDetectees()).isNull();
+        assertThat(f.preuvesViolencesDetectees()).isNull();
+        assertThat(f.dangerImmediatDetected()).isNull();
+        assertThat(f.presenceEnfantsDetected()).isNull();
+        assertThat(f.logementCommunDetected()).isNull();
+        assertThat(f.victimeFinanciairementDependanteDetected()).isNull();
+        assertThat(f.modeDissolutionPacsDetecte()).isNull();
+        assertThat(f.regimeBiensPacsDetecte()).isNull();
+        assertThat(f.creancesAllegueesDetectees()).isNull();
+        assertThat(f.patrimoineCommunSignificatifDetecte()).isNull();
+        assertThat(f.patrimoineCommun()).isNull();
+        assertThat(f.violencesAlleguees()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24625_violencesHorsWhitelist_filtrees() throws Exception {
+        // SF-246-25 CA-3 : codes de violences hors whitelist → filtrés, seuls les codes valides conservés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "communaute_partage_protection_detection_v2": {
+                      "violences_alleguees": ["PHYSIQUES", "INCONNUE", "AUTRE_INVALIDE", "ECONOMIQUES"],
+                      "preuves_violences": ["CERTIFICAT_MEDICAL", "CODE_INCONNU"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.violencesAllegueesDetectees()).containsExactly("PHYSIQUES", "ECONOMIQUES");
+        assertThat(f.preuvesViolencesDetectees()).containsExactly("CERTIFICAT_MEDICAL");
+    }
+
+    @Test
+    void extractFamilleData_sf24625_tousCodesHorsWhitelist_null() throws Exception {
+        // SF-246-25 CA-4 : tous les codes hors whitelist → null (jamais []).
+        // `ordonnance_protection_envisagee` force le guard à retourner non-null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "ordonnance_protection_envisagee": true,
+                    "communaute_partage_protection_detection_v2": {
+                      "violences_alleguees": ["INCONNU_1", "INCONNU_2"],
+                      "creances_alleguees": ["CODE_INVALIDE"]
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.violencesAllegueesDetectees()).isNull();
+        assertThat(f.creancesAllegueesDetectees()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24625_modePacsEtRegimePacsHorsWhitelist_nuls() throws Exception {
+        // SF-246-25 CA-5 : mode_dissolution_pacs et regime_biens_pacs hors whitelist → null.
+        // `pacs_dissolution_envisagee` force le guard à retourner non-null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "pacs_dissolution_envisagee": true,
+                    "communaute_partage_protection_detection_v2": {
+                      "mode_dissolution_pacs": "MODE_INCONNU",
+                      "regime_biens_pacs": "REGIME_INCONNU"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.modeDissolutionPacsDetecte()).isNull();
+        assertThat(f.regimeBiensPacsDetecte()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24625_sousObjetNullExplicite_17ChampsNull() throws Exception {
+        // SF-246-25 CA-6 : sous-objet présent mais null JSON → pas d'exception, 17 champs null.
+        // `separation_corps_envisagee` force le guard à retourner non-null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "separation_corps_envisagee": true,
+                    "communaute_partage_protection_detection_v2": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.contratNotarieDetected()).isNull();
+        assertThat(f.pvDifficultesEtablisDetected()).isNull();
+        assertThat(f.violencesAllegueesDetectees()).isNull();
+        assertThat(f.dangerImmediatDetected()).isNull();
+        assertThat(f.modeDissolutionPacsDetecte()).isNull();
+        assertThat(f.patrimoineCommun()).isNull();
+        assertThat(f.violencesAlleguees()).isNull();
+    }
 }

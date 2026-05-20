@@ -103,7 +103,7 @@ export class RevisionsPostDivorceSectionComponent implements OnInit, OnChanges {
 
   /** F-236 SF-236-02 — compteur miroir prefillFromAi via helper. */
   static getPrefillCount(input: {
-    aiData?: (Partial<FamilleExtractedData> & { nbEnfantsACharge?: number | null }) | null;
+    aiData?: Partial<FamilleExtractedData> | null;
     procedureChecks?: unknown[];
     aiQuestions?: unknown[];
     piecesManquantes?: unknown[];
@@ -480,9 +480,8 @@ export class RevisionsPostDivorceSectionComponent implements OnInit, OnChanges {
       break;
     }
 
-    // 2. IA aiData (clé optionnelle).
-    const iaNb = (this.aiDataSignal() as { nbEnfantsACharge?: number | null } | null | undefined)
-      ?.nbEnfantsACharge;
+    // 2. IA aiData — `nbEnfantsACharge` est réel depuis SF-246-08 (cast aspirationnel supprimé).
+    const iaNb = this.aiDataSignal()?.nbEnfantsACharge;
     if (typeof iaNb === 'number' && iaNb >= 0 && iaNb !== user) {
       builder.addSource('IA', {
         expectedDisplay: `${iaNb} enfant(s)`,
