@@ -88,6 +88,13 @@ class CritereCodeIntegrityIT {
             "DT75_DUREE_ARRET",
             "DT75_SALARIE_EN_POSTE",
 
+            // ─── Droit du travail — Prise d'acte de la rupture F-DT-39 ─────────────────
+            "DT39_DEFAUT_PAIEMENT",
+            "DT39_HARCELEMENT",
+            "DT39_MANQUEMENT_SECURITE",
+            "DT39_MODIFICATION_CONTRAT",
+            "DT39_GRIEF_IMPOSSIBLE_POURSUITE",
+
             // ─── Droit du travail — Harcèlement / licenciement nul F-DT-11 ─────────────
             "HLN_MOTIF_NULLITE",
 

@@ -82,6 +82,8 @@ class CaseFileDashboardServiceTest {
     private AbandonPostePresomptionDemissionRepository abandonPostePresomptionDemissionRepo;
     // SF-206-03 : F-DT-75 congés payés acquis pendant arrêt maladie (FR)
     private CongesPayesArretMaladieRepository congesPayesArretMaladieRepo;
+    // SF-206-05 : F-DT-39 prise d'acte de la rupture (FR)
+    private PriseActeRuptureRepository priseActeRuptureRepo;
     private JldRetentionRepository jldRetentionRepo;
     private DublinRecoursRepository dublinRecoursRepo;
     private CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -202,6 +204,7 @@ class CaseFileDashboardServiceTest {
         rupturePeriodeEssaiRepo = mock(RupturePeriodeEssaiRepository.class);
         abandonPostePresomptionDemissionRepo = mock(AbandonPostePresomptionDemissionRepository.class);
         congesPayesArretMaladieRepo = mock(CongesPayesArretMaladieRepository.class);
+        priseActeRuptureRepo = mock(PriseActeRuptureRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
         crrvRefusVisaRepo = mock(CrrvRefusVisaRepository.class);
@@ -414,6 +417,7 @@ class CaseFileDashboardServiceTest {
                 rupturePeriodeEssaiRepo,
                 abandonPostePresomptionDemissionRepo,
                 congesPayesArretMaladieRepo,
+                priseActeRuptureRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
                 acceptationRenonciationSuccessionRepo, autoriteParentaleBeRepo,
