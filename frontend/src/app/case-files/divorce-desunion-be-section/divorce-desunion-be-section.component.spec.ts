@@ -195,7 +195,9 @@ describe('DivorceDesunionBeSectionComponent', () => {
 
   it('pré-fill IA on GET 404 → values + IA badges', () => {
     const ai: Partial<FamilleExtractedData> = {
-      dateSeparation: '2024-12-01',
+      dateSeparationBe: '2024-12-01',
+      // SF-246-12 : separationConsentue est aspirationnel (no-op gracieux côté helper) —
+      // non pré-rempli par l'IA même si présent dans aiData.
       separationConsentue: true,
     };
     component.aiData = ai;
@@ -203,9 +205,10 @@ describe('DivorceDesunionBeSectionComponent', () => {
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
 
     expect(component.dateSeparation()).toBe('2024-12-01');
-    expect(component.separationConsentue()).toBe(true);
     expect(component.provenanceDateSeparation()).toBe('IA');
-    expect(component.provenanceSeparationConsentue()).toBe('IA');
+    // separationConsentue reste à la valeur par défaut (false), pas de badge IA.
+    expect(component.separationConsentue()).toBe(false);
+    expect(component.provenanceSeparationConsentue()).toBeNull();
   });
 
   it('pré-fill IA without aiData → no values, no badges', () => {
@@ -220,7 +223,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
   });
 
   it('manual change clears IA badge', () => {
-    const ai: Partial<FamilleExtractedData> = { dateSeparation: '2024-12-01' };
+    const ai: Partial<FamilleExtractedData> = { dateSeparationBe: '2024-12-01' };
     component.aiData = ai;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
@@ -233,7 +236,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
 
   it('GET 200 → no IA badges (persisted values prevail)', () => {
     const ai: Partial<FamilleExtractedData> = {
-      dateSeparation: '2099-09-09',
+      dateSeparationBe: '2099-09-09',
       separationConsentue: false,
     };
     component.aiData = ai;
@@ -251,7 +254,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
 
-    const newAi: Partial<FamilleExtractedData> = { dateSeparation: '2024-08-15' };
+    const newAi: Partial<FamilleExtractedData> = { dateSeparationBe: '2024-08-15' };
     component.aiData = newAi;
     component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
 
@@ -264,7 +267,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
   // ---------------------------------------------------------------------------
 
   it('coherence alert DATE_SEPARATION if IA differs from user input', () => {
-    component.aiData = { dateSeparation: '2024-06-01' };
+    component.aiData = { dateSeparationBe: '2024-06-01' };
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     // Pré-fill mit '2024-06-01'. Avocat passe à '2025-01-01'.
@@ -278,7 +281,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
   });
 
   it('no coherence alert if IA matches user input on DATE_SEPARATION', () => {
-    component.aiData = { dateSeparation: '2024-06-01' };
+    component.aiData = { dateSeparationBe: '2024-06-01' };
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
 
@@ -299,7 +302,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
   });
 
   it('alerts hidden once result rendered (showForm=false)', () => {
-    component.aiData = { dateSeparation: '2024-06-01' };
+    component.aiData = { dateSeparationBe: '2024-06-01' };
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     component.onDateSeparationChange('2025-01-01');
@@ -314,7 +317,7 @@ describe('DivorceDesunionBeSectionComponent', () => {
   // ---------------------------------------------------------------------------
 
   it('coherence alert MULTI when F96 + IA both diverge on DATE_SEPARATION', () => {
-    component.aiData = { dateSeparation: '2024-06-01' };
+    component.aiData = { dateSeparationBe: '2024-06-01' };
     component.procedureChecks = [{
       id: 'chk-1', ordre: 1, description: 'Date séparation attendue',
       statut: 'VERIFIED',

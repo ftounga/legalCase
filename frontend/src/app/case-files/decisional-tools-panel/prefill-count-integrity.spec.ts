@@ -263,6 +263,10 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   ['Belgian9bisSectionComponent', 'belgian-9bis-section'],
   ['Belgian9terSectionComponent', 'belgian-9ter-section'],
   ['Belgian40terSectionComponent', 'belgian-40ter-section'],
+  // SF-207-08b — le dossier réel insère un tiret entre `obligatoire` et `45`
+  // (`outplacement-be-obligatoire-45-section`), alors que la dérivation
+  // kebab-case par défaut produirait `outplacement-be-obligatoire45-section`.
+  ['OutplacementBeObligatoire45SectionComponent', 'outplacement-be-obligatoire-45-section'],
 ]);
 
 function deriveFolderFromClassName(className: string): string {

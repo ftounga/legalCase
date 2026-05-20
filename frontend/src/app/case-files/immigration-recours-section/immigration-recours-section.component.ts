@@ -32,6 +32,13 @@ import {
   VALID_RECOURS_CODES,
 } from './immigration-recours-section-prefill-rules';
 
+/**
+ * Valeur par défaut du `recoursType` à l'initialisation du form. La garde
+ * de pré-fill IA autorise l'écrasement tant que `recoursType` reste à cette
+ * valeur (ou si la provenance courante est déjà 'IA').
+ */
+const DEFAULT_RECOURS_TYPE = 'RECOURS_GRACIEUX_PREFET';
+
 export type IM06AlertField = 'RECOURS_TYPE' | 'DATE_NOTIFICATION' | 'NOM_REQUERANT' | 'DATE_DECISION';
 // SF-155-13 : alias rétro-compat — utilise l'interface générique partagée.
 export type IM06AlertSource = CoherenceAlertSource;
@@ -128,7 +135,7 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   recours = signal<RecoursResponse | null>(null);
 
   // Form fields
-  recoursType = signal('RECOURS_GRACIEUX_PREFET');
+  recoursType = signal(DEFAULT_RECOURS_TYPE);
   dateNotification = signal('');
 
   // Provenance notes (SF-IM-06-04)
@@ -373,7 +380,13 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     // F-236 SF-236-02 : délègue au helper pur partagé.
     const input: ImmigrationRecoursPrefillInput = { aiData: this.aiData };
     const recours = ImmigrationRecoursPrefillRules.computeRecoursType(input);
-    if (recours !== null && !this.recoursType()) {
+    // `recoursType` a une valeur par défaut non-nulle ('RECOURS_GRACIEUX_PREFET').
+    // On autorise le pré-fill IA tant que l'avocat n'a pas modifié manuellement
+    // (valeur encore au défaut, ou déjà pré-remplie IA et rafraîchissable).
+    const recoursTypeOpenForPrefill =
+      this.provenanceRecoursType() === 'IA'
+      || this.recoursType() === DEFAULT_RECOURS_TYPE;
+    if (recours !== null && recoursTypeOpenForPrefill) {
       this.recoursType.set(recours);
       this.provenanceRecoursType.set('IA');
     }

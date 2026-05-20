@@ -311,7 +311,8 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
   private buildDateEntreeAlert(): AesFamilleCoherenceAlert | null {
     const ai = this.aiDataSignal();
     if (!ai) return null;
-    const aiDate = (ai as { dateEntreeFrance?: string | null }).dateEntreeFrance;
+    // SF-246-18 : champ typé aesDateEntreeFrance.
+    const aiDate = ai.aesDateEntreeFrance;
     if (typeof aiDate !== 'string' || aiDate.length < 10) return null;
     const user = this.dateEntreeFrance();
     if (!user) return null;
@@ -328,7 +329,8 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
   private buildDureePresenceAlert(): AesFamilleCoherenceAlert | null {
     const ai = this.aiDataSignal();
     if (!ai) return null;
-    const aiDate = (ai as { dateEntreeFrance?: string | null }).dateEntreeFrance;
+    // SF-246-18 : champ typé aesDateEntreeFrance.
+    const aiDate = ai.aesDateEntreeFrance;
     if (typeof aiDate !== 'string' || aiDate.length < 10) return null;
     const user = this.dureePresenceMois();
     if (typeof user !== 'number' || user < 0) return null;

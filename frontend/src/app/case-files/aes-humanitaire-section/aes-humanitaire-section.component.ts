@@ -342,9 +342,9 @@ export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
       .forField<AesHumanitaireAlertField>('DATE_ENTREE_FRANCE')
       .withSeverity('WARNING');
 
-    // IA — valeur extraite de l'analyse (champ non typé natif).
+    // IA — valeur extraite de l'analyse (SF-246-18 : champ typé aesDateEntreeFrance).
     const ai = this.aiDataSignal();
-    const aiDate = (ai as { dateEntreeFrance?: string | null } | null | undefined)?.dateEntreeFrance;
+    const aiDate = ai?.aesDateEntreeFrance;
     if (typeof aiDate === 'string' && aiDate.length >= 10) {
       const aiPart = aiDate.substring(0, 10);
       if (aiPart !== user) {

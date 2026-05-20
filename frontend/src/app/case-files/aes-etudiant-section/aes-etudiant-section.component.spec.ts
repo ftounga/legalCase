@@ -339,10 +339,10 @@ describe('AesEtudiantSectionComponent (SF-IM-09-08)', () => {
     expect(component.provenanceDateDepotDemande()).toBe('IA');
   });
 
-  it('pré-fill IA : dateEntreeFrance via fallback gracieux → provenance="IA"', () => {
+  it('pré-fill IA : aesDateEntreeFrance (SF-246-18, champ typé) → provenance="IA"', () => {
     component.aiData = {
-      dateEntreeFrance: '2021-09-01',
-    } as ImmigrationExtractedData & { dateEntreeFrance?: string };
+      aesDateEntreeFrance: '2021-09-01',
+    } as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();
@@ -386,8 +386,8 @@ describe('AesEtudiantSectionComponent (SF-IM-09-08)', () => {
 
   it('onDateEntreeFranceChange efface le badge IA', () => {
     component.aiData = {
-      dateEntreeFrance: '2021-09-01',
-    } as ImmigrationExtractedData & { dateEntreeFrance?: string };
+      aesDateEntreeFrance: '2021-09-01',
+    } as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expectSourceExplanationCall();

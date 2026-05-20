@@ -109,8 +109,8 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
 
   it('pré-fill IA : dateNaissance + dateEntreeFrance + nationalite (cast défensif)', () => {
     component.aiData = {
-      dateNaissance: '2012-05-20',
-      dateEntreeFrance: '2012-06-01',
+      mineursDateNaissance: '2012-05-20',
+      aesDateEntreeFrance: '2012-06-01',
       nationalite: 'Mali',
     } as unknown as ImmigrationExtractedData;
     component.ngOnInit();
@@ -134,7 +134,7 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
   });
 
   it('onDateNaissanceChange efface le badge IA', () => {
-    component.aiData = { dateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
+    component.aiData = { mineursDateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
 
@@ -268,7 +268,7 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
   // ---------------------------------------------------------------------------
 
   it('coherenceAlerts.DATE_NAISSANCE présent si IA diverge de saisie', () => {
-    component.aiData = { dateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
+    component.aiData = { mineursDateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     // Pré-fill mit 2012-05-20. Avocat saisit autre chose → divergence.
@@ -282,7 +282,7 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
   });
 
   it('coherenceAlerts.DATE_NAISSANCE absent si IA convergent', () => {
-    component.aiData = { dateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
+    component.aiData = { mineursDateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     expect(component.dateNaissance()).toBe('2012-05-20');
@@ -290,7 +290,7 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
   });
 
   it('coherenceAlerts vides après calcul (showForm=false)', () => {
-    component.aiData = { dateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
+    component.aiData = { mineursDateNaissance: '2012-05-20' } as unknown as ImmigrationExtractedData;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     component.onDateNaissanceChange('2013-01-01');
@@ -309,7 +309,7 @@ describe('MineursImmigrationSectionComponent (SF-IM-19-02)', () => {
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
 
-    const newAi = { dateNaissance: '2014-08-08' } as unknown as ImmigrationExtractedData;
+    const newAi = { mineursDateNaissance: '2014-08-08' } as unknown as ImmigrationExtractedData;
     component.aiData = newAi;
     component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
 
