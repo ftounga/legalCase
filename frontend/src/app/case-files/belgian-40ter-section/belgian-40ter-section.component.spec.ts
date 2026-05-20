@@ -272,10 +272,11 @@ describe('Belgian40terSectionComponent', () => {
 
   it('prefillFromAi : 4 champs IA → 4 provenance "IA" (après GET 404)', () => {
     component.aiData = {
-      lienFamilialBe: 'CONJOINT',
+      // SF-246-20 : champs typés be40terLienFamilial, be40terRevenusMensuelsNets, dateDepotProcedure.
+      be40terLienFamilial: 'CONJOINT',
       regroupantBelge: true,
-      revenusNetsMensuels: 2200,
-      dateDepotDemande: '2026-04-10',
+      be40terRevenusMensuelsNets: 2200,
+      dateDepotProcedure: '2026-04-10',
     } as any;
     component.ngOnInit();
     httpMock
@@ -293,7 +294,7 @@ describe('Belgian40terSectionComponent', () => {
   });
 
   it('prefillFromAi : lienFamilialBe hors whitelist → skip gracieux', () => {
-    component.aiData = { lienFamilialBe: 'INCONNU' } as any;
+    component.aiData = { be40terLienFamilial: 'INCONNU' } as any;
     component.ngOnInit();
     httpMock
       .expectOne(BASE_URL)
@@ -304,7 +305,7 @@ describe('Belgian40terSectionComponent', () => {
   });
 
   it('prefillFromAi : revenusNetsMensuels ≤ 0 → skip', () => {
-    component.aiData = { revenusNetsMensuels: -100 } as any;
+    component.aiData = { be40terRevenusMensuelsNets: -100 } as any;
     component.ngOnInit();
     httpMock
       .expectOne(BASE_URL)
@@ -339,7 +340,7 @@ describe('Belgian40terSectionComponent', () => {
   });
 
   it('loadExisting GET 200 → prefillFromAi NON appelé (pas d\'écrasement)', () => {
-    component.aiData = { lienFamilialBe: 'DESCENDANT_MINEUR' } as any;
+    component.aiData = { be40terLienFamilial: 'DESCENDANT_MINEUR' } as any;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush(
       beResponse({
@@ -400,7 +401,7 @@ describe('Belgian40terSectionComponent', () => {
     });
 
     it('alerte LIEN_FAMILIAL : IA divergent → severity=WARNING', () => {
-      component.aiData = { lienFamilialBe: 'CONJOINT' } as any;
+      component.aiData = { be40terLienFamilial: 'CONJOINT' } as any;
       component.ngOnChanges({
         aiData: new SimpleChange(undefined, component.aiData, true),
       });
@@ -412,7 +413,7 @@ describe('Belgian40terSectionComponent', () => {
     });
 
     it('alerte REVENUS_MENSUELS : IA divergent → severity=WARNING', () => {
-      component.aiData = { revenusNetsMensuels: 2500 } as any;
+      component.aiData = { be40terRevenusMensuelsNets: 2500 } as any;
       component.ngOnChanges({
         aiData: new SimpleChange(undefined, component.aiData, true),
       });
@@ -423,7 +424,7 @@ describe('Belgian40terSectionComponent', () => {
     });
 
     it('showForm=false → coherenceAlerts = {}', () => {
-      component.aiData = { lienFamilialBe: 'CONJOINT' } as any;
+      component.aiData = { be40terLienFamilial: 'CONJOINT' } as any;
       component.ngOnChanges({
         aiData: new SimpleChange(undefined, component.aiData, true),
       });

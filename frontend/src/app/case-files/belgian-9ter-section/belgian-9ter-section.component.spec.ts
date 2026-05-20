@@ -264,9 +264,10 @@ describe('Belgian9terSectionComponent', () => {
 
   it('pré-fill IA si champs médicaux présents (clés tolérées) → signaux + provenance IA', () => {
     component.aiData = {
-      // ImmigrationExtractedData ne déclare pas ces clés ; le composant
-      // les consomme défensivement (cast any).
-      dateDebutSymptomes: '2026-01-15',
+      // SF-246-20 : be9terDateDebutSymptomes est désormais un champ typé.
+      // Les champs boolean aspirationnels (maladieGrave, soinsNecessairesDisponiblesBe)
+      // restent en cast any (hors périmètre SF-246-20).
+      be9terDateDebutSymptomes: '2026-01-15',
       maladieGrave: true,
       soinsNecessairesDisponiblesBe: true,
     } as any;
@@ -384,7 +385,7 @@ describe('Belgian9terSectionComponent', () => {
   });
 
   it('SF-155-09 : source IA — divergence sur dateDebutSymptomes déclenche alerte', () => {
-    component.aiData = { dateDebutSymptomes: '2026-01-15' } as any;
+    component.aiData = { be9terDateDebutSymptomes: '2026-01-15' } as any;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
     // IA pré-remplit à '2026-01-15' → provenance IA. Avocat modifie à autre date.
@@ -479,7 +480,7 @@ describe('Belgian9terSectionComponent', () => {
   it('SF-155-09 : alertTooltip / alertBadgeLabel — libellés cohérents', () => {
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
-    component.aiData = { dateDebutSymptomes: '2026-01-15' } as any;
+    component.aiData = { be9terDateDebutSymptomes: '2026-01-15' } as any;
     component.ngOnChanges({ aiData: new SimpleChange(undefined, component.aiData, false) });
     component.onDateDebutSymptomesChange('2026-03-01');
     const alert = component.coherenceAlerts().DATE_DEBUT_SYMPTOMES!;
@@ -505,7 +506,7 @@ describe('Belgian9terSectionComponent', () => {
 
   it('SF-155-09 : FRANCE → coherenceAlerts vide (gate pays BE-only)', () => {
     component.workspaceCountry = 'FRANCE';
-    component.aiData = { dateDebutSymptomes: '2026-01-15' } as any;
+    component.aiData = { be9terDateDebutSymptomes: '2026-01-15' } as any;
     component.ngOnInit();
     httpMock.expectNone(BASE_URL);
     component.onDateDebutSymptomesChange('2026-03-01');
