@@ -73,6 +73,8 @@ import { RefereTribunalTravailBeSectionComponent } from '../refere-tribunal-trav
 import { RccBeConditionsSectionComponent } from '../rcc-be-conditions-section/rcc-be-conditions-section.component';
 // SF-207-07b : section décisionnelle RCC BE indemnité complémentaire (BE-only, ALWAYS_ON).
 import { RccBeIndemniteComplementaireSectionComponent } from '../rcc-be-indemnite-complementaire-section/rcc-be-indemnite-complementaire-section.component';
+// SF-207-08b : section décisionnelle outplacement BE obligatoire 45+ (BE-only, ALWAYS_ON).
+import { OutplacementBeObligatoire45SectionComponent } from '../outplacement-be-obligatoire-45-section/outplacement-be-obligatoire-45-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -538,6 +540,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['rcc-be-indemnite-complementaire', {
         displayLabel: 'RCC BE — indemnité complémentaire',
         component: RccBeIndemniteComplementaireSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-08b : Outplacement BE obligatoire 45+ (BE-only, ALWAYS_ON).
+      // CCT n°82 / CCT n°82 bis / Loi 05/09/2001 art. 13 / AR 30/05/2018 /
+      // AR 25/11/1991 art. 154 — verdict 5 états (vert NON_DU /
+      // OFFRE_CONFORME, rouge SANCTION_EMPLOYEUR 1 800 €, ambre
+      // SANCTION_SALARIE 4-52 sem.). 5 champs pré-remplis depuis
+      // `TravailExtractedData` (dateLicenciement, dateNaissanceSalarie réutilisé
+      // SF-207-06, ancienneteSalarie + motifLicenciementDetecte +
+      // offreOutplacementMentionnee livrés SF-207-08 backend).
+      // DERNIÈRE SF de F-207 — 8/8 outils Travail BE livrés (back + front).
+      ['outplacement-be-obligatoire-45', {
+        displayLabel: 'Outplacement obligatoire 45+ (BE)',
+        component: OutplacementBeObligatoire45SectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2307,6 +2330,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
+    // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
+    // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
+    // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
+    ['outplacement-be-obligatoire-45', 'VALIDITE'],
     ['F-FA-08-divorce-alteration', 'VALIDITE'],
     ['F-FA-09-divorce-faute', 'VALIDITE'],
     ['F-FA-10-divorce-accepte', 'VALIDITE'],

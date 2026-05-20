@@ -1,0 +1,295 @@
+<div class="outplacement-be-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">work_history</mat-icon>
+    <span class="section-title">Outplacement obligatoire 45+ (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="outplacement-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Évalue la conformité de l'obligation d'outplacement pour un salarié 45 ans et + (CCT n°82,
+            CCT n°82 bis, Loi du 5 septembre 2001 art. 13). Les champs avec un astérisque sont requis.
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Date du licenciement -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du licenciement *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateLicenciement()"
+                       (ngModelChange)="onDateLicenciementChange($event)"
+                       name="dateLicenciement" required />
+              </mat-form-field>
+              @if (provenanceDateLicenciement() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 2. Date de naissance -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance du salarié *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNaissanceSalarie()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissanceSalarie" required />
+              </mat-form-field>
+              @if (provenanceDateNaissance() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 3. Ancienneté -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté du salarié (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.1"
+                       [ngModel]="ancienneteAnnees()"
+                       (ngModelChange)="onAncienneteChange($event)"
+                       name="ancienneteAnnees" required />
+                <mat-hint>Décimales possibles (ex. 2.5 pour 2 ans 6 mois).</mat-hint>
+              </mat-form-field>
+              @if (provenanceAnciennete() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 4. Motif licenciement -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif du licenciement *</mat-label>
+                <mat-select [ngModel]="motifLicenciement()"
+                            (ngModelChange)="onMotifChange($event)"
+                            name="motifLicenciement" required>
+                  @for (m of motifsLicenciement; track m) {
+                    <mat-option [value]="m">{{ humanizeMotifLicenciement(m) }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceMotif() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 5. Contrat temps plein -->
+            <div class="field-with-alert checkbox-row full-width">
+              <mat-checkbox [ngModel]="contratTempsPlein()"
+                            (ngModelChange)="onContratTempsPleinChange($event)"
+                            name="contratTempsPlein">
+                Contrat à temps plein
+              </mat-checkbox>
+              <span class="hint-inline">CCT 82 bis si décoché (régime temps partiel ≥ mi-temps).</span>
+            </div>
+
+            <!-- 6. Offre outplacement reçue -->
+            <div class="field-with-alert checkbox-row full-width">
+              <mat-checkbox [ngModel]="offreOutplacementRecue()"
+                            (ngModelChange)="onOffreRecueChange($event)"
+                            name="offreOutplacementRecue">
+                Offre d'outplacement formellement reçue
+              </mat-checkbox>
+              @if (provenanceOffreRecue() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 3 champs conditionnels — n'apparaissent que si offre reçue -->
+            @if (offreOutplacementRecue()) {
+              <!-- 7. Date de l'offre -->
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de réception de l'offre *</mat-label>
+                  <input matInput
+                         type="date"
+                         [ngModel]="dateOffreOutplacement()"
+                         (ngModelChange)="onDateOffreChange($event)"
+                         name="dateOffreOutplacement" required />
+                  <mat-hint>Délai légal : 15 jours après le licenciement.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- 8. Offre conforme CCT 82 -->
+              <div class="field-with-alert checkbox-row">
+                <mat-checkbox [ngModel]="offreConformeCCT82()"
+                              (ngModelChange)="onOffreConformeChange($event)"
+                              name="offreConformeCCT82">
+                  Offre conforme CCT 82 (60 h sur 12 mois)
+                </mat-checkbox>
+                <span class="hint-inline">Contenu écrit, accompagnement 60 h / 12 mois, etc.</span>
+              </div>
+
+              <!-- 9. Salarié acceptant — radio tri-état -->
+              <div class="field-with-alert full-width radio-row">
+                <span class="radio-label">Position du salarié sur l'offre</span>
+                <mat-radio-group class="radio-group"
+                                 [ngModel]="salarieAcceptantOffre()"
+                                 (ngModelChange)="onSalarieAcceptantChange($event)"
+                                 name="salarieAcceptantOffre">
+                  <mat-radio-button [value]="true">Oui — offre acceptée</mat-radio-button>
+                  <mat-radio-button [value]="false">Non — offre refusée</mat-radio-button>
+                  <mat-radio-button [value]="null">Non encore décidé</mat-radio-button>
+                </mat-radio-group>
+              </div>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>work_history</mat-icon> Évaluer la conformité
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+
+          <!-- Verdict principal -->
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ verdictLabel(result()!.verdict) }}</span>
+
+              @if (result()!.verdict === 'OUTPLACEMENT_NON_DU') {
+                <span class="verdict-detail">
+                  Employeur exempté — raison : {{ humanizeRaisonNonObligation(result()!.raisonNonObligation) }}.
+                </span>
+              } @else if (result()!.verdict === 'OFFRE_CONFORME_RESPECTEE') {
+                <span class="verdict-detail">
+                  L'employeur a respecté son obligation d'outplacement (CCT 82 / 82 bis).
+                </span>
+              } @else if (isSanctionEmployeur(result()!.verdict)) {
+                <span class="verdict-detail">
+                  Infraction employeur — amende administrative à actionner par plainte au Contrôle des lois sociales.
+                </span>
+              } @else if (isSanctionSalarie(result()!.verdict)) {
+                <span class="verdict-detail">
+                  Refus d'une offre conforme par le salarié — sanction ONEM visible sur le C4 (voir l'outil C4 ONEM).
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- Sanction employeur (rouge — montant fixe €) -->
+          @if (isSanctionEmployeur(result()!.verdict)) {
+            <div class="sanction-card sanction-employeur">
+              <span class="sanction-label">Sanction employeur (AR 30/05/2018)</span>
+              <div class="sanction-row">
+                <span class="sanction-value">{{ formatEuro(result()!.sanctionEmployeurEuros) }}</span>
+                <span class="sanction-unit">amende administrative</span>
+              </div>
+              <span class="sanction-detail">
+                Étape suivante : plainte au Contrôle des lois sociales (recouvrement).
+              </span>
+            </div>
+          }
+
+          <!-- Sanction salarié (ambre — range semaines) -->
+          @if (isSanctionSalarie(result()!.verdict) && result()!.sanctionSalarieRange) {
+            <div class="sanction-card sanction-salarie">
+              <span class="sanction-label">Sanction salarié (AR 25/11/1991 art. 154)</span>
+              <div class="sanction-row">
+                <span class="sanction-value">
+                  {{ result()!.sanctionSalarieRange!.minSemaines }}-{{ result()!.sanctionSalarieRange!.maxSemaines }} semaines
+                </span>
+                <span class="sanction-unit">exclusion ONEM</span>
+              </div>
+              <span class="sanction-detail">
+                Voir l'outil C4 ONEM pour l'arbitrage final.
+              </span>
+            </div>
+          }
+
+          <!-- Encart délai (uniquement si offre reçue) -->
+          @if (result()!.offreOutplacementRecue && result()!.dateLimiteOffre) {
+            <div class="rec-section">
+              <span class="rec-section-label">Délai de l'offre (15 jours)</span>
+              <ul class="delai-list">
+                <li>Date limite légale : <strong>{{ result()!.dateLimiteOffre }}</strong>.</li>
+                <li>Date effective de l'offre : <strong>{{ result()!.dateOffreOutplacement }}</strong>.</li>
+                @if (result()!.delaiOffreRespecte === true) {
+                  <li class="delai-ok">
+                    <mat-icon>check_circle</mat-icon>
+                    Délai respecté.
+                  </li>
+                } @else if (result()!.delaiOffreRespecte === false) {
+                  <li class="delai-ko">
+                    <mat-icon>cancel</mat-icon>
+                    Délai dépassé.
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <!-- Hypothèses -->
+          <div class="rec-section">
+            <span class="rec-section-label">Paramètres analysés</span>
+            <ul class="hypotheses-list">
+              <li>Date du licenciement : <strong>{{ result()!.dateLicenciement }}</strong>.</li>
+              <li>Âge à la date du licenciement : <strong>{{ result()!.ageALaDateLicenciement }} ans</strong>.</li>
+              <li>Ancienneté retenue : <strong>{{ result()!.ancienneteAnnees }} an(s)</strong>.</li>
+              <li>Motif : <strong>{{ humanizeMotifLicenciement(result()!.motifLicenciement) }}</strong>.</li>
+              <li>Contrat : <strong>{{ result()!.contratTempsPlein ? 'temps plein (CCT 82)' : 'temps partiel (CCT 82 bis)' }}</strong>.</li>
+            </ul>
+          </div>
+
+          <!-- Base juridique -->
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <!-- Formule de calcul -->
+          <div class="rec-section">
+            <span class="rec-section-label">Formule de calcul</span>
+            <p class="legal-mono">{{ result()!.formuleCalcul }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
