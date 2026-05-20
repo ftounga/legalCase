@@ -1640,7 +1640,18 @@ public record CaseAnalysisResponse(
             /** Lien familial art. 40ter — whitelist 5 codes LIENS_FAMILIAUX_40TER_CODES (distinct de 40bis). */
             String be40terLienFamilial,
             /** Revenus mensuels nets du regroupant belge (> 0, ≤ MAX_BE_REVENUS_MENSUELS_NETS). */
-            Integer be40terRevenusMensuelsNets) {
+            Integer be40terRevenusMensuelsNets,
+            // === SF-214-01 — F-IM-25 Étranger malade L. 425-9 CESEDA (FRANCE UNIQUEMENT, null pour BE) ===
+            /** true si mentions "maladie grave", "traitement indisponible", "OFII médical", "L.425-9" dans les pièces. */
+            boolean etrangerMaladeDetecte,
+            /** Pathologie principale extraite des certificats médicaux ou pièces médicales (texte libre ≤ 500 car.). */
+            String etrangerMaladePathologie,
+            /** true si les pièces indiquent que le traitement est disponible dans le pays d'origine. */
+            Boolean etrangerMaladeTraitementDisponible,
+            /** Avis du collège médical OFII : FAVORABLE | DEFAVORABLE | EN_ATTENTE (null si non rendu). */
+            String etrangerMaladeAvisOFII,
+            /** Date de l'avis OFII au format YYYY-MM-DD (non future). Null si non rendu ou non lisible. */
+            String etrangerMalaDateAvisOFII) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -1721,7 +1732,13 @@ public record CaseAnalysisResponse(
                     .be9terDateDebutSymptomes(be9terDateDebutSymptomes)
                     .be40bisLienFamilial(be40bisLienFamilial)
                     .be40terLienFamilial(be40terLienFamilial)
-                    .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets);
+                    .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets)
+                    // SF-214-01 : F-IM-25 Étranger malade L.425-9
+                    .etrangerMaladeDetecte(etrangerMaladeDetecte)
+                    .etrangerMaladePathologie(etrangerMaladePathologie)
+                    .etrangerMaladeTraitementDisponible(etrangerMaladeTraitementDisponible)
+                    .etrangerMaladeAvisOFII(etrangerMaladeAvisOFII)
+                    .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII);
         }
 
         public static final class Builder {
@@ -1796,6 +1813,12 @@ public record CaseAnalysisResponse(
             private String be40bisLienFamilial;
             private String be40terLienFamilial;
             private Integer be40terRevenusMensuelsNets;
+            // SF-214-01 : F-IM-25 Étranger malade L.425-9
+            private boolean etrangerMaladeDetecte;
+            private String etrangerMaladePathologie;
+            private Boolean etrangerMaladeTraitementDisponible;
+            private String etrangerMaladeAvisOFII;
+            private String etrangerMalaDateAvisOFII;
 
             private Builder() {}
 
@@ -1869,6 +1892,12 @@ public record CaseAnalysisResponse(
             public Builder be40bisLienFamilial(String v) { this.be40bisLienFamilial = v; return this; }
             public Builder be40terLienFamilial(String v) { this.be40terLienFamilial = v; return this; }
             public Builder be40terRevenusMensuelsNets(Integer v) { this.be40terRevenusMensuelsNets = v; return this; }
+            // SF-214-01 : F-IM-25 Étranger malade L.425-9
+            public Builder etrangerMaladeDetecte(boolean v) { this.etrangerMaladeDetecte = v; return this; }
+            public Builder etrangerMaladePathologie(String v) { this.etrangerMaladePathologie = v; return this; }
+            public Builder etrangerMaladeTraitementDisponible(Boolean v) { this.etrangerMaladeTraitementDisponible = v; return this; }
+            public Builder etrangerMaladeAvisOFII(String v) { this.etrangerMaladeAvisOFII = v; return this; }
+            public Builder etrangerMalaDateAvisOFII(String v) { this.etrangerMalaDateAvisOFII = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -1898,7 +1927,11 @@ public record CaseAnalysisResponse(
                         be9bisDateEntreeBelgique, be9bisDureePresenceMois,
                         be9terDateDebutSymptomes,
                         be40bisLienFamilial, be40terLienFamilial,
-                        be40terRevenusMensuelsNets);
+                        be40terRevenusMensuelsNets,
+                        // SF-214-01 : F-IM-25 Étranger malade L.425-9
+                        etrangerMaladeDetecte, etrangerMaladePathologie,
+                        etrangerMaladeTraitementDisponible, etrangerMaladeAvisOFII,
+                        etrangerMalaDateAvisOFII);
             }
         }
     }
@@ -4299,6 +4332,18 @@ public record CaseAnalysisResponse(
                 }
             }
         }
+        // SF-214-01 : F-IM-25 Étranger malade L.425-9 CESEDA (FRANCE UNIQUEMENT).
+        boolean etrangerMaladeDetecte = booleanOrFalse(root, "etranger_malade_detecte");
+        String etrangerMaladePathologie = textOrNull(root, "etranger_malade_pathologie");
+        Boolean etrangerMaladeTraitementDisponible = booleanOrNull(root, "etranger_malade_traitement_disponible");
+        String etrangerMaladeAvisOFII = normalizeEnumCode(textOrNull(root, "etranger_malade_avis_ofii"),
+                java.util.Set.of("FAVORABLE", "DEFAVORABLE", "EN_ATTENTE"));
+        String etrangerMalaDateAvisOFIIRaw = textOrNull(root, "etranger_mala_date_avis_ofii");
+        final String ISO_DATE_SF214 = "\\d{4}-\\d{2}-\\d{2}";
+        String etrangerMalaDateAvisOFII = (etrangerMalaDateAvisOFIIRaw != null
+                && etrangerMalaDateAvisOFIIRaw.matches(ISO_DATE_SF214)
+                && etrangerMalaDateAvisOFIIRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
+                ? etrangerMalaDateAvisOFIIRaw : null;
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -4328,7 +4373,10 @@ public record CaseAnalysisResponse(
                 && eloiDureePresenceIrreguliereMois == null && eloiMotifMenace == null
                 && be9bisDateEntreeBelgique == null && be9terDateDebutSymptomes == null
                 && be40bisLienFamilial == null && be40terLienFamilial == null
-                && be40terRevenusMensuelsNets == null) return null;
+                && be40terRevenusMensuelsNets == null
+                // SF-214-01 : champs nullables seulement (le boolean primitif n'est jamais null)
+                && etrangerMaladePathologie == null && etrangerMaladeTraitementDisponible == null
+                && etrangerMaladeAvisOFII == null && etrangerMalaDateAvisOFII == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -4408,6 +4456,12 @@ public record CaseAnalysisResponse(
                 .be40bisLienFamilial(be40bisLienFamilial)
                 .be40terLienFamilial(be40terLienFamilial)
                 .be40terRevenusMensuelsNets(be40terRevenusMensuelsNets)
+                // SF-214-01 : F-IM-25 Étranger malade L.425-9
+                .etrangerMaladeDetecte(etrangerMaladeDetecte)
+                .etrangerMaladePathologie(etrangerMaladePathologie)
+                .etrangerMaladeTraitementDisponible(etrangerMaladeTraitementDisponible)
+                .etrangerMaladeAvisOFII(etrangerMaladeAvisOFII)
+                .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII)
                 .build();
     }
 

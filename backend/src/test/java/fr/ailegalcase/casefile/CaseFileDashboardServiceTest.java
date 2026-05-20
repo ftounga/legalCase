@@ -86,6 +86,8 @@ class CaseFileDashboardServiceTest {
     private PriseActeRuptureRepository priseActeRuptureRepo;
     // SF-206-07 : F-DT-40 résiliation judiciaire CPH (FR)
     private ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
+    // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
+    private EtrangerMaladeRepository etrangerMaladeRepo;
     private JldRetentionRepository jldRetentionRepo;
     private DublinRecoursRepository dublinRecoursRepo;
     private CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -208,6 +210,7 @@ class CaseFileDashboardServiceTest {
         congesPayesArretMaladieRepo = mock(CongesPayesArretMaladieRepository.class);
         priseActeRuptureRepo = mock(PriseActeRuptureRepository.class);
         resiliationJudiciaireCphRepo = mock(ResiliationJudiciaireCphRepository.class);
+        etrangerMaladeRepo = mock(EtrangerMaladeRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
         crrvRefusVisaRepo = mock(CrrvRefusVisaRepository.class);
@@ -422,6 +425,7 @@ class CaseFileDashboardServiceTest {
                 congesPayesArretMaladieRepo,
                 priseActeRuptureRepo,
                 resiliationJudiciaireCphRepo,
+                etrangerMaladeRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
                 acceptationRenonciationSuccessionRepo, autoriteParentaleBeRepo,
