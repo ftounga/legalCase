@@ -1,0 +1,281 @@
+<section class="fgl-section">
+  <header class="fgl-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="fgl-body">
+    <mat-icon class="fgl-icon">gavel</mat-icon>
+    <span class="fgl-title">FAUTE GRAVE / FAUTE LOURDE</span>
+    @if (result()) {
+      <span class="fgl-chip-summary"
+            [class.fgl-chip-summary--simple]="result()!.qualificationRetenue === 'FAUTE_SIMPLE'"
+            [class.fgl-chip-summary--grave]="result()!.qualificationRetenue === 'FAUTE_GRAVE'"
+            [class.fgl-chip-summary--lourde]="result()!.qualificationRetenue === 'FAUTE_LOURDE'">
+        {{ verdictBannerLabel(result()!.qualificationRetenue) }} — score {{ result()!.scoreQualification }} / 100
+      </span>
+    }
+    <mat-icon class="fgl-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="fgl-body" class="fgl-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="fgl-country-banner" data-testid="fgl-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L.1234-1 s. CT — la distinction faute grave / faute lourde n'a pas d'équivalent direct en droit belge).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="fgl-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="fgl-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Faits reprochés et dates -->
+            <div class="fgl-block fgl-full">
+              <span class="fgl-block-label">Faits reprochés et dates</span>
+
+              <mat-form-field appearance="outline" class="fgl-inline-field">
+                <mat-label>Résumé des faits reprochés</mat-label>
+                <textarea matInput rows="3" maxlength="500"
+                          [ngModel]="faitsReproches()"
+                          (ngModelChange)="onFaitsReprochesChange($event)"
+                          name="faitsReproches"
+                          data-testid="fgl-input-faits"></textarea>
+              </mat-form-field>
+              @if (provenanceFaitsReproches() === 'IA') {
+                <span class="fgl-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="fgl-inline-field">
+                <mat-label>Dates des faits (séparées par virgules — AAAA-MM-JJ)</mat-label>
+                <input matInput type="text"
+                       [ngModel]="datesFaitsAsText()"
+                       (ngModelChange)="onDatesFaitsTextChange($event)"
+                       name="datesFaits"
+                       placeholder="2024-03-12, 2024-04-08"
+                       data-testid="fgl-input-dates" />
+              </mat-form-field>
+              @if (provenanceDatesFaits() === 'IA') {
+                <span class="fgl-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Qualification employeur + intention de nuire -->
+            <div class="fgl-block fgl-full">
+              <span class="fgl-block-label">Qualification employeur (lettre de licenciement)</span>
+
+              <mat-form-field appearance="outline" class="fgl-inline-field">
+                <mat-label>Qualification retenue par l'employeur</mat-label>
+                <mat-select
+                    [ngModel]="qualificationEmployeur()"
+                    (ngModelChange)="onQualificationChange($event)"
+                    name="qualificationEmployeur"
+                    data-testid="fgl-select-qualification">
+                  <mat-option value="FAUTE_SIMPLE">Faute simple (cause réelle et sérieuse — L.1232-1 CT)</mat-option>
+                  <mat-option value="FAUTE_GRAVE">Faute grave (L.1234-1 CT — pas de maintien pendant le préavis)</mat-option>
+                  <mat-option value="FAUTE_LOURDE">Faute lourde (L.1234-9 CT — intention de nuire)</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceQualification() === 'IA') {
+                <span class="fgl-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="fgl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="intentionNuireAlleeguee()"
+                    (ngModelChange)="onIntentionNuireChange($event)"
+                    name="intentionNuireAlleeguee"
+                    data-testid="fgl-toggle-intention">
+                  Intention de nuire alléguée (critère faute lourde — L.1234-9 CT)
+                </mat-slide-toggle>
+                @if (provenanceIntentionNuire() === 'IA') {
+                  <span class="fgl-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (intentionNuireAlleeguee()) {
+                <mat-form-field appearance="outline" class="fgl-inset-field">
+                  <mat-label>Preuve / documentation de l'intention de nuire</mat-label>
+                  <textarea matInput rows="2" maxlength="1000"
+                            [ngModel]="preuveIntentionNuire()"
+                            (ngModelChange)="onPreuveIntentionNuireChange($event)"
+                            name="preuveIntentionNuire"></textarea>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc 3 — Ancienneté et salaire -->
+            <div class="fgl-block fgl-full">
+              <span class="fgl-block-label">Ancienneté et salaire de référence</span>
+
+              <mat-form-field appearance="outline" class="fgl-inline-field">
+                <mat-label>Ancienneté (en mois entiers)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteMois()"
+                       (ngModelChange)="onAncienneteMoisChange($event)"
+                       name="ancienneteMois"
+                       data-testid="fgl-input-anciennete" />
+              </mat-form-field>
+              @if (provenanceAncienneteMois() === 'IA') {
+                <span class="fgl-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="fgl-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="fgl-input-salaire" />
+              </mat-form-field>
+              @if (provenanceSalaireMensuelBrut() === 'IA') {
+                <span class="fgl-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 4 — Procédure disciplinaire -->
+            <div class="fgl-block fgl-full">
+              <span class="fgl-block-label">Procédure disciplinaire</span>
+
+              <div class="fgl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="attenteConvocation()"
+                    (ngModelChange)="onAttenteConvocationChange($event)"
+                    name="attenteConvocation">
+                  Entretien préalable tenu, dans les délais (L.1232-2 CT — 5 jours ouvrables)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="fgl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="motivationLettreAdequate()"
+                    (ngModelChange)="onMotivationLettreAdequateChange($event)"
+                    name="motivationLettreAdequate">
+                  Lettre de licenciement motivée avec des griefs précis et vérifiables (L.1232-6 CT)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="fgl-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="prescriptionFauteVerifiee() === true"
+                    (ngModelChange)="onPrescriptionVerifieeChange($event)"
+                    name="prescriptionFauteVerifiee">
+                  Faits potentiellement prescrits (&gt; 2 mois entre connaissance et engagement — L.1332-4 CT)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="fgl-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="fgl-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="fgl-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.qualificationRetenue)"
+                 data-testid="fgl-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.qualificationRetenue) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.qualificationRetenue) }}</span>
+            </div>
+
+            <!-- Alerte prescription -->
+            @if (result()!.alertePrescriptionFaute) {
+              <div class="fgl-alert-prescription" data-testid="fgl-alert-prescription">
+                <mat-icon>warning_amber</mat-icon>
+                <span>Alerte prescription : les faits reprochés semblent prescrits (L.1332-4 CT — délai 2 mois). La sanction risque d'être annulée.</span>
+              </div>
+            }
+
+            <!-- Indemnités dues -->
+            <div class="fgl-figures-block" data-testid="fgl-indemnites-table">
+              <div class="fgl-figure">
+                <span class="fgl-figure-label">Score qualification</span>
+                <span class="fgl-figure-value">{{ result()!.scoreQualification }} / 100</span>
+              </div>
+              <div class="fgl-figure">
+                <span class="fgl-figure-label">Indemnité préavis</span>
+                <span class="fgl-figure-value">{{ result()!.indemnitePreavisEuros | number:'1.0-2' }} €</span>
+              </div>
+              <div class="fgl-figure">
+                <span class="fgl-figure-label">Indemnité légale</span>
+                <span class="fgl-figure-value">{{ result()!.indemniteLegaleEuros | number:'1.0-2' }} €</span>
+              </div>
+              <div class="fgl-figure">
+                <span class="fgl-figure-label">Congés payés acquis</span>
+                <span class="fgl-figure-value">{{ result()!.indemnitesCongesPayesEuros | number:'1.0-2' }} €</span>
+              </div>
+              <div class="fgl-figure fgl-figure--total">
+                <span class="fgl-figure-label">Total dû</span>
+                <span class="fgl-figure-value">{{ result()!.totalIndemnitesDuesEuros | number:'1.0-2' }} €</span>
+              </div>
+            </div>
+
+            <!-- Facteurs de qualification -->
+            @if (result()!.facteursQualification?.length) {
+              <div class="fgl-facteurs-block">
+                <span class="fgl-facteurs-label">Facteurs de qualification ({{ result()!.facteursQualification.length }})</span>
+                <ul class="fgl-facteurs-list">
+                  @for (f of result()!.facteursQualification; track facteurTrackKey($index, f)) {
+                    <li class="fgl-facteur-item" data-testid="fgl-facteur-item">
+                      <div class="fgl-facteur-header">
+                        <span class="fgl-facteur-libelle">{{ f.libelle }}</span>
+                        <span class="fgl-facteur-poids">+{{ f.poids }} pts</span>
+                      </div>
+                      <span class="fgl-facteur-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                      <span class="fgl-facteur-explication">{{ f.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="fgl-bases-block">
+                <span class="fgl-bases-label">Bases juridiques</span>
+                <div class="fgl-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="fgl-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="fgl-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="fgl-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

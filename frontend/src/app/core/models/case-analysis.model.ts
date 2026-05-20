@@ -714,6 +714,25 @@ export interface TravailExtractedData {
   /** Grief rendant impossible la poursuite du contrat (critère central Cass. soc. 26/03/2014 n°12-21.372). */
   priseActeGriefImpossiblePoursuite?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-02 — sous-objet `faute_grave_detail` (FRANCE only)
+  // Pré-fill F-DT-36 (licenciement pour faute grave / faute lourde — L.1234-1
+  // s. CT, Cass. soc. 18/06/2013 n°11-14.393). Tous nullables — restent `null`
+  // pour un dossier Travail BE (distinction faute grave / faute lourde
+  // strictement française).
+  // -------------------------------------------------------------------------
+  /** Résumé factuel des faits reprochés (≤ 500 caractères). */
+  fauteGraveFaitsReproches?: string | null;
+  /** Dates des faits reprochés au format ISO YYYY-MM-DD (tableau, potentiellement vide). */
+  fauteGraveDatesFaits?: string[] | null;
+  /** Qualification retenue par l'employeur — `FAUTE_SIMPLE` | `FAUTE_GRAVE` | `FAUTE_LOURDE`. */
+  fauteGraveQualificationEmployeur?: string | null;
+  /** Intention de nuire alléguée par l'employeur (critère distinctif faute lourde — L.1234-9 CT). */
+  fauteGraveIntentionNuireAlleeguee?: boolean | null;
+  /** Ancienneté du salarié en mois entiers (0–600). */
+  fauteGraveAncienneteMois?: number | null;
+  /** Salaire brut mensuel de référence en euros (> 0). */
+  fauteGraveSalaireMensuelBrut?: number | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

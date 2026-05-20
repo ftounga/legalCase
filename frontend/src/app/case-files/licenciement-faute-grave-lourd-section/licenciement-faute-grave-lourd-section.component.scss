@@ -1,0 +1,229 @@
+/**
+ * SF-212-02 : styles outil "Licenciement pour faute grave / faute lourde"
+ * (F-DT-36). Aligné sur le template canonique prise-acte-rupture-section.
+ *
+ * Palette qualification 3 niveaux :
+ *   - vert (FAUTE_SIMPLE — préavis et IL maintenus)
+ *   - or (FAUTE_GRAVE — privation préavis + IL ; CP maintenus)
+ *   - rouge (FAUTE_LOURDE — privation préavis + IL ; CP maintenus ; DI possibles
+ *     à charge du salarié — Cass. soc. 18/06/2013 n°11-14.393)
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées et
+ * les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.fgl-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.fgl-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.fgl-icon { color: var(--ds-accent-navy, #1d3557); }
+.fgl-title { flex: 1; font-weight: 600; letter-spacing: 0.04em; }
+.fgl-toggle { color: var(--ds-text-muted, #8a8475); }
+
+.fgl-chip-summary {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  &--simple { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+  &--grave { background: rgba(201, 165, 75, 0.18); color: #8a6b1d; }
+  &--lourde { background: rgba(211, 47, 47, 0.12); color: #c62828; }
+}
+
+.fgl-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fgl-country-banner,
+.fgl-alert-prescription {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.1);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  color: #5a4a1a;
+  font-size: 14px;
+}
+
+.fgl-alert-prescription {
+  background: rgba(211, 47, 47, 0.08);
+  border-color: rgba(211, 47, 47, 0.35);
+  color: #8a1a1a;
+}
+
+.fgl-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.fgl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fgl-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.fgl-full { width: 100%; }
+
+.fgl-block-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.fgl-inline-field,
+.fgl-inset-field { width: 100%; }
+.fgl-inset-field { margin-left: 16px; }
+
+.fgl-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fgl-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ds-accent-gold, #c9a54b);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.fgl-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fgl-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fgl-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+
+  &--simple { background: rgba(46, 125, 50, 0.12); color: #1b5e20; }
+  &--grave { background: rgba(201, 165, 75, 0.2); color: #6a4f0a; }
+  &--lourde { background: rgba(211, 47, 47, 0.14); color: #8a1a1a; }
+}
+
+.fgl-figures-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.fgl-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+
+  &--total {
+    border-color: var(--ds-accent-navy, #1d3557);
+    background: rgba(29, 53, 87, 0.05);
+  }
+}
+
+.fgl-figure-label { font-size: 11px; text-transform: uppercase; color: var(--ds-text-muted, #8a8475); }
+.fgl-figure-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+.fgl-facteurs-block,
+.fgl-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.fgl-facteurs-label,
+.fgl-bases-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.fgl-facteurs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.fgl-facteur-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.fgl-facteur-header { display: flex; justify-content: space-between; align-items: center; }
+.fgl-facteur-libelle { font-weight: 600; }
+.fgl-facteur-poids { font-family: 'JetBrains Mono', monospace; color: var(--ds-accent-gold, #c9a54b); font-size: 12px; }
+.fgl-facteur-fondement { font-size: 12px; color: var(--ds-text-muted, #8a8475); font-family: 'JetBrains Mono', monospace; }
+.fgl-facteur-explication { font-size: 13px; color: var(--ds-text, #1f1f1f); }
+
+.fgl-bases-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.fgl-base-chip {
+  padding: 4px 10px;
+  background: rgba(29, 53, 87, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.fgl-meta { display: flex; justify-content: flex-end; }
+
+.fgl-messages {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ds-text, #1f1f1f);
+  font-size: 13px;
+}

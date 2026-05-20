@@ -90,6 +90,8 @@ import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nulli
 import { AbandonPostePresomptionDemissionSectionComponent } from '../abandon-poste-presomption-demission-section/abandon-poste-presomption-demission-section.component';
 import { CongesPayesArretMaladieSectionComponent } from '../conges-payes-arret-maladie-section/conges-payes-arret-maladie-section.component';
 import { PriseActeRuptureSectionComponent } from '../prise-acte-rupture-section/prise-acte-rupture-section.component';
+// SF-212-02 : outil F-DT-36 licenciement pour faute grave / faute lourde (FR uniquement).
+import { LicenciementFauteGraveLourdSectionComponent } from '../licenciement-faute-grave-lourd-section/licenciement-faute-grave-lourd-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -756,6 +758,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-02 : F-DT-36 licenciement pour faute grave / faute lourde (FR uniquement,
+        // L. 1234-1 s. CT ; Cass. soc. 18/06/2013 n°11-14.393 — distinction strictement
+        // française). Pré-fill IA réel sur 6 champs `fauteGrave*` (sous-objet
+        // `faute_grave_detail`, projeté à plat dans travailExtractedData). Trigger
+        // visibilité = `motif_faute_grave_pressenti` côté backend (seed migration 278).
+      ['F-DT-36-licenciement-faute-grave-lourde', {
+        displayLabel: 'Faute grave / faute lourde (FR)',
+        component: LicenciementFauteGraveLourdSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
@@ -2537,6 +2554,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Cass. soc. 25/06/2003 n°01-42.679). Groupe F-169 « Rupture — initiative
     // salarié / torts employeur » — diagnostic de solidité AVANT notification.
     ['F-DT-39-prise-acte-rupture', 'DIAGNOSTIC'],
+    // SF-212-02 : F-DT-36 — qualification de la faute disciplinaire
+    // (diagnostic = comprendre la situation et l'impact indemnitaire).
+    ['F-DT-36-licenciement-faute-grave-lourde', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative

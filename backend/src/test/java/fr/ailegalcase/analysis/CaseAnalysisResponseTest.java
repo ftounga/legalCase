@@ -6729,4 +6729,105 @@ class CaseAnalysisResponseTest {
         assertThat(t.rpeMotifLieCompetences()).isNull();
         assertThat(t.rpeLettreRuptureMotivee()).isNull();
     }
+
+    // ========================================================================
+    // SF-212-02 : pré-fill IA F-DT-36 — sous-objet faute_grave_detail
+    // 6 champs IA (texte tronqué, liste de dates, enum 3 valeurs, booléen
+    // tri-état, entier borné [0,600], décimal > 0).
+    // ========================================================================
+
+    @Test
+    void from_travailExtractedData_fauteGraveDetail_complet_parsed() {
+        // Cas nominal : sous-objet complet → 6 champs renseignés.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "faute_grave_detail": {
+                      "faute_grave_faits_reproches": "Insultes envers le supérieur hiérarchique",
+                      "faute_grave_dates_faits": ["2024-03-12", "2024-04-08"],
+                      "faute_grave_qualification_employeur": "FAUTE_GRAVE",
+                      "faute_grave_intention_nuire_alleeguee": false,
+                      "faute_grave_anciennete_mois": 36,
+                      "faute_grave_salaire_mensuel_brut": 2850.0
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.fauteGraveFaitsReproches()).isEqualTo("Insultes envers le supérieur hiérarchique");
+        assertThat(t.fauteGraveDatesFaits()).containsExactly("2024-03-12", "2024-04-08");
+        assertThat(t.fauteGraveQualificationEmployeur()).isEqualTo("FAUTE_GRAVE");
+        assertThat(t.fauteGraveIntentionNuireAlleeguee()).isFalse();
+        assertThat(t.fauteGraveAncienneteMois()).isEqualTo(36);
+        assertThat(t.fauteGraveSalaireMensuelBrut()).isEqualTo(2850.0);
+    }
+
+    @Test
+    void from_travailExtractedData_fauteGraveDetail_sousObjetAbsent_tousNull() {
+        // Sous-objet absent → 6 champs null, pas d'exception (dossier sans
+        // document disciplinaire ou dossier BE).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "salaire_brut_mensuel": 3200
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.fauteGraveFaitsReproches()).isNull();
+        assertThat(t.fauteGraveDatesFaits()).isNull();
+        assertThat(t.fauteGraveQualificationEmployeur()).isNull();
+        assertThat(t.fauteGraveIntentionNuireAlleeguee()).isNull();
+        assertThat(t.fauteGraveAncienneteMois()).isNull();
+        assertThat(t.fauteGraveSalaireMensuelBrut()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_fauteGraveDetail_qualificationHorsWhitelist_null() {
+        // Qualification hors whitelist (ex. "DISCIPLINAIRE") → null
+        // (jamais de fallback — invariant whitelist stricte).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "faute_grave_detail": {
+                      "faute_grave_qualification_employeur": "DISCIPLINAIRE",
+                      "faute_grave_anciennete_mois": 24
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.fauteGraveQualificationEmployeur()).isNull();
+        assertThat(t.fauteGraveAncienneteMois()).isEqualTo(24);
+    }
+
+    @Test
+    void from_travailExtractedData_fauteGraveDetail_ancienneteHorsBornes_null() {
+        // Ancienneté > MAX_FAUTE_GRAVE_ANCIENNETE_MOIS (600) → null,
+        // salaire ≤ 0 → null (positiveDoubleOrNull).
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "faute_grave_detail": {
+                      "faute_grave_anciennete_mois": 1200,
+                      "faute_grave_salaire_mensuel_brut": 0,
+                      "faute_grave_dates_faits": []
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.fauteGraveAncienneteMois()).isNull();
+        assertThat(t.fauteGraveSalaireMensuelBrut()).isNull();
+        assertThat(t.fauteGraveDatesFaits()).isEmpty();
+    }
 }
