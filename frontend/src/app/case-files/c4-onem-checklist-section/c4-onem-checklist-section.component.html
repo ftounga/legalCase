@@ -1,0 +1,314 @@
+<div class="c4-onem-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">fact_check</mat-icon>
+    <span class="section-title">Checklist C4 ONEM (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="c4-onem-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <p class="form-help">
+            10 mentions obligatoires du C4 ONEM (AR du 25 novembre 1991 art. 92).
+            Les champs avec un astérisque sont requis pour pouvoir vérifier la conformité.
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Raison sociale -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Raison sociale de l'employeur</mat-label>
+                <input matInput
+                       [ngModel]="raisonSocialeEmployeur()"
+                       (ngModelChange)="onRaisonSocialeChange($event)"
+                       name="raisonSocialeEmployeur" />
+              </mat-form-field>
+              @if (provenanceRaisonSociale() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 2. Numéro BCE -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Numéro BCE (10 chiffres)</mat-label>
+                <input matInput
+                       [ngModel]="numeroBce()"
+                       (ngModelChange)="onNumeroBceChange($event)"
+                       name="numeroBce"
+                       inputmode="numeric"
+                       placeholder="0123456789" />
+              </mat-form-field>
+              @if (provenanceNumeroBce() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 3. Nom du salarié -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Nom du salarié *</mat-label>
+                <input matInput
+                       [ngModel]="nomSalarie()"
+                       (ngModelChange)="onNomSalarieChange($event)"
+                       name="nomSalarie" required />
+              </mat-form-field>
+              @if (provenanceNomSalarie() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 4. NRN (optionnel, pas de pré-fill) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Numéro national de registre (optionnel)</mat-label>
+                <input matInput
+                       [ngModel]="numeroNationalRegistre()"
+                       (ngModelChange)="onNumeroNationalRegistreChange($event)"
+                       name="numeroNationalRegistre"
+                       inputmode="numeric" />
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Date entrée -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'entrée en service *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateEntreeService()"
+                       (ngModelChange)="onDateEntreeChange($event)"
+                       name="dateEntreeService" required />
+              </mat-form-field>
+              @if (provenanceDateEntree() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().DATE_ENTREE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_ENTREE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 6. Date sortie -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de sortie de service *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateSortieService()"
+                       (ngModelChange)="onDateSortieChange($event)"
+                       name="dateSortieService" required />
+              </mat-form-field>
+              @if (provenanceDateSortie() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().DATE_SORTIE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_SORTIE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 7. Catégorie ONEM -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Catégorie ONEM</mat-label>
+                <input matInput
+                       [ngModel]="categorieOnem()"
+                       (ngModelChange)="onCategorieOnemChange($event)"
+                       name="categorieOnem"
+                       placeholder="ex. 9 (faute grave)" />
+              </mat-form-field>
+              @if (provenanceCategorieOnem() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 8. Motif explicite -->
+            <div class="field-with-alert full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif explicite de la fin de contrat</mat-label>
+                <textarea matInput
+                          rows="2"
+                          [ngModel]="motifExplicite()"
+                          (ngModelChange)="onMotifExpliciteChange($event)"
+                          name="motifExplicite"></textarea>
+              </mat-form-field>
+              @if (provenanceMotif() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 9. Faute grave -->
+            <div class="field-with-alert checkbox-row">
+              <mat-checkbox [ngModel]="fauteGraveMentionnee()"
+                            (ngModelChange)="onFauteGraveChange($event)"
+                            name="fauteGraveMentionnee">
+                Faute grave mentionnée sur le C4
+              </mat-checkbox>
+              @if (provenanceFauteGrave() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().FAUTE_GRAVE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('FAUTE_GRAVE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 10. Préavis presté -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Préavis presté (en jours)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       [ngModel]="preavisPresteJours()"
+                       (ngModelChange)="onPreavisChange($event)"
+                       name="preavisPresteJours" />
+              </mat-form-field>
+              @if (provenancePreavis() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 11. Dernier salaire -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Dernier salaire mensuel brut (€)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="dernierSalaireMensuelBrut()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="dernierSalaireMensuelBrut" />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>fact_check</mat-icon> Vérifier la conformité du C4
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ verdictLabel(result()!.verdict) }}</span>
+              @if (result()!.verdict === 'RISQUE_EXCLUSION_FAUTE_GRAVE' && result()!.exclusionOnemRange) {
+                <span class="verdict-detail">
+                  Risque d'exclusion ONEM
+                  : {{ result()!.exclusionOnemRange!.minSemaines }}-{{ result()!.exclusionOnemRange!.maxSemaines }}
+                  semaines (AR 25/11/1991 art. 144). Contester le C4 sans délai.
+                </span>
+              } @else if (result()!.verdict === 'NON_CONFORME') {
+                <span class="verdict-detail">
+                  {{ mentionsManquantesHumanisees().length }} mention(s) manquante(s)
+                  — rectification à demander à l'employeur.
+                </span>
+              } @else {
+                <span class="verdict-detail">
+                  Les 10 mentions obligatoires du C4 ONEM sont présentes.
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (mentionsManquantesHumanisees().length > 0) {
+            <div class="rec-section">
+              <span class="rec-section-label">Mentions manquantes</span>
+              <ul class="mentions-list">
+                @for (m of mentionsManquantesHumanisees(); track m.code) {
+                  <li>{{ m.label }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result()!.lettreRectificativeProposee) {
+            <div class="rec-section">
+              <div class="lettre-header">
+                <span class="rec-section-label">Lettre rectificative</span>
+                <button mat-stroked-button
+                        (click)="copyLettre()"
+                        [disabled]="copying()">
+                  <mat-icon>content_copy</mat-icon>
+                  {{ copying() ? 'Copie…' : 'Copier la lettre' }}
+                </button>
+              </div>
+              <textarea class="lettre-textarea legal-mono"
+                        readonly
+                        [value]="result()!.lettreRectificativeProposee"
+                        rows="12"></textarea>
+            </div>
+          }
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

@@ -395,6 +395,24 @@ export interface TravailExtractedData {
    * Remplace le stub aspirationnel de l'ancien type d'intersection `TravailProcedureAiData`.
    */
   dateDeclencheurProcedure?: string | null;
+  /**
+   * SF-207-02b : 6 champs IA Travail BE pour pré-fill F-207 (checklist C4 ONEM).
+   * Tous nullables — restent `null` pour un dossier Travail FR (régime distinct
+   * de l'attestation France Travail R.1234-9).
+   * `raisonSocialeEmployeur` : raison sociale (dénomination juridique) de l'employeur.
+   * `numeroBce` : numéro BCE (Banque-Carrefour des Entreprises) — 10 chiffres.
+   * `categorieOnem` : code catégorie ONEM (ex. "9" pour faute grave).
+   * `motifExplicite` : motif explicite de la fin de contrat (texte libre du C4).
+   * `preavisPresteJours` : durée de préavis presté en jours (Integer côté backend).
+   * `dernierSalaireMensuelBrut` : dernier salaire mensuel brut (BigDecimal backend
+   * → number frontend).
+   */
+  raisonSocialeEmployeur?: string | null;
+  numeroBce?: string | null;
+  categorieOnem?: string | null;
+  motifExplicite?: string | null;
+  preavisPresteJours?: number | null;
+  dernierSalaireMensuelBrut?: number | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

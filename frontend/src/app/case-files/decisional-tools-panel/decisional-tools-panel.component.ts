@@ -61,6 +61,8 @@ import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhom
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
 // SF-207-01b : section décisionnelle prescription Travail BE (BE-only, ALWAYS_ON).
 import { PrescriptionBeLitigeTravailSectionComponent } from '../prescription-be-litige-travail-section/prescription-be-litige-travail-section.component';
+// SF-207-02b : section décisionnelle checklist C4 ONEM (BE-only, ALWAYS_ON).
+import { C4OnemChecklistSectionComponent } from '../c4-onem-checklist-section/c4-onem-checklist-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -420,6 +422,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // Pré-fill IA depuis 2 champs TravailExtractedData (Travail BE) :
           // `dateRuptureContrat` + `motifRupture` (mapping → typeCreance).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-02b : checklist C4 ONEM Travail BE (BE-only, ALWAYS_ON). Insertion
+      // immédiate après `prescription-be-litige-travail` — séquence métier Travail
+      // BE imposée par SF-207-00b-ux-coherence (prescription = délai critique
+      // d'abord, conformité du C4 ensuite). 10 champs pré-remplis depuis
+      // `TravailExtractedData` (extension SF-207-02 / SF-207-02b côté backend).
+      ['c4-onem-checklist', {
+        displayLabel: 'Checklist C4 ONEM (BE)',
+        component: C4OnemChecklistSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
@@ -2173,6 +2192,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-04-fiche-prudhomale', 'DOCUMENTS'],
     ['F-DT-06-requete-tribunal-travail', 'DOCUMENTS'],
     ['F-DT-32-documents-fin-contrat', 'DOCUMENTS'],
+    // SF-207-02b : checklist C4 ONEM — outil de vérification documentaire
+    // (mentions obligatoires d'un document de fin de contrat employeur BE).
+    ['c4-onem-checklist', 'DOCUMENTS'],
     ['F-IM-01-checklist-pieces', 'DOCUMENTS'],
     ['F-FA-07-checklist-divorce', 'DOCUMENTS'],
     ['F-132-rupture-amiable-info', 'DOCUMENTS'],
