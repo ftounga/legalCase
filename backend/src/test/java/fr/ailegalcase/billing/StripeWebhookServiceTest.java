@@ -24,12 +24,14 @@ class StripeWebhookServiceTest {
 
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private CreditPurchaseService creditPurchaseService;
+    @Mock private fr.ailegalcase.workspace.WorkspaceRepository workspaceRepository;
 
     private StripeWebhookService service;
 
     @BeforeEach
     void setUp() {
         service = new StripeWebhookService(subscriptionRepository, creditPurchaseService,
+                workspaceRepository,
                 "price_solo_test", "price_team_test", "price_pro_test",
                 "price_tokens_1m_test", "price_tokens_5m_test", "price_tokens_20m_test");
     }
@@ -120,11 +122,13 @@ class StripeWebhookServiceTest {
         verify(subscriptionRepository, never()).save(any());
     }
 
-    // U-04 : événement non géré → ignoré sans erreur
+    // U-04 : événement non géré → ignoré sans erreur.
+    // SF-156-01 : invoice.payment_failed est désormais géré, on passe à un
+    // autre type non géré (ex: customer.deleted) pour préserver la sémantique.
     @Test
     void handleEvent_unknownEventType_ignored() {
         Event event = mock(Event.class);
-        when(event.getType()).thenReturn("invoice.payment_failed");
+        when(event.getType()).thenReturn("customer.deleted");
 
         service.handleEvent(event);
 

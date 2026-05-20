@@ -42,12 +42,16 @@ class WorkspaceInvitationServiceTest {
     @Mock private PlanLimitService planLimitService;
     @Mock private StripeSeatService stripeSeatService;
 
+    // SF-156-01 : guard ACTIVE-only — vraie instance (composant simple).
+    private final WorkspaceAccessGuard workspaceAccessGuard = new WorkspaceAccessGuard();
+
     private WorkspaceInvitationService service;
 
     @BeforeEach
     void setUp() {
         service = new WorkspaceInvitationService(workspaceInvitationRepository, workspaceMemberRepository,
-                workspaceRepository, currentUserResolver, emailService, planLimitService, stripeSeatService);
+                workspaceRepository, currentUserResolver, emailService, planLimitService, stripeSeatService,
+                workspaceAccessGuard);
         // SF-123-02 : par défaut les tests existants sont sur un plan sans gate (TEAM/PRO avec large cap).
         lenient().when(planLimitService.getMaxSeatsForWorkspace(any())).thenReturn(100);
     }

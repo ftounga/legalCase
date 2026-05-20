@@ -115,7 +115,8 @@ class WorkspaceControllerIT {
                 // SF-60-01 : nom workspace normalisé en majuscules côté backend
                 .andExpect(jsonPath("$.name").value("CABINET MARTIN"))
                 .andExpect(jsonPath("$.planCode").value("FREE"))
-                .andExpect(jsonPath("$.id").isNotEmpty());
+                // SF-156-01 : la réponse expose désormais workspaceId (pas id).
+                .andExpect(jsonPath("$.workspaceId").isNotEmpty());
     }
 
     // I-04 : POST /api/v1/workspaces → 400 avec nom vide
@@ -165,11 +166,12 @@ class WorkspaceControllerIT {
                 .andExpect(status().isBadRequest());
     }
 
-    // F-154 / I-06 : POST /api/v1/workspaces → création d'un 2e workspace par le
-    // même user doit réussir (201) avec primary=false. Le switch (POST /:id/switch)
-    // est ce qui pilote l'unicité du primary désormais.
+    // SF-156-01 / I-06 (réécrit) : un OWNER FREE qui tente de créer un
+    // workspace supplémentaire reçoit 403 avec code PLAN_REQUIRED.
+    // Le comportement F-154 d'origine (création 2e workspace pour tout
+    // utilisateur) est désormais réservé aux OWNER TEAM/PRO.
     @Test
-    void createWorkspace_whenUserAlreadyHasOne_returns201AndNotPrimary() throws Exception {
+    void createWorkspace_whenOwnerFreeAndAlreadyHasOne_returns403() throws Exception {
         User user = new User();
         user.setEmail("existing@example.com");
         user.setStatus("ACTIVE");
@@ -202,12 +204,9 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_IMMIGRATION\", \"country\": \"FRANCE\"}")
+                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_IMMIGRATION\", \"country\": \"FRANCE\", \"plan\": \"TEAM\"}")
                         .with(authentication(auth)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("NOUVEAU WORKSPACE"))
-                .andExpect(jsonPath("$.legalDomain").value("DROIT_IMMIGRATION"))
-                .andExpect(jsonPath("$.primary").value(false));
+                .andExpect(status().isForbidden());
     }
 
     // I-07 : GET /api/v1/workspaces → liste les workspaces de l'utilisateur avec primary correct

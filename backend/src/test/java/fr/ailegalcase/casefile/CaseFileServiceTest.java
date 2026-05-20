@@ -42,11 +42,17 @@ class CaseFileServiceTest {
     @Mock private CaseAnalysisRepository caseAnalysisRepository;
     @Mock private OidcUser oidcUser;
 
+    // SF-156-01 : guard ACTIVE-only injecté pour valider l'isolation
+    // PENDING_PAYMENT. On utilise une vraie instance (composant simple).
+    private final fr.ailegalcase.workspace.WorkspaceAccessGuard workspaceAccessGuard =
+            new fr.ailegalcase.workspace.WorkspaceAccessGuard();
+
     private CaseFileService service;
 
     @BeforeEach
     void setUp() {
-        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository, planLimitService, auditLogRepository, caseAnalysisRepository);
+        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository,
+                planLimitService, auditLogRepository, caseAnalysisRepository, workspaceAccessGuard);
     }
 
     private Workspace mockUserAndWorkspace() {

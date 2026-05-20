@@ -2,8 +2,12 @@ package fr.ailegalcase.billing;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.Invoice;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
+import fr.ailegalcase.workspace.Workspace;
+import fr.ailegalcase.workspace.WorkspaceRepository;
+import fr.ailegalcase.workspace.WorkspaceStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class StripeWebhookService {
@@ -19,6 +24,7 @@ public class StripeWebhookService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final CreditPurchaseService creditPurchaseService;
+    private final WorkspaceRepository workspaceRepository;
     private final String priceIdSolo;
     private final String priceIdTeam;
     private final String priceIdPro;
@@ -28,6 +34,7 @@ public class StripeWebhookService {
 
     public StripeWebhookService(SubscriptionRepository subscriptionRepository,
                                 CreditPurchaseService creditPurchaseService,
+                                WorkspaceRepository workspaceRepository,
                                 @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
                                 @Value("${app.stripe.price-id-team:}") String priceIdTeam,
                                 @Value("${app.stripe.price-id-pro:}") String priceIdPro,
@@ -36,6 +43,7 @@ public class StripeWebhookService {
                                 @Value("${app.stripe.price-id-tokens-20m:}") String priceIdTokens20m) {
         this.subscriptionRepository = subscriptionRepository;
         this.creditPurchaseService = creditPurchaseService;
+        this.workspaceRepository = workspaceRepository;
         this.priceIdSolo = priceIdSolo;
         this.priceIdTeam = priceIdTeam;
         this.priceIdPro = priceIdPro;
@@ -48,8 +56,14 @@ public class StripeWebhookService {
     public void handleEvent(Event event) {
         switch (event.getType()) {
             case "checkout.session.completed" -> handleCheckoutCompleted(event);
+            // SF-156-01 : activation d'un workspace PENDING_PAYMENT à la
+            // première création de subscription Stripe.
+            case "customer.subscription.created" -> handleSubscriptionCreated(event);
             case "customer.subscription.updated" -> handleSubscriptionUpdated(event);
             case "customer.subscription.deleted" -> handleSubscriptionDeleted(event);
+            // SF-156-01 : un paiement échoué sur un workspace pendant
+            // déclenche le passage en CANCELLED.
+            case "invoice.payment_failed" -> handleInvoicePaymentFailed(event);
             default -> log.debug("Unhandled Stripe event: {}", event.getType());
         }
     }
@@ -173,6 +187,22 @@ public class StripeWebhookService {
         String customerId = stripeSub.getCustomer();
 
         subscriptionRepository.findByStripeCustomerId(customerId).ifPresentOrElse(sub -> {
+            // SF-156-01 : si le workspace lié est encore PENDING_PAYMENT,
+            // l'annulation Stripe signifie que le paiement initial n'a jamais
+            // abouti — on bascule en CANCELLED (le cleanup job supprimera).
+            Workspace ws = workspaceRepository.findById(sub.getWorkspaceId()).orElse(null);
+            if (ws != null && WorkspaceStatus.PENDING_PAYMENT.equals(ws.getStatus())) {
+                ws.setStatus(WorkspaceStatus.CANCELLED);
+                workspaceRepository.save(ws);
+                sub.setStatus("CANCELLED");
+                subscriptionRepository.save(sub);
+                log.info("Subscription deleted — workspace {} (PENDING_PAYMENT) basculé en CANCELLED",
+                        sub.getWorkspaceId());
+                return;
+            }
+
+            // Cas standard (workspace ACTIVE) : downgrade FREE (comportement
+            // historique préservé).
             sub.setPlanCode("FREE");
             sub.setStripeSubscriptionId(null);
             sub.setExpiresAt(Instant.now());
@@ -216,5 +246,154 @@ public class StripeWebhookService {
 
     private static boolean matches(String priceId, String configured) {
         return configured != null && !configured.isBlank() && configured.equals(priceId);
+    }
+
+    /**
+     * SF-156-01 — Active un workspace en {@code PENDING_PAYMENT} dès que
+     * Stripe confirme la création d'un abonnement.
+     *
+     * <p>Idempotence (CA5, invariant SF-156-00 §3) : si le workspace est
+     * déjà {@code ACTIVE} et que le {@code stripeSubscriptionId} reçu est
+     * identique à celui déjà persisté, le handler retourne immédiatement
+     * sans effet de bord.
+     *
+     * <p>Le {@code workspace_id} est récupéré depuis la metadata du Stripe
+     * customer (injectée par {@link StripeCheckoutService#createSubscriptionSessionForNewWorkspace}).
+     * Si la metadata est absente, on retombe sur la résolution standard
+     * par {@code stripeCustomerId} pour ne pas casser l'onboarding initial.
+     */
+    private void handleSubscriptionCreated(Event event) {
+        Subscription stripeSub;
+        try {
+            stripeSub = (Subscription) event.getDataObjectDeserializer().deserializeUnsafe();
+        } catch (StripeException e) {
+            log.error("Cannot deserialize customer.subscription.created event {}: {}",
+                    event.getId(), e.getMessage());
+            return;
+        }
+        if (stripeSub == null) return;
+
+        String customerId = stripeSub.getCustomer();
+        String stripeSubscriptionId = stripeSub.getId();
+        String priceId = stripeSub.getItems() != null && !stripeSub.getItems().getData().isEmpty()
+                ? stripeSub.getItems().getData().get(0).getPrice().getId()
+                : null;
+        String planCode = resolvePlanCodeFromPriceId(priceId);
+
+        UUID workspaceId = resolveWorkspaceIdFromCustomer(customerId);
+        if (workspaceId == null) {
+            // Cas onboarding initial (avant SF-156-01) ou customer inconnu :
+            // pas d'effet, on log et on laisse handleCheckoutCompleted /
+            // handleSubscriptionUpdated faire le reste.
+            log.warn("customer.subscription.created reçu pour customer {} sans workspace mappable",
+                    customerId);
+            return;
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElse(null);
+        if (workspace == null) {
+            log.warn("customer.subscription.created : workspace {} introuvable", workspaceId);
+            return;
+        }
+
+        fr.ailegalcase.billing.Subscription sub = subscriptionRepository
+                .findByWorkspaceId(workspaceId).orElse(null);
+
+        // Idempotence : si déjà ACTIVE avec le même subscription id, no-op.
+        if (sub != null
+                && WorkspaceStatus.ACTIVE.equals(workspace.getStatus())
+                && stripeSubscriptionId != null
+                && stripeSubscriptionId.equals(sub.getStripeSubscriptionId())) {
+            log.debug("customer.subscription.created déjà appliqué (idempotence) pour workspace {}",
+                    workspaceId);
+            return;
+        }
+
+        // Transition PENDING_PAYMENT → ACTIVE (CA5).
+        workspace.setStatus(WorkspaceStatus.ACTIVE);
+        workspace.setPlanCode(planCode);
+        workspaceRepository.save(workspace);
+
+        if (sub == null) {
+            sub = new fr.ailegalcase.billing.Subscription();
+            sub.setWorkspaceId(workspaceId);
+            sub.setStartedAt(Instant.now());
+        }
+        sub.setPlanCode(planCode);
+        sub.setStatus("ACTIVE");
+        sub.setStripeCustomerId(customerId);
+        sub.setStripeSubscriptionId(stripeSubscriptionId);
+        sub.setExpiresAt(null);
+        subscriptionRepository.save(sub);
+        log.info("Workspace {} activé via customer.subscription.created (plan {}, sub {})",
+                workspaceId, planCode, stripeSubscriptionId);
+    }
+
+    /**
+     * SF-156-01 — Passe un workspace en {@code CANCELLED} si la première
+     * facture échoue (paiement refusé) tant qu'il est encore en
+     * {@code PENDING_PAYMENT}.
+     *
+     * <p>Si le workspace est déjà {@code ACTIVE}, on ne le bascule pas en
+     * CANCELLED sur un seul échec — Stripe gère le dunning et on attend
+     * {@code customer.subscription.deleted} si l'abonnement est résilié.
+     */
+    private void handleInvoicePaymentFailed(Event event) {
+        Invoice invoice;
+        try {
+            invoice = (Invoice) event.getDataObjectDeserializer().deserializeUnsafe();
+        } catch (StripeException e) {
+            log.error("Cannot deserialize invoice.payment_failed event {}: {}",
+                    event.getId(), e.getMessage());
+            return;
+        }
+        if (invoice == null) return;
+
+        String customerId = invoice.getCustomer();
+        UUID workspaceId = resolveWorkspaceIdFromCustomer(customerId);
+        if (workspaceId == null) {
+            log.warn("invoice.payment_failed reçu pour customer {} sans workspace mappable",
+                    customerId);
+            return;
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElse(null);
+        if (workspace == null) {
+            log.warn("invoice.payment_failed : workspace {} introuvable", workspaceId);
+            return;
+        }
+
+        if (!WorkspaceStatus.PENDING_PAYMENT.equals(workspace.getStatus())) {
+            log.debug("invoice.payment_failed ignoré — workspace {} n'est pas PENDING_PAYMENT (status={})",
+                    workspaceId, workspace.getStatus());
+            return;
+        }
+
+        workspace.setStatus(WorkspaceStatus.CANCELLED);
+        workspaceRepository.save(workspace);
+        subscriptionRepository.findByWorkspaceId(workspaceId).ifPresent(sub -> {
+            sub.setStatus("CANCELLED");
+            subscriptionRepository.save(sub);
+        });
+        log.info("Workspace {} basculé en CANCELLED suite à invoice.payment_failed", workspaceId);
+    }
+
+    /**
+     * Résout le {@code workspace_id} depuis la metadata du customer Stripe
+     * (positionnée par {@link StripeCustomerService#createCustomer}).
+     */
+    private UUID resolveWorkspaceIdFromCustomer(String customerId) {
+        if (customerId == null) return null;
+        try {
+            com.stripe.model.Customer customer = com.stripe.model.Customer.retrieve(customerId);
+            String workspaceIdStr = customer.getMetadata() != null
+                    ? customer.getMetadata().get("workspace_id") : null;
+            return workspaceIdStr != null ? UUID.fromString(workspaceIdStr) : null;
+        } catch (StripeException | IllegalArgumentException e) {
+            // Fallback : lookup local via stripe_customer_id.
+            return subscriptionRepository.findByStripeCustomerId(customerId)
+                    .map(fr.ailegalcase.billing.Subscription::getWorkspaceId)
+                    .orElse(null);
+        }
     }
 }
