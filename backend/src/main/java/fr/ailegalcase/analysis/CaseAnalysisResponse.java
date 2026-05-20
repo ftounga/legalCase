@@ -279,6 +279,25 @@ public record CaseAnalysisResponse(
             // null si non distincte de la date d'accident ou non détectable.
             String dateAccident,
             String dateConnaissanceAccidentEmployeur,
+            // SF-207-05 : 3 champs IA Travail BE pour pré-fill F-207-05 outil
+            // référé tribunal du travail BE (CJ art. 584). Tous nullables —
+            // Travail BE uniquement, restent null pour un dossier FR (le
+            // référé prud'homal FR R.1454-1 CT est un régime juridiquement
+            // distinct géré par ReferePrudhomalCalculator / F-DT-34).
+            // Note : `urgenceProcedurale` (boolean, F-166 SF-166-01) est
+            // FRANCE-only et ne couvre PAS le référé BE — ces 3 champs sont
+            // disjoints et autonomes côté BE.
+            // motifUrgenceDetecte : code motif d'urgence détecté
+            // (HARCELEMENT / SALAIRE_IMPAYE / MODIFICATION_UNILATERALE /
+            // AUTRE), null hors plage ou si non détectable.
+            // dateFaitGenerateurUrgence : date du fait générateur de
+            // l'urgence (ISO YYYY-MM-DD), null si non détectable.
+            // perilImmediatPresume : booléen — true uniquement si les pièces
+            // évoquent un péril en demeure caractérisé (préjudice imminent
+            // ou irréversible). Null si non factualisable.
+            String motifUrgenceDetecte,
+            String dateFaitGenerateurUrgence,
+            Boolean perilImmediatPresume,
             // SF-246-22 : type de procédure travail et date déclencheur pour pré-fill
             // F-136 travail-procedure (FR+BE). 6 codes whitelistés (3 FR + 3 BE) :
             // PRUDHOMMES_FR, APPEL_CA_SOCIALE_FR, CASSATION_SOCIALE_FR,
@@ -473,6 +492,9 @@ public record CaseAnalysisResponse(
                     .recoursAdminDejaForme(recoursAdminDejaForme)
                     .dateAccident(dateAccident)
                     .dateConnaissanceAccidentEmployeur(dateConnaissanceAccidentEmployeur)
+                    .motifUrgenceDetecte(motifUrgenceDetecte)
+                    .dateFaitGenerateurUrgence(dateFaitGenerateurUrgence)
+                    .perilImmediatPresume(perilImmediatPresume)
                     .procedureTravailDetectee(procedureTravailDetectee)
                     .dateDeclencheurProcedure(dateDeclencheurProcedure)
                     // SF-246-21 — requalification_detection
@@ -610,6 +632,10 @@ public record CaseAnalysisResponse(
             // SF-207-04 — 2 champs IA Travail BE pour pré-fill F-207-04 déclaration AT Fedris.
             private String dateAccident;
             private String dateConnaissanceAccidentEmployeur;
+            // SF-207-05 — 3 champs IA Travail BE pour pré-fill F-207-05 référé tribunal du travail BE.
+            private String motifUrgenceDetecte;
+            private String dateFaitGenerateurUrgence;
+            private Boolean perilImmediatPresume;
             // SF-246-22 — type de procédure travail + date déclencheur pour pré-fill F-136.
             private String procedureTravailDetectee;
             private String dateDeclencheurProcedure;
@@ -745,6 +771,9 @@ public record CaseAnalysisResponse(
             public Builder recoursAdminDejaForme(Boolean v) { this.recoursAdminDejaForme = v; return this; }
             public Builder dateAccident(String v) { this.dateAccident = v; return this; }
             public Builder dateConnaissanceAccidentEmployeur(String v) { this.dateConnaissanceAccidentEmployeur = v; return this; }
+            public Builder motifUrgenceDetecte(String v) { this.motifUrgenceDetecte = v; return this; }
+            public Builder dateFaitGenerateurUrgence(String v) { this.dateFaitGenerateurUrgence = v; return this; }
+            public Builder perilImmediatPresume(Boolean v) { this.perilImmediatPresume = v; return this; }
             public Builder procedureTravailDetectee(String v) { this.procedureTravailDetectee = v; return this; }
             public Builder dateDeclencheurProcedure(String v) { this.dateDeclencheurProcedure = v; return this; }
             // SF-246-21 — requalification_detection
@@ -833,6 +862,8 @@ public record CaseAnalysisResponse(
                         dateNotificationDecisionOnem, dateDecisionDirecteur, recoursAdminDejaForme,
                         // SF-207-04 — at_fedris_declaration_detection
                         dateAccident, dateConnaissanceAccidentEmployeur,
+                        // SF-207-05 — refere_tribunal_travail_be_detection
+                        motifUrgenceDetecte, dateFaitGenerateurUrgence, perilImmediatPresume,
                         procedureTravailDetectee, dateDeclencheurProcedure,
                         // SF-246-21 — requalification_detection
                         cddDureeMois, cddDateFinDernierContrat, cddNouveauDateDebut,
@@ -941,6 +972,17 @@ public record CaseAnalysisResponse(
     /** SF-155-04-00-BE-travail : codes d'origine d'inaptitude FR pour pré-fill F-DT-15. */
     static final Set<String> ORIGINE_INAPTITUDE_CODES = Set.of(
             "ACCIDENT_TRAVAIL", "MALADIE_PROFESSIONNELLE", "MALADIE_ORDINAIRE"
+    );
+
+    /**
+     * SF-207-05 : codes whitelistés pour {@code motif_urgence_detecte} (BE).
+     * Liste alignée sur l'enum {@link fr.ailegalcase.casefile.RefereTribunalTravailBeMotifUrgence}
+     * pour pré-fill direct de l'outil F-207-05 référé tribunal du travail BE.
+     * Un code hors whitelist renvoyé par le LLM est ramené à {@code null} par
+     * {@code normalizeEnumCode} (fail-open).
+     */
+    static final Set<String> REFERE_BE_MOTIF_URGENCE_CODES = Set.of(
+            "HARCELEMENT", "SALAIRE_IMPAYE", "MODIFICATION_UNILATERALE", "AUTRE"
     );
 
     /**
@@ -2885,6 +2927,16 @@ public record CaseAnalysisResponse(
                     // Dates validées ISO YYYY-MM-DD (fail-open → null si non ISO).
                     .dateAccident(isoDateOrNull(node, "date_accident"))
                     .dateConnaissanceAccidentEmployeur(isoDateOrNull(node, "date_connaissance_accident_employeur"))
+                    // SF-207-05 : 3 champs IA Travail BE pour pré-fill F-207-05
+                    // référé tribunal du travail BE. Le prompt impose null hors
+                    // Belgique. motifUrgenceDetecte normalisé sur l'enum BE
+                    // (code hors liste → null). dateFaitGenerateurUrgence
+                    // validée ISO YYYY-MM-DD (fail-open → null). perilImmediatPresume
+                    // booléen extrait via booleanOrNull (peut rester null si
+                    // l'IA n'a pas pu trancher).
+                    .motifUrgenceDetecte(normalizeEnumCode(textOrNull(node, "motif_urgence_detecte"), REFERE_BE_MOTIF_URGENCE_CODES))
+                    .dateFaitGenerateurUrgence(isoDateOrNull(node, "date_fait_generateur_urgence"))
+                    .perilImmediatPresume(booleanOrNull(node, "peril_immediat_presume"))
                     // SF-246-22 : type de procédure travail + date déclencheur pour pré-fill
                     // F-136 travail-procedure (FR+BE). Sous-objet procedure_travail_detection.
                     .procedureTravailDetectee(extractProcedureTravailCode(node))

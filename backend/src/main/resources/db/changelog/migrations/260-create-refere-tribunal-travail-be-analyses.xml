@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="260-create-refere-tribunal-travail-be-analyses" author="legalcase">
+        <comment>
+            SF-207-05 : table dédiée à l'outil décisionnel "Référé tribunal du
+            travail BE" (F-207). Analyseur d'éligibilité au référé devant le
+            président du tribunal du travail belge (Code Judiciaire art. 584).
+            Vérifie 5 conditions cumulatives (urgence qualifiable, preuve
+            d'urgence jointe, péril en demeure, mesure provisoire précise,
+            compétence territoriale identifiée) et rend un verdict à 3 états
+            selon le scoreConditions (0-5) :
+              - score = 5 → REFERE_ELIGIBLE (squelette généré, étape DEPOSER_REQUETE)
+              - score 3-4 → REFERE_INCERTAIN (squelette généré, étape RENFORCER_DOSSIER)
+              - score ≤ 2 → REFERE_NON_ELIGIBLE (squelette null, étape ALTERNATIVE_PROCEDURE_FOND)
+            Base juridique : CJ art. 584 (référé) ; CJ art. 627, 9° (compétence
+            territoriale contrat de travail) ; Loi du 3 juillet 1978 relative
+            aux contrats de travail (fondement substantiel). Substance juridique
+            BE pure (mémoire feedback_belgique_never_forget). Le référé
+            prud'homal FR (R.1454-1 CT) est un régime juridiquement distinct
+            géré par refere_prudhomal_analyses (F-DT-34).
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté FR
+            pour préserver l'isolation, pattern SF-207-01 / SF-207-02 / SF-207-04).
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (motifUrgence, motifUrgenceDescription, dateFaitGenerateur,
+            dateDemarcheAmiable, preuveUrgenceJointe, mesureProvisoireDemandee,
+            perilEnDemeure, competenceTerritorialeIdentifiee) + outputs
+            (verdict REFERE_ELIGIBLE/REFERE_INCERTAIN/REFERE_NON_ELIGIBLE,
+            conditionsNonRemplies, scoreConditions, requeteSquelette,
+            baseJuridique, etapeSuivante DEPOSER_REQUETE/RENFORCER_DOSSIER/
+            ALTERNATIVE_PROCEDURE_FOND, country).
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY seront
+            livrées côté frontend SF-207-05b (à venir).
+        </comment>
+
+        <createTable tableName="refere_tribunal_travail_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_refere_tribunal_travail_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="refere_tribunal_travail_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_refere_tribunal_travail_be_case_file"/>
+
+        <createIndex tableName="refere_tribunal_travail_be_analyses"
+                     indexName="idx_refere_tribunal_travail_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="refere_tribunal_travail_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
