@@ -1,0 +1,382 @@
+<section class="rjc-section">
+  <header class="rjc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rjc-body">
+    <mat-icon class="rjc-icon">balance</mat-icon>
+    <span class="rjc-title">RÉSILIATION JUDICIAIRE DU CONTRAT</span>
+    @if (result()) {
+      <span class="rjc-chip-summary"
+            [class.rjc-chip-summary--favorable]="result()!.verdict === 'RESILIATION_FAVORABLE'"
+            [class.rjc-chip-summary--incertaine]="result()!.verdict === 'RESILIATION_INCERTAINE'"
+            [class.rjc-chip-summary--defavorable]="result()!.verdict === 'RESILIATION_DEFAVORABLE'">
+        Score {{ result()!.scoreSolidite }} / 100
+      </span>
+    }
+    <mat-icon class="rjc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rjc-body" class="rjc-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="rjc-country-banner" data-testid="rjc-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT — mécanisme franco-français). En droit belge, le travailleur lésé saisit le tribunal du travail en référé ou résolution judiciaire (outil F-207-05).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="rjc-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        <!-- Message persistant — voie moins risquée vs prise d'acte -->
+        <div class="rjc-safety-banner" data-testid="rjc-safety-banner">
+          <mat-icon>verified</mat-icon>
+          <div class="rjc-safety-content">
+            <strong>Voie moins risquée que la prise d'acte.</strong>
+            Un rejet ne rompt <em>pas</em> le contrat — le salarié reste en poste pendant l'instance. À comparer avec l'outil <strong>prise d'acte</strong>, qui rompt immédiatement.
+          </div>
+        </div>
+
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="rjc-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="rjc-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Manquements principaux (4 toggles) -->
+            <div class="rjc-block rjc-full">
+              <span class="rjc-block-label">Manquements principaux (de l'employeur)</span>
+
+              <!-- Défaut de paiement -->
+              <div class="rjc-field-with-alert">
+                <div class="rjc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="defautPaiementSalaire()"
+                      (ngModelChange)="onDefautPaiementChange($event)"
+                      name="defautPaiementSalaire">
+                    Défaut ou retard de paiement du salaire
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceDefautPaiement() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DEFAUT_PAIEMENT; as alert) {
+                  <span class="rjc-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Montant impayés (conditionnel) -->
+              @if (defautPaiementSalaire()) {
+                <mat-form-field appearance="outline" class="rjc-inset-field">
+                  <mat-label>Montant cumulé d'impayés (€)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="montantImpayesEur()"
+                         (ngModelChange)="onMontantImpayesChange($event)"
+                         name="montantImpayesEur" />
+                </mat-form-field>
+                @if (provenanceMontantImpayes() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              }
+
+              <!-- Harcèlement -->
+              <div class="rjc-field-with-alert">
+                <div class="rjc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="harcelement()"
+                      (ngModelChange)="onHarcelementChange($event)"
+                      name="harcelement">
+                    Harcèlement moral ou sexuel (L.1152-1 / L.1153-1 CT)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceHarcelement() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().HARCELEMENT; as alert) {
+                  <span class="rjc-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Manquement sécurité -->
+              <div class="rjc-field-with-alert">
+                <div class="rjc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="manquementSecurite()"
+                      (ngModelChange)="onManquementSecuriteChange($event)"
+                      name="manquementSecurite">
+                    Manquement à l'obligation de sécurité (L.4121-1 CT)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceManquementSecurite() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MANQUEMENT_SECURITE; as alert) {
+                  <span class="rjc-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Discrimination -->
+              <div class="rjc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="discrimination()"
+                    (ngModelChange)="onDiscriminationChange($event)"
+                    name="discrimination">
+                  Discrimination (L.1132-1 CT)
+                </mat-slide-toggle>
+                @if (provenanceDiscrimination() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Manquements significatifs / marginaux (4 toggles) -->
+            <div class="rjc-block rjc-full">
+              <span class="rjc-block-label">Manquements significatifs / marginaux</span>
+
+              <div class="rjc-field-with-alert">
+                <div class="rjc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="modificationUnilateraleContrat()"
+                      (ngModelChange)="onModificationContratChange($event)"
+                      name="modificationUnilateraleContrat">
+                    Modification unilatérale d'un élément essentiel du contrat
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceModificationContrat() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MODIFICATION_CONTRAT; as alert) {
+                  <span class="rjc-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="rjc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="declassement()"
+                    (ngModelChange)="onDeclassementChange($event)"
+                    name="declassement">
+                  Déclassement professionnel / mise à l'écart
+                </mat-slide-toggle>
+                @if (provenanceDeclassement() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="rjc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="heuresSupNonPayees()"
+                    (ngModelChange)="onHeuresSupNonPayeesChange($event)"
+                    name="heuresSupNonPayees">
+                  Non-paiement des heures supplémentaires
+                </mat-slide-toggle>
+                @if (provenanceHeuresSupNonPayees() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="rjc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="nonRespectDureesRepos()"
+                    (ngModelChange)="onNonRespectReposChange($event)"
+                    name="nonRespectDureesRepos">
+                  Non-respect des durées maximales / temps de repos
+                </mat-slide-toggle>
+                @if (provenanceNonRespectRepos() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Modulateurs jurisprudentiels -->
+            <div class="rjc-block rjc-full">
+              <span class="rjc-block-label">Modulateurs jurisprudentiels</span>
+
+              <div class="rjc-field-with-alert">
+                <div class="rjc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="manquementsPersistantsAuJourDemande()"
+                      (ngModelChange)="onManquementsPersistantsChange($event)"
+                      name="manquementsPersistantsAuJourDemande">
+                    Manquements persistants au jour de la demande (critère central — Cass. soc. 30/03/2010)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceManquementsPersistants() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MANQUEMENTS_PERSISTANTS; as alert) {
+                  <span class="rjc-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="rjc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="salarieToujoursEnPoste()"
+                    (ngModelChange)="onSalarieEnPosteChange($event)"
+                    name="salarieToujoursEnPoste">
+                  Salarié toujours en poste (la voie suppose le maintien du contrat)
+                </mat-slide-toggle>
+                @if (provenanceSalarieEnPoste() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="rjc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="licenciementIntervenuEnCoursInstance()"
+                    (ngModelChange)="onLicenciementEnCoursChange($event)"
+                    name="licenciementIntervenuEnCoursInstance">
+                  Licenciement intervenu en cours d'instance (Cass. soc. 21/12/2006 n°05-42.251 — bascule date d'effet)
+                </mat-slide-toggle>
+                @if (provenanceLicenciementEnCours() === 'IA') {
+                  <span class="rjc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 4 — Commentaire libre -->
+            <div class="rjc-block rjc-full">
+              <span class="rjc-block-label">Commentaire libre (facultatif)</span>
+              <mat-form-field appearance="outline" class="rjc-inline-field">
+                <mat-label>Précisions / contexte additionnel</mat-label>
+                <textarea matInput rows="3" maxlength="2000"
+                          [ngModel]="manquementsCommentaire()"
+                          (ngModelChange)="onManquementsCommentaireChange($event)"
+                          name="manquementsCommentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="rjc-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="rjc-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Score + date d'effet probable -->
+            <div class="rjc-figures-block">
+              <div class="rjc-figure">
+                <span class="rjc-figure-label">Score de solidité</span>
+                <span class="rjc-figure-value">{{ result()!.scoreSolidite }} / 100</span>
+              </div>
+              <div class="rjc-figure rjc-figure--effet">
+                <span class="rjc-figure-label">Date d'effet probable</span>
+                <span [class]="dateEffetProbableClass(result()!.dateEffetProbable)"
+                      data-testid="rjc-date-effet-probable">
+                  {{ dateEffetProbableLabel(result()!.dateEffetProbable) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Liste des manquements retenus -->
+            @if (result()!.manquementsRetenus?.length) {
+              <div class="rjc-manquements-block">
+                <span class="rjc-manquements-label">Manquements retenus ({{ result()!.manquementsRetenus.length }})</span>
+                <ul class="rjc-manquements-list">
+                  @for (m of result()!.manquementsRetenus; track m.code) {
+                    <li class="rjc-manquement-item" data-testid="rjc-manquement-item">
+                      <div class="rjc-manquement-header">
+                        <span class="rjc-manquement-libelle">{{ m.libelle }}</span>
+                        <span class="rjc-manquement-poids">+{{ m.poids }} pts</span>
+                      </div>
+                      <span class="rjc-manquement-fondement" [innerHTML]="m.fondement | legalCitations"></span>
+                      <span class="rjc-manquement-explication">{{ m.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="rjc-bases-block">
+                <span class="rjc-bases-label">Bases juridiques</span>
+                <div class="rjc-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="rjc-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="rjc-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="rjc-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="270-add-f-dt-40-resiliation-judiciaire-visibility" author="legalcase">
+        <comment>
+            SF-206-08 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Résiliation judiciaire du contrat aux torts de
+            l'employeur" (F-DT-40, FRANCE), table créée par SF-206-07
+            (migration 269).
+
+            Le seed est porté par la SF frontend — et non par la SF backend —
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-206-02
+            (migration 263), SF-206-04 (migration 266), SF-206-06
+            (migration 268), SF-DT-36-02 (migration 231), SF-207-05b
+            (migration 261). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte la résiliation judiciaire envisagée —
+            trigger `resiliation_judiciaire_envisagee` = true (signal métier
+            extrait par TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue).
+            priority 61 — juste après F-DT-39 (prise d'acte, priority 60).
+
+            Fondement : Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998
+            (consécration de la voie aux torts de l'employeur) ; art. L.1411-1
+            CT (compétence CPH) ; art. 1224, 1227-1228 C. civ. (résolution
+            judiciaire pour inexécution). Verdict en 3 niveaux ; bascule date
+            d'effet probable (DATE_DECISION / DATE_LICENCIEMENT — Cass. soc.
+            21/12/2006 n°05-42.251).
+
+            Outil jumeau de F-DT-39 (prise d'acte) mais situation distincte :
+            voie sans risque de rupture, salarié reste en poste pendant
+            l'instance. Audit F-191 confirme la séparation (un outil = une
+            situation métier).
+
+            Mécanisme purement français — en BE, le travailleur lésé saisit le
+            tribunal du travail en référé ou résolution judiciaire (outil
+            F-207-05 distinct).
+
+            UUID namespace dédié F-206 : f1a04001-0000-0000-0000-eeee20000401.
+
+            Cette migration résorbe aussi l'exclusion transitoire de F-DT-40
+            dans `KNOWN_SUMMARY_TILE_IDS` (DashboardTileToolIdIntegrityIT —
+            cf. retrait dans le même commit).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000401', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-40-resiliation-judiciaire-cph', 'CONTEXTUAL', 'resiliation_judiciaire_envisagee', 'true', 61);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20000401';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
