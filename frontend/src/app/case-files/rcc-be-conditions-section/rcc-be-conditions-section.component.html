@@ -1,0 +1,208 @@
+<div class="rcc-be-conditions-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">elderly</mat-icon>
+    <span class="section-title">RCC (BE) — conditions d'éligibilité</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ humanizeVerdict(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="rcc-be-conditions-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse d'éligibilité au Régime de Chômage avec Complément d'entreprise
+            (RCC, ex-prépension belge). 4 régimes parallèles évalués (général,
+            métiers lourds, longue carrière, entreprise en difficulté). Les
+            champs avec un astérisque sont requis.
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Date de naissance -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNaissance()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissance" required />
+              </mat-form-field>
+              @if (provenanceDateNaissance() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 2. Années de carrière professionnelle -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Années de carrière professionnelle *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="60"
+                       step="1"
+                       [ngModel]="anneesCarriereProfessionnelle()"
+                       (ngModelChange)="onAnneesCarriereChange($event)"
+                       name="anneesCarriereProfessionnelle" required />
+                <mat-hint>Entier entre 0 et 60 (carrière salariée cumulée).</mat-hint>
+              </mat-form-field>
+              @if (provenanceAnneesCarriere() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 3. Date de licenciement envisagée (optionnel) -->
+            <div class="field-with-alert full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de licenciement envisagée (optionnel)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateLicenciementEnvisagee()"
+                       (ngModelChange)="onDateLicenciementEnvisageeChange($event)"
+                       placeholder="(par défaut = aujourd'hui)"
+                       name="dateLicenciementEnvisagee" />
+                <mat-hint>Par défaut = aujourd'hui (Europe/Brussels).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Métier lourd -->
+            <div class="field-with-alert checkbox-row">
+              <mat-checkbox [ngModel]="metierLourd()"
+                            (ngModelChange)="onMetierLourdChange($event)"
+                            name="metierLourd">
+                Métier lourd reconnu (CCT 17/13)
+              </mat-checkbox>
+              @if (provenanceMetierLourd() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+
+            <!-- 5. Longue carrière -->
+            <div class="field-with-alert checkbox-row">
+              <mat-checkbox [ngModel]="longueCarriere()"
+                            (ngModelChange)="onLongueCarriereChange($event)"
+                            name="longueCarriere">
+                Longue carrière (CCT 17 art. 3, variante)
+              </mat-checkbox>
+            </div>
+
+            <!-- 6. Entreprise en difficulté -->
+            <div class="field-with-alert checkbox-row full-width">
+              <mat-checkbox [ngModel]="entrepriseEnDifficulte()"
+                            (ngModelChange)="onEntrepriseEnDifficulteChange($event)"
+                            name="entrepriseEnDifficulte">
+                Entreprise reconnue en difficulté (AR 03/05/2007 art. 8)
+              </mat-checkbox>
+              @if (provenanceEntrepriseEnDifficulte() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>elderly</mat-icon> Évaluer l'éligibilité au RCC
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ humanizeVerdict(result()!.verdict) }}</span>
+              @if (result()!.regimeApplicable) {
+                <span class="verdict-detail">
+                  Régime applicable : {{ humanizeRegime(result()!.regimeApplicable!) }}
+                </span>
+              } @else {
+                <span class="verdict-detail">
+                  Aucun régime ne matche les seuils à la date envisagée.
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (regimesEligiblesHumanises().length > 1) {
+            <div class="rec-section">
+              <span class="rec-section-label">Régimes cumulés éligibles</span>
+              <ul class="regimes-list">
+                @for (r of regimesEligiblesHumanises(); track r.code) {
+                  <li>{{ r.label }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="calculs-annexes">
+            <div class="calcul-card">
+              <span class="calcul-label">Âge à la date de licenciement</span>
+              <span class="calcul-value">{{ result()!.ageALaDateLicenciement }} ans</span>
+            </div>
+            <div class="calcul-card">
+              <span class="calcul-label">Années de carrière calculées</span>
+              <span class="calcul-value">{{ result()!.anneesCarriereCalculees }} ans</span>
+            </div>
+          </div>
+
+          @if (conditionsManquantesHumanisees().length > 0) {
+            <div class="rec-section">
+              <span class="rec-section-label">Conditions manquantes (régime le plus proche)</span>
+              <ul class="conditions-list">
+                @for (c of conditionsManquantesHumanisees(); track c.code) {
+                  <li>{{ c.label }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Formule de calcul</span>
+            <p class="legal-mono">{{ result()!.formuleCalcul }}</p>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

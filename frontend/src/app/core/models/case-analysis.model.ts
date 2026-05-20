@@ -451,6 +451,25 @@ export interface TravailExtractedData {
   motifUrgenceDetecte?: string | null;
   dateFaitGenerateurUrgence?: string | null;
   perilImmediatPresume?: boolean | null;
+  /**
+   * SF-207-06 / SF-207-06b : 4 champs IA Travail BE pour pré-fill F-207
+   * (RCC BE — conditions d'éligibilité, ex-prépension). BE-only — restent
+   * null pour FR (régime distinct, sans équivalent direct).
+   * `dateNaissanceSalarie` : date de naissance du salarié (ISO YYYY-MM-DD).
+   *   Sert au calcul de l'âge à la date de licenciement envisagée
+   *   (seuils CCT 17 / CCT 17/13 / AR 03/05/2007).
+   * `anneesCarriereSalarie` : nombre d'années de carrière professionnelle
+   *   salariée cumulées (entier borné [0, 60]).
+   * `metierLourdDetecte` : flag détecté de reconnaissance de métier lourd
+   *   (CCT 17/13). True uniquement → pré-fill ; false / autre → laissé décoché.
+   * `entrepriseEnDifficulteDetectee` : flag détecté de reconnaissance
+   *   d'entreprise en difficulté par arrêté ministériel (AR 03/05/2007 art. 8).
+   *   True uniquement → pré-fill ; false / autre → laissé décoché.
+   */
+  dateNaissanceSalarie?: string | null;
+  anneesCarriereSalarie?: number | null;
+  metierLourdDetecte?: boolean | null;
+  entrepriseEnDifficulteDetectee?: boolean | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.
