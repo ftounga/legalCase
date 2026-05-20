@@ -46,6 +46,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import {
   CreditTempsBeSectionPrefillRules,
+  computeDateDemande,
 } from './credit-temps-be-section-prefill-rules';
 
 /**
@@ -156,6 +157,8 @@ export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
   /** Provenance IA pour les champs pré-remplissables. */
   provenanceAnciennete = signal<'IA' | null>(null);
   provenanceAge = signal<'IA' | null>(null);
+  /** SF-246-23 BELGIQUE — provenance IA pour dateDemande. */
+  provenanceDateDemande = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : map {sourceKey → explanations} pour le popover.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -473,6 +476,7 @@ export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
 
   onDateDemandeChange(value: string | null): void {
     this.dateDemande.set(value || null);
+    this.provenanceDateDemande.set(null); // SF-246-23 : reset provenance IA
   }
 
   /**
@@ -512,6 +516,15 @@ export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
           || this.provenanceAge() === 'IA') {
         this.ageDemandeurAnnees.set(iaAge);
         this.provenanceAge.set('IA');
+      }
+    }
+
+    // SF-246-23 BELGIQUE : date de demande de crédit-temps.
+    const iaDemande = computeDateDemande(ruleInput);
+    if (iaDemande !== null) {
+      if (this.dateDemande() === null || this.provenanceDateDemande() === 'IA') {
+        this.dateDemande.set(iaDemande);
+        this.provenanceDateDemande.set('IA');
       }
     }
   }

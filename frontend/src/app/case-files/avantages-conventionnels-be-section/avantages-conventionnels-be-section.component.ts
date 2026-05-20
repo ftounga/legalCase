@@ -43,14 +43,18 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import {
   AvantagesConventionnelsBeSectionPrefillRules,
+  computeCommissionParitaire,
+  computeJoursTravailles,
+  computeJoursPrestes,
 } from './avantages-conventionnels-be-section-prefill-rules';
 
 /**
  * SF-DT-28-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-28
- * (avantages conventionnels BE). Seul le salaire est extrait par
- * l'IA travail actuelle — pas d'autre alerte F-IA-03 possible à ce jour.
+ * (avantages conventionnels BE).
+ * SF-246-23 : ajout COMMISSION_PARITAIRE, JOURS_TRAVAILLES, JOURS_PRESTES
+ * (désormais extraits depuis travail_be_detection).
  */
-export type AvantagesBeAlertField = 'SALAIRE';
+export type AvantagesBeAlertField = 'SALAIRE' | 'COMMISSION_PARITAIRE' | 'JOURS_TRAVAILLES' | 'JOURS_PRESTES';
 
 export type AvantagesBeAlertSource = CoherenceAlertSource;
 export type AvantagesBeCoherenceAlert = CoherenceAlert<AvantagesBeAlertField>;
@@ -162,8 +166,14 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
   chequesRepasPrevu = signal<boolean>(false);
   joursPrestesEffectifs = signal<number | null>(null);
 
-  /** Provenance IA pour le salaire (seul champ pré-rempli). */
+  /** Provenance IA pour le salaire. */
   provenanceSalaire = signal<'IA' | null>(null);
+  /** SF-246-23 BELGIQUE — provenance IA pour la commission paritaire. */
+  provenanceCommissionParitaire = signal<'IA' | null>(null);
+  /** SF-246-23 BELGIQUE — provenance IA pour les jours travaillés. */
+  provenanceJoursTravailles = signal<'IA' | null>(null);
+  /** SF-246-23 BELGIQUE — provenance IA pour les jours prestés. */
+  provenanceJoursPrestes = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : map {sourceKey → explanations} pour le popover.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -188,6 +198,13 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
     const alerts: Partial<Record<AvantagesBeAlertField, AvantagesBeCoherenceAlert>> = {};
     const salaireA = this.buildSalaireAlert();
     if (salaireA) alerts.SALAIRE = salaireA;
+    // SF-246-23 : alertes pour CP et jours.
+    const cpA = this.buildCommissionParitaireAlert();
+    if (cpA) alerts.COMMISSION_PARITAIRE = cpA;
+    const jtA = this.buildJoursTravaillesAlert();
+    if (jtA) alerts.JOURS_TRAVAILLES = jtA;
+    const jpA = this.buildJoursPrestesAlert();
+    if (jpA) alerts.JOURS_PRESTES = jpA;
     return alerts;
   });
 
@@ -289,6 +306,66 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
     return builder.build();
   }
 
+  /**
+   * SF-246-23 BELGIQUE : divergence commission paritaire.
+   * Alerte si la CP extraite par l'IA diffère de la CP saisie.
+   */
+  private buildCommissionParitaireAlert(): AvantagesBeCoherenceAlert | null {
+    const userCp = this.commissionParitaire();
+    if (!userCp) return null;
+    const aiRaw = this.aiDataSignal()?.commissionParitaireBe;
+    if (!aiRaw) return null;
+    // Pas d'alerte si le code normalisé coïncide avec la saisie.
+    const normalized = computeCommissionParitaire({
+      aiData: { commissionParitaireBe: aiRaw },
+      workspaceCountry: this.workspaceCountry,
+    });
+    if (!normalized || normalized === userCp) return null;
+    return CoherenceAlertBuilder.forField<AvantagesBeAlertField>('COMMISSION_PARITAIRE')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: aiRaw,
+        reason: `Analyse du dossier : commission paritaire détectée "${aiRaw}"`,
+      })
+      .build();
+  }
+
+  /**
+   * SF-246-23 BELGIQUE : divergence jours travaillés — écart absolu > 10 j.
+   */
+  private buildJoursTravaillesAlert(): AvantagesBeCoherenceAlert | null {
+    const userJours = this.joursTravaillesAnneePrecedente();
+    if (typeof userJours !== 'number' || userJours < 0) return null;
+    const aiJours = this.aiDataSignal()?.joursTravaillesAnneePrecedenteBe;
+    if (typeof aiJours !== 'number' || aiJours < 0) return null;
+    if (Math.abs(userJours - aiJours) <= 10) return null;
+    return CoherenceAlertBuilder.forField<AvantagesBeAlertField>('JOURS_TRAVAILLES')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: `${aiJours} j`,
+        reason: `Analyse du dossier : jours travaillés année précédente ~${aiJours} j`,
+      })
+      .build();
+  }
+
+  /**
+   * SF-246-23 BELGIQUE : divergence jours prestés — écart absolu > 10 j.
+   */
+  private buildJoursPrestesAlert(): AvantagesBeCoherenceAlert | null {
+    const userJours = this.joursPrestesEffectifs();
+    if (typeof userJours !== 'number' || userJours < 0) return null;
+    const aiJours = this.aiDataSignal()?.joursPrestesBe;
+    if (typeof aiJours !== 'number' || aiJours < 0) return null;
+    if (Math.abs(userJours - aiJours) <= 10) return null;
+    return CoherenceAlertBuilder.forField<AvantagesBeAlertField>('JOURS_PRESTES')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: `${aiJours} j`,
+        reason: `Analyse du dossier : jours prestés depuis 1er avril ~${aiJours} j`,
+      })
+      .build();
+  }
+
   private findPieceManquante(acceptedCodes: string[]): string | null {
     const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
     for (const p of this.piecesManquantesSignal()) {
@@ -335,6 +412,7 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
 
   onJoursTravaillesChange(value: number | null): void {
     this.joursTravaillesAnneePrecedente.set(value === null || value === undefined ? null : value);
+    this.provenanceJoursTravailles.set(null); // SF-246-23 : reset provenance IA
   }
 
   onAnciennetteMoisChange(value: number | null): void {
@@ -343,6 +421,7 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
 
   onCommissionParitaireChange(value: CommissionParitaireBe | null): void {
     this.commissionParitaire.set(value || null);
+    this.provenanceCommissionParitaire.set(null); // SF-246-23 : reset provenance IA
   }
 
   onAnneeChange(value: number | null): void {
@@ -371,6 +450,7 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
 
   onJoursPrestesChange(value: number | null): void {
     this.joursPrestesEffectifs.set(value === null || value === undefined ? null : value);
+    this.provenanceJoursPrestes.set(null); // SF-246-23 : reset provenance IA
   }
 
   /**
@@ -387,14 +467,38 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
     if (!ai) return;
 
     // F-236 SF-236-02 : valeur calculée par le helper partagé (parité static).
-    const salaire = AvantagesConventionnelsBeSectionPrefillRules.computeSalaireMensuelBrutEur({
-      aiData: ai,
-      workspaceCountry: this.workspaceCountry,
-    });
+    const ruleInput = { aiData: ai, workspaceCountry: this.workspaceCountry };
+
+    const salaire = AvantagesConventionnelsBeSectionPrefillRules.computeSalaireMensuelBrutEur(ruleInput);
     if (salaire !== null) {
       if (this.salaireMensuelBrutEur() === null || this.provenanceSalaire() === 'IA') {
         this.salaireMensuelBrutEur.set(salaire);
         this.provenanceSalaire.set('IA');
+      }
+    }
+
+    // SF-246-23 BELGIQUE : 3 nouveaux champs depuis travail_be_detection.
+    const cpCode = computeCommissionParitaire(ruleInput);
+    if (cpCode !== null) {
+      if (this.commissionParitaire() === null || this.provenanceCommissionParitaire() === 'IA') {
+        this.commissionParitaire.set(cpCode as CommissionParitaireBe);
+        this.provenanceCommissionParitaire.set('IA');
+      }
+    }
+
+    const joursTrav = computeJoursTravailles(ruleInput);
+    if (joursTrav !== null) {
+      if (this.joursTravaillesAnneePrecedente() === null || this.provenanceJoursTravailles() === 'IA') {
+        this.joursTravaillesAnneePrecedente.set(joursTrav);
+        this.provenanceJoursTravailles.set('IA');
+      }
+    }
+
+    const joursPrestes = computeJoursPrestes(ruleInput);
+    if (joursPrestes !== null) {
+      if (this.joursPrestesEffectifs() === null || this.provenanceJoursPrestes() === 'IA') {
+        this.joursPrestesEffectifs.set(joursPrestes);
+        this.provenanceJoursPrestes.set('IA');
       }
     }
   }
@@ -473,6 +577,9 @@ export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChan
         this.joursPrestesEffectifs.set(r.joursPrestesEffectifs);
         // Valeurs persistées = saisie avocat — jamais de badge IA.
         this.provenanceSalaire.set(null);
+        this.provenanceCommissionParitaire.set(null);  // SF-246-23
+        this.provenanceJoursTravailles.set(null);      // SF-246-23
+        this.provenanceJoursPrestes.set(null);         // SF-246-23
         this.showForm.set(false);
         this.loading.set(false);
       },

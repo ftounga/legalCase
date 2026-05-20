@@ -5084,4 +5084,138 @@ class CaseAnalysisResponseTest {
         assertThat(t.refereMontantProvision()).isNull();
         assertThat(t.documentsDateCertificatTravail()).isNull();
     }
+
+    // =========================================================
+    // SF-246-23 — travail_be_detection (6 champs BE)
+    // =========================================================
+
+    @Test
+    void extractTravailData_sf24623_travailBeDetection_casBE_toutPresent() throws Exception {
+        // CA-1 : dossier BE avec tous les 6 champs renseignés → extraction complète
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "travail_be_detection": {
+                      "date_connaissance_fait": "2024-05-10",
+                      "date_notification_motifs": "2024-05-13",
+                      "commission_paritaire_be": "CP 200",
+                      "jours_travailles_annee_precedente_be": 220,
+                      "jours_prestes_be": 45,
+                      "date_demande_credit_temps": "2024-03-01"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.dateConnaissanceFait()).isEqualTo("2024-05-10");
+        assertThat(t.dateNotificationMotifs()).isEqualTo("2024-05-13");
+        assertThat(t.commissionParitaireBe()).isEqualTo("CP 200");
+        assertThat(t.joursTravaillesAnneePrecedenteBe()).isEqualTo(220);
+        assertThat(t.joursPrestesBe()).isEqualTo(45);
+        assertThat(t.dateDemandeCreditTemps()).isEqualTo("2024-03-01");
+    }
+
+    @Test
+    void extractTravailData_sf24623_sousObjetAbsent_sixChampsNull() throws Exception {
+        // CA-2 : dossier FR sans sous-objet → tous les 6 nouveaux champs null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "salaire_brut_mensuel": 3200
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.dateConnaissanceFait()).isNull();
+        assertThat(t.dateNotificationMotifs()).isNull();
+        assertThat(t.commissionParitaireBe()).isNull();
+        assertThat(t.joursTravaillesAnneePrecedenteBe()).isNull();
+        assertThat(t.joursPrestesBe()).isNull();
+        assertThat(t.dateDemandeCreditTemps()).isNull();
+    }
+
+    @Test
+    void extractTravailData_sf24623_dateNonISO_dateNull() throws Exception {
+        // CA-3 : date au format non-YYYY-MM-DD → null (isoDateOrNull regex structurel).
+        // Note : isoDateOrNull valide le format \d{4}-\d{2}-\d{2}, pas la cohérence
+        // calendaire. "2024-99-01" PASSE le regex (→ retourné tel quel), ce qui est
+        // intentionnel (l'avocat corrige dans l'outil). Seuls les formats non-ISO
+        // (slash, texte libre) sont null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "travail_be_detection": {
+                      "date_connaissance_fait": "10/05/2024",
+                      "date_notification_motifs": "not-a-date"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.dateConnaissanceFait()).isNull();
+        assertThat(t.dateNotificationMotifs()).isNull();
+    }
+
+    @Test
+    void extractTravailData_sf24623_commissionParitaireTropLongue_tronquee() throws Exception {
+        // CA-4 : commission_paritaire_be > 20 caractères → tronquée à 20
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "travail_be_detection": {
+                      "commission_paritaire_be": "CP 200 Auxiliaires alimentaires BE longue description"
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.commissionParitaireBe()).isNotNull();
+        assertThat(t.commissionParitaireBe().length()).isLessThanOrEqualTo(20);
+    }
+
+    @Test
+    void extractTravailData_sf24623_joursHorsBornes_null() throws Exception {
+        // CA-5 : jours_travailles hors [0, 365] → null (boundedIntOrNull)
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "travail_be_detection": {
+                      "jours_travailles_annee_precedente_be": 400,
+                      "jours_prestes_be": -1
+                    }
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.joursTravaillesAnneePrecedenteBe()).isNull();
+        assertThat(t.joursPrestesBe()).isNull();
+    }
+
+    @Test
+    void extractTravailData_sf24623_sousObjetNullExplicite_sixChampsNull() throws Exception {
+        // CA-6 : sous-objet présent mais null JSON → pas d'exception, 6 champs null
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "travail_extracted_data": {
+                    "travail_be_detection": null
+                  }
+                }
+                """);
+        var t = CaseAnalysisResponse.extractTravailData(root);
+        assertThat(t).isNotNull();
+        assertThat(t.dateConnaissanceFait()).isNull();
+        assertThat(t.commissionParitaireBe()).isNull();
+        assertThat(t.dateDemandeCreditTemps()).isNull();
+    }
 }

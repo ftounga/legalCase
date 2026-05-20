@@ -506,6 +506,49 @@ export interface TravailExtractedData {
   documentsDateAttestationFranceTravail?: string | null;
   /** Date du solde de tout compte signé (ISO YYYY-MM-DD). */
   documentsDateSoldeToutCompte?: string | null;
+  // -------------------------------------------------------------------------
+  // SF-246-23 — sous-objet `travail_be_detection` (BELGIQUE uniquement)
+  // null pour tout dossier Travail FRANCE.
+  // -------------------------------------------------------------------------
+  /**
+   * BELGIQUE — Date à laquelle l'employeur a eu connaissance du fait constituant
+   * le motif grave (ISO YYYY-MM-DD). Point de départ du délai de 3 j ouvrables
+   * art. 35 Loi 03/07/1978. Strictement antérieure à dateLicenciement.
+   * Pré-fill F-DT-27 motif-grave-be.
+   */
+  dateConnaissanceFait?: string | null;
+  /**
+   * BELGIQUE — Date à laquelle l'employeur a notifié les motifs de la rupture
+   * au travailleur par lettre recommandée (ISO YYYY-MM-DD). Point d'arrivée du
+   * 2e délai de 3 j ouvrables. Strictement postérieure à dateLicenciement.
+   * Pré-fill F-DT-27 motif-grave-be.
+   */
+  dateNotificationMotifs?: string | null;
+  /**
+   * BELGIQUE — Numéro ou libellé de la commission paritaire applicable (≤ 20 car.,
+   * ex. "CP 200", "SCP 200.01"). Concept distinct de conventionCollective (IDCC FR).
+   * Pré-fill F-DT-28 avantages-conventionnels-be.
+   */
+  commissionParitaireBe?: string | null;
+  /**
+   * BELGIQUE — Jours de travail effectif (ou assimilés) au cours de l'année
+   * précédente [0, 365]. Base pécule de vacances simple (Loi 28/06/1971).
+   * Pré-fill F-DT-28 avantages-conventionnels-be.
+   */
+  joursTravaillesAnneePrecedenteBe?: number | null;
+  /**
+   * BELGIQUE — Jours effectivement prestés depuis le 1er avril de l'exercice
+   * courant [0, 365]. Distinct de joursTravaillesAnneePrecedenteBe (année précédente).
+   * Pré-fill F-DT-28 avantages-conventionnels-be.
+   */
+  joursPrestesBe?: number | null;
+  /**
+   * BELGIQUE — Date à laquelle le travailleur a formellement introduit sa demande
+   * de crédit-temps auprès de l'employeur (ISO YYYY-MM-DD). Distincte de dateEntree
+   * et de la date d'entrée en vigueur du crédit-temps.
+   * Pré-fill F-DT-29 credit-temps-be.
+   */
+  dateDemandeCreditTemps?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

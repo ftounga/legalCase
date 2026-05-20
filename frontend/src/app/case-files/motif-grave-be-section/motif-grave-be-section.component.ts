@@ -39,17 +39,18 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import {
   MotifGraveBeSectionPrefillRules,
+  computeDateConnaissanceFait,
+  computeDateNotificationMotifs,
 } from './motif-grave-be-section-prefill-rules';
 
 /**
  * SF-DT-27-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-27
- * (motif grave BE). Seulement les 2 fields alimentés par l'IA travail
- * (`dateLicenciement` → DATE_RUPTURE, `salaireBrutMensuel` → SALAIRE).
- * Les 3 autres champs (dateConnaissanceFait, dateNotificationMotifs,
- * anciennetteAnnees) ne sont pas extraits par le prompt IA travail
- * actuel — pas d'alerte possible à ce jour.
+ * (motif grave BE).
+ * SF-246-23 : ajout de DATE_CONNAISSANCE et DATE_MOTIFS (désormais extraits
+ * depuis travail_be_detection.date_connaissance_fait et
+ * travail_be_detection.date_notification_motifs).
  */
-export type MotifGraveBeAlertField = 'DATE_RUPTURE' | 'SALAIRE';
+export type MotifGraveBeAlertField = 'DATE_RUPTURE' | 'SALAIRE' | 'DATE_CONNAISSANCE' | 'DATE_MOTIFS';
 
 // SF-155-05 : alias locaux rétro-compat — utilise l'interface générique partagée.
 export type MotifGraveBeAlertSource = CoherenceAlertSource;
@@ -154,6 +155,10 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
   // remis à null dès que l'avocat modifie manuellement (onXxxChange).
   provenanceDateRupture = signal<'IA' | null>(null);
   provenanceSalaire = signal<'IA' | null>(null);
+  /** SF-246-23 BELGIQUE — provenance IA pour dateConnaissanceFait. */
+  provenanceDateConnaissance = signal<'IA' | null>(null);
+  /** SF-246-23 BELGIQUE — provenance IA pour dateNotificationMotifs. */
+  provenanceDateMotifs = signal<'IA' | null>(null);
 
   // SF-IA-03-15c : map {sourceKey → explanations} pour le popover.
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -176,6 +181,11 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
     if (dateA) alerts.DATE_RUPTURE = dateA;
     const salaireA = this.buildSalaireAlert();
     if (salaireA) alerts.SALAIRE = salaireA;
+    // SF-246-23 : alertes pour les 2 nouvelles dates BE.
+    const dateConnA = this.buildDateConnaissanceAlert();
+    if (dateConnA) alerts.DATE_CONNAISSANCE = dateConnA;
+    const dateMotifsA = this.buildDateMotifsAlert();
+    if (dateMotifsA) alerts.DATE_MOTIFS = dateMotifsA;
     return alerts;
   });
 
@@ -304,6 +314,44 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
   }
 
   /**
+   * SF-246-23 BELGIQUE : divergence date de connaissance du fait.
+   * Alerte si la valeur saisie diffère de celle extraite par l'IA.
+   */
+  private buildDateConnaissanceAlert(): MotifGraveBeCoherenceAlert | null {
+    const userDate = this.dateConnaissanceFait();
+    if (!userDate) return null;
+    const ai = this.aiDataSignal();
+    const aiDate = typeof ai?.dateConnaissanceFait === 'string' ? ai.dateConnaissanceFait : null;
+    if (!aiDate || aiDate === userDate) return null;
+    return CoherenceAlertBuilder.forField<MotifGraveBeAlertField>('DATE_CONNAISSANCE')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: aiDate,
+        reason: `Analyse du dossier : date de connaissance du fait ${aiDate}`,
+      })
+      .build();
+  }
+
+  /**
+   * SF-246-23 BELGIQUE : divergence date de notification des motifs.
+   * Alerte si la valeur saisie diffère de celle extraite par l'IA.
+   */
+  private buildDateMotifsAlert(): MotifGraveBeCoherenceAlert | null {
+    const userDate = this.dateNotificationMotifs();
+    if (!userDate) return null;
+    const ai = this.aiDataSignal();
+    const aiDate = typeof ai?.dateNotificationMotifs === 'string' ? ai.dateNotificationMotifs : null;
+    if (!aiDate || aiDate === userDate) return null;
+    return CoherenceAlertBuilder.forField<MotifGraveBeAlertField>('DATE_MOTIFS')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: aiDate,
+        reason: `Analyse du dossier : date de notification des motifs ${aiDate}`,
+      })
+      .build();
+  }
+
+  /**
    * Renvoie le `texte` d'une PieceManquanteEntry dont `critereCode`
    * (case-insensitive) appartient à la liste des codes acceptés, ou `null`.
    */
@@ -347,6 +395,7 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
   // Handlers onChange — effacent la provenance IA au 1er changement manuel.
   onDateConnaissanceChange(value: string | null): void {
     this.dateConnaissanceFait.set(value || null);
+    this.provenanceDateConnaissance.set(null); // SF-246-23 : reset provenance IA
   }
 
   onDateRuptureChange(value: string | null): void {
@@ -356,6 +405,7 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
 
   onDateMotifsChange(value: string | null): void {
     this.dateNotificationMotifs.set(value || null);
+    this.provenanceDateMotifs.set(null); // SF-246-23 : reset provenance IA
   }
 
   onAnciennetteChange(value: number | null | undefined): void {
@@ -397,6 +447,23 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
       if (this.salaireMensuelReference() === null || this.provenanceSalaire() === 'IA') {
         this.salaireMensuelReference.set(salaire);
         this.provenanceSalaire.set('IA');
+      }
+    }
+
+    // SF-246-23 BELGIQUE : 2 nouvelles dates depuis travail_be_detection.
+    const dateConn = computeDateConnaissanceFait(ruleInput);
+    if (dateConn !== null) {
+      if (this.dateConnaissanceFait() === null || this.provenanceDateConnaissance() === 'IA') {
+        this.dateConnaissanceFait.set(dateConn);
+        this.provenanceDateConnaissance.set('IA');
+      }
+    }
+
+    const dateMotifs = computeDateNotificationMotifs(ruleInput);
+    if (dateMotifs !== null) {
+      if (this.dateNotificationMotifs() === null || this.provenanceDateMotifs() === 'IA') {
+        this.dateNotificationMotifs.set(dateMotifs);
+        this.provenanceDateMotifs.set('IA');
       }
     }
   }
@@ -464,6 +531,8 @@ export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
         // Valeurs persistées = saisie avocat — jamais de badge IA.
         this.provenanceDateRupture.set(null);
         this.provenanceSalaire.set(null);
+        this.provenanceDateConnaissance.set(null);  // SF-246-23
+        this.provenanceDateMotifs.set(null);        // SF-246-23
         this.showForm.set(false);
         this.loading.set(false);
       },
