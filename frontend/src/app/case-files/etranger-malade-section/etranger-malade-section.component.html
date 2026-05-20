@@ -1,0 +1,214 @@
+<section class="em-section">
+  <header class="em-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="em-body">
+    <mat-icon class="em-icon">medical_services</mat-icon>
+    <span class="em-title">ÉTRANGER MALADE L.425-9 (FR)</span>
+    @if (result()) {
+      <span class="em-chip"
+            [class.em-chip--success]="result()!.verdict === 'ELIGIBLE_PROBABLE'"
+            [class.em-chip--warning]="result()!.verdict === 'ELIGIBLE_SOUS_RESERVE'"
+            [class.em-chip--danger]="result()!.verdict === 'NON_ELIGIBLE'"
+            [class.em-chip--info]="result()!.verdict === 'EN_ATTENTE_AVIS_OFII'">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="em-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="em-body" class="em-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="em-banner em-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="em-banner-content">
+            <div class="em-banner-title">Étranger malade — procédure française uniquement</div>
+            <div class="em-banner-sub">
+              La protection L.425-9 CESEDA est spécifique au droit français.
+              Pour la Belgique, voir l'article 9ter (Loi 15/12/1980).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="em-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="em-form" (ngSubmit)="analyze()">
+              <div class="em-field-wrap em-field-wrap--full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Pathologie principale</mat-label>
+                  <textarea matInput required rows="3" maxlength="500"
+                            [ngModel]="pathologiePrincipale()"
+                            (ngModelChange)="onPathologieChange($event)"
+                            name="pathologiePrincipale"
+                            placeholder="Ex. Cancer hépatique stade 4 — chimiothérapie ciblée"></textarea>
+                  <mat-hint align="end">{{ pathologiePrincipale().length }}/500</mat-hint>
+                </mat-form-field>
+                @if (provenancePathologie() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="em-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Pays d'origine</mat-label>
+                  <input matInput required maxlength="120"
+                         [ngModel]="paysOrigine()"
+                         (ngModelChange)="onPaysOrigineChange($event)"
+                         name="paysOrigine"
+                         placeholder="Ex. Comores" />
+                </mat-form-field>
+              </div>
+
+              <div class="em-toggle-row em-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="traitementDisponiblePaysOrigine()"
+                    (ngModelChange)="onTraitementChange($event)"
+                    name="traitementDisponiblePaysOrigine">
+                  Traitement disponible dans le pays d'origine
+                </mat-slide-toggle>
+                @if (provenanceTraitement() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="em-toggle-row em-field-wrap em-field-wrap--full">
+                <mat-slide-toggle
+                    [ngModel]="avisOFIIRendu()"
+                    (ngModelChange)="onAvisOFIIRenduChange($event)"
+                    name="avisOFIIRendu">
+                  Avis du collège médical OFII rendu
+                </mat-slide-toggle>
+              </div>
+
+              @if (avisOFIIRendu()) {
+                <div class="em-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Sens de l'avis OFII</mat-label>
+                    <mat-select required
+                                [ngModel]="avisOFII()"
+                                (ngModelChange)="onAvisOFIIChange($event)"
+                                name="avisOFII">
+                      @for (opt of avisOptions; track opt.code) {
+                        <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  @if (provenanceAvisOFII() === 'IA') {
+                    <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                  }
+                </div>
+
+                <div class="em-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de l'avis OFII</mat-label>
+                    <input matInput type="date"
+                           [required]="avisOFII() === 'DEFAVORABLE'"
+                           [max]="todayIso"
+                           [ngModel]="dateAvisOFII()"
+                           (ngModelChange)="onDateAvisOFIIChange($event)"
+                           name="dateAvisOFII" />
+                    @if (avisOFII() === 'DEFAVORABLE') {
+                      <mat-hint>Requise pour calculer le délai de recours TA</mat-hint>
+                    }
+                  </mat-form-field>
+                  @if (provenanceDateAvisOFII() === 'IA') {
+                    <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                  }
+                </div>
+              }
+
+              <div class="em-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="em-result">
+              <div [class]="bannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdict) }}</mat-icon>
+                <div class="em-banner-content">
+                  <div class="em-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  @if (result()!.chipsCriteresNonRemplis?.length) {
+                    <ul class="em-chips">
+                      @for (code of result()!.chipsCriteresNonRemplis; track code) {
+                        <li class="em-chip em-chip--warning">{{ chipLabelCritere(code) }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+
+              @if (showDelaiRecoursTA(result())) {
+                <div class="em-recours-block">
+                  <div class="em-recours-label">Délai de recours devant le Tribunal administratif</div>
+                  <div class="em-recours-date">{{ result()!.delaiRecoursTA | date:'dd/MM/yyyy' }}</div>
+                  <div class="em-recours-sub">2 mois à compter de la décision préfectorale (R.421-1 CJA)</div>
+                </div>
+              }
+
+              @if (result()!.motifRecours) {
+                <div class="em-motif-block">
+                  <div class="em-motif-label">Motif de recours suggéré</div>
+                  <p class="em-motif-text">{{ result()!.motifRecours }}</p>
+                </div>
+              }
+
+              <ul class="em-breakdown">
+                <li>
+                  <span class="em-bd-label">Pathologie</span>
+                  <span class="em-bd-value">{{ result()!.pathologiePrincipale }}</span>
+                </li>
+                <li>
+                  <span class="em-bd-label">Pays d'origine</span>
+                  <span class="em-bd-value">{{ result()!.paysOrigine }}</span>
+                </li>
+                <li>
+                  <span class="em-bd-label">Traitement disponible dans le pays</span>
+                  <span class="em-bd-value">{{ result()!.traitementDisponiblePaysOrigine ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.avisOFII) {
+                  <li>
+                    <span class="em-bd-label">Avis OFII</span>
+                    <span class="em-bd-value">{{ result()!.avisOFII }}</span>
+                  </li>
+                }
+                @if (result()!.dateAvisOFII) {
+                  <li>
+                    <span class="em-bd-label">Date de l'avis OFII</span>
+                    <span class="em-bd-value">{{ result()!.dateAvisOFII | date:'dd/MM/yyyy' }}</span>
+                  </li>
+                }
+              </ul>
+
+              <div class="em-meta">
+                <span class="em-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

@@ -4,7 +4,7 @@
  * FR uniquement (CESEDA L.425-9, Ord. 2020-1733).
  */
 
-export type AvisOFII = 'FAVORABLE' | 'DEFAVORABLE' | 'EN_COURS';
+export type AvisOFII = 'FAVORABLE' | 'DEFAVORABLE' | 'EN_ATTENTE';
 
 export type VerdictEtrangerMalade =
   | 'ELIGIBLE_PROBABLE'

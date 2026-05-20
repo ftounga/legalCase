@@ -920,6 +920,23 @@ export interface ImmigrationExtractedData {
   be40bisLienFamilial?: string | null;
   be40terLienFamilial?: string | null;
   be40terRevenusMensuelsNets?: number | null;
+  /**
+   * SF-214-01 / SF-214-02 — Pré-fill outil F-IM-25 « Étranger malade L. 425-9 CESEDA ».
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   *
+   * `etrangerMaladeDetecte` : signal global (mentions « maladie grave », « OFII médical »,
+   *   « L.425-9 » dans les pièces).
+   * `etrangerMaladePathologie` : pathologie principale extraite (texte libre ≤ 500 car.).
+   * `etrangerMaladeTraitementDisponible` : true si les pièces indiquent que le traitement
+   *   est disponible dans le pays d'origine.
+   * `etrangerMaladeAvisOFII` : avis du collège médical OFII (FAVORABLE/DEFAVORABLE/EN_ATTENTE).
+   * `etrangerMalaDateAvisOFII` : date de l'avis OFII ISO YYYY-MM-DD (non future).
+   */
+  etrangerMaladeDetecte?: boolean | null;
+  etrangerMaladePathologie?: string | null;
+  etrangerMaladeTraitementDisponible?: boolean | null;
+  etrangerMaladeAvisOFII?: 'FAVORABLE' | 'DEFAVORABLE' | 'EN_ATTENTE' | null;
+  etrangerMalaDateAvisOFII?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
