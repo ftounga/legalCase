@@ -69,6 +69,8 @@ import { ContestationC4OnemSectionComponent } from '../contestation-c4-onem-sect
 import { AtFedrisDeclarationSectionComponent } from '../at-fedris-declaration-section/at-fedris-declaration-section.component';
 // SF-207-05b : section décisionnelle référé tribunal du travail BE (BE-only, ALWAYS_ON).
 import { RefereTribunalTravailBeSectionComponent } from '../refere-tribunal-travail-be-section/refere-tribunal-travail-be-section.component';
+// SF-207-06b : section décisionnelle RCC BE conditions d'éligibilité (BE-only, ALWAYS_ON).
+import { RccBeConditionsSectionComponent } from '../rcc-be-conditions-section/rcc-be-conditions-section.component';
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
@@ -494,6 +496,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['refere-tribunal-travail-be', {
         displayLabel: 'Référé tribunal du travail (BE)',
         component: RefereTribunalTravailBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-207-06b : RCC BE — conditions d'éligibilité (BE-only, ALWAYS_ON).
+      // CCT 17 / CCT 17/13 / AR 03/05/2007 — analyseur 4 régimes parallèles
+      // (général, métiers lourds, longue carrière, entreprise en difficulté).
+      // Verdict 3 états (ELIGIBLE / INCERTAIN / NON_ELIGIBLE) + régime applicable
+      // (priorité) + régimes cumulés + calculs annexes (âge + années carrière).
+      // 4 champs pré-remplis depuis `TravailExtractedData` (dateNaissanceSalarie,
+      // anneesCarriereSalarie, metierLourdDetecte, entrepriseEnDifficulteDetectee).
+      ['rcc-be-conditions', {
+        displayLabel: 'RCC BE — conditions d\'éligibilité',
+        component: RccBeConditionsSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2212,6 +2233,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-24-non-concurrence', 'VALIDITE'],
     ['F-DT-27-motif-grave-be', 'VALIDITE'],
     ['F-DT-30-protection-rp', 'VALIDITE'],
+    // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
+    // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
+    ['rcc-be-conditions', 'VALIDITE'],
     ['F-FA-08-divorce-alteration', 'VALIDITE'],
     ['F-FA-09-divorce-faute', 'VALIDITE'],
     ['F-FA-10-divorce-accepte', 'VALIDITE'],
