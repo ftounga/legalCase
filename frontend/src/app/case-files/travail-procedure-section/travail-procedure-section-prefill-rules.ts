@@ -9,6 +9,11 @@
  *      suffixe `_FR` / `_BE` vs `workspaceCountry`).
  *   2. dateDeclencheur (ISO YYYY-MM-DD).
  *
+ * SF-246-22 : suppression du type d'intersection aspirationnel `TravailProcedureAiData`.
+ * Les 2 champs `procedureTravailDetectee` et `dateDeclencheurProcedure` sont
+ * désormais des champs réels de `TravailExtractedData` (record backend branché +
+ * DTO frontend mis à jour). Plus aucun cast permissif nécessaire.
+ *
  * Le module est pur (aucun Angular import).
  */
 import {
@@ -19,19 +24,8 @@ import { TravailExtractedData } from '../../core/models/case-analysis.model';
 
 export const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * Type d'aiData étendu utilisé par F-136 : les champs
- * `procedureTravailDetectee` et `dateDeclencheurProcedure` ne sont pas
- * encore déclarés sur `TravailExtractedData` côté modèle backend (anomalie
- * connue), d'où le cast permissif au runtime et ici.
- */
-export type TravailProcedureAiData = TravailExtractedData & {
-  procedureTravailDetectee?: string | null;
-  dateDeclencheurProcedure?: string | null;
-};
-
 export interface TravailProcedurePrefillInput {
-  aiData?: TravailProcedureAiData | null;
+  aiData?: TravailExtractedData | null;
   procedureChecks?: unknown[] | null;
   aiQuestions?: unknown[] | null;
   piecesManquantes?: unknown[] | null;
@@ -53,8 +47,7 @@ export interface TravailProcedurePrefillInput {
 export function computeTypeProcedure(
   input: TravailProcedurePrefillInput,
 ): TravailProcedureCode | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const detected = (input.aiData as any)?.procedureTravailDetectee;
+  const detected = input.aiData?.procedureTravailDetectee;
   if (typeof detected !== 'string') return null;
   if (!TRAVAIL_PROCEDURE_CODES.has(detected as TravailProcedureCode)) return null;
   const country = input.workspaceCountry ?? 'FRANCE';
@@ -72,8 +65,7 @@ export function computeTypeProcedure(
 export function computeDateDeclencheur(
   input: TravailProcedurePrefillInput,
 ): string | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const v = (input.aiData as any)?.dateDeclencheurProcedure;
+  const v = input.aiData?.dateDeclencheurProcedure;
   return typeof v === 'string' && ISO_DATE_RE.test(v) ? v : null;
 }
 

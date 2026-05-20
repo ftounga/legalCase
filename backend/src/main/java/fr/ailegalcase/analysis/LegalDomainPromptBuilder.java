@@ -314,6 +314,20 @@ public final class LegalDomainPromptBuilder {
               "RC_ASSISTANCE" : assistance possible documentée (avocat, conseiller du salarié, représentant du personnel). "OUI" si documentée, "NON" si l'employeur l'a refusée, "INCONNU" sinon.
               "RC_INDEMNITE" : indemnité spécifique supérieure ou égale à l'indemnité légale de licenciement. "OUI" si les deux montants sont connus et indemnité spécifique ≥ légale. "NON" si strictement inférieure. "INCONNU" si un montant manque.
               "RC_ENTRETIENS" : au moins un entretien préalable tenu et documenté (compte-rendu ou correspondance). "OUI" si trace écrite, "NON" si aucune, "INCONNU" sinon.
+              SF-246-22 — Sous-objet `procedure_travail_detection` (type de procédure prud'homale / tribunal du travail, FR + BE). OBLIGATOIRE si une procédure judiciaire travail est ouverte ou envisagée selon les pièces. OMETTRE ou laisser null si aucune procédure n'est évoquée.
+              "procedure_travail_detection" : objet OU null. Si émis, contient EXACTEMENT 2 clés :
+                "procedure_detectee" : code de procédure identifiée. Utiliser EXCLUSIVEMENT l'une de ces 6 valeurs EXACTES (null si non déterminable avec certitude) :
+                  FRANCE (3 codes) :
+                  "PRUDHOMMES_FR" — procédure prud'homale en 1re instance (Conseil de prud'hommes, R.1453-1+ CT).
+                  "APPEL_CA_SOCIALE_FR" — appel devant la chambre sociale de la cour d'appel (R.1462-1+ CT).
+                  "CASSATION_SOCIALE_FR" — pourvoi en cassation devant la chambre sociale de la Cour de cassation (R.431-4 COJ).
+                  BELGIQUE (3 codes) :
+                  "TRIBUNAL_TRAVAIL_BE" — procédure devant le tribunal du travail en 1re instance (Loi du 10/10/1967 — Code judiciaire art. 578+).
+                  "COUR_TRAVAIL_BE" — appel devant la cour du travail (Code judiciaire art. 607+).
+                  "CASSATION_BE" — pourvoi en cassation devant la Cour de cassation belge (chambre sociale).
+                  RÈGLE DE GATING PAYS : utiliser UNIQUEMENT les 3 codes FR pour un dossier travail FRANÇAIS et UNIQUEMENT les 3 codes BE pour un dossier travail BELGE. Un code d'un autre pays → null.
+                  Null si aucune procédure judiciaire n'est identifiable ou si le code ne peut être déterminé avec certitude.
+                "date_declencheur" : date de déclenchement de la procédure (date de saisine prud'homale, date de citation à comparaître, date de dépôt de requête, date d'arrêt d'appel) au format YYYY-MM-DD strict. Null si non détectable. NE PAS confondre avec la date du licenciement, la date d'entretien préalable ou la date de rupture du contrat : il s'agit exclusivement de la date de l'acte procédural qui ouvre ou fonde l'instance judiciaire travail.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """

@@ -270,18 +270,15 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
    * F-237 SF-237-02 : pré-remplissage depuis l'analyse IA via le helper partagé
    * `TravailProcedurePrefillRules`. No-op gracieux si `aiData` est absent.
    *
-   * Note F-237 SF-237-02 : `procedureTravailDetectee` et `dateDeclencheurProcedure`
-   * ne sont pas encore déclarés sur `TravailExtractedData` — le helper accepte
-   * les casts permissifs via son type `TravailProcedureAiData`.
+   * SF-246-22 : suppression du cast permissif — `procedureTravailDetectee` et
+   * `dateDeclencheurProcedure` sont désormais des champs réels de
+   * `TravailExtractedData` (record backend branché + DTO frontend mis à jour).
    *
    * Le helper est l'unique source de vérité — toute modification doit y être
    * faite, le static `getPrefillCount` en bénéficie automatiquement.
    */
   private prefillFromAi(): void {
-    const ai = this.aiData as (TravailExtractedData & {
-      procedureTravailDetectee?: string | null;
-      dateDeclencheurProcedure?: string | null;
-    }) | null | undefined;
+    const ai = this.aiData;
     if (!ai) return;
     const helperInput = {
       aiData: ai,
