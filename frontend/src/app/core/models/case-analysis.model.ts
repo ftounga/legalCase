@@ -486,6 +486,23 @@ export interface TravailExtractedData {
   remunerationNetteReferenceRccDetectee?: number | null;
   allocationOnemMensuelleEstimee?: number | null;
   dateDebutRccEnvisagee?: string | null;
+  /**
+   * SF-207-08 / SF-207-08b : 3 champs IA Travail BE pour pré-fill F-207
+   * (outplacement obligatoire 45+ — CCT n°82, CCT n°82 bis, Loi 05/09/2001
+   * art. 13, AR 30/05/2018, AR 25/11/1991 art. 154). BE-only — restent null
+   * pour FR (pas d'équivalent direct du régime BE d'outplacement).
+   * `ancienneteSalarie` : ancienneté du salarié à la date du licenciement
+   *   en années avec décimales (Double côté backend, borne soft [0, 60]).
+   * `motifLicenciementDetecte` : motif de rupture détecté — whitelist
+   *   stricte {LICENCIEMENT_ECONOMIQUE | LICENCIEMENT_AUTRE | FAUTE_GRAVE |
+   *   DEMISSION}. Toute valeur hors whitelist → null.
+   * `offreOutplacementMentionnee` : flag détecté de mention d'une offre
+   *   d'outplacement formelle dans le dossier (Boolean nullable côté backend).
+   *   Pré-fill true uniquement — false ou null laissent la case décochée.
+   */
+  ancienneteSalarie?: number | null;
+  motifLicenciementDetecte?: string | null;
+  offreOutplacementMentionnee?: boolean | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.
