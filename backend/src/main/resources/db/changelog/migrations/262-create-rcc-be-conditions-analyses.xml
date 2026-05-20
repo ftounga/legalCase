@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="262-create-rcc-be-conditions-analyses" author="legalcase">
+        <comment>
+            SF-207-06 : table dédiée à l'outil décisionnel "RCC BE — conditions
+            d'éligibilité" (F-207). Analyseur d'éligibilité au Régime de Chômage
+            avec Complément d'entreprise (RCC, ex-prépension belge).
+
+            Vérifie 4 régimes parallèles :
+              - GENERAL (CCT 17 art. 3)             : âge ≥ 60 ans ET carrière ≥ 40 ans
+              - METIERS_LOURDS (CCT 17/13)          : âge ≥ 58 ans ET carrière ≥ 35 ans ET métier lourd
+              - LONGUE_CARRIERE (CCT 17 art. 3)     : âge ≥ 59 ans ET carrière ≥ 40 ans ET longueCarriere
+              - ENTREPRISE_DIFFICULTE (AR 03/05/2007 art. 8) : âge ≥ 60 ans ET entrepriseEnDifficulte
+
+            Verdict 3 états :
+              - ELIGIBLE : ≥ 1 régime matche
+                  regimeApplicable = priorité GENERAL > LONGUE_CARRIERE > METIERS_LOURDS > ENTREPRISE_DIFFICULTE
+              - INCERTAIN : aucun régime ne matche MAIS âge ≥ 55 ET carrière ≥ 30 (proche des seuils)
+              - NON_ELIGIBLE : sinon
+
+            Base juridique : CCT n°17 (général + longue carrière) ; CCT n°17/13 (métiers lourds) ;
+            AR du 03/05/2007 art. 3 et 8 (modalités générales + entreprise en difficulté).
+
+            Outil BE-only — gate workspaceCountry=BELGIQUE strict (404 côté FR).
+            Substance juridique BE pure (mémoire feedback_belgique_never_forget) ;
+            aucun équivalent FR direct (les régimes français d'aménagement de fin
+            de carrière relèvent de dispositifs distincts).
+
+            1 ligne par case_file_id (upsert sur unicité). result_data JSON :
+            inputs (dateNaissance, anneesCarriereProfessionnelle, metierLourd,
+            longueCarriere, entrepriseEnDifficulte, dateLicenciementEnvisagee) +
+            outputs (verdict ELIGIBLE/INCERTAIN/NON_ELIGIBLE, regimeApplicable,
+            regimesEligibles, ageALaDateLicenciement, anneesCarriereCalculees,
+            conditionsManquantes, baseJuridique, formuleCalcul, country).
+
+            Note : règle decision_tool_visibility_rules + TOOL_REGISTRY seront
+            livrées côté frontend SF-207-06b (à venir). Pattern identique aux
+            SF-207-01..05 — couplage backend/frontend pour le seed visibility
+            (mémoire feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="rcc_be_conditions_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rcc_be_conditions_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rcc_be_conditions_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rcc_be_conditions_case_file"/>
+
+        <createIndex tableName="rcc_be_conditions_analyses"
+                     indexName="idx_rcc_be_conditions_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rcc_be_conditions_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

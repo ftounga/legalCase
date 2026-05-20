@@ -406,7 +406,15 @@ public record CaseAnalysisResponse(
             String abandonPosteDateReprise,
             Boolean abandonPosteMedMentionneDelai,
             Boolean abandonPosteMedMentionneConsequences,
-            Boolean abandonPosteRepriseDansDelai) {
+            Boolean abandonPosteRepriseDansDelai,
+            // SF-207-06 : 4 champs IA Travail BE pour pré-fill F-207-06 outil
+            // RCC BE conditions d'éligibilité (CCT 17 ; CCT 17/13 ; AR 03/05/2007
+            // art. 3 et 8). Tous nullables — Travail BE uniquement, restent null
+            // pour un dossier FR (aucun équivalent direct du RCC en droit français).
+            String dateNaissanceSalarie,
+            Integer anneesCarriereSalarie,
+            Boolean metierLourdDetecte,
+            Boolean entrepriseEnDifficulteDetectee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -563,7 +571,12 @@ public record CaseAnalysisResponse(
                     .abandonPosteDateReprise(abandonPosteDateReprise)
                     .abandonPosteMedMentionneDelai(abandonPosteMedMentionneDelai)
                     .abandonPosteMedMentionneConsequences(abandonPosteMedMentionneConsequences)
-                    .abandonPosteRepriseDansDelai(abandonPosteRepriseDansDelai);
+                    .abandonPosteRepriseDansDelai(abandonPosteRepriseDansDelai)
+                    // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
+                    .dateNaissanceSalarie(dateNaissanceSalarie)
+                    .anneesCarriereSalarie(anneesCarriereSalarie)
+                    .metierLourdDetecte(metierLourdDetecte)
+                    .entrepriseEnDifficulteDetectee(entrepriseEnDifficulteDetectee);
         }
 
         public static final class Builder {
@@ -715,6 +728,11 @@ public record CaseAnalysisResponse(
             private Boolean abandonPosteMedMentionneDelai;
             private Boolean abandonPosteMedMentionneConsequences;
             private Boolean abandonPosteRepriseDansDelai;
+            // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
+            private String dateNaissanceSalarie;
+            private Integer anneesCarriereSalarie;
+            private Boolean metierLourdDetecte;
+            private Boolean entrepriseEnDifficulteDetectee;
 
             private Builder() {}
 
@@ -861,6 +879,11 @@ public record CaseAnalysisResponse(
             public Builder abandonPosteMedMentionneDelai(Boolean v) { this.abandonPosteMedMentionneDelai = v; return this; }
             public Builder abandonPosteMedMentionneConsequences(Boolean v) { this.abandonPosteMedMentionneConsequences = v; return this; }
             public Builder abandonPosteRepriseDansDelai(Boolean v) { this.abandonPosteRepriseDansDelai = v; return this; }
+            // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
+            public Builder dateNaissanceSalarie(String v) { this.dateNaissanceSalarie = v; return this; }
+            public Builder anneesCarriereSalarie(Integer v) { this.anneesCarriereSalarie = v; return this; }
+            public Builder metierLourdDetecte(Boolean v) { this.metierLourdDetecte = v; return this; }
+            public Builder entrepriseEnDifficulteDetectee(Boolean v) { this.entrepriseEnDifficulteDetectee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -937,7 +960,10 @@ public record CaseAnalysisResponse(
                         abandonPosteDateMiseEnDemeure, abandonPosteModeNotification,
                         abandonPosteDelaiAccordeJours, abandonPosteMotifAbsence,
                         abandonPosteDateReprise, abandonPosteMedMentionneDelai,
-                        abandonPosteMedMentionneConsequences, abandonPosteRepriseDansDelai);
+                        abandonPosteMedMentionneConsequences, abandonPosteRepriseDansDelai,
+                        // SF-207-06 — rcc_be_conditions_detection (BELGIQUE uniquement)
+                        dateNaissanceSalarie, anneesCarriereSalarie,
+                        metierLourdDetecte, entrepriseEnDifficulteDetectee);
             }
         }
     }
@@ -1115,6 +1141,13 @@ public record CaseAnalysisResponse(
     static final int MAX_JOURS_TRAVAIL_BE = 365;
     /** Longueur max commission paritaire BE (code court ex. "CP 200.01"). */
     static final int MAX_COMMISSION_PARITAIRE_BE_LENGTH = 20;
+
+    /**
+     * SF-207-06 : nombre d'années de carrière professionnelle salariée
+     * maximal plausible (BE — RCC). Toute valeur hors [0, 60] est jugée
+     * aberrante par {@code boundedIntOrNull} et ramenée à {@code null}.
+     */
+    static final int MAX_CARRIERE_RCC_BE = 60;
 
     /** Âge maximal plausible du salarié (lic-éco). */
     static final int MAX_SALARIE_AGE_ANNEES = 80;
@@ -3067,6 +3100,17 @@ public record CaseAnalysisResponse(
                     .joursTravaillesAnneePrecedenteBe(hasTravailBe ? boundedIntOrNull(travailBe, "jours_travailles_annee_precedente_be", 0, MAX_JOURS_TRAVAIL_BE) : null)
                     .joursPrestesBe(hasTravailBe ? boundedIntOrNull(travailBe, "jours_prestes_be", 0, MAX_JOURS_TRAVAIL_BE) : null)
                     .dateDemandeCreditTemps(hasTravailBe ? isoDateOrNull(travailBe, "date_demande_credit_temps") : null)
+                    // SF-207-06 : 4 champs IA Travail BE pour pré-fill F-207-06
+                    // RCC BE conditions d'éligibilité. Le prompt impose null
+                    // hors Belgique. dateNaissanceSalarie validée ISO YYYY-MM-DD
+                    // (fail-open → null si non ISO). anneesCarriereSalarie borné
+                    // [0, MAX_CARRIERE_RCC_BE] (≤ 60 ans, valeur plausible).
+                    // Les 2 booléens (metierLourdDetecte, entrepriseEnDifficulteDetectee)
+                    // peuvent rester null si l'IA n'a pas pu trancher.
+                    .dateNaissanceSalarie(isoDateOrNull(node, "date_naissance_salarie"))
+                    .anneesCarriereSalarie(boundedIntOrNull(node, "annees_carriere_salarie", 0, MAX_CARRIERE_RCC_BE))
+                    .metierLourdDetecte(booleanOrNull(node, "metier_lourd_detecte"))
+                    .entrepriseEnDifficulteDetectee(booleanOrNull(node, "entreprise_en_difficulte_detectee"))
                     // SF-246-21 : 5 sous-objets thématiques Travail FR (FR uniquement, null dossier BE).
                     .cddDureeMois(extract246_21CddDureeMois(node))
                     .cddDateFinDernierContrat(extract246_21CddDateFin(node))
