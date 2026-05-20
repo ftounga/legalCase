@@ -1,36 +1,70 @@
 /**
- * SF-217-09 — Helper partagé pour l'outil "Pension alimentaire entre ex-époux
+ * SF-246-28 — Helper partagé pour l'outil "Pension alimentaire entre ex-époux
  * (Belgique)" (`contribution-conjoint-be`). Module pur — runtime et static
  * appellent les mêmes fonctions (contrat F-236 SF-236-01 / F-237).
  *
- * `PREFILL_COUNT_ALWAYS_ZERO` : en V1 le pipeline IA n'extrait AUCUN flag
- * pivot dédié à la pension entre ex-époux (type de divorce, état de besoin,
- * revenus, durée du mariage). Aucun champ du formulaire n'est donc pré-rempli
- * depuis l'analyse — `computePrefillCount` retourne 0 de manière
- * inconditionnelle. État factuel documenté (pas une dette masquée, cf.
- * SF-217-00) : l'extension IA fera l'objet d'une SF ultérieure si le signal
- * terrain émerge.
+ * SF-246-28 : levée de `PREFILL_COUNT_ALWAYS_ZERO`. Le pipeline IA extrait
+ * désormais 3 champs depuis le sous-objet `famille_be_detection_v2` :
+ * `dureeMariageAnneesBeDetectee`, `revenuMensuelCreancierBeDetecte`,
+ * `revenuMensuelDebiteurBeDetecte`.
  */
 
-/** Constante de documentation : aucun pré-fill IA en V1. */
-export const PREFILL_COUNT_ALWAYS_ZERO = true;
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 export interface ContributionConjointBePrefillInput {
-  aiData?: unknown;
+  aiData?: FamilleExtractedData | null | unknown;
+}
+
+/** Durée du mariage en années entières [0, 80] ou null. */
+export function computeDureeMariage(
+  input: ContributionConjointBePrefillInput,
+): number | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const v = ai.dureeMariageAnneesBeDetectee;
+  if (v == null || v < 0 || v > 80) return null;
+  return v;
+}
+
+/** Revenu mensuel du créancier (€/mois, ≥ 0) ou null. */
+export function computeRevenuCreancier(
+  input: ContributionConjointBePrefillInput,
+): number | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const v = ai.revenuMensuelCreancierBeDetecte;
+  if (v == null || v < 0) return null;
+  return v;
+}
+
+/** Revenu mensuel du débiteur (€/mois, ≥ 0) ou null. */
+export function computeRevenuDebiteur(
+  input: ContributionConjointBePrefillInput,
+): number | null {
+  const ai = input.aiData as FamilleExtractedData | null | undefined;
+  if (!ai) return null;
+  const v = ai.revenuMensuelDebiteurBeDetecte;
+  if (v == null || v < 0) return null;
+  return v;
 }
 
 /**
- * V1 — aucun champ extrait par le pipeline IA → toujours 0.
- * Le paramètre est conservé pour la parité de signature avec les autres
- * helpers `*PrefillRules`.
+ * Compte le nombre de champs pré-remplis par l'IA pour le badge du panneau.
+ * SF-246-28 : 3 champs maximum.
  */
 export function computePrefillCount(
-  _input: ContributionConjointBePrefillInput,
+  input: ContributionConjointBePrefillInput,
 ): number {
-  return 0;
+  return [
+    computeDureeMariage(input),
+    computeRevenuCreancier(input),
+    computeRevenuDebiteur(input),
+  ].filter(v => v != null).length;
 }
 
 export const ContributionConjointBeSectionPrefillRules = {
   computePrefillCount,
-  PREFILL_COUNT_ALWAYS_ZERO,
+  computeDureeMariage,
+  computeRevenuCreancier,
+  computeRevenuDebiteur,
 };

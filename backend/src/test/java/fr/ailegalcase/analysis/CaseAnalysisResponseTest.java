@@ -6286,4 +6286,204 @@ class CaseAnalysisResponseTest {
         assertThat(f).isNotNull();
         assertThat(f.dateSeparationBe()).isNull();
     }
+
+    // =========================================================================
+    // SF-246-28 — famille_be_detection_v2 (Famille BE — 5 outils PREFILL_COUNT_ALWAYS_ZERO levé)
+    // =========================================================================
+
+    @Test
+    void extractFamilleData_sf24628_nominal_16ChampsRemplis() throws Exception {
+        // SF-246-28 CA-1 : sous-objet complet → tous les 16 champs peuplés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "famille_be_detection_v2": {
+                      "mode_hebergement_principal_be": "HEBERGEMENT_EGALITAIRE",
+                      "nombre_enfants_be": 2,
+                      "revenu_mensuel_parent1_be": 2800.0,
+                      "revenu_mensuel_parent2_be": 1950.0,
+                      "allocations_familiales_be": 310.0,
+                      "nuits_hebergement_parent1_be": 15,
+                      "nuits_hebergement_parent2_be": 15,
+                      "duree_mariage_annees_be": 11,
+                      "revenu_mensuel_creancier_be": 1400.0,
+                      "revenu_mensuel_debiteur_be": 3200.0,
+                      "date_designation_notaire_be": "2023-03-10",
+                      "date_ouverture_operations_be": "2023-04-20",
+                      "date_notification_projet_be": "2024-01-15",
+                      "date_homologation_be": "2024-03-08",
+                      "date_mariage_be": "2012-06-16",
+                      "contrat_mariage_signe_be": false
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.modeHebergementPrincipalBeDetecte()).isEqualTo("HEBERGEMENT_EGALITAIRE");
+        assertThat(f.nombreEnfantsBeDetecte()).isEqualTo(2);
+        assertThat(f.revenuMensuelParent1BeDetecte()).isEqualTo(2800.0);
+        assertThat(f.revenuMensuelParent2BeDetecte()).isEqualTo(1950.0);
+        assertThat(f.allocationsFamilialesMensuellesBeDetectees()).isEqualTo(310.0);
+        assertThat(f.nuitsHebergementParent1BeDetectees()).isEqualTo(15);
+        assertThat(f.nuitsHebergementParent2BeDetectees()).isEqualTo(15);
+        assertThat(f.dureeMariageAnneesBeDetectee()).isEqualTo(11);
+        assertThat(f.revenuMensuelCreancierBeDetecte()).isEqualTo(1400.0);
+        assertThat(f.revenuMensuelDebiteurBeDetecte()).isEqualTo(3200.0);
+        assertThat(f.dateDesignationNotaireBeDetectee()).isEqualTo("2023-03-10");
+        assertThat(f.dateOuvertureOperationsBeDetectee()).isEqualTo("2023-04-20");
+        assertThat(f.dateNotificationProjetBeDetectee()).isEqualTo("2024-01-15");
+        assertThat(f.dateHomologationBeDetectee()).isEqualTo("2024-03-08");
+        assertThat(f.dateMariageBeDetectee()).isEqualTo("2012-06-16");
+        assertThat(f.contratMariageSigneBeDetecte()).isEqualTo(false);
+    }
+
+    @Test
+    void extractFamilleData_sf24628_sousObjetAbsent_16ChampsNull() throws Exception {
+        // SF-246-28 CA-2 : pas de sous-objet famille_be_detection_v2 → 16 champs null.
+        // `divorce_dc_envisage` force le guard extractFamilleData.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.modeHebergementPrincipalBeDetecte()).isNull();
+        assertThat(f.nombreEnfantsBeDetecte()).isNull();
+        assertThat(f.revenuMensuelParent1BeDetecte()).isNull();
+        assertThat(f.revenuMensuelParent2BeDetecte()).isNull();
+        assertThat(f.allocationsFamilialesMensuellesBeDetectees()).isNull();
+        assertThat(f.nuitsHebergementParent1BeDetectees()).isNull();
+        assertThat(f.nuitsHebergementParent2BeDetectees()).isNull();
+        assertThat(f.dureeMariageAnneesBeDetectee()).isNull();
+        assertThat(f.revenuMensuelCreancierBeDetecte()).isNull();
+        assertThat(f.revenuMensuelDebiteurBeDetecte()).isNull();
+        assertThat(f.dateDesignationNotaireBeDetectee()).isNull();
+        assertThat(f.dateOuvertureOperationsBeDetectee()).isNull();
+        assertThat(f.dateNotificationProjetBeDetectee()).isNull();
+        assertThat(f.dateHomologationBeDetectee()).isNull();
+        assertThat(f.dateMariageBeDetectee()).isNull();
+        assertThat(f.contratMariageSigneBeDetecte()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24628_dateNonIso_null() throws Exception {
+        // SF-246-28 CA-3 : dates mal formées → null (isoDateOrNull strict).
+        // Les 4 dates liquidation-partage-be testées avec des formats erronés.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "famille_be_detection_v2": {
+                      "date_designation_notaire_be": "10/03/2023",
+                      "date_ouverture_operations_be": "2023-04",
+                      "date_notification_projet_be": "2024-01-15",
+                      "date_homologation_be": "2024",
+                      "date_mariage_be": "2012-06-16"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateDesignationNotaireBeDetectee()).isNull();       // "10/03/2023" — mauvais séparateur
+        assertThat(f.dateOuvertureOperationsBeDetectee()).isNull();      // "2023-04" — partiel
+        assertThat(f.dateNotificationProjetBeDetectee()).isEqualTo("2024-01-15"); // correct
+        assertThat(f.dateHomologationBeDetectee()).isNull();             // "2024" — partiel
+        assertThat(f.dateMariageBeDetectee()).isEqualTo("2012-06-16");  // correct
+    }
+
+    @Test
+    void extractFamilleData_sf24628_revenuNegatifEtBornesDepassees_null() throws Exception {
+        // SF-246-28 CA-4 : revenu négatif → null ; nombre enfants hors [1,12] → null ;
+        // nuits hors [0,30] → null ; durée mariage hors [0,80] → null.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "famille_be_detection_v2": {
+                      "nombre_enfants_be": 15,
+                      "revenu_mensuel_parent1_be": -500.0,
+                      "revenu_mensuel_parent2_be": 0.0,
+                      "nuits_hebergement_parent1_be": 35,
+                      "nuits_hebergement_parent2_be": 10,
+                      "duree_mariage_annees_be": 85,
+                      "revenu_mensuel_creancier_be": 0.0
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.nombreEnfantsBeDetecte()).isNull();                        // 15 > 12 → null
+        assertThat(f.revenuMensuelParent1BeDetecte()).isNull();                  // -500 < 0 → null
+        assertThat(f.revenuMensuelParent2BeDetecte()).isEqualTo(0.0);          // 0 est valide (revenu nul)
+        assertThat(f.nuitsHebergementParent1BeDetectees()).isNull();             // 35 > 30 → null
+        assertThat(f.nuitsHebergementParent2BeDetectees()).isEqualTo(10);       // 10 ∈ [0,30] → ok
+        assertThat(f.dureeMariageAnneesBeDetectee()).isNull();                   // 85 > 80 → null
+        assertThat(f.revenuMensuelCreancierBeDetecte()).isEqualTo(0.0);        // 0 valide (revenu nul)
+    }
+
+    @Test
+    void extractFamilleData_sf24628_whitelistModeHebergement_codeInconnu_null() throws Exception {
+        // SF-246-28 CA-5 : code mode hébergement hors whitelist → null.
+        // Code connu pour les 2 autres → préservé.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "famille_be_detection_v2": {
+                      "mode_hebergement_principal_be": "HEBERGEMENT_MIXTE",
+                      "date_mariage_be": "2015-09-12"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.modeHebergementPrincipalBeDetecte()).isNull();      // "HEBERGEMENT_MIXTE" hors whitelist
+        assertThat(f.dateMariageBeDetectee()).isEqualTo("2015-09-12");  // correct → préservé
+    }
+
+    @Test
+    void extractFamilleData_sf24628_multidates_liquidationPartage_bonsChampsRemplis() throws Exception {
+        // SF-246-28 CA-6 : fixture multi-dates liquidation-partage-be —
+        // plusieurs dates coexistent ; chaque champ doit correspondre à son
+        // concept juridique exact (invariant cadrage §5.1 anti-collision).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_dc_envisage": true,
+                    "famille_be_detection_v2": {
+                      "date_designation_notaire_be": "2022-11-03",
+                      "date_ouverture_operations_be": "2023-01-18",
+                      "date_notification_projet_be": "2024-02-07",
+                      "date_homologation_be": "2024-04-22",
+                      "date_mariage_be": "2010-07-10"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        // Les 5 dates doivent être distinctes et correctement mappées
+        assertThat(f.dateDesignationNotaireBeDetectee()).isEqualTo("2022-11-03");
+        assertThat(f.dateOuvertureOperationsBeDetectee()).isEqualTo("2023-01-18");
+        assertThat(f.dateNotificationProjetBeDetectee()).isEqualTo("2024-02-07");
+        assertThat(f.dateHomologationBeDetectee()).isEqualTo("2024-04-22");
+        assertThat(f.dateMariageBeDetectee()).isEqualTo("2010-07-10");
+        // Les dates ne doivent pas se contaminer entre elles
+        assertThat(f.dateDesignationNotaireBeDetectee()).isNotEqualTo(f.dateOuvertureOperationsBeDetectee());
+        assertThat(f.dateNotificationProjetBeDetectee()).isNotEqualTo(f.dateHomologationBeDetectee());
+    }
 }

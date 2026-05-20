@@ -33,9 +33,21 @@ describe('ContributionConjointBeSectionComponent', () => {
     expect(typeof ContributionConjointBeSectionComponent.getPrefillCount).toBe('function');
   });
 
-  it('getPrefillCount retourne 0 (PREFILL_COUNT_ALWAYS_ZERO)', () => {
+  // SF-246-28 : levée PREFILL_COUNT_ALWAYS_ZERO — 3 champs possibles
+  it('getPrefillCount retourne 0 si aiData absent', () => {
     expect(ContributionConjointBeSectionComponent.getPrefillCount({})).toBe(0);
-    expect(ContributionConjointBeSectionComponent.PREFILL_COUNT_ALWAYS_ZERO).toBe(true);
+  });
+
+  it('getPrefillCount retourne 3 si les 3 champs BE détectés', () => {
+    expect(
+      ContributionConjointBeSectionComponent.getPrefillCount({
+        aiData: {
+          dureeMariageAnneesBeDetectee: 8,
+          revenuMensuelCreancierBeDetecte: 1200,
+          revenuMensuelDebiteurBeDetecte: 2800,
+        },
+      }),
+    ).toBe(3);
   });
 
   it('rendu nominal BE : titre + champs affichés quand expanded', () => {

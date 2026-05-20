@@ -1940,7 +1940,31 @@ public record CaseAnalysisResponse(
             // (Famille BELGIQUE UNIQUEMENT, nullable). Distincte de dateSeparation FR (SF-246-08).
             // Source : `famille_extracted_data.divorce_ddi_be_detection.date_separation_be`.
             // CJ art. 1255 — date de la cessation effective de la vie commune entre les époux.
-            String dateSeparationBe) {                // ISO YYYY-MM-DD — BELGIQUE UNIQUEMENT
+            String dateSeparationBe,                  // ISO YYYY-MM-DD — BELGIQUE UNIQUEMENT
+            // SF-246-28 : 16 champs IA Famille BE — levée PREFILL_COUNT_ALWAYS_ZERO.
+            // Sous-objet IA source : `famille_extracted_data.famille_be_detection_v2`.
+            // BELGIQUE UNIQUEMENT — tous nullables, prompt impose null hors BE / hors certitude.
+            // --- autorite-parentale-be (F-217-SF-217-05) ---
+            String modeHebergementPrincipalBeDetecte,  // BELGIQUE UNIQUEMENT — whitelist HEBERGEMENT_EGALITAIRE|HEBERGEMENT_PRINCIPAL_UN_PARENT|HEBERGEMENT_NON_FIXE
+            // --- contribution-alimentaire-enfants-be (F-217-SF-217-07) ---
+            Integer nombreEnfantsBeDetecte,            // BELGIQUE UNIQUEMENT — [1, 12]
+            Double revenuMensuelParent1BeDetecte,      // BELGIQUE UNIQUEMENT — ≥ 0 €/mois (fiche de paie)
+            Double revenuMensuelParent2BeDetecte,      // BELGIQUE UNIQUEMENT — ≥ 0 €/mois (fiche de paie)
+            Double allocationsFamilialesMensuellesBeDetectees,  // BELGIQUE UNIQUEMENT — ≥ 0 €/mois (FAMIFED)
+            Integer nuitsHebergementParent1BeDetectees, // BELGIQUE UNIQUEMENT — [0, 30] nuits/mois
+            Integer nuitsHebergementParent2BeDetectees, // BELGIQUE UNIQUEMENT — [0, 30] nuits/mois
+            // --- contribution-conjoint-be (F-217-SF-217-09) ---
+            Integer dureeMariageAnneesBeDetectee,      // BELGIQUE UNIQUEMENT — [0, 80] ans (acte mariage)
+            Double revenuMensuelCreancierBeDetecte,    // BELGIQUE UNIQUEMENT — ≥ 0 €/mois (art. 301 § 3 CC BE)
+            Double revenuMensuelDebiteurBeDetecte,     // BELGIQUE UNIQUEMENT — ≥ 0 €/mois (art. 301 § 3 CC BE)
+            // --- liquidation-partage-be (F-217-SF-217-03) ---
+            String dateDesignationNotaireBeDetectee,   // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD (CJ art. 1207)
+            String dateOuvertureOperationsBeDetectee,  // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD
+            String dateNotificationProjetBeDetectee,   // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD (CJ art. 1218 — délai contredits)
+            String dateHomologationBeDetectee,         // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD
+            // --- regime-communaute-legale-be (F-217-SF-217-03) ---
+            String dateMariageBeDetectee,              // BELGIQUE UNIQUEMENT — ISO YYYY-MM-DD (acte mariage BE)
+            Boolean contratMariageSigneBeDetecte) {    // BELGIQUE UNIQUEMENT — contrat notarié (CC art. 1.2.59+ BE)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2240,6 +2264,42 @@ public record CaseAnalysisResponse(
             // SF-246-12 setter
             public Builder dateSeparationBe(String v) { this.dateSeparationBe = v; return this; }
 
+            // SF-246-28 : champs privés Famille BE (16 champs BELGIQUE UNIQUEMENT).
+            private String modeHebergementPrincipalBeDetecte;
+            private Integer nombreEnfantsBeDetecte;
+            private Double revenuMensuelParent1BeDetecte;
+            private Double revenuMensuelParent2BeDetecte;
+            private Double allocationsFamilialesMensuellesBeDetectees;
+            private Integer nuitsHebergementParent1BeDetectees;
+            private Integer nuitsHebergementParent2BeDetectees;
+            private Integer dureeMariageAnneesBeDetectee;
+            private Double revenuMensuelCreancierBeDetecte;
+            private Double revenuMensuelDebiteurBeDetecte;
+            private String dateDesignationNotaireBeDetectee;
+            private String dateOuvertureOperationsBeDetectee;
+            private String dateNotificationProjetBeDetectee;
+            private String dateHomologationBeDetectee;
+            private String dateMariageBeDetectee;
+            private Boolean contratMariageSigneBeDetecte;
+
+            // SF-246-28 setters Famille BE (BELGIQUE UNIQUEMENT).
+            public Builder modeHebergementPrincipalBeDetecte(String v) { this.modeHebergementPrincipalBeDetecte = v; return this; }
+            public Builder nombreEnfantsBeDetecte(Integer v) { this.nombreEnfantsBeDetecte = v; return this; }
+            public Builder revenuMensuelParent1BeDetecte(Double v) { this.revenuMensuelParent1BeDetecte = v; return this; }
+            public Builder revenuMensuelParent2BeDetecte(Double v) { this.revenuMensuelParent2BeDetecte = v; return this; }
+            public Builder allocationsFamilialesMensuellesBeDetectees(Double v) { this.allocationsFamilialesMensuellesBeDetectees = v; return this; }
+            public Builder nuitsHebergementParent1BeDetectees(Integer v) { this.nuitsHebergementParent1BeDetectees = v; return this; }
+            public Builder nuitsHebergementParent2BeDetectees(Integer v) { this.nuitsHebergementParent2BeDetectees = v; return this; }
+            public Builder dureeMariageAnneesBeDetectee(Integer v) { this.dureeMariageAnneesBeDetectee = v; return this; }
+            public Builder revenuMensuelCreancierBeDetecte(Double v) { this.revenuMensuelCreancierBeDetecte = v; return this; }
+            public Builder revenuMensuelDebiteurBeDetecte(Double v) { this.revenuMensuelDebiteurBeDetecte = v; return this; }
+            public Builder dateDesignationNotaireBeDetectee(String v) { this.dateDesignationNotaireBeDetectee = v; return this; }
+            public Builder dateOuvertureOperationsBeDetectee(String v) { this.dateOuvertureOperationsBeDetectee = v; return this; }
+            public Builder dateNotificationProjetBeDetectee(String v) { this.dateNotificationProjetBeDetectee = v; return this; }
+            public Builder dateHomologationBeDetectee(String v) { this.dateHomologationBeDetectee = v; return this; }
+            public Builder dateMariageBeDetectee(String v) { this.dateMariageBeDetectee = v; return this; }
+            public Builder contratMariageSigneBeDetecte(Boolean v) { this.contratMariageSigneBeDetecte = v; return this; }
+
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
                         divorceConsentementMutuelEnvisage, divorceAlterationLienEnvisage,
@@ -2342,7 +2402,24 @@ public record CaseAnalysisResponse(
                         dateAssignationDivorce,
                         dateAudienceHomologationDcBe,
                         // SF-246-12 : date de séparation effective BE (divorce-desunion-be).
-                        dateSeparationBe);
+                        dateSeparationBe,
+                        // SF-246-28 : 16 champs IA Famille BE — levée PREFILL_COUNT_ALWAYS_ZERO.
+                        modeHebergementPrincipalBeDetecte,
+                        nombreEnfantsBeDetecte,
+                        revenuMensuelParent1BeDetecte,
+                        revenuMensuelParent2BeDetecte,
+                        allocationsFamilialesMensuellesBeDetectees,
+                        nuitsHebergementParent1BeDetectees,
+                        nuitsHebergementParent2BeDetectees,
+                        dureeMariageAnneesBeDetectee,
+                        revenuMensuelCreancierBeDetecte,
+                        revenuMensuelDebiteurBeDetecte,
+                        dateDesignationNotaireBeDetectee,
+                        dateOuvertureOperationsBeDetectee,
+                        dateNotificationProjetBeDetectee,
+                        dateHomologationBeDetectee,
+                        dateMariageBeDetectee,
+                        contratMariageSigneBeDetecte);
             }
         }
     }
@@ -3977,6 +4054,17 @@ public record CaseAnalysisResponse(
     }
 
     /**
+     * SF-246-28 : montant ≥ 0 (revenus, allocations — 0 est une valeur valide
+     * pour un parent sans revenu). Retourne {@code null} si le champ est absent,
+     * null, non numérique ou strictement négatif (valeur aberrante).
+     */
+    private static Double nonNegativeDoubleOrNull(JsonNode node, String field) {
+        if (!node.has(field) || node.get(field).isNull() || !node.get(field).isNumber()) return null;
+        double v = node.get(field).doubleValue();
+        return v >= 0 ? v : null;
+    }
+
+    /**
      * SF-246-02 : texte trimmé et tronqué à {@code maxLength} caractères. Retourne
      * {@code null} si le champ est absent, null, non textuel ou vide après trim.
      */
@@ -4505,6 +4593,60 @@ public record CaseAnalysisResponse(
         String dateSeparationBe = (ddiBe != null && ddiBe.isObject())
                 ? isoDateOrNull(ddiBe, "date_separation_be")
                 : null;
+        // SF-246-28 : sous-objet `famille_be_detection_v2` — 16 champs D3 Famille BE.
+        // Lève le PREFILL_COUNT_ALWAYS_ZERO sur 5 outils : autorite-parentale-be,
+        // contribution-alimentaire-enfants-be, contribution-conjoint-be,
+        // liquidation-partage-be, regime-communaute-legale-be. BELGIQUE UNIQUEMENT,
+        // tous nullables — le prompt impose null hors BE / hors certitude.
+        // Montants/revenus via nonNegativeDoubleOrNull() (0 est une valeur valide pour
+        // un revenu nul), nuits via boundedIntOrNull(0,30), durée mariage via
+        // boundedIntOrNull(0,80), nombre enfants via boundedIntOrNull(1,12).
+        java.util.Set<String> MODE_HEBERGEMENT_BE_WHITELIST = java.util.Set.of(
+                "HEBERGEMENT_EGALITAIRE",
+                "HEBERGEMENT_PRINCIPAL_UN_PARENT",
+                "HEBERGEMENT_NON_FIXE");
+        JsonNode fbv2 = node.get("famille_be_detection_v2");
+        boolean fbv2Object = fbv2 != null && fbv2.isObject();
+        // --- autorite-parentale-be ---
+        String modeHebergementPrincipalBeDetecte = fbv2Object
+                ? whitelistedOrNull(stringOrNull(fbv2, "mode_hebergement_principal_be"),
+                        MODE_HEBERGEMENT_BE_WHITELIST.toArray(String[]::new))
+                : null;
+        // --- contribution-alimentaire-enfants-be ---
+        Integer nombreEnfantsBeDetecte = fbv2Object ? boundedIntOrNull(fbv2, "nombre_enfants_be", 1, 12) : null;
+        Double revenuMensuelParent1BeDetecte = fbv2Object ? nonNegativeDoubleOrNull(fbv2, "revenu_mensuel_parent1_be") : null;
+        Double revenuMensuelParent2BeDetecte = fbv2Object ? nonNegativeDoubleOrNull(fbv2, "revenu_mensuel_parent2_be") : null;
+        Double allocationsFamilialesMensuellesBeDetectees = fbv2Object ? nonNegativeDoubleOrNull(fbv2, "allocations_familiales_be") : null;
+        Integer nuitsHebergementParent1BeDetectees = fbv2Object ? boundedIntOrNull(fbv2, "nuits_hebergement_parent1_be", 0, 30) : null;
+        Integer nuitsHebergementParent2BeDetectees = fbv2Object ? boundedIntOrNull(fbv2, "nuits_hebergement_parent2_be", 0, 30) : null;
+        // --- contribution-conjoint-be ---
+        Integer dureeMariageAnneesBeDetectee = fbv2Object ? boundedIntOrNull(fbv2, "duree_mariage_annees_be", 0, 80) : null;
+        Double revenuMensuelCreancierBeDetecte = fbv2Object ? nonNegativeDoubleOrNull(fbv2, "revenu_mensuel_creancier_be") : null;
+        Double revenuMensuelDebiteurBeDetecte = fbv2Object ? nonNegativeDoubleOrNull(fbv2, "revenu_mensuel_debiteur_be") : null;
+        // --- liquidation-partage-be ---
+        String dateDesignationNotaireBeDetectee = fbv2Object ? isoDateOrNull(fbv2, "date_designation_notaire_be") : null;
+        String dateOuvertureOperationsBeDetectee = fbv2Object ? isoDateOrNull(fbv2, "date_ouverture_operations_be") : null;
+        String dateNotificationProjetBeDetectee = fbv2Object ? isoDateOrNull(fbv2, "date_notification_projet_be") : null;
+        String dateHomologationBeDetectee = fbv2Object ? isoDateOrNull(fbv2, "date_homologation_be") : null;
+        // --- regime-communaute-legale-be ---
+        String dateMariageBeDetectee = fbv2Object ? isoDateOrNull(fbv2, "date_mariage_be") : null;
+        Boolean contratMariageSigneBeDetecte = fbv2Object ? booleanOrNull(fbv2, "contrat_mariage_signe_be") : null;
+        boolean familleBev2Present = modeHebergementPrincipalBeDetecte != null
+                || nombreEnfantsBeDetecte != null
+                || revenuMensuelParent1BeDetecte != null
+                || revenuMensuelParent2BeDetecte != null
+                || allocationsFamilialesMensuellesBeDetectees != null
+                || nuitsHebergementParent1BeDetectees != null
+                || nuitsHebergementParent2BeDetectees != null
+                || dureeMariageAnneesBeDetectee != null
+                || revenuMensuelCreancierBeDetecte != null
+                || revenuMensuelDebiteurBeDetecte != null
+                || dateDesignationNotaireBeDetectee != null
+                || dateOuvertureOperationsBeDetectee != null
+                || dateNotificationProjetBeDetectee != null
+                || dateHomologationBeDetectee != null
+                || dateMariageBeDetectee != null
+                || contratMariageSigneBeDetecte != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -4542,7 +4684,8 @@ public record CaseAnalysisResponse(
                 && !communautePartageProtectionV2Present
                 && !filiationV2DetectionPresent
                 && !protectionDivorceV2Present
-                && dateSeparationBe == null) {
+                && dateSeparationBe == null
+                && !familleBev2Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -4693,6 +4836,23 @@ public record CaseAnalysisResponse(
                 .dateAudienceHomologationDcBe(dateAudienceHomologationDcBe)
                 // SF-246-12 : date de séparation effective BE (divorce-desunion-be).
                 .dateSeparationBe(dateSeparationBe)
+                // SF-246-28 : 16 champs IA Famille BE — levée PREFILL_COUNT_ALWAYS_ZERO (BELGIQUE UNIQUEMENT).
+                .modeHebergementPrincipalBeDetecte(modeHebergementPrincipalBeDetecte)
+                .nombreEnfantsBeDetecte(nombreEnfantsBeDetecte)
+                .revenuMensuelParent1BeDetecte(revenuMensuelParent1BeDetecte)
+                .revenuMensuelParent2BeDetecte(revenuMensuelParent2BeDetecte)
+                .allocationsFamilialesMensuellesBeDetectees(allocationsFamilialesMensuellesBeDetectees)
+                .nuitsHebergementParent1BeDetectees(nuitsHebergementParent1BeDetectees)
+                .nuitsHebergementParent2BeDetectees(nuitsHebergementParent2BeDetectees)
+                .dureeMariageAnneesBeDetectee(dureeMariageAnneesBeDetectee)
+                .revenuMensuelCreancierBeDetecte(revenuMensuelCreancierBeDetecte)
+                .revenuMensuelDebiteurBeDetecte(revenuMensuelDebiteurBeDetecte)
+                .dateDesignationNotaireBeDetectee(dateDesignationNotaireBeDetectee)
+                .dateOuvertureOperationsBeDetectee(dateOuvertureOperationsBeDetectee)
+                .dateNotificationProjetBeDetectee(dateNotificationProjetBeDetectee)
+                .dateHomologationBeDetectee(dateHomologationBeDetectee)
+                .dateMariageBeDetectee(dateMariageBeDetectee)
+                .contratMariageSigneBeDetecte(contratMariageSigneBeDetecte)
                 .build();
     }
 

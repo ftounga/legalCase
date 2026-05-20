@@ -298,15 +298,31 @@ describe('LiquidationPartageBeSectionComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // getPrefillCount = 0 (PREFILL_COUNT_ALWAYS_ZERO)
+  // SF-246-28 : levée PREFILL_COUNT_ALWAYS_ZERO — 4 dates possibles
   // ---------------------------------------------------------------------------
 
-  it('getPrefillCount() retourne 0 (V1 — aucun flag procédural extrait)', () => {
+  it('getPrefillCount() retourne 0 si aiData absent', () => {
     expect(LiquidationPartageBeSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('getPrefillCount() retourne 4 si les 4 dates BE ISO détectées', () => {
+    expect(
+      LiquidationPartageBeSectionComponent.getPrefillCount({
+        aiData: {
+          dateDesignationNotaireBeDetectee: '2025-03-10',
+          dateOuvertureOperationsBeDetectee: '2025-04-15',
+          dateNotificationProjetBeDetectee: '2025-09-01',
+          dateHomologationBeDetectee: '2026-02-20',
+        },
+      }),
+    ).toBe(4);
+  });
+
+  it('getPrefillCount() retourne 0 si les champs utilisés sont les anciens (non BE)', () => {
+    // L'ancien champ dateNotificationProjet (sans suffix BE) ne compte pas
     expect(LiquidationPartageBeSectionComponent.getPrefillCount({
       aiData: { dateNotificationProjet: '2026-04-25' },
     })).toBe(0);
-    expect(LiquidationPartageBeSectionComponent.PREFILL_COUNT_ALWAYS_ZERO).toBe(true);
   });
 
   // ---------------------------------------------------------------------------

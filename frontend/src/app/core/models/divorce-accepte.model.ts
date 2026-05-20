@@ -704,4 +704,123 @@ export interface FamilleExtractedData {
    * Pour un dossier France, ce champ est null.
    */
   dateAudienceHomologationDcBe?: string | null;
+
+  // ── SF-246-28 : 16 champs IA Famille BE (levée PREFILL_COUNT_ALWAYS_ZERO) ─────────
+  // Source backend réelle : `famille_be_detection_v2`. BELGIQUE UNIQUEMENT.
+
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — mode d'hébergement principal des enfants détecté
+   * par l'IA (convention de garde ou jugement BE art. 374 CC BE).
+   * Source backend réelle : `famille_be_detection_v2.mode_hebergement_principal_be`.
+   * Codes ∈ {HEBERGEMENT_EGALITAIRE, HEBERGEMENT_PRINCIPAL_UN_PARENT, HEBERGEMENT_NON_FIXE}.
+   * Null si absent ou code inconnu.
+   */
+  modeHebergementPrincipalBeDetecte?: string | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — nombre d'enfants communs [1, 12] détecté
+   * par l'IA (jugement / convention de garde BE).
+   * Source backend réelle : `famille_be_detection_v2.nombre_enfants_be`.
+   * Null si absent ou hors plage.
+   */
+  nombreEnfantsBeDetecte?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — revenu mensuel net du parent 1 (€/mois, ≥ 0)
+   * détecté par l'IA (fiches de paie BE). 0 est valide (parent sans revenu).
+   * Source backend réelle : `famille_be_detection_v2.revenu_mensuel_parent1_be`.
+   * Null si absent ou négatif.
+   */
+  revenuMensuelParent1BeDetecte?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — revenu mensuel net du parent 2 (€/mois, ≥ 0)
+   * détecté par l'IA (fiches de paie BE). 0 est valide.
+   * Source backend réelle : `famille_be_detection_v2.revenu_mensuel_parent2_be`.
+   * Null si absent ou négatif.
+   */
+  revenuMensuelParent2BeDetecte?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — allocations familiales mensuelles (€/mois, ≥ 0)
+   * détectées par l'IA (paiement FAMIFED BE).
+   * Source backend réelle : `famille_be_detection_v2.allocations_familiales_be`.
+   * Null si absent ou négatif.
+   * Note : champ backend s'appelle `allocationsFamilialesMensuellesBeDetectees`
+   * (espace dans la mini-spec était une coquille).
+   */
+  allocationsFamilialesMensuellesBeDetectees?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — nuits d'hébergement mensuelles pour le parent 1
+   * [0, 30] détectées par l'IA (convention de garde / jugement BE).
+   * Source backend réelle : `famille_be_detection_v2.nuits_hebergement_parent1_be`.
+   * Null si absent ou hors plage.
+   */
+  nuitsHebergementParent1BeDetectees?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — nuits d'hébergement mensuelles pour le parent 2
+   * [0, 30] détectées par l'IA.
+   * Source backend réelle : `famille_be_detection_v2.nuits_hebergement_parent2_be`.
+   * Null si absent ou hors plage.
+   */
+  nuitsHebergementParent2BeDetectees?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — durée du mariage en années entières [0, 80]
+   * détectée par l'IA (acte de mariage BE / jugement — CC BE art. 301 § 3).
+   * Source backend réelle : `famille_be_detection_v2.duree_mariage_annees_be`.
+   * Null si absent ou hors plage.
+   */
+  dureeMariageAnneesBeDetectee?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — revenu mensuel net du créancier de pension
+   * alimentaire (€/mois, ≥ 0) détecté par l'IA (fiches de paie BE, art. 301 § 3 CC BE).
+   * Source backend réelle : `famille_be_detection_v2.revenu_mensuel_creancier_be`.
+   * Null si absent ou négatif.
+   */
+  revenuMensuelCreancierBeDetecte?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — revenu mensuel net du débiteur de pension
+   * alimentaire (€/mois, ≥ 0) détecté par l'IA.
+   * Source backend réelle : `famille_be_detection_v2.revenu_mensuel_debiteur_be`.
+   * Null si absent ou négatif.
+   */
+  revenuMensuelDebiteurBeDetecte?: number | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — date de désignation du notaire commis à la
+   * liquidation-partage (ISO YYYY-MM-DD — CJ art. 1207 BE).
+   * Source backend réelle : `famille_be_detection_v2.date_designation_notaire_be`.
+   * Null si absent ou format non ISO.
+   */
+  dateDesignationNotaireBeDetectee?: string | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — date d'ouverture des opérations de liquidation-partage
+   * (ISO YYYY-MM-DD — CJ BE).
+   * Source backend réelle : `famille_be_detection_v2.date_ouverture_operations_be`.
+   * Null si absent ou format non ISO.
+   */
+  dateOuvertureOperationsBeDetectee?: string | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — date de notification du projet de liquidation-partage
+   * (ISO YYYY-MM-DD — CJ art. 1218 BE — point de départ du délai de contredits).
+   * Source backend réelle : `famille_be_detection_v2.date_notification_projet_be`.
+   * Null si absent ou format non ISO.
+   */
+  dateNotificationProjetBeDetectee?: string | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — date d'homologation par le tribunal de la famille
+   * (ISO YYYY-MM-DD — CJ BE).
+   * Source backend réelle : `famille_be_detection_v2.date_homologation_be`.
+   * Null si absent ou format non ISO.
+   */
+  dateHomologationBeDetectee?: string | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — date du mariage (ISO YYYY-MM-DD — acte de mariage
+   * BE, CC art. 3.18+ BE).
+   * Source backend réelle : `famille_be_detection_v2.date_mariage_be`.
+   * Null si absent ou format non ISO.
+   */
+  dateMariageBeDetectee?: string | null;
+  /**
+   * SF-246-28 : BELGIQUE UNIQUEMENT — contrat de mariage signé devant notaire
+   * (CC art. 1.2.59+ BE — détermine si le régime est légal ou conventionnel).
+   * Source backend réelle : `famille_be_detection_v2.contrat_mariage_signe_be`.
+   * Null si absent.
+   */
+  contratMariageSigneBeDetecte?: boolean | null;
 }

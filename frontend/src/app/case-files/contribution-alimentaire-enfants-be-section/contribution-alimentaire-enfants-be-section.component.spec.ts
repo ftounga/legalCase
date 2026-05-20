@@ -33,9 +33,24 @@ describe('ContributionAlimentaireEnfantsBeSectionComponent', () => {
     expect(typeof ContributionAlimentaireEnfantsBeSectionComponent.getPrefillCount).toBe('function');
   });
 
-  it('getPrefillCount retourne 0 (PREFILL_COUNT_ALWAYS_ZERO)', () => {
+  // SF-246-28 : levée PREFILL_COUNT_ALWAYS_ZERO — 6 champs possibles
+  it('getPrefillCount retourne 0 si aiData absent', () => {
     expect(ContributionAlimentaireEnfantsBeSectionComponent.getPrefillCount({})).toBe(0);
-    expect(ContributionAlimentaireEnfantsBeSectionComponent.PREFILL_COUNT_ALWAYS_ZERO).toBe(true);
+  });
+
+  it('getPrefillCount retourne 6 si tous les 6 champs BE détectés', () => {
+    expect(
+      ContributionAlimentaireEnfantsBeSectionComponent.getPrefillCount({
+        aiData: {
+          nombreEnfantsBeDetecte: 2,
+          revenuMensuelParent1BeDetecte: 2800,
+          revenuMensuelParent2BeDetecte: 1900,
+          allocationsFamilialesMensuellesBeDetectees: 320,
+          nuitsHebergementParent1BeDetectees: 15,
+          nuitsHebergementParent2BeDetectees: 15,
+        },
+      }),
+    ).toBe(6);
   });
 
   it('rendu nominal BE : titre + champs affichés quand expanded', () => {

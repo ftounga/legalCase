@@ -98,12 +98,9 @@ export class RegimeCommunauteLegaleBeSectionComponent implements OnInit, OnChang
   static readonly TOOL_ICON = 'account_balance';
 
   /**
-   * F-236 / F-237 — délègue au helper partagé.
-   * V1 : aucun flag patrimonial extrait par l'IA → toujours 0
-   * (`PREFILL_COUNT_ALWAYS_ZERO`).
+   * SF-246-28 / F-236 / F-237 — délègue au helper partagé.
+   * 2 champs maximum (dateMariage, contratMariageSigne).
    */
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
-
   static getPrefillCount(input: {
     aiData?: unknown;
     procedureChecks?: unknown[];
@@ -153,6 +150,10 @@ export class RegimeCommunauteLegaleBeSectionComponent implements OnInit, OnChang
   biens = signal<BienBeInput[]>([this.emptyBien()]);
   dettes = signal<DetteBeInput[]>([]);
 
+  /** SF-246-28 — signaux de provenance (null = manuel, 'IA' = pré-rempli). */
+  provenanceDateMariage = signal<'IA' | null>(null);
+  provenanceContratMariage = signal<'IA' | null>(null);
+
   /**
    * Coherence alerts F-IA-03 — gate `showForm()` strict (alertes masquées
    * après calcul rendu). Aucune source IA en standalone.
@@ -198,12 +199,43 @@ export class RegimeCommunauteLegaleBeSectionComponent implements OnInit, OnChang
   }
 
   /**
-   * Pré-fill IA — V1 : aucun flag patrimonial dédié n'est extrait par le
-   * pipeline (`PREFILL_COUNT_ALWAYS_ZERO`). No-op assumé et documenté ;
-   * l'extension IA est une SF ultérieure.
+   * SF-246-28 — Pré-fill IA réel pour les 2 champs Régime Communauté Légale BE.
+   * `dateMariage` et `contratMariageSigne` pré-remplis depuis
+   * `famille_be_detection_v2`. No-op gracieux si `aiData` est null.
+   * Note : `dateMariage` pré-remplie alimente également la coherence alert
+   * F-IA-03 déjà active sur ce composant.
    */
   private prefillFromAi(): void {
-    // V1 : aucun champ pré-rempli — parité stricte avec getPrefillCount() = 0.
+    const rules = RegimeCommunauteLegaleBeSectionPrefillRules;
+    const input = { aiData: this.aiData };
+    let changed = false;
+
+    const dateMar = rules.computeDateMariage(input);
+    if (dateMar != null) {
+      this.dateMariage.set(dateMar);
+      this.provenanceDateMariage.set('IA');
+      changed = true;
+    }
+
+    const contrat = rules.computeContratMariage(input);
+    if (contrat != null) {
+      this.contratMariageSigne.set(contrat);
+      this.provenanceContratMariage.set('IA');
+      changed = true;
+    }
+
+    if (changed) this.cdr.markForCheck();
+  }
+
+  /** SF-246-28 — Reset provenance date de mariage au changement manuel. */
+  onDateMariageChange(): void {
+    this.provenanceDateMariage.set(null);
+  }
+
+  /** SF-246-28 — Reset provenance contrat de mariage au changement manuel. */
+  onContratMariageChange(value: boolean): void {
+    this.contratMariageSigne.set(value);
+    this.provenanceContratMariage.set(null);
   }
 
   toggleCollapse(): void {

@@ -93,12 +93,10 @@ export class LiquidationPartageBeSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'gavel';
 
   /**
-   * F-236 / F-237 — délègue au helper partagé.
-   * V1 : aucun flag procédural extrait par l'IA → toujours 0
-   * (`PREFILL_COUNT_ALWAYS_ZERO`).
+   * SF-246-28 / F-236 / F-237 — délègue au helper partagé.
+   * 4 dates maximum (désignation notaire, ouverture opérations,
+   * notification projet, homologation).
    */
-  static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
-
   static getPrefillCount(input: {
     aiData?: unknown;
     procedureChecks?: unknown[];
@@ -147,6 +145,12 @@ export class LiquidationPartageBeSectionComponent implements OnInit, OnChanges {
   dateHomologation = signal<string | null>(null);
   commentaire = signal<string | null>(null);
 
+  /** SF-246-28 — signaux de provenance (null = manuel, 'IA' = pré-rempli). */
+  provenanceDateDesignationNotaire = signal<'IA' | null>(null);
+  provenanceDateOuvertureOperations = signal<'IA' | null>(null);
+  provenanceDateNotificationProjet = signal<'IA' | null>(null);
+  provenanceDateHomologation = signal<'IA' | null>(null);
+
   /**
    * Coherence alerts F-IA-03 — gate `showForm()` strict (alertes masquées
    * après calcul rendu). Aucune source IA en standalone.
@@ -192,12 +196,48 @@ export class LiquidationPartageBeSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Pré-fill IA — V1 : aucun flag procédural dédié n'est extrait par le
-   * pipeline (`PREFILL_COUNT_ALWAYS_ZERO`). No-op assumé et documenté ;
-   * l'extension IA est une SF ultérieure.
+   * SF-246-28 — Pré-fill IA réel pour les 4 dates de la procédure
+   * liquidation-partage BE. Si une date est pré-remplie, l'étape associée
+   * est également cochée. No-op gracieux si `aiData` est null.
    */
   private prefillFromAi(): void {
-    // V1 : aucun champ pré-rempli — parité stricte avec getPrefillCount() = 0.
+    const rules = LiquidationPartageBeSectionPrefillRules;
+    const input = { aiData: this.aiData };
+    let changed = false;
+
+    const dNotaire = rules.computeDateDesignationNotaire(input);
+    if (dNotaire != null) {
+      this.dateDesignationNotaire.set(dNotaire);
+      this.notaireDesigne.set(true);
+      this.provenanceDateDesignationNotaire.set('IA');
+      changed = true;
+    }
+
+    const dOuverture = rules.computeDateOuvertureOperations(input);
+    if (dOuverture != null) {
+      this.dateOuvertureOperations.set(dOuverture);
+      this.operationsOuvertes.set(true);
+      this.provenanceDateOuvertureOperations.set('IA');
+      changed = true;
+    }
+
+    const dNotif = rules.computeDateNotificationProjet(input);
+    if (dNotif != null) {
+      this.dateNotificationProjet.set(dNotif);
+      this.projetLiquidationEtabli.set(true);
+      this.provenanceDateNotificationProjet.set('IA');
+      changed = true;
+    }
+
+    const dHomolog = rules.computeDateHomologation(input);
+    if (dHomolog != null) {
+      this.dateHomologation.set(dHomolog);
+      this.homologationDemandee.set(true);
+      this.provenanceDateHomologation.set('IA');
+      changed = true;
+    }
+
+    if (changed) this.cdr.markForCheck();
   }
 
   toggleCollapse(): void {
@@ -212,22 +252,32 @@ export class LiquidationPartageBeSectionComponent implements OnInit, OnChanges {
 
   onNotaireChange(value: boolean): void {
     this.notaireDesigne.set(value);
-    if (!value) this.dateDesignationNotaire.set(null);
+    if (!value) { this.dateDesignationNotaire.set(null); this.provenanceDateDesignationNotaire.set(null); }
   }
 
   onOperationsChange(value: boolean): void {
     this.operationsOuvertes.set(value);
-    if (!value) this.dateOuvertureOperations.set(null);
+    if (!value) { this.dateOuvertureOperations.set(null); this.provenanceDateOuvertureOperations.set(null); }
   }
 
   onProjetLiquidationChange(value: boolean): void {
     this.projetLiquidationEtabli.set(value);
-    if (!value) this.dateNotificationProjet.set(null);
+    if (!value) { this.dateNotificationProjet.set(null); this.provenanceDateNotificationProjet.set(null); }
   }
 
   onHomologationChange(value: boolean): void {
     this.homologationDemandee.set(value);
-    if (!value) this.dateHomologation.set(null);
+    if (!value) { this.dateHomologation.set(null); this.provenanceDateHomologation.set(null); }
+  }
+
+  /** SF-246-28 — Reset provenance date au changement manuel par l'avocat. */
+  onDateChange(field: 'notaire' | 'ouverture' | 'notification' | 'homologation'): void {
+    switch (field) {
+      case 'notaire': this.provenanceDateDesignationNotaire.set(null); break;
+      case 'ouverture': this.provenanceDateOuvertureOperations.set(null); break;
+      case 'notification': this.provenanceDateNotificationProjet.set(null); break;
+      case 'homologation': this.provenanceDateHomologation.set(null); break;
+    }
   }
 
   /**
