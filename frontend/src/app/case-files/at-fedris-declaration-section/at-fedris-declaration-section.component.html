@@ -1,0 +1,195 @@
+<div class="at-fedris-declaration-section">
+  <button class="section-header" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">event_busy</mat-icon>
+    <span class="section-title">Déclaration AT Fedris (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="at-fedris-declaration-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result">
+          <mat-icon>info</mat-icon>
+          <span>Cet outil est réservé aux dossiers de droit du travail belge.</span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <p class="form-help">
+            Calcule le délai légal de déclaration d'un accident du travail à
+            Fedris (Loi du 10/04/1971 art. 62 — 8 jours calendaires à compter
+            de la connaissance de l'accident par l'employeur ; AR 21/12/1971
+            art. 25 — modalités).
+          </p>
+
+          <div class="form-grid">
+            <!-- 1. Date de l'accident (requis) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de l'accident *</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateAccident()"
+                       (ngModelChange)="onDateAccidentChange($event)"
+                       name="dateAccident" required />
+              </mat-form-field>
+              @if (provenanceDateAccident() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().DATE_ACCIDENT; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_ACCIDENT')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 2. Date de connaissance par l'employeur (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de connaissance par l'employeur (par défaut = date d'accident)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateConnaissanceEmployeur()"
+                       (ngModelChange)="onDateConnaissanceChange($event)"
+                       name="dateConnaissanceEmployeur" />
+              </mat-form-field>
+              @if (provenanceDateConnaissance() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().DATE_CONNAISSANCE_EMPLOYEUR; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_CONNAISSANCE_EMPLOYEUR')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- 3. Date d'action envisagée (optionnel, défaut today) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'action envisagée (par défaut = aujourd'hui)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateActionEnvisagee()"
+                       (ngModelChange)="onDateActionChange($event)"
+                       name="dateActionEnvisagee" />
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Checkbox mode rétrospectif -->
+            <div class="field-with-alert full-width checkbox-row">
+              <mat-checkbox
+                [ngModel]="declarationDejaEffectuee()"
+                (ngModelChange)="onDeclarationDejaEffectueeChange($event)"
+                name="declarationDejaEffectuee">
+                Déclaration déjà effectuée ?
+              </mat-checkbox>
+            </div>
+
+            <!-- 5. Date déclaration effective — visible UNIQUEMENT si checkbox cochée -->
+            @if (declarationDejaEffectuee()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de la déclaration effective *</mat-label>
+                  <input matInput
+                         type="date"
+                         [ngModel]="dateDeclarationEffectuee()"
+                         (ngModelChange)="onDateDeclarationEffectueeChange($event)"
+                         name="dateDeclarationEffectuee" required />
+                </mat-form-field>
+              </div>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="calculate()"
+                    [disabled]="calculating() || !formValid()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>event_busy</mat-icon> Calculer le délai Fedris
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="results">
+          <div class="verdict-card" [class]="verdictClass(result()!.verdict)">
+            <mat-icon class="verdict-icon">{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="verdict-block">
+              <span class="verdict-label">{{ verdictLabel(result()!.verdict) }}</span>
+              @if (isJoursEnRetard()) {
+                <span class="verdict-detail">Retard de {{ joursDeRetard() }} jour(s)</span>
+              } @else {
+                <span class="verdict-detail">
+                  Jours restants : <strong [class]="joursRestantsClass()">{{ result()!.joursRestants }}</strong>
+                </span>
+              }
+            </div>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Date limite de déclaration</span>
+            <p class="date-limite">{{ result()!.dateLimiteDeclaration }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Règle appliquée</span>
+            <p>{{ result()!.regleAppliquee }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Base juridique</span>
+            <p class="legal-mono">{{ result()!.baseJuridique }}</p>
+          </div>
+
+          <div class="rec-section">
+            <span class="rec-section-label">Formule de calcul</span>
+            <p class="legal-mono">{{ result()!.formuleCalcul }}</p>
+          </div>
+
+          <div class="alert-banner" [class]="consequencesClass(result()!.verdict)">
+            <mat-icon>{{ result()!.verdict === 'DELAI_DEPASSE' || result()!.verdict === 'DECLARATION_HORS_DELAI' ? 'error' : 'info' }}</mat-icon>
+            <span>{{ result()!.consequencesNonRespect }}</span>
+          </div>
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier les paramètres
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

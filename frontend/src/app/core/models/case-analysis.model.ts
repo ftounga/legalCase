@@ -426,6 +426,15 @@ export interface TravailExtractedData {
   dateNotificationDecisionOnem?: string | null;
   dateDecisionDirecteur?: string | null;
   recoursAdminDejaForme?: boolean | null;
+  /**
+   * SF-207-04 / SF-207-04b : 2 champs IA Travail BE pour pré-fill F-207
+   * (déclaration AT Fedris). BE-only — restent null pour FR.
+   * `dateAccident` : date de survenance de l'accident du travail (ISO YYYY-MM-DD).
+   * `dateConnaissanceAccidentEmployeur` : date à laquelle l'employeur a eu
+   * connaissance de l'accident (point de départ du délai 8 j Fedris, ISO).
+   */
+  dateAccident?: string | null;
+  dateConnaissanceAccidentEmployeur?: string | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.
