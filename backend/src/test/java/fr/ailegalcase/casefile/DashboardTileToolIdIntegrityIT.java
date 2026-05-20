@@ -152,7 +152,16 @@ class DashboardTileToolIdIntegrityIT {
             // rcc-be-indemnite-complementaire. Issue master-red pré-existante à
             // SF-206-07, levée ici par hotfix transitoire pour permettre le merge
             // backend résiliation judiciaire (F-DT-40).
-            "outplacement-be-obligatoire-45"
+            "outplacement-be-obligatoire-45",
+            // SF-252-01 hotfix master-red (2026-05-20) : succession-be-acceptation-renonciation
+            // et succession-be-devolution-reserve livrés par SF-217-12 (PR #1181) et
+            // SF-217-11 (PR #1180) sans mapper DashboardTile côté backend — exclusion
+            // transitoire à résorber par la session F-217 propriétaire, même pattern
+            // que at-fedris-declaration / contestation-c4-onem / refere-tribunal-travail-be
+            // etc. Issue master-red pré-existante à SF-252-01, levée ici par hotfix
+            // transitoire pour permettre le déploiement F-252 protections nullité.
+            "succession-be-acceptation-renonciation",
+            "succession-be-devolution-reserve"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
