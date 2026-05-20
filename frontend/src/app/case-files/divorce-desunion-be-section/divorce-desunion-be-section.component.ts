@@ -329,8 +329,8 @@ export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
     // 2. QUESTION_IA "oui"
     this.scanAiQuestions(builder, 'DATE_SEPARATION', user);
 
-    // 3. IA aiData.dateSeparation
-    const iaDate = this.aiDataSignal()?.dateSeparation;
+    // 3. IA aiData.dateSeparationBe (SF-246-12 — source backend réelle BE)
+    const iaDate = this.aiDataSignal()?.dateSeparationBe;
     if (typeof iaDate === 'string' && iaDate.length > 0 && iaDate !== user) {
       builder.addSource('IA', {
         expectedDisplay: iaDate,

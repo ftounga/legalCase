@@ -240,6 +240,10 @@ public final class LegalDomainPromptBuilder {
               **RÈGLE ANTI-DOUBLONS** : `date_pma` (début protocole), `date_reconnaissance_anterieure_pma` (acte notarié) et `date_don_gametes` (don de gamètes) sont TROIS concepts distincts — ne jamais renseigner le même acte dans deux champs différents. `date_assignation_divorce` (FR) et `date_audience_homologation_dc_be` (BE) ne peuvent pas être tous les deux renseignés pour le même dossier.
               **RÈGLE BELGIQUE / FRANCE** : `date_assignation_divorce` = FR uniquement. `date_audience_homologation_dc_be` = BE uniquement. Pour un dossier mixte ou dont la juridiction n'est pas établie → null pour les deux.
               **RÈGLE NO-OP GRACIEUX** : si le sous-objet `protection_divorce_detection_v2` est absent ou null dans la réponse IA, l'extracteur retourne null pour tous les 8 champs sans erreur — comportement no-op garanti.
+            SF-246-12 — Sous-objet `divorce_ddi_be_detection` (divorce pour désunion irrémédiable BE — BELGIQUE UNIQUEMENT).
+              "divorce_ddi_be_detection" : objet OU null. **BELGIQUE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille BELGIQUE comportant une procédure de divorce pour désunion irrémédiable (DDI) documentée dans les pièces (CC art. 229 § 1 ou § 3 ; CJ art. 1255 § 1 ou § 2). Pour un dossier famille FRANCE, ce sous-objet DOIT rester null. Le champ interne :
+                - "date_separation_be" : chaîne ISO YYYY-MM-DD ou null. **BELGIQUE UNIQUEMENT** — date de la cessation effective de la vie commune entre les époux (CJ art. 1255 § 1). DISTINCT de `date_separation` FR (SF-246-08), de la date du mariage, de la date de la requête introductive d'instance, de la date de l'assignation et de `date_accord_initial_divorce` (SF-239). Null si non documentée avec certitude ou dossier FRANCE. Format YYYY-MM-DD strict.
+              **RÈGLE NO-OP GRACIEUX** : si le sous-objet `divorce_ddi_be_detection` est absent ou null, l'extracteur retourne null pour `dateSeparationBe` sans erreur.
             """;
 
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis

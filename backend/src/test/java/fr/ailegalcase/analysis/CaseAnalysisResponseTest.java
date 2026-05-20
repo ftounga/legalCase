@@ -5953,4 +5953,102 @@ class CaseAnalysisResponseTest {
         assertThat(f.dateAssignationDivorce()).isNull();
         assertThat(f.dateAudienceHomologationDcBe()).isNull();
     }
+
+    // =========================================================================
+    // SF-246-12 — divorce_ddi_be_detection (Famille BE — divorce-desunion-be)
+    // =========================================================================
+
+    @Test
+    void extractFamilleData_sf24612_nominal_dateSeparationBe() throws Exception {
+        // Cas nominal : sous-objet présent + date ISO valide → dateSeparationBe renseigné.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_ddi_envisage": true,
+                    "divorce_ddi_be_detection": {
+                      "date_separation_be": "2024-11-15"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparationBe()).isEqualTo("2024-11-15");
+    }
+
+    @Test
+    void extractFamilleData_sf24612_sousObjetAbsent_dateSeparationBeNull() throws Exception {
+        // Cas absent : pas de sous-objet divorce_ddi_be_detection → null (no-op gracieux).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_ddi_envisage": true
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparationBe()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24612_dateNonIso_null() throws Exception {
+        // Cas date non-ISO : rejetée → null (fail-open, invariant §5.1.6).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_ddi_envisage": true,
+                    "divorce_ddi_be_detection": {
+                      "date_separation_be": "15/11/2024"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparationBe()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24612_multiDates_seuleDateSeparationBe() throws Exception {
+        // Cas multi-dates (invariant cadrage §5.1.6) :
+        // date_mariage + date_separation_be + date_requete distincts →
+        // seule date_separation_be est extraite dans dateSeparationBe.
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_ddi_envisage": true,
+                    "divorce_ddi_be_detection": {
+                      "date_separation_be": "2023-06-01"
+                    }
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparationBe()).isEqualTo("2023-06-01");
+        // dateSeparation FR (SF-246-08) n'est PAS affectée par le sous-objet BE.
+        assertThat(f.dateSeparation()).isNull();
+    }
+
+    @Test
+    void extractFamilleData_sf24612_sousObjetNullExplicite_null() throws Exception {
+        // Cas sous-objet explicitement null → null (no-op gracieux).
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree("""
+                {
+                  "famille_extracted_data": {
+                    "divorce_ddi_envisage": true,
+                    "divorce_ddi_be_detection": null
+                  }
+                }
+                """);
+        var f = CaseAnalysisResponse.extractFamilleData(root);
+        assertThat(f).isNotNull();
+        assertThat(f.dateSeparationBe()).isNull();
+    }
 }
