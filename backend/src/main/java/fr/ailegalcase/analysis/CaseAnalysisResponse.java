@@ -498,7 +498,18 @@ public record CaseAnalysisResponse(
             String rpeAtteinteLiberteFondamentale,
             Boolean rpeLettreRuptureMotivee,
             Boolean rpeMotifsAveresParPieces,
-            Boolean rpeCcnPlusFavorableRespectee) {
+            Boolean rpeCcnPlusFavorableRespectee,
+            // SF-212-01 : 6 champs IA pour pré-fill F-DT-36-licenciement-faute-grave-lourde
+            // (Travail FR uniquement, nullables). Sous-objet `faute_grave_detail`.
+            // La distinction faute grave / faute lourde (L. 1234-1 CT ; L. 1234-9 CT)
+            // est un mécanisme franco-français — ces champs restent null pour la BE
+            // (le motif grave belge relève d'un outil distinct F-DT-27).
+            String fauteGraveFaitsReproches,
+            List<String> fauteGraveDatesFaits,
+            String fauteGraveQualificationEmployeur,
+            Boolean fauteGraveIntentionNuireAlleeguee,
+            Integer fauteGraveAncienneteMois,
+            Double fauteGraveSalaireMensuelBrut) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -714,7 +725,14 @@ public record CaseAnalysisResponse(
                     .rpeAtteinteLiberteFondamentale(rpeAtteinteLiberteFondamentale)
                     .rpeLettreRuptureMotivee(rpeLettreRuptureMotivee)
                     .rpeMotifsAveresParPieces(rpeMotifsAveresParPieces)
-                    .rpeCcnPlusFavorableRespectee(rpeCcnPlusFavorableRespectee);
+                    .rpeCcnPlusFavorableRespectee(rpeCcnPlusFavorableRespectee)
+                    // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+                    .fauteGraveFaitsReproches(fauteGraveFaitsReproches)
+                    .fauteGraveDatesFaits(fauteGraveDatesFaits)
+                    .fauteGraveQualificationEmployeur(fauteGraveQualificationEmployeur)
+                    .fauteGraveIntentionNuireAlleeguee(fauteGraveIntentionNuireAlleeguee)
+                    .fauteGraveAncienneteMois(fauteGraveAncienneteMois)
+                    .fauteGraveSalaireMensuelBrut(fauteGraveSalaireMensuelBrut);
         }
 
         public static final class Builder {
@@ -925,6 +943,13 @@ public record CaseAnalysisResponse(
             private Boolean rpeLettreRuptureMotivee;
             private Boolean rpeMotifsAveresParPieces;
             private Boolean rpeCcnPlusFavorableRespectee;
+            // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+            private String fauteGraveFaitsReproches;
+            private List<String> fauteGraveDatesFaits;
+            private String fauteGraveQualificationEmployeur;
+            private Boolean fauteGraveIntentionNuireAlleeguee;
+            private Integer fauteGraveAncienneteMois;
+            private Double fauteGraveSalaireMensuelBrut;
 
             private Builder() {}
 
@@ -1130,6 +1155,13 @@ public record CaseAnalysisResponse(
             public Builder rpeLettreRuptureMotivee(Boolean v) { this.rpeLettreRuptureMotivee = v; return this; }
             public Builder rpeMotifsAveresParPieces(Boolean v) { this.rpeMotifsAveresParPieces = v; return this; }
             public Builder rpeCcnPlusFavorableRespectee(Boolean v) { this.rpeCcnPlusFavorableRespectee = v; return this; }
+            // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+            public Builder fauteGraveFaitsReproches(String v) { this.fauteGraveFaitsReproches = v; return this; }
+            public Builder fauteGraveDatesFaits(List<String> v) { this.fauteGraveDatesFaits = v; return this; }
+            public Builder fauteGraveQualificationEmployeur(String v) { this.fauteGraveQualificationEmployeur = v; return this; }
+            public Builder fauteGraveIntentionNuireAlleeguee(Boolean v) { this.fauteGraveIntentionNuireAlleeguee = v; return this; }
+            public Builder fauteGraveAncienneteMois(Integer v) { this.fauteGraveAncienneteMois = v; return this; }
+            public Builder fauteGraveSalaireMensuelBrut(Double v) { this.fauteGraveSalaireMensuelBrut = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1243,7 +1275,11 @@ public record CaseAnalysisResponse(
                         rpeAuteurRupture, rpeDelaiPrevenanceJours,
                         rpeMotifLieCompetences, rpeMotifEconomique,
                         rpeAtteinteLiberteFondamentale, rpeLettreRuptureMotivee,
-                        rpeMotifsAveresParPieces, rpeCcnPlusFavorableRespectee);
+                        rpeMotifsAveresParPieces, rpeCcnPlusFavorableRespectee,
+                        // SF-212-01 — faute_grave_detail (FRANCE uniquement)
+                        fauteGraveFaitsReproches, fauteGraveDatesFaits,
+                        fauteGraveQualificationEmployeur, fauteGraveIntentionNuireAlleeguee,
+                        fauteGraveAncienneteMois, fauteGraveSalaireMensuelBrut);
             }
         }
     }

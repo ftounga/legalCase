@@ -85,7 +85,11 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(CongesPayesArretMaladieRepository.class),
                 mock(PriseActeRuptureRepository.class),
                 mock(ResiliationJudiciaireCphRepository.class),
+<<<<<<< HEAD
                 mock(EtrangerMaladeRepository.class),
+=======
+                mock(LicenciementFauteGraveLourdRepository.class),
+>>>>>>> feat(SF-212-01): backend outil décisionnel faute grave / faute lourde (F-DT-36 FR)
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
                 mock(CrrvRefusVisaRepository.class),

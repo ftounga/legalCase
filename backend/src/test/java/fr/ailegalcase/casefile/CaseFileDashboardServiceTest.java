@@ -86,8 +86,13 @@ class CaseFileDashboardServiceTest {
     private PriseActeRuptureRepository priseActeRuptureRepo;
     // SF-206-07 : F-DT-40 résiliation judiciaire CPH (FR)
     private ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
+<<<<<<< HEAD
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
     private EtrangerMaladeRepository etrangerMaladeRepo;
+=======
+    // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
+    private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
+>>>>>>> feat(SF-212-01): backend outil décisionnel faute grave / faute lourde (F-DT-36 FR)
     private JldRetentionRepository jldRetentionRepo;
     private DublinRecoursRepository dublinRecoursRepo;
     private CrrvRefusVisaRepository crrvRefusVisaRepo;
@@ -210,7 +215,11 @@ class CaseFileDashboardServiceTest {
         congesPayesArretMaladieRepo = mock(CongesPayesArretMaladieRepository.class);
         priseActeRuptureRepo = mock(PriseActeRuptureRepository.class);
         resiliationJudiciaireCphRepo = mock(ResiliationJudiciaireCphRepository.class);
+<<<<<<< HEAD
         etrangerMaladeRepo = mock(EtrangerMaladeRepository.class);
+=======
+        licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
+>>>>>>> feat(SF-212-01): backend outil décisionnel faute grave / faute lourde (F-DT-36 FR)
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
         crrvRefusVisaRepo = mock(CrrvRefusVisaRepository.class);
@@ -425,7 +434,11 @@ class CaseFileDashboardServiceTest {
                 congesPayesArretMaladieRepo,
                 priseActeRuptureRepo,
                 resiliationJudiciaireCphRepo,
+<<<<<<< HEAD
                 etrangerMaladeRepo,
+=======
+                licenciementFauteGraveLourdRepo,
+>>>>>>> feat(SF-212-01): backend outil décisionnel faute grave / faute lourde (F-DT-36 FR)
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
                 acceptationRenonciationSuccessionRepo, autoriteParentaleBeRepo,
