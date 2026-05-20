@@ -1,47 +1,254 @@
-<div class="prestation-compensatoire-section">
-  @if (estimate; as e) {
-    <div class="compensation-block">
-      @if (e.donneesPartielles) {
-        <div class="compensation-warning">
-          <mat-icon class="compensation-warning__icon">warning_amber</mat-icon>
-          <span>Données partielles — vérifier les revenus et la durée du mariage</span>
+<section class="pc-section">
+  <header class="pc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pc-body">
+    <mat-icon class="pc-icon">balance</mat-icon>
+    <span class="pc-title">PRESTATION COMPENSATOIRE</span>
+    @if (result()) {
+      <span class="pc-chip-summary">
+        {{ formatEuros(result()!.montantCapitalIndicatifEur) }}
+      </span>
+    }
+    <mat-icon class="pc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pc-body" class="pc-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="pc-country-banner" data-testid="pc-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil applicable uniquement en droit français (art. 270 Cciv). Le droit belge prévoit la pension alimentaire entre ex-conjoints (art. 301 CC BE) — voir l'outil contribution-conjoint-be.</span>
         </div>
-      }
-      <div class="compensation-grid">
-        <div class="compensation-row compensation-row--main">
-          <span class="compensation-label">Fourchette de capital</span>
-          <span class="compensation-value">{{ formatEuros(e.montantMin) }} – {{ formatEuros(e.montantMax) }}</span>
+      } @else if (loading()) {
+        <div class="pc-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
         </div>
-        <div class="compensation-row compensation-row--detail">
-          <span class="compensation-label">Écart de revenus</span>
-          <span class="compensation-value">{{ formatEuros(e.ecartRevenus) }}/mois</span>
-        </div>
-        <div class="compensation-row compensation-row--detail">
-          <span class="compensation-label">Barème</span>
-          <span class="compensation-value">
-            {{ e.pays === 'BELGIQUE' ? 'Belgique (coeff. 0.25)' : 'France art. 271 Cciv (coeff. 0.30)' }}
-          </span>
-        </div>
-        @if (e.jurisprudenceRange; as r) {
-          <div class="compensation-row compensation-row--separator"></div>
-          <div class="compensation-row compensation-row--detail" [matTooltip]="r.sourceRef">
-            <span class="compensation-label">{{ r.label }}</span>
-            <span class="compensation-value">
-              {{ formatEuros(r.p25) }} <em>(p25)</em>
-              — {{ formatEuros(r.p50) }} <em>(médiane)</em>
-              — {{ formatEuros(r.p75) }} <em>(p75)</em>
-            </span>
+      } @else {
+        @if (showForm()) {
+          <form class="pc-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Durée du mariage et âges -->
+            <div class="pc-block pc-full">
+              <span class="pc-block-label">Durée du mariage et âges</span>
+
+              <div class="pc-field-with-alert">
+                <mat-form-field appearance="outline" class="pc-inline-field">
+                  <mat-label>Durée du mariage (années) *</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="dureeMariageAnnees()"
+                         (ngModelChange)="onDureeMariageChange($event)"
+                         name="dureeMariageAnnees"
+                         required />
+                </mat-form-field>
+                @if (provenanceDureeMariage() === 'IA') {
+                  <span class="pc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="pc-grid-2">
+                <div class="pc-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Âge époux 1 (années) *</mat-label>
+                    <input matInput type="number" min="0" max="120" step="1"
+                           [ngModel]="ageEpoux1Annees()"
+                           (ngModelChange)="onAgeEpoux1Change($event)"
+                           name="ageEpoux1Annees"
+                           required />
+                  </mat-form-field>
+                  @if (provenanceAgeEpoux1() === 'IA') {
+                    <span class="pc-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+                <div class="pc-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Âge époux 2 (années) *</mat-label>
+                    <input matInput type="number" min="0" max="120" step="1"
+                           [ngModel]="ageEpoux2Annees()"
+                           (ngModelChange)="onAgeEpoux2Change($event)"
+                           name="ageEpoux2Annees"
+                           required />
+                  </mat-form-field>
+                  @if (provenanceAgeEpoux2() === 'IA') {
+                    <span class="pc-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Revenus annuels -->
+            <div class="pc-block pc-full">
+              <span class="pc-block-label">Revenus annuels bruts (€/an)</span>
+              <div class="pc-grid-2">
+                <div class="pc-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Revenus époux 1 *</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="revenusAnnuelsEpoux1Eur()"
+                           (ngModelChange)="onRevenusEpoux1Change($event)"
+                           name="revenusAnnuelsEpoux1Eur"
+                           required />
+                  </mat-form-field>
+                  @if (provenanceRevenusEpoux1() === 'IA') {
+                    <span class="pc-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+                <div class="pc-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Revenus époux 2 *</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="revenusAnnuelsEpoux2Eur()"
+                           (ngModelChange)="onRevenusEpoux2Change($event)"
+                           name="revenusAnnuelsEpoux2Eur"
+                           required />
+                  </mat-form-field>
+                  @if (provenanceRevenusEpoux2() === 'IA') {
+                    <span class="pc-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Patrimoine propre (facultatif) -->
+            <div class="pc-block pc-full">
+              <span class="pc-block-label">Patrimoine propre (facultatif, €)</span>
+              <div class="pc-grid-2">
+                <mat-form-field appearance="outline">
+                  <mat-label>Patrimoine propre époux 1</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="patrimoinePropre1Eur()"
+                         (ngModelChange)="onPatrimoine1Change($event)"
+                         name="patrimoinePropre1Eur" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Patrimoine propre époux 2</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="patrimoinePropre2Eur()"
+                         (ngModelChange)="onPatrimoine2Change($event)"
+                         name="patrimoinePropre2Eur" />
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Bloc 4 — Forme demandée et avantage matrimonial -->
+            <div class="pc-block pc-full">
+              <span class="pc-block-label">Forme demandée (art. 274 Cciv)</span>
+              <mat-form-field appearance="outline" class="pc-inline-field">
+                <mat-label>Forme de prestation demandée</mat-label>
+                <mat-select [ngModel]="formePrestationDemandee()"
+                            (ngModelChange)="onFormePrestationChange($event)"
+                            name="formePrestationDemandee">
+                  @for (f of formesPrestation; track f.value) {
+                    <mat-option [value]="f.value">{{ f.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div class="pc-field-with-alert">
+                <div class="pc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="avantageMatrimonialDetecte()"
+                      (ngModelChange)="onAvantageMatrimonialChange($event)"
+                      name="avantageMatrimonialDetecte">
+                    Avantage matrimonial détecté (clause d'attribution intégrale — art. 1527 Cciv)
+                  </mat-slide-toggle>
+                </div>
+                @if (provenanceAvantageMatrimonial() === 'IA') {
+                  <span class="pc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="pc-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la prestation</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="pc-result">
+            <!-- Bannière verdict avec forme recommandée + montant -->
+            <div class="pc-verdict-banner">
+              <mat-icon>balance</mat-icon>
+              <div class="pc-verdict-content">
+                <strong>Prestation compensatoire indicative</strong>
+                <span [class]="formeRecommandeeClass(result()!.formeRecommandee)">
+                  {{ formeRecommandeeLabel(result()!.formeRecommandee) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Montants -->
+            <div class="pc-figures-block">
+              <div class="pc-figure">
+                <span class="pc-figure-label">Capital indicatif</span>
+                <span class="pc-figure-value" data-testid="pc-montant-capital">
+                  {{ formatEuros(result()!.montantCapitalIndicatifEur) }}
+                </span>
+              </div>
+              <div class="pc-figure">
+                <span class="pc-figure-label">Rente mensuelle indicative</span>
+                <span class="pc-figure-value" data-testid="pc-montant-rente">
+                  {{ formatEuros(result()!.renteIndicativeMensuelleEur) }} / mois
+                </span>
+              </div>
+            </div>
+
+            <!-- Disparité de niveaux de vie -->
+            @if (result()!.dispAriteNiveauxVie) {
+              <div class="pc-disparite-block">
+                <span class="pc-disparite-label">Disparité de niveaux de vie</span>
+                <span class="pc-disparite-value">{{ result()!.dispAriteNiveauxVie }}</span>
+              </div>
+            }
+
+            <!-- Base juridique -->
+            @if (result()!.baseJuridique) {
+              <div class="pc-bases-block">
+                <span class="pc-bases-label">Base juridique</span>
+                <span class="pc-base-chip" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              </div>
+            }
+
+            <div class="pc-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="pc-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.alertes?.length) {
+              <ul class="pc-alertes" data-testid="pc-alertes">
+                @for (a of result()!.alertes; track a) {
+                  <li><mat-icon>warning</mat-icon> {{ a }}</li>
+                }
+              </ul>
+            }
           </div>
         }
-      </div>
-      <p class="compensation-disclaimer">
-        Estimation indicative — fixée discrétionnairement par le juge (art. 271 Cciv)
-      </p>
-    </div>
-  } @else {
-    <div class="empty-state">
-      <mat-icon>info</mat-icon>
-      <p>Aucune donnée de prestation compensatoire détectée dans l'analyse.</p>
+      }
     </div>
   }
-</div>
+</section>

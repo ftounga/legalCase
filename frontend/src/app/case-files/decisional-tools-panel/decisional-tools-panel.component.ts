@@ -1122,14 +1122,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
-      // F-198 SF-198-01 : restauration de F-FA-01-prestation-compensatoire
-      // (DELETE par migration 191, restauré par migration 212). Wrapper
-      // présentationnel sur synthesis.prestationCompensatoireEstimate.
+      // SF-216-02 : composant simulateur complet (POST/GET backend SF-216-01).
+      // Remplace le wrapper présentationnel SF-198-01. Pré-fill IA branché sur
+      // `synthesis.familleExtractedData` (6 champs : durée mariage, revenus 1/2,
+      // âges 1/2, avantage matrimonial via clause attribution intégrale).
       ['F-FA-01-prestation-compensatoire', {
         displayLabel: 'Prestation compensatoire (FR)',
         component: PrestationCompensatoireSectionComponent,
         inputs: (ctx) => ({
-          synthesis: ctx.synthesis,
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // F-198 SF-198-02 : restauration de F-FA-02-pension-alimentaire (DELETE
