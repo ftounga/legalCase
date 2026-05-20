@@ -470,6 +470,22 @@ export interface TravailExtractedData {
   anneesCarriereSalarie?: number | null;
   metierLourdDetecte?: boolean | null;
   entrepriseEnDifficulteDetectee?: boolean | null;
+  /**
+   * SF-207-07 / SF-207-07b : 3 champs IA Travail BE pour pré-fill F-207
+   * (RCC BE — indemnité complémentaire, calculateur CCT 17 art. 5). BE-only —
+   * restent null pour FR (pas d'équivalent direct du RCC en droit français).
+   * `remunerationNetteReferenceRccDetectee` : rémunération nette mensuelle de
+   *   référence à la rupture (€). Base de calcul de la formule CCT 17 art. 5
+   *   (indemnité = (remunNette − allocOnem) / 2, plancher 0).
+   * `allocationOnemMensuelleEstimee` : allocation ONEM mensuelle estimée (€).
+   *   Fournie par l'avocat (formule complexe ONEM hors scope IA — estimation
+   *   conservative seulement).
+   * `dateDebutRccEnvisagee` : date de début effective du RCC (ISO YYYY-MM-DD).
+   *   Base de comptage du nombre de mensualités jusqu'à l'âge légal de la pension.
+   */
+  remunerationNetteReferenceRccDetectee?: number | null;
+  allocationOnemMensuelleEstimee?: number | null;
+  dateDebutRccEnvisagee?: string | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.

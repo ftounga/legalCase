@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="265-add-rcc-be-indemnite-complementaire-visibility" author="legalcase">
+        <comment>
+            F-207 SF-207-07b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "RCC BE — indemnité complémentaire"
+            (`rcc-be-indemnite-complementaire`), table d'analyse créée par
+            SF-207-07 (migration 264).
+
+            Le seed est porté par la SF frontend (et non backend) pour rester
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même commit
+            (decisional-tools-panel.component.ts). Précédents : SF-207-06b
+            (migration 263), SF-207-05b (migration 261), SF-207-04b (migration 259),
+            SF-207-03b (migration 257), SF-207-02b (migration 255), SF-207-01b
+            (migration 253). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (mémoire
+            feedback_pre_merge_visibility_seed_check).
+
+            Mode ALWAYS_ON, DROIT_DU_TRAVAIL / BELGIQUE : le chiffrage de
+            l'indemnité complémentaire RCC est un livrable récurrent en
+            consultation BE Travail (immédiatement consécutif à la vérification
+            d'éligibilité rcc-be-conditions). Cohérence avec les 6 autres
+            outils BE Travail F-207 déjà livrés (prescription-be-litige-travail,
+            c4-onem-checklist, contestation-c4-onem, at-fedris-declaration,
+            refere-tribunal-travail-be, rcc-be-conditions), tous ALWAYS_ON.
+
+            priority 95 — placé juste après rcc-be-conditions (priority 94).
+            La chaîne logique RCC est : conditions d'abord (éligibilité),
+            indemnité ensuite (chiffrage). UI miroir : entrée TOOL_REGISTRY
+            insérée directement après `rcc-be-conditions` dans
+            decisional-tools-panel.component.ts.
+
+            UUID namespace dédié F-207 : f1a04001-0000-0000-0000-eeee20700007.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20700007', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'rcc-be-indemnite-complementaire', 'ALWAYS_ON', NULL, NULL, 95);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee20700007';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
