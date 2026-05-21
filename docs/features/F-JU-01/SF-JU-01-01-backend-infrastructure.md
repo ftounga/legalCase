@@ -35,7 +35,7 @@ Créer l'infrastructure backend (3 tables + 1 endpoint GET + 1 service) qui perm
 Quand un composant frontend d'outil décisionnel a besoin d'afficher la jurisprudence applicable à une branche de calcul active, il appelle :
 
 ```
-GET /api/tools/{toolId}/jurisprudence-citations?branch={branchActive}
+GET /api/v1/tools/{toolId}/jurisprudence-citations?branch={branchActive}
 Authorization: Bearer <token>
 ```
 
@@ -126,7 +126,7 @@ Note : aucun cas 403 sur le GET de lecture (mappings sont globaux, lisibles par 
 - [ ] **CA-02** — Migration Liquibase `283-create-jurisprudence-watch-flags.xml` crée la table `jurisprudence_watch_flags` avec colonnes (`id`, `tool_id`, `branche_calcul_id`, `arret_entrant_ref`, `mapping_actuel_id`, `source` enum `CRON` / `USER_SIGNAL`, `confidence_score`, `explication`, `statut` enum `PENDING` / `REVIEWED` / `IGNORED`, `created_at`, `reviewed_at`, `reviewed_by_user_id`, `decision` enum `REPLACE` / `ADD` / `IGNORE`, `comment_user`), index sur `(statut, created_at)`.
 - [ ] **CA-03** — Migration Liquibase `284-create-jurisprudence-audit-log.xml` crée la table `jurisprudence_audit_log` avec colonnes (`id`, `mapping_id`, `action` enum `AUTO_CONFIRM` / `AUTO_ADD` / `AUTO_REPLACE` / `AUTO_ARCHIVE` / `MANUAL_REPLACE` / `MANUAL_ADD` / `MANUAL_IGNORE`, `actor` enum `CRON` / `SUPER_ADMIN`, `actor_user_id` nullable, `claude_confidence` nullable, `claude_reason` nullable, `created_at`), index sur `(mapping_id, created_at)`.
 - [ ] **CA-04** — Service `ToolJurisprudenceService.findByToolAndBranch(String toolId, String brancheId)` retourne `List<ToolJurisprudenceCitationResponse>` avec **maximum 3 résultats**, triés par `confidence_score DESC, date_arret DESC`, en excluant `archived = true`.
-- [ ] **CA-05** — Endpoint `GET /api/tools/{toolId}/jurisprudence-citations?branch={brancheId}` retourne 200 + JSON liste de `ToolJurisprudenceCitationResponse` (0 à 3 éléments). Requiert authentification (rôle `MEMBER` minimum). Pas d'isolation workspace (table globale).
+- [ ] **CA-05** — Endpoint `GET /api/v1/tools/{toolId}/jurisprudence-citations?branch={brancheId}` retourne 200 + JSON liste de `ToolJurisprudenceCitationResponse` (0 à 3 éléments). Requiert authentification (rôle `MEMBER` minimum). Pas d'isolation workspace (table globale).
 - [ ] **CA-06** — Si `toolId` est invalide (vide, > 100 caractères, caractères non-alphanumériques hors `-_`) → 400 avec message d'erreur explicite.
 - [ ] **CA-07** — Si `branch` est absent ou vide → retour 200 + liste vide `[]` (l'outil affichera simplement aucune citation côté frontend).
 - [ ] **CA-08** — Si l'utilisateur n'est pas authentifié → 401.
@@ -208,7 +208,7 @@ Notes :
 
 | Méthode | URL | Auth | Rôle minimum |
 |---------|-----|------|-------------|
-| GET | `/api/tools/{toolId}/jurisprudence-citations?branch={brancheId}` | Oui | MEMBER |
+| GET | `/api/v1/tools/{toolId}/jurisprudence-citations?branch={brancheId}` | Oui | MEMBER |
 
 Note : aucun endpoint POST/PUT/DELETE dans cette SF (écriture livrée en SF-JU-01-05).
 
@@ -272,7 +272,7 @@ Aucun — SF backend pure.
 - `ToolJurisprudenceCitationResponse` — record immutable exposé par l'endpoint (ne contient pas `archived`, ne contient pas `branche_calcul_id` qui est dans l'URL). Préfixe `Tool` explicite pour éviter toute confusion avec la classe Java `JurisprudenceCitation` de F-242 (table `case_jurisprudence_citations`, workspace-scoped, citation per-item par l'avocat) — use cases orthogonaux, voir Note 11 plus bas.
 
 **Contrôleurs Spring** :
-- `ToolJurisprudenceController` — endpoint `@GetMapping("/api/tools/{toolId}/jurisprudence-citations")`, sécurisé via `SecurityConfig` existant (auth required, pas de rôle spécifique car `MEMBER` = défaut)
+- `ToolJurisprudenceController` — endpoint `@GetMapping("/api/v1/tools/{toolId}/jurisprudence-citations")`, sécurisé via `SecurityConfig` existant (auth required, pas de rôle spécifique car `MEMBER` = défaut)
 
 ---
 
@@ -338,7 +338,7 @@ Aucune. SF-JU-01-01 est la première SF de F-JU-01, démarrable immédiatement.
 
 - **SF-JU-01-02** (cron veille mensuelle) — a besoin du repository `ToolJurisprudenceMappingRepository` + `JurisprudenceWatchFlagRepository` + `JurisprudenceAuditLogRepository`
 - **SF-JU-01-03** (cron dérive quotidienne) — a besoin du repository `ToolJurisprudenceMappingRepository`
-- **SF-JU-01-04** (frontend composant + bouton signaler) — a besoin de l'endpoint `GET /api/tools/{toolId}/jurisprudence-citations`
+- **SF-JU-01-04** (frontend composant + bouton signaler) — a besoin de l'endpoint `GET /api/v1/tools/{toolId}/jurisprudence-citations`
 - **SF-JU-01-05** (bootstrap auto + dashboard admin) — a besoin des 3 tables + service de base
 
 ### Questions ouvertes impactées
@@ -384,4 +384,4 @@ Aucune. SF-JU-01-01 est la première SF de F-JU-01, démarrable immédiatement.
 
 ### Critère de fin de cette SF
 
-L'endpoint `GET /api/tools/{toolId}/jurisprudence-citations?branch={brancheId}` est accessible sur l'environnement staging, retourne 200 + liste vide pour tout `(toolId, branch)` non encore mappé, et passe tous les tests UT + IT verts. Les tables sont créées, les migrations rollbackables, les repositories utilisables par les SF suivantes.
+L'endpoint `GET /api/v1/tools/{toolId}/jurisprudence-citations?branch={brancheId}` est accessible sur l'environnement staging, retourne 200 + liste vide pour tout `(toolId, branch)` non encore mappé, et passe tous les tests UT + IT verts. Les tables sont créées, les migrations rollbackables, les repositories utilisables par les SF suivantes.
