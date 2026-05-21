@@ -2375,6 +2375,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // F-217 SF-217-17 : reconnaissance mariage / divorce étranger BE
+      // (CDIP art. 21+ / 22+ / 25 / 27 / 46 — incluant le talaq).
+      // Migration 281 — CATALOG (situation contextuelle, 20-30 % des
+      // dossiers belges selon audit F-191 § 1.4 ; ajout via F-238).
+      // Backend SF-217-16 bundle.
+      ['mariage-etranger-be-reconnaissance', {
+        displayLabel: 'Reconnaissance mariage / divorce étranger (Belgique)',
+        component: MariageEtrangerBeReconnaissanceSectionComponent,
+        // Composant complet (form + verdict + motifs refus/réserve + actes).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
