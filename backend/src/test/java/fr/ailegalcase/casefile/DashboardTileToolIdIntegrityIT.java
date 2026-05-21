@@ -67,7 +67,14 @@ class DashboardTileToolIdIntegrityIT {
             "F-193-procedure-checks-summary",
             "F-194-pieces-summary",
             "F-195-risques-summary",
-            "F-196-questions-summary"
+            "F-196-questions-summary",
+            // F-253 SF-253-01 (2026-05-21) — tile dédiée au rappel des risques
+            // restant à arbitrer (statut A_CREUSER), cohabite avec
+            // F-195-risques-summary. Routée via BadgeNavigationService côté
+            // frontend (clic → /synthesis#section-risques), donc absente de
+            // decision_tool_visibility_rules (pattern identique aux 5 tiles
+            // résumé ci-dessus).
+            "F-253-risques-a-creuser"
             // SF-212-02 (2026-05-20) : F-DT-36-licenciement-faute-grave-lourde
             // retiré — résolution structurelle complète (seed migration 278 +
             // entrée TOOL_REGISTRY frontend dans decisional-tools-panel.component.ts

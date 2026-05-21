@@ -621,6 +621,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-194-pieces-summary", caseFileId, () -> tileFromPiecesManquantesAlignment(caseFileId));
         // ── F-195 SF-195-01 — risques markables matérialisés ───────────────
         addSafely(tiles, "F-195-risques-summary", caseFileId, () -> tileFromRisquesAlignment(caseFileId));
+        // ── F-253 SF-253-01 — focus À_CREUSER (rappel curation) ────────────
+        addSafely(tiles, "F-253-risques-a-creuser", caseFileId, () -> tileFromRisquesACreuserAlignment(caseFileId));
         // ── F-196 SF-196-01 — questions complémentaires F-94 matérialisées ─
         addSafely(tiles, "F-196-questions-summary", caseFileId, () -> tileFromAiQuestionsAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
@@ -856,6 +858,58 @@ public class CaseFileDashboardService {
                 primary,
                 secondary,
                 alertLevel);
+    }
+
+    /**
+     * F-253 SF-253-01 — Tile dashboard dédiée au rappel des risques restant
+     * à arbitrer (statut {@code A_CREUSER}) sur la dernière analyse {@code DONE}
+     * du dossier. Donne un consommateur explicite à un statut F-195 qui était
+     * écrit en DB mais lu uniquement à l'écran synthèse.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : "N à creuser" (pluralisation appliquée)</li>
+     *   <li>{@code secondaryValue} : "Curation à compléter" (constant)</li>
+     *   <li>{@code alertLevel = WARNING} quand la tile apparaît</li>
+     * </ul>
+     *
+     * <p>Thème {@code DIAGNOSTIC} (cohérent F-195) — les risques relèvent du
+     * diagnostic, pas des délais ni des documents.</p>
+     *
+     * <p><b>Anti-pollution dashboard</b> : la tile retourne {@code null} si
+     * compteur {@code A_CREUSER} = 0 (invariant étape 0 bis n°2 — aucune
+     * apparition « tous arbitrés ✅ », F-195-risques-summary couvre déjà
+     * l'état post-arbitrage).</p>
+     *
+     * <p>Cohabite avec {@link #tileFromRisquesAlignment(UUID)} (F-195) — F-195
+     * affiche la vue globale (V / É / À_C), F-253 met l'accent sur le À_C.</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE}, alignement vide
+     * (legacy pré-F-195 ou matérialisation fail-open) ou compteur À_C = 0.</p>
+     */
+    private DashboardTile tileFromRisquesACreuserAlignment(UUID caseFileId) {
+        if (risqueAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<RisqueAlignment> alignments = risqueAlignmentService
+                .deserializeAlignment(latest.get().getRisquesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long aCreuser = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_A_CREUSER.equals(a.statut()))
+                .count();
+        if (aCreuser == 0) return null;
+
+        String primary = aCreuser + " à creuser";
+        String secondary = "Curation à compléter";
+
+        return new DashboardTile(
+                "F-253-risques-a-creuser",
+                "DIAGNOSTIC",
+                "Risques à arbitrer",
+                primary,
+                secondary,
+                "WARNING");
     }
 
     /**

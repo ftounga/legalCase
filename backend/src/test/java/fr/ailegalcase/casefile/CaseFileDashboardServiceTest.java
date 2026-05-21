@@ -1851,4 +1851,131 @@ class CaseFileDashboardServiceTest {
         var tiles = service.assembleTiles(caseFileId);
         assertThat(tiles.stream().anyMatch(t -> "F-196-questions-summary".equals(t.toolId()))).isFalse();
     }
+
+    // ====================================================================
+    //  F-253 SF-253-01 — tile dédiée rappel des risques restant à arbitrer
+    // ====================================================================
+
+    @Test
+    void f253Tile_aCreuserPresent_warning() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("R1",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_A_CREUSER, null, List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R2",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_A_CREUSER, null, List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R3",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_VALIDE, null, List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f253 = tiles.stream().filter(t -> "F-253-risques-a-creuser".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f253).isNotNull();
+        assertThat(f253.theme()).isEqualTo("DIAGNOSTIC");
+        assertThat(f253.label()).isEqualTo("Risques à arbitrer");
+        assertThat(f253.primaryValue()).isEqualTo("2 à creuser");
+        assertThat(f253.secondaryValue()).isEqualTo("Curation à compléter");
+        assertThat(f253.alertLevel()).isEqualTo("WARNING");
+    }
+
+    @Test
+    void f253Tile_singularPrimary() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("R1",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_A_CREUSER, null, List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f253 = tiles.stream().filter(t -> "F-253-risques-a-creuser".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f253).isNotNull();
+        assertThat(f253.primaryValue()).isEqualTo("1 à creuser");
+    }
+
+    @Test
+    void f253Tile_zeroACreuser_noTile() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("R1",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_VALIDE, null, List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R2",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_ECARTE, "raison", List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-253-risques-a-creuser".equals(t.toolId()))).isFalse();
+    }
+
+    @Test
+    void f253Tile_emptyAlignment_noTile() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-253-risques-a-creuser".equals(t.toolId()))).isFalse();
+    }
+
+    @Test
+    void f253Tile_noAnalysis_noTile() {
+        UUID caseFileId = UUID.randomUUID();
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.empty());
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-253-risques-a-creuser".equals(t.toolId()))).isFalse();
+    }
+
+    @Test
+    void f253Tile_cohabitsWithF195() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("Discrimination",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_VALIDE, null, List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R2",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_ECARTE, "raison", List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R3",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_A_CREUSER, null, List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        // Les 2 tiles cohabitent
+        assertThat(tiles.stream().anyMatch(t -> "F-195-risques-summary".equals(t.toolId()))).isTrue();
+        var f253 = tiles.stream().filter(t -> "F-253-risques-a-creuser".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f253).isNotNull();
+        assertThat(f253.primaryValue()).isEqualTo("1 à creuser");
+    }
 }
