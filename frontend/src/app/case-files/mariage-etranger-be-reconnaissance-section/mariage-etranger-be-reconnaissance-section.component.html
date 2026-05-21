@@ -1,0 +1,322 @@
+<section class="mer-section">
+  <header class="mer-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="mer-body">
+    <mat-icon class="mer-icon">public</mat-icon>
+    <span class="mer-title">RECONNAISSANCE MARIAGE / DIVORCE ÉTRANGER — CDIP BE</span>
+    @if (result()) {
+      <span class="mer-chip-summary"
+            [class.mer-chip-summary--ok]="result()!.verdict === 'RECONNAISSANCE_DE_PLEIN_DROIT'"
+            [class.mer-chip-summary--medium]="result()!.verdict === 'RECONNAISSANCE_POSSIBLE_SOUS_CONDITIONS' || result()!.verdict === 'EXEQUATUR_REQUIS'"
+            [class.mer-chip-summary--ko]="result()!.verdict === 'RECONNAISSANCE_REFUSEE_ORDRE_PUBLIC'"
+            [class.mer-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="mer-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mer-body" class="mer-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="mer-country-banner" data-testid="mer-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — reconnaissance d'un mariage / divorce étranger sous le Code de droit international privé (CDIP, loi 16/07/2004 — à vérifier). L'équivalent français (CC art. 47, 171-1+, Règlements UE) repose sur un cadre fragmenté et fait l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="mer-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="mer-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="mer-form" (ngSubmit)="calculate()">
+            <!-- Bloc nature + pays + date -->
+            <div class="mer-block mer-full">
+              <span class="mer-block-label">Acte étranger à reconnaître</span>
+
+              <mat-form-field appearance="outline" class="mer-inline-field">
+                <mat-label>Nature de l'acte étranger</mat-label>
+                <mat-select [ngModel]="natureActe()"
+                            (ngModelChange)="natureActe.set($event)"
+                            name="natureActe" required>
+                  @for (opt of natureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="mer-inline-field">
+                <mat-label>Pays d'origine de l'acte (ISO 3166-1, ex MA, DZ, TR, FR)</mat-label>
+                <input matInput
+                       [ngModel]="paysOrigine()"
+                       (ngModelChange)="onPaysOrigineChange($event)"
+                       name="paysOrigine" required maxlength="2"
+                       pattern="^[A-Z]{2}$" />
+                <mat-hint>2 lettres majuscules</mat-hint>
+              </mat-form-field>
+
+              <div class="mer-field-with-alert">
+                <mat-form-field appearance="outline" class="mer-inline-field">
+                  <mat-label>Date de l'acte étranger</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateActe()"
+                         (ngModelChange)="dateActe.set($event || null)"
+                         name="dateActe" required />
+                </mat-form-field>
+                @if (coherenceAlerts().DATE_ACTE; as alert) {
+                  <span class="mer-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc parties -->
+            <div class="mer-block mer-full">
+              <span class="mer-block-label">Rattachement des parties à la Belgique</span>
+
+              <mat-form-field appearance="outline" class="mer-inline-field">
+                <mat-label>Résidence habituelle (au moins une partie)</mat-label>
+                <mat-select [ngModel]="residenceHabituelleAuMoinsUnePartie()"
+                            (ngModelChange)="residenceHabituelleAuMoinsUnePartie.set($event)"
+                            name="residenceHabituelleAuMoinsUnePartie" required>
+                  @for (opt of residenceOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="mer-inline-field">
+                <mat-label>Nationalité (au moins une partie)</mat-label>
+                <mat-select [ngModel]="nationaliteAuMoinsUnePartie()"
+                            (ngModelChange)="nationaliteAuMoinsUnePartie.set($event)"
+                            name="nationaliteAuMoinsUnePartie" required>
+                  @for (opt of nationaliteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc fond + forme -->
+            <div class="mer-block mer-full">
+              <span class="mer-block-label">Conformité de l'acte étranger</span>
+              <p class="mer-block-hint">
+                CDIP art. 46 (à vérifier) — loi nationale au moment du mariage ;
+                CDIP art. 27 (à vérifier) — locus regit actum (forme du lieu).
+              </p>
+
+              <div class="mer-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="conformiteDroitFondPersonnel()"
+                    (ngModelChange)="conformiteDroitFondPersonnel.set($event)"
+                    name="conformiteDroitFondPersonnel">
+                  Conditions de fond conformes à la loi personnelle des parties
+                </mat-slide-toggle>
+              </div>
+
+              <div class="mer-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="conformiteFormeLocusRegitActum()"
+                    (ngModelChange)="conformiteFormeLocusRegitActum.set($event)"
+                    name="conformiteFormeLocusRegitActum">
+                  Formes conformes au droit du lieu de célébration
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc talaq conditionnel -->
+            @if (isTalaq()) {
+              <div class="mer-block mer-full mer-talaq-block" data-testid="mer-talaq-block">
+                <span class="mer-block-label">Spécificités talaq / répudiation</span>
+                <p class="mer-block-hint">
+                  La jurisprudence belge accepte la reconnaissance du talaq
+                  (Maroc post-Moudawana 2004 notamment) sous conditions
+                  cumulatives — à vérifier.
+                </p>
+
+                <div class="mer-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="consentementEpouse()"
+                      (ngModelChange)="consentementEpouse.set($event)"
+                      name="consentementEpouse">
+                    Consentement effectif de l'épouse au talaq
+                  </mat-slide-toggle>
+                </div>
+
+                <div class="mer-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="epousePresente()"
+                      (ngModelChange)="epousePresente.set($event)"
+                      name="epousePresente">
+                    Épouse présente ou représentée à la procédure
+                  </mat-slide-toggle>
+                </div>
+
+                <div class="mer-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="procedureContradictoire()"
+                      (ngModelChange)="procedureContradictoire.set($event)"
+                      name="procedureContradictoire">
+                    Procédure contradictoire (droits de la défense)
+                  </mat-slide-toggle>
+                </div>
+
+                <div class="mer-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="decisionEcriteOfficielle()"
+                      (ngModelChange)="decisionEcriteOfficielle.set($event)"
+                      name="decisionEcriteOfficielle">
+                    Décision écrite et officielle (acte authentique / décision)
+                  </mat-slide-toggle>
+                </div>
+              </div>
+            }
+
+            <!-- Bloc convention bilatérale + commentaire -->
+            <div class="mer-block mer-full">
+              <span class="mer-block-label">Convention bilatérale et notes</span>
+
+              <div class="mer-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="conventionBilateraleApplicable()"
+                    (ngModelChange)="conventionBilateraleApplicable.set($event)"
+                    name="conventionBilateraleApplicable">
+                  Une convention bilatérale Belgique-{{ paysOrigine() || 'pays' }} est applicable
+                  (Maroc 1995, Algérie 1991, Turquie 1958 — à vérifier)
+                </mat-slide-toggle>
+              </div>
+
+              <mat-form-field appearance="outline" class="mer-comment-field">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event || null)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="mer-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="mer-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la reconnaissance</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="mer-result">
+            <!-- Bannière verdict -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Synthèse -->
+            <div class="mer-summary-grid">
+              <div class="mer-summary-card">
+                <span class="mer-summary-label">Nature de l'acte</span>
+                <span class="mer-summary-value">{{ natureLabel(result()!.natureActe) }}</span>
+              </div>
+              <div class="mer-summary-card">
+                <span class="mer-summary-label">Pays d'origine</span>
+                <span class="mer-summary-value">{{ result()!.paysOrigine }}</span>
+              </div>
+              <div class="mer-summary-card">
+                <span class="mer-summary-label">Date de l'acte</span>
+                <span class="mer-summary-value">{{ result()!.dateActe }}</span>
+              </div>
+            </div>
+
+            <!-- Motifs de refus -->
+            @if (result()!.motifsRefus.length) {
+              <div class="mer-list-block">
+                <span class="mer-list-label">Motifs de refus</span>
+                <ul class="mer-list">
+                  @for (m of result()!.motifsRefus; track m.code) {
+                    <li class="mer-item" data-testid="mer-motif-refus">
+                      <div class="mer-item-row">
+                        <span class="mer-item-libelle-text">{{ m.libelle }}</span>
+                        <span [class]="severiteClass(m.severite)">{{ severiteLabel(m.severite) }}</span>
+                      </div>
+                      <span class="mer-item-fondement">{{ m.fondement }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Motifs de réserve -->
+            @if (result()!.motifsReserve.length) {
+              <div class="mer-list-block">
+                <span class="mer-list-label">Motifs de réserve</span>
+                <ul class="mer-list">
+                  @for (m of result()!.motifsReserve; track m.code) {
+                    <li class="mer-item" data-testid="mer-motif-reserve">
+                      <div class="mer-item-row">
+                        <span class="mer-item-libelle-text">{{ m.libelle }}</span>
+                        <span [class]="severiteClass(m.severite)">{{ severiteLabel(m.severite) }}</span>
+                      </div>
+                      <span class="mer-item-fondement">{{ m.fondement }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Actes à produire -->
+            @if (result()!.actesAProduire.length) {
+              <div class="mer-list-block">
+                <span class="mer-list-label">Actes à produire</span>
+                <ul class="mer-actions-list">
+                  @for (a of result()!.actesAProduire; track a) {
+                    <li>{{ a }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="mer-bases-block">
+                <span class="mer-bases-label">Bases juridiques</span>
+                <div class="mer-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="mer-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="mer-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="mer-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

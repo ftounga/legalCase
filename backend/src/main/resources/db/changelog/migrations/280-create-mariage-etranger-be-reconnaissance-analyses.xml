@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="280-create-mariage-etranger-be-reconnaissance-analyses" author="legalcase">
+        <comment>
+            SF-217-16 : table dédiée à l'outil décisionnel "Reconnaissance d'un
+            mariage / divorce étranger en Belgique" — incluant le talaq
+            (BELGIQUE).
+
+            Qualifie la reconnaissance en Belgique d'un acte étranger
+            (`MARIAGE_CIVIL_ETRANGER` / `MARIAGE_RELIGIEUX_NON_CIVIL` /
+            `MARIAGE_POLYGAME` / `DIVORCE_JUDICIAIRE_ETRANGER` /
+            `TALAQ_REPUDIATION`) au regard du Code de droit international
+            privé belge (CDIP — loi du 16/07/2004, art. 21+ ordre public,
+            art. 22+ exequatur, art. 25 conditions reconnaissance décisions
+            étrangères, art. 27 reconnaissance de plein droit, art. 46 loi
+            applicable au mariage — à vérifier), des conventions bilatérales
+            (BE-Maroc / BE-Algérie / BE-Turquie) et de la jurisprudence belge
+            sur le talaq (effectivité du consentement de l'épouse, caractère
+            officiel / écrit / contradictoire de la procédure).
+
+            Verdict en 5 niveaux : RECONNAISSANCE_DE_PLEIN_DROIT /
+            RECONNAISSANCE_POSSIBLE_SOUS_CONDITIONS /
+            RECONNAISSANCE_REFUSEE_ORDRE_PUBLIC / EXEQUATUR_REQUIS /
+            QUALIFICATION_INCOMPLETE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul
+            (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 281
+            livrée dans le même bundle SF-217-16/17 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 280 = numéro libre suivant (272-279 déjà pris dont 277
+            SF-217-11 dévolution et 278 seed F-217 vague 3 successions).
+        </comment>
+
+        <createTable tableName="mariage_etranger_be_reconnaissance_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mariage_etranger_be_reco_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mariage_etranger_be_reconnaissance_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mariage_etranger_be_reco_analyses_case_file"/>
+
+        <createIndex tableName="mariage_etranger_be_reconnaissance_analyses"
+                     indexName="idx_mariage_etranger_be_reco_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="mariage_etranger_be_reconnaissance_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

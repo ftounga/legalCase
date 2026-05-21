@@ -199,6 +199,8 @@ import { ContributionConjointBeSectionComponent } from '../contribution-conjoint
 // F-217 SF-217-13 — 2 sections décisionnelles Vague 3 Famille BE — Successions (backends mergés PR #1180 / #1181).
 import { SuccessionBeDevolutionReserveSectionComponent } from '../succession-be-devolution-reserve-section/succession-be-devolution-reserve-section.component';
 import { SuccessionBeAcceptationRenonciationSectionComponent } from '../succession-be-acceptation-renonciation-section/succession-be-acceptation-renonciation-section.component';
+// F-217 SF-217-17 — section décisionnelle Vague 3 Famille BE — Reconnaissance mariage / divorce étranger (talaq inclus). Backend SF-217-16 bundle.
+import { MariageEtrangerBeReconnaissanceSectionComponent } from '../mariage-etranger-be-reconnaissance-section/mariage-etranger-be-reconnaissance-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -2369,6 +2371,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // F-217 SF-217-17 : reconnaissance mariage / divorce étranger BE
+      // (CDIP art. 21+ / 22+ / 25 / 27 / 46 — incluant le talaq).
+      // Migration 281 — CATALOG (situation contextuelle, 20-30 % des
+      // dossiers belges selon audit F-191 § 1.4 ; ajout via F-238).
+      // Backend SF-217-16 bundle.
+      ['mariage-etranger-be-reconnaissance', {
+        displayLabel: 'Reconnaissance mariage / divorce étranger (Belgique)',
+        component: MariageEtrangerBeReconnaissanceSectionComponent,
+        // Composant complet (form + verdict + motifs refus/réserve + actes).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
     ]);
 
   /**
@@ -2470,6 +2492,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // F-217 SF-217-13 : succession BE — quantification de la dévolution et
     // analyse de validité de la réserve héréditaire (CC Livre 4 BE réformé).
     ['succession-be-devolution-reserve', 'VALIDITE'],
+    // F-217 SF-217-17 : reconnaissance mariage / divorce étranger BE — analyse
+    // de validité d'ordre public (CDIP art. 21+ / 27 — talaq inclus).
+    ['mariage-etranger-be-reconnaissance', 'VALIDITE'],
     ['F-FA-18-contestation-paternite', 'VALIDITE'],
     ['F-FA-18-recherche-paternite', 'VALIDITE'],
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],

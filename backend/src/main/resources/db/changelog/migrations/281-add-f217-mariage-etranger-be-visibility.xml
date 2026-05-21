@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="281-add-f217-mariage-etranger-be-visibility" author="legalcase">
+        <comment>
+            F-217 SF-217-17 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `mariage-etranger-be-reconnaissance` (BELGIQUE).
+
+            Mode `CONTEXTUAL` avec flag pivot futur
+            `mariage_etranger_reconnaissance_detecte` (à brancher par le
+            pipeline V2 si signal terrain). En V1, ce flag n'est jamais émis
+            par le pipeline IA — l'outil atterrira donc dans la couche
+            « catalog » runtime (cf. `DecisionToolVisibilityService.buildResponse`,
+            ligne 486 : les règles CONTEXTUAL non déclenchées sont basculées
+            en catalog). L'avocat l'ajoute manuellement via F-238
+            (ManualToolActivation).
+
+            La contrainte CK_DTVR_LAYER_TRIGGER (migration 104) impose qu'une
+            règle CONTEXTUAL ait des `trigger_field` / `trigger_value` non
+            nuls. Le couple choisi documente l'intention V2 — il n'y a pas
+            de mode `CATALOG` natif dans la table V1, c'est dérivé runtime.
+
+            Reconnaissance d'un acte étranger = situation contextuelle
+            (20-30 % des dossiers belges selon audit F-191 § 1.4 — mariage
+            marocain / algérien / turc fréquent). Cohérent avec
+            `SF-217-00-coherence.md` ajustement n° 1.
+
+            Le seed est couplé à l'entrée TOOL_REGISTRY frontend livrée dans
+            le même commit (decisional-tools-panel.component.ts) — sans ce
+            couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue.
+
+            UUID namespace dédié F-217 : f1a04003-0000-0000-0000-eeee2170XXXX.
+            On utilise 003-eeee21700016 cohérent avec la SF (SF-217-16).
+            Numéro 281 = numéro libre suivant après 280 (création table).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21700016', 'DROIT_FAMILLE', 'BELGIQUE', 'mariage-etranger-be-reconnaissance', 'CONTEXTUAL', 'mariage_etranger_reconnaissance_detecte', 'true', 50);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21700016';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
