@@ -25,7 +25,7 @@ configMapGenerator:
       # 1) ajouter CLOUDFRONT_KEY_PAIR_ID/CLOUDFRONT_PRIVATE_KEY au Secret
       #    backend-secrets via le workflow CI/CD ;
       # 2) remplacer le placeholder par le domaine CloudFront prod réel.
-      # - CLOUDFRONT_DOMAIN=CLOUDFRONT_DOMAIN_PROD_PLACEHOLDER
+      - CLOUDFRONT_DOMAIN=dmnw3n9yylwnp.cloudfront.net
 
 patches:
   - path: ingress-patch.yaml

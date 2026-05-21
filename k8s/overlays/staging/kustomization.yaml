@@ -31,7 +31,7 @@ configMapGenerator:
       #
       # Tant que la ligne reste commentée, le backend retombe sur les URLs
       # S3 présignées natives (comportement historique). Pas de régression.
-      # - CLOUDFRONT_DOMAIN=d2oaldre5efpif.cloudfront.net
+      - CLOUDFRONT_DOMAIN=d2oaldre5efpif.cloudfront.net
 
 patches:
   - path: service-account-patch.yaml
