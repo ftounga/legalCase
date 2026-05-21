@@ -1,0 +1,248 @@
+<section class="pmb-section">
+  <header class="pmb-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pmb-body">
+    <mat-icon class="pmb-icon">shield_person</mat-icon>
+    <span class="pmb-title">PROTECTION DU MAJEUR — LOI 17/03/2013 BE</span>
+    @if (result()) {
+      <span class="pmb-chip-summary"
+            [class.pmb-chip-summary--ok]="result()!.verdict === 'MANDAT_EXTRA_JUDICIAIRE_VALABLE'"
+            [class.pmb-chip-summary--medium]="result()!.verdict === 'MESURE_PROTECTION_RECOMMANDEE'"
+            [class.pmb-chip-summary--ko]="result()!.verdict === 'URGENCE_MESURE_PROVISOIRE'"
+            [class.pmb-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ mesureRecommandeeLabel(result()!.mesureRecommandee) }}
+      </span>
+    }
+    <mat-icon class="pmb-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pmb-body" class="pmb-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="pmb-country-banner" data-testid="pmb-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — protection du majeur incapable régie par la loi du 17/03/2013 (statut unique d'administration). Les régimes français (tutelle, curatelle, sauvegarde de justice — CC FR art. 415+) reposent sur des mécanismes structurellement distincts et font l'objet d'outils séparés.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="pmb-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="pmb-form" (ngSubmit)="calculate()">
+            <!-- Bloc nature + gravité -->
+            <div class="pmb-block pmb-full">
+              <span class="pmb-block-label">Qualification de l'incapacité</span>
+
+              <mat-form-field appearance="outline" class="pmb-inline-field">
+                <mat-label>Nature de l'altération</mat-label>
+                <mat-select [ngModel]="natureAlteration()"
+                            (ngModelChange)="natureAlteration.set($event)"
+                            name="natureAlteration" required>
+                  @for (opt of natureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="pmb-inline-field">
+                <mat-label>Gravité de l'incapacité</mat-label>
+                <mat-select [ngModel]="graviteIncapacite()"
+                            (ngModelChange)="graviteIncapacite.set($event)"
+                            name="graviteIncapacite" required>
+                  @for (opt of graviteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc mandat extra-judiciaire + déclaration anticipée -->
+            <div class="pmb-block pmb-full">
+              <span class="pmb-block-label">Voie privée — mandat et déclaration anticipée</span>
+              <p class="pmb-block-hint">
+                Le mandat extra-judiciaire (CC art. 490 nouveau — à vérifier) signé
+                par le majeur alors qu'il était capable prime sur l'administration
+                judiciaire. La déclaration anticipée organise les préférences du
+                majeur quant à son administrateur.
+              </p>
+
+              <div class="pmb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="mandatExtraJudiciaireSigne()"
+                    (ngModelChange)="onMandatChange($event)"
+                    name="mandatExtraJudiciaireSigne">
+                  Le majeur a signé un mandat extra-judiciaire alors qu'il était encore capable
+                </mat-slide-toggle>
+              </div>
+
+              @if (mandatExtraJudiciaireSigne()) {
+                <mat-form-field appearance="outline" class="pmb-inline-field">
+                  <mat-label>Date de signature du mandat</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="mandatExtraJudiciaireDateSignature()"
+                         (ngModelChange)="mandatExtraJudiciaireDateSignature.set($event || null)"
+                         name="mandatExtraJudiciaireDateSignature" required />
+                </mat-form-field>
+                <p class="pmb-block-hint">
+                  Loi 17/03/2013 en vigueur depuis le 01/09/2014 (à vérifier) —
+                  un mandat antérieur peut rester valable sous le droit transitoire,
+                  à confirmer avec un avocat belge.
+                </p>
+              }
+
+              <div class="pmb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="declarationAnticipeeExiste()"
+                    (ngModelChange)="declarationAnticipeeExiste.set($event)"
+                    name="declarationAnticipeeExiste">
+                  Une déclaration anticipée du majeur existe (préférences d'administrateur)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc environnement + urgence + saisine -->
+            <div class="pmb-block pmb-full">
+              <span class="pmb-block-label">Contexte familial et urgence</span>
+
+              <div class="pmb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="environnementFamilialProtecteur()"
+                    (ngModelChange)="environnementFamilialProtecteur.set($event)"
+                    name="environnementFamilialProtecteur">
+                  Environnement familial protecteur (proche identifiable comme administrateur)
+                </mat-slide-toggle>
+              </div>
+
+              <mat-form-field appearance="outline" class="pmb-inline-field">
+                <mat-label>Niveau d'urgence</mat-label>
+                <mat-select [ngModel]="niveauUrgence()"
+                            (ngModelChange)="niveauUrgence.set($event)"
+                            name="niveauUrgence" required>
+                  @for (opt of urgenceOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="pmb-inline-field">
+                <mat-label>Mode de saisine envisagé</mat-label>
+                <mat-select [ngModel]="modeSaisineEnvisage()"
+                            (ngModelChange)="modeSaisineEnvisage.set($event)"
+                            name="modeSaisineEnvisage" required>
+                  @for (opt of saisineOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="pmb-comment-field">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event || null)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="pmb-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="pmb-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la situation</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="pmb-result">
+            <!-- Bannière verdict -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Mesure + juridiction -->
+            <div class="pmb-summary-grid">
+              <div class="pmb-summary-card">
+                <span class="pmb-summary-label">Mesure recommandée</span>
+                <span class="pmb-summary-value">{{ mesureRecommandeeLabel(result()!.mesureRecommandee) }}</span>
+              </div>
+              <div class="pmb-summary-card">
+                <span class="pmb-summary-label">Juridiction compétente</span>
+                <span class="pmb-summary-value">{{ juridictionLabel(result()!.juridictionCompetente) }}</span>
+              </div>
+            </div>
+
+            <!-- Fondement procédural -->
+            @if (result()!.fondementProcedural) {
+              <div class="pmb-bases-block">
+                <span class="pmb-bases-label">Fondement procédural</span>
+                <p class="pmb-fondement-text">{{ result()!.fondementProcedural }}</p>
+              </div>
+            }
+
+            <!-- Liste des actes protégés -->
+            @if (result()!.actesProteges.length) {
+              <div class="pmb-list-block">
+                <span class="pmb-list-label">Actes protégés par la mesure</span>
+                <ul class="pmb-list">
+                  @for (a of result()!.actesProteges; track a.code) {
+                    <li class="pmb-item" data-testid="pmb-acte">
+                      <div class="pmb-item-row">
+                        <span class="pmb-item-code">{{ acteCodeLabel(a.code) }}</span>
+                        <span class="pmb-item-libelle-text">{{ a.libelle }}</span>
+                        <span [class]="necessiteClass(a.necessite)">{{ necessiteLabel(a.necessite) }}</span>
+                      </div>
+                      <span class="pmb-item-fondement">{{ a.fondement }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Actions concrètes -->
+            @if (result()!.actionsConcretes.length) {
+              <div class="pmb-list-block">
+                <span class="pmb-list-label">Actions concrètes à poser</span>
+                <ul class="pmb-actions-list">
+                  @for (a of result()!.actionsConcretes; track a) {
+                    <li>{{ a }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="pmb-bases-block">
+                <span class="pmb-bases-label">Bases juridiques</span>
+                <div class="pmb-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="pmb-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="pmb-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="pmb-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
