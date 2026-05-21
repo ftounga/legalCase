@@ -101,6 +101,7 @@ export class PdfExportService {
       ...this.buildStrategiesRetenuesSection(retainedPistes, toolLabelResolver),
       ...this.buildProcedureChecksSection(procedureChecksAlignment, toolLabelResolver),
       ...this.buildPiecesADemanderSection(piecesAlignment, toolLabelResolver),
+      ...this.buildRisquesACreuserSection(risquesAlignment, toolLabelResolver),
       ...this.buildRisquesValidesSection(risquesAlignment, synthesis, toolLabelResolver),
       ...this.buildAiQuestionsSection(aiQuestionsAlignment),
       ...this.buildSections(synthesis),
@@ -729,6 +730,165 @@ export class PdfExportService {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
+  }
+
+  /**
+   * F-253 SF-253-03 — Section « 🔍 Risques à creuser » insérée APRÈS la
+   * section « 📎 Pièces à demander » F-194 et AVANT la section « ⚠️ Risques
+   * retenus par votre avocat » F-195. Ordre logique : indécision avant
+   * décision.
+   *
+   * <p>Donne un consommateur PDF au statut À_CREUSER (par défaut sur tout
+   * risque IA non encore arbitré). Aujourd'hui le PDF agrégeait V/É via
+   * F-195 mais ne mentionnait pas les arbitrages restants — l'avocat
+   * recevait un PDF qui taisait son travail de curation en cours.</p>
+   *
+   * <p>Comportement :</p>
+   * <ul>
+   *   <li>{@code risquesAlignment} vide / non fourni → tableau vide (section
+   *       omise, fail-open).</li>
+   *   <li>Aucun risque statut À_CREUSER → section omise (l'avocat a tout
+   *       arbitré — la section F-195 « Risques retenus » couvre déjà
+   *       l'état final).</li>
+   *   <li>≥ 1 risque À_CREUSER → bloc par risque (libellé Inter 11 +
+   *       suffixe {@code → <label outil>} JetBrainsMono italique 9 si
+   *       {@code toolIdsCibles[0]} non null). Liseré navy à gauche
+   *       (palette gris navy subtil, cohérent avec la pill `to_explore`
+   *       du panel décisionnel — pas de rouge ici, c'est de l'indécision).</li>
+   * </ul>
+   *
+   * <p>Pas de section critique : un risque À_CREUSER reste neutre tant
+   * que l'avocat ne l'a pas validé. La détection critique reste
+   * exclusive à F-195 SF-195-03 (`buildRisquesValidesSection`).</p>
+   */
+  private buildRisquesACreuserSection(
+    risquesAlignment: RisqueAlignment[] | undefined | null,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!risquesAlignment || risquesAlignment.length === 0) {
+      return [];
+    }
+
+    const aCreuser = risquesAlignment.filter(r => r.statut === 'A_CREUSER');
+    if (aCreuser.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [];
+
+    // Titre navy + liseré navy (palette gris navy subtil — pas de rouge
+    // ni d'or, ce sont des risques EN ATTENTE d'arbitrage).
+    sections.push({
+      table: {
+        widths: ['*'],
+        body: [[{
+          text: '🔍 Risques à creuser',
+          fontSize: 16,
+          bold: true,
+          color: PRIMARY,
+          margin: [12, 8, 12, 8],
+          fillColor: SURFACE,
+        }]],
+      },
+      layout: {
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
+        hLineColor: () => PRIMARY,
+        vLineColor: () => PRIMARY,
+      },
+      margin: [0, 0, 0, 8],
+    });
+
+    // Sous-titre : N risque(s) à arbitrer.
+    const total = aCreuser.length;
+    sections.push({
+      text: `${total} risque${total > 1 ? 's' : ''} à arbitrer — arbitrage avocat en attente`,
+      font: 'JetBrainsMono',
+      fontSize: 11,
+      color: TEXT_SECONDARY,
+      margin: [0, 0, 0, 12],
+    });
+
+    // Un bloc par risque À_CREUSER : pictogramme 🔍 + libellé + suffixe outil.
+    aCreuser.forEach((risque, idx) => {
+      sections.push(this.buildRisqueACreuserBloc(risque, toolLabelResolver, idx));
+    });
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+
+    return sections;
+  }
+
+  /**
+   * F-253 SF-253-03 — bloc visuel pour un risque À_CREUSER. Liseré navy à
+   * gauche (palette gris navy subtil, cohérent avec la pill `to_explore`
+   * du panel et la pill secondaire « 🔍 N à creuser » SF-253-02).
+   *
+   * Pas de variante critique (le critique vient après VALIDATION par
+   * l'avocat — un À_CREUSER reste neutre tant que pas arbitré).
+   */
+  private buildRisqueACreuserBloc(
+    risque: RisqueAlignment,
+    toolLabelResolver: ((toolId: string) => string | null) | undefined,
+    idx: number,
+  ): object {
+    const fillColor = idx % 2 === 0 ? BG : SURFACE;
+
+    const stack: object[] = [
+      {
+        columns: [
+          {
+            width: 22,
+            text: '🔍',
+            fontSize: 12,
+            margin: [0, 1, 0, 0],
+          },
+          {
+            width: '*',
+            text: risque.risqueLibelle,
+            fontSize: 11,
+            color: TEXT,
+          },
+        ],
+      },
+    ];
+
+    const firstToolId = (risque.toolIdsCibles && risque.toolIdsCibles.length > 0)
+      ? risque.toolIdsCibles[0]
+      : null;
+    if (firstToolId) {
+      const resolvedLabel = toolLabelResolver ? toolLabelResolver(firstToolId) : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : firstToolId;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [22, 2, 0, 0],
+      });
+    }
+
+    return {
+      table: {
+        widths: [3, '*'],
+        body: [[
+          { text: '', fillColor: PRIMARY, border: [false, false, false, false] },
+          { stack, fillColor, margin: [8, 6, 8, 6], border: [false, false, false, false] },
+        ]],
+      },
+      layout: {
+        hLineWidth: () => 0,
+        vLineWidth: () => 0,
+        paddingLeft: () => 0,
+        paddingRight: () => 0,
+        paddingTop: () => 0,
+        paddingBottom: () => 0,
+      },
+      margin: [0, 0, 0, 4],
+    };
   }
 
   /**
