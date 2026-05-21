@@ -15,6 +15,7 @@
 | Backlog | `/super-admin/backlog` | Vue backlog produit + marketing (F-178), source de vérité Markdown |
 | Blog | `/super-admin/blog` | Gestion du blog SEO (F-120) |
 | One-pager traction | `/super-admin/traction-onepager` | Génération du one-pager investisseurs |
+| Veille jurisprudentielle | `/super-admin/jurisprudence-watch` | Pilotage F-JU-01 — flags utilisateurs (bouton « signaler » côté avocat) + audit log cron mensuel + bouton « Relancer maintenant ». Pattern monobloc consultatif. **0 ouverture obligatoire** en régime stationnaire grâce à l'email mensuel récap ; ouverture sur événement (flag utilisateur, alerte > 5 % impact massif) ou review semestrielle facultative ~30 min/an. |
 
 ---
 
