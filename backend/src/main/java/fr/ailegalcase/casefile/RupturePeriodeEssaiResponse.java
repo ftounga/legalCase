@@ -44,6 +44,16 @@ public record RupturePeriodeEssaiResponse(
         Boolean conventionCollectiveApplicable,
         Boolean conventionCollectivePlusFavorableRespectee,
         Double salaireMensuelBrut,
+        // --- SF-252-01 — 7 protections nullité additionnelles (latent bug fix Response) ---
+        Boolean salarieProtege,
+        Boolean autorisationInspectionTravailObtenue,
+        Boolean lanceurAlerte,
+        Boolean temoinOuVictimeHarcelement,
+        Boolean droitDeRetraitExerce,
+        Boolean grossesseDeclareePostRupture,
+        LocalDate dateNotificationGrossesse,
+        // --- SF-252b-01 — barème CDD/INTERIM précis (audit 2026-05-20) ---
+        Integer dureePeriodeEssaiContractuelleJours,
         // --- Outputs calculés ---
         RupturePeriodeEssaiCalculator.Verdict verdict,
         int scoreIrregularite,
@@ -57,5 +67,10 @@ public record RupturePeriodeEssaiResponse(
         List<String> basesJuridiques,
         List<String> messages,
         String country,
-        Instant calculatedAt
+        Instant calculatedAt,
+        // --- SF-252b-01 — Outputs additionnels (audit 2026-05-20) ---
+        /** Durée légale max en jours (barèmes exacts CDD L.1242-10 / INTERIM L.1251-14). */
+        int dureeLegaleMaximaleJours,
+        /** Indemnité compensatrice de préavis non exécuté L.1221-25 (Cass. soc. 23/01/2013). */
+        Double indemnitePrevenanceEuros
 ) {}

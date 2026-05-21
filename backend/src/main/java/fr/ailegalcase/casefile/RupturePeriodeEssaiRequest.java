@@ -44,7 +44,9 @@ public record RupturePeriodeEssaiRequest(
         Boolean temoinOuVictimeHarcelement,
         Boolean droitDeRetraitExerce,
         Boolean grossesseDeclareePostRupture,
-        LocalDate dateNotificationGrossesse
+        LocalDate dateNotificationGrossesse,
+        // SF-252b-01 — 1 nouveau champ pour barème CDD/INTERIM précis (audit 2026-05-20)
+        Integer dureePeriodeEssaiContractuelleJours
 ) {
 
     RupturePeriodeEssaiInput toInput() {
@@ -61,7 +63,8 @@ public record RupturePeriodeEssaiRequest(
                 salaireMensuelBrut,
                 salarieProtege, autorisationInspectionTravailObtenue,
                 lanceurAlerte, temoinOuVictimeHarcelement, droitDeRetraitExerce,
-                grossesseDeclareePostRupture, dateNotificationGrossesse
+                grossesseDeclareePostRupture, dateNotificationGrossesse,
+                dureePeriodeEssaiContractuelleJours
         );
     }
 }

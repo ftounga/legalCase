@@ -118,6 +118,8 @@ export interface RupturePeriodeEssaiRequest {
   droitDeRetraitExerce: boolean | null;
   grossesseDeclareePostRupture: boolean | null;
   dateNotificationGrossesse: string | null;
+  // SF-252b-01 — Barème CDD/INTERIM précis (audit 2026-05-20)
+  dureePeriodeEssaiContractuelleJours: number | null;
 }
 
 /** Anomalie détectée (élément de `anomaliesDetectees`). */
@@ -153,4 +155,9 @@ export interface RupturePeriodeEssaiResponse extends RupturePeriodeEssaiRequest 
   messages: string[];
   country: string;
   calculatedAt: string;
+  // SF-252b-01 — Outputs additionnels (audit 2026-05-20)
+  /** Durée légale max en jours (barèmes exacts CDD L.1242-10 / INTERIM L.1251-14). */
+  dureeLegaleMaximaleJours: number;
+  /** Indemnité compensatrice de préavis non exécuté L.1221-25 (Cass. soc. 23/01/2013). */
+  indemnitePrevenanceEuros: number | null;
 }

@@ -232,13 +232,23 @@ class RupturePeriodeEssaiCalculatorTest {
     }
 
     @Test
-    void compute_delaiPrevenanceInsuffisant_RISQUE_ABUSIVE() {
-        // Cadre 99 jours → prévenance légale 30, l'avocat indique seulement 5 jours
+    void compute_delaiPrevenanceInsuffisant_anomaliedetectee_verdictReguliere_indemniteCompensatricePrevenanceCalculee() {
+        // SF-252b-01 (audit 2026-05-20) — Cass. soc., 23/01/2013, n° 11-23.428 :
+        // l'inobservation du délai de prévenance L.1221-25 n'ouvre droit qu'à une
+        // indemnité compensatrice de préavis non exécuté — elle ne caractérise pas
+        // un abus en soi et ne requalifie pas la rupture.
+        // Cadre 99 jours → prévenance légale 30 jours, l'avocat indique 5 jours
+        // → 25 jours manquants × salaire/30 = indemnité spécifique.
         var in = ruptureReguliere().delaiPrevenanceJoursAppliques(5).build();
         var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
         assertThat(codes(r)).contains(CodeAnomalie.DELAI_PREVENANCE_INSUFFISANT);
-        assertThat(r.verdict()).isEqualTo(Verdict.RISQUE_ABUSIVE);
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
         assertThat(r.delaiPrevenanceRespecte()).isFalse();
+        // Indemnité prévenance = 4500 € × 25 jours / 30 = 3750 €
+        assertThat(r.indemnitePrevenanceEuros()).isNotNull();
+        assertThat(r.indemnitePrevenanceEuros()).isEqualTo(3750.0);
+        // Pas d'indemnité abus (verdict REGULIERE)
+        assertThat(r.indemniteEstimee()).isNull();
     }
 
     @Test
@@ -530,5 +540,131 @@ class RupturePeriodeEssaiCalculatorTest {
         var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
         assertThat(codes(r)).contains(CodeAnomalie.DISCRIMINATION_AVEREE);
         assertThat(r.verdict()).isEqualTo(Verdict.NULLE);
+    }
+
+    // ============================================================================
+    // SF-252b-01 — Gaps critiques #1 (CDD L.1242-10), #2 (INTERIM L.1251-14),
+    //              #4 (prévenance Cass. soc. 23/01/2013)
+    // ============================================================================
+
+    @Test
+    void dureeLegaleMaximaleJours_CDD_court_3mois_essai_max_12jours() {
+        // CDD de 3 mois : 1 jour/semaine × 12 semaines (3 × 4) = 12 jours
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.CDD, 3)).isEqualTo(12);
+    }
+
+    @Test
+    void dureeLegaleMaximaleJours_CDD_court_5mois_essai_max_14jours_plafond() {
+        // CDD de 5 mois : 5 × 4 = 20 sem, mais plafonné à 14 jours (2 semaines absolu)
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.CDD, 5)).isEqualTo(14);
+    }
+
+    @Test
+    void dureeLegaleMaximaleJours_CDD_long_8mois_essai_max_30jours() {
+        // CDD > 6 mois : 1 mois maxi = 30 jours
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.CDD, 8)).isEqualTo(30);
+    }
+
+    @Test
+    void dureeLegaleMaximaleJours_INTERIM_mission_sous_1mois_essai_2jours() {
+        // Intérim L.1251-14 : mission ≤ 1 mois → 2 jours
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.INTERIM, 1)).isEqualTo(2);
+    }
+
+    @Test
+    void dureeLegaleMaximaleJours_INTERIM_mission_entre_1_et_2mois_essai_3jours() {
+        // Intérim L.1251-14 : 1 < mission ≤ 2 mois → 3 jours
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.INTERIM, 2)).isEqualTo(3);
+    }
+
+    @Test
+    void dureeLegaleMaximaleJours_INTERIM_mission_plus_2mois_essai_5jours() {
+        // Intérim L.1251-14 : mission > 2 mois → 5 jours
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.OUVRIER_EMPLOYE, TypeContrat.INTERIM, 6)).isEqualTo(5);
+    }
+
+    @Test
+    void dureeLegaleMaximaleJours_CDI_cadre_120jours() {
+        // CDI cadre : 4 mois × 30 = 120 jours
+        assertThat(RupturePeriodeEssaiCalculator.dureeLegaleMaximaleJours(
+                CategorieSocioProfessionnelle.CADRE, TypeContrat.CDI, null)).isEqualTo(120);
+    }
+
+    @Test
+    void compute_CDD_court_essai_contractuel_30jours_DEPASSE_legal_12jours() {
+        // CDD 3 mois (12 jours max légal) avec contractuel de 30 jours → ILLEGALE
+        var in = ruptureReguliere()
+                .typeContrat(TypeContrat.CDD)
+                .dureeCddMois(3)
+                .dureePeriodeEssaiContractuelleJours(30)  // 30 > 12 légal
+                .dureePeriodeEssaiContractuelleMois(1)
+                .lettreRuptureMotivee(false)
+                .motifsAveresParPieces(false)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.DUREE_ESSAI_DEPASSEE);
+        assertThat(r.verdict()).isEqualTo(Verdict.ILLEGALE_REQUALIF_LICENCIEMENT);
+        assertThat(r.dureeLegaleMaximaleJours()).isEqualTo(12);
+    }
+
+    @Test
+    void compute_INTERIM_mission_1mois_essai_contractuel_5jours_DEPASSE_legal_2jours() {
+        // Intérim mission 1 mois (2 jours max légal) avec contractuel 5 jours → ILLEGALE
+        var in = ruptureReguliere()
+                .typeContrat(TypeContrat.INTERIM)
+                .dureeCddMois(1)
+                .dureePeriodeEssaiContractuelleJours(5)  // 5 > 2 légal
+                .dureePeriodeEssaiContractuelleMois(1)
+                .lettreRuptureMotivee(false)
+                .motifsAveresParPieces(false)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.DUREE_ESSAI_DEPASSEE);
+        assertThat(r.verdict()).isEqualTo(Verdict.ILLEGALE_REQUALIF_LICENCIEMENT);
+        assertThat(r.dureeLegaleMaximaleJours()).isEqualTo(2);
+    }
+
+    @Test
+    void compute_indemnitePrevenance_cumulable_avec_indemnitéAbus() {
+        // Cas combiné : motif non professionnel (RISQUE_ABUSIVE → indemnité abus 1-6 mois)
+        // ET délai prévenance non respecté → indemnité préavis cumulable
+        var in = ruptureReguliere()
+                .motifLieAuxCompetencesProfessionnelles(false)  // déclenche RISQUE_ABUSIVE
+                .delaiPrevenanceJoursAppliques(5)  // requis 30, manque 25 jours
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(r.verdict()).isEqualTo(Verdict.RISQUE_ABUSIVE);
+        // Indemnité abus présente (fourchette 1-6 mois × 4500)
+        assertThat(r.indemniteEstimee()).isNotNull();
+        assertThat(r.indemniteEstimee().montantMinEuros()).isEqualTo(4500.0);
+        assertThat(r.indemniteEstimee().montantMaxEuros()).isEqualTo(27000.0);
+        // Indemnité prévenance présente en parallèle (25 jours × 4500/30 = 3750)
+        assertThat(r.indemnitePrevenanceEuros()).isEqualTo(3750.0);
+    }
+
+    @Test
+    void compute_prevenanceRespectee_pas_indemnitePrevenance() {
+        // Délai respecté → pas d'indemnité prévenance
+        var in = ruptureReguliere().delaiPrevenanceJoursAppliques(30).build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(r.delaiPrevenanceRespecte()).isTrue();
+        assertThat(r.indemnitePrevenanceEuros()).isNull();
+    }
+
+    @Test
+    void compute_indemnitePrevenance_salaire_null_returns_null() {
+        // Pas de salaire → indemnité non calculable
+        var in = ruptureReguliere()
+                .salaireMensuelBrut(null)
+                .delaiPrevenanceJoursAppliques(5)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(r.indemnitePrevenanceEuros()).isNull();
     }
 }

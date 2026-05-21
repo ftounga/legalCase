@@ -151,6 +151,16 @@ public class RupturePeriodeEssaiService {
                 req.conventionCollectiveApplicable(),
                 req.conventionCollectivePlusFavorableRespectee(),
                 req.salaireMensuelBrut(),
+                // SF-252-01 — 7 protections nullité additionnelles
+                req.salarieProtege(),
+                req.autorisationInspectionTravailObtenue(),
+                req.lanceurAlerte(),
+                req.temoinOuVictimeHarcelement(),
+                req.droitDeRetraitExerce(),
+                req.grossesseDeclareePostRupture(),
+                req.dateNotificationGrossesse(),
+                // SF-252b-01 — barème CDD/INTERIM précis
+                req.dureePeriodeEssaiContractuelleJours(),
                 r.verdict(),
                 r.scoreIrregularite(),
                 r.ancienneteJoursAuMomentRupture(),
@@ -163,7 +173,10 @@ public class RupturePeriodeEssaiService {
                 r.basesJuridiques(),
                 r.messages(),
                 r.country(),
-                calculatedAt
+                calculatedAt,
+                // SF-252b-01 — Outputs additionnels
+                r.dureeLegaleMaximaleJours(),
+                r.indemnitePrevenanceEuros()
         );
     }
 }
