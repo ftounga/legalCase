@@ -101,6 +101,22 @@
                 <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
               }
 
+              <!-- SF-252b-01 — barème CDD L.1242-10 / INTERIM L.1251-14 (audit 2026-05-20) -->
+              @if (typeContrat() === 'CDD' || typeContrat() === 'INTERIM') {
+                <mat-form-field appearance="outline" class="rpe-inset-field">
+                  <mat-label>OU durée d'essai contractuelle (jours) — précis pour CDD/INTERIM</mat-label>
+                  <input matInput type="number" min="0" max="60"
+                         [ngModel]="dureePeriodeEssaiContractuelleJours()"
+                         (ngModelChange)="dureePeriodeEssaiContractuelleJours.set($event)"
+                         name="dureePeriodeEssaiContractuelleJours" />
+                  <mat-hint>
+                    CDD (L.1242-10) : 1 j/sem max 2 sem (CDD ≤ 6 mois) ou 1 mois (&gt; 6 mois).
+                    Intérim (L.1251-14) : 2 j (mission ≤ 1 mois) / 3 j (1-2 mois) / 5 j (&gt; 2 mois).
+                    Renseigner si l'essai est exprimé en jours dans le contrat (précision &gt; mois).
+                  </mat-hint>
+                </mat-form-field>
+              }
+
               <div class="rpe-toggle-row">
                 <mat-slide-toggle
                     [ngModel]="renouvellementInvoque()"
@@ -466,7 +482,7 @@
             </div>
             <div class="rpe-summary-row">
               <span class="rpe-summary-label">Durée légale maximale de l'essai</span>
-              <span class="rpe-summary-value">{{ r.dureeLegaleMaximaleMois }} mois</span>
+              <span class="rpe-summary-value">{{ r.dureeLegaleMaximaleMois }} mois ({{ r.dureeLegaleMaximaleJours }} jours — barème exact L.1242-10 / L.1251-14 / L.1221-19)</span>
             </div>
             <div class="rpe-summary-row">
               <span class="rpe-summary-label">Délai de prévenance légal requis</span>
@@ -476,11 +492,27 @@
 
           @if (r.indemniteEstimee) {
             <div class="rpe-indemnite">
-              <h4>Indemnité estimée (fourchette CPH)</h4>
+              <h4>Indemnité d'abus estimée (fourchette CPH — D&amp;I)</h4>
               <p>
                 <strong>{{ formatEuros(r.indemniteEstimee.montantMinEuros) }} à {{ formatEuros(r.indemniteEstimee.montantMaxEuros) }}</strong>
                 <br>
                 <small>{{ r.indemniteEstimee.baseCalcul }} — {{ r.indemniteEstimee.fondement }}</small>
+              </p>
+            </div>
+          }
+
+          <!-- SF-252b-01 — Indemnité préavis non exécuté Cass. soc. 23/01/2013 (audit 2026-05-20) -->
+          @if (r.indemnitePrevenanceEuros) {
+            <div class="rpe-indemnite">
+              <h4>Indemnité compensatrice de préavis non exécuté</h4>
+              <p>
+                <strong>{{ formatEuros(r.indemnitePrevenanceEuros) }}</strong>
+                <br>
+                <small>
+                  Salaire brut mensuel × (jours requis − jours appliqués) / 30.
+                  Art. L.1221-25 C. trav. ; Cass. soc., 23/01/2013, n° 11-23.428.
+                  <em>Cumulable avec l'indemnité d'abus ci-dessus (verdict RISQUE_ABUSIVE).</em>
+                </small>
               </p>
             </div>
           }

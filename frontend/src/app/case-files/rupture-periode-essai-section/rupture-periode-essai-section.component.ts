@@ -109,6 +109,8 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   dateDebutContrat = signal<string | null>(null);
   dateRupture = signal<string | null>(null);
   dureePeriodeEssaiContractuelleMois = signal<number>(4);
+  // SF-252b-01 — durée d'essai en jours (alternative pour CDD/INTERIM, audit 2026-05-20)
+  dureePeriodeEssaiContractuelleJours = signal<number | null>(null);
   renouvellementInvoque = signal<boolean>(false);
   accordBrancheRenouvellement = signal<boolean>(false);
   accordEcritSalarieRenouvellement = signal<boolean>(false);
@@ -596,6 +598,10 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
       grossesseDeclareePostRupture: this.grossesseDeclareePostRupture(),
       dateNotificationGrossesse: this.grossesseDeclareePostRupture()
         ? this.dateNotificationGrossesse() : null,
+      // SF-252b-01 — barème CDD/INTERIM précis (audit 2026-05-20)
+      dureePeriodeEssaiContractuelleJours:
+        this.typeContrat() === 'CDD' || this.typeContrat() === 'INTERIM'
+          ? this.dureePeriodeEssaiContractuelleJours() : null,
     };
     this.calculating.set(true);
     this.service.calculate(this.caseFileId, request).subscribe({
@@ -665,6 +671,8 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     this.droitDeRetraitExerce.set(r.droitDeRetraitExerce ?? false);
     this.grossesseDeclareePostRupture.set(r.grossesseDeclareePostRupture ?? false);
     this.dateNotificationGrossesse.set(r.dateNotificationGrossesse ?? null);
+    // SF-252b-01 — restore durée essai jours
+    this.dureePeriodeEssaiContractuelleJours.set(r.dureePeriodeEssaiContractuelleJours ?? null);
     // Reset provenance — valeurs persistées = saisie avocat.
     this.provenanceTypeContrat.set(null);
     this.provenanceDateDebutContrat.set(null);

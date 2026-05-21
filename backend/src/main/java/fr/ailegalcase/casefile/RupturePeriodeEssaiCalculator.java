@@ -176,6 +176,24 @@ public final class RupturePeriodeEssaiCalculator {
     private static final double INDEM_ABUS_MIN_MOIS = 1.0;
     private static final double INDEM_ABUS_MAX_MOIS = 6.0;
 
+    // SF-252b-01 — Barème CDD L.1242-10 (audit 2026-05-20)
+    /** CDD ≤ 6 mois : 1 jour d'essai par semaine de contrat. */
+    private static final int CDD_COURT_DUREE_JOURS_PAR_SEMAINE = 1;
+    /** CDD ≤ 6 mois : plafond absolu 2 semaines = 14 jours. */
+    private static final int CDD_COURT_DUREE_MAX_JOURS = 14;
+    /** CDD > 6 mois : 1 mois maximum = 30 jours. */
+    private static final int CDD_LONG_DUREE_MAX_JOURS = 30;
+    /** Approximation 4 semaines/mois pour la conversion CDD courts. */
+    private static final double SEMAINES_PAR_MOIS = 4.0;
+
+    // SF-252b-01 — Barème Intérim L.1251-14 (audit 2026-05-20)
+    /** Mission ≤ 1 mois : essai max 2 jours. */
+    private static final int INTERIM_MISSION_SOUS_1M_JOURS = 2;
+    /** Mission > 1 mois et ≤ 2 mois : essai max 3 jours. */
+    private static final int INTERIM_MISSION_SOUS_2M_JOURS = 3;
+    /** Mission > 2 mois : essai max 5 jours. */
+    private static final int INTERIM_MISSION_PLUS_2M_JOURS = 5;
+
     /** Pondération anomalies pour le score indicatif. */
     private static final int POIDS_ANOMALIE_AVEREE = 30;
     private static final int POIDS_ANOMALIE_PROBABLE = 20;
@@ -229,17 +247,28 @@ public final class RupturePeriodeEssaiCalculator {
                 input.categorieSocioProfessionnelle(),
                 input.typeContrat(),
                 input.dureeCddMois());
+        // SF-252b-01 — barème exact en jours (CDD L.1242-10 / INTERIM L.1251-14)
+        int dureeLegaleJours = dureeLegaleMaximaleJours(
+                input.categorieSocioProfessionnelle(),
+                input.typeContrat(),
+                input.dureeCddMois());
         int delaiPrevenanceLegalJours = delaiPrevenanceLegalJours(input.auteurRupture(), ancienneteJours);
         boolean delaiPrevenanceRespecte = delaiPrevenanceRespecte(
                 input.delaiPrevenanceJoursAppliques(), delaiPrevenanceLegalJours);
 
         List<Anomalie> anomalies = detecterAnomalies(input, ancienneteJours, dureeLegaleMois,
-                delaiPrevenanceRespecte);
+                dureeLegaleJours, delaiPrevenanceRespecte);
         int score = scorePour(anomalies);
         Verdict verdict = verdictPour(input, anomalies);
         boolean remedeReintegration = (verdict == Verdict.NULLE);
 
         IndemniteEstimee indemnite = indemniteEstimee(verdict, input.salaireMensuelBrut());
+        // SF-252b-01 — indemnité compensatrice de préavis L.1221-25 (Cass. soc. 23/01/2013)
+        // Calculée indépendamment du verdict, dès lors que le délai n'est pas respecté.
+        Double indemnitePrevenance = computeIndemnitePrevenanceEuros(
+                input.delaiPrevenanceJoursAppliques(),
+                delaiPrevenanceLegalJours,
+                input.salaireMensuelBrut());
         List<String> bases = basesJuridiques(anomalies);
         List<String> messages = construireMessages(input, anomalies, verdict, remedeReintegration);
 
@@ -255,7 +284,9 @@ public final class RupturePeriodeEssaiCalculator {
                 remedeReintegration,
                 bases,
                 messages,
-                countryNormalized
+                countryNormalized,
+                dureeLegaleJours,
+                indemnitePrevenance
         );
     }
 
@@ -277,28 +308,38 @@ public final class RupturePeriodeEssaiCalculator {
     private static List<Anomalie> detecterAnomalies(RupturePeriodeEssaiInput in,
                                                     long ancienneteJours,
                                                     int dureeLegaleMois,
+                                                    int dureeLegaleJours,
                                                     boolean delaiPrevenanceRespecte) {
         Set<CodeAnomalie> codes = new LinkedHashSet<>();
         List<Anomalie> anomalies = new ArrayList<>();
 
         // 1 — PERIODE_ESSAI_ABSENTE (hors scope, message uniquement)
-        if (in.dureePeriodeEssaiContractuelleMois() <= 0) {
+        if (in.dureePeriodeEssaiContractuelleMois() <= 0
+                && (in.dureePeriodeEssaiContractuelleJours() == null
+                        || in.dureePeriodeEssaiContractuelleJours() <= 0)) {
             // Pas d'anomalie ajoutée — message construit dans construireMessages.
             // Cas dégénéré : aucune anomalie, verdict REGULIERE avec message hors scope.
             return List.of();
         }
 
-        // 2 — DUREE_ESSAI_DEPASSEE (L.1221-19)
-        if (in.dureePeriodeEssaiContractuelleMois() > dureeLegaleMois) {
+        // 2 — DUREE_ESSAI_DEPASSEE (L.1221-19 CDI / L.1242-10 CDD / L.1251-14 INTERIM)
+        // SF-252b-01 — comparaison en JOURS pour précision CDD/INTERIM.
+        int contractuelJours = dureeContractuelleEnJours(in);
+        if (contractuelJours > dureeLegaleJours) {
             codes.add(CodeAnomalie.DUREE_ESSAI_DEPASSEE);
+            String fondement = switch (in.typeContrat()) {
+                case CDD -> "Art. L.1242-10 C. trav.";
+                case INTERIM -> "Art. L.1251-14 C. trav.";
+                default -> "Art. L.1221-19 C. trav.";
+            };
             anomalies.add(new Anomalie(
                     CodeAnomalie.DUREE_ESSAI_DEPASSEE,
                     "Durée de la période d'essai contractuelle supérieure à la durée légale",
-                    "Art. L.1221-19 C. trav.",
+                    fondement,
                     Gravite.AVERE,
-                    "La durée contractuelle (" + in.dureePeriodeEssaiContractuelleMois()
-                            + " mois) excède la durée légale maximale (" + dureeLegaleMois
-                            + " mois) pour cette catégorie / type de contrat. "
+                    "La durée contractuelle (" + contractuelJours
+                            + " jours) excède la durée légale maximale (" + dureeLegaleJours
+                            + " jours) pour ce type de contrat. "
                             + "La rupture s'analyse comme un licenciement sans cause réelle "
                             + "et sérieuse — barème Macron L.1235-3 applicable, sauf lettre "
                             + "de rupture motivée avec motifs avérés."));
@@ -583,10 +624,15 @@ public final class RupturePeriodeEssaiCalculator {
         }
 
         // Priorité 3 — risque abusif
+        // SF-252b-01 (audit 2026-05-20) — DELAI_PREVENANCE_INSUFFISANT retiré de la
+        // liste. Cass. soc., 23/01/2013, n° 11-23.428 : l'inobservation du délai de
+        // prévenance L.1221-25 n'ouvre droit qu'à une indemnité compensatrice de
+        // préavis non exécuté — elle ne caractérise pas un abus en soi et ne
+        // requalifie pas la rupture. L'indemnité correspondante est exposée
+        // séparément via `RupturePeriodeEssaiResult.indemnitePrevenanceEuros`.
         boolean abusif = anomalies.stream().anyMatch(a ->
                 a.code() == CodeAnomalie.MOTIF_NON_PROFESSIONNEL
                         || a.code() == CodeAnomalie.MOTIF_ETRANGER_A_ESSAI
-                        || a.code() == CodeAnomalie.DELAI_PREVENANCE_INSUFFISANT
                         || a.code() == CodeAnomalie.CONVENTION_COLLECTIVE_NON_RESPECTEE
                         || a.code() == CodeAnomalie.RUPTURE_HORS_PERIODE_ESSAI);
         if (abusif) {
@@ -617,6 +663,10 @@ public final class RupturePeriodeEssaiCalculator {
                                        Integer dureeCddMois) {
         // CDD / INTERIM : 1 jour par semaine, max 2 semaines (CDD ≤ 6 mois) ou 1 mois (CDD > 6 mois).
         // Exprimé en mois pour cohérence : 0.5 mois (2 sem.) → arrondi 1 ; 1 mois → 1.
+        // SF-252b-01 (audit 2026-05-20) — pour la vérification réelle de la durée
+        // d'essai CDD/INTERIM, utiliser {@link #dureeLegaleMaximaleJours} qui applique
+        // les barèmes exacts L.1242-10 et L.1251-14. Cette méthode reste conservée
+        // pour la rétrocompat de l'API (Response.dureeLegaleMaximaleMois int).
         if (type == TypeContrat.CDD || type == TypeContrat.INTERIM) {
             if (dureeCddMois == null || dureeCddMois <= 6) {
                 return 1; // 2 semaines maxi — modélisé en 1 mois pour comparaison entière
@@ -629,6 +679,62 @@ public final class RupturePeriodeEssaiCalculator {
             case AGENT_MAITRISE_TECHNICIEN -> CDI_AM_DUREE_MOIS;
             case CADRE -> CDI_CADRE_DUREE_MOIS;
         };
+    }
+
+    /**
+     * SF-252b-01 (audit 2026-05-20) — Durée légale maximale de la période d'essai
+     * en <strong>jours</strong>, version exacte des barèmes du Code du travail.
+     *
+     * <p>CDD (L.1242-10) : 1 jour par semaine de contrat, plafond absolu 2 semaines
+     * (CDD ≤ 6 mois) ou 1 mois (CDD &gt; 6 mois). Ex. CDD de 3 mois → essai max 12
+     * jours (3×4 semaines × 1 j/sem). Ex. CDD de 5 semaines → essai max 5 jours.</p>
+     *
+     * <p>Intérim (L.1251-14) : 2 jours (mission ≤ 1 mois) / 3 jours (mission &gt; 1
+     * et ≤ 2 mois) / 5 jours (mission &gt; 2 mois). Indépendant du type de contrat.</p>
+     *
+     * <p>CDI : durée légale par catégorie (L.1221-19) × 30 jours pour homogénéité
+     * avec les comparaisons CDD/INTERIM (2 mois OE = 60 jours, etc.).</p>
+     */
+    static int dureeLegaleMaximaleJours(CategorieSocioProfessionnelle cat,
+                                        TypeContrat type,
+                                        Integer dureeCddMois) {
+        if (type == TypeContrat.CDD) {
+            if (dureeCddMois == null || dureeCddMois <= 6) {
+                int semaines = (int) Math.ceil(
+                        (dureeCddMois != null ? dureeCddMois : 6) * SEMAINES_PAR_MOIS);
+                return Math.min(
+                        semaines * CDD_COURT_DUREE_JOURS_PAR_SEMAINE,
+                        CDD_COURT_DUREE_MAX_JOURS);
+            }
+            return CDD_LONG_DUREE_MAX_JOURS;
+        }
+        if (type == TypeContrat.INTERIM) {
+            if (dureeCddMois == null) return INTERIM_MISSION_PLUS_2M_JOURS;
+            if (dureeCddMois <= 1) return INTERIM_MISSION_SOUS_1M_JOURS;
+            if (dureeCddMois <= 2) return INTERIM_MISSION_SOUS_2M_JOURS;
+            return INTERIM_MISSION_PLUS_2M_JOURS;
+        }
+        // CDI : durée par catégorie × 30 jours
+        return switch (cat) {
+            case OUVRIER_EMPLOYE -> CDI_OE_DUREE_MOIS * 30;
+            case AGENT_MAITRISE_TECHNICIEN -> CDI_AM_DUREE_MOIS * 30;
+            case CADRE -> CDI_CADRE_DUREE_MOIS * 30;
+        };
+    }
+
+    /**
+     * SF-252b-01 — Durée contractuelle de l'essai en jours, à partir des deux
+     * champs d'input. Pour CDD/INTERIM, privilégie le champ `dureePeriodeEssaiContractuelleJours`
+     * s'il est renseigné (le contrat exprime souvent l'essai en jours). À défaut,
+     * convertit `dureePeriodeEssaiContractuelleMois × 30`.
+     */
+    static int dureeContractuelleEnJours(RupturePeriodeEssaiInput in) {
+        if ((in.typeContrat() == TypeContrat.CDD || in.typeContrat() == TypeContrat.INTERIM)
+                && in.dureePeriodeEssaiContractuelleJours() != null) {
+            return in.dureePeriodeEssaiContractuelleJours();
+        }
+        Integer mois = in.dureePeriodeEssaiContractuelleMois();
+        return mois != null ? mois * 30 : 0;
     }
 
     /**
@@ -693,6 +799,29 @@ public final class RupturePeriodeEssaiCalculator {
 
     private static double round(double v) {
         return Math.round(v * 100.0) / 100.0;
+    }
+
+    /**
+     * SF-252b-01 (audit 2026-05-20) — Indemnité compensatrice de préavis non
+     * exécuté L.1221-25 (Cass. soc., 23/01/2013, n° 11-23.428).
+     *
+     * <p>Distincte des dommages et intérêts pour abus (cf. {@link #indemniteEstimee}).
+     * Cumulable avec ces derniers, et applicable indépendamment du verdict global :
+     * dès lors que le délai légal de prévenance n'a pas été respecté, l'employeur
+     * doit verser le salaire des jours manquants entre la date d'effet réelle de
+     * la rupture et la date d'effet qu'elle aurait dû avoir.</p>
+     *
+     * @return montant en euros, ou null si non applicable (délai respecté, salaire
+     *         non renseigné, ou jours appliqués non renseignés)
+     */
+    private static Double computeIndemnitePrevenanceEuros(Integer joursAppliques,
+                                                          int joursRequis,
+                                                          Double salaireBrutMensuel) {
+        if (salaireBrutMensuel == null || salaireBrutMensuel <= 0) return null;
+        if (joursAppliques == null) return null;
+        int joursManquants = joursRequis - joursAppliques;
+        if (joursManquants <= 0) return null;
+        return round(salaireBrutMensuel * joursManquants / 30.0);
     }
 
     // ----------------------------------------------------------------------

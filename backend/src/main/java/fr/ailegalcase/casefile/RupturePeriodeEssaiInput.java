@@ -50,7 +50,12 @@ public record RupturePeriodeEssaiInput(
         Boolean temoinOuVictimeHarcelement,           // L.1132-3-1 / L.1152-2 / L.1153-2-3
         Boolean droitDeRetraitExerce,                 // L.4131-3
         Boolean grossesseDeclareePostRupture,         // L.1225-5 (déclarée APRÈS rupture)
-        LocalDate dateNotificationGrossesse           // L.1225-5 (date notif employeur)
+        LocalDate dateNotificationGrossesse,          // L.1225-5 (date notif employeur)
+        // SF-252b-01 — 1 nouveau champ pour barème CDD/INTERIM précis (audit 2026-05-20).
+        // Pour CDD (L.1242-10) ou INTERIM (L.1251-14), l'essai contractuel est souvent
+        // exprimé en jours dans le contrat. Si renseigné, utilisé en priorité ;
+        // sinon `dureePeriodeEssaiContractuelleMois × 30` fait office d'approximation.
+        Integer dureePeriodeEssaiContractuelleJours
 ) {
 
     /** Builder utilitaire — facilite la lisibilité des tests unitaires. */
@@ -86,6 +91,8 @@ public record RupturePeriodeEssaiInput(
         private Boolean droitDeRetraitExerce;
         private Boolean grossesseDeclareePostRupture;
         private LocalDate dateNotificationGrossesse;
+        // SF-252b-01
+        private Integer dureePeriodeEssaiContractuelleJours;
 
         public Builder categorieSocioProfessionnelle(CategorieSocioProfessionnelle v) { this.categorieSocioProfessionnelle = v; return this; }
         public Builder typeContrat(TypeContrat v) { this.typeContrat = v; return this; }
@@ -117,6 +124,7 @@ public record RupturePeriodeEssaiInput(
         public Builder droitDeRetraitExerce(Boolean v) { this.droitDeRetraitExerce = v; return this; }
         public Builder grossesseDeclareePostRupture(Boolean v) { this.grossesseDeclareePostRupture = v; return this; }
         public Builder dateNotificationGrossesse(LocalDate v) { this.dateNotificationGrossesse = v; return this; }
+        public Builder dureePeriodeEssaiContractuelleJours(Integer v) { this.dureePeriodeEssaiContractuelleJours = v; return this; }
 
         public RupturePeriodeEssaiInput build() {
             return new RupturePeriodeEssaiInput(
@@ -132,7 +140,8 @@ public record RupturePeriodeEssaiInput(
                     salaireMensuelBrut,
                     salarieProtege, autorisationInspectionTravailObtenue,
                     lanceurAlerte, temoinOuVictimeHarcelement, droitDeRetraitExerce,
-                    grossesseDeclareePostRupture, dateNotificationGrossesse
+                    grossesseDeclareePostRupture, dateNotificationGrossesse,
+                    dureePeriodeEssaiContractuelleJours
             );
         }
     }
