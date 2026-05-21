@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="283-create-jurisprudence-watch-flags" author="legalcase">
+        <comment>
+            F-JU-01 / SF-JU-01-01 : table des flags de veille jurisprudentielle.
+
+            Une ligne = un événement de veille à arbitrer :
+              - source=CRON : nouveau arrêt entrant (JUDILIBRE) détecté potentiellement
+                impactant pour un mapping actif, avec score de confiance Claude entre
+                0.60 et 0.85 (entre le seuil de silence 0.60 et le seuil d'auto-action
+                0.85) — alimenté par SF-JU-01-02 cron mensuel.
+              - source=USER_SIGNAL : un avocat utilisateur a cliqué sur le bouton
+                « Signaler un problème » à côté d'une citation dans le produit
+                (crowdsourcing du contrôle qualité) — alimenté par SF-JU-01-04 endpoint
+                de signalement.
+
+            Le statut PENDING attend une décision SUPER_ADMIN via le dashboard
+            /super-admin/jurisprudence-watch (SF-JU-01-05). La décision (REPLACE / ADD
+            / IGNORE) est conservée pour audit + apprentissage prompt.
+
+            Table créée dans cette SF mais NON alimentée par cette SF — aucune écriture
+            avant SF-JU-01-02 / SF-JU-01-04.
+        </comment>
+
+        <createTable tableName="jurisprudence_watch_flags">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tool_id" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="branche_calcul_id" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="arret_entrant_ref" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mapping_actuel_id" type="uuid">
+                <constraints nullable="true"
+                             foreignKeyName="fk_jurisprudence_watch_flags_mapping"
+                             referencedTableName="tool_jurisprudence_mappings"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="source" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="confidence_score" type="decimal(3,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="explication" type="varchar(2000)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="statut" type="varchar(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reviewed_at" type="timestamp with time zone">
+                <constraints nullable="true"/>
+            </column>
+            <column name="reviewed_by_user_id" type="uuid">
+                <constraints nullable="true"
+                             foreignKeyName="fk_jurisprudence_watch_flags_reviewer"
+                             referencedTableName="users"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="decision" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="comment_user" type="varchar(2000)">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="jurisprudence_watch_flags"
+                     indexName="idx_jurisprudence_watch_flags_pending">
+            <column name="statut"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="jurisprudence_watch_flags"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
