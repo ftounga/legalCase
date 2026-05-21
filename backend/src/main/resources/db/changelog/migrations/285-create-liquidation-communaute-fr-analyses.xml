@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="285-create-liquidation-communaute-fr-analyses" author="legalcase">
+        <comment>
+            SF-216-05 : table dédiée à l'outil décisionnel "Liquidation communauté légale"
+            (F-FA-04, FRANCE — art. 1467-1517 Cciv + art. 1433-1435 Cciv + art. 815-832 Cciv).
+
+            Restauration / extension suite à la suppression DELETE migration 191 (F-191 audit Top-10).
+            Outil P0 — rang 3 des outils famille FR.
+
+            Calcule la masse commune, les quote-parts de chaque époux, la soulte
+            éventuelle et signale les alertes d'indivision résiduelle. S'appuie
+            sur la valeur de l'immobilier commun, le capital restant dû du crédit,
+            la valeur mobilière, les autres actifs communs, les récompenses
+            réciproques entre époux et la communauté (art. 1433+ Cciv).
+
+            Forme typique : pour un actif net de 300 000 € (300 000 immeuble - 0 crédit),
+            chaque époux a une quote-part de 150 000 €. Avec une récompense de 20 000 €
+            due par l'époux 1 à la communauté → quote-part 1 = 130 000 €, quote-part 2 = 170 000 €.
+
+            Outil single-country FRANCE — en BE, la liquidation du régime relève
+            du livre 2, titre 3 du Code civil belge (outil F-217 distinct).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 286 (couplé à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — pattern SF-216-01 / prestation compensatoire).
+
+            Numéro 285 : 284 occupé par jurisprudence-audit-log (master fetch
+            2026-05-21). Décision communiquée dans le commit message.
+        </comment>
+
+        <createTable tableName="liquidation_communaute_fr_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_liquidation_communaute_fr_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="liquidation_communaute_fr_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_liquidation_communaute_fr_analyses_case_file"/>
+
+        <createIndex tableName="liquidation_communaute_fr_analyses"
+                     indexName="idx_liquidation_communaute_fr_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="liquidation_communaute_fr_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -321,6 +321,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `prestation_compensatoire_detection.envisagee` (pattern prompt SF-216-01).
         addBooleanFlagIfTrueNested(detected, familleNode, "prestation_compensatoire_detection", "envisagee",
                 "prestation_compensatoire_envisagee");
+        // === SF-216-05 — 1 flag CONTEXTUAL Famille FR : liquidation communauté légale ===
+        // Lire depuis sous-objet `liquidation_communaute_detection.envisagee` (même pattern).
+        addBooleanFlagIfTrueNested(detected, familleNode, "liquidation_communaute_detection", "envisagee",
+                "liquidation_communaute_envisagee");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

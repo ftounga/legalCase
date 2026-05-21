@@ -1,0 +1,270 @@
+<section class="lc-section">
+  <header class="lc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="lc-body">
+    <mat-icon class="lc-icon">account_balance</mat-icon>
+    <span class="lc-title">LIQUIDATION DE COMMUNAUTÉ</span>
+    @if (result()) {
+      <span class="lc-chip-summary">
+        {{ formatEuros(result()!.masseCommuneEur) }}
+      </span>
+    }
+    <mat-icon class="lc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="lc-body" class="lc-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="lc-country-banner" data-testid="lc-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil applicable uniquement en droit français (art. 1467 Cciv). En Belgique, la liquidation du régime relève du livre 2, titre 3 du Code civil belge — voir l'outil liquidation-partage-be.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="lc-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (regimeIncompatible()) {
+          <div class="lc-regime-banner" data-testid="lc-regime-banner">
+            <mat-icon>warning</mat-icon>
+            <span>
+              Régime détecté : <strong>{{ regimeLabel(regimeMatrimonialDetecte()) }}</strong> — outil
+              applicable uniquement en communauté légale (art. 1467 Cciv). Pour les autres régimes,
+              voir F-FA-16 (communauté universelle) ou F-FA-17 (partage judiciaire).
+            </span>
+          </div>
+        }
+
+        @if (clauseAttributionIntegraleDetectee()) {
+          <div class="lc-clause-banner" data-testid="lc-clause-banner">
+            <mat-icon>info_outline</mat-icon>
+            <span>
+              Clause d'attribution intégrale détectée (art. 1527 al. 1 Cciv) — voir l'outil
+              F-FA-16-communaute-universelle pour le traitement spécifique de ce régime
+              conventionnel.
+            </span>
+          </div>
+        }
+
+        @if (showForm()) {
+          <form class="lc-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Régime matrimonial (lecture seule) -->
+            <div class="lc-block lc-full">
+              <span class="lc-block-label">Régime matrimonial détecté</span>
+              <div class="lc-regime-info" data-testid="lc-regime-info">
+                <mat-icon>gavel</mat-icon>
+                <span>{{ regimeLabel(regimeMatrimonialDetecte()) }}</span>
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Immobilier commun -->
+            <div class="lc-block lc-full">
+              <span class="lc-block-label">Immobilier commun (€)</span>
+              <div class="lc-grid-2">
+                <mat-form-field appearance="outline">
+                  <mat-label>Valeur immeuble principal</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="valeurImmeubleCommun1Eur()"
+                         (ngModelChange)="onImmeuble1Change($event)"
+                         name="valeurImmeubleCommun1Eur" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Valeur 2ᵉ immeuble (facultatif)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="valeurImmeubleCommun2Eur()"
+                         (ngModelChange)="onImmeuble2Change($event)"
+                         name="valeurImmeubleCommun2Eur" />
+                </mat-form-field>
+              </div>
+              <mat-form-field appearance="outline" class="lc-inline-field">
+                <mat-label>Capital restant dû (crédit commun)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="capitalRestantDuEur()"
+                       (ngModelChange)="onCapitalRestantDuChange($event)"
+                       name="capitalRestantDuEur" />
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 3 — Autres actifs -->
+            <div class="lc-block lc-full">
+              <span class="lc-block-label">Autres actifs communs (€)</span>
+              <div class="lc-grid-2">
+                <mat-form-field appearance="outline">
+                  <mat-label>Mobilier commun</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="valeurMobilierCommunEur()"
+                         (ngModelChange)="onMobilierChange($event)"
+                         name="valeurMobilierCommunEur" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Autres actifs communs</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="autresActifsCommunsEur()"
+                         (ngModelChange)="onAutresActifsChange($event)"
+                         name="autresActifsCommunsEur" />
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Bloc 4 — Récompenses (art. 1433-1435 Cciv) -->
+            <div class="lc-block lc-full">
+              <span class="lc-block-label">Récompenses (art. 1433-1435 Cciv) — €</span>
+              <div class="lc-grid-2">
+                <div class="lc-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Récompenses dues par l'époux 1</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="recompensesEpoux1Eur()"
+                           (ngModelChange)="onRecompenses1Change($event)"
+                           name="recompensesEpoux1Eur" />
+                  </mat-form-field>
+                  @if (provenanceRecompensesEpoux1() === 'IA') {
+                    <span class="lc-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+                <div class="lc-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Récompenses dues par l'époux 2</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="recompensesEpoux2Eur()"
+                           (ngModelChange)="onRecompenses2Change($event)"
+                           name="recompensesEpoux2Eur" />
+                  </mat-form-field>
+                  @if (provenanceRecompensesEpoux2() === 'IA') {
+                    <span class="lc-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloc 5 — Biens propres (information) -->
+            <div class="lc-block lc-full">
+              <span class="lc-block-label">Biens propres (information — ne rentre pas dans la masse) — €</span>
+              <div class="lc-grid-2">
+                <mat-form-field appearance="outline">
+                  <mat-label>Biens propres époux 1</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="biensPropresEpoux1Eur()"
+                         (ngModelChange)="onBiensPropres1Change($event)"
+                         name="biensPropresEpoux1Eur" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Biens propres époux 2</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="biensPropresEpoux2Eur()"
+                         (ngModelChange)="onBiensPropres2Change($event)"
+                         name="biensPropresEpoux2Eur" />
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Bloc 6 — Occupation du logement -->
+            <div class="lc-block lc-full">
+              <span class="lc-block-label">Attribution du logement (art. 832 Cciv)</span>
+              <mat-form-field appearance="outline" class="lc-inline-field">
+                <mat-label>Qui conserve le logement ?</mat-label>
+                <mat-select [ngModel]="occupationLogementEpoux()"
+                            (ngModelChange)="onOccupationChange($event)"
+                            name="occupationLogementEpoux">
+                  @for (o of occupationsLogement; track o.value) {
+                    <mat-option [value]="o.value">{{ o.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="lc-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la liquidation</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="lc-result">
+            <!-- Bannière verdict masse commune -->
+            <div class="lc-verdict-banner">
+              <mat-icon>account_balance</mat-icon>
+              <div class="lc-verdict-content">
+                <strong>Masse commune nette</strong>
+                <span class="lc-verdict-value" data-testid="lc-masse-commune">
+                  {{ formatEuros(result()!.masseCommuneEur) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Quote-parts -->
+            <div class="lc-figures-block">
+              <div class="lc-figure">
+                <span class="lc-figure-label">Quote-part époux 1</span>
+                <span class="lc-figure-value" data-testid="lc-quota-epoux1">
+                  {{ formatEuros(result()!.quotaPartEpoux1Eur) }}
+                </span>
+              </div>
+              <div class="lc-figure">
+                <span class="lc-figure-label">Quote-part époux 2</span>
+                <span class="lc-figure-value" data-testid="lc-quota-epoux2">
+                  {{ formatEuros(result()!.quotaPartEpoux2Eur) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Soulte indicative -->
+            @if (result()!.soulteEur > 0) {
+              <div class="lc-soulte-block" data-testid="lc-soulte-block">
+                <span class="lc-soulte-label">Soulte indicative</span>
+                <span class="lc-soulte-value">{{ formatEuros(result()!.soulteEur) }}</span>
+              </div>
+            }
+
+            <!-- Alerte indivision -->
+            @if (result()!.alerteIndivision) {
+              <div class="lc-alerte-indivision" data-testid="lc-alerte-indivision">
+                <mat-icon>warning</mat-icon>
+                <span>Indivision résiduelle probable — envisager la vente amiable ou la licitation (art. 815 Cciv + 1377 CPC).</span>
+              </div>
+            }
+
+            <!-- Base juridique -->
+            @if (result()!.baseJuridique) {
+              <div class="lc-bases-block">
+                <span class="lc-bases-label">Base juridique</span>
+                <span class="lc-base-chip" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              </div>
+            }
+
+            <div class="lc-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="lc-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.alertes?.length) {
+              <ul class="lc-alertes" data-testid="lc-alertes">
+                @for (a of result()!.alertes; track a) {
+                  <li><mat-icon>warning</mat-icon> {{ a }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
