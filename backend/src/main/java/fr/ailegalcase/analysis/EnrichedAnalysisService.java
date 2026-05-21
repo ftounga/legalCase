@@ -5,10 +5,6 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.casefile.StatutoryDeadlineService;
 import fr.ailegalcase.chat.ChatMessage;
 import fr.ailegalcase.chat.ChatMessageRepository;
-import io.sentry.Sentry;
-import io.sentry.SentryEvent;
-import io.sentry.SentryLevel;
-import io.sentry.protocol.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -604,7 +600,7 @@ public class EnrichedAnalysisService {
         job.setStatus(enrichedAnalysis.getAnalysisStatus());
         if (enrichedAnalysis.getAnalysisStatus() == AnalysisStatus.FAILED) {
             job.setErrorMessage("Enriched analysis failed");
-            reportJobFailureToSentry(caseFileId, JobType.ENRICHED_ANALYSIS, "Enriched analysis failed");
+            logJobFailure(caseFileId, JobType.ENRICHED_ANALYSIS, "Enriched analysis failed");
         }
         analysisJobRepository.save(job);
 
@@ -625,20 +621,17 @@ public class EnrichedAnalysisService {
         }
     }
 
-    private void reportJobFailureToSentry(UUID caseFileId, JobType jobType, String errorMessage) {
+    /**
+     * SF-INFRA-09 : remplace l'envoi Sentry par un log SLF4J ERROR.
+     * Le mot ERROR généré par SLF4J en début de ligne déclenche le metric
+     * filter CloudWatch et alimente l'alarme legalcase-production-backend-error-rate.
+     */
+    private void logJobFailure(UUID caseFileId, JobType jobType, String errorMessage) {
         try {
-            if (!Sentry.isEnabled()) return;
-            SentryEvent event = new SentryEvent();
-            event.setLevel(SentryLevel.ERROR);
-            Message msg = new Message();
-            msg.setMessage("IA job FAILED: %s for caseFile %s".formatted(jobType, caseFileId));
-            event.setMessage(msg);
-            event.setTag("caseFileId", caseFileId.toString());
-            event.setTag("jobType", jobType.name());
-            event.setTag("errorMessage", errorMessage);
-            Sentry.captureEvent(event);
+            log.error("IA job FAILED: jobType={} caseFileId={} errorMessage={}",
+                    jobType, caseFileId, errorMessage);
         } catch (Exception ex) {
-            log.warn("Failed to report job failure to Sentry", ex);
+            log.warn("Failed to log job failure", ex);
         }
     }
 

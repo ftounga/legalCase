@@ -16,7 +16,6 @@ configMapGenerator:
       - APP_FRONTEND_URL=https://staging.legalcase.fr
       - APP_ALLOWED_FRONTEND_URLS=https://staging.legalcase.fr,https://staging.legalcase.ng-itconsulting.com
       - BLOG_PUBLIC_BASE_URL=https://staging.legalcase.fr
-      - SENTRY_ENV=staging
       - AWS_TEXTRACT_ENABLED=true
       - AWS_TEXTRACT_REGION=eu-west-3
       # SF-INFRA-08 : CloudFront devant le bucket S3 documents staging
