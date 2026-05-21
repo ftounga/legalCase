@@ -28,6 +28,20 @@
         </div>
       } @else {
         @if (showForm()) {
+          <!-- SF-252c-01 #13 (audit 2026-05-20) — Apprentissage hors scope L.6222-18 -->
+          @if (typeContrat() === 'APPRENTISSAGE') {
+            <div class="rpe-country-banner" data-testid="rpe-apprentissage-banner" style="background:#fff3cd;color:#856404;">
+              <mat-icon>warning_amber</mat-icon>
+              <span>
+                <strong>Contrat d'apprentissage</strong> — régime spécial L.6222-18.
+                Cet outil F-DT-38 (rupture de période d'essai L.1221-19+) n'est <strong>pas applicable</strong>.
+                Les 45 premiers jours de présence effective en milieu de travail permettent
+                la rupture libre des deux côtés (sans motivation, sans procédure spécifique).
+                Pour une rupture après 45 jours : résiliation conventionnelle écrite OU rupture
+                par le conseil de prud'hommes pour faute grave / manquements répétés / inaptitude.
+              </span>
+            </div>
+          }
           <form class="rpe-form" (ngSubmit)="calculate()">
             <!-- Bloc Contrat -->
             <div class="rpe-block rpe-full">
@@ -117,6 +131,14 @@
                 </mat-form-field>
               }
 
+              <!-- SF-252c-01 #12 (audit 2026-05-20) — clarification renouvellement -->
+              <div class="rpe-info-banner" style="font-size:12px;color:#666;margin:8px 0;">
+                <mat-icon style="font-size:14px;vertical-align:middle;">info_outline</mat-icon>
+                La durée saisie ci-dessus est la <strong>durée initiale</strong> du contrat
+                d'essai (sans renouvellement). Si renouvellement régulier, l'outil double
+                automatiquement (L.1221-23).
+              </div>
+
               <div class="rpe-toggle-row">
                 <mat-slide-toggle
                     [ngModel]="renouvellementInvoque()"
@@ -152,6 +174,52 @@
                 @if (provenanceAccordEcritSalarie() === 'IA') {
                   <span class="rpe-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
                 }
+              }
+            </div>
+
+            <!-- SF-252c-01 — Suspensions & reprise d'ancienneté (audit 2026-05-20) -->
+            <div class="rpe-block rpe-full">
+              <span class="rpe-block-label">Suspensions & reprise d'ancienneté (SF-252c-01)</span>
+
+              <!-- Gap #10 — Suspensions Cass. soc. 31/01/2018 -->
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Jours de suspension du contrat (arrêt maladie, congés non rémunérés, grève)</mat-label>
+                <input matInput type="number" min="0" max="365"
+                       [ngModel]="joursSuspensionContrat()"
+                       (ngModelChange)="joursSuspensionContrat.set($event)"
+                       name="joursSuspensionContrat" />
+                <mat-hint>
+                  Cass. soc., 31/01/2018, n° 16-19.836 — chaque jour de suspension du contrat
+                  prolonge d'autant la fin de la période d'essai. Renseigner 0 ou laisser vide
+                  si aucune suspension.
+                </mat-hint>
+              </mat-form-field>
+
+              <!-- Gap #11 — Reprise d'ancienneté L.1243-11 / Cass. soc. 09/10/2013 -->
+              <mat-form-field appearance="outline" class="rpe-inset-field">
+                <mat-label>Type de contrat précédent (si reprise d'ancienneté)</mat-label>
+                <mat-select [ngModel]="typeContratPrecedent()"
+                            (ngModelChange)="typeContratPrecedent.set($event)"
+                            name="typeContratPrecedent">
+                  <mat-option [value]="null">Aucun contrat précédent</mat-option>
+                  @for (opt of typeContratPrecedentOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              @if (typeContratPrecedent()) {
+                <mat-form-field appearance="outline" class="rpe-inset-field">
+                  <mat-label>Ancienneté du contrat précédent (mois)</mat-label>
+                  <input matInput type="number" min="0" max="60"
+                         [ngModel]="ancienneteContratPrecedentMois()"
+                         (ngModelChange)="ancienneteContratPrecedentMois.set($event)"
+                         name="ancienneteContratPrecedentMois" />
+                  <mat-hint>
+                    L.1243-11 (CDD précédent) — déduction intégrale.
+                    Cass. soc. 09/10/2013, n° 12-19.512 (stage) — déduction si stage ≥ 2 mois.
+                  </mat-hint>
+                </mat-form-field>
               }
             </div>
 
@@ -249,6 +317,15 @@
               }
 
               @if (lettreRuptureMotivee()) {
+                <!-- SF-252c-01 #14 (audit 2026-05-20) — Cass. soc. 23/01/1996 -->
+                <div class="rpe-info-banner" style="font-size:12px;color:#856404;background:#fff3cd;padding:6px 10px;border-radius:4px;margin:6px 0;">
+                  <mat-icon style="font-size:14px;vertical-align:middle;">warning_amber</mat-icon>
+                  <strong>Attention</strong> — Cass. soc., 23/01/1996, n° 92-43.330 :
+                  les motifs énoncés dans la lettre de rupture <strong>lient l'employeur</strong>.
+                  Si la lettre invoque un motif qui s'avère faux ou insuffisamment justifié
+                  par les pièces, l'employeur ne peut plus en invoquer un autre devant le CPH.
+                  Vérifier attentivement la cohérence motif énoncé / pièces du dossier.
+                </div>
                 <div class="rpe-toggle-row">
                   <mat-slide-toggle
                       [ngModel]="motifsAveresParPieces()"

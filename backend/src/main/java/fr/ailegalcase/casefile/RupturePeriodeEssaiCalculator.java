@@ -86,7 +86,23 @@ public final class RupturePeriodeEssaiCalculator {
     public enum TypeContrat {
         CDI,
         CDD,
-        INTERIM
+        INTERIM,
+        // SF-252c-01 (audit 2026-05-20) — Régime distinct hors L.1221-19.
+        // L'apprentissage suit le régime spécial L.6222-18 (45 jours en milieu
+        // de travail, rupture libre des deux côtés). Détecté en early return
+        // de `compute()` avec message "hors scope F-DT-38".
+        APPRENTISSAGE
+    }
+
+    /**
+     * SF-252c-01 — Type de contrat précédent pour la reprise d'ancienneté
+     * (L.1243-11 / Cass. soc. 09/10/2013 n° 12-19.512).
+     */
+    public enum TypeContratPrecedent {
+        STAGE,
+        CDD,
+        INTERIM,
+        AUTRE
     }
 
     /** Auteur de la rupture. */
@@ -242,6 +258,31 @@ public final class RupturePeriodeEssaiCalculator {
         validateCommentaire(input.motifInvoque(), "motifInvoque", 1000);
         validateCommentaire(input.atteinteLiberteFondamentale(), "atteinteLiberteFondamentale", 500);
 
+        // SF-252c-01 (audit 2026-05-20) — APPRENTISSAGE : régime spécial L.6222-18,
+        // hors scope F-DT-38. Early return avec message explicite et verdict REGULIERE
+        // neutre — pas de logique CDI/CDD applicable (qui produirait un verdict faux).
+        if (input.typeContrat() == TypeContrat.APPRENTISSAGE) {
+            return new RupturePeriodeEssaiResult(
+                    List.of(), 0, Verdict.REGULIERE,
+                    (int) ChronoUnit.DAYS.between(input.dateDebutContrat(), input.dateRupture()),
+                    0, 0, true, null, false,
+                    List.of("Art. L.6222-18 C. trav."),
+                    List.of(
+                            "Contrat d'apprentissage — régime spécial L.6222-18 du Code du travail.",
+                            "Les 45 premiers jours de présence effective en milieu de travail "
+                                    + "permettent la rupture libre des deux côtés (sans motivation, "
+                                    + "sans procédure spécifique). Cet outil F-DT-38 (rupture de "
+                                    + "période d'essai L.1221-19+) n'est PAS applicable au contrat "
+                                    + "d'apprentissage.",
+                            "Pour une rupture après les 45 jours, voir le régime de rupture du "
+                                    + "contrat d'apprentissage (résiliation conventionnelle écrite "
+                                    + "OU rupture par le conseil de prud'hommes pour faute grave, "
+                                    + "manquements répétés, ou inaptitude — L.6222-18)."),
+                    countryNormalized,
+                    0, null
+            );
+        }
+
         long ancienneteJours = ChronoUnit.DAYS.between(input.dateDebutContrat(), input.dateRupture());
         int dureeLegaleMois = dureeLegaleMaximaleMois(
                 input.categorieSocioProfessionnelle(),
@@ -364,8 +405,16 @@ public final class RupturePeriodeEssaiCalculator {
         }
 
         // 4 — RUPTURE_HORS_PERIODE_ESSAI (L.1221-25)
+        // SF-252c-01 (audit 2026-05-20) : fin d'essai = dateDebut + durée effective
+        // (réduite par l'ancienneté du contrat précédent L.1243-11 / Cass. soc.
+        // 09/10/2013) + jours de suspension du contrat (Cass. soc. 31/01/2018,
+        // n° 16-19.836 — arrêt maladie, congés non rémunérés, grève prolongent
+        // d'autant la fin d'essai).
         int dureeEffectiveMois = dureeEffectiveEssaiMois(in);
-        LocalDate finEssai = in.dateDebutContrat().plusMonths(dureeEffectiveMois);
+        LocalDate finEssai = in.dateDebutContrat()
+                .plusMonths(dureeEffectiveMois)
+                .plusDays(in.joursSuspensionContrat() != null
+                        ? Math.max(0, in.joursSuspensionContrat()) : 0);
         if (in.dateRupture().isAfter(finEssai)) {
             codes.add(CodeAnomalie.RUPTURE_HORS_PERIODE_ESSAI);
             anomalies.add(new Anomalie(
@@ -740,14 +789,34 @@ public final class RupturePeriodeEssaiCalculator {
     /**
      * Durée effective de l'essai = contractuelle × 2 si renouvellement régulier
      * (accord branche + accord salarié), sinon contractuelle.
+     *
+     * <p>SF-252c-01 (audit 2026-05-20) — La durée est ensuite réduite par
+     * l'ancienneté d'un stage &gt; 2 mois (Cass. soc., 09/10/2013, n° 12-19.512)
+     * ou d'un CDD précédent dans la même entreprise / même fonction
+     * (L.1243-11), capée à 0 (pas de durée négative). Convention : pour le
+     * stage, déduction uniquement si l'ancienneté ≥ 2 mois.</p>
      */
     private static int dureeEffectiveEssaiMois(RupturePeriodeEssaiInput in) {
+        int duree = in.dureePeriodeEssaiContractuelleMois();
         if (Boolean.TRUE.equals(in.renouvellementInvoque())
                 && Boolean.TRUE.equals(in.accordBrancheRenouvellement())
                 && Boolean.TRUE.equals(in.accordEcritSalarieRenouvellement())) {
-            return in.dureePeriodeEssaiContractuelleMois() * 2;
+            duree *= 2;
         }
-        return in.dureePeriodeEssaiContractuelleMois();
+        // SF-252c-01 — Reprise d'ancienneté du contrat précédent
+        Integer ancMois = in.ancienneteContratPrecedentMois();
+        TypeContratPrecedent typePrecedent = in.typeContratPrecedent();
+        if (ancMois != null && ancMois > 0 && typePrecedent != null) {
+            boolean deductible = switch (typePrecedent) {
+                case CDD, INTERIM -> true;          // L.1243-11
+                case STAGE -> ancMois >= 2;          // Cass. soc. 09/10/2013 (stage > 2 mois)
+                case AUTRE -> false;
+            };
+            if (deductible) {
+                duree = Math.max(0, duree - ancMois);
+            }
+        }
+        return duree;
     }
 
     // ----------------------------------------------------------------------

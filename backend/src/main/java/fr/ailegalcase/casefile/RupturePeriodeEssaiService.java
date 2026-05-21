@@ -161,6 +161,10 @@ public class RupturePeriodeEssaiService {
                 req.dateNotificationGrossesse(),
                 // SF-252b-01 — barème CDD/INTERIM précis
                 req.dureePeriodeEssaiContractuelleJours(),
+                // SF-252c-01 — gaps moyens (suspensions, reprise ancienneté)
+                req.joursSuspensionContrat(),
+                req.ancienneteContratPrecedentMois(),
+                req.typeContratPrecedent(),
                 r.verdict(),
                 r.scoreIrregularite(),
                 r.ancienneteJoursAuMomentRupture(),

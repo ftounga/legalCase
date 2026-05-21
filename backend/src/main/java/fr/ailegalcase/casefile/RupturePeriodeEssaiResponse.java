@@ -9,6 +9,7 @@ import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.AuteurRupture;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.CategorieSocioProfessionnelle;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.DiscriminationMotif;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContrat;
+import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContratPrecedent;
 
 /**
  * SF-DT-38-01 : réponse de l'endpoint de qualification d'une rupture pendant
@@ -54,6 +55,10 @@ public record RupturePeriodeEssaiResponse(
         LocalDate dateNotificationGrossesse,
         // --- SF-252b-01 — barème CDD/INTERIM précis (audit 2026-05-20) ---
         Integer dureePeriodeEssaiContractuelleJours,
+        // --- SF-252c-01 — gaps moyens (audit 2026-05-20) ---
+        Integer joursSuspensionContrat,
+        Integer ancienneteContratPrecedentMois,
+        TypeContratPrecedent typeContratPrecedent,
         // --- Outputs calculés ---
         RupturePeriodeEssaiCalculator.Verdict verdict,
         int scoreIrregularite,

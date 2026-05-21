@@ -6,6 +6,7 @@ import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.CategorieSocioProfe
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.CodeAnomalie;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.DiscriminationMotif;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContrat;
+import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContratPrecedent;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.Verdict;
 import org.junit.jupiter.api.Test;
 
@@ -666,5 +667,100 @@ class RupturePeriodeEssaiCalculatorTest {
                 .build();
         var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
         assertThat(r.indemnitePrevenanceEuros()).isNull();
+    }
+
+    // ============================================================================
+    // SF-252c-01 — Gaps moyens #10 #11 #12 #13 #14 (audit 2026-05-20)
+    // ============================================================================
+
+    @Test
+    void compute_apprentissage_horsScope_verdictReguliereNeutre() {
+        // Gap #13 — Apprentissage L.6222-18 = régime spécial, hors scope F-DT-38
+        var in = ruptureReguliere().typeContrat(TypeContrat.APPRENTISSAGE).build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
+        assertThat(r.anomaliesDetectees()).isEmpty();
+        assertThat(r.basesJuridiques()).contains("Art. L.6222-18 C. trav.");
+        assertThat(r.messages()).anyMatch(m -> m.contains("Contrat d'apprentissage"));
+        assertThat(r.messages()).anyMatch(m -> m.contains("45 premiers jours"));
+        assertThat(r.indemniteEstimee()).isNull();
+        assertThat(r.indemnitePrevenanceEuros()).isNull();
+    }
+
+    @Test
+    void compute_suspensionContrat_prolongeFinEssai_pasAnomalie() {
+        // Gap #10 — Cass. soc. 31/01/2018 : arrêt maladie suspend essai
+        // Cadre, début 01/01, essai 4 mois = fin 01/05. Avec 20 jours d'arrêt
+        // maladie, fin reportée au 21/05. Rupture le 15/05 → toujours dans l'essai.
+        var in = ruptureReguliere()
+                .dateRupture(LocalDate.of(2025, 5, 15))
+                .joursSuspensionContrat(20)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).doesNotContain(CodeAnomalie.RUPTURE_HORS_PERIODE_ESSAI);
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
+    }
+
+    @Test
+    void compute_suspensionContrat_pas_assez_detecteRuptureHorsEssai() {
+        // Sans suspension, rupture le 15/05 (essai jusqu'au 01/05) → HORS ESSAI
+        var in = ruptureReguliere()
+                .dateRupture(LocalDate.of(2025, 5, 15))
+                .joursSuspensionContrat(5)  // 5 jours < 14 nécessaires
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.RUPTURE_HORS_PERIODE_ESSAI);
+    }
+
+    @Test
+    void compute_repriseAncienneteCddPrecedent_dureeEssaiReduite_RUPTURE_HORS_PERIODE() {
+        // Gap #11 — L.1243-11 : CDD précédent de 3 mois → durée d'essai CDI réduite
+        // Cadre, début 01/01, contractuel 4 mois, mais 3 mois CDD précédent
+        // → essai effectif 1 mois (jusqu'au 01/02). Rupture le 01/03 → HORS ESSAI.
+        var in = ruptureReguliere()
+                .dateRupture(LocalDate.of(2025, 3, 1))
+                .ancienneteContratPrecedentMois(3)
+                .typeContratPrecedent(TypeContratPrecedent.CDD)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.RUPTURE_HORS_PERIODE_ESSAI);
+    }
+
+    @Test
+    void compute_repriseAncienneteStageMoins2Mois_pasDeReduction() {
+        // Cass. soc. 09/10/2013 : stage < 2 mois → pas de déduction
+        var in = ruptureReguliere()
+                .ancienneteContratPrecedentMois(1)
+                .typeContratPrecedent(TypeContratPrecedent.STAGE)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        // Avec essai 4 mois et ancienneté 1 mois stage (non déductible),
+        // rupture le 10/04 reste dans l'essai → REGULIERE
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
+    }
+
+    @Test
+    void compute_repriseAncienneteStagePlus2Mois_reductionAppliquee() {
+        // Cass. soc. 09/10/2013 : stage ≥ 2 mois → déduction
+        // Cadre, début 01/01, contractuel 4 mois, mais 3 mois stage précédent
+        // → essai effectif 1 mois. Rupture le 01/03 → HORS ESSAI.
+        var in = ruptureReguliere()
+                .dateRupture(LocalDate.of(2025, 3, 1))
+                .ancienneteContratPrecedentMois(3)
+                .typeContratPrecedent(TypeContratPrecedent.STAGE)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(codes(r)).contains(CodeAnomalie.RUPTURE_HORS_PERIODE_ESSAI);
+    }
+
+    @Test
+    void compute_typeContratPrecedentAutre_pasDeReduction() {
+        // Type AUTRE → pas de déduction (cas conservateur)
+        var in = ruptureReguliere()
+                .ancienneteContratPrecedentMois(5)
+                .typeContratPrecedent(TypeContratPrecedent.AUTRE)
+                .build();
+        var r = RupturePeriodeEssaiCalculator.compute(in, "FRANCE");
+        assertThat(r.verdict()).isEqualTo(Verdict.REGULIERE);
     }
 }

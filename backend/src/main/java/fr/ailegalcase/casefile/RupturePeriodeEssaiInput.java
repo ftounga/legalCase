@@ -6,6 +6,7 @@ import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.AuteurRupture;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.CategorieSocioProfessionnelle;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.DiscriminationMotif;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContrat;
+import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContratPrecedent;
 
 /**
  * SF-DT-38-01 : input du calcul de qualification d'une rupture pendant la
@@ -55,7 +56,18 @@ public record RupturePeriodeEssaiInput(
         // Pour CDD (L.1242-10) ou INTERIM (L.1251-14), l'essai contractuel est souvent
         // exprimé en jours dans le contrat. Si renseigné, utilisé en priorité ;
         // sinon `dureePeriodeEssaiContractuelleMois × 30` fait office d'approximation.
-        Integer dureePeriodeEssaiContractuelleJours
+        Integer dureePeriodeEssaiContractuelleJours,
+        // SF-252c-01 — 3 nouveaux champs pour les gaps moyens (audit 2026-05-20).
+        // Cumul des jours de suspension du contrat (arrêt maladie, congés non rémunérés,
+        // grève) qui prolongent d'autant la fin de la période d'essai
+        // (Cass. soc., 31/01/2018, n° 16-19.836).
+        Integer joursSuspensionContrat,
+        // Ancienneté (en mois) d'un stage > 2 mois OU d'un CDD précédent dans la même
+        // entreprise et même fonction, déduite de la durée de la période d'essai
+        // (L.1243-11 + Cass. soc., 09/10/2013, n° 12-19.512).
+        Integer ancienneteContratPrecedentMois,
+        // Type du contrat précédent ayant donné lieu à la reprise d'ancienneté.
+        TypeContratPrecedent typeContratPrecedent
 ) {
 
     /** Builder utilitaire — facilite la lisibilité des tests unitaires. */
@@ -93,6 +105,10 @@ public record RupturePeriodeEssaiInput(
         private LocalDate dateNotificationGrossesse;
         // SF-252b-01
         private Integer dureePeriodeEssaiContractuelleJours;
+        // SF-252c-01
+        private Integer joursSuspensionContrat;
+        private Integer ancienneteContratPrecedentMois;
+        private TypeContratPrecedent typeContratPrecedent;
 
         public Builder categorieSocioProfessionnelle(CategorieSocioProfessionnelle v) { this.categorieSocioProfessionnelle = v; return this; }
         public Builder typeContrat(TypeContrat v) { this.typeContrat = v; return this; }
@@ -125,6 +141,9 @@ public record RupturePeriodeEssaiInput(
         public Builder grossesseDeclareePostRupture(Boolean v) { this.grossesseDeclareePostRupture = v; return this; }
         public Builder dateNotificationGrossesse(LocalDate v) { this.dateNotificationGrossesse = v; return this; }
         public Builder dureePeriodeEssaiContractuelleJours(Integer v) { this.dureePeriodeEssaiContractuelleJours = v; return this; }
+        public Builder joursSuspensionContrat(Integer v) { this.joursSuspensionContrat = v; return this; }
+        public Builder ancienneteContratPrecedentMois(Integer v) { this.ancienneteContratPrecedentMois = v; return this; }
+        public Builder typeContratPrecedent(TypeContratPrecedent v) { this.typeContratPrecedent = v; return this; }
 
         public RupturePeriodeEssaiInput build() {
             return new RupturePeriodeEssaiInput(
@@ -141,7 +160,9 @@ public record RupturePeriodeEssaiInput(
                     salarieProtege, autorisationInspectionTravailObtenue,
                     lanceurAlerte, temoinOuVictimeHarcelement, droitDeRetraitExerce,
                     grossesseDeclareePostRupture, dateNotificationGrossesse,
-                    dureePeriodeEssaiContractuelleJours
+                    dureePeriodeEssaiContractuelleJours,
+                    joursSuspensionContrat, ancienneteContratPrecedentMois,
+                    typeContratPrecedent
             );
         }
     }

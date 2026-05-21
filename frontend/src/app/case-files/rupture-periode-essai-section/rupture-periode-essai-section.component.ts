@@ -111,6 +111,10 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
   dureePeriodeEssaiContractuelleMois = signal<number>(4);
   // SF-252b-01 — durée d'essai en jours (alternative pour CDD/INTERIM, audit 2026-05-20)
   dureePeriodeEssaiContractuelleJours = signal<number | null>(null);
+  // SF-252c-01 — gaps moyens (audit 2026-05-20)
+  joursSuspensionContrat = signal<number | null>(null);
+  ancienneteContratPrecedentMois = signal<number | null>(null);
+  typeContratPrecedent = signal<'STAGE' | 'CDD' | 'INTERIM' | 'AUTRE' | null>(null);
   renouvellementInvoque = signal<boolean>(false);
   accordBrancheRenouvellement = signal<boolean>(false);
   accordEcritSalarieRenouvellement = signal<boolean>(false);
@@ -182,6 +186,14 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     { value: 'CDI', label: 'CDI' },
     { value: 'CDD', label: 'CDD' },
     { value: 'INTERIM', label: 'Intérim' },
+    // SF-252c-01 — Apprentissage hors scope L.6222-18 (audit 2026-05-20)
+    { value: 'APPRENTISSAGE', label: 'Apprentissage (régime spécial L.6222-18 — hors scope)' },
+  ];
+  readonly typeContratPrecedentOptions: { value: 'STAGE' | 'CDD' | 'INTERIM' | 'AUTRE'; label: string }[] = [
+    { value: 'STAGE', label: 'Stage (déduction si ≥ 2 mois — Cass. soc. 09/10/2013)' },
+    { value: 'CDD', label: 'CDD précédent (L.1243-11)' },
+    { value: 'INTERIM', label: 'Mission intérim précédente' },
+    { value: 'AUTRE', label: 'Autre (pas de déduction)' },
   ];
   readonly auteurOptions: { value: AuteurRupture; label: string }[] = [
     { value: 'EMPLOYEUR', label: 'Employeur' },
@@ -602,6 +614,10 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
       dureePeriodeEssaiContractuelleJours:
         this.typeContrat() === 'CDD' || this.typeContrat() === 'INTERIM'
           ? this.dureePeriodeEssaiContractuelleJours() : null,
+      // SF-252c-01 — gaps moyens (audit 2026-05-20)
+      joursSuspensionContrat: this.joursSuspensionContrat(),
+      ancienneteContratPrecedentMois: this.ancienneteContratPrecedentMois(),
+      typeContratPrecedent: this.typeContratPrecedent(),
     };
     this.calculating.set(true);
     this.service.calculate(this.caseFileId, request).subscribe({
@@ -673,6 +689,10 @@ export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
     this.dateNotificationGrossesse.set(r.dateNotificationGrossesse ?? null);
     // SF-252b-01 — restore durée essai jours
     this.dureePeriodeEssaiContractuelleJours.set(r.dureePeriodeEssaiContractuelleJours ?? null);
+    // SF-252c-01 — restore gaps moyens
+    this.joursSuspensionContrat.set(r.joursSuspensionContrat ?? null);
+    this.ancienneteContratPrecedentMois.set(r.ancienneteContratPrecedentMois ?? null);
+    this.typeContratPrecedent.set(r.typeContratPrecedent ?? null);
     // Reset provenance — valeurs persistées = saisie avocat.
     this.provenanceTypeContrat.set(null);
     this.provenanceDateDebutContrat.set(null);
