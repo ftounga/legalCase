@@ -1297,6 +1297,106 @@ describe('PdfExportService', () => {
     expect(s).toContain('❌ Risques écartés : 1');
   });
 
+  // ----------------------------------------------------------------------
+  // F-253 SF-253-03 : section « 🔍 Risques à creuser » (avant F-195 retenus)
+  // ----------------------------------------------------------------------
+
+  const risqueACreuserHarcelement: RisqueAlignment = {
+    risqueLibelle: 'Harcèlement moral — suspicion à creuser',
+    statut: 'A_CREUSER',
+    toolIdsCibles: ['F-DT-12-harcelement-licenciement-nul'],
+    raisonEcarte: null,
+  };
+
+  it('SF-253-03 alignment vide → section absente (fail-open)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🔍 Risques à creuser');
+  });
+
+  it('SF-253-03 aucun risque À_CREUSER (V+É seulement) → section absente', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [],
+      [risqueValideStandard, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🔍 Risques à creuser');
+  });
+
+  it('SF-253-03 ≥ 1 risque À_CREUSER → section présente avec titre + sous-titre singulier', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [],
+      [risqueACreuser],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🔍 Risques à creuser');
+    expect(s).toContain('1 risque à arbitrer — arbitrage avocat en attente');
+    expect(s).toContain('Risque à creuser');
+  });
+
+  it('SF-253-03 plusieurs risques À_CREUSER → sous-titre pluriel', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueACreuser, risqueACreuserHarcelement],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('2 risques à arbitrer — arbitrage avocat en attente');
+  });
+
+  it('SF-253-03 risque À_CREUSER avec mapping outil → suffixe label résolu', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueACreuserHarcelement],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('→ HARCELEMENT LICENCIEMENT NUL');
+  });
+
+  it('SF-253-03 cohabite avec F-195 (V+À_C+É) — 2 sections distinctes', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard, risqueACreuser, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🔍 Risques à creuser');
+    expect(s).toContain('⚠️ Risques retenus par votre avocat');
+  });
+
+  it('SF-253-03 ordre PDF : F-253 (à creuser) AVANT F-195 (validés)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [],
+      [risqueValideStandard, risqueACreuser],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const aCreuserIdx = flat.indexOf('🔍 Risques à creuser');
+    const validesIdx = flat.indexOf('⚠️ Risques retenus par votre avocat');
+    expect(aCreuserIdx).toBeGreaterThan(-1);
+    expect(validesIdx).toBeGreaterThan(-1);
+    expect(aCreuserIdx).toBeLessThan(validesIdx);
+  });
+
+  it('SF-253-03 pas de pictogramme critique 🔴 dans la section À_CREUSER (neutre par défaut)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [],
+      [risqueACreuserHarcelement],
+    ) as any;
+    const content = doc.content;
+    // Extraire UNIQUEMENT la section "Risques à creuser" (entre son header et
+    // le prochain header de section ⚠️/❓/Chronologie).
+    const flat = JSON.stringify(content);
+    const startIdx = flat.indexOf('🔍 Risques à creuser');
+    // Cherche le prochain titre de section après À_CREUSER (s'il existe).
+    const nextIdx = ['⚠️ Risques retenus', '❓ Réponses', 'Chronologie']
+      .map(t => flat.indexOf(t, startIdx))
+      .filter(i => i > startIdx)
+      .reduce((m, v) => Math.min(m, v), Number.MAX_SAFE_INTEGER);
+    const sectionSlice = flat.slice(startIdx,
+      nextIdx === Number.MAX_SAFE_INTEGER ? flat.length : nextIdx);
+    expect(sectionSlice).not.toContain('🔴');
+  });
+
   // ============================================================
   // F-196 SF-196-03 : section « ❓ Réponses aux questions complémentaires »
   // ============================================================
