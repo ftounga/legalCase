@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/stripe/webhook").permitAll()
                 .requestMatchers("/api/v1/public/**").permitAll()
                 .requestMatchers("/api/v1/contact").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/logs/client-error").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/legal/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/blog/**").permitAll()
                 .requestMatchers("/api/v1/auth/register", "/api/v1/auth/verify-email",

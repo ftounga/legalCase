@@ -1,16 +1,17 @@
 package fr.ailegalcase.analysis;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import fr.ailegalcase.casefile.CaseDeadlineService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.Document;
-import io.sentry.Sentry;
-import io.sentry.SentryEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -24,9 +25,18 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-class SentryJobReportingTest {
+/**
+ * SF-INFRA-09 — remplace SentryJobReportingTest.
+ *
+ * <p>Vérifie que lorsqu'un job IA passe à FAILED, une ligne SLF4J ERROR est
+ * émise avec les bons champs (caseFileId + jobType + errorMessage). Cette ligne
+ * sera captée par Fluent Bit → metric filter "ERROR" CloudWatch → alarme
+ * legalcase-production-backend-error-rate.</p>
+ */
+class JobFailureLoggingTest {
 
     private final DocumentAnalysisRepository documentAnalysisRepository = mock(DocumentAnalysisRepository.class);
     private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
@@ -103,6 +113,9 @@ class SentryJobReportingTest {
             jurisprudenceVerificationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
+    private ListAppender<ILoggingEvent> caseAppender;
+    private ListAppender<ILoggingEvent> enrichedAppender;
+
     @BeforeEach
     void setUp() {
         TransactionSynchronizationManager.initSynchronization();
@@ -119,88 +132,94 @@ class SentryJobReportingTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        // F-194 SF-194-01 — stub par défaut pour collectForEnrichment (sinon NPE dans prepareEnrichedAnalysis)
         when(pieceManquanteStatusService.collectForEnrichment(any()))
                 .thenReturn(PieceManquanteStatusService.EnrichmentSnapshot.empty());
-        // F-195 SF-195-01 — stub par défaut risques
         when(risqueStatusService.collectForEnrichment(any()))
                 .thenReturn(RisqueStatusService.EnrichmentSnapshot.empty());
+
+        // Branche un ListAppender sur les loggers des deux services pour capturer
+        // les events ERROR émis par logJobFailure(...).
+        caseAppender = attachAppender(CaseAnalysisService.class);
+        enrichedAppender = attachAppender(EnrichedAnalysisService.class);
     }
 
     @AfterEach
-    void clearTransactionSync() {
+    void tearDown() {
         TransactionSynchronizationManager.clearSynchronization();
+        detachAppender(CaseAnalysisService.class, caseAppender);
+        detachAppender(EnrichedAnalysisService.class, enrichedAppender);
     }
 
-    // S-01 : CaseAnalysis FAILED + Sentry activé → captureEvent appelé avec les bons tags
+    // J-01 : CaseAnalysis FAILED → log.error SLF4J émis avec caseFileId + jobType
     @Test
-    void caseAnalysis_failed_reportsSentryEventWithCorrectTags() {
+    void caseAnalysis_failed_emitsErrorLogWithCaseFileIdAndJobType() {
         UUID caseFileId = UUID.randomUUID();
         setupCaseAnalysisFailure(caseFileId);
 
-        try (MockedStatic<Sentry> sentry = mockStatic(Sentry.class)) {
-            sentry.when(Sentry::isEnabled).thenReturn(true);
+        caseAnalysisService.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
 
-            caseAnalysisService.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
-
-            ArgumentCaptor<SentryEvent> captor = ArgumentCaptor.forClass(SentryEvent.class);
-            sentry.verify(() -> Sentry.captureEvent(captor.capture()));
-            SentryEvent event = captor.getValue();
-            assertThat(event.getTag("caseFileId")).isEqualTo(caseFileId.toString());
-            assertThat(event.getTag("jobType")).isEqualTo(JobType.CASE_ANALYSIS.name());
-        }
+        ILoggingEvent failureEvent = findFailureEvent(caseAppender);
+        assertThat(failureEvent).as("expected a log.error containing job failure").isNotNull();
+        assertThat(failureEvent.getLevel()).isEqualTo(Level.ERROR);
+        String formatted = failureEvent.getFormattedMessage();
+        assertThat(formatted).contains(caseFileId.toString());
+        assertThat(formatted).contains(JobType.CASE_ANALYSIS.name());
+        assertThat(formatted).contains("Case analysis failed");
     }
 
-    // S-02 : CaseAnalysis DONE → captureEvent non appelé
+    // J-02 : CaseAnalysis DONE → aucun log.error job-failure
     @Test
-    void caseAnalysis_done_doesNotReportToSentry() {
+    void caseAnalysis_done_doesNotEmitErrorLog() {
         UUID caseFileId = UUID.randomUUID();
         setupCaseAnalysisSuccess(caseFileId);
 
-        try (MockedStatic<Sentry> sentry = mockStatic(Sentry.class)) {
-            sentry.when(Sentry::isEnabled).thenReturn(true);
+        caseAnalysisService.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
 
-            caseAnalysisService.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
-
-            sentry.verify(() -> Sentry.captureEvent(any()), never());
-        }
+        assertThat(findFailureEvent(caseAppender)).as("DONE should not produce a job-failure ERROR log").isNull();
     }
 
-    // S-03 : EnrichedAnalysis FAILED + Sentry activé → captureEvent appelé avec les bons tags
+    // J-03 : EnrichedAnalysis FAILED → log.error SLF4J émis avec caseFileId + jobType
     @Test
-    void enrichedAnalysis_failed_reportsSentryEventWithCorrectTags() {
+    void enrichedAnalysis_failed_emitsErrorLogWithCaseFileIdAndJobType() {
         UUID caseFileId = UUID.randomUUID();
         setupEnrichedAnalysisFailure(caseFileId);
 
-        try (MockedStatic<Sentry> sentry = mockStatic(Sentry.class)) {
-            sentry.when(Sentry::isEnabled).thenReturn(true);
+        enrichedAnalysisService.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
-            enrichedAnalysisService.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
-
-            ArgumentCaptor<SentryEvent> captor = ArgumentCaptor.forClass(SentryEvent.class);
-            sentry.verify(() -> Sentry.captureEvent(captor.capture()));
-            SentryEvent event = captor.getValue();
-            assertThat(event.getTag("caseFileId")).isEqualTo(caseFileId.toString());
-            assertThat(event.getTag("jobType")).isEqualTo(JobType.ENRICHED_ANALYSIS.name());
-        }
-    }
-
-    // S-04 : Sentry désactivé → captureEvent non appelé (fail-open, pas d'exception)
-    @Test
-    void caseAnalysis_failed_sentryDisabled_doesNotThrow() {
-        UUID caseFileId = UUID.randomUUID();
-        setupCaseAnalysisFailure(caseFileId);
-
-        try (MockedStatic<Sentry> sentry = mockStatic(Sentry.class)) {
-            sentry.when(Sentry::isEnabled).thenReturn(false);
-
-            caseAnalysisService.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
-
-            sentry.verify(() -> Sentry.captureEvent(any()), never());
-        }
+        ILoggingEvent failureEvent = findFailureEvent(enrichedAppender);
+        assertThat(failureEvent).as("expected a log.error containing job failure").isNotNull();
+        assertThat(failureEvent.getLevel()).isEqualTo(Level.ERROR);
+        String formatted = failureEvent.getFormattedMessage();
+        assertThat(formatted).contains(caseFileId.toString());
+        assertThat(formatted).contains(JobType.ENRICHED_ANALYSIS.name());
     }
 
     // --- helpers ---
+
+    private static ListAppender<ILoggingEvent> attachAppender(Class<?> target) {
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        Logger logger = (Logger) LoggerFactory.getLogger(target);
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private static void detachAppender(Class<?> target, ListAppender<ILoggingEvent> appender) {
+        if (appender == null) return;
+        Logger logger = (Logger) LoggerFactory.getLogger(target);
+        logger.detachAppender(appender);
+    }
+
+    private static ILoggingEvent findFailureEvent(ListAppender<ILoggingEvent> appender) {
+        return appender.list.stream()
+                .filter(e -> e.getLevel() == Level.ERROR)
+                .filter(e -> {
+                    String msg = e.getFormattedMessage();
+                    return msg != null && msg.contains("IA job FAILED");
+                })
+                .findFirst()
+                .orElse(null);
+    }
 
     private void setupCaseAnalysisFailure(UUID caseFileId) {
         DocumentAnalysis da = documentAnalysis("{\"faits\":[]}", Instant.now());
