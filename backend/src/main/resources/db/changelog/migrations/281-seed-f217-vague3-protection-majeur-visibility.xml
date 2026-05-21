@@ -26,19 +26,19 @@
             n° 1, pattern Vague 1 / Vague 2 / Vague 3 F-217). priority 70.
 
             Numéro 281 = numéro libre suivant (280 = création table par
-            SF-217-14). UUID dédié : f1a04001-0000-0000-0000-eeee21700009
+            SF-217-14). UUID dédié : f1a04001-0000-0000-0000-eeee21700014
             (007/008 déjà pris par SF-217-13 successions BE).
         </comment>
 
         <sql splitStatements="true">
 INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
-VALUES ('f1a04001-0000-0000-0000-eeee21700009', 'DROIT_FAMILLE', 'BELGIQUE', 'protection-majeur-be', 'ALWAYS_ON', NULL, NULL, 70);
+VALUES ('f1a04001-0000-0000-0000-eeee21700014', 'DROIT_FAMILLE', 'BELGIQUE', 'protection-majeur-be', 'ALWAYS_ON', NULL, NULL, 70);
         </sql>
 
         <rollback>
             <sql splitStatements="true">
 DELETE FROM decision_tool_visibility_rules
-WHERE id = 'f1a04001-0000-0000-0000-eeee21700009';
+WHERE id = 'f1a04001-0000-0000-0000-eeee21700014';
             </sql>
         </rollback>
     </changeSet>
