@@ -122,11 +122,11 @@ Note : aucun cas 403 sur le GET de lecture (mappings sont globaux, lisibles par 
 
 ## Critères d'acceptation
 
-- [ ] **CA-01** — Migration Liquibase `300-create-tool-jurisprudence-mappings.xml` exécutée crée la table `tool_jurisprudence_mappings` avec les 11 colonnes (`id`, `tool_id`, `branche_calcul_id`, `arret_ref`, `juridiction`, `date_arret`, `numero_pourvoi`, `lien_legifrance`, `chapeau_officiel`, `last_verified_at`, `confidence_score`, `archived`), index sur `(tool_id, branche_calcul_id, archived)`, contraintes documentées dans la section « Contraintes de validation » ci-dessous.
-- [ ] **CA-02** — Migration Liquibase `301-create-jurisprudence-watch-flags.xml` crée la table `jurisprudence_watch_flags` avec colonnes (`id`, `tool_id`, `branche_calcul_id`, `arret_entrant_ref`, `mapping_actuel_id`, `source` enum `CRON` / `USER_SIGNAL`, `confidence_score`, `explication`, `statut` enum `PENDING` / `REVIEWED` / `IGNORED`, `created_at`, `reviewed_at`, `reviewed_by_user_id`, `decision` enum `REPLACE` / `ADD` / `IGNORE`, `comment_user`), index sur `(statut, created_at)`.
-- [ ] **CA-03** — Migration Liquibase `302-create-jurisprudence-audit-log.xml` crée la table `jurisprudence_audit_log` avec colonnes (`id`, `mapping_id`, `action` enum `AUTO_CONFIRM` / `AUTO_ADD` / `AUTO_REPLACE` / `AUTO_ARCHIVE` / `MANUAL_REPLACE` / `MANUAL_ADD` / `MANUAL_IGNORE`, `actor` enum `CRON` / `SUPER_ADMIN`, `actor_user_id` nullable, `claude_confidence` nullable, `claude_reason` nullable, `created_at`), index sur `(mapping_id, created_at)`.
-- [ ] **CA-04** — Service `ToolJurisprudenceService.findByToolAndBranch(String toolId, String brancheId)` retourne `List<JurisprudenceCitationResponse>` avec **maximum 3 résultats**, triés par `confidence_score DESC, date_arret DESC`, en excluant `archived = true`.
-- [ ] **CA-05** — Endpoint `GET /api/tools/{toolId}/jurisprudence-citations?branch={brancheId}` retourne 200 + JSON liste de `JurisprudenceCitationResponse` (0 à 3 éléments). Requiert authentification (rôle `MEMBER` minimum). Pas d'isolation workspace (table globale).
+- [ ] **CA-01** — Migration Liquibase `282-create-tool-jurisprudence-mappings.xml` exécutée crée la table `tool_jurisprudence_mappings` avec les 11 colonnes (`id`, `tool_id`, `branche_calcul_id`, `arret_ref`, `juridiction`, `date_arret`, `numero_pourvoi`, `lien_legifrance`, `chapeau_officiel`, `last_verified_at`, `confidence_score`, `archived`), index sur `(tool_id, branche_calcul_id, archived)`, contraintes documentées dans la section « Contraintes de validation » ci-dessous.
+- [ ] **CA-02** — Migration Liquibase `283-create-jurisprudence-watch-flags.xml` crée la table `jurisprudence_watch_flags` avec colonnes (`id`, `tool_id`, `branche_calcul_id`, `arret_entrant_ref`, `mapping_actuel_id`, `source` enum `CRON` / `USER_SIGNAL`, `confidence_score`, `explication`, `statut` enum `PENDING` / `REVIEWED` / `IGNORED`, `created_at`, `reviewed_at`, `reviewed_by_user_id`, `decision` enum `REPLACE` / `ADD` / `IGNORE`, `comment_user`), index sur `(statut, created_at)`.
+- [ ] **CA-03** — Migration Liquibase `284-create-jurisprudence-audit-log.xml` crée la table `jurisprudence_audit_log` avec colonnes (`id`, `mapping_id`, `action` enum `AUTO_CONFIRM` / `AUTO_ADD` / `AUTO_REPLACE` / `AUTO_ARCHIVE` / `MANUAL_REPLACE` / `MANUAL_ADD` / `MANUAL_IGNORE`, `actor` enum `CRON` / `SUPER_ADMIN`, `actor_user_id` nullable, `claude_confidence` nullable, `claude_reason` nullable, `created_at`), index sur `(mapping_id, created_at)`.
+- [ ] **CA-04** — Service `ToolJurisprudenceService.findByToolAndBranch(String toolId, String brancheId)` retourne `List<ToolJurisprudenceCitationResponse>` avec **maximum 3 résultats**, triés par `confidence_score DESC, date_arret DESC`, en excluant `archived = true`.
+- [ ] **CA-05** — Endpoint `GET /api/tools/{toolId}/jurisprudence-citations?branch={brancheId}` retourne 200 + JSON liste de `ToolJurisprudenceCitationResponse` (0 à 3 éléments). Requiert authentification (rôle `MEMBER` minimum). Pas d'isolation workspace (table globale).
 - [ ] **CA-06** — Si `toolId` est invalide (vide, > 100 caractères, caractères non-alphanumériques hors `-_`) → 400 avec message d'erreur explicite.
 - [ ] **CA-07** — Si `branch` est absent ou vide → retour 200 + liste vide `[]` (l'outil affichera simplement aucune citation côté frontend).
 - [ ] **CA-08** — Si l'utilisateur n'est pas authentifié → 401.
@@ -214,6 +214,8 @@ Note : aucun endpoint POST/PUT/DELETE dans cette SF (écriture livrée en SF-JU-
 
 ### Réponse de l'endpoint
 
+Liste vide `[]` si aucun mapping. Sinon JSON de 1 à 3 `ToolJurisprudenceCitationResponse` :
+
 ```json
 [
   {
@@ -226,13 +228,9 @@ Note : aucun endpoint POST/PUT/DELETE dans cette SF (écriture livrée en SF-JU-
     "chapeauOfficiel": "Selon l'article L. 1235-3 du code du travail, l'indemnité pour licenciement sans cause réelle et sérieuse est plafonnée par le barème...",
     "lastVerifiedAt": "2026-05-01T03:00:00Z",
     "confidenceScore": 0.92
-  },
-  { "... 2ᵉ arrêt ..." },
-  { "... 3ᵉ arrêt ..." }
+  }
 ]
 ```
-
-Liste vide `[]` si aucun mapping.
 
 ### Tables impactées
 
@@ -245,11 +243,11 @@ Liste vide `[]` si aucun mapping.
 ### Migration Liquibase
 
 - [x] Oui — 3 migrations dans `backend/src/main/resources/db/changelog/migrations/` :
-  - `300-create-tool-jurisprudence-mappings.xml`
-  - `301-create-jurisprudence-watch-flags.xml`
-  - `302-create-jurisprudence-audit-log.xml`
+  - `282-create-tool-jurisprudence-mappings.xml`
+  - `283-create-jurisprudence-watch-flags.xml`
+  - `284-create-jurisprudence-audit-log.xml`
 
-Note : numérotation 300+ pour ne pas entrer en collision avec les migrations 200+ en cours (F-217 et autres bundles). Numéro à confirmer au moment du PR selon l'état du repo (incrémenter si conflit).
+Note : la dernière migration utilisée au repo `master` est `281-*` (F-217 bundles parallèles 280-281). Mes migrations démarrent à 282. À reconfirmer au moment du PR si d'autres SF ont consommé 282-284 entre-temps (recheck origin/master avant push — cf. `memory/feedback_recheck_master_par_phase`).
 
 ### Composants Angular (si applicable)
 
@@ -271,7 +269,7 @@ Aucun — SF backend pure.
 - `ToolJurisprudenceService` — méthode publique `findByToolAndBranch(String toolId, String brancheCalculId): List<JurisprudenceCitationResponse>` qui délègue au repository et mappe vers le record DTO
 
 **Records DTO** :
-- `JurisprudenceCitationResponse` — record immutable exposé par l'endpoint (ne contient pas `archived`, ne contient pas `branche_calcul_id` qui est dans l'URL)
+- `ToolJurisprudenceCitationResponse` — record immutable exposé par l'endpoint (ne contient pas `archived`, ne contient pas `branche_calcul_id` qui est dans l'URL). Préfixe `Tool` explicite pour éviter toute confusion avec la classe Java `JurisprudenceCitation` de F-242 (table `case_jurisprudence_citations`, workspace-scoped, citation per-item par l'avocat) — use cases orthogonaux, voir Note 11 plus bas.
 
 **Contrôleurs Spring** :
 - `ToolJurisprudenceController` — endpoint `@GetMapping("/api/tools/{toolId}/jurisprudence-citations")`, sécurisé via `SecurityConfig` existant (auth required, pas de rôle spécifique car `MEMBER` = défaut)
@@ -288,7 +286,7 @@ Aucun — SF backend pure.
 - [ ] `ToolJurisprudenceServiceTest.findByToolAndBranch_returnsMaxThreeArrets_evenIfFiveExist()`
 - [ ] `ToolJurisprudenceServiceTest.findByToolAndBranch_excludesArchivedMappings()`
 - [ ] `ToolJurisprudenceServiceTest.findByToolAndBranch_sortsByDateArretDesc_whenConfidenceEqual()`
-- [ ] `ToolJurisprudenceServiceTest.findByToolAndBranch_returnsImmutableDtos_notEntities()` (vérifie que le service ne fuit pas l'entité JPA)
+- [ ] `ToolJurisprudenceServiceTest.findByToolAndBranch_returnsImmutableDtos_notEntities()` (vérifie que le service retourne `ToolJurisprudenceCitationResponse`, pas l'entité JPA)
 
 ### Tests d'intégration
 
@@ -372,6 +370,13 @@ Aucune. SF-JU-01-01 est la première SF de F-JU-01, démarrable immédiatement.
 9. **Pas d'endpoint d'écriture dans cette SF** — toute écriture est différée à SF-JU-01-02 (cron) ou SF-JU-01-05 (dashboard admin). Cela permet de figer le contrat de lecture en SF-JU-01-01 et de paralléliser les SF backend cron (02, 03) + SF frontend (04) sans risque de course condition sur l'écriture.
 
 10. **Continuité F-98 conclusions générées** — non incluse dans cette SF. Sera décidée en V2 selon signal terrain : faut-il que `app-conclusions-section` (F-98) puise dans `tool_jurisprudence_mappings` pour citer les arrêts des outils utilisés ? Probablement oui, mais on attend de voir comment les avocats utilisent les citations en pratique avant d'engager le dev.
+
+11. **Coexistence avec F-242 `case_jurisprudence_citations`** — la table `case_jurisprudence_citations` existe déjà (migration 248, F-242 livrée 2026-05-18). Use cases **orthogonaux** :
+    - **F-242 `case_jurisprudence_citations`** : table workspace-scoped (`FK case_file_id`, `FK workspace_id`). Une ligne = un arrêt **saisi manuellement par l'avocat** comme jurisprudence d'appui pour un point juridique d'**un dossier précis**. Source = avocat (geste manuel post-recherche Doctrine via F-241).
+    - **F-JU-01 `tool_jurisprudence_mappings`** (CETTE SF) : table globale (pas de `workspace_id`, pas de `case_file_id`). Une ligne = un arrêt **mappé automatiquement par Claude** à une branche de calcul d'un outil décisionnel — valable pour tous les workspaces et tous les dossiers utilisant cet outil. Source = bootstrap Claude + cron mensuel.
+    - **Pas de fusion possible** : les structures de données et les use cases divergent (per-dossier-avocat vs per-outil-global). Les deux features coexistent sur l'écran synthèse (F-242, per-point juridique) et dans le modal d'outil (F-JU-01, sous le résultat) — chaîne jurisprudence à 4 briques documentée dans `parcours-ecran-dossier.md`.
+    - **Convention de nommage** : les classes Java de F-JU-01 sont **toutes préfixées `Tool*`** (`ToolJurisprudenceMapping`, `ToolJurisprudenceCitationResponse`, `ToolJurisprudenceService`, etc.) pour éviter toute collision et confusion avec la `JurisprudenceCitation` (entité F-242).
+    - **Dette documentaire mineure signalée** : `case_jurisprudence_citations` est listée dans le sommaire de `ARCHITECTURE_CANONIQUE.md` (ligne 308) mais n'a pas de section détaillée. À combler hors scope de cette SF (probable suivi F-242 post-merge).
 
 ### Coût estimé
 
