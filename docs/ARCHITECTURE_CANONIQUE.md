@@ -306,6 +306,9 @@ document_analyses
 case_analyses
 case_conclusions
 case_jurisprudence_citations
+tool_jurisprudence_mappings
+jurisprudence_watch_flags
+jurisprudence_audit_log
 style_corpus_documents
 ai_questions
 ai_question_answers
@@ -1505,6 +1508,106 @@ Règles :
 - Isolation workspace stricte via `workspace_id`. La lecture filtre sur la dernière `case_analyses` DONE du dossier.
 
 Migration : 245-create-jurisprudence-checks.xml
+
+---
+
+## tool_jurisprudence_mappings
+
+F-JU-01 / SF-JU-01-01 — mappings curatés entre une branche de calcul d'un outil décisionnel et les 1 à 3 arrêts structurants qui fondent juridiquement le calcul. Une ligne = un arrêt mappé à une branche d'un outil. Alimentée par bootstrap automatique Claude (SF-JU-01-05) puis maintenue par le cron mensuel full auto-pilot (SF-JU-01-02). `chapeau_officiel` = texte brut publié par la juridiction (Cour de cassation, Conseil d'État, Cour const. BE, Cass. BE) — pas de reformulation Claude, zéro déformation possible.
+
+```
+tool_jurisprudence_mappings
+  id                  UUID PK
+  tool_id             VARCHAR(100) NOT NULL    -- TOOL_REGISTRY (~131 outils, ~80-90 éligibles)
+  branche_calcul_id   VARCHAR(100) NOT NULL    -- identifiant libre d'une branche du calculator
+  arret_ref           VARCHAR(200) NOT NULL    -- ex. « Cass. soc. 8 janv. 2025, n° 23-12.345 »
+  juridiction         VARCHAR(50)  NOT NULL    -- ex. « Cour de cassation, chambre sociale »
+  date_arret          DATE         NOT NULL
+  numero_pourvoi      VARCHAR(50)  NOT NULL
+  lien_legifrance     VARCHAR(500) NOT NULL    -- URL Légifrance / juridat.be / const-court.be
+  chapeau_officiel    VARCHAR(2000) NOT NULL   -- texte brut officiel, pas une reformulation
+  last_verified_at    TIMESTAMP WITH TIME ZONE NOT NULL
+  confidence_score    DECIMAL(3,2) NOT NULL    -- 0.00 à 1.00 — seuil min 0.60 (sinon silence)
+  archived            BOOLEAN NOT NULL DEFAULT false
+```
+
+Index + contraintes :
+
+idx_tool_jurisprudence_mappings_lookup (tool_id, branche_calcul_id, archived)
+uq_tool_jurisprudence_mappings_active UNIQUE (tool_id, branche_calcul_id, arret_ref)
+
+Règles :
+- **Table globale** (pas d'isolation workspace) — la jurisprudence française et belge est identique pour tous les avocats.
+- Aucun endpoint d'écriture exposé en SF-JU-01-01 ; mutations réservées au cron full auto-pilot (SF-JU-01-02) et au dashboard SUPER_ADMIN (SF-JU-01-05).
+- Limite stricte de **3 résultats** appliquée côté service (`findTop3...OrderByConfidenceScoreDescDateArretDesc`). Tri secondaire par `date_arret DESC` à confidence égale.
+- Use case **orthogonal** à `case_jurisprudence_citations` (F-242, table workspace-scoped per-point juridique, saisie manuelle avocat) — pas de fusion possible. Convention de nommage `Tool*` pour les classes Java F-JU-01 (ex. `ToolJurisprudenceMapping`, `ToolJurisprudenceCitationResponse`) afin d'éviter la collision avec `JurisprudenceCitation` de F-242.
+
+Migration : 282-create-tool-jurisprudence-mappings.xml
+
+---
+
+## jurisprudence_watch_flags
+
+F-JU-01 / SF-JU-01-01 — flags de veille jurisprudentielle à arbitrer. Une ligne = un événement de veille (nouvel arrêt entrant détecté par le cron mensuel à confiance Claude entre 0.60 et 0.85, OU signalement utilisateur via le bouton « Signaler un problème »). Le statut passe de `PENDING` à `REVIEWED` (avec décision `REPLACE` / `ADD`) ou `IGNORED` lors du clic admin dans le dashboard `/super-admin/jurisprudence-watch` (SF-JU-01-05).
+
+```
+jurisprudence_watch_flags
+  id                   UUID PK
+  tool_id              VARCHAR(100) NOT NULL
+  branche_calcul_id    VARCHAR(100) NOT NULL
+  arret_entrant_ref    VARCHAR(200) NOT NULL
+  mapping_actuel_id    UUID         FK → tool_jurisprudence_mappings(id)   -- NULL si nouveau
+  source               VARCHAR(20)  NOT NULL    -- CRON / USER_SIGNAL
+  confidence_score     DECIMAL(3,2)             -- NULL si source=USER_SIGNAL
+  explication          VARCHAR(2000)
+  statut               VARCHAR(20)  NOT NULL DEFAULT 'PENDING'   -- PENDING / REVIEWED / IGNORED
+  created_at           TIMESTAMP WITH TIME ZONE NOT NULL
+  reviewed_at          TIMESTAMP WITH TIME ZONE
+  reviewed_by_user_id  UUID         FK → users(id)
+  decision             VARCHAR(20)              -- REPLACE / ADD / IGNORE (NULL si PENDING)
+  comment_user         VARCHAR(2000)
+```
+
+Index :
+
+idx_jurisprudence_watch_flags_pending (statut, created_at)
+
+Règles :
+- Table globale (pas d'isolation workspace).
+- Table créée en SF-JU-01-01 mais **NON alimentée** par cette SF. Premier INSERT par SF-JU-01-02 (cron mensuel) ou SF-JU-01-04 (bouton signaler côté avocat utilisateur).
+- Mode opérationnel par défaut full auto-pilot : la plupart des arrêts entrants à confiance > 0.85 sont actionnés directement (pas de flag créé). Seuls les cas ambigus (confiance entre 0.60 et 0.85) ou les signalements utilisateurs génèrent des flags.
+
+Migration : 283-create-jurisprudence-watch-flags.xml
+
+---
+
+## jurisprudence_audit_log
+
+F-JU-01 / SF-JU-01-01 — audit log rejouable de toutes les actions sur les mappings jurisprudentiels (cron auto-pilot OU manuel SUPER_ADMIN). Trace les confirmations mensuelles (`AUTO_CONFIRM`), ajouts/remplacements/archivages automatiques (`AUTO_ADD`/`AUTO_REPLACE`/`AUTO_ARCHIVE`), et les arbitrages manuels (`MANUAL_REPLACE`/`MANUAL_ADD`/`MANUAL_IGNORE`).
+
+```
+jurisprudence_audit_log
+  id                 UUID PK
+  mapping_id         UUID NOT NULL FK → tool_jurisprudence_mappings(id)
+  action             VARCHAR(30) NOT NULL    -- 7 valeurs (cf. ci-dessus)
+  actor              VARCHAR(20) NOT NULL    -- CRON / SUPER_ADMIN
+  actor_user_id      UUID        FK → users(id)   -- NULL si actor=CRON
+  claude_confidence  DECIMAL(3,2)            -- NULL si actor=SUPER_ADMIN
+  claude_reason      VARCHAR(2000)           -- NULL si actor=SUPER_ADMIN
+  created_at         TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Index :
+
+idx_jurisprudence_audit_log_mapping (mapping_id, created_at)
+
+Règles :
+- Table globale (pas d'isolation workspace).
+- Table créée en SF-JU-01-01 mais **NON alimentée** par cette SF. Premier INSERT par SF-JU-01-02 (cron mensuel) ou SF-JU-01-05 (dashboard admin).
+- Sert à la review semestrielle facultative (~30 min/an) — audit log des remplacements et alertes massives.
+- Sert également à l'email mensuel récap (compteur par type d'action) envoyé au fondateur en mode full auto-pilot.
+
+Migration : 284-create-jurisprudence-audit-log.xml
 
 ---
 
