@@ -1,0 +1,348 @@
+/**
+ * SF-216-06 : section décisionnelle liquidation communauté légale (F-FA-04).
+ * Pattern de référence : prestation-compensatoire-section (SF-216-02).
+ */
+
+.lc-section {
+  border: 1px solid var(--ds-color-border, #e0e0e0);
+  border-radius: 8px;
+  background: var(--ds-color-surface, #fff);
+  margin: 12px 0;
+}
+
+.lc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-color-primary, #1976d2);
+    outline-offset: 2px;
+  }
+}
+
+.lc-icon {
+  color: var(--ds-color-primary, #1976d2);
+}
+
+.lc-title {
+  flex: 1;
+  font-size: 0.95rem;
+  letter-spacing: 0.4px;
+}
+
+.lc-chip-summary {
+  background: var(--ds-color-primary-50, #e3f2fd);
+  color: var(--ds-color-primary, #1976d2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.lc-toggle {
+  color: #757575;
+}
+
+.lc-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.lc-country-banner,
+.lc-regime-banner,
+.lc-clause-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.lc-country-banner {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.lc-regime-banner {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.lc-clause-banner {
+  background: #f3e5f5;
+  color: #4a148c;
+}
+
+.lc-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  color: #757575;
+}
+
+.lc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.lc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lc-block-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #455a64;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lc-full {
+  width: 100%;
+}
+
+.lc-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lc-inline-field {
+  width: 100%;
+}
+
+.lc-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lc-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #6a1b9a;
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #ab47bc;
+  }
+}
+
+.lc-regime-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px dashed #cfd8dc;
+  border-radius: 6px;
+  background: #fafafa;
+  color: #37474f;
+  font-weight: 500;
+}
+
+.lc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+// -------------- Résultat --------------
+
+.lc-result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+}
+
+.lc-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e8f5e9 0%, #e0f7fa 100%);
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: #2e7d32;
+  }
+}
+
+.lc-verdict-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: 0.85rem;
+    color: #455a64;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.lc-verdict-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.lc-figures-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lc-figure {
+  padding: 12px;
+  border: 1px solid #eceff1;
+  border-radius: 6px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lc-figure-label {
+  font-size: 0.8rem;
+  color: #607d8b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.lc-figure-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #263238;
+}
+
+.lc-soulte-block {
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: #fff8e1;
+  color: #e65100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lc-soulte-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lc-soulte-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.lc-alerte-indivision {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fbe9e7;
+  color: #bf360c;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.lc-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lc-bases-label {
+  font-size: 0.8rem;
+  color: #607d8b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.lc-base-chip {
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #eceff1;
+  font-size: 0.85rem;
+  color: #37474f;
+  align-self: flex-start;
+}
+
+.lc-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lc-messages,
+.lc-alertes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lc-messages li {
+  padding: 6px 10px;
+  background: #f5f5f5;
+  border-left: 3px solid #90a4ae;
+  border-radius: 3px;
+  font-size: 0.88rem;
+  color: #455a64;
+}
+
+.lc-alertes li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #fff3e0;
+  border-left: 3px solid #fb8c00;
+  border-radius: 3px;
+  font-size: 0.88rem;
+  color: #e65100;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

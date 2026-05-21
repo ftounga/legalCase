@@ -2424,7 +2424,13 @@ public record CaseAnalysisResponse(
             Double revenusAnnuelsEpoux2,               // FR — >= 0 EUR/an (epoux 2, fiche de paie)
             Integer ageEpoux1Annees,                   // FR — [0, 120] ans (piece d'identite)
             Integer ageEpoux2Annees,                   // FR — [0, 120] ans (piece d'identite)
-            Boolean prestationCompensatoireEnvisagee) { // FR — CONTEXTUAL : mention art. 270 / disparite niveaux de vie
+            Boolean prestationCompensatoireEnvisagee,  // FR — CONTEXTUAL : mention art. 270 / disparite niveaux de vie
+            // SF-216-05 : 3 champs IA liquidation communaute legale FR.
+            // Source : `famille_extracted_data.liquidation_communaute_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude / hors regime COMMUNAUTE_LEGALE.
+            Boolean liquidationCommunauteEnvisagee,    // FR — CONTEXTUAL : mention art. 1467 / partage actif commun
+            Integer recompensesEpoux1Eur,              // FR — >= 0 EUR (recompenses dues par epoux 1 a la communaute, art. 1433 Cciv)
+            Integer recompensesEpoux2Eur) {            // FR — >= 0 EUR (recompenses dues par epoux 2 a la communaute, art. 1433 Cciv)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2772,6 +2778,13 @@ public record CaseAnalysisResponse(
             public Builder ageEpoux1Annees(Integer v) { this.ageEpoux1Annees = v; return this; }
             public Builder ageEpoux2Annees(Integer v) { this.ageEpoux2Annees = v; return this; }
             public Builder prestationCompensatoireEnvisagee(Boolean v) { this.prestationCompensatoireEnvisagee = v; return this; }
+            // SF-216-05 : setters des 3 champs IA liquidation communaute legale FR.
+            private Boolean liquidationCommunauteEnvisagee;
+            private Integer recompensesEpoux1Eur;
+            private Integer recompensesEpoux2Eur;
+            public Builder liquidationCommunauteEnvisagee(Boolean v) { this.liquidationCommunauteEnvisagee = v; return this; }
+            public Builder recompensesEpoux1Eur(Integer v) { this.recompensesEpoux1Eur = v; return this; }
+            public Builder recompensesEpoux2Eur(Integer v) { this.recompensesEpoux2Eur = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2899,7 +2912,11 @@ public record CaseAnalysisResponse(
                         revenusAnnuelsEpoux2,
                         ageEpoux1Annees,
                         ageEpoux2Annees,
-                        prestationCompensatoireEnvisagee);
+                        prestationCompensatoireEnvisagee,
+                        // SF-216-05 : 3 champs IA liquidation communaute legale FR.
+                        liquidationCommunauteEnvisagee,
+                        recompensesEpoux1Eur,
+                        recompensesEpoux2Eur);
             }
         }
     }
@@ -5287,6 +5304,17 @@ public record CaseAnalysisResponse(
                 || ageEpoux1AnneesFr != null
                 || ageEpoux2AnneesFr != null
                 || prestationCompensatoireEnvisagee != null;
+        // SF-216-05 : sous-objet `liquidation_communaute_detection` — 3 champs IA
+        // pour la liquidation de communauté légale FR (art. 1467 + 1433 Cciv).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode lcd = node.get("liquidation_communaute_detection");
+        boolean lcdObject = lcd != null && lcd.isObject();
+        Boolean liquidationCommunauteEnvisagee = lcdObject ? booleanOrNull(lcd, "envisagee") : null;
+        Integer recompensesEpoux1Eur = lcdObject ? nonNegativeIntOrNull(lcd, "recompenses_epoux1_eur") : null;
+        Integer recompensesEpoux2Eur = lcdObject ? nonNegativeIntOrNull(lcd, "recompenses_epoux2_eur") : null;
+        boolean sf216_05Present = liquidationCommunauteEnvisagee != null
+                || recompensesEpoux1Eur != null
+                || recompensesEpoux2Eur != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5326,7 +5354,8 @@ public record CaseAnalysisResponse(
                 && !protectionDivorceV2Present
                 && dateSeparationBe == null
                 && !familleBev2Present
-                && !sf216_01Present) {
+                && !sf216_01Present
+                && !sf216_05Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5501,6 +5530,10 @@ public record CaseAnalysisResponse(
                 .ageEpoux1Annees(ageEpoux1AnneesFr)
                 .ageEpoux2Annees(ageEpoux2AnneesFr)
                 .prestationCompensatoireEnvisagee(prestationCompensatoireEnvisagee)
+                // SF-216-05 : 3 champs IA liquidation communaute legale FR.
+                .liquidationCommunauteEnvisagee(liquidationCommunauteEnvisagee)
+                .recompensesEpoux1Eur(recompensesEpoux1Eur)
+                .recompensesEpoux2Eur(recompensesEpoux2Eur)
                 .build();
     }
 

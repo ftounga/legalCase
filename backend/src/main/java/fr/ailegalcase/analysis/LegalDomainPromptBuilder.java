@@ -282,6 +282,14 @@ public final class LegalDomainPromptBuilder {
                 - "envisagee" : booléen ou null. **FRANCE UNIQUEMENT** — true si une demande de prestation compensatoire est envisagée, mentionnée ou demandée dans le dossier ; false si le dossier établit explicitement qu'aucune prestation n'est demandée ; null si aucune information ne permet de trancher.
               **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour `prestationCompensatoireEnvisagee` sans erreur.
               **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
+            SF-216-05 — Nouveau sous-objet `liquidation_communaute_detection` (FRANCE UNIQUEMENT — art. 1467 Cciv).
+              "liquidation_communaute_detection" : objet OU null. **FRANCE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille FRANCE comportant une procédure de liquidation de communauté légale documentée dans les pièces (mention explicite de « liquidation communauté », « art. 1467 Cciv », « partage actif commun », « masse commune ») ou un projet d'acte notarié de liquidation. Pour un dossier famille BELGIQUE, ce sous-objet DOIT rester null (la liquidation BE relève du livre 2, titre 3 du Code civil belge — outils F-217 distincts). Les champs internes :
+                - "envisagee" : booléen ou null. **FRANCE UNIQUEMENT** — true si une procédure de liquidation de communauté légale est envisagée ou en cours ; false si le dossier établit explicitement qu'aucune liquidation n'est nécessaire (ex. régime de séparation de biens) ; null si aucune information ne permet de trancher.
+                - "recompenses_epoux1_eur" : entier ≥ 0 ou null. **FRANCE UNIQUEMENT** — montant en euros entiers des récompenses dues par l'époux 1 à la communauté (art. 1433-1435 Cciv) extrait des pièces (état des récompenses notarial, projet d'acte de liquidation). Null si absent.
+                - "recompenses_epoux2_eur" : entier ≥ 0 ou null. **FRANCE UNIQUEMENT** — idem époux 2, mêmes critères. Null si absent.
+              **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 3 champs sans erreur.
+              **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
+              **RÈGLE RÉGIME** : ne renseigne ce sous-objet que si le régime matrimonial documenté est COMMUNAUTE_LEGALE (régime supplétif) — pour les autres régimes, retourne null.
             """;
 
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis
