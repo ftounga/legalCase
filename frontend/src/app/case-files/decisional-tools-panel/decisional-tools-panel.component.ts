@@ -37,6 +37,7 @@ import {
 } from './piece-manquante-badge.helper';
 import {
   computeRisquesBadge,
+  getRisquesACreuserCountFor,
   risquesValidesFor,
 } from './risque-badge.helper';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
@@ -2949,6 +2950,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     const badge = computeRisquesBadge(filtered);
     if (badge.kind === 'none') return null;
     return badge;
+  }
+
+  /**
+   * F-253 SF-253-02 — Calcule le compteur des risques au statut `A_CREUSER`
+   * mappés sur un outil donné. Alimente la pill secondaire `🔍 N à creuser`
+   * sur la card outil. Retourne {@code null} si aucun à creuser (la pill est
+   * masquée par le card via `showRisquesACreuserPill`).
+   *
+   * <p>Pourquoi {@code null} et pas {@code 0} : le card utilise un check
+   * 3-valued (null = composant non instrumenté, 0 = pas de À_CREUSER pour cet
+   * outil, N > 0 = afficher). Le panel renvoie toujours un nombre puisqu'il
+   * EST instrumenté F-253.</p>
+   */
+  risquesACreuserCountFor(toolId: string): number {
+    return getRisquesACreuserCountFor(this.risquesAlignment(), toolId);
   }
 
   /**

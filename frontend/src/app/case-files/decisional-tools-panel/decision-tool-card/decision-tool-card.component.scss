@@ -348,6 +348,15 @@
     color: #1A3A5C;
     border: 1px solid #1A3A5C;
   }
+
+  /* F-253 SF-253-02 — pill secondaire « 🔍 N à creuser ». Palette gris navy
+     subtil (DESIGN_SYSTEM.md), distincte du pill F-195 pour ne pas concurrencer
+     visuellement les statuts arbitrés. Cohabite à côté du pill `--risques-*`. */
+  &--risques-a-creuser {
+    background: rgba(26, 58, 92, 0.06);
+    color: #4A5C72;
+    border: 1px solid rgba(26, 58, 92, 0.30);
+  }
 }
 
 .tool-card__body {

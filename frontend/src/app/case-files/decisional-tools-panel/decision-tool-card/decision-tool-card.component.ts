@@ -152,6 +152,21 @@ export class DecisionToolCardComponent {
    * `null` (composant non instrumenté) → pill silencieusement masqué.
    */
   @Input() risquesBadge: RisquesBadgeInput | null = null;
+  /**
+   * F-253 SF-253-02 — Pill secondaire `🔍 N à creuser` affiché à côté du pill
+   * F-195 `⚠️ Risques (V/E)` quand au moins un risque mappé à cet outil est
+   * encore au statut implicite `A_CREUSER` (avocat n'a pas encore arbitré).
+   *
+   * <p>Rappel d'action restante pour l'avocat : la pill F-195 valorise les
+   * statuts arbitrés (V/E), la pill F-253 valorise le travail de curation
+   * non encore fait. Cohabite naturellement quand un outil concentre les
+   * trois statuts.</p>
+   *
+   * <p>Palette gris navy subtil (cf. DESIGN_SYSTEM.md) — pas de rouge réservé
+   * aux risques VALIDÉ critiques. {@code null} ou {@code 0} → pill
+   * silencieusement masquée.</p>
+   */
+  @Input() risquesACreuserCount: number | null = null;
   @Input() disabled = false;
   @Input() flashing = false;
 
@@ -378,6 +393,26 @@ export class DecisionToolCardComponent {
       default:
         return '';
     }
+  }
+
+  /* F-253 SF-253-02 — pill secondaire « 🔍 N à creuser ». */
+  protected get showRisquesACreuserPill(): boolean {
+    return this.risquesACreuserCount !== null && this.risquesACreuserCount > 0;
+  }
+
+  protected get risquesACreuserPillLabel(): string {
+    const n = this.risquesACreuserCount ?? 0;
+    return `${n} à creuser`;
+  }
+
+  protected get risquesACreuserPillAriaLabel(): string {
+    const n = this.risquesACreuserCount ?? 0;
+    return `${n} risque${n > 1 ? 's' : ''} à creuser pour cet outil`;
+  }
+
+  protected get risquesACreuserPillTooltip(): string {
+    const n = this.risquesACreuserCount ?? 0;
+    return `${n} risque${n > 1 ? 's' : ''} à creuser — arbitrage avocat en attente`;
   }
 
   protected onClick(): void {

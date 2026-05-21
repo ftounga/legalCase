@@ -145,3 +145,26 @@ export function risquesValidesFor(
       && r.toolIdsCibles.includes(toolId))
     .map(r => r.risqueLibelle);
 }
+
+/**
+ * F-253 SF-253-02 — Compte les risques au statut `A_CREUSER` (non encore
+ * arbitrés) mappés sur un outil donné. Consommé par le panel pour alimenter
+ * la pill dédiée `🔍 N à creuser` sur la card outil — rappel visuel à l'avocat
+ * qu'il reste un arbitrage à faire pour cet outil.
+ *
+ * <p>Sépération du helper {@link risquesValidesFor} : ce dernier produit la
+ * liste des libellés VALIDÉS pour pré-flag les outils (signal positif),
+ * tandis que ce helper compte les À_CREUSER (signal d'action restante).</p>
+ *
+ * <p>Retourne 0 si l'alignement est null/vide ou si aucun risque À_CREUSER ne
+ * mappe à l'outil.</p>
+ */
+export function getRisquesACreuserCountFor(
+  alignment: RisqueAlignment[] | null | undefined,
+  toolId: string,
+): number {
+  if (!Array.isArray(alignment)) return 0;
+  return alignment.filter(r => r.statut === 'A_CREUSER'
+    && Array.isArray(r.toolIdsCibles)
+    && r.toolIdsCibles.includes(toolId)).length;
+}
