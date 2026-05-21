@@ -1,6 +1,6 @@
 # Hotfix prod — Tableau de bord
 
-**Dernière analyse** : 2026-05-21T08:35:00Z (skill `prod-health-check`)
+**Dernière analyse** : 2026-05-21T08:45:00Z (skill `prod-health-check` + fix manuel HF-2026-05-21-01)
 
 > Ce fichier est **généré et maintenu** par la skill `ai-skills/prod-health-check.md`.
 > Il liste les problèmes détectés en production que **l'humain** doit ensuite trier et corriger.
@@ -12,31 +12,7 @@
 
 ## 🔴 P0 — Production cassée (urgent)
 
-### HF-2026-05-21-01 — Chaîne logs CloudWatch cassée — Fluent Bit ne parvient pas à enrichir les events
-
-- **Détecté** : 2026-05-21T08:35:00Z (baseline analysis — diag direct DaemonSet)
-- **Première occurrence** : 2026-05-20T09:04:01Z (démarrage du DaemonSet)
-- **Dernière occurrence** : 2026-05-21T08:35:00Z (toujours actif)
-- **Occurrences 24h** : permanent depuis 23h
-- **Total observé** : ~24h ininterrompu
-- **Signature** : `hash:filter-kubernetes-pod-meta-fail`
-- **Logs sample** :
-  ```
-  [2026/05/20 09:04:01] [filter:kubernetes:kubernetes.0] could not get meta for POD ip-10-0-11-17.eu-west-3.compute.internal
-  → Conséquence : le champ kubernetes.namespace_name n'est jamais peuplé
-  → Le filter [grep] suivant exige $kubernetes['namespace_name'] ^(production|staging)$
-  → Aucun event ne passe → log group /aws/eks/legalcase-shared/applications reste à 0 bytes
-  ```
-- **Commit suspect** : `286cac01` (SF-INFRA-07b, PR #1176 mergée 2026-05-20T09:03Z) — le DaemonSet a démarré 1 minute après le merge
-- **Hypothèse** :
-  - Fluent Bit DaemonSet utilise `Use_Kubelet On` + `Kubelet_Port 10250` mais ne peut pas joindre le Kubelet local pour récupérer les métadonnées des pods.
-  - Cause probable : permissions (RBAC ou réseau) manquantes pour le ServiceAccount `fluent-bit` (namespace `amazon-cloudwatch`) pour appeler l'endpoint Kubelet `/pods`.
-  - Alternative : SDN/NetworkPolicy bloque le port 10250 entre le pod Fluent Bit et le node Kubelet.
-- **Impact business** :
-  - 🔴 **Toute la chaîne d'alerting est aveugle** : 0 log dans CloudWatch → metric filter ne compte rien → alarme `legalcase-production-backend-error-rate` ne peut jamais déclencher.
-  - 🔴 **Cohérent avec SF-INFRA-09 mergé hier** : on a retiré Sentry en pariant sur CloudWatch, mais CloudWatch ne reçoit aucun log applicatif. **On est aveugle sur les erreurs prod et frontend depuis le merge SF-INFRA-09.**
-- **Status** : `À TRIER`
-- **Notes** : à corriger en priorité (probablement SF-INFRA-07b-fix dans repo legalcase-infra si IRSA, ou simple patch DaemonSet si RBAC kubelet manquant)
+_(aucun)_
 
 ---
 
@@ -69,7 +45,22 @@ _(aucun)_
 
 ## ✅ Terminés (7 derniers jours)
 
-_(aucun — baseline initiale)_
+### HF-2026-05-21-01 — Chaîne logs CloudWatch cassée — Fluent Bit Use_Kubelet ✅ TERMINÉ
+
+- **Détecté** : 2026-05-21T08:35:00Z (baseline analysis — diag direct DaemonSet)
+- **Première occurrence** : 2026-05-20T09:04:01Z (démarrage du DaemonSet, post-merge SF-INFRA-07b)
+- **Dernière occurrence** : 2026-05-21T08:40:47Z (résolu après rollout)
+- **Durée totale d'incident** : ~24h (entièrement en pré-prod réelle — 0 client payant impacté)
+- **Signature** : `hash:filter-kubernetes-pod-meta-fail`
+- **Commit suspect (confirmé)** : `286cac01` (SF-INFRA-07b, PR #1176)
+- **Root cause** : filter `kubernetes` configuré avec `Use_Kubelet On` + `Kubelet_Port 10250`, mais le ServiceAccount `fluent-bit` (namespace `amazon-cloudwatch`) n'a que les permissions `pods`, `namespaces`, `pods/logs` — il lui manque `nodes/proxy` pour appeler l'API Kubelet. Résultat : enrichissement K8s échoue → `namespace_name` absent → filter `grep ^(production|staging)$` rejette tous les events → 0 log shippé.
+- **Fix** : `Use_Kubelet Off` dans `k8s/system/fluent-bit.yaml`. Le filter utilise désormais l'API K8s server standard (`kubernetes.default.svc:443`), pour laquelle le SA a déjà les bonnes permissions. Fixed by **PR #1212** (commit `ccd1f7ee`).
+- **Validation** :
+  - `kubectl edit configmap fluent-bit-config` appliqué en immédiat (avant la PR) → rollout daemonset
+  - Dans les 30 secondes : 3 streams `from-fluent-bit-application.*` apparaissent dans CloudWatch
+  - Logs Fluent Bit montrent maintenant `[output:cloudwatch_logs] Creating log stream …` (vs warning meta avant)
+- **Status** : `✅ TERMINÉ` (Fixed by #1212)
+- **Leçon retenue** : impossible d'attraper en SF-INFRA-07b car le test était uniquement déploiement K8s. Manque un smoke test "logs arrivent vraiment dans CloudWatch" en post-deploy. À ajouter dans une future SF-INFRA-XX (script validation 5 min après chaque merge SF-INFRA-07b).
 
 ---
 
