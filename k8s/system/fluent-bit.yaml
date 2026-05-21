@@ -104,8 +104,12 @@ data:
         K8S-Logging.Exclude Off
         Labels              Off
         Annotations         Off
-        Use_Kubelet         On
-        Kubelet_Port        10250
+        # HF-2026-05-21-01 (fix prod) : Use_Kubelet désactivé car le SA
+        # `fluent-bit` n'a pas la permission `nodes/proxy` requise par Kubelet
+        # API (ClusterRole `fluent-bit-role` ne donne que pods/namespaces).
+        # Fallback API K8s server : utilise les permissions pods/namespaces
+        # déjà accordées au SA. Surcharge négligeable sur EKS managé.
+        Use_Kubelet         Off
         Buffer_Size         0
 
     # Ne shipper QUE les pods des namespaces production et staging
