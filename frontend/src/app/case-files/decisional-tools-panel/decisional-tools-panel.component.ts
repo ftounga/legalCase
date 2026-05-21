@@ -203,6 +203,8 @@ import { SuccessionBeAcceptationRenonciationSectionComponent } from '../successi
 import { MariageEtrangerBeReconnaissanceSectionComponent } from '../mariage-etranger-be-reconnaissance-section/mariage-etranger-be-reconnaissance-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
+// F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
+import { ContestationFiliationBeSectionComponent } from '../contestation-filiation-be-section/contestation-filiation-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -2373,16 +2375,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
-      // F-217 SF-217-17 : reconnaissance mariage / divorce étranger BE
-      // (CDIP art. 21+ / 22+ / 25 / 27 / 46 — incluant le talaq).
-      // Migration 281 — CATALOG (situation contextuelle, 20-30 % des
-      // dossiers belges selon audit F-191 § 1.4 ; ajout via F-238).
-      // Backend SF-217-16 bundle.
-      ['mariage-etranger-be-reconnaissance', {
-        displayLabel: 'Reconnaissance mariage / divorce étranger (Belgique)',
-        component: MariageEtrangerBeReconnaissanceSectionComponent,
-        // Composant complet (form + verdict + motifs refus/réserve + actes).
-        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+      // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
+      // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
+      // Migration 281 — CONTEXTUAL avec trigger non extrait V1
+      // (`contestation_filiation_be_envisagee`) → tombe dans la couche CATALOG
+      // (activation manuelle via F-238). Backend SF-217-18.
+      ['contestation-filiation-be', {
+        displayLabel: 'Contestation de filiation (Belgique)',
+        component: ContestationFiliationBeSectionComponent,
+        // Composant complet (form + verdict + voie procédurale + motifs
+        // d'irrecevabilité). Pré-fill IA V1 = 0 champ
+        // (PREFILL_COUNT_ALWAYS_ZERO).
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2560,6 +2563,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['acceptation-renonciation-succession', 'DELAIS'],
     // F-217 SF-217-13 : succession BE — option successorale 4 mois (CC art. 774+).
     ['succession-be-acceptation-renonciation', 'DELAIS'],
+    // F-217 SF-217-19 : contestation de filiation BE — délai 1 an + possession
+    // d'état conforme 5 ans bloquante (CC art. 318 nouveau).
+    ['contestation-filiation-be', 'DELAIS'],
     ['F-IM-06-recours', 'DELAIS'],
     ['F-IM-08-oqtf-avec-delai-fr', 'DELAIS'],
     ['F-IM-08-oqtf-sans-delai-fr', 'DELAIS'],
