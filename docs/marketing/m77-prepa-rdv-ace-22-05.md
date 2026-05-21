@@ -23,32 +23,48 @@
 
 ## 1. Livrable — 3 propositions de thématiques webinaire
 
-### 🅰️ Option B (recommandée) — alignée e-revue mai 2026
+### 🅰️ Option B (recommandée) — angle outils décisionnels + e-revue mai 2026
 
-**Titre** : *« Décharger les juniors des analyses de pièces sans perdre la qualité — bien-être au travail pour les cabinets de 1 à 10 avocats »*
+**Titre** : *« Outils de décision juridique en droit social : qualifier, calculer, défendre — un cabinet de 1 à 10 avocats peut absorber plus de dossiers sans recruter »*
 
-- Reprend littéralement le thème de l'e-revue ACE n°165 (mai 2026 — *« Bien-être au travail »*) → forte cohérence éditoriale, ACE valorisera
-- Angle : on ne parle pas du bien-être au travail des **clients** des avocats (sujet rebattu), mais du **bien-être interne du cabinet** (juniors épuisés sur des analyses répétitives, partner overworké). Sujet peu traité, attractif pour les patrons de cabinet
-- Démo support : dossier prud'hommes anonymisé (analyse pièces 15 min vs 2h junior)
+**Pourquoi cet angle**
 
-### 🅱️ Option C (backup) — cohérence éditoriale avec M-78 Le Monde du Droit
+Les outils décisionnels LegalCase (qualification automatique + calcul d'indemnités + alertes jurisprudence) sont le **différenciant central et unique sur le marché FR**. Aucun concurrent FR (Jimini, Ordalie, Doctrine AI) ni US (Harvey, CoCounsel) ne propose ce type de **verdict structuré + chiffres défendables**. Validé terrain par les retours Marjolaine (réaction à F-DT-36 nullité procédure le 13/05) et la 1ère utilisation prod réelle 19/05.
 
-**Titre** : *« Confidentialité des dossiers client à l'ère de l'IA juridique : ce qu'un cabinet ne devrait pas signer sans regarder »*
+**Audience ACE = droit social employeur** — segment où nous avons précisément le plus d'outils décisionnels prêts à pitcher :
+- F-DT-36 faute grave/lourde (qualification + indemnités)
+- F-DT-38 rupture période d'essai (qualification 4 voies)
+- F-DT-39 prise d'acte (3 verdicts + effet probable)
+- F-DT-40 résiliation judiciaire CPH (voie "moins risquée")
+- F-DT-42 abandon de poste (présomption démission)
+- F-DT-75 congés payés acquis pendant arrêt maladie
 
-- Reprend les arguments du M-78 (Cloud Act, FISA, hébergement souverain, RGPD-compatible n'est pas RGPD-compliant)
-- Angle compliance qui parle aux avocats employeurs (responsabilité déontologique sur la confidentialité client)
-- Démo support : différentiation hébergement Paris vs US/Asia + RGPD
+**Cohérence e-revue ACE n°165** *« Bien-être au travail »* : on l'habille avec le framing productivité interne :
 
-### 🅲 Option A (alternative classique) — productivité
+> *« Vos juniors passent 2h à qualifier juridiquement une situation (faute grave vs lourde ? prescription L.1332-4 ? calcul du préavis perdu ?). Avec un outil décisionnel, c'est 15 min et le verdict est défendable devant le CPH avec ses motifs articulés. Bien-être au travail commence par décharger les juniors des décisions répétitives à valeur juridique faible — ils se concentrent sur le contentieux à haute valeur. »*
+
+**Démo support** : 4-5 outils décisionnels en cascade sur un cas réel anonymisé (cf. livrable 2).
+
+### 🅱️ Option A (backup classique) — productivité large
 
 **Titre** : *« Cabinet d'avocats en droit social : faire face à la complexité croissante sans recruter »*
 
-- Multiplication des outils calculateurs (préavis, indemnités, primes), montée des nuances jurisprudence — comment un cabinet petit/moyen tient la cadence sans embauche
-- Démo support : cabinet d'affaires SOLO/TEAM, dossier complet 50+ pièces
+- Angle plus large : multiplication des outils calculateurs (préavis, indemnités, primes), montée des nuances jurisprudence, comment un cabinet petit/moyen tient la cadence sans embauche
+- Démo support : workflow complet upload → analyse documents → outils décisionnels → conclusions
+- À utiliser si Stéphanie veut un sujet plus généraliste
+
+### 🅲 Option C (backup éditorial) — souveraineté
+
+**Titre** : *« Confidentialité des dossiers client à l'ère de l'IA juridique : ce qu'un cabinet ne devrait pas signer sans regarder »*
+
+- Reprend les arguments du M-78 (Cloud Act, FISA, hébergement souverain, RGPD-compatible ≠ RGPD-compliant)
+- Angle compliance qui parle aux avocats employeurs (responsabilité déontologique sur la confidentialité client)
+- Démo support : différentiation hébergement Paris vs US/Asia + RGPD
+- À utiliser si Stéphanie pousse pour un sujet plus institutionnel/déontologique
 
 ### Recommandation
 
-**Proposer B en priorité** (alignement parfait e-revue mai). Si Stéphanie préfère un sujet plus tourné contentieux, basculer sur A. C est l'option éditoriale (cohérence M-78) à garder en réserve.
+**Proposer B en priorité** — angle outils décisionnels = différenciant unique sur le marché, audience ACE droit social employeur = match parfait avec notre catalogue F-DT, validé terrain. Cohérence éditoriale e-revue *Bien-être au travail* maintenue via framing productivité interne. Si Stéphanie pousse vers un angle plus large/déontologique, basculer A ou C.
 
 ---
 
@@ -59,13 +75,26 @@
 | Bloc | Durée | Contenu |
 |---|---|---|
 | Intro | 5 min | Stéphanie Colin (ACE) + intro LegalCase (Franck Tounga) + objectif session |
-| Démo cas réel anonymisé | 25 min | Cas type *« Licenciement contesté — 47 pièces — cabinet 3 avocats »*. Workflow : upload → analyse 3 niveaux (chunk/document/dossier) → synthèse globale → questions interactives IA → enrichissement → préparation conclusions. **Comparaison effort visible : 15 min outil vs ~2h junior** |
+| Setup démo (analyse) | 3 min | Upload dossier prud'hommes anonymisé → analyse 3 niveaux (chunk → document → dossier) en arrière-plan. **L'analyse est le support, pas le héros** — on le présente comme acquis pour passer rapidement aux outils décisionnels |
+| **Démo outils décisionnels** (héros) | 22 min | 4 outils en cascade sur le même dossier (cf. cas démo ci-dessous) |
 | Q&A audience | 20 min | Modéré par Stéphanie ou co-intervenant ACE commission Droit social |
 | Wrap-up + offre | 10 min | Récap valeur + **offre exclusive adhérents ACE** (cf. livrable 5) |
 
-**Cas réel à utiliser** : préférer un cas anonymisé d'un **vrai dossier client** plutôt que les données de test. Le dossier *stanojevic* (1ère utilisation prod réelle par Marjolaine RENVERSEZ le 19/05) est anonymisable et apporte une **preuve sociale fraîche**. Fallback : cas *Dupont* déjà chargé sur staging.
+### Cas démo recommandé : *« Dossier Dupont — licenciement disciplinaire contesté »*
 
-**Slides recommandés** : 5-8 slides max. Pas de tunnel PowerPoint, la démo est le héros. Slides pour : intro/objectifs (1), positionnement marché (1), démo (vidéo écran), conclusion + offre ACE (1-2).
+Cas anonymisé, ~30 pièces, profil cabinet 3 avocats droit social.
+
+| Outil mobilisé | Ce qui s'affiche | Punch | Durée |
+|---|---|---|---|
+| **F-DT-36 Faute grave / lourde** | Qualification retenue (FAUTE_GRAVE), motifs articulés depuis lettre de licenciement, calcul indemnités dues : préavis 0 € + IL 0 € + ICCP X €, alerte si faute lourde présumée mais intention de nuire non documentée | *« Le verdict est posé en 30 secondes — votre junior y mettait 2h. Et il est défendable mot pour mot devant le CPH »* | 6 min |
+| **F-DT-39 Prise d'acte** *(comparatif stratégique)* | Verdict 3 niveaux (favorable/incertaine/défavorable) + effet probable (LICENCIEMENT_SANS_CAUSE vs DEMISSION) + bascule LICENCIEMENT_NUL si harcèlement | *« Si le client envisage une prise d'acte, on voit immédiatement si c'est solide ou suicidaire »* | 5 min |
+| **F-DT-40 Résiliation judiciaire** *(voie moins risquée)* | Mêmes manquements employeur que F-DT-39 mais verdict 3 niveaux **sans rouge** (le rejet ne rompt pas le contrat) + dateEffetProbable | *« Voie moins risquée que la prise d'acte — l'outil compare automatiquement les deux stratégies »* | 4 min |
+| **F-DT-75 Congés payés acquis pendant arrêt maladie** | Calculateur loi 22/04/2024 — rappel CP 2j/mois plafonné 24j/an (mal pro) ou 2,5j/mois sans plafond (AT/MP) + alerte forclusion 24/04/2026 (salarié en poste) | *« Loi sortie il y a 12 mois — combien de cabinets ont encore raté ce rappel ? L'outil vous le calcule sur n'importe quel dossier en 1 min »* | 4 min |
+| Synthèse | Vue dashboard : 4 verdicts côte à côte + recommandation stratégique (« attaquer en résiliation judiciaire + chiffrer rappel CP ») | *« Voilà l'angle stratégique servi à votre client en 15 min — vos juniors travaillent les niveaux supérieurs : argumentation, audience »* | 3 min |
+
+**Cas anonymisé à utiliser** : dossier *Dupont* déjà chargé sur staging (vice de procédure injecté pour démo Renversez 13/05). Alternative : cas *stanojevic* anonymisé (1ère utilisation prod réelle par Marjolaine RENVERSEZ le 19/05) — preuve sociale fraîche bonus si on cite *« 1ère cliente prod 2 jours après la démo »*.
+
+**Slides recommandés** : 5-8 slides max. Pas de tunnel PowerPoint, la démo est le héros. Slides pour : intro/objectifs (1), positionnement marché + différenciant outils décisionnels (1), démo (écran live, pas de slide), conclusion + offre ACE (1-2).
 
 ---
 
@@ -158,7 +187,7 @@
 
 ## 7. Pitch flash 60 secondes (à savoir par cœur)
 
-> *« LegalCase est un outil de productivité juridique conçu pour les cabinets d'avocats de 1 à 10 personnes en droit social, immigration et famille. Là où les outils américains (Harvey, CoCounsel) sont pensés pour les grands cabinets et hébergés aux US, et là où Jimini ne fait que du Q&A superficiel sur les documents, LegalCase fait une analyse à 3 niveaux — chunk, document, dossier — produit une synthèse structurée, pose des questions à l'avocat, intègre ses réponses, et re-produit une synthèse enrichie. Hébergé à Paris, RGPD natif, sans Cloud Act. Tarification SOLO 99 €/TEAM 219 €/PRO 429 € par mois. L'objectif n'est pas de remplacer l'avocat, c'est de décharger ses juniors sur les tâches répétitives pour qu'ils se concentrent sur le contentieux à haute valeur. »*
+> *« LegalCase est un outil de productivité juridique conçu pour les cabinets d'avocats de 1 à 10 personnes en droit social, immigration et famille. Le différenciant : on ne fait pas du Q&A sur vos documents comme Jimini ou Doctrine. On a une trentaine d'**outils décisionnels** qui posent un **verdict structuré** sur une situation juridique précise — qualification faute grave/lourde, prise d'acte, résiliation judiciaire, rupture de période d'essai, prescription, calcul d'indemnités — avec motifs articulés défendables devant le CPH. Là où votre junior met 2 heures à qualifier, l'outil donne un verdict en 30 secondes que vous validez en relisant le motif. Hébergé à Paris (AWS eu-west-3), RGPD natif, sans Cloud Act. Tarification SOLO 99 €/TEAM 219 €/PRO 429 € par mois. L'objectif n'est pas de remplacer l'avocat, c'est de décharger ses juniors sur les décisions répétitives pour qu'ils se concentrent sur le contentieux à haute valeur. »*
 
 **Mots à éviter** : « disruption », « remplace l'avocat », « rend obsolète », « IA fait le travail » → toujours **« vous fait gagner »**, **« vos collaborateurs se concentrent sur »**, **« LegalCase fait X »** (pas « l'IA fait X »).
 
@@ -166,11 +195,11 @@
 
 ## 8. 3 arguments différenciants vs concurrence à mobiliser au pitch
 
-1. **Analyse à 3 niveaux (chunk → document → dossier)** vs Q&A superficiel des concurrents FR. « Ce n'est pas un moteur de recherche dans vos documents. »
-2. **Versioning + diff sémantique des synthèses** — unique en FR. « Ajoutez un document, re-analysez, vous voyez exactement ce qui a changé et pourquoi. »
-3. **Hébergement Paris AWS + RGPD natif** vs Harvey/CoCounsel/Lexis+ AI hébergés US. « Vos dossiers ne quittent jamais l'UE. »
+1. **Outils décisionnels avec verdict structuré + calcul d'indemnités** (~30 outils calibrés FR + BE en droit social, immigration, famille). **Unique sur le marché** — Jimini/Ordalie font du Q&A, Harvey/CoCounsel font de la recherche, aucun ne pose de verdict défendable. *« On ne vous donne pas une réponse — on vous donne une décision motivée que vous validez. »*
+2. **Hébergement Paris AWS + RGPD natif** vs Harvey/CoCounsel/Lexis+ AI hébergés US (sous Cloud Act / FISA). *« Vos dossiers ne quittent jamais l'UE. »*
+3. **Conçu spécifiquement pour cabinets de 1 à 10 avocats** — Harvey/CoCounsel sont pensés pour les grands cabinets (250+ avocats, déploiements 6 mois, prix enterprise). LegalCase est utilisable en 15 min, tarifé pour des cabinets indépendants. *« Vous n'avez pas besoin d'un projet d'intégration ni d'un département IT pour démarrer. »*
 
-(7 points forts complets dans la mémoire `project_competitive_advantages.md` si besoin de creuser.)
+(7 points forts complets dans la mémoire `project_competitive_advantages.md` si besoin de creuser — pipeline IA 3 niveaux, versioning + diff sémantique, re-synthèse Q&A enrichie, multi-domaines/pays calibrés.)
 
 ---
 
