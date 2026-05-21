@@ -696,6 +696,72 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
   });
 });
 
+// F-253 SF-253-02 — tile F-253-risques-a-creuser rendue + clic navigation
+// vers /synthesis/risques (même cible canonique que F-195-risques-summary).
+describe('CaseDashboardComponent — F-253 SF-253-02 risques-a-creuser tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let badgeNavigation: { go: jest.Mock };
+
+  const dashboardWithACreuser: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'DROIT_DU_TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-253-risques-a-creuser',
+        theme: 'DIAGNOSTIC',
+        label: 'Risques à arbitrer',
+        primaryValue: '2 à creuser',
+        secondaryValue: 'Curation à compléter',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithACreuser)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    badgeNavigation = makeBadgeNavigationStub();
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: BadgeNavigationService, useValue: badgeNavigation },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-01 tile F-253-risques-a-creuser rendue dans le thème DIAGNOSTIC', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const diag = sections.find(s => s.key === 'DIAGNOSTIC');
+    expect(diag).toBeDefined();
+    expect(diag!.tiles[0].toolId).toBe('F-253-risques-a-creuser');
+    expect(diag!.tiles[0].label).toBe('Risques à arbitrer');
+  });
+
+  it('CA-01 clic tile F-253-risques-a-creuser → BadgeNavigationService.go("risques", caseFileId)', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-253-risques-a-creuser');
+    expect(badgeNavigation.go).toHaveBeenCalledWith('risques', 'case-1');
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
 // F-196 SF-196-02 — tile F-196-questions-summary rendue + clic navigation
 // vers /synthesis#section-questions (pas d'ouverture modal d'outil).
 describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', () => {

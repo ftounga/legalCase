@@ -470,6 +470,57 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('SF-253-02 — pill secondaire « 🔍 N à creuser »', () => {
+    it('count > 0 → pill visible avec label "N à creuser"', () => {
+      component.risquesACreuserCount = 2;
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-a-creuser-pill"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.textContent).toContain('2 à creuser');
+    });
+
+    it('count = 0 → pill absent', () => {
+      component.risquesACreuserCount = 0;
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-a-creuser-pill"]')).toBeNull();
+    });
+
+    it('count = null → pill absent (composant non instrumenté)', () => {
+      component.risquesACreuserCount = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-a-creuser-pill"]')).toBeNull();
+    });
+
+    it('cohabite avec pill F-195 sans le remplacer', () => {
+      component.risquesACreuserCount = 1;
+      component.risquesBadge = {
+        kind: 'validated',
+        counts: { aCreuser: 1, valides: 2, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-badge"]')).not.toBeNull();
+      expect(badge('[data-testid="risques-a-creuser-pill"]')).not.toBeNull();
+    });
+
+    it('tooltip et aria-label en singulier si count = 1', () => {
+      component.risquesACreuserCount = 1;
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-a-creuser-pill"]');
+      expect(pill!.getAttribute('aria-label')).toBe(
+        '1 risque à creuser pour cet outil',
+      );
+    });
+
+    it('tooltip et aria-label en pluriel si count > 1', () => {
+      component.risquesACreuserCount = 3;
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-a-creuser-pill"]');
+      expect(pill!.getAttribute('aria-label')).toBe(
+        '3 risques à creuser pour cet outil',
+      );
+    });
+  });
+
   describe('SF-159-02 — flashing input', () => {
     it('ajoute la classe tool-card--flashing quand flashing=true', () => {
       component.flashing = true;

@@ -1,5 +1,6 @@
 import {
   computeRisquesBadge,
+  getRisquesACreuserCountFor,
   getRisquesBadgeFor,
   risquesValidesFor,
 } from './risque-badge.helper';
@@ -143,6 +144,48 @@ describe('risque-badge.helper — F-195 SF-195-02', () => {
 
     it('liste vide → []', () => {
       expect(risquesValidesFor([], TOOL_ID)).toEqual([]);
+    });
+  });
+
+  describe('getRisquesACreuserCountFor — F-253 SF-253-02', () => {
+    it('alignment null → 0', () => {
+      expect(getRisquesACreuserCountFor(null, TOOL_ID)).toBe(0);
+    });
+
+    it('alignment undefined → 0', () => {
+      expect(getRisquesACreuserCountFor(undefined, TOOL_ID)).toBe(0);
+    });
+
+    it('liste vide → 0', () => {
+      expect(getRisquesACreuserCountFor([], TOOL_ID)).toBe(0);
+    });
+
+    it('compte uniquement les A_CREUSER (ignore V/É)', () => {
+      const list: RisqueAlignment[] = [
+        risque('A_CREUSER', 'R1'),
+        risque('A_CREUSER', 'R2'),
+        risque('VALIDE', 'R3'),
+        risque('ECARTE', 'R4'),
+      ];
+      expect(getRisquesACreuserCountFor(list, TOOL_ID)).toBe(2);
+    });
+
+    it('ne compte que les risques mappés au toolId', () => {
+      const otherTool = 'F-DT-99-autre';
+      const list: RisqueAlignment[] = [
+        risque('A_CREUSER', 'R1', [TOOL_ID]),
+        risque('A_CREUSER', 'R2', [otherTool]),
+      ];
+      expect(getRisquesACreuserCountFor(list, TOOL_ID)).toBe(1);
+    });
+
+    it('toolIdsCibles incluant plusieurs outils → comptabilisé pour chaque outil mappé', () => {
+      const otherTool = 'F-DT-99-autre';
+      const list: RisqueAlignment[] = [
+        risque('A_CREUSER', 'R1', [TOOL_ID, otherTool]),
+      ];
+      expect(getRisquesACreuserCountFor(list, TOOL_ID)).toBe(1);
+      expect(getRisquesACreuserCountFor(list, otherTool)).toBe(1);
     });
   });
 });

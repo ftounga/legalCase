@@ -288,6 +288,13 @@ export class CaseDashboardComponent implements OnInit {
       this.badgeNavigation.go('risques', this.caseFileId);
       return;
     }
+    // F-253 SF-253-02 — tile dédiée À_CREUSER : route vers la même cible
+    // canonique que F-195-risques-summary (sous-page synthèse / section
+    // risques). L'avocat arrive sur la section où il peut arbitrer.
+    if (toolId === 'F-253-risques-a-creuser') {
+      this.badgeNavigation.go('risques', this.caseFileId);
+      return;
+    }
     if (toolId === 'F-196-questions-summary') {
       this.badgeNavigation.go('questions', this.caseFileId);
       return;
