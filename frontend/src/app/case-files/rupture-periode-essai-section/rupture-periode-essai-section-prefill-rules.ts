@@ -1,5 +1,5 @@
 /**
- * SF-DT-38-02 + SF-246-29 + SF-252-01 + SF-252b-01 + SF-252c-01 — Helper partagé pour l'outil "Rupture de période
+ * SF-DT-38-02 + SF-246-29 + SF-252-01 + SF-252b-01 + SF-252c-01 — Audit F-DT-38 14/14 — Helper partagé pour l'outil "Rupture de période
  * d'essai" (F-DT-38). Module pur — runtime (`prefillFromAi()`) et static
  * (`getPrefillCount()`) appellent les MÊMES fonctions (contrat F-236 / F-237).
  *
