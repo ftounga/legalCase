@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="281-seed-f217-vague3-protection-majeur-visibility" author="legalcase">
+        <comment>
+            F-217 SF-217-15 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `protection-majeur-be` (loi du 17/03/2013 — statut unique
+            d'administration BE).
+
+            Le seed est porté par la SF frontend (et non par SF-217-14 backend)
+            pour rester couplé à l'entrée TOOL_REGISTRY livrée dans le même
+            commit (decisional-tools-panel.component.ts). Précédents : SF-217-03
+            (migration 235), SF-217-05 (238), SF-217-07 (240), SF-217-09 (242),
+            SF-217-13 (278). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode ALWAYS_ON, DROIT_FAMILLE / BELGIQUE : la question de la
+            protection du majeur peut se poser sur tout dossier famille belge
+            comportant un client âgé / vulnérable — situation toujours
+            pertinente, pas à détecter (cf. SF-217-00-coherence.md ajustement
+            n° 1, pattern Vague 1 / Vague 2 / Vague 3 F-217). priority 70.
+
+            Numéro 281 = numéro libre suivant (280 = création table par
+            SF-217-14). UUID dédié : f1a04001-0000-0000-0000-eeee21700009
+            (007/008 déjà pris par SF-217-13 successions BE).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700009', 'DROIT_FAMILLE', 'BELGIQUE', 'protection-majeur-be', 'ALWAYS_ON', NULL, NULL, 70);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee21700009';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

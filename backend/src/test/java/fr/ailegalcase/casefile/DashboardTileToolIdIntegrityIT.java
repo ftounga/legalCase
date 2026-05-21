@@ -168,7 +168,18 @@ class DashboardTileToolIdIntegrityIT {
             // etc. Issue master-red pré-existante à SF-252-01, levée ici par hotfix
             // transitoire pour permettre le déploiement F-252 protections nullité.
             "succession-be-acceptation-renonciation",
-            "succession-be-devolution-reserve"
+            "succession-be-devolution-reserve",
+            // SF-217-14 (2026-05-21) : protection-majeur-be livré sans mapper
+            // DashboardTile côté backend — exclusion transitoire à résorber par
+            // la session F-217 propriétaire (même pattern Vague 3 que
+            // succession-be-acceptation-renonciation / succession-be-devolution-reserve).
+            // L'outil est complet (table + endpoint + entrée TOOL_REGISTRY frontend
+            // + seed visibility) et fonctionne dans le panel décisionnel ; seule
+            // la tuile dashboard agrégée est différée. Le constructeur de
+            // CaseFileDashboardService comporte déjà ~70 paramètres — ajout
+            // mécanique différé à une SF d'agrégation Vague 3 cohérente avec
+            // SF-217-11/12 (pattern transitoire systématique de la Vague 3).
+            "protection-majeur-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

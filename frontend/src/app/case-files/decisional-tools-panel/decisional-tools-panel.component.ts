@@ -201,6 +201,8 @@ import { SuccessionBeDevolutionReserveSectionComponent } from '../succession-be-
 import { SuccessionBeAcceptationRenonciationSectionComponent } from '../succession-be-acceptation-renonciation-section/succession-be-acceptation-renonciation-section.component';
 // F-217 SF-217-17 — section décisionnelle Vague 3 Famille BE — Reconnaissance mariage / divorce étranger (talaq inclus). Backend SF-217-16 bundle.
 import { MariageEtrangerBeReconnaissanceSectionComponent } from '../mariage-etranger-be-reconnaissance-section/mariage-etranger-be-reconnaissance-section.component';
+// F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
+import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -2391,6 +2393,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // F-217 SF-217-15 : protection du majeur BE — loi du 17/03/2013
+      // (statut unique d'administration : biens / personne / mandat
+      // extra-judiciaire / mesure provisoire d'urgence).
+      // Migration 281 — ALWAYS_ON (la question de la protection du majeur
+      // peut se poser sur tout dossier famille BE comportant un client âgé
+      // / vulnérable — situation toujours pertinente, pas à détecter).
+      // Backend SF-217-14.
+      ['protection-majeur-be', {
+        displayLabel: 'Protection du majeur (Belgique)',
+        component: ProtectionMajeurBeSectionComponent,
+        // Composant complet (form + verdict + mesure + juridiction + actes
+        // protégés + actions concrètes + bases juridiques).
+        // Pré-fill IA V1 = 0 champ (PREFILL_COUNT_ALWAYS_ZERO).
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
     ]);
 
   /**
@@ -2495,6 +2517,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // F-217 SF-217-17 : reconnaissance mariage / divorce étranger BE — analyse
     // de validité d'ordre public (CDIP art. 21+ / 27 — talaq inclus).
     ['mariage-etranger-be-reconnaissance', 'VALIDITE'],
+    // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
+    // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
+    // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,
+    // pas un délai procédural figé), cf. mini-spec SF-217-15.
+    ['protection-majeur-be', 'VALIDITE'],
     ['F-FA-18-contestation-paternite', 'VALIDITE'],
     ['F-FA-18-recherche-paternite', 'VALIDITE'],
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],
