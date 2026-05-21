@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="284-create-jurisprudence-audit-log" author="legalcase">
+        <comment>
+            F-JU-01 / SF-JU-01-01 : audit log complet des actions sur les mappings
+            jurisprudentiels.
+
+            Trace chaque action (auto-pilot Claude OU manuelle admin) :
+              - AUTO_CONFIRM : cron mensuel a confirmé qu'un mapping reste valide
+                (last_verified_at mis à jour, pas de modification)
+              - AUTO_ADD : cron a ajouté un arrêt en complément (confiance > 0.80)
+              - AUTO_REPLACE : cron a remplacé un arrêt par un autre (confiance > 0.85,
+                revirement détecté)
+              - AUTO_ARCHIVE : cron a archivé un arrêt explicitement censuré ou un
+                mapping orphelin (branche supprimée du code)
+              - MANUAL_REPLACE / MANUAL_ADD / MANUAL_IGNORE : action SUPER_ADMIN via
+                le dashboard /super-admin/jurisprudence-watch (SF-JU-01-05)
+
+            actor_user_id renseigné uniquement quand actor=SUPER_ADMIN. claude_confidence
+            et claude_reason renseignés uniquement quand actor=CRON.
+
+            Table créée dans cette SF mais NON alimentée par cette SF — aucune écriture
+            avant SF-JU-01-02 / SF-JU-01-05.
+        </comment>
+
+        <createTable tableName="jurisprudence_audit_log">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="mapping_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_jurisprudence_audit_log_mapping"
+                             referencedTableName="tool_jurisprudence_mappings"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="action" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actor" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actor_user_id" type="uuid">
+                <constraints nullable="true"
+                             foreignKeyName="fk_jurisprudence_audit_log_actor"
+                             referencedTableName="users"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="claude_confidence" type="decimal(3,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="claude_reason" type="varchar(2000)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="jurisprudence_audit_log"
+                     indexName="idx_jurisprudence_audit_log_mapping">
+            <column name="mapping_id"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="jurisprudence_audit_log"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

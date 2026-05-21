@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="282-create-tool-jurisprudence-mappings" author="legalcase">
+        <comment>
+            F-JU-01 / SF-JU-01-01 : table des mappings curatés entre une branche de
+            calcul d'un outil décisionnel (tool_id × branche_calcul_id) et 1 à 3
+            arrêts structurants qui fondent juridiquement le calcul.
+
+            Table GLOBALE (pas d'isolation workspace) — la jurisprudence française et
+            belge est identique pour tous les avocats. Le contrôle d'accès est limité
+            à l'authentification (MEMBER minimum). L'écriture est protégée par le rôle
+            SUPER_ADMIN via SF-JU-01-05 (dashboard admin) — aucune mutation directe par
+            l'utilisateur ; le cron mensuel SF-JU-01-02 alimente la table en mode
+            full auto-pilot Claude.
+
+            chapeau_officiel : texte brut UTF-8 du chapeau officiel publié par la
+            juridiction (Cour de cassation, Conseil d'État, Cour const. BE, etc.) —
+            pas une reformulation Claude. Zéro déformation possible.
+
+            Use case orthogonal à F-242 case_jurisprudence_citations (saisie manuelle
+            avocat per-point juridique d'un dossier) — pas de fusion possible, voir
+            SF-JU-01-01-backend-infrastructure.md Note 11.
+        </comment>
+
+        <createTable tableName="tool_jurisprudence_mappings">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tool_id" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="branche_calcul_id" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="arret_ref" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="juridiction" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_arret" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="numero_pourvoi" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lien_legifrance" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chapeau_officiel" type="varchar(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_verified_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="confidence_score" type="decimal(3,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="archived" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="tool_jurisprudence_mappings"
+                     indexName="idx_tool_jurisprudence_mappings_lookup">
+            <column name="tool_id"/>
+            <column name="branche_calcul_id"/>
+            <column name="archived"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="tool_jurisprudence_mappings"
+                             columnNames="tool_id, branche_calcul_id, arret_ref"
+                             constraintName="uq_tool_jurisprudence_mappings_active"/>
+
+        <rollback>
+            <dropTable tableName="tool_jurisprudence_mappings"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
