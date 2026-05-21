@@ -6,6 +6,7 @@ import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.AuteurRupture;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.CategorieSocioProfessionnelle;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.DiscriminationMotif;
 import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContrat;
+import fr.ailegalcase.casefile.RupturePeriodeEssaiCalculator.TypeContratPrecedent;
 
 /**
  * SF-DT-38-01 : requête HTTP pour l'endpoint de qualification d'une rupture
@@ -46,7 +47,11 @@ public record RupturePeriodeEssaiRequest(
         Boolean grossesseDeclareePostRupture,
         LocalDate dateNotificationGrossesse,
         // SF-252b-01 — 1 nouveau champ pour barème CDD/INTERIM précis (audit 2026-05-20)
-        Integer dureePeriodeEssaiContractuelleJours
+        Integer dureePeriodeEssaiContractuelleJours,
+        // SF-252c-01 — 3 nouveaux champs (audit 2026-05-20)
+        Integer joursSuspensionContrat,
+        Integer ancienneteContratPrecedentMois,
+        TypeContratPrecedent typeContratPrecedent
 ) {
 
     RupturePeriodeEssaiInput toInput() {
@@ -64,7 +69,9 @@ public record RupturePeriodeEssaiRequest(
                 salarieProtege, autorisationInspectionTravailObtenue,
                 lanceurAlerte, temoinOuVictimeHarcelement, droitDeRetraitExerce,
                 grossesseDeclareePostRupture, dateNotificationGrossesse,
-                dureePeriodeEssaiContractuelleJours
+                dureePeriodeEssaiContractuelleJours,
+                joursSuspensionContrat, ancienneteContratPrecedentMois,
+                typeContratPrecedent
         );
     }
 }

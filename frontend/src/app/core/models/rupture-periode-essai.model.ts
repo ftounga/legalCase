@@ -22,8 +22,19 @@ export type CategorieSocioProfessionnelle =
   | 'AGENT_MAITRISE_TECHNICIEN'
   | 'CADRE';
 
-/** Type de contrat. */
-export type TypeContratEssai = 'CDI' | 'CDD' | 'INTERIM';
+/**
+ * Type de contrat.
+ *
+ * SF-252c-01 (audit 2026-05-20) — `APPRENTISSAGE` ajouté : régime spécial
+ * L.6222-18 (45 jours en milieu de travail, rupture libre), hors scope F-DT-38.
+ */
+export type TypeContratEssai = 'CDI' | 'CDD' | 'INTERIM' | 'APPRENTISSAGE';
+
+/**
+ * Type de contrat précédent pour la reprise d'ancienneté (L.1243-11 +
+ * Cass. soc. 09/10/2013). SF-252c-01.
+ */
+export type TypeContratPrecedent = 'STAGE' | 'CDD' | 'INTERIM' | 'AUTRE';
 
 /** Auteur de la rupture. */
 export type AuteurRupture = 'EMPLOYEUR' | 'SALARIE';
@@ -120,6 +131,10 @@ export interface RupturePeriodeEssaiRequest {
   dateNotificationGrossesse: string | null;
   // SF-252b-01 — Barème CDD/INTERIM précis (audit 2026-05-20)
   dureePeriodeEssaiContractuelleJours: number | null;
+  // SF-252c-01 — Gaps moyens (audit 2026-05-20)
+  joursSuspensionContrat: number | null;
+  ancienneteContratPrecedentMois: number | null;
+  typeContratPrecedent: TypeContratPrecedent | null;
 }
 
 /** Anomalie détectée (élément de `anomaliesDetectees`). */
