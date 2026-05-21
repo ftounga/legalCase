@@ -32,7 +32,10 @@ screenshoot
 e2e/screenshots/output/
 
 # Claude Code local (settings + worktrees agents)
-.claude/
+# Note : .claude/commands/ EST tracké (slash commands partagées /xxx)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
 
 # Artefacts intermédiaires du motion designer (garder uniquement les rendus finaux)
 docs/marketing/demo-dossier-vision/resultat/_workdir/
