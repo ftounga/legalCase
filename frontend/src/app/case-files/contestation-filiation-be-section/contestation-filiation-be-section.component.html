@@ -1,0 +1,255 @@
+<section class="cfb-section">
+  <header class="cfb-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cfb-body">
+    <mat-icon class="cfb-icon">family_restroom</mat-icon>
+    <span class="cfb-title">CONTESTATION DE FILIATION — CC art. 318 BE</span>
+    @if (result()) {
+      <span class="cfb-chip-summary"
+            [class.cfb-chip-summary--ok]="result()!.verdict === 'ACTION_RECEVABLE'"
+            [class.cfb-chip-summary--medium]="result()!.verdict === 'ACTION_RECEVABLE_DELAI_CRITIQUE'"
+            [class.cfb-chip-summary--ko]="result()!.verdict === 'IRRECEVABLE_DELAI_DEPASSE' || result()!.verdict === 'IRRECEVABLE_QUALITE_A_AGIR' || result()!.verdict === 'IRRECEVABLE_POSSESSION_ETAT'"
+            [class.cfb-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="cfb-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cfb-body" class="cfb-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="cfb-country-banner" data-testid="cfb-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — contestation de filiation (CC art. 318 nouveau). L'équivalent français (CC art. 332+) repose sur des qualités à agir et délais distincts, et fait l'objet d'outils séparés (F-FA-18).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cfb-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="cfb-form" (ngSubmit)="calculate()">
+            <!-- Bloc nature + qualité -->
+            <div class="cfb-block cfb-full">
+              <span class="cfb-block-label">Nature de l'action et qualité du demandeur</span>
+
+              <mat-form-field appearance="outline" class="cfb-inline-field">
+                <mat-label>Nature de l'action en filiation</mat-label>
+                <mat-select [ngModel]="natureActionFiliation()"
+                            (ngModelChange)="natureActionFiliation.set($event)"
+                            name="natureActionFiliation" required>
+                  @for (opt of natureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <p class="cfb-block-hint">
+                La contestation de maternité (CC art. distinct — à vérifier) est hors scope V1 — outil dédié à venir.
+              </p>
+
+              <mat-form-field appearance="outline" class="cfb-inline-field">
+                <mat-label>Qualité du demandeur (client)</mat-label>
+                <mat-select [ngModel]="qualiteDemandeur()"
+                            (ngModelChange)="qualiteDemandeur.set($event)"
+                            name="qualiteDemandeur" required>
+                  @for (opt of qualiteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc dates -->
+            <div class="cfb-block cfb-full">
+              <span class="cfb-block-label">Dates clés</span>
+
+              <mat-form-field appearance="outline" class="cfb-inline-field">
+                <mat-label>Date de naissance de l'enfant</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateNaissanceEnfant()"
+                       (ngModelChange)="dateNaissanceEnfant.set($event || null)"
+                       name="dateNaissanceEnfant" required />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="cfb-inline-field">
+                <mat-label>Date de connaissance du fait remettant en cause la filiation</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateConnaissanceFaitContestation()"
+                       (ngModelChange)="dateConnaissanceFaitContestation.set($event || null)"
+                       name="dateConnaissanceFaitContestation" required />
+              </mat-form-field>
+              <p class="cfb-block-hint">
+                Délai d'action : 1 an à compter de cette date (CC art. 318 nouveau — à vérifier).
+              </p>
+            </div>
+
+            <!-- Bloc possession d'état -->
+            <div class="cfb-block cfb-full">
+              <span class="cfb-block-label">Possession d'état</span>
+
+              <div class="cfb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="possessionEtatConforme()"
+                    (ngModelChange)="onPossessionEtatChange($event)"
+                    name="possessionEtatConforme">
+                  Possession d'état conforme à la filiation contestée
+                </mat-slide-toggle>
+              </div>
+
+              @if (showDureePossession()) {
+                <mat-form-field appearance="outline" class="cfb-inline-field">
+                  <mat-label>Durée de la possession d'état (années)</mat-label>
+                  <input matInput type="number" min="0" max="100"
+                         [ngModel]="dureePossessionEtatAnnees()"
+                         (ngModelChange)="dureePossessionEtatAnnees.set(+$event || 0)"
+                         name="dureePossessionEtatAnnees" required />
+                </mat-form-field>
+                <p class="cfb-block-hint">
+                  Si la possession d'état conforme dure 5 ans ou plus depuis la
+                  naissance (ou la reconnaissance), la contestation est
+                  irrecevable (CC art. 318 § 2 — à vérifier).
+                </p>
+              }
+            </div>
+
+            <!-- Bloc ADN -->
+            <div class="cfb-block cfb-full">
+              <span class="cfb-block-label">Expertise ADN</span>
+
+              <div class="cfb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="expertiseAdnDisponible()"
+                    (ngModelChange)="expertiseAdnDisponible.set($event)"
+                    name="expertiseAdnDisponible">
+                  Test ADN déjà disponible
+                </mat-slide-toggle>
+              </div>
+
+              <div class="cfb-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="demandeExpertiseAdnEnvisagee()"
+                    (ngModelChange)="demandeExpertiseAdnEnvisagee.set($event)"
+                    name="demandeExpertiseAdnEnvisagee">
+                  Demande d'expertise ADN judiciaire envisagée
+                </mat-slide-toggle>
+              </div>
+
+              <mat-form-field appearance="outline" class="cfb-comment-field">
+                <mat-label>Commentaire (optionnel)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event || null)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="cfb-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()" data-testid="cfb-submit">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la recevabilité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cfb-result">
+            <!-- Bannière verdict -->
+            <div [class]="verdictBannerClass(result()!.verdict)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdict) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdict) }}</span>
+            </div>
+
+            <!-- Voie procédurale + délai -->
+            <div class="cfb-summary-grid">
+              <div class="cfb-summary-card">
+                <span class="cfb-summary-label">Voie procédurale</span>
+                <span class="cfb-summary-value">{{ voieProceduraleLabel(result()!.voieProcedurale) }}</span>
+              </div>
+              @if (result()!.dateLimiteAction) {
+                <div class="cfb-summary-card">
+                  <span class="cfb-summary-label">Date limite d'action</span>
+                  <span class="cfb-summary-value">{{ result()!.dateLimiteAction }}</span>
+                </div>
+              }
+              @if (result()!.joursRestants != null) {
+                <div class="cfb-summary-card">
+                  <span class="cfb-summary-label">Jours restants</span>
+                  <span class="cfb-summary-value">{{ result()!.joursRestants }}</span>
+                </div>
+              }
+              @if (result()!.delaiStatut) {
+                <div class="cfb-summary-card">
+                  <span class="cfb-summary-label">Statut du délai</span>
+                  <span [class]="delaiStatutClass(result()!.delaiStatut)">
+                    {{ delaiStatutLabel(result()!.delaiStatut) }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <!-- Motifs d'irrecevabilité -->
+            @if (result()!.motifsIrrecevabilite.length) {
+              <div class="cfb-list-block">
+                <span class="cfb-list-label">Motifs d'irrecevabilité</span>
+                <ul class="cfb-list">
+                  @for (m of result()!.motifsIrrecevabilite; track m.code) {
+                    <li class="cfb-item cfb-item--danger" data-testid="cfb-motif">
+                      <div class="cfb-item-row">
+                        <span class="cfb-item-libelle-text">{{ m.libelle }}</span>
+                        <span class="cfb-severite cfb-severite--high">{{ m.code }}</span>
+                      </div>
+                      <span class="cfb-item-fondement">{{ m.fondement }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Actions concrètes -->
+            @if (result()!.actionsConcretes.length) {
+              <div class="cfb-list-block">
+                <span class="cfb-list-label">Actions concrètes à poser</span>
+                <ul class="cfb-actions-list">
+                  @for (a of result()!.actionsConcretes; track a) {
+                    <li>{{ a }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques.length) {
+              <div class="cfb-bases-block">
+                <span class="cfb-bases-label">Bases juridiques</span>
+                <div class="cfb-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="cfb-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="cfb-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages.length) {
+              <ul class="cfb-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

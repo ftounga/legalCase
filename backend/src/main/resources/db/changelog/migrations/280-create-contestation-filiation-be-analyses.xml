@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="280-create-contestation-filiation-be-analyses" author="legalcase">
+        <comment>
+            SF-217-18 : table dédiée à l'outil décisionnel "Contestation de
+            filiation belge" (BELGIQUE).
+
+            Calcule la recevabilité d'une action en contestation de filiation
+            paternelle (paternité présumée du mari ou paternité reconnue
+            volontairement), au regard du CC art. 318 nouveau (à vérifier —
+            refonte loi du 01/07/2006) :
+              - vérifie la qualité à agir reconnue (enfant, père et mère, père
+                présumé / reconnaissant, tiers prétendant être le père
+                biologique, Ministère public — à vérifier),
+              - calcule le délai d'action de 1 an à compter de la connaissance
+                du fait remettant en cause la filiation (V1 délai commun aux
+                qualités principales — à raffiner ultérieurement),
+              - applique la règle de la possession d'état conforme de 5 ans
+                bloquant la contestation (CC art. 318 § 2 — à vérifier).
+
+            Rend un verdict en 6 niveaux : ACTION_RECEVABLE /
+            ACTION_RECEVABLE_DELAI_CRITIQUE / IRRECEVABLE_DELAI_DEPASSE /
+            IRRECEVABLE_QUALITE_A_AGIR / IRRECEVABLE_POSSESSION_ETAT /
+            QUALIFICATION_INCOMPLETE.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul
+            (pattern F-DT-36).
+
+            Maternité hors scope V1 : la contestation de maternité (CC art.
+            distinct — à vérifier) est juridiquement distincte et rare ; V1
+            retourne 400 avec un message explicite côté service.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration
+            281 (couplée à l'entrée TOOL_REGISTRY frontend livrée dans le
+            même bundle PR SF-217-18/19 — garde-fou
+            DecisionToolVisibilityIntegrityIT).
+        </comment>
+
+        <createTable tableName="contestation_filiation_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_contestation_filiation_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="contestation_filiation_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_contestation_filiation_be_analyses_case_file"/>
+
+        <createIndex tableName="contestation_filiation_be_analyses"
+                     indexName="idx_contestation_filiation_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="contestation_filiation_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

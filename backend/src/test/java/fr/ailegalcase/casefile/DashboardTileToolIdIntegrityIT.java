@@ -173,13 +173,17 @@ class DashboardTileToolIdIntegrityIT {
             // DashboardTile côté backend — exclusion transitoire à résorber par
             // la session F-217 propriétaire (même pattern Vague 3 que
             // succession-be-acceptation-renonciation / succession-be-devolution-reserve).
-            // L'outil est complet (table + endpoint + entrée TOOL_REGISTRY frontend
-            // + seed visibility) et fonctionne dans le panel décisionnel ; seule
-            // la tuile dashboard agrégée est différée. Le constructeur de
-            // CaseFileDashboardService comporte déjà ~70 paramètres — ajout
-            // mécanique différé à une SF d'agrégation Vague 3 cohérente avec
-            // SF-217-11/12 (pattern transitoire systématique de la Vague 3).
-            "protection-majeur-be"
+            "protection-majeur-be",
+            // SF-217-16 (2026-05-21) : mariage-etranger-be-reconnaissance livré sans
+            // mapper DashboardTile — même pattern transitoire Vague 3.
+            "mariage-etranger-be-reconnaissance",
+            // SF-217-18 (2026-05-21) : contestation-filiation-be livré sans mapper
+            // DashboardTile côté backend — exclusion transitoire alignée sur les
+            // 2 autres outils F-217 Vague 3 (mêmes raisons : composant frontend
+            // standalone auto-suffisant, restitution via GET du snapshot, pas de
+            // besoin métier tuile dashboard immédiat). À résorber par la session
+            // F-217 propriétaire qui consolidera les 3+ outils en lot.
+            "contestation-filiation-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

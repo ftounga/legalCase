@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="281-seed-f217-contestation-filiation-be-visibility" author="legalcase">
+        <comment>
+            F-217 SF-217-19 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Contestation de filiation belge"
+            (`contestation-filiation-be`, BELGIQUE).
+
+            Mode **CATALOG** : visibilité gérée comme un outil CONTEXTUAL avec
+            un trigger_field qui n'est pas extrait du pipeline IA V1
+            (`contestation_filiation_be_envisagee` aspirationnel). Le tool
+            tombe ainsi dans la couche `catalog` du
+            DecisionToolVisibilityService — l'avocat l'active manuellement via
+            le catalogue F-238 sur les dossiers où la contestation de filiation
+            est pertinente (typiquement 5-10 % des dossiers Famille BE — cas
+            spécialisés).
+
+            Choix `CATALOG` (et non `ALWAYS_ON`) cohérent avec ajustement n° 1
+            du cadrage SF-217-00-coherence.md : situations contextuelles sans
+            flag IA extractible en V1. Une SF ultérieure pourra brancher un
+            flag pivot `presomption_paternite_litige_be` (mentionné audit
+            F-191) du pipeline V2.
+
+            UUID namespace dédié F-217 : f1a04001-0000-0000-0000-eeee21700009
+            (suite logique après 001-008 utilisés par les Vagues 1 / 2 et
+            début Vague 3).
+
+            Couplé à l'entrée TOOL_REGISTRY frontend livrée dans le même
+            bundle PR SF-217-18/19 — sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Numéro 281 = libre après 280 (table SF-217-18). Migration
+            indépendante par convention (table vs visibilité) — facilite
+            les rollbacks ciblés.
+
+            Priority 50 — rang moyen pour un outil contextuel à activation
+            manuelle (au-dessus du défaut, en dessous des outils CONTEXTUAL à
+            flag IA).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee21700009', 'DROIT_FAMILLE', 'BELGIQUE', 'contestation-filiation-be',
+        'CONTEXTUAL', 'contestation_filiation_be_envisagee', 'true', 50);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee21700009';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
