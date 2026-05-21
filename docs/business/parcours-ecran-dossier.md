@@ -28,11 +28,12 @@ Depuis F-244, le détail du dossier est organisé en **4 onglets** (`mat-tab-gro
 4. Onglet **Analyse** : lancement asynchrone du pipeline IA (`app-analysis-pipeline`), accès à la **synthèse** du dossier (faits, timeline, points juridiques, risques, questions ouvertes).
 5. L'avocat renseigne le **stade procédural** du dossier (onglet Dossier).
 6. Onglet **Décision** : l'avocat remplit les **outils décisionnels** pertinents (`app-decisional-tools-panel`).
-7. L'avocat consulte le **tableau de bord décisionnel** (`app-case-dashboard`) — verdicts agrégés des outils.
-8. L'avocat **génère le projet de conclusions** (`app-conclusions-section`, onglet Décision, bas) — consolidation de synthèse + stade + outils + pistes stratégiques. ⬅ **F-98**
-9. L'avocat relit le projet, le copie, le finalise dans son traitement de texte.
-10. Onglet **Suivi** : échéances, notes, calendrier procédural jusqu'à l'audience.
-11. **État terminal** : projet de conclusions généré (cf. section dédiée).
+7. Chaque outil ouvre dans un **modal F-177** (`app-decision-tool-modal`, MatDialog 90vw/90vh) — l'avocat valide les champs pré-remplis IA, clique Enregistrer, et **lit sous le résultat le bloc « Jurisprudence applicable » F-JU-01** (1-3 arrêts structurants, chapeau officiel Cassation, lien Légifrance, bouton signaler) avant de fermer le modal.
+8. L'avocat consulte le **tableau de bord décisionnel** (`app-case-dashboard`) — verdicts agrégés des outils.
+9. L'avocat **génère le projet de conclusions** (`app-conclusions-section`, onglet Décision, bas) — consolidation de synthèse + stade + outils + pistes stratégiques + **arrêts F-JU-01** des outils utilisés. ⬅ **F-98**
+10. L'avocat relit le projet, le copie, le finalise dans son traitement de texte.
+11. Onglet **Suivi** : échéances, notes, calendrier procédural jusqu'à l'audience.
+12. **État terminal** : projet de conclusions généré (cf. section dédiée).
 
 ## Zones de l'écran (blocs primaires, par onglet)
 
@@ -74,6 +75,7 @@ Depuis F-244, le détail du dossier est organisé en **4 onglets** (`mat-tab-gro
 | 2026-05-19 | F-121 / SF-121-06 (échec d'extraction actionnable) | 5ᵉ passage. Verdict GO avec ajustements. Ajout de la **branche « échec d'extraction » du parcours** : quand une pièce échoue (étapes 3-8), l'avocat doit pouvoir réessayer/corriger ou retirer la pièce. Aucun bloc primaire nouveau — enrichissement interne du bloc Documents (onglet Dossier) et de la step 2 du pipeline (onglet Analyse). **Point dur explicité : décalage inter-onglets** — le signal d'échec le plus visible (step 2 rouge) est sur l'onglet Analyse, l'action de récupération (corbeille / ré-upload) sur l'onglet Dossier ; un signal d'échec ne doit jamais être orphelin de son action → la step 2 en échec renvoie explicitement vers l'onglet Dossier. |
 | 2026-05-19 | F-206 (cadrage écran SF-206-00b — 4 outils d'urgences procédurales Travail FR) | 6ᵉ passage. Verdict GO avec ajustements. Les 4 outils (abandon de poste / présomption de démission, congés payés pendant arrêt maladie, prise d'acte de la rupture, résiliation judiciaire) sont des sous-sections de `app-decisional-tools-panel` (onglet Décision) — **aucun bloc primaire nouveau**, l'onglet Décision reste à 3 blocs primaires. Affichage `CONTEXTUAL` via F-IA-04, groupement thématique F-169. **Point dur explicité : échéance inter-onglets** — un outil décisionnel qui produit un délai daté (butoir 15 j de l'abandon de poste, prescription du rappel de congés payés) le matérialise dans l'onglet Suivi (F-69) ; l'échéance ne doit jamais être orpheline de son onglet d'action. |
 | 2026-05-20 | F-214 (cadrage écran SF-214-00b — 22 outils P2 Immigration FR) | **7ᵉ passage**. Verdict GO avec ajustements. Les 22 outils P2 s'insèrent dans `app-decisional-tools-panel` (onglet Décision) — **aucun bloc primaire nouveau**, l'onglet Décision reste à 3 blocs primaires. 19 outils CONTEXTUAL (flags IA F-201/F-214) + 3 ALWAYS_ON (renouvellement délai, VLS-TS, autorisation travail employeur). **Point dur ajouté : tout outil P2 produisant un délai daté** (renouvellement, VLS-TS, appel CAA/CE, assignation résidence, MNA/JE, naturalisation recours, retrait titre, AJ CNDA) **crée une deadline dans l'onglet Suivi** (F-69) — invariant anti-orphelin d'échéance. Groupement thématique : DELAIS / STATUT_SEJOUR / AES / SANTE / ASILE / VICTIMES / CONTENTIEUX / MINEURS / ADMINISTRATIF. |
+| 2026-05-21 | F-JU-01 (cadrage écran SF-JU-01-00b — Citations jurisprudentielles dans outils décisionnels) | **8ᵉ passage**. Verdict GO avec ajustements. Insertion d'une **étape 7 bis** du parcours : lecture des arrêts dans le **modal F-177 d'un outil**, **sous le résultat du calcul**. Composant `<app-tool-jurisprudence-citations [toolId] [branchActive]>` standalone, interface `ToolJurisprudenceCitable` exposée par les composants outils. **Aucun bloc primaire nouveau** — l'onglet Décision reste à 3 blocs primaires (`app-decisional-tools-panel`, `app-case-dashboard`, `app-conclusions-section`) ; F-JU-01 enrichit l'**intérieur** des composants outils ouverts en modal. **Point dur ajouté : pas de bloc primaire jurisprudence sur l'onglet Décision** — tout placement extérieur au modal d'outil est refusé. **Chaîne jurisprudence complétée à 4 briques distinctes** (libellés non confondables) : F-179 (vérification arrêts adverses, écran synthèse), F-241 (deeplinks vers éditeurs tiers, écran synthèse + V2 modal outil), F-242 (citation manuelle, écran synthèse), **F-JU-01 (citations proactives sur calcul, modal outil)**. Continuité vers F-98 conclusions à clarifier en mini-spec (la génération de conclusions doit pouvoir puiser dans `tool_jurisprudence_mappings`). |
 
 ## Note — branche « échec d'extraction » du parcours (depuis SF-121-06, 2026-05-19)
 
@@ -84,6 +86,28 @@ Quand une ou plusieurs pièces échouent à l'extraction, le parcours bifurque :
 L'onglet **Analyse** du détail du dossier mène à un **écran dédié de synthèse** (`SynthesisComponent`, route `/case-files/:id/synthesis`) : un `mat-accordion` de panneaux conditionnels (chronologie, faits, points juridiques, risques, questions, pièces manquantes, indemnités, pistes stratégiques, checklist). Cet écran absorbe les nouveaux panneaux par conception (accordéon extensible) — il ne suit pas le seuil « 3 blocs primaires » du détail du dossier. Le parcours écran de la synthèse a été documenté lors du cadrage F-179 (`docs/features/F-179/SF-179-00b-ux-coherence.md`).
 
 **Chaîne jurisprudence sur l'écran synthèse** (depuis F-242, 2026-05-18) — le panneau « Points juridiques » porte, par point juridique : le bouton deeplink **F-241** (ouvrir une recherche pré-remplie chez l'éditeur — l'« aller ») puis le champ **F-242** « Jurisprudence à l'appui » (saisir la référence retenue — le « retour »), citation reprise dans les conclusions générées (F-98). La section **F-179** « Jurisprudences citées » reste distincte : elle vérifie les arrêts cités dans les *documents* du dossier, ce n'est pas une saisie de l'avocat.
+
+## Note — bloc « Jurisprudence applicable » dans le modal d'outil (depuis F-JU-01, 2026-05-21)
+
+Quand l'avocat ouvre un outil décisionnel via le modal F-177 (`app-decision-tool-modal`, MatDialog 90vw/90vh) et que le résultat du calcul s'affiche, un bloc **« Jurisprudence applicable »** apparaît automatiquement **sous ce résultat** : 1 à 3 arrêts structurants (chapeau officiel Cassation cité textuellement, lien Légifrance en nouvel onglet, date de dernière vérification, bouton « Signaler un problème »). Composant standalone `<app-tool-jurisprudence-citations [toolId] [branchActive]>`, alimenté par la table globale `tool_jurisprudence_mappings`.
+
+**Invariants** :
+- Le bloc citations vit **dans** le composant outil ouvert en modal, jamais comme bloc primaire de l'onglet Décision (qui reste à 3 blocs : `app-decisional-tools-panel`, `app-case-dashboard`, `app-conclusions-section`).
+- Si Claude < 60 % confiant sur la pertinence (ou outil non éligible), le bloc est **absent du DOM** (silence > erreur > placeholder).
+- Le bloc se met à jour automatiquement quand la saisie avocat change la branche de calcul active (`Observable branchActive$`).
+- Liens externes (Légifrance, Doctrine V2 via F-241) s'ouvrent toujours en nouvel onglet — pas de navigation interne perdante.
+- Le bouton « Signaler » utilise un prompt inline ou un toast — pas de MatDialog imbriqué dans le modal d'outil.
+
+**Chaîne jurisprudence à 4 briques distinctes** (depuis F-JU-01, 2026-05-21) :
+
+| Brique | Écran | Sens |
+|---|---|---|
+| F-179 « Jurisprudences citées » | Synthèse | Vérification des arrêts cités dans les documents uploadés (conclusions adverses, défense) |
+| F-241 deeplinks éditeurs | Synthèse (V2 : modal outil) | Aller — bouton « Ouvrir dans Doctrine / Lexis Plus / Lextenso » avec query pré-remplie |
+| F-242 « Jurisprudence à l'appui » | Synthèse, per-item | Retour — saisie manuelle par l'avocat de la référence retenue |
+| **F-JU-01 « Jurisprudence applicable »** | **Modal outil**, sous le résultat | **Citation proactive automatique — l'arrêt qui fonde le calcul** |
+
+Libellés non confondables. F-JU-01 est **autoportant** (l'avocat n'a pas besoin de Doctrine pour valider le calcul), les 3 autres briques restent complémentaires.
 
 ## Note — invariant « échéance non orpheline » des outils décisionnels (depuis F-206, 2026-05-19)
 
