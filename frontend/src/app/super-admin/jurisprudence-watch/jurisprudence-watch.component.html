@@ -1,0 +1,102 @@
+<div class="jurisprudence-watch">
+  <header class="jurisprudence-watch__header">
+    <h1>Veille jurisprudentielle</h1>
+    <p class="jurisprudence-watch__subtitle">
+      F-JU-01 — pilotage des citations jurisprudentielles dans les outils décisionnels.
+    </p>
+  </header>
+
+  <mat-tab-group>
+    <mat-tab label="Flags à arbitrer" data-test="tab-flags">
+      <section class="jurisprudence-watch__section">
+        <div class="jurisprudence-watch__section-header">
+          <h2>Flags PENDING ({{ flags.length }})</h2>
+          <button mat-button type="button" (click)="loadFlags()" [disabled]="loadingFlags">
+            <mat-icon>refresh</mat-icon> Rafraîchir
+          </button>
+        </div>
+
+        @if (loadingFlags) {
+          <p>Chargement…</p>
+        } @else if (flags.length === 0) {
+          <p class="jurisprudence-watch__empty">Aucun flag en attente. 🎉</p>
+        } @else {
+          <ul class="flag-list">
+            @for (f of flags; track f.id) {
+              <li class="flag-item" [attr.data-flag-id]="f.id">
+                <div class="flag-item__header">
+                  <span class="flag-item__source flag-item__source--{{ f.source }}">{{ f.source }}</span>
+                  <span class="flag-item__tool">{{ f.toolId }} · {{ f.brancheCalculId }}</span>
+                  <span class="flag-item__confidence" *ngIf="f.confidenceScore !== null">
+                    confiance {{ (f.confidenceScore * 100) | number:'1.0-0' }} %
+                  </span>
+                </div>
+                <p class="flag-item__incoming">→ <strong>{{ f.arretEntrantRef }}</strong></p>
+                <p class="flag-item__explication" *ngIf="f.explication">{{ f.explication }}</p>
+                <p class="flag-item__user-comment" *ngIf="f.commentUser">
+                  💬 {{ f.commentUser }}
+                </p>
+
+                @if (arbitratingId === f.id) {
+                  <div class="flag-item__arbitrate-form" data-test="arbitrate-form">
+                    <textarea class="flag-item__comment"
+                              placeholder="Commentaire (optionnel)"
+                              [(ngModel)]="arbitrateComment"
+                              maxlength="2000"
+                              rows="2"></textarea>
+                    <div class="flag-item__actions">
+                      <button mat-stroked-button color="warn"
+                              (click)="arbitrate(f.id, 'REPLACE')"
+                              data-test="arbitrate-replace">Remplacer</button>
+                      <button mat-stroked-button color="primary"
+                              (click)="arbitrate(f.id, 'ADD')"
+                              data-test="arbitrate-add">Ajouter</button>
+                      <button mat-stroked-button
+                              (click)="arbitrate(f.id, 'IGNORE')"
+                              data-test="arbitrate-ignore">Ignorer</button>
+                      <button mat-button (click)="cancelArbitrate()">Annuler</button>
+                    </div>
+                  </div>
+                } @else {
+                  <button mat-flat-button color="primary"
+                          (click)="openArbitrate(f.id)"
+                          data-test="open-arbitrate">Arbitrer</button>
+                }
+
+                <p class="flag-item__date">Créé {{ f.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </mat-tab>
+
+    <mat-tab label="Audit log" data-test="tab-audit">
+      <section class="jurisprudence-watch__section">
+        <div class="jurisprudence-watch__section-header">
+          <h2>Historique ({{ auditLog.length }})</h2>
+          <button mat-button type="button" (click)="loadAudit()" [disabled]="loadingAudit">
+            <mat-icon>refresh</mat-icon> Rafraîchir
+          </button>
+        </div>
+
+        @if (loadingAudit) {
+          <p>Chargement…</p>
+        } @else if (auditLog.length === 0) {
+          <p class="jurisprudence-watch__empty">Aucun événement.</p>
+        } @else {
+          <ul class="audit-list">
+            @for (e of auditLog; track e.id) {
+              <li class="audit-item">
+                <span class="audit-item__action audit-item__action--{{ e.action }}">{{ e.action }}</span>
+                <span class="audit-item__actor">{{ e.actor }}</span>
+                <span class="audit-item__date">{{ e.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                <span class="audit-item__reason" *ngIf="e.claudeReason">{{ e.claudeReason }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </mat-tab>
+  </mat-tab-group>
+</div>
