@@ -28,6 +28,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 export type AncienneteAlertField = 'CONVENTION' | 'DATE_ENTREE' | 'SALAIRE' | 'CONGES' | 'PRIME';
 
@@ -45,11 +46,17 @@ export type AncienneteCoherenceAlert = CoherenceAlert<AncienneteAlertField>;
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './anciennete-section.component.html',
   styleUrl: './anciennete-section.component.scss'
 })
 export class AncienneteSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-01 — identifiants pour le composant <app-tool-jurisprudence-citations>
+  // qui s'affiche sous le résultat. Branche `default` en V1 (pas de logique de branche fine).
+  protected readonly toolIdForJurisprudence = 'F-DT-07-anciennete-conges-prime';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ANCIENNETÉ ET CONGÉS';
   static readonly TOOL_ICON = 'calendar_month';
