@@ -177,12 +177,25 @@ anthropic:
   model-fast: ${ANTHROPIC_MODEL_FAST:claude-haiku-4-5-20251001}
 
 # F-179 SF-179-02 — fallback web search de vérification de jurisprudence.
+# F-JU-01 SF-JU-01-02 — cron veille mensuelle full auto-pilot (citations dans outils décisionnels).
+# F-JU-01 SF-JU-01-03 — cron dérive quotidienne (archive mappings orphelins).
 jurisprudence:
   web-search:
     legifrance-base-url: ${JURISPRUDENCE_LEGIFRANCE_URL:https://www.legifrance.gouv.fr}
     juridat-base-url: ${JURISPRUDENCE_JURIDAT_URL:https://juportal.be}
     timeout-ms: ${JURISPRUDENCE_WEB_SEARCH_TIMEOUT_MS:8000}
     max-searches-per-case: ${JURISPRUDENCE_WEB_SEARCH_MAX_PER_CASE:10}
+  watch:
+    enabled: ${JURISPRUDENCE_WATCH_ENABLED:false}
+    trust-mode: ${JURISPRUDENCE_WATCH_TRUST_MODE:AUTO_PILOT}
+    alert-threshold-percent: ${JURISPRUDENCE_WATCH_ALERT_THRESHOLD_PERCENT:5}
+    recap-recipient: ${JURISPRUDENCE_WATCH_RECAP_RECIPIENT:tounga.franck@ng-itconsulting.com}
+  drift:
+    enabled: ${JURISPRUDENCE_DRIFT_ENABLED:false}
+
+judilibre:
+  client-id: ${JUDILIBRE_CLIENT_ID:}
+  client-secret: ${JUDILIBRE_CLIENT_SECRET:}
 
 blog:
   # F-143 SF-143-02 — URL canonique publique utilisée par SitemapController (/api/sitemap.xml, /api/robots.txt).
