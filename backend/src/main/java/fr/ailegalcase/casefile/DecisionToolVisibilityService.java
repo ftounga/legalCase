@@ -325,6 +325,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `liquidation_communaute_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "liquidation_communaute_detection", "envisagee",
                 "liquidation_communaute_envisagee");
+        // === SF-216-07 — 1 flag CONTEXTUAL Famille FR : ARIPA recouvrement pension impayée ===
+        // Lire depuis sous-objet `aripa_recouvrement_detection.envisage` (même pattern, art. L. 581 CSS).
+        addBooleanFlagIfTrueNested(detected, familleNode, "aripa_recouvrement_detection", "envisage",
+                "aripa_recouvrement_envisage");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

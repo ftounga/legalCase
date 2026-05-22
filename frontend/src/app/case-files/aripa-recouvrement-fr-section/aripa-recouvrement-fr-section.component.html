@@ -1,0 +1,186 @@
+<!--
+  SF-216-08 : template de l'outil ARIPA recouvrement pension alimentaire impayée
+  (F-FA-ARIPA-RECOUVREMENT, FRANCE uniquement — art. L. 581-1 à L. 581-14 CSS).
+  Pattern : liquidation-communaute-fr-section.
+-->
+<section class="aripa-section" [class.aripa-section--collapsed]="collapsed()">
+  <header class="aripa-section__header" (click)="toggleCollapse()">
+    <mat-icon class="aripa-section__icon">payments</mat-icon>
+    <h3 class="aripa-section__title">ARIPA — Recouvrement pension alimentaire impayée</h3>
+    <span class="aripa-section__country">FR</span>
+    <mat-icon class="aripa-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="aripa-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="aripa-banner aripa-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. Pour la Belgique, le recouvrement
+        public des pensions alimentaires passe par le <strong>SECAL</strong>
+        (Service des Créances Alimentaires du SPF Finances) — outil distinct.
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="aripa-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="aripa-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="aripa-form__intro">
+          Renseignez la situation pour orienter la voie de recouvrement la plus
+          rapide (SDR ARIPA, saisie sur salaire, SATD, convention internationale)
+          et calculer le complément ASF éligible.
+        </p>
+
+        <div class="aripa-form__row">
+          <mat-form-field appearance="outline" class="aripa-form__field">
+            <mat-label>Pension mensuelle (€/mois)</mat-label>
+            <input matInput type="number" min="0" step="10"
+                   [ngModel]="montantPensionMensuelleEur()"
+                   (ngModelChange)="onMontantPensionChange($event)"
+                   name="montantPension"
+                   required />
+            <mat-icon *ngIf="provenanceMontantPension() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="aripa-form__field">
+            <mat-label>Mois impayés</mat-label>
+            <input matInput type="number" min="1" step="1"
+                   [ngModel]="nombreMoisImpayes()"
+                   (ngModelChange)="onNombreMoisChange($event)"
+                   name="nombreMois"
+                   required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="aripa-form__field">
+            <mat-label>Nombre d'enfants à charge</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="nombreEnfantsACharge()"
+                   (ngModelChange)="onNombreEnfantsChange($event)"
+                   name="nbEnfants"
+                   required />
+            <mat-icon *ngIf="provenanceNombreEnfants() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="aripa-form__row">
+          <mat-form-field appearance="outline" class="aripa-form__field">
+            <mat-label>Situation du créancier</mat-label>
+            <mat-select [ngModel]="situationCreancier()"
+                        (ngModelChange)="onSituationCreancierChange($event)"
+                        name="sitCreancier"
+                        required>
+              <mat-option *ngFor="let opt of situationsCreancier" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="aripa-form__field">
+            <mat-label>Situation du débiteur</mat-label>
+            <mat-select [ngModel]="situationDebiteur()"
+                        (ngModelChange)="onSituationDebiteurChange($event)"
+                        name="sitDebiteur"
+                        required>
+              <mat-option *ngFor="let opt of situationsDebiteur" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="aripa-form__row aripa-form__row--checks">
+          <mat-checkbox [checked]="titreExecutoire()"
+                        (change)="onTitreExecutoireChange($event.checked)"
+                        name="titreExecutoire">
+            Titre exécutoire (jugement / convention CM notariée / acte notarié)
+            <mat-icon *ngIf="provenanceTitreExecutoire() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="debiteurEnFrance()"
+                        (change)="onDebiteurEnFranceChange($event.checked)"
+                        name="debiteurFr">
+            Débiteur résidant en France
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="debiteurEmployeurPublic()"
+                        (change)="onDebiteurEmployeurPublicChange($event.checked)"
+                        name="employeurPublic">
+            Débiteur salarié d'un employeur public (SATD)
+          </mat-checkbox>
+        </div>
+
+        <div class="aripa-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Calculer la voie de recouvrement' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="aripa-result" *ngIf="!showForm() && result() as r">
+        <div class="aripa-result__verdict" [ngClass]="voieClass(r.voieRecommandee)">
+          <mat-icon>fact_check</mat-icon>
+          <div>
+            <span class="aripa-result__verdict-label">Voie recommandée</span>
+            <strong class="aripa-result__verdict-value">{{ voieLabel(r.voieRecommandee) }}</strong>
+          </div>
+        </div>
+
+        <div class="aripa-result__metrics">
+          <div class="aripa-metric">
+            <span class="aripa-metric__label">Arriérés calculés</span>
+            <strong class="aripa-metric__value">{{ formatEuros(r.montantArrieres) }}</strong>
+          </div>
+          <div class="aripa-metric" *ngIf="r.montantAsfEligibleMensuelEur > 0">
+            <span class="aripa-metric__label">Complément ASF mensuel</span>
+            <strong class="aripa-metric__value">{{ formatEuros(r.montantAsfEligibleMensuelEur) }}</strong>
+          </div>
+          <div class="aripa-metric" *ngIf="r.delaiEstimeJours > 0">
+            <span class="aripa-metric__label">Délai estimé</span>
+            <strong class="aripa-metric__value">~ {{ r.delaiEstimeJours }} jours</strong>
+          </div>
+        </div>
+
+        <div class="aripa-result__etapes" *ngIf="r.etapes.length > 0">
+          <h4>Étapes à suivre</h4>
+          <ol>
+            <li *ngFor="let e of r.etapes">{{ e }}</li>
+          </ol>
+        </div>
+
+        <div class="aripa-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="aripa-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="aripa-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="aripa-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="aripa-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
