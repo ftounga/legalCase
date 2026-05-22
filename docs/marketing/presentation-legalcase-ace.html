@@ -616,6 +616,49 @@
     margin: 0;
     line-height: 1.6;
   }
+  .step-sub {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gold);
+    font-style: italic;
+  }
+
+  /* ─── 7. CONCLUSIONS — corpus learning callout ─────────────────────────── */
+  .corpus-callout {
+    background: linear-gradient(135deg, rgba(26, 58, 92, 0.04), rgba(201, 151, 58, 0.08));
+    border: 1px solid rgba(201, 151, 58, 0.35);
+    border-left: 4px solid var(--gold);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 22px 0;
+  }
+  .corpus-callout-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--marine);
+    margin-bottom: 8px;
+  }
+  .corpus-callout-text {
+    font-size: 14.5px;
+    color: var(--text);
+    line-height: 1.6;
+    margin: 0 0 10px;
+  }
+  .corpus-callout-rgpd {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(201, 151, 58, 0.35);
+  }
+  .ace-offer-howto {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 8px 0 14px;
+    font-style: italic;
+  }
 
   /* ─── 4. TABS DOMAINES ─────────────────────────────────────────────────── */
   .tabs {
@@ -1594,10 +1637,13 @@
       </div>
       <div class="step reveal">
         <div class="step-number">3</div>
-        <h3 class="step-title">Conclusions</h3>
+        <h3 class="step-title">Conclusions <span class="step-sub">— dans le style du cabinet</span></h3>
         <p class="step-text">
-          Vos juniors transforment le verdict en conclusions argumentées.
-          LegalCase fournit la trame structurée — eux apportent leur jugement et leur plume.
+          LegalCase pré-rédige la trame des conclusions à partir du verdict
+          et <b>adopte le style rédactionnel de votre cabinet</b> grâce au
+          corpus d'anciennes conclusions que vous lui confiez (extraction d'une
+          signature de style, purge du contenu client source — minimisation RGPD).
+          Votre junior n'a plus qu'à argumenter et personnaliser.
         </p>
       </div>
     </div>
@@ -1745,12 +1791,27 @@
     <div class="conclusions-grid">
       <div class="reveal">
         <span class="section-eyebrow">Conclusions</span>
-        <h2 class="section-title">Trame structurée prête à l'audience</h2>
+        <h2 class="section-title">Trame structurée — et dans le style de votre cabinet</h2>
         <p class="section-lead">
           À partir du verdict, LegalCase pré-rédige la trame des conclusions : exposé des faits,
           qualification juridique, demandes chiffrées, articles de loi cités. Votre junior
           n'a plus qu'à argumenter et personnaliser — il garde la plume.
         </p>
+        <div class="corpus-callout">
+          <div class="corpus-callout-title">★ Corpus learning — le style de votre cabinet, appris</div>
+          <p class="corpus-callout-text">
+            Vous téléversez vos anciennes conclusions au niveau cabinet.
+            LegalCase en extrait une <b>signature de style</b> (tournures, structure
+            d'argumentation, formules d'usage) puis l'applique à toutes les
+            générations à venir. Le résultat se lit comme du cabinet, pas comme une
+            IA générique.
+          </p>
+          <p class="corpus-callout-rgpd">
+            <b>Minimisation RGPD assumée</b> : seule la signature de style est conservée.
+            Le fichier source et son texte brut sont purgés après extraction —
+            succès comme échec. Aucune donnée client ne reste exposée.
+          </p>
+        </div>
         <p class="section-lead" style="font-size: 15px;">
           Le résultat : entre <b style="color: var(--gold);">3 et 6 heures</b> gagnées
           par dossier sur la rédaction. Et un livrable de qualité homogène, peu importe
@@ -1964,14 +2025,17 @@
       <span class="ace-offer-eyebrow">🎯 Offre exclusive adhérents ACE</span>
       <h3 class="ace-offer-title">1 mois offert sur tous les plans</h3>
       <ul class="ace-offer-perks">
-        <li>✓ <b>1 mois gratuit</b> sur SOLO, TEAM ou PRO</li>
+        <li>✓ <b>1 mois gratuit</b> sur SOLO, TEAM ou PRO (en sus des 14 jours d'essai standard)</li>
         <li>✓ Onboarding accompagné inclus</li>
         <li>✓ Sans engagement</li>
       </ul>
-      <div class="promo-code">ACE-2026-1MOIS</div>
-      <br />
-      <a href="mailto:tounga.franck@ng-itconsulting.com?subject=Mois%20offert%20ACE%20%E2%80%94%20Code%20ACE-2026-1MOIS&amp;body=Bonjour%2C%0A%0AAdh%C3%A9rent%20ACE%2C%20je%20souhaite%20activer%20l%27offre%20%C2%AB%201%20mois%20offert%20%C2%BB%20sur%20mon%20compte%20LegalCase.%0A%0ANom%20du%20cabinet%20%3A%0AAdresse%20e-mail%20de%20mon%20compte%20%3A%0A%0AMerci." class="ace-offer-cta">Activer mon mois offert</a>
-      <span class="ace-offer-limit">Limité aux 50 premières adhésions · valable 6 mois</span>
+      <p class="ace-offer-howto">
+        L'adhérent ACE écrit à notre équipe en mentionnant son adhésion —
+        nous allongeons son essai d'un mois supplémentaire sur son compte.
+        Pas de code à saisir.
+      </p>
+      <a href="mailto:tounga.franck@ng-itconsulting.com?subject=Mois%20offert%20ACE%20%E2%80%94%20activation%20essai%20LegalCase&amp;body=Bonjour%2C%0A%0AAdh%C3%A9rent%20ACE%2C%20je%20souhaite%20activer%20le%20mois%20offert%20%E2%80%94%20en%20sus%20des%2014%20jours%20d%27essai%20standard%20%E2%80%94%20sur%20mon%20compte%20LegalCase.%0A%0ANom%20du%20cabinet%20%3A%0AAdresse%20e-mail%20de%20mon%20compte%20%3A%0ANum%C3%A9ro%20d%27adh%C3%A9rent%20ACE%20%3A%0A%0AMerci." class="ace-offer-cta">Activer mon mois offert</a>
+      <span class="ace-offer-limit">Activation manuelle sous 24 h ouvrées · sans engagement</span>
     </div>
   </div>
 </section>
@@ -2024,9 +2088,9 @@
       </li>
       <li>
         <b>→ Plaquette page 7 — offre adhérents ACE</b>
-        Validation du wording « 1 mois offert SOLO/TEAM/PRO + code
-        <span style="font-family: var(--font-mono); color: var(--gold);">ACE-2026-1MOIS</span>,
-        limité à 50 adhésions / 6 mois » pour intégration dans la plaquette adhérents 2026.
+        Validation du wording « 1 mois offert SOLO/TEAM/PRO en sus des 14 jours
+        d'essai, activation manuelle par notre équipe sur simple email » pour
+        intégration dans la plaquette adhérents 2026.
       </li>
       <li>
         <b>→ Pack Visibilité 5 000 € HT / an (Phase 4)</b>
