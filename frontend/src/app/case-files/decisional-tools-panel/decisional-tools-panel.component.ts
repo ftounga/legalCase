@@ -177,10 +177,12 @@ import { DivorceDesunionBeSectionComponent } from '../divorce-desunion-be-sectio
 // présentationnels qui rendent les estimations IA (pension alimentaire, prestation
 // compensatoire, liquidation communauté, divorce CM scoring, fourchettes JAF).
 import { PrestationCompensatoireSectionComponent } from '../prestation-compensatoire-section/prestation-compensatoire-section.component';
-import { PensionAlimentaireSectionComponent } from '../pension-alimentaire-section/pension-alimentaire-section.component';
 import { LiquidationCommunauteSectionComponent } from '../liquidation-communaute-section/liquidation-communaute-section.component';
 // SF-216-08 : composant simulateur ARIPA recouvrement pension impayée (F-FA-ARIPA-RECOUVREMENT).
 import { AripaRecouvrementFrSectionComponent } from '../aripa-recouvrement-fr-section/aripa-recouvrement-fr-section.component';
+// SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
+// SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
+import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
 import { DivorceCmScoringSectionComponent } from '../divorce-cm-scoring-section/divorce-cm-scoring-section.component';
 import { FourchettesJafSectionComponent } from '../fourchettes-jaf-section/fourchettes-jaf-section.component';
 // F-210 — 2 outils urgences procédurales Famille FR.
@@ -1165,14 +1167,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
-      // F-198 SF-198-02 : restauration de F-FA-02-pension-alimentaire (DELETE
-      // par migration 191, restauré par migration 212). Wrapper présentationnel
-      // sur synthesis.pensionAlimentaireEstimate (incluant fourchette JAF F-153).
+      // SF-216-04 : composant simulateur complet (POST/GET backend SF-216-03).
+      // Remplace le wrapper présentationnel SF-198-02. Pré-fill IA branché sur
+      // `synthesis.familleExtractedData` (5 champs : revenus 1/2 mensuels,
+      // nombre enfants, âges enfants, mode résidence).
       ['F-FA-02-pension-alimentaire', {
-        displayLabel: 'Pension alimentaire (FR)',
-        component: PensionAlimentaireSectionComponent,
+        displayLabel: 'Pension alimentaire enfant (FR)',
+        component: PensionAlimentaireEnfantFrSectionComponent,
         inputs: (ctx) => ({
-          synthesis: ctx.synthesis,
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       // F-198 SF-198-03 : restauration de F-FA-04-liquidation-communaute (DELETE

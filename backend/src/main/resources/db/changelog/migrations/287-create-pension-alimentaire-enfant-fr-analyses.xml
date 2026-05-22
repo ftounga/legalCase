@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="287-create-pension-alimentaire-enfant-fr-analyses" author="legalcase">
+        <comment>
+            SF-216-03 : table dédiée à l'outil décisionnel "Pension alimentaire enfant"
+            (F-FA-02, FRANCE — art. 371-2 Cciv + barème indicatif Cour de cassation
+            2010 révisé + art. 373-2-2 Cciv pour la révision).
+
+            Restauration / extension suite à la suppression DELETE migration 191
+            (F-191 audit Top-10). Outil P0 — rang 1 des outils famille FR
+            (le plus utilisé en pratique selon l'audit F-191 §D.2).
+
+            Calcule le montant indicatif mensuel par enfant en appliquant le taux
+            barème Cass. (18% pour 1 enfant, 26% pour 2, 30% pour 3, etc.) au
+            revenu net mensuel du parent débiteur, modulé par le mode de résidence
+            (classique × 1,0 / alternée × 0,5). Détermine le parent débiteur en
+            fonction du mode de résidence et compare les revenus en garde alternée.
+
+            Outil single-country FRANCE — en Belgique, le calcul SECAL/CGKR
+            (Service des créances alimentaires) est régi par des règles distinctes
+            (Loi du 21 février 2003 modifiée — outil BE distinct à venir).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 288 (couplé à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — pattern SF-216-01 / SF-216-05).
+        </comment>
+
+        <createTable tableName="pension_alimentaire_enfant_fr_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pension_alimentaire_enfant_fr_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="pension_alimentaire_enfant_fr_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_pension_alimentaire_enfant_fr_analyses_case_file"/>
+
+        <createIndex tableName="pension_alimentaire_enfant_fr_analyses"
+                     indexName="idx_pension_alimentaire_enfant_fr_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="pension_alimentaire_enfant_fr_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

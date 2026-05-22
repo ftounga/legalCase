@@ -1,0 +1,338 @@
+/**
+ * SF-216-04 : section décisionnelle pension alimentaire enfant FR (F-FA-02).
+ * Pattern de référence : liquidation-communaute-fr-section (SF-216-06).
+ */
+
+.pae-section {
+  border: 1px solid var(--ds-color-border, #e0e0e0);
+  border-radius: 8px;
+  background: var(--ds-color-surface, #fff);
+  margin: 12px 0;
+}
+
+.pae-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-color-primary, #1976d2);
+    outline-offset: 2px;
+  }
+}
+
+.pae-icon {
+  color: var(--ds-color-primary, #1976d2);
+}
+
+.pae-title {
+  flex: 1;
+  font-size: 0.95rem;
+  letter-spacing: 0.4px;
+}
+
+.pae-chip-summary {
+  background: var(--ds-color-primary-50, #e3f2fd);
+  color: var(--ds-color-primary, #1976d2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.pae-toggle {
+  color: #757575;
+}
+
+.pae-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.pae-country-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  background: #e3f2fd;
+  color: #0d47a1;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.pae-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  color: #757575;
+}
+
+.pae-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.pae-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pae-block-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #455a64;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pae-full {
+  width: 100%;
+}
+
+.pae-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pae-ages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pae-inline-field {
+  width: 100%;
+}
+
+.pae-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pae-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #6a1b9a;
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #ab47bc;
+  }
+}
+
+.pae-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+// -------------- Résultat --------------
+
+.pae-result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+}
+
+.pae-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e8f5e9 0%, #e0f7fa 100%);
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: #2e7d32;
+  }
+}
+
+.pae-verdict-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: 0.85rem;
+    color: #455a64;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.pae-verdict-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.pae-meta-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pae-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border: 1px solid #eceff1;
+  border-radius: 6px;
+}
+
+.pae-meta-label {
+  font-size: 0.78rem;
+  color: #607d8b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pae-meta-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #263238;
+}
+
+.pae-per-child-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pae-per-child-label {
+  font-size: 0.8rem;
+  color: #607d8b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pae-per-child-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.pae-per-child-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.pae-per-child-tag {
+  font-size: 0.78rem;
+  color: #455a64;
+  font-weight: 600;
+}
+
+.pae-per-child-value {
+  font-size: 1.05rem;
+  color: #263238;
+  font-weight: 700;
+}
+
+.pae-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pae-bases-label {
+  font-size: 0.8rem;
+  color: #607d8b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pae-base-chip {
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #eceff1;
+  font-size: 0.85rem;
+  color: #37474f;
+  align-self: flex-start;
+}
+
+.pae-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pae-messages,
+.pae-alertes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pae-messages li {
+  padding: 6px 10px;
+  background: #f5f5f5;
+  border-left: 3px solid #90a4ae;
+  border-radius: 3px;
+  font-size: 0.88rem;
+  color: #455a64;
+}
+
+.pae-alertes li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #fff3e0;
+  border-left: 3px solid #fb8c00;
+  border-radius: 3px;
+  font-size: 0.88rem;
+  color: #e65100;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

@@ -2436,7 +2436,12 @@ public record CaseAnalysisResponse(
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
             Boolean aripaRecouvrementEnvisage,         // FR — CONTEXTUAL : mention ARIPA / SDR / pension impayee / L. 581 CSS
             Integer montantPensionMensuelleDueEur,     // FR — >= 0 EUR/mois (montant pension fixe par titre executoire)
-            Boolean titreExecutoireDetecte) {          // FR — true si titre executoire (jugement / convention CM / acte notarie) detecte
+            Boolean titreExecutoireDetecte,            // FR — true si titre executoire (jugement / convention CM / acte notarie) detecte
+            // SF-216-03 : 2 champs IA pension alimentaire enfant FR.
+            // Source : `famille_extracted_data.pension_alimentaire_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            Boolean pensionAlimentaireEnvisagee,       // FR — CONTEXTUAL : mention art. 371-2 / contribution entretien
+            String modeResidenceEnfantsDetecte) {      // FR — ALTERNEE | PRINCIPALE_PARENT1 | PRINCIPALE_PARENT2 | null
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2798,6 +2803,11 @@ public record CaseAnalysisResponse(
             public Builder aripaRecouvrementEnvisage(Boolean v) { this.aripaRecouvrementEnvisage = v; return this; }
             public Builder montantPensionMensuelleDueEur(Integer v) { this.montantPensionMensuelleDueEur = v; return this; }
             public Builder titreExecutoireDetecte(Boolean v) { this.titreExecutoireDetecte = v; return this; }
+            // SF-216-03 : setters des 2 champs IA pension alimentaire enfant FR.
+            private Boolean pensionAlimentaireEnvisagee;
+            private String modeResidenceEnfantsDetecte;
+            public Builder pensionAlimentaireEnvisagee(Boolean v) { this.pensionAlimentaireEnvisagee = v; return this; }
+            public Builder modeResidenceEnfantsDetecte(String v) { this.modeResidenceEnfantsDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2933,7 +2943,10 @@ public record CaseAnalysisResponse(
                         // SF-216-07 : 3 champs IA ARIPA recouvrement FR.
                         aripaRecouvrementEnvisage,
                         montantPensionMensuelleDueEur,
-                        titreExecutoireDetecte);
+                        titreExecutoireDetecte,
+                        // SF-216-03 : 2 champs IA pension alimentaire enfant FR.
+                        pensionAlimentaireEnvisagee,
+                        modeResidenceEnfantsDetecte);
             }
         }
     }
@@ -5348,6 +5361,17 @@ public record CaseAnalysisResponse(
         boolean sf216_07Present = aripaRecouvrementEnvisage != null
                 || montantPensionMensuelleDueEur != null
                 || titreExecutoireDetecte != null;
+        // SF-216-03 : sous-objet `pension_alimentaire_detection` — 2 champs IA
+        // pour la pension alimentaire enfant FR (art. 371-2 Cciv + barème Cass.).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode pad = node.get("pension_alimentaire_detection");
+        boolean padObject = pad != null && pad.isObject();
+        Boolean pensionAlimentaireEnvisagee = padObject ? booleanOrNull(pad, "envisagee") : null;
+        String modeResidenceEnfantsDetecte = padObject
+                ? normalizeEnumCode(textOrNull(pad, "mode_residence"), MODE_RESIDENCE_ENFANT_WHITELIST)
+                : null;
+        boolean sf216_03Present = pensionAlimentaireEnvisagee != null
+                || modeResidenceEnfantsDetecte != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5389,7 +5413,8 @@ public record CaseAnalysisResponse(
                 && !familleBev2Present
                 && !sf216_01Present
                 && !sf216_05Present
-                && !sf216_07Present) {
+                && !sf216_07Present
+                && !sf216_03Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5572,6 +5597,9 @@ public record CaseAnalysisResponse(
                 .aripaRecouvrementEnvisage(aripaRecouvrementEnvisage)
                 .montantPensionMensuelleDueEur(montantPensionMensuelleDueEur)
                 .titreExecutoireDetecte(titreExecutoireDetecte)
+                // SF-216-03 : 2 champs IA pension alimentaire enfant FR.
+                .pensionAlimentaireEnvisagee(pensionAlimentaireEnvisagee)
+                .modeResidenceEnfantsDetecte(modeResidenceEnfantsDetecte)
                 .build();
     }
 
