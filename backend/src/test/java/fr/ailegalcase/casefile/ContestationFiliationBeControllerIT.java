@@ -256,7 +256,7 @@ class ContestationFiliationBeControllerIT {
     @Test
     void POST_dateConnaissanceFuture_returns400() throws Exception {
         Map<String, Object> body = baseBody();
-        body.put("dateConnaissanceFaitContestation", LocalDate.now().plusDays(1).toString());
+        body.put("dateConnaissanceFaitContestation", LocalDate.now().plusDays(2).toString());
         mockMvc.perform(post(url(familleBeCf.getId()))
                         .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))

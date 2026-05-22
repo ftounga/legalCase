@@ -238,7 +238,7 @@ class SuccessionBeDevolutionReserveCalculatorTest {
     @Test
     void dateDecesFuture_rejette() {
         SuccessionBeDevolutionReserveInput in = new SuccessionBeDevolutionReserveInput(
-                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(2),
                 SuccessionBeDevolutionReserveCalculator.EtatCivilDefuntBe.VEUF,
                 null, 1, 0, false, false,
                 new BigDecimal("100000"), new BigDecimal("0"), null);

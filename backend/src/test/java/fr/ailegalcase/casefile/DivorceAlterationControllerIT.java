@@ -185,7 +185,7 @@ class DivorceAlterationControllerIT {
 
     @Test
     void POST_futureCessation_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1),
+        Map<String, Object> body = body(LocalDate.now().plusDays(2),
                 true, false, 10, null, null, false, null);
         mockMvc.perform(post("/api/v1/case-files/" + famFrCf.getId() + "/divorce-alteration")
                         .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)

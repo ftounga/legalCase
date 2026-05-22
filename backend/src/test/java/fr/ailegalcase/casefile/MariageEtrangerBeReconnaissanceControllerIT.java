@@ -308,7 +308,7 @@ class MariageEtrangerBeReconnaissanceControllerIT {
     @Test
     void POST_dateActeFuture_returns400() throws Exception {
         Map<String, Object> body = baseBodyMariageCivilMa();
-        body.put("dateActe", LocalDate.now().plusDays(1).toString());
+        body.put("dateActe", LocalDate.now().plusDays(2).toString());
         mockMvc.perform(post(url(familleBeCf.getId()))
                         .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))

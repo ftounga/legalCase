@@ -240,7 +240,7 @@ class RegimeCommunauteLegaleBeCalculatorTest {
 
     @Test
     void compute_dateMariageFuture_rejete() {
-        var in = new RegimeCommunauteLegaleBeInput(LocalDate.now().plusDays(1), false,
+        var in = new RegimeCommunauteLegaleBeInput(LocalDate.now().plusDays(2), false,
                 List.of(acquet("Voiture", BienCategorieBe.MOBILIER)), List.of());
         assertThatThrownBy(() -> RegimeCommunauteLegaleBeCalculator.compute(in, "BELGIQUE"))
                 .isInstanceOf(IllegalArgumentException.class);

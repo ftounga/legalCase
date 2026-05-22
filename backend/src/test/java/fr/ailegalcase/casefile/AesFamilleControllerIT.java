@@ -187,7 +187,7 @@ class AesFamilleControllerIT {
 
     @Test
     void POST_futureDateEntree_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1),
+        Map<String, Object> body = body(LocalDate.now().plusDays(2),
                 72, true, 1, 5, true, false, null);
         mockMvc.perform(post("/api/v1/case-files/" + immFrCf.getId() + "/aes-famille")
                         .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)
