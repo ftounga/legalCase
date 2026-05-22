@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="300-create-promo-code-redemptions" author="legalcase">
+        <comment>
+            F-255 SF-255-01 — création de la table `promo_code_redemptions`.
+
+            Journal d'audit immuable des redemptions. Chaque ligne est insérée
+            atomiquement avec l'UPDATE de `subscriptions.expires_at` (extension
+            trial) et l'INCRÉMENT atomique de `promo_codes.uses_count` dans
+            la transaction `PromoCodeService.redeemTrialExtension`.
+
+            Pourquoi `code_at_redemption` (snapshot string) : le code peut
+            théoriquement être renommé en V2. On garde une trace lisible du
+            code utilisé au moment T, indépendante de la valeur courante de
+            `promo_codes.code`.
+
+            Pourquoi `value_applied_days` (snapshot int) : même raison —
+            l'audit doit refléter ce qui a été effectivement appliqué, pas
+            la valeur courante.
+
+            Index unique partiel `(workspace_id, type) WHERE type =
+            'TRIAL_EXTENSION'` (PostgreSQL only) : matérialise l'invariant
+            anti-abus « 1 TRIAL_EXTENSION par workspace à vie » au niveau DB
+            (défense en profondeur). H2 ne supporte pas les index partiels
+            avec clause WHERE — la vérification applicative dans
+            `PromoCodeService.assertWorkspaceCanRedeemTrialExtension` couvre
+            le test (vérif SELECT préalable + 409
+            WORKSPACE_ALREADY_REDEEMED_TRIAL_EXTENSION).
+
+            Namespace UUID F-255 SF-01 :
+            f1a04002-0000-0000-0000-eeee25500102.
+        </comment>
+
+        <createTable tableName="promo_code_redemptions">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="promo_code_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code_at_redemption" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value_applied_days" type="int"/>
+            <column name="redeemed_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="applied_by_user_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="promo_code_redemptions"
+                baseColumnNames="workspace_id"
+                referencedTableName="workspaces"
+                referencedColumnNames="id"
+                constraintName="fk_promo_code_redemptions_workspace_id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="promo_code_redemptions"
+                baseColumnNames="promo_code_id"
+                referencedTableName="promo_codes"
+                referencedColumnNames="id"
+                constraintName="fk_promo_code_redemptions_promo_code_id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="promo_code_redemptions"
+                baseColumnNames="applied_by_user_id"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                constraintName="fk_promo_code_redemptions_applied_by_user_id"/>
+
+        <createIndex tableName="promo_code_redemptions"
+                     indexName="idx_promo_code_redemptions_promo_code_id">
+            <column name="promo_code_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="promo_code_redemptions"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="300-create-promo-code-redemptions-trial-uniqueness" author="legalcase" dbms="postgresql">
+        <comment>
+            Index unique partiel PostgreSQL — matérialise l'invariant
+            anti-abus « 1 TRIAL_EXTENSION par workspace à vie » au niveau
+            DB. Séparé du changeSet précédent car non portable sur H2 ; les
+            tests d'intégration `@SpringBootTest` (H2) reposent sur la
+            vérification applicative `assertWorkspaceCanRedeemTrialExtension`
+            pour couvrir l'invariant. Aucun mock pour cette assertion.
+
+            Namespace UUID : f1a04002-0000-0000-0000-eeee25500103.
+        </comment>
+        <sql>
+            CREATE UNIQUE INDEX uq_promo_code_redemptions_trial_per_workspace
+            ON promo_code_redemptions (workspace_id, type)
+            WHERE type = 'TRIAL_EXTENSION';
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uq_promo_code_redemptions_trial_per_workspace;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
