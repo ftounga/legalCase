@@ -182,6 +182,8 @@ import { LiquidationCommunauteSectionComponent } from '../liquidation-communaute
 import { AripaRecouvrementFrSectionComponent } from '../aripa-recouvrement-fr-section/aripa-recouvrement-fr-section.component';
 // SF-216-10 : composant simulateur délégation autorité parentale (F-FA-XX-delegation-ap).
 import { DelegationApFrSectionComponent } from '../delegation-ap-fr-section/delegation-ap-fr-section.component';
+// SF-216-12 : composant simulateur retrait autorité parentale (F-FA-RETRAIT-AP).
+import { RetraitApFrSectionComponent } from '../retrait-ap-fr-section/retrait-ap-fr-section.component';
 // SF-216-16 : composant simulateur Adoption intra-familiale FR (F-FA-ADOPTION-INTRA).
 import { AdoptionIntraFrSectionComponent } from '../adoption-intra-fr-section/adoption-intra-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
@@ -1216,6 +1218,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-XX-delegation-ap', {
         displayLabel: 'Délégation autorité parentale (FR)',
         component: DelegationApFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-12 : composant simulateur complet (POST/GET backend SF-216-11).
+      // Outil P2 famille FR — Retrait d'autorité parentale (art. 378-381 Cciv +
+      // loi n°2022-140 du 7 février 2022 LMVSS + art. 343-1 al. 2 Cciv). Pré-fill
+      // IA sur 4 champs (âge enfant, condamnation pénale, danger caractérisé,
+      // violences conjugales) — visibility CONTEXTUAL F-IA-04 priority 103.
+      ['F-FA-RETRAIT-AP', {
+        displayLabel: 'Retrait autorité parentale (FR)',
+        component: RetraitApFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2703,6 +2720,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-ARIPA-RECOUVREMENT', 'DIAGNOSTIC'],
     // SF-216-10 : délégation autorité parentale (FR, art. 376-1 Cciv).
     ['F-FA-XX-delegation-ap', 'DIAGNOSTIC'],
+    // SF-216-12 : retrait autorité parentale (FR, art. 378-381 Cciv + loi 2022-140 LMVSS).
+    ['F-FA-RETRAIT-AP', 'DIAGNOSTIC'],
     // SF-216-16 : adoption intra-familiale (FR, art. 345-1 Cciv).
     ['F-FA-ADOPTION-INTRA', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],

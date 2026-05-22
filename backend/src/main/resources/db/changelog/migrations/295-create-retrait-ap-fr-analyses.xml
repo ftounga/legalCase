@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="295-create-retrait-ap-fr-analyses" author="legalcase">
+        <comment>
+            SF-216-11 : table dédiée à l'outil décisionnel "Retrait d'autorité
+            parentale" (F-FA-RETRAIT-AP, FRANCE — art. 378-381 Cciv +
+            loi n°2022-140 du 7 février 2022 LMVSS + art. 343-1 al. 2 Cciv +
+            Cass. 1ère civ., 26/10/2011).
+
+            Outil P2 famille FR. Guide l'avocat dans la qualification juridique
+            d'une demande de retrait d'autorité parentale et la voie procédurale
+            adaptée :
+
+              - RETRAIT_PLEIN_DROIT : retrait accessoire prononcé par la
+                juridiction pénale après condamnation pour crime/délit sur
+                l'enfant (art. 378 al. 1) ;
+              - RETRAIT_CIVIL_JAF : voie civile JAF / tribunal judiciaire
+                fondée sur l'art. 378-1 (mauvais traitements, désintérêt
+                grave > 2 ans, comportement compromettant) ;
+              - SUSPENSION_ACCELEREE_LMVSS_2022 : voie accélérée loi 2/3/2022
+                pour les violences conjugales en présence de l'enfant
+                (suspension automatique + saisine accélérée).
+
+            Conséquences juridiques calculées : admissibilité de l'enfant à
+            l'adoption (art. 343-1 al. 2 Cciv) si retrait total, délégation
+            à un tiers (art. 376-1) ou ouverture d'une tutelle (art. 390+).
+
+            Cas d'irrecevabilité : enfant majeur (≥ 18 ans, art. 371-1 Cciv —
+            l'AP s'éteint à la majorité), motif allégué sans documentation
+            factuelle (condamnation invoquée sans pièce, désintérêt sans
+            preuves de plus de 2 ans).
+
+            Outil single-country FRANCE — en Belgique, l'équivalent est la
+            déchéance de l'autorité parentale (art. 33 et s. Loi du 8/4/1965
+            relative à la protection de la jeunesse) — outil distinct, hors
+            périmètre F-216.
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 296 (couplé à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — pattern SF-216-07 / SF-216-03 / SF-216-09).
+        </comment>
+
+        <createTable tableName="retrait_ap_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_retrait_ap_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="retrait_ap_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_retrait_ap_analyses_case_file"/>
+
+        <createIndex tableName="retrait_ap_analyses"
+                     indexName="idx_retrait_ap_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="retrait_ap_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="296-seed-f216-retrait-ap-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-11 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Retrait d'autorité parentale" (F-FA-RETRAIT-AP, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que si le
+            pipeline IA détecte une mention de retrait d'autorité parentale,
+            d'art. 378 Cciv, de déchéance parentale, de condamnation pénale sur
+            l'enfant, ou de violences conjugales en présence de l'enfant —
+            trigger `retrait_ap_envisage` lu depuis le sous-objet
+            `retrait_ap_detection.envisage` de `famille_extracted_data` par
+            DecisionToolVisibilityService (méthode addBooleanFlagIfTrueNested,
+            réutilisée depuis SF-216-01 / SF-216-05 / SF-216-07 / SF-216-09).
+
+            UUID namespace dédié F-216 (bundle 11) : f1a04002-0000-0000-0000-eeee21600011.
+
+            Base juridique : art. 378-381 Cciv (retrait total et partiel) +
+            art. 378-1 Cciv (retrait civil) + loi n°2022-140 du 7 février 2022
+            LMVSS (suspension accélérée violences conjugales) + art. 343-1
+            al. 2 Cciv (admissibilité adoption) + art. 371-1 Cciv (durée AP) +
+            Cass. 1ère civ., 26/10/2011 (conditions du retrait civil).
+
+            Outil single-country FRANCE — en Belgique, l'équivalent est la
+            déchéance de l'autorité parentale (art. 33 et s. Loi du 8/4/1965)
+            — outil distinct, hors périmètre F-216.
+
+            priority 103 — outil P2 famille FR (au-dessus délégation AP
+            priority 93 et adoption intra priority 105, en cohérence avec la
+            criticité du retrait par rapport à la délégation).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600011', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-RETRAIT-AP',
+        'CONTEXTUAL', 'retrait_ap_envisage', 'true', 103);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600011';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

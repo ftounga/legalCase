@@ -1,0 +1,170 @@
+<!--
+  SF-216-12 : template de l'outil retrait autorité parentale FR
+  (F-FA-RETRAIT-AP, FRANCE uniquement — art. 378-381 Cciv + loi 2022-140 LMVSS).
+  Pattern : delegation-ap-fr-section.
+-->
+<section class="retrait-ap-section" [class.retrait-ap-section--collapsed]="collapsed()">
+  <header class="retrait-ap-section__header" (click)="toggleCollapse()">
+    <mat-icon class="retrait-ap-section__icon">gpp_bad</mat-icon>
+    <h3 class="retrait-ap-section__title">Retrait d'autorité parentale</h3>
+    <span class="retrait-ap-section__country">FR</span>
+    <mat-icon class="retrait-ap-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="retrait-ap-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="retrait-ap-banner retrait-ap-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. Pour la Belgique, le mécanisme
+        équivalent est la <strong>déchéance de l'autorité parentale</strong>
+        (art. 33 et s. Loi du 8/4/1965 relative à la protection de la jeunesse)
+        — outil distinct.
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="retrait-ap-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="retrait-ap-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="retrait-ap-form__intro">
+          Renseignez le type et le motif du retrait envisagé pour obtenir le
+          verdict de recevabilité (art. 378-381 Cciv), la voie procédurale
+          adaptée et les conséquences juridiques (notamment l'admissibilité
+          à l'adoption art. 343-1 al. 2 Cciv).
+        </p>
+
+        <div class="retrait-ap-form__row">
+          <mat-form-field appearance="outline" class="retrait-ap-form__field retrait-ap-form__field--wide">
+            <mat-label>Type de retrait envisagé</mat-label>
+            <mat-select [ngModel]="typeRetrait()"
+                        (ngModelChange)="onTypeRetraitChange($event)"
+                        name="typeRetrait"
+                        required>
+              <mat-option *ngFor="let opt of typesRetrait" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="retrait-ap-form__row">
+          <mat-form-field appearance="outline" class="retrait-ap-form__field retrait-ap-form__field--wide">
+            <mat-label>Motif fondant la demande</mat-label>
+            <mat-select [ngModel]="motifRetrait()"
+                        (ngModelChange)="onMotifChange($event)"
+                        name="motifRetrait"
+                        required>
+              <mat-option *ngFor="let opt of motifsRetrait" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="retrait-ap-form__row">
+          <mat-form-field appearance="outline" class="retrait-ap-form__field">
+            <mat-label>Âge de l'enfant (0 - 18 ans)</mat-label>
+            <input matInput type="number" min="0" max="18" step="1"
+                   [ngModel]="ageEnfant()"
+                   (ngModelChange)="onAgeEnfantChange($event)"
+                   name="ageEnfant"
+                   required />
+            <mat-icon *ngIf="provenanceAgeEnfant() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="retrait-ap-form__row retrait-ap-form__row--checks">
+          <mat-checkbox [checked]="condamnationPenaleDetectee()"
+                        (change)="onCondamnationPenaleChange($event.checked)"
+                        name="condamnationPenale">
+            Condamnation pénale documentée (jugement / peine)
+            <mat-icon *ngIf="provenanceCondamnationPenale() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+          <mat-checkbox [checked]="dangerCaracterise()"
+                        (change)="onDangerChange($event.checked)"
+                        name="danger">
+            Danger caractérisé pour l'enfant
+            <mat-icon *ngIf="provenanceDanger() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+          <mat-checkbox [checked]="violencesConjugalesDetectees()"
+                        (change)="onViolencesConjugalesChange($event.checked)"
+                        name="violencesConjugales">
+            Violences conjugales en présence de l'enfant (loi 2022)
+            <mat-icon *ngIf="provenanceViolencesConjugales() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+          <mat-checkbox [checked]="decisionsJudiciairesPrecedentes()"
+                        (change)="onDecisionsPrecChange($event.checked)"
+                        name="decisionsPrec">
+            Décisions judiciaires antérieures sur l'enfant
+          </mat-checkbox>
+        </div>
+
+        <div class="retrait-ap-form__actions">
+          <button mat-raised-button color="primary" type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-spinner *ngIf="calculating()" diameter="18"></mat-spinner>
+            <ng-container *ngIf="!calculating()">Analyser la recevabilité</ng-container>
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="retrait-ap-result" *ngIf="!showForm() && result() as r">
+        <div class="retrait-ap-verdict" [ngClass]="verdictClass(r.verdictRetrait)">
+          <mat-icon>gavel</mat-icon>
+          <div class="retrait-ap-verdict__content">
+            <h4>{{ verdictLabel(r.verdictRetrait) }}</h4>
+            <p class="retrait-ap-verdict__voie">{{ voieLabel(r.voieProcedurale) }}</p>
+            <p class="retrait-ap-verdict__duree" *ngIf="r.dureeEstimeeJours > 0">
+              Délai indicatif : <strong>{{ r.dureeEstimeeJours }} jours</strong>
+            </p>
+            <p class="retrait-ap-verdict__adoption" *ngIf="r.admissibiliteAdoption">
+              <mat-icon>child_friendly</mat-icon>
+              <span>Le retrait total ouvre l'admissibilité de l'enfant à l'adoption
+                (art. 343-1 al. 2 Cciv) — voir outil <strong>F-FA-ADOPTION-INTRA</strong>.</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="retrait-ap-section-block" *ngIf="r.etapes?.length">
+          <h5><mat-icon>list_alt</mat-icon> Étapes concrètes</h5>
+          <ol class="retrait-ap-etapes">
+            <li *ngFor="let etape of r.etapes" [innerHTML]="etape | legalCitations"></li>
+          </ol>
+        </div>
+
+        <div class="retrait-ap-section-block" *ngIf="r.alertes?.length">
+          <h5 class="retrait-ap-section-block__alerte"><mat-icon>warning</mat-icon> Alertes</h5>
+          <ul class="retrait-ap-alertes">
+            <li *ngFor="let alerte of r.alertes" [innerHTML]="alerte | legalCitations"></li>
+          </ul>
+        </div>
+
+        <div class="retrait-ap-section-block" *ngIf="r.consequencesJuridiques?.length">
+          <h5><mat-icon>account_tree</mat-icon> Conséquences juridiques</h5>
+          <ul class="retrait-ap-consequences">
+            <li *ngFor="let c of r.consequencesJuridiques" [innerHTML]="c | legalCitations"></li>
+          </ul>
+        </div>
+
+        <div class="retrait-ap-section-block" *ngIf="r.messages?.length">
+          <h5><mat-icon>info</mat-icon> Informations</h5>
+          <ul class="retrait-ap-messages">
+            <li *ngFor="let msg of r.messages" [innerHTML]="msg | legalCitations"></li>
+          </ul>
+        </div>
+
+        <p class="retrait-ap-base-legale" [innerHTML]="r.baseLegale | legalCitations"></p>
+
+        <div class="retrait-ap-result__actions">
+          <button mat-stroked-button (click)="editMode()">
+            <mat-icon>edit</mat-icon>
+            Modifier les paramètres
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
