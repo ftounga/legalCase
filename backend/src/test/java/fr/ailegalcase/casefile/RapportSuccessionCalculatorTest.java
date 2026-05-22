@@ -139,7 +139,7 @@ class RapportSuccessionCalculatorTest {
     @Test
     void validation_dateDonationFuture_throws() {
         assertThatThrownBy(() -> RapportSuccessionCalculator.compute(
-                eur("50000"), LocalDate.now().plusDays(1), eur("60000"),
+                eur("50000"), LocalDate.now().plusDays(2), eur("60000"),
                 false, false, QualiteHeritier.DESCENDANT, FR))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("future");

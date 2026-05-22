@@ -177,7 +177,7 @@ class Belgian9terControllerIT {
 
     @Test
     void POST_futureDateDebutSymptomes_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1), true, true, true, false, null);
+        Map<String, Object> body = body(LocalDate.now().plusDays(2), true, true, true, false, null);
         mockMvc.perform(post("/api/v1/case-files/" + immBeCf.getId() + "/belgian-9ter")
                         .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))

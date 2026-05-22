@@ -202,7 +202,7 @@ class IndivisionSuccessoraleCalculatorTest {
     @Test
     void compute_dateFuture_throws() {
         assertThatThrownBy(() -> IndivisionSuccessoraleCalculator.compute(
-                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(2),
                 "INDIVISION_LEGALE",
                 2,
                 new BigDecimal("100000"),

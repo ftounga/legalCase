@@ -186,7 +186,7 @@ class Belgian9bisControllerIT {
 
     @Test
     void POST_futureDateEntree_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1),
+        Map<String, Object> body = body(LocalDate.now().plusDays(2),
                 72, true, true, false, false, false, null);
         mockMvc.perform(post("/api/v1/case-files/" + immBeCf.getId() + "/belgian-9bis")
                         .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)

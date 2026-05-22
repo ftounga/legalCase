@@ -205,7 +205,7 @@ class DivorceDesunionIrremediableBeControllerIT {
 
     @Test
     void POST_futureDateSeparation_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1),
+        Map<String, Object> body = body(LocalDate.now().plusDays(2),
                 true, true, true, false, null);
         mockMvc.perform(post("/api/v1/case-files/" + famBeCf.getId() + "/desunion-irremediable-be")
                         .with(authentication(authBe)).contentType(MediaType.APPLICATION_JSON)

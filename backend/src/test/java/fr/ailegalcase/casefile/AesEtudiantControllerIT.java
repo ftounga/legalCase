@@ -192,7 +192,7 @@ class AesEtudiantControllerIT {
 
     @Test
     void POST_futureDateEntree_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1),
+        Map<String, Object> body = body(LocalDate.now().plusDays(2),
                 48, 3, "BAC_PLUS_1_2", "EXCELLENT",
                 true, true, false, true, null);
         mockMvc.perform(post("/api/v1/case-files/" + immFrCf.getId() + "/aes-etudiant")

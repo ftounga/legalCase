@@ -168,7 +168,7 @@ class AesMetiersTensionControllerIT {
 
     @Test
     void POST_futureDateEntree_returns400() throws Exception {
-        Map<String, Object> body = body(LocalDate.now().plusDays(1),
+        Map<String, Object> body = body(LocalDate.now().plusDays(2),
                 18, true, "N1101", false, true, null);
         mockMvc.perform(post("/api/v1/case-files/" + immFrCf.getId() + "/aes-metiers-tension")
                         .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)

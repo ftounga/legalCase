@@ -172,7 +172,7 @@ class IndivisionSuccessoraleControllerIT {
 
     @Test
     void POST_dateFuture_returns400() throws Exception {
-        Map<String, Object> b = body(LocalDate.now().plusDays(1),
+        Map<String, Object> b = body(LocalDate.now().plusDays(2),
                 "INDIVISION_LEGALE", 3, 200000, 0,
                 true, false, false, false);
         mockMvc.perform(post(String.format(ENDPOINT, famFrCf.getId()))

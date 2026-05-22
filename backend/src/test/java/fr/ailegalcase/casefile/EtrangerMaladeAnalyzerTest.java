@@ -159,7 +159,7 @@ class EtrangerMaladeAnalyzerTest {
 
     @Test
     void analyze_dateAvisOFII_future_lanceIllegalArgumentException() {
-        LocalDate futur = LocalDate.now().plusDays(1);
+        LocalDate futur = LocalDate.now().plusDays(2);
         assertThatThrownBy(() -> EtrangerMaladeAnalyzer.analyze(
                 PATHOLOGIE, PAYS, false, "DEFAVORABLE", futur))
                 .isInstanceOf(IllegalArgumentException.class)

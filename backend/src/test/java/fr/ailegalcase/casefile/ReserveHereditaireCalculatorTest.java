@@ -217,7 +217,7 @@ class ReserveHereditaireCalculatorTest {
     void validation_dateFuture_throws() {
         assertThatThrownBy(() -> ReserveHereditaireCalculator.compute(
                 1, false, eur("100000"), eur("0"),
-                LocalDate.now().plusDays(1), QualiteDemandeur.HERITIER_RESERVATAIRE_DESCENDANT, FR))
+                LocalDate.now().plusDays(2), QualiteDemandeur.HERITIER_RESERVATAIRE_DESCENDANT, FR))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

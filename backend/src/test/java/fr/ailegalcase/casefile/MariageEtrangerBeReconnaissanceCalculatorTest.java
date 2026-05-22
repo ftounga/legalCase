@@ -325,7 +325,7 @@ class MariageEtrangerBeReconnaissanceCalculatorTest {
 
     @Test
     void compute_dateActeFuture_rejete() {
-        var in = baseMariageCivilMarocain().dateActe(LocalDate.now().plusDays(1)).build();
+        var in = baseMariageCivilMarocain().dateActe(LocalDate.now().plusDays(2)).build();
         assertThatThrownBy(() ->
                 MariageEtrangerBeReconnaissanceCalculator.compute(in, "BELGIQUE"))
                 .isInstanceOf(IllegalArgumentException.class);
