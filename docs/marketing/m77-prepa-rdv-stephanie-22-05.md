@@ -80,6 +80,7 @@ Cohérence éditoriale avec M-78 Le Monde du Droit (Cloud Act, hébergement souv
 | 8 | **Format Qualiopi vs webinaire libre** : critères Qualiopi ? Inscription gratuite ou payante ? | Qualiopi = avantages DPC pour adhérents mais peut être barrière d'entrée si payant |
 | 9 | **Date envisagée** : septembre-octobre 2026 possible ? Évite Spring Break (avril) et congrès ACE annuel | Audience optimale = rentrée judiciaire |
 | 10 | **Suite éventuelle** : si retours positifs, ACE ouvert à Pack Visibilité 5 K€ ? Quelles conditions/timing ? | Préparer la Tranche 2 M-71 sans s'engager |
+| 11 | **Modalité** : le webinaire se fait en **visio** (Zoom/Teams), en **présentiel** dans vos locaux ACE, ou en **hybride** ? Si hybride/présentiel, prise en charge des frais de déplacement intervenant ? | Éviter une surprise post-bon de commande. La visio est la plus probable mais à confirmer. Si déplacement, ajouter ~150-300 € au budget total (réserve M-71 Tranche 1 couvre) |
 
 ---
 
