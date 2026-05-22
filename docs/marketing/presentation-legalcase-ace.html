@@ -1034,6 +1034,230 @@
   footer a { color: var(--gold); }
   footer a:hover { color: #fff; }
 
+  /* ─── Co-branding ACE (topbar + hero ribbon) ───────────────────────────── */
+  .topbar-cobrand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 4px;
+  }
+  .topbar-cobrand-x {
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+  }
+  .topbar-cobrand-ace {
+    font-family: var(--font-body);
+    font-weight: 800;
+    color: #000;
+    letter-spacing: 0.6px;
+    font-size: 14px;
+    text-transform: uppercase;
+    border-left: 1px solid var(--border);
+    padding-left: 10px;
+  }
+  @media (max-width: 640px) {
+    .topbar-cobrand-x { font-size: 13px; }
+    .topbar-cobrand-ace { font-size: 12px; padding-left: 8px; }
+  }
+
+  .ace-ribbon {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 22px 0;
+  }
+  .ace-ribbon-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    text-align: center;
+  }
+  .ace-ribbon-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .ace-ribbon-lc {
+    font-weight: 800;
+    color: var(--navy);
+    font-size: 22px;
+    letter-spacing: -0.3px;
+  }
+  .ace-ribbon-x {
+    color: var(--gold);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .ace-ribbon-ace {
+    font-family: var(--font-body);
+    font-weight: 900;
+    color: #000;
+    font-size: 22px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .ace-ribbon-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 640px;
+    line-height: 1.55;
+  }
+  .ace-ribbon-text b { color: var(--navy); font-weight: 700; }
+  @media (max-width: 640px) {
+    .ace-ribbon-lc, .ace-ribbon-x, .ace-ribbon-ace { font-size: 18px; }
+  }
+
+  /* ─── Partnership phases (timeline cards) ──────────────────────────────── */
+  .partnership-section { background: var(--surface); }
+  .phases-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 1080px) { .phases-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px)  { .phases-grid { grid-template-columns: 1fr; } }
+
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+  }
+  .phase-card:hover { box-shadow: var(--shadow-md); }
+  .phase-card.is-future {
+    border-top-color: var(--text-muted);
+    background: var(--surface-alt);
+  }
+  .phase-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .phase-card.is-future .phase-tag { color: var(--text-muted); }
+  .phase-date {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .phase-title {
+    color: var(--navy);
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    line-height: 1.3;
+  }
+  .phase-purpose {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
+  .phase-price {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--navy);
+    font-weight: 800;
+    font-size: 17px;
+  }
+  .phase-price small {
+    display: block;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .phase-card.is-future .phase-price { color: var(--text-muted); }
+
+  .partnership-total {
+    background: var(--gold-bg);
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    color: var(--navy);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .partnership-total b { font-weight: 800; }
+  .partnership-total .total-line {
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .partnership-total .total-sub {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* ─── Points à valider (Q&A list) ──────────────────────────────────────── */
+  .points-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 880px) { .points-list { grid-template-columns: 1fr; } }
+  .points-list li {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .points-list li b {
+    display: block;
+    color: var(--navy);
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-size: 14.5px;
+  }
+  .points-foot {
+    margin-top: 28px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* ─── Footer cobrand wordmark ─────────────────────────────────────────── */
+  .footer-cobrand {
+    width: 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .footer-cobrand-ace {
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 1.5px;
+  }
+
   /* ─── Responsive tweaks ────────────────────────────────────────────────── */
   @media (max-width: 640px) {
     section { padding: 56px 0; }
@@ -1057,10 +1281,30 @@
     <div class="topbar-logo">
       <img src="data:image/png;base64,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" alt="LegalCase" />
       <span class="topbar-brand">LegalCase</span>
+      <span class="topbar-cobrand">
+        <span class="topbar-cobrand-x">×</span>
+        <span class="topbar-cobrand-ace">ACE Avocats</span>
+      </span>
     </div>
     <a class="topbar-cta" href="#essai">Essai gratuit 14 jours</a>
   </div>
 </header>
+
+<!-- ─── Bandeau co-branding ACE × LegalCase ─────────────────────────── -->
+<aside class="ace-ribbon" aria-label="Proposition de partenariat ACE × LegalCase">
+  <div class="container ace-ribbon-inner">
+    <div class="ace-ribbon-brand">
+      <span class="ace-ribbon-lc">LegalCase</span>
+      <span class="ace-ribbon-x">×</span>
+      <span class="ace-ribbon-ace">ACE Avocats, ensemble.</span>
+    </div>
+    <p class="ace-ribbon-text">
+      <b>Proposition de partenariat 2026.</b>
+      Préparée pour le comité ACE suite à l'échange du 22 mai 2026
+      avec Stéphanie Colin (responsable des partenariats et événements).
+    </p>
+  </div>
+</aside>
 
 <!-- ─── 1. HERO ─────────────────────────────────────────────────────── -->
 <section class="hero" id="hero">
@@ -1504,6 +1748,97 @@
   </div>
 </section>
 
+<!-- ─── 8 bis. PARTENARIAT ACE 2026 ─────────────────────────────────── -->
+<section id="partenariat" class="partnership-section">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-eyebrow">Partenariat ACE × LegalCase</span>
+      <h2 class="section-title">Notre proposition de partenariat 2026</h2>
+      <p class="section-lead">
+        Suite au RDV du 22 mai avec Stéphanie Colin, voici la séquence que nous proposons
+        au comité ACE. Approche progressive en 3 phases pour valider la qualité du
+        dispositif avant d'engager des budgets plus importants — Phase 4 conditionnée
+        à la traction post-congrès.
+      </p>
+    </div>
+
+    <div class="phases-grid">
+      <!-- Phase 1 -->
+      <article class="phase-card reveal">
+        <span class="phase-tag">Phase 1</span>
+        <div class="phase-date">Juillet 2026</div>
+        <h3 class="phase-title">Coaching &amp; Drink ACE JA</h3>
+        <p class="phase-purpose">
+          Galop d'essai avec les jeunes avocats ACE JA. Format intime, retours qualitatifs,
+          calibrage du discours produit avant l'événement majeur de septembre.
+        </p>
+        <div class="phase-price">
+          1 000 € HT
+          <small>session unique · audience JA</small>
+        </div>
+      </article>
+
+      <!-- Phase 2 -->
+      <article class="phase-card reveal">
+        <span class="phase-tag">Phase 2</span>
+        <div class="phase-date">24-25 septembre 2026</div>
+        <h3 class="phase-title">Congrès National ACE — La Grande Motte</h3>
+        <p class="phase-purpose">
+          Stand A 6 m² + co-intervention sur un atelier IA du parcours
+          « Performance opérationnelle ». Visibilité institutionnelle + démonstration produit
+          devant l'audience décideurs.
+        </p>
+        <div class="phase-price">
+          3 500 € HT*
+          <small>Stand A 2 000 € (vs 2 600 € standard) + co-intervention atelier 1 500 €</small>
+        </div>
+      </article>
+
+      <!-- Phase 3 -->
+      <article class="phase-card reveal">
+        <span class="phase-tag">Phase 3</span>
+        <div class="phase-date">Q4 2026</div>
+        <h3 class="phase-title">Formation hybride Qualiopi</h3>
+        <p class="phase-purpose">
+          Vraie formation reconnue CNB avec attestation. Format hybride
+          (présentiel ACE + retransmission live) pour capter des extraits vidéo de qualité
+          conférence — au bénéfice de la visibilité ACE et de la communication LegalCase.
+        </p>
+        <div class="phase-price">
+          1 500 € HT
+          <small>session de formation · captation incluse</small>
+        </div>
+      </article>
+
+      <!-- Phase 4 -->
+      <article class="phase-card is-future reveal">
+        <span class="phase-tag">Phase 4 — conditionnelle</span>
+        <div class="phase-date">Mi-2027</div>
+        <h3 class="phase-title">Pack Visibilité annuel</h3>
+        <p class="phase-purpose">
+          Présence renforcée sur l'année ACE (newsletter, événements régionaux, contenus
+          partagés). Engagement conditionné à la validation comité ACE
+          <b>post-congrès</b> et à la traction confirmée côté LegalCase.
+        </p>
+        <div class="phase-price">
+          5 000 € HT / an
+          <small>à valider en comité</small>
+        </div>
+      </article>
+    </div>
+
+    <div class="partnership-total reveal">
+      <div class="total-line">
+        → <b>Engagement Tranche 1 (Phases 1 à 3)</b> : 6 000 € HT
+      </div>
+      <div class="total-sub">
+        Phase 4 (Pack Visibilité annuel) déclenchée séparément, sur validation du comité
+        ACE après le congrès et selon la traction du dispositif.
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ─── 9. PRICING ──────────────────────────────────────────────────── -->
 <section id="pricing">
   <div class="container">
@@ -1570,13 +1905,79 @@
   </div>
 </section>
 
+<!-- ─── 9 bis. POINTS À VALIDER AVEC LE COMITÉ ACE ──────────────────── -->
+<section id="points-a-valider">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-eyebrow">Discussion ouverte</span>
+      <h2 class="section-title">Points à valider avec le comité ACE</h2>
+      <p class="section-lead">
+        Quelques éléments du dispositif nécessitent une confirmation officielle de votre part.
+        Nous restons à disposition pour ajuster chaque ligne en fonction des contraintes ACE.
+      </p>
+    </div>
+
+    <ul class="points-list reveal">
+      <li>
+        <b>→ Tarif Stand A au Congrès</b>
+        Confirmation du tarif négocié à <b>2 000 € HT</b> (vs 2 600 € standard)
+        que vous avez évoqué lors de notre échange.
+      </li>
+      <li>
+        <b>→ Co-intervention atelier</b>
+        Disponibilité d'un créneau dans le parcours « Performance opérationnelle » —
+        l'atelier <i>J2 « Production juridique et IA »</i> ou
+        <i>V2 « IA générative &amp; cybersécurité »</i> nous semblent les plus alignés
+        avec notre démonstration.
+      </li>
+      <li>
+        <b>→ Date du Coaching &amp; Drink juillet</b>
+        Quelle session ACE JA est envisagée (date précise, thématique imposée ou libre,
+        audience attendue) ?
+      </li>
+      <li>
+        <b>→ Modalité Formation Qualiopi</b>
+        Format hybride (présentiel ACE + retransmission live) ou 100 % distanciel ?
+        Captation vidéo et droits de réutilisation possibles ?
+      </li>
+      <li>
+        <b>→ Co-intervenant ACE</b>
+        Possibilité d'associer un membre de la commission Droit social ou de la
+        commission ACE JA pour co-animer l'atelier congrès et le Coaching &amp; Drink
+        (légitimité institutionnelle + relais post-event).
+      </li>
+      <li>
+        <b>→ Mention newsletter post-événement</b>
+        Un article récap dans la newsletter ACE après chaque dispositif
+        (Coaching, congrès, formation) — incluse dans les forfaits ou en option ?
+      </li>
+      <li>
+        <b>→ Plaquette page 7 — offre adhérents ACE</b>
+        Validation du wording « 1 mois offert SOLO/TEAM/PRO + code
+        <span style="font-family: var(--font-mono); color: var(--gold);">ACE-2026-1MOIS</span>,
+        limité à 50 adhésions / 6 mois » pour intégration dans la plaquette adhérents 2026.
+      </li>
+      <li>
+        <b>→ Pack Visibilité 5 000 € HT / an (Phase 4)</b>
+        Conditions précises pour engager ce niveau de partenariat (traction minimale
+        attendue côté LegalCase, livrables ACE garantis).
+      </li>
+    </ul>
+
+    <p class="points-foot">
+      Nous proposons une réunion de calage avec le comité ACE pour trancher
+      ces points avant signature de la lettre d'engagement Tranche 1.
+    </p>
+  </div>
+</section>
+
 <!-- ─── 10. CTA FINAL ───────────────────────────────────────────────── -->
 <section id="essai" class="final-cta section-alt">
   <div class="container reveal">
     <h2 class="final-cta-title">Tester sur un vrai dossier</h2>
     <p class="final-cta-subtitle">14 jours d'essai gratuit. Aucune carte bancaire requise.</p>
     <div class="final-cta-actions">
-      <a href="https://legalcase.fr/inscription" class="btn-primary">Démarrer l'essai gratuit</a>
+      <a href="https://legalcase.fr/login" class="btn-primary">Démarrer l'essai gratuit</a>
       <a href="mailto:tounga.franck@ng-itconsulting.com?subject=Demande%20de%20d%C3%A9mo%20LegalCase%20%E2%80%94%20ACE" class="btn-secondary">Demander une démo</a>
     </div>
     <div class="final-cta-contact">
@@ -1601,6 +2002,10 @@
       <a href="https://legalcase.fr/cgu">CGU</a> ·
       <a href="https://legalcase.fr/confidentialite">Confidentialité</a> ·
       <a href="https://legalcase.fr/mentions-legales">Mentions légales</a>
+    </div>
+    <div class="footer-cobrand">
+      Document préparé pour <span class="footer-cobrand-ace">ACE Avocats</span>
+      &nbsp;×&nbsp; LegalCase &nbsp;—&nbsp; Comité partenariats 2026
     </div>
   </div>
 </footer>
