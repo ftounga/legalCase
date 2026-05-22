@@ -180,8 +180,8 @@ import { PrestationCompensatoireSectionComponent } from '../prestation-compensat
 import { LiquidationCommunauteSectionComponent } from '../liquidation-communaute-section/liquidation-communaute-section.component';
 // SF-216-08 : composant simulateur ARIPA recouvrement pension impayée (F-FA-ARIPA-RECOUVREMENT).
 import { AripaRecouvrementFrSectionComponent } from '../aripa-recouvrement-fr-section/aripa-recouvrement-fr-section.component';
-// SF-216-10 : composant simulateur délégation autorité parentale (F-FA-XX-delegation-ap).
-import { DelegationApFrSectionComponent } from '../delegation-ap-fr-section/delegation-ap-fr-section.component';
+// SF-216-16 : composant simulateur Adoption intra-familiale FR (F-FA-ADOPTION-INTRA).
+import { AdoptionIntraFrSectionComponent } from '../adoption-intra-fr-section/adoption-intra-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1207,13 +1207,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
-      // SF-216-10 : composant simulateur complet (POST/GET backend SF-216-09).
-      // Outil P1 famille FR — délégation d'autorité parentale (art. 376-1 Cciv).
-      // Pré-fill IA branché sur `synthesis.familleExtractedData` (âge enfant +
-      // lien tiers + accord parents).
-      ['F-FA-XX-delegation-ap', {
-        displayLabel: 'Délégation autorité parentale (FR)',
-        component: DelegationApFrSectionComponent,
+      // SF-216-16 : composant simulateur complet (POST/GET backend SF-216-15).
+      // Outil P2 famille FR — Adoption de l'enfant du conjoint (adoption
+      // intra-familiale, art. 345-1 Cciv). V1 sans pré-fill IA — flag IA
+      // `adoption_intra_detection.envisagee` utilisé uniquement pour
+      // l'activation visibility CONTEXTUAL F-IA-04 (priority 105).
+      ['F-FA-ADOPTION-INTRA', {
+        displayLabel: 'Adoption intra-familiale (FR)',
+        component: AdoptionIntraFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2685,7 +2686,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-216-08 : ARIPA recouvrement pension alimentaire impayée (FR).
     ['F-FA-ARIPA-RECOUVREMENT', 'DIAGNOSTIC'],
     // SF-216-10 : délégation autorité parentale (FR, art. 376-1 Cciv).
-    ['F-FA-XX-delegation-ap', 'DIAGNOSTIC'],
+    ['F-FA-ADOPTION-INTRA', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

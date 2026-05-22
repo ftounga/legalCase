@@ -949,4 +949,14 @@ export interface FamilleExtractedData {
    * délégation. Source backend : `delegation_ap_detection.accord_parents`.
    */
   accordParentsDetecte?: boolean | null;
+
+  /**
+   * SF-216-15 : FRANCE — flag CONTEXTUAL indiquant qu'une adoption de l'enfant
+   * du conjoint (adoption intra-familiale) est envisagée (mention art. 345-1
+   * Cciv, couple recomposé + adoption, consentement adoption).
+   * Source backend : `adoption_intra_detection.envisagee`.
+   * V1 — utilisé uniquement pour activer la visibilité du panel F-IA-04
+   * (CONTEXTUAL). Aucun pré-fill IA dérivé en V1 (PREFILL_COUNT_ALWAYS_ZERO).
+   */
+  adoptionIntraEnvisagee?: boolean | null;
 }

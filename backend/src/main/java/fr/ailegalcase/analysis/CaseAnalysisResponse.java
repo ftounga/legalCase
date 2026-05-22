@@ -2447,7 +2447,12 @@ public record CaseAnalysisResponse(
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
             Boolean delegationApEnvisagee,             // FR — CONTEXTUAL : mention art. 376-1 / délégation AP / tiers détenteur
             String tiersLienFamilialDetecte,           // FR — GRANDS_PARENTS | ONCLE_TANTE | FAMILLE_ELARGIE | ASSOCIATION_HABILITEE | AUTRE | null
-            Boolean accordParentsDetecte) {            // FR — true si accord des deux parents documenté pour la délégation
+            Boolean accordParentsDetecte,              // FR — true si accord des deux parents documenté pour la délégation
+            // SF-216-15 : 1 champ IA adoption intra-familiale FR.
+            // Source : `famille_extracted_data.adoption_intra_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // Flag CONTEXTUAL non pré-remplissable côté UI (V1 — PREFILL_COUNT_ALWAYS_ZERO).
+            Boolean adoptionIntraEnvisagee) {          // FR — CONTEXTUAL : mention art. 345-1 / adoption enfant du conjoint
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2821,6 +2826,9 @@ public record CaseAnalysisResponse(
             public Builder delegationApEnvisagee(Boolean v) { this.delegationApEnvisagee = v; return this; }
             public Builder tiersLienFamilialDetecte(String v) { this.tiersLienFamilialDetecte = v; return this; }
             public Builder accordParentsDetecte(Boolean v) { this.accordParentsDetecte = v; return this; }
+            // SF-216-15 : setter du flag IA adoption intra-familiale FR.
+            private Boolean adoptionIntraEnvisagee;
+            public Builder adoptionIntraEnvisagee(Boolean v) { this.adoptionIntraEnvisagee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2963,7 +2971,9 @@ public record CaseAnalysisResponse(
                         // SF-216-09 : 3 champs IA délégation autorité parentale FR.
                         delegationApEnvisagee,
                         tiersLienFamilialDetecte,
-                        accordParentsDetecte);
+                        accordParentsDetecte,
+                        // SF-216-15 : 1 champ IA adoption intra-familiale FR.
+                        adoptionIntraEnvisagee);
             }
         }
     }
@@ -5406,6 +5416,13 @@ public record CaseAnalysisResponse(
         boolean sf216_09Present = delegationApEnvisagee != null
                 || tiersLienFamilialDetecte != null
                 || accordParentsDetecte != null;
+        // SF-216-15 : sous-objet `adoption_intra_detection` — 1 champ IA pour
+        // l'adoption de l'enfant du conjoint (adoption intra-familiale, art. 345-1 Cciv).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode aid = node.get("adoption_intra_detection");
+        boolean aidObject = aid != null && aid.isObject();
+        Boolean adoptionIntraEnvisagee = aidObject ? booleanOrNull(aid, "envisagee") : null;
+        boolean sf216_15Present = adoptionIntraEnvisagee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5449,7 +5466,8 @@ public record CaseAnalysisResponse(
                 && !sf216_05Present
                 && !sf216_07Present
                 && !sf216_03Present
-                && !sf216_09Present) {
+                && !sf216_09Present
+                && !sf216_15Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5639,6 +5657,8 @@ public record CaseAnalysisResponse(
                 .delegationApEnvisagee(delegationApEnvisagee)
                 .tiersLienFamilialDetecte(tiersLienFamilialDetecte)
                 .accordParentsDetecte(accordParentsDetecte)
+                // SF-216-15 : 1 champ IA adoption intra-familiale FR.
+                .adoptionIntraEnvisagee(adoptionIntraEnvisagee)
                 .build();
     }
 
