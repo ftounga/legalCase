@@ -1,0 +1,138 @@
+/* F-JU-01 / SF-JU-01-05 — dashboard admin */
+
+:host { display: block; }
+
+.jurisprudence-watch {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: Inter, system-ui, sans-serif;
+
+  &__header { margin-bottom: 24px; }
+  &__subtitle { color: var(--ds-text-secondary, #5A6878); font-size: 14px; }
+
+  &__section { padding: 24px 0; }
+  &__section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  &__empty {
+    text-align: center;
+    color: var(--ds-text-secondary, #5A6878);
+    font-style: italic;
+    padding: 32px;
+  }
+}
+
+.flag-list, .audit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flag-item {
+  background: #fff;
+  border: 1px solid var(--ds-border, #e0e4ea);
+  border-left: 4px solid var(--ds-primary-navy, #1A3A5C);
+  border-radius: 8px;
+  padding: 16px 20px;
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  &__source {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &--CRON { background: #eaf2ff; color: #1A3A5C; }
+    &--USER_SIGNAL { background: #fff4e0; color: #8a5a00; }
+  }
+
+  &__tool {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--ds-primary-navy, #1A3A5C);
+  }
+
+  &__confidence {
+    font-size: 12px;
+    color: var(--ds-text-secondary, #5A6878);
+  }
+
+  &__incoming {
+    margin: 8px 0;
+    font-size: 14px;
+    strong { font-family: 'JetBrains Mono', monospace; }
+  }
+
+  &__explication, &__user-comment {
+    margin: 6px 0;
+    font-size: 13px;
+    color: var(--ds-text-secondary, #5A6878);
+  }
+
+  &__arbitrate-form {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__comment {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--ds-border, #e0e4ea);
+    border-radius: 4px;
+    font-family: Inter, system-ui, sans-serif;
+    box-sizing: border-box;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  &__date {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--ds-text-secondary, #5A6878);
+  }
+}
+
+.audit-item {
+  background: #fafbfc;
+  border: 1px solid var(--ds-border-light, #f0f2f5);
+  border-radius: 4px;
+  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: 200px 120px 160px 1fr;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+
+  &__action {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--ds-primary-navy, #1A3A5C);
+  }
+
+  &__actor { color: var(--ds-text-secondary, #5A6878); }
+  &__date { font-family: 'JetBrains Mono', monospace; }
+  &__reason { color: var(--ds-text-secondary, #5A6878); }
+}

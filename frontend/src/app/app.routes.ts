@@ -149,6 +149,11 @@ export const routes: Routes = [
         path: 'super-admin/traction-onepager',
         loadComponent: () => import('./super-admin/traction-onepager/traction-onepager.component')
           .then(m => m.TractionOnePagerComponent)
+      },
+      {
+        path: 'super-admin/jurisprudence-watch',
+        loadComponent: () => import('./super-admin/jurisprudence-watch/jurisprudence-watch.component')
+          .then(m => m.JurisprudenceWatchComponent)
       }
     ]
   },
