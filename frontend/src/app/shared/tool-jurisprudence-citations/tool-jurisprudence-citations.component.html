@@ -1,0 +1,56 @@
+@if (hasCitations) {
+  <section class="juris-citations" data-test="juris-citations">
+    <h4 class="juris-citations__title">Jurisprudence applicable</h4>
+
+    <ul class="juris-citations__list">
+      @for (c of citations; track c.id) {
+        <li class="juris-citation" [attr.data-citation-id]="c.id">
+          <div class="juris-citation__header">
+            <span class="juris-citation__ref">{{ c.arretRef }}</span>
+            <span class="juris-citation__juridiction">{{ c.juridiction }}</span>
+          </div>
+          <p class="juris-citation__chapeau">« {{ c.chapeauOfficiel }} »</p>
+
+          <div class="juris-citation__actions">
+            <a class="juris-citation__legifrance"
+               [href]="c.lienLegifrance"
+               target="_blank" rel="noopener noreferrer"
+               data-test="juris-legifrance">
+              <mat-icon>open_in_new</mat-icon> Légifrance
+            </a>
+
+            @if (signalingCitationId !== c.id) {
+              <button mat-button type="button"
+                      class="juris-citation__signal-btn"
+                      (click)="openSignal(c.id)"
+                      data-test="juris-signal-btn">
+                <mat-icon>flag</mat-icon> Signaler
+              </button>
+            } @else {
+              <div class="juris-citation__signal-form" data-test="juris-signal-form">
+                <textarea class="juris-citation__signal-comment"
+                          placeholder="Commentaire (optionnel)"
+                          [(ngModel)]="signalComment"
+                          maxlength="2000"
+                          rows="2"></textarea>
+                <div class="juris-citation__signal-actions">
+                  <button mat-button type="button" (click)="cancelSignal()"
+                          data-test="juris-signal-cancel">Annuler</button>
+                  <button mat-flat-button color="primary" type="button"
+                          (click)="submitSignal()"
+                          data-test="juris-signal-submit">Envoyer</button>
+                </div>
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    <p class="juris-citations__disclaimer" data-test="juris-disclaimer">
+      Citation indicative — dernière vérification :
+      <strong>{{ latestVerifiedAt | date:'dd/MM/yyyy' }}</strong>.
+      L'avocat reste seul juge de l'applicabilité au dossier.
+    </p>
+  </section>
+}

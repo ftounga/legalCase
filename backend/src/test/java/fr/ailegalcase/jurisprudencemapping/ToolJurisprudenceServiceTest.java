@@ -23,12 +23,14 @@ import static org.mockito.Mockito.when;
 class ToolJurisprudenceServiceTest {
 
     private ToolJurisprudenceMappingRepository repository;
+    private JurisprudenceWatchFlagRepository flagRepository;
     private ToolJurisprudenceService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(ToolJurisprudenceMappingRepository.class);
-        service = new ToolJurisprudenceService(repository);
+        flagRepository = mock(JurisprudenceWatchFlagRepository.class);
+        service = new ToolJurisprudenceService(repository, flagRepository);
     }
 
     @Test
@@ -144,5 +146,82 @@ class ToolJurisprudenceServiceTest {
         mapping.setConfidenceScore(confidenceScore);
         mapping.setArchived(false);
         return mapping;
+    }
+
+    // ─── SF-JU-01-04 — signalProblem ───────────────────────────────────────
+
+    @Test
+    void signalProblem_createsFlagWithUserSignalSource() {
+        java.util.UUID citationId = java.util.UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("Cass. soc. 8 janv. 2025, n° 23-12.345",
+                new java.math.BigDecimal("0.90"), java.time.LocalDate.of(2025, 1, 8));
+        mapping.setId(citationId);
+        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+
+        service.signalProblem("f-dt-30", citationId, "L'arrêt cité est obsolète à mon avis");
+
+        org.mockito.ArgumentCaptor<JurisprudenceWatchFlag> captor =
+                org.mockito.ArgumentCaptor.forClass(JurisprudenceWatchFlag.class);
+        org.mockito.Mockito.verify(flagRepository).save(captor.capture());
+        JurisprudenceWatchFlag saved = captor.getValue();
+        assertThat(saved.getSource()).isEqualTo(JurisprudenceWatchFlagSource.USER_SIGNAL);
+        assertThat(saved.getStatut()).isEqualTo(JurisprudenceWatchFlagStatut.PENDING);
+        assertThat(saved.getToolId()).isEqualTo("f-dt-30");
+        assertThat(saved.getCommentUser()).isEqualTo("L'arrêt cité est obsolète à mon avis");
+        assertThat(saved.getMappingActuel()).isSameAs(mapping);
+    }
+
+    @Test
+    void signalProblem_throwsNotFound_whenCitationMissing() {
+        java.util.UUID citationId = java.util.UUID.randomUUID();
+        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.signalProblem("f-dt-30", citationId, "x"));
+    }
+
+    @Test
+    void signalProblem_throwsNotFound_whenCitationArchived() {
+        java.util.UUID citationId = java.util.UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("ref", new java.math.BigDecimal("0.90"),
+                java.time.LocalDate.of(2024, 1, 1));
+        mapping.setId(citationId);
+        mapping.setArchived(true);
+        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.signalProblem("f-dt-30", citationId, "x"));
+    }
+
+    @Test
+    void signalProblem_throwsNotFound_whenToolIdMismatches() {
+        java.util.UUID citationId = java.util.UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("ref", new java.math.BigDecimal("0.90"),
+                java.time.LocalDate.of(2024, 1, 1));
+        mapping.setId(citationId);
+        mapping.setToolId("f-dt-30");
+        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.signalProblem("autre-tool", citationId, null));
+    }
+
+    @Test
+    void signalProblem_nullComment_savesFlagWithoutComment() {
+        java.util.UUID citationId = java.util.UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("ref", new java.math.BigDecimal("0.90"),
+                java.time.LocalDate.of(2024, 1, 1));
+        mapping.setId(citationId);
+        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+
+        service.signalProblem("f-dt-30", citationId, null);
+
+        org.mockito.ArgumentCaptor<JurisprudenceWatchFlag> captor =
+                org.mockito.ArgumentCaptor.forClass(JurisprudenceWatchFlag.class);
+        org.mockito.Mockito.verify(flagRepository).save(captor.capture());
+        assertThat(captor.getValue().getCommentUser()).isNull();
     }
 }
