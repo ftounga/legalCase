@@ -1,0 +1,217 @@
+<!--
+  SF-216-18 : template de l'outil Adoption internationale
+  (F-FA-ADOPTION-INTERNATIONALE, FRANCE uniquement — art. 370-3 à 370-5 Cciv +
+  Convention La Haye 1993 + Loi n°2001-111 du 6/2/2001 + Loi n°2022-219 du
+  21/2/2022). Pattern : adoption-intra-fr-section.
+-->
+<section class="adoption-internationale-section"
+         [class.adoption-internationale-section--collapsed]="collapsed()">
+  <header class="adoption-internationale-section__header" (click)="toggleCollapse()">
+    <mat-icon class="adoption-internationale-section__icon">public</mat-icon>
+    <h3 class="adoption-internationale-section__title">Adoption internationale</h3>
+    <span class="adoption-internationale-section__country">FR</span>
+    <mat-icon class="adoption-internationale-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="adoption-internationale-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="adoption-internationale-banner adoption-internationale-banner--info"
+         *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, l'adoption
+        internationale est régie par les <strong>art. 343 et suiv. CcB</strong>
+        avec la même Convention La Haye 1993 mais des conditions distinctes
+        (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="adoption-internationale-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="adoption-internationale-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="adoption-internationale-form__intro">
+          Vérifie les conditions de l'adoption internationale (agrément
+          obligatoire, Convention La Haye, alerte kafala, exequatur) et
+          oriente la voie procédurale.
+        </p>
+
+        <div class="adoption-internationale-form__row">
+          <mat-form-field appearance="outline" class="adoption-internationale-form__field">
+            <mat-label>Pays d'origine de l'enfant</mat-label>
+            <input matInput type="text"
+                   [ngModel]="paysOrigineEnfant()"
+                   (ngModelChange)="onPaysChange($event)"
+                   name="pays"
+                   placeholder="VIETNAM, COLOMBIE, MAROC…"
+                   required />
+          </mat-form-field>
+        </div>
+
+        <!-- Alerte préventive kafala -->
+        <div class="adoption-internationale-banner adoption-internationale-banner--warning"
+             *ngIf="isKafalaPays()">
+          <mat-icon>warning</mat-icon>
+          <p>
+            <strong>Pays pratiquant la kafala.</strong> La kafala n'est PAS
+            une adoption en droit français (art. 370-3 al. 3 Cciv, Cass.
+            1ère civ., 10/10/2006). Aucune adoption ne peut être prononcée
+            tant que l'enfant n'a pas acquis la nationalité française.
+          </p>
+        </div>
+
+        <div class="adoption-internationale-form__row adoption-internationale-form__row--checks">
+          <mat-checkbox [checked]="agrement2025() === true"
+                        (change)="onAgrementChange($event.checked)"
+                        name="agrement">
+            Agrément valide délivré par le Conseil départemental (≤ 5 ans)
+            <small class="adoption-internationale-form__hint">Loi n°2001-111 du 6/2/2001 — condition sine qua non</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="conventionLaHayeApplicable() === true"
+                        (change)="onConventionChange($event.checked)"
+                        name="convention">
+            Pays signataire de la Convention La Haye 29/5/1993
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="adoptantMarie()"
+                        (change)="onAdoptantMarieChange($event.checked)"
+                        name="marie">
+            Adoptant marié (ou pacsé, réforme 2022)
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="exequaturRequis()"
+                        (change)="onExequaturChange($event.checked)"
+                        name="exequatur">
+            Une décision étrangère d'adoption a été rendue (exequatur requis)
+            <small class="adoption-internationale-form__hint">art. 370-5 Cciv</small>
+          </mat-checkbox>
+        </div>
+
+        <div class="adoption-internationale-form__row">
+          <mat-form-field appearance="outline" class="adoption-internationale-form__field">
+            <mat-label>Âge de l'adoptant</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="ageAdoptant()"
+                   (ngModelChange)="onAgeAdoptantChange($event)"
+                   name="ageAdoptant"
+                   required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="adoption-internationale-form__field">
+            <mat-label>Âge de l'adopté</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="ageAdopte()"
+                   (ngModelChange)="onAgeAdopteChange($event)"
+                   name="ageAdopte"
+                   required />
+          </mat-form-field>
+        </div>
+
+        <div class="adoption-internationale-form__row">
+          <mat-form-field appearance="outline" class="adoption-internationale-form__field">
+            <mat-label>Voie procédurale envisagée</mat-label>
+            <mat-select [ngModel]="voieProcedure()"
+                        (ngModelChange)="onVoieChange($event)"
+                        name="voie">
+              <mat-option *ngFor="let opt of voiesProcedure" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="adoption-internationale-form__field">
+            <mat-label>Forme d'adoption demandée</mat-label>
+            <mat-select [ngModel]="formeAdoptionDemandee()"
+                        (ngModelChange)="onFormeChange($event)"
+                        name="forme">
+              <mat-option *ngFor="let opt of formesAdoption" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="adoption-internationale-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer l\'adoption internationale' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="adoption-internationale-result" *ngIf="!showForm() && result() as r">
+        <div class="adoption-internationale-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>{{ r.conditionsRemplies && !r.alerteKafala ? 'fact_check' : 'block' }}</mat-icon>
+          <div>
+            <span class="adoption-internationale-result__verdict-label">Voie procédurale</span>
+            <strong class="adoption-internationale-result__verdict-value">
+              {{ voieLabel(r.voieProcedure) }} — {{ r.verdict }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="adoption-internationale-result__metrics">
+          <div class="adoption-internationale-metric">
+            <span class="adoption-internationale-metric__label">Convention La Haye</span>
+            <strong class="adoption-internationale-metric__value">
+              {{ r.conventionApplicable ? 'Applicable' : 'Non applicable' }}
+            </strong>
+          </div>
+          <div class="adoption-internationale-metric">
+            <span class="adoption-internationale-metric__label">Délai estimé</span>
+            <strong class="adoption-internationale-metric__value">{{ r.delaiEstime }}</strong>
+          </div>
+          <div class="adoption-internationale-metric" *ngIf="r.exequaturRequis">
+            <span class="adoption-internationale-metric__label">Exequatur</span>
+            <strong class="adoption-internationale-metric__value">Requis (TJ)</strong>
+          </div>
+        </div>
+
+        <!-- Alerte kafala dédiée -->
+        <div class="adoption-internationale-banner adoption-internationale-banner--warning"
+             *ngIf="r.alerteKafala">
+          <mat-icon>warning</mat-icon>
+          <p>
+            <strong>Kafala incompatible avec l'adoption FR</strong>
+            (art. 370-3 al. 3 Cciv). Réorienter le client vers une demande
+            de tutelle ou d'accueil kafala.
+          </p>
+        </div>
+
+        <div class="adoption-internationale-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="adoption-internationale-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="adoption-internationale-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="adoption-internationale-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="adoption-internationale-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>

@@ -341,6 +341,11 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `adoption_intra_detection.envisagee` (même pattern, art. 345-1 Cciv).
         addBooleanFlagIfTrueNested(detected, familleNode, "adoption_intra_detection", "envisagee",
                 "adoption_intra_envisagee");
+        // === SF-216-17 — 1 flag CONTEXTUAL Famille FR : adoption internationale ===
+        // Lire depuis sous-objet `adoption_internationale_detection.envisagee` (même pattern,
+        // art. 370-3 à 370-5 Cciv + Convention La Haye 1993).
+        addBooleanFlagIfTrueNested(detected, familleNode, "adoption_internationale_detection", "envisagee",
+                "adoption_internationale_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

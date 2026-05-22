@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600017" author="legalcase">
+        <comment>
+            SF-216-17 : table dédiée à l'outil décisionnel "Adoption
+            internationale" (F-FA-ADOPTION-INTERNATIONALE, FRANCE — art. 370-3
+            à 370-5 Cciv + Convention La Haye 29/5/1993 + Loi n°2001-111 du
+            6/2/2001 + Loi n°2022-219 du 21/2/2022).
+
+            Outil distinct de F-FA-18-adoption (adoption générique) et de
+            F-FA-ADOPTION-INTRA (adoption de l'enfant du conjoint) : situation
+            juridique spécifique d'une adoption d'un enfant d'origine étrangère
+            par un adoptant résidant en France.
+
+            Vérifie :
+              - l'agrément délivré par le Conseil départemental (loi 2001,
+                durée 5 ans, condition sine qua non) ;
+              - l'applicabilité de la Convention de La Haye du 29/5/1993
+                (procédure bilatérale via Autorité centrale, délais 2-5 ans) ;
+              - la voie procédurale (OAA agréé / voie autonome /
+                organisme d'État) ;
+              - la forme demandée (PLENIERE / SIMPLE) ;
+              - la nécessité d'un exequatur (TJ — art. 370-5 Cciv) en cas de
+                décision d'adoption rendue à l'étranger ;
+              - l'alerte kafala (Maroc / Algérie / Tunisie) — kafala
+                irréductiblement inacceptable comme adoption en droit FR
+                (Cass. 1ère civ., 10/10/2006, art. 370-3 al. 3 Cciv).
+
+            Outil single-country FRANCE — la matière est régie en Belgique
+            par les art. 343 et suiv. CcB avec la Convention La Haye 1993 mais
+            des conditions de fond distinctes (outil F-FA-BE-ADOPTION-INTL
+            futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 298 (couplé à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — pattern SF-216-01 / SF-216-05 / SF-216-07
+            / SF-216-15).
+        </comment>
+
+        <createTable tableName="adoption_internationale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_adoption_internationale_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="adoption_internationale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_adoption_internationale_analyses_case_file"/>
+
+        <createIndex tableName="adoption_internationale_analyses"
+                     indexName="idx_adoption_internationale_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="adoption_internationale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
