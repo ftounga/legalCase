@@ -46,8 +46,10 @@
 | Wrap-up + offre adhérents | 10 min | Récap valeur + **offre exclusive adhérents ACE — 1 mois offert** + code promo `ACE-2026-1MOIS` |
 
 **Cas anonymisé à utiliser** :
-- **Préférence 1** : cas *stanojevic* anonymisé (1ère utilisation prod réelle par Marjolaine RENVERSEZ le 19/05/2026) — preuve sociale fraîche : *« 1ère cliente prod 2 jours après la démo »*
-- **Fallback** : cas *Dupont* déjà chargé sur staging (vice de procédure injecté pour démo Renversez 13/05)
+- **Cas démo principal** : cas *Dupont* déjà chargé sur staging (fictif, vice de procédure injecté pour démo Renversez 13/05). **Zéro risque RGPD** — pas de data client réelle exposée.
+- **Mention verbale comme preuve sociale** (sans exposer aucune donnée) : *« notre 1ère cabinet client en prod a utilisé l'outil 2 jours seulement après notre démo de qualification, sur un cas réel — ça nous a donné cette confiance qu'on partage avec vous aujourd'hui »*
+
+**Pourquoi cette voie** : Marjolaine RENVERSEZ a confié à LegalCase un vrai dossier client sous secret professionnel. Même anonymisé, sa réutilisation en démo publique soulèverait un enjeu de confidentialité avocat-client. La citation verbale donne la preuve sociale (fraîcheur, conversion rapide) sans toucher à la donnée.
 
 **Slides recommandés** : 5-8 max. Pas de tunnel PowerPoint, **la démo est le héros**. Slides pour :
 1. Intro + objectifs (1)
