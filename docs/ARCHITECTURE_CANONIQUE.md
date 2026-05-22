@@ -804,6 +804,60 @@ Règles :
 - stripe_customer_id : créé via Stripe API à la création du workspace, fail-open (null si Stripe indisponible)
 - stripe_subscription_id : rempli par le webhook Stripe lors du paiement (SF-19-03)
 
+## promo_codes
+
+Table (F-255 SF-255-01, migration 299) :
+
+id (UUID PK)
+code (varchar 64, unique global — trim + uppercase côté Java, regex [A-Z0-9_-]+)
+type (varchar 20 — valeurs : TRIAL_EXTENSION, STRIPE_DISCOUNT)
+value_days (int, nullable — non null pour TRIAL_EXTENSION, null pour STRIPE_DISCOUNT)
+stripe_coupon_id (varchar 255, nullable — renseigné par SF-255-04 pour les codes STRIPE_DISCOUNT)
+partner_label (varchar 100, non null — libellé partenaire libre, ex « ACE »)
+max_uses (int, non null)
+uses_count (int, non null, défaut 0)
+expires_at (timestamptz, non null, > now() à la création)
+active (boolean, non null, défaut true)
+created_at (timestamptz, non null)
+created_by_user_id (UUID FK → users)
+
+Index :
+
+idx_promo_codes_code (unique sur code)
+idx_promo_codes_active_expires (sur active, expires_at)
+
+Règles :
+
+- Créés exclusivement par un super-admin via `POST /api/v1/super-admin/promo-codes`
+- `uses_count` incrémenté atomiquement via UPDATE conditionnel `WHERE uses_count < max_uses` — 0 rows = épuisé, retourne 409 PROMO_CODE_EXHAUSTED
+- `active = false` (désactivation manuelle SUPER_ADMIN) empêche toute nouvelle redemption mais conserve l'historique
+- Un code STRIPE_DISCOUNT créé en V1 (SF-01) ne peut pas encore être redeemé (409 PROMO_CODE_TYPE_NOT_SUPPORTED_YET) ; activation par SF-255-04
+
+## promo_code_redemptions
+
+Table (F-255 SF-255-01, migration 300) :
+
+id (UUID PK)
+workspace_id (UUID FK → workspaces)
+promo_code_id (UUID FK → promo_codes)
+code_at_redemption (varchar 64, non null — copie immuable du code au moment T pour audit, même si le code source est renommé en V2)
+type (varchar 20 — copie du type au moment T)
+value_applied_days (int, nullable — copie de la valeur appliquée)
+redeemed_at (timestamptz, non null)
+applied_by_user_id (UUID FK → users — utilisateur authentifié qui a redeemé)
+
+Index :
+
+idx_promo_code_redemptions_promo_code_id (sur promo_code_id, pour recalcul uses_count)
+ux_promo_code_redemptions_workspace_trial (UNIQUE sur (workspace_id, type) WHERE type='TRIAL_EXTENSION', PostgreSQL uniquement — matérialise l'invariant anti-abus 1 TRIAL_EXTENSION par workspace à vie ; vérif applicative équivalente dans PromoCodeService pour les tests H2)
+
+Règles :
+
+- Une ligne par redemption, immuable (pas d'UPDATE/DELETE)
+- workspace_id dérivé du contexte de sécurité (jamais du body de la requête)
+- applied_by_user_id = utilisateur authentifié au moment de la redemption
+- code_at_redemption + type + value_applied_days = copies de sûreté pour réconciliation a posteriori
+
 ## credit_purchases
 
 Table :
