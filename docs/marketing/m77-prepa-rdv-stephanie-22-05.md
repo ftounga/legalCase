@@ -80,7 +80,7 @@ Cohérence éditoriale avec M-78 Le Monde du Droit (Cloud Act, hébergement souv
 | 8 | **Format Qualiopi vs webinaire libre** : critères Qualiopi ? Inscription gratuite ou payante ? | Qualiopi = avantages DPC pour adhérents mais peut être barrière d'entrée si payant |
 | 9 | **Date envisagée** : septembre-octobre 2026 possible ? Évite Spring Break (avril) et congrès ACE annuel | Audience optimale = rentrée judiciaire |
 | 10 | **Suite éventuelle** : si retours positifs, ACE ouvert à Pack Visibilité 5 K€ ? Quelles conditions/timing ? | Préparer la Tranche 2 M-71 sans s'engager |
-| 11 | **Modalité** : le webinaire se fait en **visio** (Zoom/Teams), en **présentiel** dans vos locaux ACE, ou en **hybride** ? Si hybride/présentiel, prise en charge des frais de déplacement intervenant ? | Éviter une surprise post-bon de commande. La visio est la plus probable mais à confirmer. Si déplacement, ajouter ~150-300 € au budget total (réserve M-71 Tranche 1 couvre) |
+| 11 | **Modalité** : visio, présentiel ACE ou hybride ? (cf. §4 bis ci-dessous pour la posture détaillée + la phrase exacte à formuler) | **Enjeu réutilisation marketing** : présentiel/hybride > visio pure de 5-10× en ROI. Pousser l'hybride dès le RDV. |
 
 ---
 
@@ -94,6 +94,39 @@ Cohérence éditoriale avec M-78 Le Monde du Droit (Cloud Act, hébergement souv
 | **Replay + droits réutilisation** | Libre LegalCase 12 mois minimum, extraits clips OK | 6 mois minimum, extraits validés par ACE |
 | **Format Qualiopi** | Hybride libre/Qualiopi (large audience) | Qualiopi pur si justifié par audience plus dense |
 | **Pack Visibilité 5 K€** | Pas d'engagement maintenant — mention "intéressés sous conditions de traction" | NE PAS s'engager même conditionnel — risque budget Tranche 2 |
+
+---
+
+## 4 bis. Modalité — pousser l'hybride (point de négo le plus important)
+
+### Pourquoi c'est central
+
+Un présentiel/hybride **vit 6-12 mois** dans le funnel marketing (extraits LinkedIn premium, page partenaires ACE, replay vidéo, retargeting Google Ads, vidéo pinned chaîne LegalCase). Une **visio pure vit 2-3 semaines** (replay regardé une fois, screen share Zoom = format banal indifférenciable). Différence ROI marketing **x5-10**.
+
+C'est probablement le **point de négo le plus rentable du RDV** — bien plus que les 200 € sur la newsletter.
+
+### Phrase exacte à formuler (à dire mot pour mot ou presque)
+
+> *« Pour notre première intervention ACE, on souhaiterait pouvoir capter des extraits vidéo de qualité conférence — pour cohérence avec votre image institutionnelle ET pour notre communication post-event. Une visio pure rend ça difficile à valoriser après. Est-ce qu'on peut envisager un hybride : intervention dans vos locaux + retransmission live Zoom pour les adhérents à distance ? »*
+
+### Coût acceptable
+
+- Tu peux accepter une **rallonge de 200 à 500 €** sur les 1 500 € pour couvrir la captation pro (cameraman freelance) si ACE n'a pas l'infra interne
+- Reste largement dans la réserve activable Tranche 1 M-71 (≈ 7 100 € dispo)
+- **Limite haute** : 2 000 € HT total (1 500 € prestation + 500 € captation pro) — au-delà, repasser par contrôle 4 points M-71
+
+### Position de repli
+
+| Scénario | Réponse |
+|---|---|
+| ACE refuse le présentiel (sa pratique habituelle est 100 % visio) | Demander : **enregistrement HD natif + transcription** de la visio pour au moins pouvoir extraire des morceaux propres pour clips LinkedIn |
+| ACE accepte présentiel **mais pas hybride** (pas de retransmission live) | Accepter — audience physique plus restreinte mais **qualité maximale de captation** pour la réutilisation |
+| ACE accepte hybride mais demande > 500 € rallonge | Négocier à -100 € sur newsletter / replay pour rester sous 2 000 € total |
+| ACE impose visio sans négociation possible | Accepter mais demander **résolution 1080p min + audio HD** + droit de re-monter avec sous-titres |
+
+### Petit signal à capter pendant la discussion
+
+Si Stéphanie évoque **« on fait souvent 60-80 inscrits en visio »** mais **« 15-25 en présentiel »** → la perte d'audience brute est réelle. Argument à utiliser : *« Pour notre 1er passage, on préfère 20 personnes en salle + 40 en visio (hybride) que 60 en visio pure — la qualité du lien et de la captation compense l'audience »*.
 
 ---
 
