@@ -1,5 +1,6 @@
 package fr.ailegalcase.shared;
 
+import fr.ailegalcase.billing.PromoCodeException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -26,6 +27,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
                 .body(Map.of(
                         "error", HttpStatus.PAYMENT_REQUIRED.toString(),
+                        "message", ex.getMessage(),
+                        "code", ex.getCode().name()));
+    }
+
+    /**
+     * F-255 SF-255-01 — sérialise les erreurs métier des codes promo selon le
+     * même contrat que {@link PaymentRequiredException} (body
+     * {@code {error, message, code}}). Le statut HTTP est porté par
+     * {@link fr.ailegalcase.billing.PromoCodeErrorCode#status()}.
+     */
+    @ExceptionHandler(PromoCodeException.class)
+    public ResponseEntity<Map<String, String>> handlePromoCode(PromoCodeException ex,
+                                                               HttpServletRequest request) {
+        HttpStatus status = ex.getCode().status();
+        log.warn("{} {} → {} {} ({})", request.getMethod(), request.getRequestURI(),
+                status.value(), ex.getMessage(), ex.getCode());
+        return ResponseEntity.status(status)
+                .body(Map.of(
+                        "error", status.toString(),
                         "message", ex.getMessage(),
                         "code", ex.getCode().name()));
     }
