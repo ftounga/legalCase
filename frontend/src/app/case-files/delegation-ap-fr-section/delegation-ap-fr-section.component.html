@@ -1,0 +1,164 @@
+<!--
+  SF-216-10 : template de l'outil délégation autorité parentale FR
+  (F-FA-XX-delegation-ap, FRANCE uniquement — art. 376-1 Cciv).
+  Pattern : aripa-recouvrement-fr-section.
+-->
+<section class="delegap-section" [class.delegap-section--collapsed]="collapsed()">
+  <header class="delegap-section__header" (click)="toggleCollapse()">
+    <mat-icon class="delegap-section__icon">family_restroom</mat-icon>
+    <h3 class="delegap-section__title">Délégation d'autorité parentale</h3>
+    <span class="delegap-section__country">FR</span>
+    <mat-icon class="delegap-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="delegap-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="delegap-banner delegap-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. Pour la Belgique, le mécanisme
+        équivalent est la <strong>tutelle officieuse</strong> / délégation
+        d'autorité parentale (art. 475<i>ter</i> Code civil belge) — outil
+        distinct.
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="delegap-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="delegap-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="delegap-form__intro">
+          Renseignez la voie envisagée et les caractéristiques du tiers
+          délégataire pour obtenir le verdict de recevabilité (art. 376-1 Cciv)
+          et les étapes concrètes.
+        </p>
+
+        <div class="delegap-form__row">
+          <mat-form-field appearance="outline" class="delegap-form__field delegap-form__field--wide">
+            <mat-label>Voie de délégation envisagée</mat-label>
+            <mat-select [ngModel]="typeDelegation()"
+                        (ngModelChange)="onTypeDelegationChange($event)"
+                        name="typeDelegation"
+                        required>
+              <mat-option *ngFor="let opt of typesDelegation" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="delegap-form__row">
+          <mat-form-field appearance="outline" class="delegap-form__field">
+            <mat-label>Lien tiers / enfant</mat-label>
+            <mat-select [ngModel]="tiersLienFamilial()"
+                        (ngModelChange)="onTiersLienChange($event)"
+                        name="tiersLien"
+                        required>
+              <mat-option *ngFor="let opt of tiersLiens" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+            <mat-icon *ngIf="provenanceTiersLien() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="delegap-form__field">
+            <mat-label>Âge de l'enfant (0 - 18 ans)</mat-label>
+            <input matInput type="number" min="0" max="18" step="1"
+                   [ngModel]="ageEnfant()"
+                   (ngModelChange)="onAgeEnfantChange($event)"
+                   name="ageEnfant"
+                   required />
+            <mat-icon *ngIf="provenanceAgeEnfant() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="delegap-form__row">
+          <mat-form-field appearance="outline" class="delegap-form__field delegap-form__field--wide">
+            <mat-label>Motivation (optionnel)</mat-label>
+            <textarea matInput rows="2"
+                      [ngModel]="motivationDelegation()"
+                      (ngModelChange)="onMotivationChange($event)"
+                      name="motivation"></textarea>
+          </mat-form-field>
+        </div>
+
+        <div class="delegap-form__row delegap-form__row--checks">
+          <mat-checkbox [checked]="accordParents()"
+                        (change)="onAccordParentsChange($event.checked)"
+                        name="accordParents">
+            Accord des deux parents documenté
+            <mat-icon *ngIf="provenanceAccordParents() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+          <mat-checkbox [checked]="desinteretParentPlusUnAn()"
+                        (change)="onDesinteretChange($event.checked)"
+                        name="desinteret">
+            Désintérêt parental documenté (&gt; 1 an)
+          </mat-checkbox>
+          <mat-checkbox [checked]="dangerCaracterise()"
+                        (change)="onDangerChange($event.checked)"
+                        name="danger">
+            Danger caractérisé pour l'enfant
+          </mat-checkbox>
+          <mat-checkbox [checked]="decisionsJudiciairesPrecedentes()"
+                        (change)="onDecisionsPrecChange($event.checked)"
+                        name="decisionsPrec">
+            Décisions judiciaires antérieures sur l'enfant
+          </mat-checkbox>
+        </div>
+
+        <div class="delegap-form__actions">
+          <button mat-raised-button color="primary" type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-spinner *ngIf="calculating()" diameter="18"></mat-spinner>
+            <ng-container *ngIf="!calculating()">Calculer la recevabilité</ng-container>
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="delegap-result" *ngIf="!showForm() && result() as r">
+        <div class="delegap-verdict" [ngClass]="verdictClass(r.verdictRecevabilite)">
+          <mat-icon>gavel</mat-icon>
+          <div class="delegap-verdict__content">
+            <h4>{{ verdictLabel(r.verdictRecevabilite) }}</h4>
+            <p class="delegap-verdict__voie">{{ voieLabel(r.voieProcedurale) }}</p>
+            <p class="delegap-verdict__duree" *ngIf="r.dureeEstimeeJours > 0">
+              Délai indicatif : <strong>{{ r.dureeEstimeeJours }} jours</strong>
+            </p>
+          </div>
+        </div>
+
+        <div class="delegap-section-block" *ngIf="r.etapes?.length">
+          <h5><mat-icon>list_alt</mat-icon> Étapes concrètes</h5>
+          <ol class="delegap-etapes">
+            <li *ngFor="let etape of r.etapes" [innerHTML]="etape | legalCitations"></li>
+          </ol>
+        </div>
+
+        <div class="delegap-section-block" *ngIf="r.alertes?.length">
+          <h5 class="delegap-section-block__alerte"><mat-icon>warning</mat-icon> Alertes</h5>
+          <ul class="delegap-alertes">
+            <li *ngFor="let alerte of r.alertes" [innerHTML]="alerte | legalCitations"></li>
+          </ul>
+        </div>
+
+        <div class="delegap-section-block" *ngIf="r.messages?.length">
+          <h5><mat-icon>info</mat-icon> Informations</h5>
+          <ul class="delegap-messages">
+            <li *ngFor="let msg of r.messages" [innerHTML]="msg | legalCitations"></li>
+          </ul>
+        </div>
+
+        <p class="delegap-base-legale" [innerHTML]="r.baseLegale | legalCitations"></p>
+
+        <div class="delegap-result__actions">
+          <button mat-stroked-button (click)="editMode()">
+            <mat-icon>edit</mat-icon>
+            Modifier les paramètres
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
