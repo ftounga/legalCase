@@ -318,13 +318,13 @@
     outline-offset: -2px;
   }
   .hero-mini-title {
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-body);
+    font-size: 12px;
     font-weight: 700;
     color: var(--navy);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.1px;
     margin-bottom: 4px;
+    line-height: 1.25;
   }
   .hero-mini-verdict {
     font-weight: 600;
@@ -514,8 +514,8 @@
     background: var(--surface-soft);
     border: 1px solid var(--border);
     border-radius: 999px;
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-body);
+    font-size: 12px;
     color: var(--navy);
     font-weight: 600;
   }
@@ -1336,19 +1336,19 @@
         </div>
         <div class="hero-mini-grid">
           <div class="hero-mini-card warn prefilled">
-            <div class="hero-mini-title">F-DT-36 · Faute grave</div>
+            <div class="hero-mini-title">Faute grave / faute lourde</div>
             <div class="hero-mini-verdict orange">FAUTE_GRAVE</div>
           </div>
           <div class="hero-mini-card warn">
-            <div class="hero-mini-title">F-DT-39 · Prise d'acte</div>
+            <div class="hero-mini-title">Prise d'acte</div>
             <div class="hero-mini-verdict orange">INCERTAINE</div>
           </div>
           <div class="hero-mini-card ok">
-            <div class="hero-mini-title">F-DT-75 · CP arrêt maladie</div>
+            <div class="hero-mini-title">CP acquis pendant arrêt maladie</div>
             <div class="hero-mini-verdict green">RAPPEL · 2 340 €</div>
           </div>
           <div class="hero-mini-card alert">
-            <div class="hero-mini-title">F-DT-40 · Résiliation jud.</div>
+            <div class="hero-mini-title">Résiliation judiciaire</div>
             <div class="hero-mini-verdict red">RISQUE_DÉBOUTÉ</div>
           </div>
         </div>
@@ -1371,13 +1371,12 @@
     </div>
 
     <div class="tool-cards">
-      <!-- Card 1 — F-DT-36 -->
+      <!-- Card 1 — Faute grave / faute lourde -->
       <article class="tool-card warn reveal">
         <div class="tool-card-head">
-          <span class="tool-card-code">F-DT-36</span>
           <span class="tool-card-domain">Travail FR</span>
         </div>
-        <h3 class="tool-card-title">Qualification faute grave / faute lourde</h3>
+        <h3 class="tool-card-title">Qualification d'un licenciement disciplinaire (faute simple / grave / lourde)</h3>
         <div class="verdict-badge orange">VERDICT · FAUTE_GRAVE</div>
         <div class="figures-grid">
           <div class="figure">
@@ -1404,13 +1403,12 @@
         </div>
       </article>
 
-      <!-- Card 2 — F-DT-39 -->
+      <!-- Card 2 — Prise d'acte -->
       <article class="tool-card warn reveal">
         <div class="tool-card-head">
-          <span class="tool-card-code">F-DT-39</span>
           <span class="tool-card-domain">Travail FR</span>
         </div>
-        <h3 class="tool-card-title">Prise d'acte aux torts de l'employeur</h3>
+        <h3 class="tool-card-title">Prise d'acte de la rupture aux torts de l'employeur</h3>
         <div class="verdict-badge orange">VERDICT · INCERTAINE</div>
         <p class="tool-card-motif">
           <b>Effet probable :</b> LICENCIEMENT_SANS_CAUSE <i>ou</i> DÉMISSION selon arbitrage CPH.
@@ -1427,17 +1425,16 @@
         </div>
         <div class="alert-banner warn">
           <span class="alert-icon">⚠</span>
-          <span>Rupture immédiate — comparer avec résiliation judiciaire (F-DT-40).</span>
+          <span>Rupture immédiate — comparer avec la résiliation judiciaire.</span>
         </div>
       </article>
 
-      <!-- Card 3 — F-DT-75 -->
+      <!-- Card 3 — CP acquis pendant arrêt maladie -->
       <article class="tool-card ok reveal">
         <div class="tool-card-head">
-          <span class="tool-card-code">F-DT-75</span>
           <span class="tool-card-domain">Travail FR</span>
         </div>
-        <h3 class="tool-card-title">Congés payés acquis pendant arrêt maladie</h3>
+        <h3 class="tool-card-title">Congés payés acquis pendant un arrêt maladie</h3>
         <div class="verdict-badge green">VERDICT · RAPPEL_SIGNIFICATIF</div>
         <p class="tool-card-motif">
           <b>Calcul :</b> 18 j à 2 j/mois × 130 €/j = <b style="color: var(--gold);">2 340 €</b> dus
@@ -1468,23 +1465,23 @@
     <div class="catalog-callout reveal">
       <div class="catalog-callout-title">~30 outils au catalogue · extension continue</div>
       <div class="catalog-chips">
-        <span class="chip">F-DT-11</span>
-        <span class="chip">F-DT-13</span>
-        <span class="chip">F-DT-22</span>
-        <span class="chip">F-DT-25</span>
-        <span class="chip">F-DT-36</span>
-        <span class="chip">F-DT-38</span>
-        <span class="chip">F-DT-39</span>
-        <span class="chip">F-DT-40</span>
-        <span class="chip">F-DT-42</span>
-        <span class="chip">F-DT-75</span>
-        <span class="chip">F-FA-01</span>
-        <span class="chip">F-FA-15</span>
-        <span class="chip">F-IM-21</span>
-        <span class="chip">F-IM-22</span>
-        <span class="chip">F-IM-23</span>
-        <span class="chip">F-IM-24</span>
-        <span class="chip">F-IM-25</span>
+        <span class="chip">Motif grave licenciement BE</span>
+        <span class="chip">Prescription travail BE</span>
+        <span class="chip">Période d'essai</span>
+        <span class="chip">Abandon de poste</span>
+        <span class="chip">Faute grave / faute lourde</span>
+        <span class="chip">AT / FEDRIS</span>
+        <span class="chip">Prise d'acte</span>
+        <span class="chip">Résiliation judiciaire</span>
+        <span class="chip">RCC / outplacement</span>
+        <span class="chip">CP acquis pendant arrêt maladie</span>
+        <span class="chip">Prestation compensatoire</span>
+        <span class="chip">Liquidation communauté</span>
+        <span class="chip">JLD rétention administrative</span>
+        <span class="chip">Recours Dublin</span>
+        <span class="chip">Recours CRRV — refus de visa</span>
+        <span class="chip">Étranger victime de violences</span>
+        <span class="chip">Étranger malade</span>
         <span class="chip chip-more">+ et autres en livraison continue</span>
       </div>
     </div>
@@ -1558,16 +1555,16 @@
           <h3>Droit du travail — France et Belgique</h3>
           <p>Qualification, rupture, indemnités, prescription : tout le cycle du contentieux prud'homal et conseil de la prévention.</p>
           <div class="domain-grid">
-            <div class="domain-item"><span class="domain-code">F-DT-36</span>Faute grave / faute lourde (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-39</span>Prise d'acte aux torts de l'employeur (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-40</span>Résiliation judiciaire (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-22</span>Rupture période d'essai (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-25</span>Abandon de poste (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-75</span>CP acquis pendant arrêt maladie (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-11</span>Motif grave / urgence — licenciement (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-13</span>Prescription travail (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-38</span>AT / FEDRIS (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-DT-42</span>RCC / outplacement (BE)</div>
+            <div class="domain-item">Qualification d'un licenciement disciplinaire (faute simple / grave / lourde) (FR)</div>
+            <div class="domain-item">Prise d'acte de la rupture aux torts de l'employeur (FR)</div>
+            <div class="domain-item">Résiliation judiciaire du contrat aux torts de l'employeur (FR)</div>
+            <div class="domain-item">Rupture de période d'essai (FR)</div>
+            <div class="domain-item">Abandon de poste — présomption de démission (FR)</div>
+            <div class="domain-item">Congés payés acquis pendant un arrêt maladie (FR)</div>
+            <div class="domain-item">Motif grave — licenciement disciplinaire (BE)</div>
+            <div class="domain-item">Prescription en droit du travail (BE)</div>
+            <div class="domain-item">Accident du travail / FEDRIS (BE)</div>
+            <div class="domain-item">RCC / outplacement (BE)</div>
           </div>
         </div>
       </div>
@@ -1577,14 +1574,14 @@
           <h3>Droit des étrangers — France et Belgique</h3>
           <p>Du recours en rétention au regroupement familial, en passant par les voies humanitaires et médicales spécifiques à chaque pays.</p>
           <div class="domain-grid">
-            <div class="domain-item"><span class="domain-code">F-IM-21</span>Étranger malade L. 425-9 (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-22</span>JLD rétention administrative (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-23</span>Recours Dublin III (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-24</span>CRRV refus de visa (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-25</span>Regroupement familial (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-08</span>9bis humanitaire (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-09</span>9ter médicale (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-IM-12</span>40bis / 40ter regroupement (BE)</div>
+            <div class="domain-item">JLD rétention administrative (FR)</div>
+            <div class="domain-item">Recours Dublin (FR)</div>
+            <div class="domain-item">Recours CRRV — refus de visa (FR)</div>
+            <div class="domain-item">Étranger victime de violences (L. 425-6) (FR)</div>
+            <div class="domain-item">Étranger malade (L. 425-9) (FR)</div>
+            <div class="domain-item">OQTF — recours administratifs (FR)</div>
+            <div class="domain-item">AES — admission exceptionnelle au séjour (FR)</div>
+            <div class="domain-item">Régularisation administrative (FR)</div>
           </div>
         </div>
       </div>
@@ -1594,12 +1591,12 @@
           <h3>Droit de la famille — France et Belgique</h3>
           <p>Rupture du lien conjugal, conséquences patrimoniales et parentales, transmission. Approche binationale spécifique.</p>
           <div class="domain-grid">
-            <div class="domain-item"><span class="domain-code">F-FA-01</span>Prestation compensatoire (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-FA-15</span>Pension alimentaire enfant (FR)</div>
-            <div class="domain-item"><span class="domain-code">F-FA-08</span>Divorce DC / DDI (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-FA-11</span>Autorité parentale (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-FA-17</span>Pension après divorce (BE)</div>
-            <div class="domain-item"><span class="domain-code">F-FA-22</span>Successions internationales (BE)</div>
+            <div class="domain-item">Calcul de prestation compensatoire (FR)</div>
+            <div class="domain-item">Pension alimentaire (FR)</div>
+            <div class="domain-item">Liquidation et partage de communauté (FR)</div>
+            <div class="domain-item">Divorce pour désunion irrémédiable (BE)</div>
+            <div class="domain-item">Autorité parentale (BE)</div>
+            <div class="domain-item">Contribution alimentaire enfants (BE)</div>
           </div>
         </div>
       </div>
