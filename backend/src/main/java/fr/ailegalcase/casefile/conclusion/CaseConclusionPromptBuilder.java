@@ -43,11 +43,12 @@ public class CaseConclusionPromptBuilder {
      */
     static final String JURISPRUDENCE_GUARD =
             "Garde jurisprudence : ne cite aucune référence de jurisprudence (arrêt, "
-                    + "décision, numéro de pourvoi) qui ne figure pas dans la section "
-                    + "« JURISPRUDENCE À L'APPUI » du message. Si cette section contient des "
-                    + "références, appuie-toi exclusivement sur celles-ci ; si elle indique "
-                    + "qu'aucune référence n'est fournie, n'invente aucun arrêt ni aucune "
-                    + "décision de justice.";
+                    + "décision, numéro de pourvoi) qui ne figure pas dans l'une des deux "
+                    + "sections « JURISPRUDENCE À L'APPUI » (F-242, références saisies par "
+                    + "l'avocat) ou « JURISPRUDENCE APPLICABLE PAR OUTIL » (F-JU-02, arrêts "
+                    + "curatés par LegalCase pour les outils décisionnels utilisés). Si l'une "
+                    + "de ces sections contient des références, appuie-toi exclusivement sur "
+                    + "celles-ci ; sinon, n'invente aucun arrêt ni décision.";
 
     private final ObjectMapper objectMapper;
     private final ConclusionPromptRegistry promptRegistry;
@@ -166,8 +167,40 @@ public class CaseConclusionPromptBuilder {
         }
 
         appendJurisprudenceCitations(sb, input.jurisprudenceCitations());
+        appendToolJurisprudenceCitations(sb, input.toolJurisprudenceByTool());
 
         return sb.toString();
+    }
+
+    /**
+     * F-JU-02 / SF-JU-02-01 — section automatique des arrêts mappés F-JU-01
+     * par outil décisionnel utilisé sur le dossier. Section absente si vide.
+     */
+    private void appendToolJurisprudenceCitations(
+            StringBuilder sb,
+            List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> byTool) {
+        if (byTool == null || byTool.isEmpty()) {
+            return;
+        }
+        sb.append("\n=== JURISPRUDENCE APPLICABLE PAR OUTIL ===\n");
+        sb.append("(Arrêts curatés par LegalCase pour les outils décisionnels utilisés — citation indicative, l'avocat reste seul juge.)\n");
+        for (fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool entry : byTool) {
+            if (entry == null || entry.citations() == null || entry.citations().isEmpty()) {
+                continue;
+            }
+            sb.append("\nOutil : ").append(nullSafe(entry.toolId()));
+            if (entry.brancheCalculId() != null && !entry.brancheCalculId().isBlank()) {
+                sb.append(" — branche : ").append(entry.brancheCalculId());
+            }
+            sb.append('\n');
+            for (var citation : entry.citations()) {
+                sb.append("  - ").append(nullSafe(citation.arretRef()));
+                if (citation.chapeauOfficiel() != null && !citation.chapeauOfficiel().isBlank()) {
+                    sb.append(" — « ").append(citation.chapeauOfficiel().strip()).append(" »");
+                }
+                sb.append('\n');
+            }
+        }
     }
 
     /**
@@ -282,7 +315,18 @@ public class CaseConclusionPromptBuilder {
             List<NumberedPiece> pieces,
             List<DashboardTile> toolTiles,
             List<RetainedStrategy> retainedStrategies,
-            List<JurisprudenceCitationForPrompt> jurisprudenceCitations) {
+            List<JurisprudenceCitationForPrompt> jurisprudenceCitations,
+            List<fr.ailegalcase.jurisprudencemapping.ToolJurisprudenceCitationByTool> toolJurisprudenceByTool) {
+
+        /** F-JU-02 / SF-JU-02-01 — constructeur back-compat (pré-F-JU-02). */
+        public ConclusionPromptInput(
+                String caseTitle, String jurisdictionLabel, String stageLabel, String positionLabel,
+                String analysisResultJson, List<NumberedPiece> pieces, List<DashboardTile> toolTiles,
+                List<RetainedStrategy> retainedStrategies,
+                List<JurisprudenceCitationForPrompt> jurisprudenceCitations) {
+            this(caseTitle, jurisdictionLabel, stageLabel, positionLabel, analysisResultJson,
+                    pieces, toolTiles, retainedStrategies, jurisprudenceCitations, java.util.List.of());
+        }
 
         /** Pièce numérotée du dossier. */
         public record NumberedPiece(int number, String label, String type) {

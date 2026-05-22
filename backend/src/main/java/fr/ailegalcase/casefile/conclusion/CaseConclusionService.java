@@ -67,6 +67,7 @@ public class CaseConclusionService {
     private final AnthropicService anthropicService;
     private final StyleCorpusRepository styleCorpusRepository;
     private final JurisprudenceCitationRepository jurisprudenceCitationRepository;
+    private final fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext;
 
     /** Auto-référence pour franchir le proxy transactionnel depuis le listener. */
     @Lazy
@@ -82,7 +83,8 @@ public class CaseConclusionService {
                                  CaseConclusionPromptBuilder promptBuilder,
                                  AnthropicService anthropicService,
                                  StyleCorpusRepository styleCorpusRepository,
-                                 JurisprudenceCitationRepository jurisprudenceCitationRepository) {
+                                 JurisprudenceCitationRepository jurisprudenceCitationRepository,
+                                 fr.ailegalcase.jurisprudencemapping.ConclusionsJurisprudenceContext toolJurisprudenceContext) {
         this.caseConclusionRepository = caseConclusionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.strategicOptionRepository = strategicOptionRepository;
@@ -93,6 +95,7 @@ public class CaseConclusionService {
         this.anthropicService = anthropicService;
         this.styleCorpusRepository = styleCorpusRepository;
         this.jurisprudenceCitationRepository = jurisprudenceCitationRepository;
+        this.toolJurisprudenceContext = toolJurisprudenceContext;
     }
 
     @RabbitListener(queues = CaseConclusionRabbitMQConfig.CASE_CONCLUSION_QUEUE, concurrency = "2")
@@ -174,7 +177,8 @@ public class CaseConclusionService {
                         loadNumberedPieces(caseFileId),
                         loadDecisionToolTiles(caseFileId),
                         loadRetainedStrategies(caseFileId),
-                        loadJurisprudenceCitations(caseFileId));
+                        loadJurisprudenceCitations(caseFileId),
+                        toolJurisprudenceContext.collectForCaseFile(caseFileId));
 
         List<String> styleSignatures = loadActiveStyleSignatures(conclusion.getWorkspace().getId());
         CombinationKey key = new CombinationKey(domain, country, conclusion.getJurisdictionCode(),
