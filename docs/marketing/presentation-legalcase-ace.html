@@ -335,6 +335,55 @@
   .hero-mini-verdict.orange { color: var(--orange); }
   .hero-mini-verdict.red { color: var(--warn); }
 
+  /* ─── 2. DIFFERENCIANT — breakdown 3 domaines ──────────────────────────── */
+  .domain-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 28px 0 18px;
+  }
+  @media (max-width: 980px) { .domain-breakdown { grid-template-columns: 1fr; } }
+
+  .domain-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+  }
+  .domain-card-count {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--marine);
+    line-height: 1;
+    font-family: var(--font-display);
+  }
+  .domain-card-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--marine);
+    margin-top: 6px;
+  }
+  .domain-card-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .domain-note {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.55;
+    padding: 12px 16px;
+    background: rgba(201, 151, 58, 0.08);
+    border-left: 3px solid var(--gold);
+    border-radius: 4px;
+    margin-bottom: 28px;
+  }
+
   /* ─── 2. DIFFERENCIANT — cards outils ──────────────────────────────────── */
   .tool-cards {
     display: grid;
@@ -1314,8 +1363,10 @@
         <h1 class="hero-wordmark">LegalCase</h1>
         <p class="hero-subtitle">La productivité juridique pour cabinets de 1 à 10 avocats</p>
         <p class="hero-tagline">
-          Outils de décision juridique avec verdict structuré, motifs articulés défendables
-          et calcul d'indemnités. Pour vos collaborateurs juniors qui se concentrent
+          <b>136 outils de décision juridique</b> couvrant <b>3 domaines majeurs</b> :
+          Droit du travail, Droit des étrangers et Droit de la famille
+          (France et Belgique). Verdict structuré, motifs articulés défendables
+          et calcul d'indemnités — pour que vos collaborateurs juniors se concentrent
           enfin sur le contentieux à haute valeur.
         </p>
         <div class="hero-actions">
@@ -1362,11 +1413,34 @@
   <div class="container">
     <div class="reveal">
       <span class="section-eyebrow">★ Le différenciant</span>
-      <h2 class="section-title">~30 outils décisionnels qui posent un verdict</h2>
+      <h2 class="section-title">136 outils décisionnels qui posent un verdict, sur 3 domaines</h2>
       <p class="section-lead">
         Pendant que les outils du marché se contentent de chercher dans vos documents,
         LegalCase produit une décision structurée avec motifs articulés, calcul d'indemnités
         et alertes de prescription. Défendable mot pour mot devant le juge.
+      </p>
+      <div class="domain-breakdown">
+        <div class="domain-card">
+          <div class="domain-card-count">50</div>
+          <div class="domain-card-label">Droit du travail</div>
+          <div class="domain-card-sub">FR + BE · faute grave, prise d'acte, résiliation judiciaire, C4 ONEM, RCC…</div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-card-count">27</div>
+          <div class="domain-card-label">Droit des étrangers</div>
+          <div class="domain-card-sub">FR · OQTF, JLD rétention, recours CRRV, étranger malade L. 425-9, Dublin…</div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-card-count">59</div>
+          <div class="domain-card-label">Droit de la famille</div>
+          <div class="domain-card-sub">FR + BE · divorce, prestation compensatoire, autorité parentale, successions…</div>
+        </div>
+      </div>
+      <p class="domain-note">
+        <b>Les 3 exemples ci-dessous</b> sont extraits du droit du travail FR pour illustrer le mécanisme du verdict.
+        La même mécanique (verdict + motifs + calcul) s'applique aux outils Étrangers
+        (JLD rétention administrative, recours CRRV refus de visa, étranger malade L. 425-9…)
+        et aux outils Famille (prestation compensatoire, liquidation communauté…).
       </p>
     </div>
 
@@ -1463,7 +1537,7 @@
     </div>
 
     <div class="catalog-callout reveal">
-      <div class="catalog-callout-title">~30 outils au catalogue · extension continue</div>
+      <div class="catalog-callout-title">136 outils au catalogue · 3 domaines · extension continue</div>
       <div class="catalog-chips">
         <span class="chip">Motif grave licenciement BE</span>
         <span class="chip">Prescription travail BE</span>
@@ -1896,7 +1970,7 @@
       </ul>
       <div class="promo-code">ACE-2026-1MOIS</div>
       <br />
-      <a href="https://legalcase.fr/partenaires/ace" class="ace-offer-cta">Activer mon mois offert</a>
+      <a href="mailto:tounga.franck@ng-itconsulting.com?subject=Mois%20offert%20ACE%20%E2%80%94%20Code%20ACE-2026-1MOIS&amp;body=Bonjour%2C%0A%0AAdh%C3%A9rent%20ACE%2C%20je%20souhaite%20activer%20l%27offre%20%C2%AB%201%20mois%20offert%20%C2%BB%20sur%20mon%20compte%20LegalCase.%0A%0ANom%20du%20cabinet%20%3A%0AAdresse%20e-mail%20de%20mon%20compte%20%3A%0A%0AMerci." class="ace-offer-cta">Activer mon mois offert</a>
       <span class="ace-offer-limit">Limité aux 50 premières adhésions · valable 6 mois</span>
     </div>
   </div>
@@ -1975,7 +2049,7 @@
     <p class="final-cta-subtitle">14 jours d'essai gratuit. Aucune carte bancaire requise.</p>
     <div class="final-cta-actions">
       <a href="https://legalcase.fr/login" class="btn-primary">Démarrer l'essai gratuit</a>
-      <a href="mailto:tounga.franck@ng-itconsulting.com?subject=Demande%20de%20d%C3%A9mo%20LegalCase%20%E2%80%94%20ACE" class="btn-secondary">Demander une démo</a>
+      <a href="https://calendly.com/tounga-franck-ng-itconsulting/30min" target="_blank" rel="noopener" class="btn-secondary">Réserver une démo (30 min)</a>
     </div>
     <div class="final-cta-contact">
       <div class="final-cta-contact-name">Franck Tounga · Fondateur</div>
@@ -1997,7 +2071,7 @@
     </div>
     <div>
       <a href="https://legalcase.fr/cgu">CGU</a> ·
-      <a href="https://legalcase.fr/confidentialite">Confidentialité</a> ·
+      <a href="https://legalcase.fr/privacy">Confidentialité</a> ·
       <a href="https://legalcase.fr/mentions-legales">Mentions légales</a>
     </div>
     <div class="footer-cobrand">
