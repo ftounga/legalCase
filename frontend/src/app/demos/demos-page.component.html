@@ -1,0 +1,117 @@
+<div class="demos-page">
+  <header class="demos-header">
+    <a routerLink="/" class="demos-logo" aria-label="Retour à la page d'accueil LegalCase">
+      <span class="demos-logo-mark">⚖</span>
+      <span class="demos-logo-text">AI <strong>LegalCase</strong></span>
+    </a>
+
+    <nav class="demos-breadcrumb" aria-label="Fil d'Ariane">
+      <a routerLink="/" class="demos-breadcrumb-link">LegalCase</a>
+      <span class="demos-breadcrumb-sep" aria-hidden="true">/</span>
+      <span class="demos-breadcrumb-current" aria-current="page">Démonstrations</span>
+    </nav>
+
+    <a routerLink="/" fragment="demos" class="demos-back-link">← Retour à l'accueil</a>
+  </header>
+
+  <main class="demos-main">
+    <section class="demos-hero">
+      <div class="demos-eyebrow">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <polygon points="5,3 12,7 5,11" stroke="currentColor" stroke-width="1.3" fill="currentColor" opacity="0.6" />
+        </svg>
+        Démonstrations
+      </div>
+      <h1 class="demos-title">Voyez AI LegalCase en action</h1>
+      <p class="demos-subtitle">
+        {{ count() }} démonstrations vidéo — de l'upload des pièces jusqu'aux outils
+        décisionnels pré-remplis. Cliquez sur une vidéo pour la lire.
+      </p>
+    </section>
+
+    <section class="demos-grid-wrapper" aria-label="Galerie de démonstrations">
+      <ul class="demos-grid" role="list">
+        @for (video of videos; track video.videoId) {
+          <li class="demos-card" [class.demos-card--active]="isSelected(video.videoId)">
+            @if (isSelected(video.videoId)) {
+              <div class="demos-card-player">
+                <iframe
+                  [src]="embedUrl(video.videoId)"
+                  [title]="video.title"
+                  frameborder="0"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen></iframe>
+                <button
+                  type="button"
+                  class="demos-card-close"
+                  (click)="closeVideo($event)"
+                  aria-label="Fermer la vidéo">×</button>
+              </div>
+              <div class="demos-card-text">
+                <h2 class="demos-card-title">{{ video.title }}</h2>
+                <p class="demos-card-subtitle">{{ video.subtitle }}</p>
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="demos-card-thumb"
+                [attr.aria-label]="'Lire : ' + video.title"
+                [attr.aria-pressed]="false"
+                (click)="selectVideo(video.videoId)"
+                (keydown)="onCardKeydown($event, video.videoId)">
+                <span class="demos-card-thumb-image">
+                  <img
+                    [src]="thumbnailUrl(video.videoId)"
+                    [alt]="video.title"
+                    loading="lazy"
+                    width="480"
+                    height="360" />
+                  <span class="demos-card-play" aria-hidden="true">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                      <circle cx="24" cy="24" r="23" fill="rgba(0,0,0,0.55)" stroke="white" stroke-width="2" />
+                      <polygon points="19,15 36,24 19,33" fill="white" />
+                    </svg>
+                  </span>
+                </span>
+                <span class="demos-card-text">
+                  <span class="demos-card-title">{{ video.title }}</span>
+                  <span class="demos-card-subtitle">{{ video.subtitle }}</span>
+                </span>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="demos-cta">
+      <h2 class="demos-cta-title">Prêt à essayer LegalCase sur vos dossiers ?</h2>
+      <p class="demos-cta-text">14 jours d'essai gratuit. Aucune carte bancaire requise.</p>
+      <div class="demos-cta-actions">
+        <a routerLink="/login" class="demos-cta-btn demos-cta-btn--primary">
+          Essai gratuit 14 jours
+        </a>
+        <a
+          [href]="calendlyUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="demos-cta-btn demos-cta-btn--secondary">
+          Prendre rendez-vous démo
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="demos-footer">
+    <div class="demos-footer-inner">
+      <span class="demos-footer-brand">AI LegalCase © {{ currentYear }}</span>
+      <nav class="demos-footer-nav" aria-label="Liens de bas de page">
+        <a routerLink="/" fragment="demos">Démonstrations</a>
+        <a routerLink="/blog">Blog</a>
+        <a routerLink="/mentions-legales">Mentions légales</a>
+        <a routerLink="/privacy">Confidentialité</a>
+        <a routerLink="/cgu">CGU</a>
+      </nav>
+    </div>
+  </footer>
+</div>

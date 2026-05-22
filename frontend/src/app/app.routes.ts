@@ -192,6 +192,10 @@ export const routes: Routes = [
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent)
   },
   {
+    path: 'demos',
+    loadComponent: () => import('./demos/demos-page.component').then(m => m.DemosPageComponent)
+  },
+  {
     path: 'blog',
     loadComponent: () => import('./blog/blog-list-page/blog-list-page.component')
       .then(m => m.BlogListPageComponent)

@@ -339,6 +339,38 @@ app-landing nav a:hover { color: var(--navy); }
 .video-carousel-arrow--prev { left: -22px; }
 .video-carousel-arrow--next { right: -22px; }
 
+.video-gallery-link {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.video-gallery-link-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  background: transparent;
+  transition: background .15s ease, color .15s ease, transform .15s ease;
+}
+
+.video-gallery-link-cta:hover {
+  background: var(--gold);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.video-gallery-link-cta:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
 .video-thumb {
   all: unset;
   cursor: pointer;

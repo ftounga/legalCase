@@ -5,3 +5,4 @@
 /privacy
 /cgu
 /blog
+/demos
