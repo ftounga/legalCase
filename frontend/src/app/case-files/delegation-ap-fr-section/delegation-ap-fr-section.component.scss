@@ -1,0 +1,270 @@
+/* SF-216-10 : styles de l'outil délégation autorité parentale FR.
+   Pattern : aripa-recouvrement-fr-section.scss. */
+
+.delegap-section {
+  background: var(--mat-sys-surface, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  margin: 16px 0;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &__icon {
+    color: #5b21b6; // violet — autorité parentale
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  &__title {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.87);
+  }
+
+  &__country {
+    background: #ede9fe;
+    color: #5b21b6;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  &__chevron {
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  &__body {
+    padding: 0 20px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+}
+
+.delegap-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+
+  &--info {
+    background: #eef2ff;
+    color: #3730a3;
+
+    mat-icon {
+      color: #4f46e5;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+}
+
+.delegap-loader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 14px;
+}
+
+.delegap-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+
+  &__intro {
+    margin: 0 0 8px;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  &__row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    &--checks {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      padding: 8px 0;
+    }
+  }
+
+  &__field {
+    flex: 1 1 200px;
+
+    &--wide {
+      flex: 1 1 100%;
+    }
+  }
+
+  &__actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+
+    button {
+      min-width: 220px;
+
+      mat-spinner {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+.delegap-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin: 16px 0;
+
+  &.verdict-success {
+    background: #ecfdf5;
+    color: #065f46;
+    mat-icon { color: #10b981; }
+  }
+  &.verdict-primary {
+    background: #ede9fe;
+    color: #4338ca;
+    mat-icon { color: #6366f1; }
+  }
+  &.verdict-warning {
+    background: #fef3c7;
+    color: #92400e;
+    mat-icon { color: #f59e0b; }
+  }
+
+  &__content {
+    flex: 1;
+
+    h4 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  &__voie {
+    margin: 4px 0;
+    font-size: 14px;
+    opacity: 0.85;
+  }
+
+  &__duree {
+    margin: 4px 0 0;
+    font-size: 13px;
+  }
+}
+
+.delegap-section-block {
+  margin: 16px 0;
+
+  h5 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.74);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &.delegap-section-block__alerte {
+      color: #b45309;
+
+      mat-icon {
+        color: #f59e0b;
+      }
+    }
+  }
+
+  .delegap-etapes {
+    margin: 0;
+    padding-left: 20px;
+
+    li {
+      margin: 6px 0;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+  }
+
+  .delegap-alertes,
+  .delegap-messages {
+    margin: 0;
+    padding-left: 20px;
+    list-style: none;
+
+    li {
+      position: relative;
+      margin: 8px 0;
+      padding-left: 12px;
+      line-height: 1.5;
+      font-size: 14px;
+
+      &::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+
+  .delegap-alertes li::before {
+    color: #f59e0b;
+  }
+}
+
+.delegap-base-legale {
+  margin: 16px 0 8px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+}
+
+.delegap-result__actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}

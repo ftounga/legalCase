@@ -125,6 +125,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-04-liquidation-communaute",
             // SF-216-07 : outil ARIPA recouvrement — table dédiée, pas de tile dashboard.
             "F-FA-ARIPA-RECOUVREMENT",
+            // SF-216-09 : outil délégation autorité parentale FR — table dédiée, pas de tile dashboard.
+            "F-FA-XX-delegation-ap",
             // Checklist référentielle — pas de résultat décisionnel persisté.
             "F-IM-01-checklist-pieces",
             // F-207 — exclusions transitoires (à résorber par la session F-207) :

@@ -304,6 +304,23 @@ public final class LegalDomainPromptBuilder {
               **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
             """;
 
+    /**
+     * SF-216-09 — extension du prompt FAMILLE découpée en partie 3 pour rester
+     * sous la limite UTF-8 du constant pool Java (65535 octets par String
+     * literal). Les sous-objets ajoutés au prompt après P2 ont fait dépasser
+     * la limite — d'où ce P3 concaténé dans {@link #buildSystemPrompt}.
+     */
+    @SuppressWarnings("RedundantFieldInitialization")
+    private static String FAMILLE_INSTRUCTION_P3 = """
+            SF-216-09 — Nouveau sous-objet `delegation_ap_detection` (FRANCE UNIQUEMENT — art. 376-1 Cciv / délégation d'autorité parentale).
+              "delegation_ap_detection" : objet OU null. **FRANCE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille FRANCE comportant une situation de délégation d'autorité parentale documentée dans les pièces (mention explicite de « délégation d'autorité parentale », « art. 376-1 Cciv », « tiers détenteur d'AP », « grand-parent exerçant l'AP », « famille d'accueil délégataire », « association habilitée », « désintérêt parental » au sens de l'art. 376-1 al. 2). Pour un dossier famille BELGIQUE, ce sous-objet DOIT rester null (l'équivalent BE est la tutelle officieuse art. 475ter Code civil belge — outil futur distinct). Les champs internes :
+                - "envisagee" : booléen ou null. **FRANCE UNIQUEMENT** — true si une délégation d'AP est envisagée, mentionnée ou en cours ; false si le dossier établit explicitement qu'aucune délégation n'est nécessaire ; null si aucune information ne permet de trancher.
+                - "tiers_lien_familial" : chaîne ou null. **FRANCE UNIQUEMENT** — lien entre l'enfant et le tiers candidat à la délégation. EXACTEMENT UNE DES 5 VALEURS suivantes : "GRANDS_PARENTS", "ONCLE_TANTE", "FAMILLE_ELARGIE" (cousin, beau-parent au sens large), "ASSOCIATION_HABILITEE" (association art. L. 228-1 CASF), "AUTRE". Null si non documenté.
+                - "accord_parents" : booléen ou null. **FRANCE UNIQUEMENT** — true si l'accord des DEUX parents biologiques pour la délégation est documenté (déclaration conjointe, accord notarial) ; false si l'opposition d'au moins un parent est documentée ; null si aucune information ne permet de trancher.
+              **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 3 champs sans erreur.
+              **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
+            """;
+
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis
     // concaténé dans TRAVAIL_INSTRUCTION pour rester sous la limite UTF-8 du
     // constant pool Java (65535 octets par String literal). Découpage SF-207-05
@@ -791,7 +808,7 @@ public final class LegalDomainPromptBuilder {
     public static String domainSpecificInstruction(String legalDomain) {
         if ("DROIT_DU_TRAVAIL".equals(legalDomain)) return TRAVAIL_INSTRUCTION;
         if ("DROIT_IMMIGRATION".equals(legalDomain)) return IMMIGRATION_INSTRUCTION;
-        if ("DROIT_FAMILLE".equals(legalDomain))     return String.valueOf(FAMILLE_INSTRUCTION_P1) + FAMILLE_INSTRUCTION_P2;
+        if ("DROIT_FAMILLE".equals(legalDomain))     return String.valueOf(FAMILLE_INSTRUCTION_P1) + FAMILLE_INSTRUCTION_P2 + FAMILLE_INSTRUCTION_P3;
         return "";
     }
 }

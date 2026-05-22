@@ -926,4 +926,27 @@ export interface FamilleExtractedData {
    * Source backend : `pension_alimentaire_detection.mode_residence`.
    */
   modeResidenceEnfantsDetecte?: 'ALTERNEE' | 'PRINCIPALE_PARENT1' | 'PRINCIPALE_PARENT2' | string | null;
+  /**
+   * SF-216-09 : FRANCE — flag CONTEXTUAL délégation autorité parentale envisagée
+   * (art. 376-1 Cciv). Source backend : `delegation_ap_detection.envisagee`.
+   */
+  delegationApEnvisagee?: boolean | null;
+  /**
+   * SF-216-09 : FRANCE — lien entre l'enfant et le tiers candidat à recevoir la
+   * délégation (whitelist 5 valeurs). Source backend :
+   * `delegation_ap_detection.tiers_lien_familial`.
+   */
+  tiersLienFamilialDetecte?:
+    | 'GRANDS_PARENTS'
+    | 'ONCLE_TANTE'
+    | 'FAMILLE_ELARGIE'
+    | 'ASSOCIATION_HABILITEE'
+    | 'AUTRE'
+    | string
+    | null;
+  /**
+   * SF-216-09 : FRANCE — true si accord des deux parents documenté pour la
+   * délégation. Source backend : `delegation_ap_detection.accord_parents`.
+   */
+  accordParentsDetecte?: boolean | null;
 }

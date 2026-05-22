@@ -2441,7 +2441,13 @@ public record CaseAnalysisResponse(
             // Source : `famille_extracted_data.pension_alimentaire_detection`.
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
             Boolean pensionAlimentaireEnvisagee,       // FR — CONTEXTUAL : mention art. 371-2 / contribution entretien
-            String modeResidenceEnfantsDetecte) {      // FR — ALTERNEE | PRINCIPALE_PARENT1 | PRINCIPALE_PARENT2 | null
+            String modeResidenceEnfantsDetecte,        // FR — ALTERNEE | PRINCIPALE_PARENT1 | PRINCIPALE_PARENT2 | null
+            // SF-216-09 : 3 champs IA délégation autorité parentale FR.
+            // Source : `famille_extracted_data.delegation_ap_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            Boolean delegationApEnvisagee,             // FR — CONTEXTUAL : mention art. 376-1 / délégation AP / tiers détenteur
+            String tiersLienFamilialDetecte,           // FR — GRANDS_PARENTS | ONCLE_TANTE | FAMILLE_ELARGIE | ASSOCIATION_HABILITEE | AUTRE | null
+            Boolean accordParentsDetecte) {            // FR — true si accord des deux parents documenté pour la délégation
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2808,6 +2814,13 @@ public record CaseAnalysisResponse(
             private String modeResidenceEnfantsDetecte;
             public Builder pensionAlimentaireEnvisagee(Boolean v) { this.pensionAlimentaireEnvisagee = v; return this; }
             public Builder modeResidenceEnfantsDetecte(String v) { this.modeResidenceEnfantsDetecte = v; return this; }
+            // SF-216-09 : setters des 3 champs IA délégation autorité parentale FR.
+            private Boolean delegationApEnvisagee;
+            private String tiersLienFamilialDetecte;
+            private Boolean accordParentsDetecte;
+            public Builder delegationApEnvisagee(Boolean v) { this.delegationApEnvisagee = v; return this; }
+            public Builder tiersLienFamilialDetecte(String v) { this.tiersLienFamilialDetecte = v; return this; }
+            public Builder accordParentsDetecte(Boolean v) { this.accordParentsDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2946,7 +2959,11 @@ public record CaseAnalysisResponse(
                         titreExecutoireDetecte,
                         // SF-216-03 : 2 champs IA pension alimentaire enfant FR.
                         pensionAlimentaireEnvisagee,
-                        modeResidenceEnfantsDetecte);
+                        modeResidenceEnfantsDetecte,
+                        // SF-216-09 : 3 champs IA délégation autorité parentale FR.
+                        delegationApEnvisagee,
+                        tiersLienFamilialDetecte,
+                        accordParentsDetecte);
             }
         }
     }
@@ -4168,6 +4185,10 @@ public record CaseAnalysisResponse(
     private static final java.util.Set<String> MODE_RESIDENCE_ENFANT_WHITELIST = java.util.Set.of(
             "ALTERNEE", "PRINCIPALE_PARENT1", "PRINCIPALE_PARENT2");
 
+    /** SF-216-09 : whitelist lien familial tiers délégation AP FR (art. 376-1 Cciv). */
+    private static final java.util.Set<String> TIERS_LIEN_FAMILIAL_WHITELIST = java.util.Set.of(
+            "GRANDS_PARENTS", "ONCLE_TANTE", "FAMILLE_ELARGIE", "ASSOCIATION_HABILITEE", "AUTRE");
+
     private static String extractProcedureTravailCode(JsonNode travailNode) {
         JsonNode ptd = travailNode.get("procedure_travail_detection");
         if (ptd == null || !ptd.isObject()) return null;
@@ -5372,6 +5393,19 @@ public record CaseAnalysisResponse(
                 : null;
         boolean sf216_03Present = pensionAlimentaireEnvisagee != null
                 || modeResidenceEnfantsDetecte != null;
+        // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
+        // délégation autorité parentale FR (art. 376-1 Cciv).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode dad = node.get("delegation_ap_detection");
+        boolean dadObject = dad != null && dad.isObject();
+        Boolean delegationApEnvisagee = dadObject ? booleanOrNull(dad, "envisagee") : null;
+        String tiersLienFamilialDetecte = dadObject
+                ? normalizeEnumCode(textOrNull(dad, "tiers_lien_familial"), TIERS_LIEN_FAMILIAL_WHITELIST)
+                : null;
+        Boolean accordParentsDetecte = dadObject ? booleanOrNull(dad, "accord_parents") : null;
+        boolean sf216_09Present = delegationApEnvisagee != null
+                || tiersLienFamilialDetecte != null
+                || accordParentsDetecte != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5414,7 +5448,8 @@ public record CaseAnalysisResponse(
                 && !sf216_01Present
                 && !sf216_05Present
                 && !sf216_07Present
-                && !sf216_03Present) {
+                && !sf216_03Present
+                && !sf216_09Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5600,6 +5635,10 @@ public record CaseAnalysisResponse(
                 // SF-216-03 : 2 champs IA pension alimentaire enfant FR.
                 .pensionAlimentaireEnvisagee(pensionAlimentaireEnvisagee)
                 .modeResidenceEnfantsDetecte(modeResidenceEnfantsDetecte)
+                // SF-216-09 : 3 champs IA délégation autorité parentale FR.
+                .delegationApEnvisagee(delegationApEnvisagee)
+                .tiersLienFamilialDetecte(tiersLienFamilialDetecte)
+                .accordParentsDetecte(accordParentsDetecte)
                 .build();
     }
 

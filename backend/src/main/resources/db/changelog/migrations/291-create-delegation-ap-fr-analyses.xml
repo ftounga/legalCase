@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="291-create-delegation-ap-fr-analyses" author="legalcase">
+        <comment>
+            SF-216-09 : table dédiée à l'outil décisionnel "Délégation d'autorité
+            parentale" (F-FA-XX-delegation-ap, FRANCE — art. 376-1 Cciv +
+            art. L. 228-1 CASF + Cass. 1ère civ., 22/11/2005).
+
+            Outil P1 — rang 8 des outils famille FR (audit F-191 D.2). Guide
+            l'avocat dans la qualification juridique d'une délégation d'autorité
+            parentale et la voie procédurale adaptée :
+
+              - VOLONTAIRE_CONJOINTE : accord des deux parents + tiers acceptant
+                (art. 376-1 al. 1), voie notariale ou déclaration JAF ;
+              - JUDICIAIRE_DESINTERET : désintérêt manifeste d'un parent depuis
+                plus d'un an (art. 376-1 al. 2), procédure JAF contentieuse ;
+              - JUDICIAIRE_TIERS : à défaut d'accord, saisine JAF sur requête
+                par le tiers qui exerce l'AP de fait.
+
+            Alertes : danger caractérisé → orienter en parallèle vers le retrait
+            d'AP (art. 378+ Cciv, outil F-FA-XX-retrait-ap) ; enfant en bas âge
+            → délégation rare ; association tierce → vérifier habilitation
+            préfectorale (art. L. 228-1 CASF).
+
+            Cas d'irrecevabilité : enfant majeur (≥ 18 ans, art. 371-1 Cciv —
+            l'AP s'éteint à la majorité, la délégation est sans objet).
+
+            Outil single-country FRANCE — en Belgique, le mécanisme équivalent
+            est la tutelle officieuse / délégation d'autorité parentale
+            (art. 475ter Code civil belge) — outil distinct hors périmètre F-216.
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 292 (couplé à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — pattern SF-216-07 / SF-216-03).
+        </comment>
+
+        <createTable tableName="delegation_ap_fr_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_delegation_ap_fr_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="delegation_ap_fr_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_delegation_ap_fr_analyses_case_file"/>
+
+        <createIndex tableName="delegation_ap_fr_analyses"
+                     indexName="idx_delegation_ap_fr_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="delegation_ap_fr_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

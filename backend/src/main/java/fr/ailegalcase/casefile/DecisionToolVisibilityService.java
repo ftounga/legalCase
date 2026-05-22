@@ -329,6 +329,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `aripa_recouvrement_detection.envisage` (même pattern, art. L. 581 CSS).
         addBooleanFlagIfTrueNested(detected, familleNode, "aripa_recouvrement_detection", "envisage",
                 "aripa_recouvrement_envisage");
+        // === SF-216-09 — 1 flag CONTEXTUAL Famille FR : délégation autorité parentale ===
+        // Lire depuis sous-objet `delegation_ap_detection.envisagee` (même pattern, art. 376-1 Cciv).
+        addBooleanFlagIfTrueNested(detected, familleNode, "delegation_ap_detection", "envisagee",
+                "delegation_ap_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",
