@@ -123,6 +123,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-01-prestation-compensatoire",
             "F-FA-02-pension-alimentaire",
             "F-FA-04-liquidation-communaute",
+            // SF-216-07 : outil ARIPA recouvrement — table dédiée, pas de tile dashboard.
+            "F-FA-ARIPA-RECOUVREMENT",
             // Checklist référentielle — pas de résultat décisionnel persisté.
             "F-IM-01-checklist-pieces",
             // F-207 — exclusions transitoires (à résorber par la session F-207) :

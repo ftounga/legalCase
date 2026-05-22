@@ -2430,7 +2430,13 @@ public record CaseAnalysisResponse(
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude / hors regime COMMUNAUTE_LEGALE.
             Boolean liquidationCommunauteEnvisagee,    // FR — CONTEXTUAL : mention art. 1467 / partage actif commun
             Integer recompensesEpoux1Eur,              // FR — >= 0 EUR (recompenses dues par epoux 1 a la communaute, art. 1433 Cciv)
-            Integer recompensesEpoux2Eur) {            // FR — >= 0 EUR (recompenses dues par epoux 2 a la communaute, art. 1433 Cciv)
+            Integer recompensesEpoux2Eur,              // FR — >= 0 EUR (recompenses dues par epoux 2 a la communaute, art. 1433 Cciv)
+            // SF-216-07 : 3 champs IA ARIPA recouvrement pension alimentaire impayee FR.
+            // Source : `famille_extracted_data.aripa_recouvrement_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            Boolean aripaRecouvrementEnvisage,         // FR — CONTEXTUAL : mention ARIPA / SDR / pension impayee / L. 581 CSS
+            Integer montantPensionMensuelleDueEur,     // FR — >= 0 EUR/mois (montant pension fixe par titre executoire)
+            Boolean titreExecutoireDetecte) {          // FR — true si titre executoire (jugement / convention CM / acte notarie) detecte
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2785,6 +2791,13 @@ public record CaseAnalysisResponse(
             public Builder liquidationCommunauteEnvisagee(Boolean v) { this.liquidationCommunauteEnvisagee = v; return this; }
             public Builder recompensesEpoux1Eur(Integer v) { this.recompensesEpoux1Eur = v; return this; }
             public Builder recompensesEpoux2Eur(Integer v) { this.recompensesEpoux2Eur = v; return this; }
+            // SF-216-07 : setters des 3 champs IA ARIPA recouvrement FR.
+            private Boolean aripaRecouvrementEnvisage;
+            private Integer montantPensionMensuelleDueEur;
+            private Boolean titreExecutoireDetecte;
+            public Builder aripaRecouvrementEnvisage(Boolean v) { this.aripaRecouvrementEnvisage = v; return this; }
+            public Builder montantPensionMensuelleDueEur(Integer v) { this.montantPensionMensuelleDueEur = v; return this; }
+            public Builder titreExecutoireDetecte(Boolean v) { this.titreExecutoireDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2916,7 +2929,11 @@ public record CaseAnalysisResponse(
                         // SF-216-05 : 3 champs IA liquidation communaute legale FR.
                         liquidationCommunauteEnvisagee,
                         recompensesEpoux1Eur,
-                        recompensesEpoux2Eur);
+                        recompensesEpoux2Eur,
+                        // SF-216-07 : 3 champs IA ARIPA recouvrement FR.
+                        aripaRecouvrementEnvisage,
+                        montantPensionMensuelleDueEur,
+                        titreExecutoireDetecte);
             }
         }
     }
@@ -4134,6 +4151,10 @@ public record CaseAnalysisResponse(
             "PRUDHOMMES_FR", "APPEL_CA_SOCIALE_FR", "CASSATION_SOCIALE_FR",
             "TRIBUNAL_TRAVAIL_BE", "COUR_TRAVAIL_BE", "CASSATION_BE");
 
+    /** SF-216-03 : whitelist mode de résidence enfant FR (pension alimentaire). */
+    private static final java.util.Set<String> MODE_RESIDENCE_ENFANT_WHITELIST = java.util.Set.of(
+            "ALTERNEE", "PRINCIPALE_PARENT1", "PRINCIPALE_PARENT2");
+
     private static String extractProcedureTravailCode(JsonNode travailNode) {
         JsonNode ptd = travailNode.get("procedure_travail_detection");
         if (ptd == null || !ptd.isObject()) return null;
@@ -5315,6 +5336,18 @@ public record CaseAnalysisResponse(
         boolean sf216_05Present = liquidationCommunauteEnvisagee != null
                 || recompensesEpoux1Eur != null
                 || recompensesEpoux2Eur != null;
+        // SF-216-07 : sous-objet `aripa_recouvrement_detection` — 3 champs IA
+        // pour l'outil ARIPA recouvrement pension alimentaire impayee FR (art. L. 581 CSS).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode ard = node.get("aripa_recouvrement_detection");
+        boolean ardObject = ard != null && ard.isObject();
+        Boolean aripaRecouvrementEnvisage = ardObject ? booleanOrNull(ard, "envisage") : null;
+        Integer montantPensionMensuelleDueEur = ardObject
+                ? nonNegativeIntOrNull(ard, "montant_pension_mensuelle_due_eur") : null;
+        Boolean titreExecutoireDetecte = ardObject ? booleanOrNull(ard, "titre_executoire_detecte") : null;
+        boolean sf216_07Present = aripaRecouvrementEnvisage != null
+                || montantPensionMensuelleDueEur != null
+                || titreExecutoireDetecte != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5355,7 +5388,8 @@ public record CaseAnalysisResponse(
                 && dateSeparationBe == null
                 && !familleBev2Present
                 && !sf216_01Present
-                && !sf216_05Present) {
+                && !sf216_05Present
+                && !sf216_07Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5534,6 +5568,10 @@ public record CaseAnalysisResponse(
                 .liquidationCommunauteEnvisagee(liquidationCommunauteEnvisagee)
                 .recompensesEpoux1Eur(recompensesEpoux1Eur)
                 .recompensesEpoux2Eur(recompensesEpoux2Eur)
+                // SF-216-07 : 3 champs IA ARIPA recouvrement FR.
+                .aripaRecouvrementEnvisage(aripaRecouvrementEnvisage)
+                .montantPensionMensuelleDueEur(montantPensionMensuelleDueEur)
+                .titreExecutoireDetecte(titreExecutoireDetecte)
                 .build();
     }
 
