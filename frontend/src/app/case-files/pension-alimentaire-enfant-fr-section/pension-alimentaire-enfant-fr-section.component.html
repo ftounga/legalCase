@@ -1,0 +1,211 @@
+<section class="pae-section">
+  <header class="pae-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pae-body">
+    <mat-icon class="pae-icon">family_restroom</mat-icon>
+    <span class="pae-title">PENSION ALIMENTAIRE ENFANT</span>
+    @if (result()) {
+      <span class="pae-chip-summary">
+        {{ formatEuros(result()!.totalMensuelEur) }}/mois
+      </span>
+    }
+    <mat-icon class="pae-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pae-body" class="pae-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="pae-country-banner" data-testid="pae-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil applicable uniquement en droit français (art. 371-2 Cciv + barème indicatif Cass.). En Belgique, le calcul SECAL/CGKR relève de la Loi du 21 février 2003 — outil distinct.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="pae-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="pae-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Revenus nets mensuels -->
+            <div class="pae-block pae-full">
+              <span class="pae-block-label">Revenus nets mensuels (€)</span>
+              <div class="pae-grid-2">
+                <div class="pae-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Parent 1</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="revenusNetsParent1Eur()"
+                           (ngModelChange)="onRevenus1Change($event)"
+                           name="revenusNetsParent1Eur" />
+                  </mat-form-field>
+                  @if (provenanceRevenus1() === 'IA') {
+                    <span class="pae-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+                <div class="pae-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Parent 2</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="revenusNetsParent2Eur()"
+                           (ngModelChange)="onRevenus2Change($event)"
+                           name="revenusNetsParent2Eur" />
+                  </mat-form-field>
+                  @if (provenanceRevenus2() === 'IA') {
+                    <span class="pae-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Nombre d'enfants -->
+            <div class="pae-block pae-full">
+              <span class="pae-block-label">Enfants concernés</span>
+              <div class="pae-field-with-alert">
+                <mat-form-field appearance="outline" class="pae-inline-field">
+                  <mat-label>Nombre d'enfants</mat-label>
+                  <input matInput type="number" min="1" max="12" step="1"
+                         [ngModel]="nombreEnfants()"
+                         (ngModelChange)="onNombreEnfantsChange($event)"
+                         name="nombreEnfants" />
+                </mat-form-field>
+                @if (provenanceNombreEnfants() === 'IA') {
+                  <span class="pae-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+              </div>
+
+              @if (agesEnfants().length > 0) {
+                <div class="pae-ages-grid">
+                  @for (i of ageIndices(); track i) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>Âge enfant {{ i + 1 }}</mat-label>
+                      <input matInput type="number" min="0" max="30" step="1"
+                             [ngModel]="agesEnfants()[i]"
+                             (ngModelChange)="onAgeEnfantChange(i, $event)"
+                             [name]="'ageEnfant' + i" />
+                    </mat-form-field>
+                  }
+                </div>
+                @if (provenanceAgesEnfants() === 'IA') {
+                  <span class="pae-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Âges pré-remplis
+                  </span>
+                }
+              }
+            </div>
+
+            <!-- Bloc 3 — Mode de résidence -->
+            <div class="pae-block pae-full">
+              <span class="pae-block-label">Mode de résidence</span>
+              <div class="pae-field-with-alert">
+                <mat-form-field appearance="outline" class="pae-inline-field">
+                  <mat-label>Mode de résidence des enfants</mat-label>
+                  <mat-select [ngModel]="modeResidence()"
+                              (ngModelChange)="onModeResidenceChange($event)"
+                              name="modeResidence">
+                    @for (m of modesResidence; track m.value) {
+                      <mat-option [value]="m.value">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceModeResidence() === 'IA') {
+                  <span class="pae-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="pae-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la pension</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="pae-result">
+            <!-- Bannière verdict total mensuel -->
+            <div class="pae-verdict-banner">
+              <mat-icon>family_restroom</mat-icon>
+              <div class="pae-verdict-content">
+                <strong>Pension alimentaire indicative (mensuel)</strong>
+                <span class="pae-verdict-value" data-testid="pae-total-mensuel">
+                  {{ formatEuros(result()!.totalMensuelEur) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Méta infos : parent débiteur + taux -->
+            <div class="pae-meta-block">
+              <div class="pae-meta-item">
+                <span class="pae-meta-label">Parent débiteur</span>
+                <span class="pae-meta-value" data-testid="pae-parent-debiteur">
+                  {{ parentDebiteurLabel(result()!.parentDebiteur) }}
+                </span>
+              </div>
+              <div class="pae-meta-item">
+                <span class="pae-meta-label">Taux appliqué (barème Cass.)</span>
+                <span class="pae-meta-value" data-testid="pae-taux">{{ tauxPourcent() }}</span>
+              </div>
+            </div>
+
+            <!-- Montant par enfant -->
+            @if (result()!.montantParEnfantMensuelEur?.length) {
+              <div class="pae-per-child-block">
+                <span class="pae-per-child-label">Répartition mensuelle par enfant</span>
+                <ul class="pae-per-child-list">
+                  @for (m of result()!.montantParEnfantMensuelEur; track $index) {
+                    <li>
+                      <span class="pae-per-child-tag">Enfant {{ $index + 1 }}</span>
+                      <span class="pae-per-child-value">{{ formatEuros(m) }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Base juridique -->
+            @if (result()!.baseJuridique) {
+              <div class="pae-bases-block">
+                <span class="pae-bases-label">Base juridique</span>
+                <span class="pae-base-chip" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              </div>
+            }
+
+            <div class="pae-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="pae-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.alertes?.length) {
+              <ul class="pae-alertes" data-testid="pae-alertes">
+                @for (a of result()!.alertes; track a) {
+                  <li><mat-icon>warning</mat-icon> {{ a }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

@@ -913,4 +913,17 @@ export interface FamilleExtractedData {
    * SF-216-07 ARIPA pour pré-remplir le nombre d'enfants à charge.
    */
   nombreEnfantsDetecte?: number | null;
+
+  /**
+   * SF-216-03 : FRANCE — flag CONTEXTUAL indiquant qu'une pension alimentaire enfant
+   * est envisagée (mention art. 371-2 Cciv, contribution entretien éducation,
+   * barème indicatif Cass.). Source backend : `pension_alimentaire_detection.envisagee`.
+   */
+  pensionAlimentaireEnvisagee?: boolean | null;
+  /**
+   * SF-216-03 : FRANCE — mode de résidence des enfants détecté
+   * (ALTERNEE / PRINCIPALE_PARENT1 / PRINCIPALE_PARENT2 / null).
+   * Source backend : `pension_alimentaire_detection.mode_residence`.
+   */
+  modeResidenceEnfantsDetecte?: 'ALTERNEE' | 'PRINCIPALE_PARENT1' | 'PRINCIPALE_PARENT2' | string | null;
 }
