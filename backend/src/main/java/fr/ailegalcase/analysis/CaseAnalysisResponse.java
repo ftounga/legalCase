@@ -2458,7 +2458,15 @@ public record CaseAnalysisResponse(
             // Source : `famille_extracted_data.adoption_intra_detection`.
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
             // Flag CONTEXTUAL non pré-remplissable côté UI (V1 — PREFILL_COUNT_ALWAYS_ZERO).
-            Boolean adoptionIntraEnvisagee) {          // FR — CONTEXTUAL : mention art. 345-1 / adoption enfant du conjoint
+            Boolean adoptionIntraEnvisagee,            // FR — CONTEXTUAL : mention art. 345-1 / adoption enfant du conjoint
+            // SF-216-17 : 4 champs IA adoption internationale FR.
+            // Source : `famille_extracted_data.adoption_internationale_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // adoptionInternationaleEnvisagee active la visibilité CONTEXTUAL F-IA-04.
+            Boolean adoptionInternationaleEnvisagee,   // FR — CONTEXTUAL : mention art. 370-3 / Convention La Haye / OAA / agrément
+            String paysOrigineAdopteDetecte,           // FR — pays d'origine de l'enfant extrait des pièces
+            Boolean agrement2025DetecteValide,         // FR — true si agrément valide (≤ 5 ans) documenté
+            Boolean exequaturRequisDetecte) {          // FR — true si décision étrangère mentionnée nécessitant exequatur TJ
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2842,6 +2850,15 @@ public record CaseAnalysisResponse(
             // SF-216-15 : setter du flag IA adoption intra-familiale FR.
             private Boolean adoptionIntraEnvisagee;
             public Builder adoptionIntraEnvisagee(Boolean v) { this.adoptionIntraEnvisagee = v; return this; }
+            // SF-216-17 : setters des 4 champs IA adoption internationale FR.
+            private Boolean adoptionInternationaleEnvisagee;
+            private String paysOrigineAdopteDetecte;
+            private Boolean agrement2025DetecteValide;
+            private Boolean exequaturRequisDetecte;
+            public Builder adoptionInternationaleEnvisagee(Boolean v) { this.adoptionInternationaleEnvisagee = v; return this; }
+            public Builder paysOrigineAdopteDetecte(String v) { this.paysOrigineAdopteDetecte = v; return this; }
+            public Builder agrement2025DetecteValide(Boolean v) { this.agrement2025DetecteValide = v; return this; }
+            public Builder exequaturRequisDetecte(Boolean v) { this.exequaturRequisDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -2990,7 +3007,12 @@ public record CaseAnalysisResponse(
                         condamnationPenaleDetectee,
                         violencesLmvss2022Detectees,
                         // SF-216-15 : 1 champ IA adoption intra-familiale FR.
-                        adoptionIntraEnvisagee);
+                        adoptionIntraEnvisagee,
+                        // SF-216-17 : 4 champs IA adoption internationale FR.
+                        adoptionInternationaleEnvisagee,
+                        paysOrigineAdopteDetecte,
+                        agrement2025DetecteValide,
+                        exequaturRequisDetecte);
             }
         }
     }
@@ -5453,6 +5475,19 @@ public record CaseAnalysisResponse(
         boolean aidObject = aid != null && aid.isObject();
         Boolean adoptionIntraEnvisagee = aidObject ? booleanOrNull(aid, "envisagee") : null;
         boolean sf216_15Present = adoptionIntraEnvisagee != null;
+        // SF-216-17 : sous-objet `adoption_internationale_detection` — 4 champs IA
+        // pour l'adoption internationale FR (art. 370-3 à 370-5 Cciv + Convention
+        // La Haye 1993). FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode aint = node.get("adoption_internationale_detection");
+        boolean aintObject = aint != null && aint.isObject();
+        Boolean adoptionInternationaleEnvisagee = aintObject ? booleanOrNull(aint, "envisagee") : null;
+        String paysOrigineAdopteDetecte = aintObject ? textOrNull(aint, "pays_origine") : null;
+        Boolean agrement2025DetecteValide = aintObject ? booleanOrNull(aint, "agrement_valide") : null;
+        Boolean exequaturRequisDetecte = aintObject ? booleanOrNull(aint, "exequatur_requis") : null;
+        boolean sf216_17Present = adoptionInternationaleEnvisagee != null
+                || paysOrigineAdopteDetecte != null
+                || agrement2025DetecteValide != null
+                || exequaturRequisDetecte != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5498,7 +5533,8 @@ public record CaseAnalysisResponse(
                 && !sf216_03Present
                 && !sf216_09Present
                 && !sf216_11Present
-                && !sf216_15Present) {
+                && !sf216_15Present
+                && !sf216_17Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5694,6 +5730,11 @@ public record CaseAnalysisResponse(
                 .violencesLmvss2022Detectees(violencesLmvss2022Detectees)
                 // SF-216-15 : 1 champ IA adoption intra-familiale FR.
                 .adoptionIntraEnvisagee(adoptionIntraEnvisagee)
+                // SF-216-17 : 4 champs IA adoption internationale FR.
+                .adoptionInternationaleEnvisagee(adoptionInternationaleEnvisagee)
+                .paysOrigineAdopteDetecte(paysOrigineAdopteDetecte)
+                .agrement2025DetecteValide(agrement2025DetecteValide)
+                .exequaturRequisDetecte(exequaturRequisDetecte)
                 .build();
     }
 

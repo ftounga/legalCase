@@ -186,6 +186,8 @@ import { DelegationApFrSectionComponent } from '../delegation-ap-fr-section/dele
 import { RetraitApFrSectionComponent } from '../retrait-ap-fr-section/retrait-ap-fr-section.component';
 // SF-216-16 : composant simulateur Adoption intra-familiale FR (F-FA-ADOPTION-INTRA).
 import { AdoptionIntraFrSectionComponent } from '../adoption-intra-fr-section/adoption-intra-fr-section.component';
+// SF-216-18 : composant simulateur Adoption internationale FR (F-FA-ADOPTION-INTERNATIONALE).
+import { AdoptionInternationaleFrSectionComponent } from '../adoption-internationale-fr-section/adoption-internationale-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1248,6 +1250,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-ADOPTION-INTRA', {
         displayLabel: 'Adoption intra-familiale (FR)',
         component: AdoptionIntraFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-18 : composant simulateur complet (POST/GET backend SF-216-17).
+      // Outil P2 famille FR — Adoption internationale (art. 370-3 à 370-5 Cciv +
+      // Convention La Haye 1993 + Loi n°2001-111 / agrément). 3 champs pré-fill
+      // IA (pays, agrément, exequatur) — visibility CONTEXTUAL F-IA-04 priority 106.
+      ['F-FA-ADOPTION-INTERNATIONALE', {
+        displayLabel: 'Adoption internationale (FR)',
+        component: AdoptionInternationaleFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2724,6 +2740,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-RETRAIT-AP', 'DIAGNOSTIC'],
     // SF-216-16 : adoption intra-familiale (FR, art. 345-1 Cciv).
     ['F-FA-ADOPTION-INTRA', 'DIAGNOSTIC'],
+    // SF-216-18 : adoption internationale (FR, art. 370-3 Cciv + Convention La Haye 1993).
+    ['F-FA-ADOPTION-INTERNATIONALE', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

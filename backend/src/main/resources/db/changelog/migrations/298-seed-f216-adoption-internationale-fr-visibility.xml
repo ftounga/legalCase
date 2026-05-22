@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="298-seed-f216-adoption-internationale-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-17 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Adoption internationale"
+            (F-FA-ADOPTION-INTERNATIONALE, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que si
+            le pipeline IA détecte une mention d'adoption internationale, de
+            Convention La Haye, d'OAA (Organisme Autorisé pour l'Adoption),
+            d'agrément, ou d'enfant d'origine étrangère candidat à
+            l'adoption — trigger `adoption_internationale_envisagee` lu depuis
+            le sous-objet `adoption_internationale_detection.envisagee` de
+            `famille_extracted_data` par DecisionToolVisibilityService
+            (méthode addBooleanFlagIfTrueNested, réutilisée depuis SF-216-01
+            / SF-216-05 / SF-216-07 / SF-216-15).
+
+            UUID namespace dédié F-216 (bundle 17) :
+            f1a04002-0000-0000-0000-eeee21600017.
+
+            Base juridique :
+              - art. 370-3 à 370-5 Cciv (conditions de l'adoption
+                internationale) ;
+              - Convention La Haye du 29/5/1993 (protection enfants +
+                coopération en matière d'adoption internationale) ;
+              - Loi n°2001-111 du 6/2/2001 (agrément obligatoire — durée 5
+                ans, renouvelable) ;
+              - Loi n°2022-219 du 21/2/2022 (réforme adoption — extension
+                PACS, abaissement conditions) ;
+              - Cass. 1ère civ., 10/10/2006 (kafala incompatible avec
+                adoption FR — art. 370-3 al. 3 Cciv).
+
+            Outil single-country FRANCE — la matière est régie en Belgique
+            par les art. 343 et suiv. CcB avec la Convention La Haye 1993
+            mais des conditions distinctes (outil F-FA-BE-ADOPTION-INTL
+            futur, hors périmètre F-216).
+
+            priority 106 — rang spécifique pour un outil P2 famille FR
+            postérieur à F-FA-ADOPTION-INTRA (priority 105).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600017', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-ADOPTION-INTERNATIONALE',
+        'CONTEXTUAL', 'adoption_internationale_envisagee', 'true', 106);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600017';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

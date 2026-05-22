@@ -978,4 +978,34 @@ export interface FamilleExtractedData {
    * (CONTEXTUAL). Aucun pré-fill IA dérivé en V1 (PREFILL_COUNT_ALWAYS_ZERO).
    */
   adoptionIntraEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-17 : FRANCE — flag CONTEXTUAL indiquant qu'une adoption
+   * internationale est envisagée (mention art. 370-3 Cciv, Convention La
+   * Haye, OAA, agrément Conseil départemental, MAI).
+   * Source backend : `adoption_internationale_detection.envisagee`.
+   */
+  adoptionInternationaleEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-17 : FRANCE — pays d'origine de l'enfant pour adoption
+   * internationale (texte libre en MAJUSCULES sans accent, ex. "VIETNAM",
+   * "COLOMBIE", "MAROC", "ETHIOPIE").
+   * Source backend : `adoption_internationale_detection.pays_origine`.
+   */
+  paysOrigineAdopteDetecte?: string | null;
+
+  /**
+   * SF-216-17 : FRANCE — true si un agrément du Conseil départemental est
+   * documenté et valide (≤ 5 ans, loi n°2001-111 du 6/2/2001).
+   * Source backend : `adoption_internationale_detection.agrement_valide`.
+   */
+  agrement2025DetecteValide?: boolean | null;
+
+  /**
+   * SF-216-17 : FRANCE — true si une décision d'adoption rendue à l'étranger
+   * est documentée et nécessite un exequatur TJ (art. 370-5 Cciv).
+   * Source backend : `adoption_internationale_detection.exequatur_requis`.
+   */
+  exequaturRequisDetecte?: boolean | null;
 }
