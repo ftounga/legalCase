@@ -127,8 +127,12 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-ARIPA-RECOUVREMENT",
             // SF-216-15 : outil Adoption intra-familiale — table dédiée, pas de tile dashboard.
             "F-FA-ADOPTION-INTRA",
+            // SF-216-17 : outil Adoption internationale — table dédiée, pas de tile dashboard.
+            "F-FA-ADOPTION-INTERNATIONALE",
             // SF-216-09 : outil délégation autorité parentale FR — table dédiée, pas de tile dashboard.
             "F-FA-XX-delegation-ap",
+            // SF-216-11 : outil retrait autorité parentale FR — table dédiée, pas de tile dashboard.
+            "F-FA-RETRAIT-AP",
             // Checklist référentielle — pas de résultat décisionnel persisté.
             "F-IM-01-checklist-pieces",
             // F-207 — exclusions transitoires (à résorber par la session F-207) :

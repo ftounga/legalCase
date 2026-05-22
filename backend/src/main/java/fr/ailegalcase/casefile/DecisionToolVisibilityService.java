@@ -333,6 +333,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `delegation_ap_detection.envisagee` (même pattern, art. 376-1 Cciv).
         addBooleanFlagIfTrueNested(detected, familleNode, "delegation_ap_detection", "envisagee",
                 "delegation_ap_envisagee");
+        // === SF-216-11 — 1 flag CONTEXTUAL Famille FR : retrait autorité parentale ===
+        // Lire depuis sous-objet `retrait_ap_detection.envisage` (même pattern, art. 378-381 Cciv + loi 2022 LMVSS).
+        addBooleanFlagIfTrueNested(detected, familleNode, "retrait_ap_detection", "envisage",
+                "retrait_ap_envisage");
         // === SF-216-15 — 1 flag CONTEXTUAL Famille FR : adoption intra-familiale ===
         // Lire depuis sous-objet `adoption_intra_detection.envisagee` (même pattern, art. 345-1 Cciv).
         addBooleanFlagIfTrueNested(detected, familleNode, "adoption_intra_detection", "envisagee",

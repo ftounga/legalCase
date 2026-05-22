@@ -2448,6 +2448,12 @@ public record CaseAnalysisResponse(
             Boolean delegationApEnvisagee,             // FR — CONTEXTUAL : mention art. 376-1 / délégation AP / tiers détenteur
             String tiersLienFamilialDetecte,           // FR — GRANDS_PARENTS | ONCLE_TANTE | FAMILLE_ELARGIE | ASSOCIATION_HABILITEE | AUTRE | null
             Boolean accordParentsDetecte,              // FR — true si accord des deux parents documenté pour la délégation
+            // SF-216-11 : 3 champs IA retrait autorité parentale FR.
+            // Source : `famille_extracted_data.retrait_ap_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            Boolean retraitApEnvisage,                 // FR — CONTEXTUAL : mention art. 378 / retrait AP / déchéance / loi 2022
+            Boolean condamnationPenaleDetectee,        // FR — true si condamnation pénale documentée (art. 378 al. 1)
+            Boolean violencesLmvss2022Detectees,       // FR — true si violences conjugales en présence enfant (loi 2022-140)
             // SF-216-15 : 1 champ IA adoption intra-familiale FR.
             // Source : `famille_extracted_data.adoption_intra_detection`.
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
@@ -2826,6 +2832,13 @@ public record CaseAnalysisResponse(
             public Builder delegationApEnvisagee(Boolean v) { this.delegationApEnvisagee = v; return this; }
             public Builder tiersLienFamilialDetecte(String v) { this.tiersLienFamilialDetecte = v; return this; }
             public Builder accordParentsDetecte(Boolean v) { this.accordParentsDetecte = v; return this; }
+            // SF-216-11 : setters des 3 champs IA retrait autorité parentale FR.
+            private Boolean retraitApEnvisage;
+            private Boolean condamnationPenaleDetectee;
+            private Boolean violencesLmvss2022Detectees;
+            public Builder retraitApEnvisage(Boolean v) { this.retraitApEnvisage = v; return this; }
+            public Builder condamnationPenaleDetectee(Boolean v) { this.condamnationPenaleDetectee = v; return this; }
+            public Builder violencesLmvss2022Detectees(Boolean v) { this.violencesLmvss2022Detectees = v; return this; }
             // SF-216-15 : setter du flag IA adoption intra-familiale FR.
             private Boolean adoptionIntraEnvisagee;
             public Builder adoptionIntraEnvisagee(Boolean v) { this.adoptionIntraEnvisagee = v; return this; }
@@ -2972,6 +2985,10 @@ public record CaseAnalysisResponse(
                         delegationApEnvisagee,
                         tiersLienFamilialDetecte,
                         accordParentsDetecte,
+                        // SF-216-11 : 3 champs IA retrait autorité parentale FR.
+                        retraitApEnvisage,
+                        condamnationPenaleDetectee,
+                        violencesLmvss2022Detectees,
                         // SF-216-15 : 1 champ IA adoption intra-familiale FR.
                         adoptionIntraEnvisagee);
             }
@@ -5416,6 +5433,19 @@ public record CaseAnalysisResponse(
         boolean sf216_09Present = delegationApEnvisagee != null
                 || tiersLienFamilialDetecte != null
                 || accordParentsDetecte != null;
+        // SF-216-11 : sous-objet `retrait_ap_detection` — 3 champs IA pour le
+        // retrait autorité parentale FR (art. 378-381 Cciv + loi 2022-140 LMVSS).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode rad = node.get("retrait_ap_detection");
+        boolean radObject = rad != null && rad.isObject();
+        Boolean retraitApEnvisage = radObject ? booleanOrNull(rad, "envisage") : null;
+        Boolean condamnationPenaleDetectee = radObject
+                ? booleanOrNull(rad, "condamnation_penale_detectee") : null;
+        Boolean violencesLmvss2022Detectees = radObject
+                ? booleanOrNull(rad, "violences_lmvss_2022_detectees") : null;
+        boolean sf216_11Present = retraitApEnvisage != null
+                || condamnationPenaleDetectee != null
+                || violencesLmvss2022Detectees != null;
         // SF-216-15 : sous-objet `adoption_intra_detection` — 1 champ IA pour
         // l'adoption de l'enfant du conjoint (adoption intra-familiale, art. 345-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
@@ -5467,6 +5497,7 @@ public record CaseAnalysisResponse(
                 && !sf216_07Present
                 && !sf216_03Present
                 && !sf216_09Present
+                && !sf216_11Present
                 && !sf216_15Present) {
             return null;
         }
@@ -5657,6 +5688,10 @@ public record CaseAnalysisResponse(
                 .delegationApEnvisagee(delegationApEnvisagee)
                 .tiersLienFamilialDetecte(tiersLienFamilialDetecte)
                 .accordParentsDetecte(accordParentsDetecte)
+                // SF-216-11 : 3 champs IA retrait autorité parentale FR.
+                .retraitApEnvisage(retraitApEnvisage)
+                .condamnationPenaleDetectee(condamnationPenaleDetectee)
+                .violencesLmvss2022Detectees(violencesLmvss2022Detectees)
                 // SF-216-15 : 1 champ IA adoption intra-familiale FR.
                 .adoptionIntraEnvisagee(adoptionIntraEnvisagee)
                 .build();

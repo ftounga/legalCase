@@ -951,6 +951,25 @@ export interface FamilleExtractedData {
   accordParentsDetecte?: boolean | null;
 
   /**
+   * SF-216-11 : FRANCE — flag CONTEXTUAL retrait autorité parentale envisagé
+   * (mention art. 378 Cciv, déchéance parentale, loi 2022 LMVSS, condamnation
+   * pénale sur l'enfant). Source backend : `retrait_ap_detection.envisage`.
+   */
+  retraitApEnvisage?: boolean | null;
+  /**
+   * SF-216-11 : FRANCE — true si une condamnation pénale (jugement / peine)
+   * visant le parent dont le retrait est envisagé est documentée dans les
+   * pièces. Source backend : `retrait_ap_detection.condamnation_penale_detectee`.
+   */
+  condamnationPenaleDetectee?: boolean | null;
+  /**
+   * SF-216-11 : FRANCE — true si des violences conjugales graves en présence
+   * de l'enfant au sens de la loi n°2022-140 du 7 février 2022 (LMVSS) sont
+   * documentées. Source backend : `retrait_ap_detection.violences_lmvss_2022_detectees`.
+   */
+  violencesLmvss2022Detectees?: boolean | null;
+
+  /**
    * SF-216-15 : FRANCE — flag CONTEXTUAL indiquant qu'une adoption de l'enfant
    * du conjoint (adoption intra-familiale) est envisagée (mention art. 345-1
    * Cciv, couple recomposé + adoption, consentement adoption).
