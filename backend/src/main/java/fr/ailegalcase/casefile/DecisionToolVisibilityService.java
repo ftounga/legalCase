@@ -333,6 +333,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `delegation_ap_detection.envisagee` (même pattern, art. 376-1 Cciv).
         addBooleanFlagIfTrueNested(detected, familleNode, "delegation_ap_detection", "envisagee",
                 "delegation_ap_envisagee");
+        // === SF-216-15 — 1 flag CONTEXTUAL Famille FR : adoption intra-familiale ===
+        // Lire depuis sous-objet `adoption_intra_detection.envisagee` (même pattern, art. 345-1 Cciv).
+        addBooleanFlagIfTrueNested(detected, familleNode, "adoption_intra_detection", "envisagee",
+                "adoption_intra_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

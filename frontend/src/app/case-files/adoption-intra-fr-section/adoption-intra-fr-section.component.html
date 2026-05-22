@@ -1,0 +1,203 @@
+<!--
+  SF-216-16 : template de l'outil Adoption de l'enfant du conjoint (adoption
+  intra-familiale) (F-FA-ADOPTION-INTRA, FRANCE uniquement — art. 343-1 al. 2 +
+  345-1 + 360-362 Cciv + Loi n°2022-219 du 21/2/2022).
+  Pattern : aripa-recouvrement-fr-section.
+-->
+<section class="adoption-intra-section" [class.adoption-intra-section--collapsed]="collapsed()">
+  <header class="adoption-intra-section__header" (click)="toggleCollapse()">
+    <mat-icon class="adoption-intra-section__icon">family_restroom</mat-icon>
+    <h3 class="adoption-intra-section__title">Adoption de l'enfant du conjoint (intra-familiale)</h3>
+    <span class="adoption-intra-section__country">FR</span>
+    <mat-icon class="adoption-intra-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="adoption-intra-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="adoption-intra-banner adoption-intra-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, l'adoption de
+        l'enfant du conjoint est régie par les <strong>art. 343 et suiv. CcB</strong>
+        avec des conditions distinctes (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="adoption-intra-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="adoption-intra-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="adoption-intra-form__intro">
+          Évalue la recevabilité d'une adoption de l'enfant du conjoint
+          (couple recomposé) et oriente entre adoption simple (cumulable avec
+          la filiation d'origine) et adoption plénière (rupture définitive,
+          art. 356 Cciv).
+        </p>
+
+        <div class="adoption-intra-form__row">
+          <mat-form-field appearance="outline" class="adoption-intra-form__field">
+            <mat-label>Forme d'adoption demandée</mat-label>
+            <mat-select [ngModel]="formeAdoptionDemandee()"
+                        (ngModelChange)="onFormeChange($event)"
+                        name="forme"
+                        required>
+              <mat-option *ngFor="let opt of formesAdoption" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="adoption-intra-form__row">
+          <mat-form-field appearance="outline" class="adoption-intra-form__field">
+            <mat-label>Âge de l'adoptant</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="ageAdoptant()"
+                   (ngModelChange)="onAgeAdoptantChange($event)"
+                   name="ageAdoptant"
+                   required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="adoption-intra-form__field">
+            <mat-label>Âge de l'adopté</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="ageAdopte()"
+                   (ngModelChange)="onAgeAdopteChange($event)"
+                   name="ageAdopte"
+                   required />
+          </mat-form-field>
+        </div>
+
+        <div class="adoption-intra-form__row adoption-intra-form__row--checks">
+          <mat-checkbox [checked]="mariageOuPacsAdoptantParent()"
+                        (change)="onMariageOuPacsChange($event.checked)"
+                        name="marieOuPacse">
+            Adoptant marié ou pacsé avec le parent biologique
+            <small class="adoption-intra-form__hint">Pré-requis art. 345-1 al. 1 Cciv (réforme 2022)</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="autreParentDecede()"
+                        (change)="onAutreParentDecedeChange($event.checked)"
+                        name="autreParentDecede">
+            Autre parent biologique décédé
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="decheanceAutreParent()"
+                        (change)="onDecheanceChange($event.checked)"
+                        name="decheance">
+            Déchéance de l'autorité parentale de l'autre parent
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="consentementAutreParentBiologique()"
+                        (change)="onConsentementAutreParentChange($event.checked)"
+                        name="consentementAutreParent">
+            Consentement exprès de l'autre parent biologique (acte notarié)
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="consentementEnfant() === true"
+                        (change)="onConsentementEnfantChange($event.checked)"
+                        name="consentementEnfant">
+            Consentement de l'adopté (requis ≥ 13 ans, art. 360 al. 2 Cciv)
+          </mat-checkbox>
+        </div>
+
+        <!-- Alerte préventive plénière -->
+        <div class="adoption-intra-banner adoption-intra-banner--warning"
+             *ngIf="formeAdoptionDemandee() === 'PLENIERE'">
+          <mat-icon>warning</mat-icon>
+          <p>
+            <strong>Adoption plénière — irréversible.</strong>
+            Rompt définitivement la filiation avec l'autre parent biologique
+            et toute sa branche familiale (art. 356 Cciv). Devoir de conseil
+            renforcé — privilégier l'adoption simple si la rupture n'est pas
+            délibérément voulue.
+          </p>
+        </div>
+
+        <div class="adoption-intra-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer la recevabilité' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="adoption-intra-result" *ngIf="!showForm() && result() as r">
+        <div class="adoption-intra-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>{{ r.conditionsRemplies ? 'fact_check' : 'block' }}</mat-icon>
+          <div>
+            <span class="adoption-intra-result__verdict-label">Forme demandée</span>
+            <strong class="adoption-intra-result__verdict-value">
+              {{ formeLabel(r.formeDemandee) }}
+              — {{ r.conditionsRemplies ? 'Recevable' : 'Non recevable en l\'état' }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="adoption-intra-result__metrics">
+          <div class="adoption-intra-metric">
+            <span class="adoption-intra-metric__label">Formes possibles</span>
+            <strong class="adoption-intra-metric__value">
+              <ng-container *ngIf="r.formesPossibles.length > 0; else aucuneForme">
+                <span *ngFor="let f of r.formesPossibles; last as isLast">
+                  {{ formeLabel(f) }}<span *ngIf="!isLast"> + </span>
+                </span>
+              </ng-container>
+              <ng-template #aucuneForme>Aucune</ng-template>
+            </strong>
+          </div>
+          <div class="adoption-intra-metric" *ngIf="r.consentementEnfantRequis">
+            <span class="adoption-intra-metric__label">Consentement de l'adopté</span>
+            <strong class="adoption-intra-metric__value">Requis (≥ 13 ans)</strong>
+          </div>
+        </div>
+
+        <!-- Alerte irréversibilité dédiée -->
+        <div class="adoption-intra-banner adoption-intra-banner--warning"
+             *ngIf="r.alerteIrreversibilite">
+          <mat-icon>warning</mat-icon>
+          <p>
+            <strong>Adoption plénière — rupture définitive de la filiation
+            d'origine</strong> (art. 356 Cciv). Formaliser l'information du
+            client par écrit (note d'information + accusé de réception).
+          </p>
+        </div>
+
+        <div class="adoption-intra-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="adoption-intra-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="adoption-intra-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="adoption-intra-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="adoption-intra-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>

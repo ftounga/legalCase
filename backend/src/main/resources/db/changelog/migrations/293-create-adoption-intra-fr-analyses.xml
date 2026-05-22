@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="293-create-adoption-intra-fr-analyses" author="legalcase">
+        <comment>
+            SF-216-15 : table dédiée à l'outil décisionnel "Adoption de l'enfant
+            du conjoint (adoption intra-familiale)" (F-FA-ADOPTION-INTRA, FRANCE —
+            art. 343-1 al. 2 Cciv + art. 345-1 Cciv + art. 360-362 Cciv + Loi
+            n°2022-219 du 21/2/2022 portant réforme de l'adoption).
+
+            Outil distinct de F-FA-18-adoption (adoption générique plénière /
+            simple) : situation juridique spécifique — parent biologique + conjoint
+            ou partenaire PACS de ce parent. Évalue la recevabilité et oriente
+            entre adoption simple (cumulable avec la filiation d'origine) et
+            adoption plénière (rupture définitive de la filiation antérieure,
+            art. 356 Cciv).
+
+            Conditions communes (art. 345-1 al. 1) :
+              - adoptant marié ou pacsé avec le parent ;
+              - durée minimale de vie commune (1 an depuis la réforme 2022).
+
+            Adoption plénière (art. 345-1 al. 2) :
+              - exige que l'autre parent biologique soit décédé OU déchu de
+                l'autorité parentale OU qu'il y consente expressément ;
+              - rompt toute filiation antérieure (irréversible — art. 356 Cciv) ;
+              - alerte forte affichée à l'avocat.
+
+            Adoption simple (art. 360-362) :
+              - cumulable avec la filiation d'origine ;
+              - recommandée si l'autre parent vivant est non consentant et non
+                déchu.
+
+            Consentement de l'adopté requis à partir de 13 ans (art. 360 al. 2).
+
+            Réforme 2022 (Loi 2022-219) :
+              - extension aux couples pacsés (avant : mariés uniquement) ;
+              - durée de vie commune réduite (1 an) ;
+              - suppression de l'âge minimum de l'adopté ;
+              - différence d'âge entre adoptant et adopté ramenée à 10 ans en
+                intra-familial (vs 15 ans en cas général, art. 344 al. 1).
+
+            Outil single-country FRANCE — la matière est régie en Belgique par
+            le Code civil belge (art. 343 et suiv. CcB), conditions différentes
+            (outil F-FA-BE-ADOPTION futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 294 (couplé à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — pattern SF-216-01 / SF-216-05 / SF-216-07).
+        </comment>
+
+        <createTable tableName="adoption_intra_fr_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_adoption_intra_fr_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="adoption_intra_fr_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_adoption_intra_fr_analyses_case_file"/>
+
+        <createIndex tableName="adoption_intra_fr_analyses"
+                     indexName="idx_adoption_intra_fr_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="adoption_intra_fr_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

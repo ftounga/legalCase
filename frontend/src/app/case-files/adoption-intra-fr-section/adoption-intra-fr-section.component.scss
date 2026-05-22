@@ -1,0 +1,255 @@
+/* SF-216-16 : styles pour l'outil Adoption intra-familiale FR. */
+
+.adoption-intra-section {
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border-default, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: var(--surface-2, #f9fafb);
+    user-select: none;
+
+    &:hover {
+      background: var(--surface-3, #f3f4f6);
+    }
+  }
+
+  &__icon {
+    color: var(--primary, #2563eb);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+  }
+
+  &__country {
+    background: var(--primary-50, #eff6ff);
+    color: var(--primary, #2563eb);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  &__chevron {
+    color: var(--text-tertiary, #9ca3af);
+  }
+
+  &__body {
+    padding: 16px;
+  }
+
+  &--collapsed &__body {
+    display: none;
+  }
+}
+
+.adoption-intra-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+
+  mat-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  &--info {
+    background: var(--info-50, #eff6ff);
+    color: var(--info-900, #1e3a8a);
+    mat-icon { color: var(--info, #3b82f6); }
+  }
+
+  &--warning {
+    background: var(--warning-50, #fffbeb);
+    color: var(--warning-900, #78350f);
+    border-left: 4px solid var(--warning, #f59e0b);
+    mat-icon { color: var(--warning, #f59e0b); }
+  }
+}
+
+.adoption-intra-loader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: var(--text-secondary, #4b5563);
+}
+
+.adoption-intra-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__intro {
+    margin: 0;
+    color: var(--text-secondary, #4b5563);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    &--checks {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  &__field {
+    flex: 1 1 200px;
+    min-width: 180px;
+  }
+
+  &__hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-tertiary, #9ca3af);
+    margin-top: 2px;
+  }
+
+  &__actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.adoption-intra-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__verdict {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--surface-2, #f9fafb);
+    border-left: 4px solid var(--primary, #2563eb);
+
+    mat-icon { font-size: 32px; width: 32px; height: 32px; }
+
+    &.verdict-blocked {
+      border-left-color: var(--error, #dc2626);
+      background: var(--error-50, #fef2f2);
+      mat-icon { color: var(--error, #dc2626); }
+    }
+    &.verdict-warning {
+      border-left-color: var(--warning, #f59e0b);
+      background: var(--warning-50, #fffbeb);
+      mat-icon { color: var(--warning, #f59e0b); }
+    }
+    &.verdict-success {
+      border-left-color: var(--success, #10b981);
+      background: var(--success-50, #ecfdf5);
+      mat-icon { color: var(--success, #10b981); }
+    }
+  }
+
+  &__verdict-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary, #9ca3af);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__verdict-value {
+    font-size: 18px;
+    color: var(--text-primary, #111827);
+  }
+
+  &__metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  &__alertes,
+  &__messages,
+  &__base {
+    h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      color: var(--text-primary, #111827);
+    }
+
+    ol, ul {
+      margin: 0;
+      padding-left: 20px;
+
+      li {
+        padding: 4px 0;
+        color: var(--text-secondary, #4b5563);
+        line-height: 1.5;
+      }
+    }
+  }
+
+  &__alertes .adoption-intra-alerte {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    list-style: none;
+    margin-left: -20px;
+
+    mat-icon {
+      color: var(--warning, #f59e0b);
+      flex-shrink: 0;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.adoption-intra-metric {
+  flex: 1 1 140px;
+  background: var(--surface-2, #f9fafb);
+  padding: 12px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__label {
+    font-size: 12px;
+    color: var(--text-tertiary, #9ca3af);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__value {
+    font-size: 16px;
+    color: var(--text-primary, #111827);
+  }
+}
