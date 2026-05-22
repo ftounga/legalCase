@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="290-seed-f216-aripa-recouvrement-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-07 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "ARIPA recouvrement pension alimentaire impayée"
+            (F-FA-ARIPA-RECOUVREMENT, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que si le
+            pipeline IA détecte une mention de recouvrement de pension impayée,
+            d'ARIPA, de SDR (Service de Demande de Recouvrement), de saisie sur
+            rémunération pour pension alimentaire, ou d'un titre exécutoire de
+            pension impayée — trigger `aripa_recouvrement_envisage` lu depuis le
+            sous-objet `aripa_recouvrement_detection.envisage` de
+            `famille_extracted_data` par DecisionToolVisibilityService (méthode
+            addBooleanFlagIfTrueNested, réutilisée depuis SF-216-01 / SF-216-05).
+
+            UUID namespace dédié F-216 (bundle 7) : f1a04002-0000-0000-0000-eeee21600007.
+
+            Base juridique : art. L. 581-1 à L. 581-14 CSS (recouvrement public
+            des pensions alimentaires) + art. L. 582-1 CSS (saisie sur
+            rémunération) + art. L. 523-1 à L. 523-6 CSS (Allocation de Soutien
+            Familial — complément CAF) + Ordonnance n°2002-1358 du 20/11/2002
+            créant l'ARIPA + Convention La Haye 23/11/2007 (recouvrement
+            international) + Règlement UE n°4/2009 (obligations alimentaires
+            transfrontières UE).
+
+            Outil single-country FRANCE — le SECAL belge (SPF Finances) est un
+            dispositif distinct (outil F-FA-BE-SECAL futur, hors périmètre F-216).
+
+            priority 95 — rang élevé pour un outil P1 famille FR (juste en dessous
+            de liquidation communauté priority 96 et de prestation compensatoire
+            priority 98).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600007', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-ARIPA-RECOUVREMENT',
+        'CONTEXTUAL', 'aripa_recouvrement_envisage', 'true', 95);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600007';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="289-create-aripa-recouvrement-fr-analyses" author="legalcase">
+        <comment>
+            SF-216-07 : table dédiée à l'outil décisionnel "ARIPA recouvrement
+            pension alimentaire impayée" (F-FA-ARIPA-RECOUVREMENT, FRANCE — art.
+            L. 581-1 à L. 581-14 CSS + art. L. 582-1 CSS + art. L. 523-1 à
+            L. 523-6 CSS + Ordonnance n°2002-1358 du 20/11/2002 + Convention La
+            Haye 23/11/2007 + Règlement UE n°4/2009).
+
+            Outil P1 — rang 6 des outils famille FR (audit F-191 D.2). Guide
+            l'avocat dans la démarche de recouvrement de pension alimentaire
+            impayée via l'ARIPA (Agence de Recouvrement des Impayés de Pensions
+            Alimentaires) et détermine la voie de recouvrement la plus rapide :
+
+              - SDR (Service de Demande de Recouvrement) ARIPA direct ;
+              - Saisie sur rémunération (art. L. 582-1 CSS) ;
+              - Saisie administrative à tiers détenteur (SATD, employeur public) ;
+              - Allocation de Soutien Familial ASF (art. L. 523-1 CSS) si la
+                pension est inférieure au seuil ASF — complément CAF ;
+              - Convention internationale (La Haye 2007 / Règlement UE 4/2009)
+                si le débiteur réside hors de France.
+
+            Pré-requis bloquant : titre exécutoire (jugement / convention CM
+            notariée / acte notarié). Sans titre, verdict TITRE_REQUIS — l'outil
+            renvoie vers l'obtention préalable d'un titre.
+
+            Outil single-country FRANCE — l'ARIPA est un dispositif administratif
+            spécifique au droit français. En Belgique, le recouvrement passe par
+            le SECAL (Service des Créances Alimentaires) du SPF Finances — outil
+            distinct (F-FA-BE-SECAL, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 290 (couplé à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — pattern SF-216-01 / SF-216-05).
+        </comment>
+
+        <createTable tableName="aripa_recouvrement_fr_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_aripa_recouvrement_fr_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="aripa_recouvrement_fr_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_aripa_recouvrement_fr_analyses_case_file"/>
+
+        <createIndex tableName="aripa_recouvrement_fr_analyses"
+                     indexName="idx_aripa_recouvrement_fr_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="aripa_recouvrement_fr_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

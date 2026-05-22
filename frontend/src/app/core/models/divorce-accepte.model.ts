@@ -864,4 +864,53 @@ export interface FamilleExtractedData {
    * Source backend : `prestation_compensatoire_detection.envisagee`.
    */
   prestationCompensatoireEnvisagee?: boolean | null;
+
+  // ── SF-216-05 : 3 champs IA liquidation communauté légale FR (rétro-compat) ──
+  /**
+   * SF-216-05 : FRANCE — flag CONTEXTUAL indiquant que la liquidation de la
+   * communauté légale est envisagée (mention art. 1467 Cciv / partage actif commun).
+   * Source backend : `liquidation_communaute_detection.envisagee`.
+   */
+  liquidationCommunauteEnvisagee?: boolean | null;
+  /**
+   * SF-216-05 : FRANCE — récompenses dues par l'époux 1 à la communauté
+   * (€, ≥ 0). Source backend : `liquidation_communaute_detection.recompenses_epoux1_eur`.
+   */
+  recompensesEpoux1Eur?: number | null;
+  /**
+   * SF-216-05 : FRANCE — récompenses dues par l'époux 2 à la communauté.
+   * Source backend : `liquidation_communaute_detection.recompenses_epoux2_eur`.
+   */
+  recompensesEpoux2Eur?: number | null;
+
+  // ── SF-216-07 : 3 champs IA ARIPA recouvrement pension alimentaire impayée FR ──
+  /**
+   * SF-216-07 : FRANCE — flag CONTEXTUAL indiquant qu'une démarche ARIPA de
+   * recouvrement de pension alimentaire impayée est envisagée (mention ARIPA /
+   * SDR / pension impayée / art. L. 581 CSS).
+   * Source backend : `aripa_recouvrement_detection.envisage`.
+   */
+  aripaRecouvrementEnvisage?: boolean | null;
+  /**
+   * SF-216-07 : FRANCE — montant en euros entiers (≥ 0) de la pension
+   * alimentaire mensuelle fixée par titre exécutoire (jugement / convention
+   * CM notariée / acte notarié). Source backend :
+   * `aripa_recouvrement_detection.montant_pension_mensuelle_due_eur`.
+   */
+  montantPensionMensuelleDueEur?: number | null;
+  /**
+   * SF-216-07 : FRANCE — true si un titre exécutoire fixant la pension
+   * alimentaire est documenté dans le dossier (jugement définitif / convention
+   * CM notariée / acte notarié / ordonnance).
+   * Source backend : `aripa_recouvrement_detection.titre_executoire_detecte`.
+   */
+  titreExecutoireDetecte?: boolean | null;
+
+  // ── F-246 — nombre d'enfants détectés (sous-objet filiation v2) ──
+  /**
+   * F-246 SF-246-26 : nombre d'enfants détectés par l'IA (sous-objet
+   * `filiation_detection_v2.nombre_enfants_detecte`). Utilisé notamment par
+   * SF-216-07 ARIPA pour pré-remplir le nombre d'enfants à charge.
+   */
+  nombreEnfantsDetecte?: number | null;
 }

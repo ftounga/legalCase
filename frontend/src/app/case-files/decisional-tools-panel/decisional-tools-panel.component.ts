@@ -179,6 +179,8 @@ import { DivorceDesunionBeSectionComponent } from '../divorce-desunion-be-sectio
 import { PrestationCompensatoireSectionComponent } from '../prestation-compensatoire-section/prestation-compensatoire-section.component';
 import { PensionAlimentaireSectionComponent } from '../pension-alimentaire-section/pension-alimentaire-section.component';
 import { LiquidationCommunauteSectionComponent } from '../liquidation-communaute-section/liquidation-communaute-section.component';
+// SF-216-08 : composant simulateur ARIPA recouvrement pension impayée (F-FA-ARIPA-RECOUVREMENT).
+import { AripaRecouvrementFrSectionComponent } from '../aripa-recouvrement-fr-section/aripa-recouvrement-fr-section.component';
 import { DivorceCmScoringSectionComponent } from '../divorce-cm-scoring-section/divorce-cm-scoring-section.component';
 import { FourchettesJafSectionComponent } from '../fourchettes-jaf-section/fourchettes-jaf-section.component';
 // F-210 — 2 outils urgences procédurales Famille FR.
@@ -1181,6 +1183,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         component: LiquidationCommunauteSectionComponent,
         inputs: (ctx) => ({
           synthesis: ctx.synthesis,
+        }),
+      }],
+      // SF-216-08 : composant simulateur complet (POST/GET backend SF-216-07).
+      // Outil P1 famille FR — ARIPA recouvrement pension alimentaire impayée
+      // (art. L. 581 CSS). Pré-fill IA branché sur `synthesis.familleExtractedData`
+      // (montant pension du titre + titre exécutoire détecté + nb enfants).
+      ['F-FA-ARIPA-RECOUVREMENT', {
+        displayLabel: 'ARIPA recouvrement (FR)',
+        component: AripaRecouvrementFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
       ['F-FA-05-partage-immobilier', {
@@ -2644,6 +2660,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-40-resiliation-judiciaire-cph', 'DIAGNOSTIC'],
     // F-198 SF-198-03 : rattrapage F-FA-04 (DELETE par migration 191).
     ['F-FA-04-liquidation-communaute', 'DIAGNOSTIC'],
+    // SF-216-08 : ARIPA recouvrement pension alimentaire impayée (FR).
+    ['F-FA-ARIPA-RECOUVREMENT', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],
