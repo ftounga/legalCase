@@ -33,7 +33,9 @@ import { PromoCodeAdminService } from './promo-code-admin.service';
 import {
   PromoCodeCreateRequest,
   PromoCodeDto,
+  PromoCodeDuration,
   PromoCodeType,
+  PromoCodeValueOffType,
 } from './promo-code.model';
 
 /**
@@ -99,12 +101,22 @@ export class SuperAdminPromoCodesComponent implements OnInit {
   /** YYYY-MM-DD du 31 décembre de l'année courante — défaut sensé pour les campagnes annuelles. */
   private readonly defaultExpiresAt = `${new Date().getFullYear()}-12-31`;
 
-  /** Formulaire de création. `valueDays` est conditionnel (TRIAL_EXTENSION uniquement). */
+  /**
+   * Formulaire de création. Champs conditionnels :
+   * - `valueDays` : actif si `type = TRIAL_EXTENSION`.
+   * - `valueOffType`, `valueOffAmount`, `duration` : actifs si `type = STRIPE_DISCOUNT`.
+   * - `currency` : actif si `type = STRIPE_DISCOUNT` ET `valueOffType = AMOUNT`.
+   */
   readonly form: FormGroup = this.fb.group({
     code: ['', [Validators.required, Validators.maxLength(64),
       Validators.pattern(/^[A-Za-z0-9_\- ]+$/)]],
     type: ['TRIAL_EXTENSION' as PromoCodeType, [Validators.required]],
     valueDays: [30, [Validators.required, Validators.min(1), Validators.max(365)]],
+    // SF-255-02b — champs Stripe (branche STRIPE_DISCOUNT)
+    valueOffType: [null as PromoCodeValueOffType | null],
+    valueOffAmount: [null as number | null],
+    currency: [null as string | null],
+    duration: [null as PromoCodeDuration | null],
     partnerLabel: ['', [Validators.required, Validators.maxLength(100)]],
     maxUses: [50, [Validators.required, Validators.min(1), Validators.max(100_000)]],
     expiresAt: [this.defaultExpiresAt, [Validators.required]],
@@ -113,6 +125,12 @@ export class SuperAdminPromoCodesComponent implements OnInit {
   /** Signal dérivé du contrôle `type` (signal effect via reactive forms). */
   private readonly typeSignal = signal<PromoCodeType>('TRIAL_EXTENSION');
   readonly isTrialExtension = computed(() => this.typeSignal() === 'TRIAL_EXTENSION');
+  readonly isStripeDiscount = computed(() => this.typeSignal() === 'STRIPE_DISCOUNT');
+
+  /** Signal dérivé du contrôle `valueOffType` (visibilité du champ `currency`). */
+  private readonly valueOffTypeSignal = signal<PromoCodeValueOffType | null>(null);
+  readonly isAmountOff = computed(() => this.valueOffTypeSignal() === 'AMOUNT');
+  readonly isPercentOff = computed(() => this.valueOffTypeSignal() === 'PERCENT');
 
   ngOnInit(): void {
     if (!this.auth.currentUser()?.isSuperAdmin) {
@@ -121,12 +139,19 @@ export class SuperAdminPromoCodesComponent implements OnInit {
     }
 
     // Suit l'état du contrôle `type` pour activer/désactiver dynamiquement
-    // la validation de `valueDays` et garder la palette computed cohérente.
+    // les validateurs `valueDays` (TRIAL_EXTENSION) et Stripe (STRIPE_DISCOUNT).
     this.form.get('type')!.valueChanges.subscribe((value: PromoCodeType) => {
       this.typeSignal.set(value);
-      this.applyValueDaysValidators(value);
+      this.applyTypeValidators(value);
     });
-    this.applyValueDaysValidators(this.form.get('type')!.value as PromoCodeType);
+    // SF-255-02b — change de min/max sur valueOffAmount + (de)active currency.
+    this.form.get('valueOffType')!.valueChanges.subscribe(
+      (value: PromoCodeValueOffType | null) => {
+        this.valueOffTypeSignal.set(value);
+        this.applyValueOffTypeValidators(value);
+      },
+    );
+    this.applyTypeValidators(this.form.get('type')!.value as PromoCodeType);
 
     this.loadCodes();
   }
@@ -213,6 +238,10 @@ export class SuperAdminPromoCodesComponent implements OnInit {
       code: string;
       type: PromoCodeType;
       valueDays: number | null;
+      valueOffType: PromoCodeValueOffType | null;
+      valueOffAmount: number | null;
+      currency: string | null;
+      duration: PromoCodeDuration | null;
       partnerLabel: string;
       maxUses: number;
       expiresAt: string;
@@ -221,10 +250,17 @@ export class SuperAdminPromoCodesComponent implements OnInit {
     // Le backend impose code en MAJ — on uppercase côté client pour l'aperçu UX.
     // Le datepicker natif HTML renvoie un YYYY-MM-DD ; le backend attend un
     // Instant. On envoie en ISO-8601 fin de journée UTC pour rester cohérent.
+    // SF-255-02b — payload nettoyé : on n'envoie jamais les champs résiduels
+    // de la branche non-active (TRIAL n'envoie pas les Stripe, STRIPE n'envoie
+    // pas valueDays). Le backend refuse les combinaisons mixtes.
     return {
       code: (raw.code ?? '').trim().toUpperCase(),
       type: raw.type,
       valueDays: isStripe ? null : raw.valueDays,
+      valueOffType: isStripe ? raw.valueOffType : null,
+      valueOffAmount: isStripe ? raw.valueOffAmount : null,
+      currency: isStripe && raw.valueOffType === 'AMOUNT' ? raw.currency : null,
+      duration: isStripe ? raw.duration : null,
       partnerLabel: (raw.partnerLabel ?? '').trim(),
       maxUses: raw.maxUses,
       expiresAt: this.toIsoEndOfDay(raw.expiresAt),
@@ -245,16 +281,85 @@ export class SuperAdminPromoCodesComponent implements OnInit {
     return date;
   }
 
-  private applyValueDaysValidators(type: PromoCodeType): void {
-    const ctrl = this.form.get('valueDays')!;
+  /**
+   * SF-255-02b — applique les validateurs conditionnels selon le `type`
+   * sélectionné. TRIAL_EXTENSION active `valueDays`, STRIPE_DISCOUNT active
+   * `valueOffType` + `valueOffAmount` + `duration` (et délègue `currency` +
+   * bornes de `valueOffAmount` à {@link #applyValueOffTypeValidators}).
+   */
+  private applyTypeValidators(type: PromoCodeType): void {
+    const valueDays = this.form.get('valueDays')!;
+    const valueOffType = this.form.get('valueOffType')!;
+    const valueOffAmount = this.form.get('valueOffAmount')!;
+    const currency = this.form.get('currency')!;
+    const duration = this.form.get('duration')!;
+
     if (type === 'TRIAL_EXTENSION') {
-      ctrl.setValidators([Validators.required, Validators.min(1), Validators.max(365)]);
-      ctrl.enable({ emitEvent: false });
+      valueDays.setValidators([Validators.required, Validators.min(1), Validators.max(365)]);
+      valueDays.enable({ emitEvent: false });
+
+      // Nettoyer les validateurs Stripe pour éviter qu'un résidu bloque le submit
+      // après un switch STRIPE → TRIAL_EXTENSION.
+      valueOffType.clearValidators();
+      valueOffAmount.clearValidators();
+      currency.clearValidators();
+      duration.clearValidators();
+      // Reset des valeurs Stripe pour cohérence du signal `isAmountOff`.
+      valueOffType.setValue(null, { emitEvent: false });
+      valueOffAmount.setValue(null, { emitEvent: false });
+      currency.setValue(null, { emitEvent: false });
+      duration.setValue(null, { emitEvent: false });
+      this.valueOffTypeSignal.set(null);
     } else {
-      ctrl.clearValidators();
-      ctrl.disable({ emitEvent: false });
+      // STRIPE_DISCOUNT
+      valueDays.clearValidators();
+      valueDays.disable({ emitEvent: false });
+
+      valueOffType.setValidators([Validators.required]);
+      duration.setValidators([Validators.required]);
+      // Bornes de `valueOffAmount` + `currency` selon `valueOffType` courant.
+      this.applyValueOffTypeValidators(valueOffType.value as PromoCodeValueOffType | null);
     }
-    ctrl.updateValueAndValidity({ emitEvent: false });
+    valueDays.updateValueAndValidity({ emitEvent: false });
+    valueOffType.updateValueAndValidity({ emitEvent: false });
+    valueOffAmount.updateValueAndValidity({ emitEvent: false });
+    currency.updateValueAndValidity({ emitEvent: false });
+    duration.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /**
+   * SF-255-02b — bornes de `valueOffAmount` + (de)activation de `currency`
+   * selon le type de réduction sélectionné.
+   *
+   * <ul>
+   *   <li>{@code PERCENT} → `valueOffAmount` 1..100, `currency` masqué (null).</li>
+   *   <li>{@code AMOUNT} → `valueOffAmount` 100..100000 (centimes EUR, 1€..1000€),
+   *       `currency` requis avec `EUR` pré-rempli.</li>
+   * </ul>
+   */
+  private applyValueOffTypeValidators(valueOffType: PromoCodeValueOffType | null): void {
+    const valueOffAmount = this.form.get('valueOffAmount')!;
+    const currency = this.form.get('currency')!;
+
+    if (valueOffType === 'PERCENT') {
+      valueOffAmount.setValidators([Validators.required, Validators.min(1), Validators.max(100)]);
+      currency.clearValidators();
+      currency.setValue(null, { emitEvent: false });
+    } else if (valueOffType === 'AMOUNT') {
+      valueOffAmount.setValidators([Validators.required, Validators.min(100), Validators.max(100_000)]);
+      currency.setValidators([Validators.required]);
+      // V1 : EUR pré-rempli (seule option disponible côté UI).
+      if (currency.value !== 'EUR') {
+        currency.setValue('EUR', { emitEvent: false });
+      }
+    } else {
+      // valueOffType absent (cas initial STRIPE_DISCOUNT pas encore choisi).
+      valueOffAmount.clearValidators();
+      currency.clearValidators();
+      currency.setValue(null, { emitEvent: false });
+    }
+    valueOffAmount.updateValueAndValidity({ emitEvent: false });
+    currency.updateValueAndValidity({ emitEvent: false });
   }
 
   private resetForm(): void {
@@ -262,12 +367,17 @@ export class SuperAdminPromoCodesComponent implements OnInit {
       code: '',
       type: 'TRIAL_EXTENSION' as PromoCodeType,
       valueDays: 30,
+      valueOffType: null,
+      valueOffAmount: null,
+      currency: null,
+      duration: null,
       partnerLabel: '',
       maxUses: 50,
       expiresAt: this.defaultExpiresAt,
     });
     this.typeSignal.set('TRIAL_EXTENSION');
-    this.applyValueDaysValidators('TRIAL_EXTENSION');
+    this.valueOffTypeSignal.set(null);
+    this.applyTypeValidators('TRIAL_EXTENSION');
   }
 
   private handleError(err: HttpErrorLike, fallback: string): void {
