@@ -20,6 +20,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
 import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
@@ -68,11 +69,16 @@ const TYPES_BE: TypeRuptureOption[] = [
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
     ProcedureChecksOutputComponent,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './indemnite-comparatif-section.component.html',
   styleUrl: './indemnite-comparatif-section.component.scss'
 })
 export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-01 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-09-comparateur-indemnites';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'COMPARATEUR INDEMNITÉS';
 

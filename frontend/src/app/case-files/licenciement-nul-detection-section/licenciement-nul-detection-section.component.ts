@@ -39,6 +39,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import {
@@ -105,11 +106,16 @@ const AI_MOTIF_TO_PROTECTION_FLAG: Readonly<Record<string, keyof Pick<
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './licenciement-nul-detection-section.component.html',
   styleUrl: './licenciement-nul-detection-section.component.scss',
 })
 export class LicenciementNulDetectionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-01 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-16-licenciement-nul-detection';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'LICENCIEMENT NUL — DÉTECTION (ART. L.1235-3-1)';
 
