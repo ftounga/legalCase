@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="314-seed-f216-donation-partage-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-29 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Donation-partage"
+            (F-FA-DONATION-PARTAGE, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que si
+            le pipeline IA détecte une mention de donation-partage, de
+            répartition anticipée du patrimoine, d'art. 1075 Cciv, d'acte de
+            donation-partage notarié, etc. — trigger `donation_partage_envisagee`
+            lu depuis le sous-objet `donation_partage_detection.envisagee` de
+            `famille_extracted_data` par DecisionToolVisibilityService
+            (méthode addBooleanFlagIfTrueNested, réutilisée depuis SF-216-01
+            / 05 / 07 / 15 / 17 / 19 / 21 / 23 / 25 / 27).
+
+            UUID namespace dédié F-216 (bundle 29) :
+            f1a04002-0000-0000-0000-eeee21600029.
+
+            Base juridique :
+              - art. 1075 à 1075-5 Cciv (donation-partage — conditions et
+                effets) ;
+              - art. 1075-1 Cciv (donation-partage aux petits-enfants par
+                substitution) ;
+              - art. 1075-2 Cciv (donation-partage conjonctive entre les
+                deux parents) ;
+              - art. 1075-3 Cciv (exclusion du rapport successoral) ;
+              - art. 1078 Cciv (gel de la valeur au jour de la donation) ;
+              - art. 1078-1 Cciv (réincorporation de donations antérieures) ;
+              - art. 1080 Cciv (quasi-usufruit en donation-partage) ;
+              - art. 912-928 Cciv (réserve héréditaire / réduction des
+                libéralités excessives).
+
+            Outil single-country FRANCE — l'équivalent BE est régi par les
+            art. 4.243 et s. CC BE (outil F-FA-BE-DONATION-PARTAGE futur,
+            hors périmètre F-216).
+
+            priority 112 — rang spécifique pour le dernier outil P2 famille
+            FR du bundle F-216 V1 (postérieur à F-FA-PARTAGE-NOTARIAL
+            priority 111).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600029', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-DONATION-PARTAGE',
+        'CONTEXTUAL', 'donation_partage_envisagee', 'true', 112);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600029';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

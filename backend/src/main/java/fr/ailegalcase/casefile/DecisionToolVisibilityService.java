@@ -376,6 +376,11 @@ public class DecisionToolVisibilityService {
         // art. 312-316 Cciv + art. 333 al. 1 + Cass. 1ère civ., 19/2/2014).
         addBooleanFlagIfTrueNested(detected, familleNode, "presomption_paternite_detection", "envisagee",
                 "presomption_paternite_envisagee");
+        // === SF-216-29 — 1 flag CONTEXTUAL Famille FR : donation-partage ===
+        // Lire depuis sous-objet `donation_partage_detection.envisagee` (même pattern,
+        // art. 1075 à 1075-5 Cciv + art. 1078, 1078-1, 1080 + art. 912-928).
+        addBooleanFlagIfTrueNested(detected, familleNode, "donation_partage_detection", "envisagee",
+                "donation_partage_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

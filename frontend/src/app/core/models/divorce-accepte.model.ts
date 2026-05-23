@@ -1127,6 +1127,30 @@ export interface FamilleExtractedData {
   declarationSuccessionEcheancDetectee?: string | null;
 
   /**
+   * SF-216-29 : FRANCE — flag CONTEXTUAL indiquant qu'une donation-partage
+   * (art. 1075 à 1075-5 Cciv) est envisagée (mention « donation-partage »,
+   * « partage anticipé », « art. 1075 Cciv », acte notarié de répartition
+   * du patrimoine entre descendants).
+   * Source backend : `donation_partage_detection.envisagee`.
+   */
+  donationPartageEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-29 : FRANCE — true si la donation-partage vise les petits-
+   * enfants par substitution du descendant intermédiaire (art. 1075-1
+   * Cciv — donation-partage transgénérationnelle).
+   * Source backend : `donation_partage_detection.petits_enfants_substitution`.
+   */
+  presencePetitsEnfantsSubstitutionDetectee?: boolean | null;
+
+  /**
+   * SF-216-29 : FRANCE — true si la donation-partage est conjonctive (les
+   * deux parents font une donation commune — art. 1075-2 Cciv).
+   * Source backend : `donation_partage_detection.conjonctive`.
+   */
+  donationPartageConjonctiveDetectee?: boolean | null;
+
+  /**
    * SF-216-25 : FRANCE — flag CONTEXTUAL indiquant qu'une situation de
    * présomption de paternité du mari (application, renversement, désaveu)
    * est envisagée (mention art. 312-316 Cciv, désaveu, présomption mari).

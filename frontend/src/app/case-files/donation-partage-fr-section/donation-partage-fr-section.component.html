@@ -1,0 +1,196 @@
+<!--
+  SF-216-30 : template de l'outil Donation-partage
+  (F-FA-DONATION-PARTAGE, FRANCE uniquement — art. 1075 à 1075-5 Cciv +
+  art. 1078, 1078-1, 1080 + art. 912-928).
+  Pattern : donation-entre-epoux-fr-section.
+-->
+<section class="donation-partage-section"
+         [class.donation-partage-section--collapsed]="collapsed()">
+  <header class="donation-partage-section__header" (click)="toggleCollapse()">
+    <mat-icon class="donation-partage-section__icon">group</mat-icon>
+    <h3 class="donation-partage-section__title">Donation-partage</h3>
+    <span class="donation-partage-section__country">FR</span>
+    <mat-icon class="donation-partage-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="donation-partage-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="donation-partage-banner donation-partage-banner--info"
+         *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, la donation-
+        partage est régie par les <strong>art. 4.243 et s. CC BE</strong>
+        (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="donation-partage-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="donation-partage-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="donation-partage-form__intro">
+          Évalue la pertinence d'une donation-partage : gel de la valeur au
+          jour de la donation (art. 1078 Cciv), exclusion du rapport
+          successoral (art. 1075-3), substitution petits-enfants
+          (art. 1075-1), donation conjonctive (art. 1075-2), réincorporation
+          (art. 1078-1) et alerte quotité disponible (art. 912-928).
+        </p>
+
+        <div class="donation-partage-form__row">
+          <mat-form-field appearance="outline" class="donation-partage-form__field">
+            <mat-label>Nombre de descendants</mat-label>
+            <input matInput type="number" min="1" step="1"
+                   [ngModel]="nombreDescendants()"
+                   (ngModelChange)="onNombreDescendantsChange($event)"
+                   name="nombreDescendants"
+                   required />
+            <mat-hint>Bénéficiaires de la donation-partage</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="donation-partage-form__field">
+            <mat-label>Valeur du patrimoine donné (€)</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="valeurPartageTotal()"
+                   (ngModelChange)="onValeurChange($event)"
+                   name="valeurPartage" />
+          </mat-form-field>
+        </div>
+
+        <div class="donation-partage-form__row">
+          <mat-form-field appearance="outline" class="donation-partage-form__field">
+            <mat-label>Âge donateur 1</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="ageDonateur1()"
+                   (ngModelChange)="onAge1Change($event)"
+                   name="age1" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="donation-partage-form__field"
+                          *ngIf="donationPartageConjonctive()">
+            <mat-label>Âge donateur 2</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="ageDonateur2()"
+                   (ngModelChange)="onAge2Change($event)"
+                   name="age2" />
+            <mat-hint>Requis pour donation-partage conjonctive</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="donation-partage-form__row donation-partage-form__row--checks">
+          <mat-checkbox [checked]="donationPartageConjonctive() === true"
+                        (change)="onConjonctiveChange($event.checked)"
+                        name="conjonctive">
+            Donation-partage conjonctive (les deux parents — art. 1075-2)
+            <small class="donation-partage-form__hint">Donation conjointe des biens propres et communs des deux parents</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="presencePetitsEnfantsParSubstitution() === true"
+                        (change)="onPetitsEnfantsChange($event.checked)"
+                        name="petitsEnfants">
+            Petits-enfants bénéficiaires par substitution (art. 1075-1)
+            <small class="donation-partage-form__hint">Suppose le consentement exprès du descendant intermédiaire</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="respectQuotiteDisponible() === true"
+                        (change)="onRespectQuotiteChange($event.checked)"
+                        name="quotite">
+            Quotité disponible respectée
+            <small class="donation-partage-form__hint">Vérification préalable — art. 912-928 Cciv (sinon action en réduction)</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="donationsAnterieuresAReinorporer() === true"
+                        (change)="onReincorporationChange($event.checked)"
+                        name="reincorporation">
+            Réincorporation de donations antérieures (art. 1078-1)
+            <small class="donation-partage-form__hint">Intégrer une libéralité passée dans la donation-partage pour équilibrer</small>
+          </mat-checkbox>
+        </div>
+
+        <div class="donation-partage-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer la donation-partage' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="donation-partage-result" *ngIf="!showForm() && result() as r">
+        <div class="donation-partage-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>{{ r.alerteQuotite ? 'warning' : 'group' }}</mat-icon>
+          <div>
+            <span class="donation-partage-result__verdict-label">Verdict</span>
+            <strong class="donation-partage-result__verdict-value">
+              {{ interetLabel(r.interet) }}
+              <span *ngIf="!r.conditionsRemplies"> — Conditions à vérifier</span>
+            </strong>
+          </div>
+        </div>
+
+        <div class="donation-partage-result__metrics">
+          <div class="donation-partage-metric">
+            <span class="donation-partage-metric__label">Rapport successoral</span>
+            <strong class="donation-partage-metric__value">
+              {{ r.rapportExclu ? 'Exclu (art. 1075-3)' : 'Applicable' }}
+            </strong>
+          </div>
+          <div class="donation-partage-metric">
+            <span class="donation-partage-metric__label">Alerte quotité</span>
+            <strong class="donation-partage-metric__value">
+              {{ r.alerteQuotite ? 'Quotité dépassée' : 'Conforme' }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="donation-partage-result__base">
+          <h4>Effet du gel de valeur</h4>
+          <p>{{ r.gelValeurEffet }}</p>
+        </div>
+
+        <div class="donation-partage-result__base" *ngIf="r.etapesNotariales.length > 0">
+          <h4>Étapes notariales</h4>
+          <ol>
+            <li *ngFor="let e of r.etapesNotariales">{{ e }}</li>
+          </ol>
+        </div>
+
+        <div class="donation-partage-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="donation-partage-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="donation-partage-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="donation-partage-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="donation-partage-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
