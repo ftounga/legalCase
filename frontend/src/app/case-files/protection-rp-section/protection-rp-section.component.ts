@@ -46,6 +46,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   ProtectionRpSectionPrefillRules,
   computeMotifLicenciement as computeMotifLicenciementRule,
@@ -90,11 +91,16 @@ export type ProtectionRpCoherenceAlert = CoherenceAlert<ProtectionRpAlertField>;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './protection-rp-section.component.html',
   styleUrl: './protection-rp-section.component.scss',
 })
 export class ProtectionRpSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-01 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-30-protection-rp';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PROTECTION DES REPRÉSENTANTS DU PERSONNEL (FR)';
   static readonly TOOL_ICON = 'shield';
