@@ -96,6 +96,9 @@ export class SuperAdminPromoCodesComponent implements OnInit {
     'actions',
   ];
 
+  /** YYYY-MM-DD du 31 décembre de l'année courante — défaut sensé pour les campagnes annuelles. */
+  private readonly defaultExpiresAt = `${new Date().getFullYear()}-12-31`;
+
   /** Formulaire de création. `valueDays` est conditionnel (TRIAL_EXTENSION uniquement). */
   readonly form: FormGroup = this.fb.group({
     code: ['', [Validators.required, Validators.maxLength(64),
@@ -104,7 +107,7 @@ export class SuperAdminPromoCodesComponent implements OnInit {
     valueDays: [30, [Validators.required, Validators.min(1), Validators.max(365)]],
     partnerLabel: ['', [Validators.required, Validators.maxLength(100)]],
     maxUses: [50, [Validators.required, Validators.min(1), Validators.max(100_000)]],
-    expiresAt: ['', [Validators.required]],
+    expiresAt: [this.defaultExpiresAt, [Validators.required]],
   });
 
   /** Signal dérivé du contrôle `type` (signal effect via reactive forms). */
@@ -261,7 +264,7 @@ export class SuperAdminPromoCodesComponent implements OnInit {
       valueDays: 30,
       partnerLabel: '',
       maxUses: 50,
-      expiresAt: '',
+      expiresAt: this.defaultExpiresAt,
     });
     this.typeSignal.set('TRIAL_EXTENSION');
     this.applyValueDaysValidators('TRIAL_EXTENSION');
