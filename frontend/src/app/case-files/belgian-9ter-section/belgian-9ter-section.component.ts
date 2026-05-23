@@ -33,6 +33,7 @@ import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { Belgian9terPrefillRules } from './belgian-9ter-section-prefill-rules';
@@ -96,11 +97,16 @@ export type Belgian9terCoherenceAlert = CoherenceAlert<Belgian9terAlertField>;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './belgian-9ter-section.component.html',
   styleUrl: './belgian-9ter-section.component.scss',
 })
 export class Belgian9terSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-14-9ter-medical-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉGULARISATION 9TER MÉDICAL (BE)';
   static readonly TOOL_ICON = 'medical_services';

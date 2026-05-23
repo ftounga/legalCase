@@ -34,6 +34,7 @@ import {
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -99,11 +100,16 @@ const ANNEE_MAX = 2030;
     MatProgressSpinnerModule, MatSlideToggleModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './avantages-conventionnels-be-section.component.html',
   styleUrl: './avantages-conventionnels-be-section.component.scss',
 })
 export class AvantagesConventionnelsBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-28-avantages-conventionnels-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AVANTAGES CONVENTIONNELS BE';
 
