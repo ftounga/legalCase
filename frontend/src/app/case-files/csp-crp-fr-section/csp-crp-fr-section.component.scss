@@ -1,0 +1,283 @@
+// SF-212-08 — styles de l'outil "CSP/CRP — conformité" (F-DT-44, FR).
+// Pattern : forfait-jours-fr-section.scss (F-DT-50).
+
+:host {
+  display: block;
+}
+
+.csp-section {
+  border: 1px solid var(--mdc-outlined-card-outline-color, #e0e0e0);
+  border-radius: 8px;
+  background: #fff;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.csp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  user-select: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+
+  &:focus-visible {
+    outline: 2px solid #1976d2;
+    outline-offset: -2px;
+  }
+}
+
+.csp-icon {
+  color: #1976d2;
+}
+
+.csp-title {
+  flex: 0 0 auto;
+}
+
+.csp-chip-summary {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-left: auto;
+
+  &--conforme {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+  &--partielle {
+    background: #fff8e1;
+    color: #8d6e00;
+  }
+  &--non-conforme {
+    background: #ffebee;
+    color: #b71c1c;
+  }
+}
+
+.csp-toggle {
+  margin-left: 8px;
+}
+
+.csp-body {
+  padding: 16px;
+}
+
+.csp-country-banner,
+.csp-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  color: #0d47a1;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.csp-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.csp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.csp-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.csp-block-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.csp-inline-field {
+  width: 100%;
+  max-width: 480px;
+}
+
+.csp-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #1976d2;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 12px;
+  align-self: flex-start;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.csp-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.csp-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+
+  &--conforme {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #66bb6a;
+  }
+  &--partielle {
+    background: #fff8e1;
+    color: #8d6e00;
+    border: 1px solid #ffca28;
+  }
+  &--non-conforme {
+    background: #ffebee;
+    color: #b71c1c;
+    border: 1px solid #ef5350;
+  }
+}
+
+.csp-verdict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.csp-verdict-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.csp-verdict-score {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.csp-asp-block,
+.csp-points-block,
+.csp-messages-block,
+.csp-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
+  margin-top: 12px;
+}
+
+.csp-asp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th, td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+  }
+  th {
+    color: #555;
+    font-weight: 500;
+  }
+  td {
+    color: #222;
+    font-weight: 500;
+  }
+
+  .csp-asp-total {
+    th, td {
+      font-weight: 700;
+      border-top: 2px solid #1976d2;
+      border-bottom: none;
+      padding-top: 10px;
+    }
+    td {
+      color: #1b5e20;
+      font-size: 1.05rem;
+    }
+  }
+}
+
+.csp-points-list,
+.csp-messages-list,
+.csp-bases-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.csp-point {
+  padding: 8px;
+  border-left: 3px solid #ef5350;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.csp-point-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.csp-point-fondement {
+  font-size: 0.8rem;
+  color: #555;
+  margin-top: 4px;
+}
+
+.csp-point-explication {
+  font-size: 0.88rem;
+  margin-top: 4px;
+  color: #333;
+}
+
+.csp-messages-list li,
+.csp-bases-list li {
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  font-size: 0.88rem;
+  &:last-child {
+    border-bottom: none;
+  }
+}
