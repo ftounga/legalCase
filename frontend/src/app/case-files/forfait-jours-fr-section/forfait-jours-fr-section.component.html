@@ -1,0 +1,256 @@
+<section class="fj-section">
+  <header class="fj-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="fj-body">
+    <mat-icon class="fj-icon">event_available</mat-icon>
+    <span class="fj-title">FORFAIT JOURS — VALIDITÉ</span>
+    @if (result()) {
+      <span class="fj-chip-summary"
+            [class.fj-chip-summary--valide]="result()!.validiteForfait === 'VALIDE'"
+            [class.fj-chip-summary--partielle]="result()!.validiteForfait === 'PARTIELLEMENT_NULLE'"
+            [class.fj-chip-summary--nulle]="result()!.validiteForfait === 'NULLE'">
+        {{ verdictBannerLabel(result()!.validiteForfait) }} — score {{ result()!.scoreValidite }} / 100
+      </span>
+    }
+    <mat-icon class="fj-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="fj-body" class="fj-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="fj-country-banner" data-testid="fj-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 3121-58 à L. 3121-66 CT — le régime forfait jours avec garanties post-Cass. soc. 29/06/2011 est strictement français).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="fj-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="fj-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Accord collectif et garanties (Cass. soc. 29/06/2011) -->
+            <div class="fj-block fj-full">
+              <span class="fj-block-label">Accord collectif et garanties</span>
+
+              <mat-slide-toggle
+                  [ngModel]="accordCollectifExiste()"
+                  (ngModelChange)="onAccordCollectifChange($event)"
+                  name="accordCollectifExiste"
+                  data-testid="fj-toggle-accord-collectif">
+                Accord collectif d'entreprise ou de branche autorisant le forfait (L. 3121-63 CT)
+              </mat-slide-toggle>
+              @if (provenanceAccordCollectif() === 'IA') {
+                <span class="fj-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-slide-toggle
+                  [ngModel]="accordGarantitSuiviCharge()"
+                  (ngModelChange)="onAccordGarantitChange($event)"
+                  [disabled]="!accordCollectifExiste()"
+                  name="accordGarantitSuiviCharge"
+                  data-testid="fj-toggle-accord-garantit">
+                Accord prévoit un mécanisme effectif de suivi de la charge (Cass. soc. 29/06/2011 n°09-71.107)
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Bloc 2 — Contrôle et entretien annuel -->
+            <div class="fj-block fj-full">
+              <span class="fj-block-label">Suivi individuel</span>
+
+              <mat-slide-toggle
+                  [ngModel]="entretienAnnuelRealise()"
+                  (ngModelChange)="onEntretienAnnuelChange($event)"
+                  name="entretienAnnuelRealise"
+                  data-testid="fj-toggle-entretien">
+                Entretien annuel sur la charge de travail formalisé (L. 3121-65 CT)
+              </mat-slide-toggle>
+              @if (provenanceEntretienAnnuel() === 'IA') {
+                <span class="fj-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-slide-toggle
+                  [ngModel]="documentControleMensuelExiste()"
+                  (ngModelChange)="onDocumentControleChange($event)"
+                  name="documentControleMensuelExiste"
+                  data-testid="fj-toggle-doc-controle">
+                Document de contrôle mensuel des jours travaillés (L. 3121-66 CT)
+              </mat-slide-toggle>
+              @if (provenanceDocumentControle() === 'IA') {
+                <span class="fj-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-slide-toggle
+                  [ngModel]="categorieAutonomeConfirmee()"
+                  (ngModelChange)="onCategorieAutonomeChange($event)"
+                  name="categorieAutonomeConfirmee"
+                  data-testid="fj-toggle-categorie">
+                Salarié relève de la catégorie cadre autonome / ETAM maîtrisant son temps (L. 3121-58 CT)
+              </mat-slide-toggle>
+              @if (provenanceCategorieAutonome() === 'IA') {
+                <span class="fj-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 3 — Paramètres numériques -->
+            <div class="fj-block fj-full">
+              <span class="fj-block-label">Paramètres</span>
+
+              <mat-form-field appearance="outline" class="fj-inline-field">
+                <mat-label>Nombre de jours du forfait annuel (plafond légal 218 — L. 3121-64 CT)</mat-label>
+                <input matInput type="number" min="0" max="365"
+                       [ngModel]="nbJoursForfait()"
+                       (ngModelChange)="onNbJoursForfaitChange($event)"
+                       name="nbJoursForfait"
+                       data-testid="fj-input-nb-jours" />
+              </mat-form-field>
+              @if (provenanceNbJours() === 'IA') {
+                <span class="fj-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="fj-inline-field">
+                <mat-label>Ancienneté du salarié (en mois)</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="ancienneteMois()"
+                       (ngModelChange)="onAncienneteMoisChange($event)"
+                       name="ancienneteMois"
+                       data-testid="fj-input-anciennete" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="fj-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="100"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="fj-input-salaire" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="fj-inline-field">
+                <mat-label>Heures supplémentaires estimées par semaine</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="hsEstimeesParSemaine()"
+                       (ngModelChange)="onHsEstimeesChange($event)"
+                       name="hsEstimeesParSemaine"
+                       data-testid="fj-input-hs-sem" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="fj-inline-field">
+                <mat-label>Nombre de semaines travaillées par an</mat-label>
+                <input matInput type="number" min="0" max="52"
+                       [ngModel]="nbSemainesParAn()"
+                       (ngModelChange)="onNbSemainesParAnChange($event)"
+                       name="nbSemainesParAn"
+                       data-testid="fj-input-nb-sem" />
+              </mat-form-field>
+            </div>
+
+            <div class="fj-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="fj-btn-calculate">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <span>Analyser la validité du forfait</span>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <!-- Affichage du résultat -->
+          <div [class]="verdictBannerClass(result()!.validiteForfait)" data-testid="fj-verdict-banner">
+            <mat-icon>{{ verdictBannerIcon(result()!.validiteForfait) }}</mat-icon>
+            <div class="fj-verdict-body">
+              <div class="fj-verdict-title">{{ verdictBannerLabel(result()!.validiteForfait) }}</div>
+              <div class="fj-verdict-score">Score de validité : {{ result()!.scoreValidite }} / 100</div>
+            </div>
+          </div>
+
+          @if (result()!.rappelHsEstimeEuros !== null) {
+            <div class="fj-rappel-block" data-testid="fj-rappel-block">
+              <span class="fj-block-label">Rappel d'heures supplémentaires estimé</span>
+              <table class="fj-rappel-table">
+                <tbody>
+                  <tr>
+                    <th scope="row">HS estimées par semaine</th>
+                    <td>{{ result()!.hsEstimeesParSemaine }} h</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Semaines par an</th>
+                    <td>{{ result()!.nbSemainesParAn }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Prescription</th>
+                    <td>{{ result()!.prescriptionRappelAns }} ans (L. 3245-1 CT)</td>
+                  </tr>
+                  <tr class="fj-rappel-total">
+                    <th scope="row">Rappel HS estimé sur {{ result()!.prescriptionRappelAns }} ans</th>
+                    <td data-testid="fj-rappel-amount">{{ formatEuros(result()!.rappelHsEstimeEuros) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          }
+
+          @if (result()!.facteursInvalidite.length > 0) {
+            <div class="fj-facteurs-block">
+              <span class="fj-block-label">Facteurs d'invalidité détectés</span>
+              <ul class="fj-facteurs-list">
+                @for (f of result()!.facteursInvalidite; track facteurTrackKey($index, f)) {
+                  <li class="fj-facteur">
+                    <div class="fj-facteur-head">
+                      <mat-icon>error_outline</mat-icon>
+                      <span class="fj-facteur-libelle">{{ f.libelle }}</span>
+                    </div>
+                    <div class="fj-facteur-fondement">{{ f.fondement | legalCitations }}</div>
+                    <div class="fj-facteur-explication">{{ f.explication }}</div>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result()!.messages.length > 0) {
+            <div class="fj-messages-block">
+              <span class="fj-block-label">Messages</span>
+              <ul class="fj-messages-list">
+                @for (m of result()!.messages; track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result()!.basesJuridiques.length > 0) {
+            <div class="fj-bases-block">
+              <span class="fj-block-label">Bases juridiques</span>
+              <ul class="fj-bases-list">
+                @for (b of result()!.basesJuridiques; track b) {
+                  <li>{{ b | legalCitations }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="fj-actions">
+            <button mat-stroked-button type="button" (click)="editMode()" data-testid="fj-btn-edit">
+              <mat-icon>edit</mat-icon>
+              Modifier les données et recalculer
+            </button>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

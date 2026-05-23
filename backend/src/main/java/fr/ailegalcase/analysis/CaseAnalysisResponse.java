@@ -519,7 +519,17 @@ public record CaseAnalysisResponse(
             String fauteGraveQualificationEmployeur,
             Boolean fauteGraveIntentionNuireAlleeguee,
             Integer fauteGraveAncienneteMois,
-            Double fauteGraveSalaireMensuelBrut) {
+            Double fauteGraveSalaireMensuelBrut,
+            // SF-212-03 : 5 champs IA pour pré-fill F-DT-50-forfait-jours-validite
+            // (Travail FR uniquement, nullables). Sous-objet `forfait_jours_detail`.
+            // Le régime forfait jours L.3121-58+ CT (avec exigence post-Cass. soc.
+            // 29/06/2011 sur l'effectivité du suivi de la charge) est un mécanisme
+            // franco-français — ces champs restent null pour la BE.
+            Boolean forfaitJoursAccordCollectifExiste,
+            Boolean forfaitJoursEntretienAnnuelRealise,
+            Boolean forfaitJoursDocumentControle,
+            Boolean forfaitJoursCategorieAutonome,
+            Integer forfaitJoursNbJours) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -750,7 +760,13 @@ public record CaseAnalysisResponse(
                     .fauteGraveQualificationEmployeur(fauteGraveQualificationEmployeur)
                     .fauteGraveIntentionNuireAlleeguee(fauteGraveIntentionNuireAlleeguee)
                     .fauteGraveAncienneteMois(fauteGraveAncienneteMois)
-                    .fauteGraveSalaireMensuelBrut(fauteGraveSalaireMensuelBrut);
+                    .fauteGraveSalaireMensuelBrut(fauteGraveSalaireMensuelBrut)
+                    // SF-212-03 — forfait_jours_detail (FRANCE uniquement)
+                    .forfaitJoursAccordCollectifExiste(forfaitJoursAccordCollectifExiste)
+                    .forfaitJoursEntretienAnnuelRealise(forfaitJoursEntretienAnnuelRealise)
+                    .forfaitJoursDocumentControle(forfaitJoursDocumentControle)
+                    .forfaitJoursCategorieAutonome(forfaitJoursCategorieAutonome)
+                    .forfaitJoursNbJours(forfaitJoursNbJours);
         }
 
         public static final class Builder {
@@ -976,6 +992,12 @@ public record CaseAnalysisResponse(
             private Boolean fauteGraveIntentionNuireAlleeguee;
             private Integer fauteGraveAncienneteMois;
             private Double fauteGraveSalaireMensuelBrut;
+            // SF-212-03 — forfait_jours_detail (FRANCE uniquement)
+            private Boolean forfaitJoursAccordCollectifExiste;
+            private Boolean forfaitJoursEntretienAnnuelRealise;
+            private Boolean forfaitJoursDocumentControle;
+            private Boolean forfaitJoursCategorieAutonome;
+            private Integer forfaitJoursNbJours;
 
             private Builder() {}
 
@@ -1196,6 +1218,12 @@ public record CaseAnalysisResponse(
             public Builder fauteGraveIntentionNuireAlleeguee(Boolean v) { this.fauteGraveIntentionNuireAlleeguee = v; return this; }
             public Builder fauteGraveAncienneteMois(Integer v) { this.fauteGraveAncienneteMois = v; return this; }
             public Builder fauteGraveSalaireMensuelBrut(Double v) { this.fauteGraveSalaireMensuelBrut = v; return this; }
+            // SF-212-03 — forfait_jours_detail (FRANCE uniquement)
+            public Builder forfaitJoursAccordCollectifExiste(Boolean v) { this.forfaitJoursAccordCollectifExiste = v; return this; }
+            public Builder forfaitJoursEntretienAnnuelRealise(Boolean v) { this.forfaitJoursEntretienAnnuelRealise = v; return this; }
+            public Builder forfaitJoursDocumentControle(Boolean v) { this.forfaitJoursDocumentControle = v; return this; }
+            public Builder forfaitJoursCategorieAutonome(Boolean v) { this.forfaitJoursCategorieAutonome = v; return this; }
+            public Builder forfaitJoursNbJours(Integer v) { this.forfaitJoursNbJours = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1317,7 +1345,11 @@ public record CaseAnalysisResponse(
                         // SF-212-01 — faute_grave_detail (FRANCE uniquement)
                         fauteGraveFaitsReproches, fauteGraveDatesFaits,
                         fauteGraveQualificationEmployeur, fauteGraveIntentionNuireAlleeguee,
-                        fauteGraveAncienneteMois, fauteGraveSalaireMensuelBrut);
+                        fauteGraveAncienneteMois, fauteGraveSalaireMensuelBrut,
+                        // SF-212-03 — forfait_jours_detail (FRANCE uniquement)
+                        forfaitJoursAccordCollectifExiste, forfaitJoursEntretienAnnuelRealise,
+                        forfaitJoursDocumentControle, forfaitJoursCategorieAutonome,
+                        forfaitJoursNbJours);
             }
         }
     }
@@ -1482,6 +1514,14 @@ public record CaseAnalysisResponse(
     static final Set<String> QUALIFICATION_FAUTE_CODES = Set.of(
             "FAUTE_SIMPLE", "FAUTE_GRAVE", "FAUTE_LOURDE"
     );
+
+    /**
+     * SF-212-03 : borne haute du nombre de jours du forfait jours (F-DT-50).
+     * 235 = plafond admis même en cas d'accord collectif majoré (L. 3121-64 CT).
+     * Au-delà, la valeur est jugée aberrante par {@code boundedIntOrNull} et
+     * ramenée à {@code null}.
+     */
+    static final int MAX_FORFAIT_JOURS_NB_JOURS = 235;
 
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
@@ -3832,6 +3872,13 @@ public record CaseAnalysisResponse(
             // strictement française — L.1234-1 s. CT).
             JsonNode fauteGrave = node.get("faute_grave_detail");
             boolean hasFauteGrave = fauteGrave != null && fauteGrave.isObject();
+            // SF-212-03 : sous-objet pour pré-fill F-DT-50-forfait-jours-validite
+            // (validité de la convention de forfait jours sur l'année). Peut
+            // être absent (dossier sans clause de forfait ou dossier BE) →
+            // tous les 5 champs null. Le prompt impose null pour la BE
+            // (régime forfait jours L.3121-58+ CT strictement français).
+            JsonNode forfaitJours = node.get("forfait_jours_detail");
+            boolean hasForfaitJours = forfaitJours != null && forfaitJours.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4134,6 +4181,16 @@ public record CaseAnalysisResponse(
                     .fauteGraveIntentionNuireAlleeguee(hasFauteGrave ? booleanOrNull(fauteGrave, "faute_grave_intention_nuire_alleeguee") : null)
                     .fauteGraveAncienneteMois(hasFauteGrave ? boundedIntOrNull(fauteGrave, "faute_grave_anciennete_mois", 0, MAX_FAUTE_GRAVE_ANCIENNETE_MOIS) : null)
                     .fauteGraveSalaireMensuelBrut(hasFauteGrave ? positiveDoubleOrNull(fauteGrave, "faute_grave_salaire_mensuel_brut") : null)
+                    // SF-212-03 : 5 champs IA pour pré-fill F-DT-50 (forfait jours
+                    // validité, FRANCE uniquement). Booléens tri-état (null si non
+                    // déterminable), nombre de jours entier borné [0, 235] (au-delà
+                    // = ramené à null). Tous null si sous-objet `forfait_jours_detail`
+                    // absent (dossier sans clause de forfait ou dossier BE).
+                    .forfaitJoursAccordCollectifExiste(hasForfaitJours ? booleanOrNull(forfaitJours, "forfait_jours_accord_collectif_existe") : null)
+                    .forfaitJoursEntretienAnnuelRealise(hasForfaitJours ? booleanOrNull(forfaitJours, "forfait_jours_entretien_annuel_realise") : null)
+                    .forfaitJoursDocumentControle(hasForfaitJours ? booleanOrNull(forfaitJours, "forfait_jours_document_controle") : null)
+                    .forfaitJoursCategorieAutonome(hasForfaitJours ? booleanOrNull(forfaitJours, "forfait_jours_categorie_autonome") : null)
+                    .forfaitJoursNbJours(hasForfaitJours ? boundedIntOrNull(forfaitJours, "forfait_jours_nb_jours", 0, MAX_FORFAIT_JOURS_NB_JOURS) : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }
