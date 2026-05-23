@@ -2508,7 +2508,14 @@ public record CaseAnalysisResponse(
             Boolean presomptionPaterniteEnvisagee,     // FR — CONTEXTUAL : mention art. 312-316 / désaveu paternité / présomption mari
             Boolean desaveuEnvisage,                   // FR — true si action en désaveu (art. 316 al. 2 Cciv) documentée
             String dateConclusionMariageDetectee,      // FR — date conclusion du mariage extraite (ISO YYYY-MM-DD)
-            String dateDissolutionMariageDetectee) {   // FR — date dissolution du mariage extraite (ISO YYYY-MM-DD)
+            String dateDissolutionMariageDetectee,     // FR — date dissolution du mariage extraite (ISO YYYY-MM-DD)
+            // SF-216-29 : 3 champs IA donation-partage FR.
+            // Source : `famille_extracted_data.donation_partage_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // donationPartageEnvisagee active la visibilité CONTEXTUAL F-IA-04.
+            Boolean donationPartageEnvisagee,          // FR — CONTEXTUAL : mention art. 1075 / donation-partage / répartir patrimoine aux enfants
+            Boolean presencePetitsEnfantsSubstitutionDetectee, // FR — true si petits-enfants bénéficiaires par substitution (art. 1075-1) documenté
+            Boolean donationPartageConjonctiveDetectee) { // FR — true si donation conjointe des deux parents (art. 1075-2) documentée
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2943,6 +2950,13 @@ public record CaseAnalysisResponse(
             public Builder desaveuEnvisage(Boolean v) { this.desaveuEnvisage = v; return this; }
             public Builder dateConclusionMariageDetectee(String v) { this.dateConclusionMariageDetectee = v; return this; }
             public Builder dateDissolutionMariageDetectee(String v) { this.dateDissolutionMariageDetectee = v; return this; }
+            // SF-216-29 : setters des 3 champs IA donation-partage FR.
+            private Boolean donationPartageEnvisagee;
+            private Boolean presencePetitsEnfantsSubstitutionDetectee;
+            private Boolean donationPartageConjonctiveDetectee;
+            public Builder donationPartageEnvisagee(Boolean v) { this.donationPartageEnvisagee = v; return this; }
+            public Builder presencePetitsEnfantsSubstitutionDetectee(Boolean v) { this.presencePetitsEnfantsSubstitutionDetectee = v; return this; }
+            public Builder donationPartageConjonctiveDetectee(Boolean v) { this.donationPartageConjonctiveDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3120,7 +3134,11 @@ public record CaseAnalysisResponse(
                         presomptionPaterniteEnvisagee,
                         desaveuEnvisage,
                         dateConclusionMariageDetectee,
-                        dateDissolutionMariageDetectee);
+                        dateDissolutionMariageDetectee,
+                        // SF-216-29 : 3 champs IA donation-partage FR.
+                        donationPartageEnvisagee,
+                        presencePetitsEnfantsSubstitutionDetectee,
+                        donationPartageConjonctiveDetectee);
             }
         }
     }
@@ -5677,6 +5695,21 @@ public record CaseAnalysisResponse(
                 || desaveuEnvisage != null
                 || dateConclusionMariageDetectee != null
                 || dateDissolutionMariageDetectee != null;
+        // SF-216-29 : sous-objet `donation_partage_detection` — 3 champs IA
+        // pour la donation-partage FR (art. 1075 à 1075-5 Cciv + art. 1078,
+        // 1078-1, 1080 + art. 912-928).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode donPartage = node.get("donation_partage_detection");
+        boolean donPartageObject = donPartage != null && donPartage.isObject();
+        Boolean donationPartageEnvisagee = donPartageObject
+                ? booleanOrNull(donPartage, "envisagee") : null;
+        Boolean presencePetitsEnfantsSubstitutionDetectee = donPartageObject
+                ? booleanOrNull(donPartage, "petits_enfants_substitution") : null;
+        Boolean donationPartageConjonctiveDetectee = donPartageObject
+                ? booleanOrNull(donPartage, "conjonctive") : null;
+        boolean sf216_29Present = donationPartageEnvisagee != null
+                || presencePetitsEnfantsSubstitutionDetectee != null
+                || donationPartageConjonctiveDetectee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5729,7 +5762,8 @@ public record CaseAnalysisResponse(
                 && !sf216_21Present
                 && !sf216_23Present
                 && !sf216_27Present
-                && !sf216_25Present) {
+                && !sf216_25Present
+                && !sf216_29Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5954,6 +5988,10 @@ public record CaseAnalysisResponse(
                 .desaveuEnvisage(desaveuEnvisage)
                 .dateConclusionMariageDetectee(dateConclusionMariageDetectee)
                 .dateDissolutionMariageDetectee(dateDissolutionMariageDetectee)
+                // SF-216-29 : 3 champs IA donation-partage FR.
+                .donationPartageEnvisagee(donationPartageEnvisagee)
+                .presencePetitsEnfantsSubstitutionDetectee(presencePetitsEnfantsSubstitutionDetectee)
+                .donationPartageConjonctiveDetectee(donationPartageConjonctiveDetectee)
                 .build();
     }
 

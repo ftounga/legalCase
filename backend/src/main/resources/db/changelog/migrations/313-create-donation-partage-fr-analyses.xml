@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600029" author="legalcase">
+        <comment>
+            SF-216-29 : table dédiée à l'outil décisionnel "Donation-partage"
+            (F-FA-DONATION-PARTAGE, FRANCE — art. 1075 à 1075-5 Cciv +
+            art. 1078-1 Cciv + art. 1080 Cciv + art. 912-928 Cciv).
+
+            Outil dédié à la donation-partage (libéralité-partage anticipée
+            avec attribution divise et fixation de la valeur au jour de
+            l'acte) :
+              - gel de la valeur au jour de la donation (art. 1078 Cciv) ;
+              - exclusion du rapport successoral (art. 1075-3 Cciv) ;
+              - donation-partage aux petits-enfants avec substitution
+                (art. 1075-1 Cciv) ;
+              - donation-partage conjonctive entre les deux parents
+                (art. 1075-2 Cciv) ;
+              - réincorporation de donations antérieures (art. 1078-1 Cciv) ;
+              - quasi-usufruit en donation-partage (art. 1080 Cciv) ;
+              - réduction pour atteinte à la réserve (art. 912-928 Cciv).
+
+            Distinct des outils successoraux F-FA-24-* (acceptation /
+            renonciation / dévolution / partage / réserve), de l'outil
+            F-FA-DONATION-ENTRE-EPOUX (SF-216-23) et de l'outil
+            F-FA-24-donation (donation entre vifs générique).
+
+            Outil single-country FRANCE — l'équivalent BE est régi par les
+            art. 4.243 et suivants CC BE (outil F-FA-BE-DONATION-PARTAGE
+            futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI
+            sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 314
+            (couplé à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            pattern SF-216-01 / 05 / 07 / 15 / 17 / 19 / 21 / 23 / 25 / 27).
+        </comment>
+
+        <createTable tableName="donation_partage_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_donation_partage_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="donation_partage_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_donation_partage_analyses_case_file"/>
+
+        <createIndex tableName="donation_partage_analyses"
+                     indexName="idx_donation_partage_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="donation_partage_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
