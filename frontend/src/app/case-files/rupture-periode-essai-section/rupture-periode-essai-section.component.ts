@@ -29,6 +29,7 @@ import {
 } from '../../core/models/rupture-periode-essai.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { RupturePeriodeEssaiSectionPrefillRules } from './rupture-periode-essai-section-prefill-rules';
 
@@ -63,11 +64,16 @@ import { RupturePeriodeEssaiSectionPrefillRules } from './rupture-periode-essai-
     MatSlideToggleModule, MatProgressSpinnerModule,
     MatSelectModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './rupture-periode-essai-section.component.html',
   styleUrl: './rupture-periode-essai-section.component.scss',
 })
 export class RupturePeriodeEssaiSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-01 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-38-rupture-periode-essai';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'RUPTURE DE PÉRIODE D\'ESSAI';
   static readonly TOOL_ICON = 'gavel';
