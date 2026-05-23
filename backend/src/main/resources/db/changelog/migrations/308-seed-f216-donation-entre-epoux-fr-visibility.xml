@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="308-seed-f216-donation-entre-epoux-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-23 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Donation entre époux"
+            (F-FA-DONATION-ENTRE-EPOUX, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que si
+            le pipeline IA détecte une mention de donation entre époux,
+            d'avantage matrimonial, d'art. 1096 Cciv, de donation au dernier
+            vivant, de clause d'attribution intégrale, de testament conjugal,
+            etc. — trigger `donation_entre_epoux_envisagee` lu depuis le
+            sous-objet `donation_entre_epoux_detection.envisagee` de
+            `famille_extracted_data` par DecisionToolVisibilityService
+            (méthode addBooleanFlagIfTrueNested, réutilisée depuis SF-216-01
+            / SF-216-05 / SF-216-07 / SF-216-15 / SF-216-17 / SF-216-19).
+
+            UUID namespace dédié F-216 (bundle 23) :
+            f1a04002-0000-0000-0000-eeee21600023.
+
+            Base juridique :
+              - art. 1091-1100 Cciv (donation entre époux — régime général) ;
+              - art. 1096 Cciv (révocabilité ad nutum jusqu'au décès, sauf
+                biens présents dans certains régimes) ;
+              - art. 265 al. 2 Cciv (révocation de plein droit en cas de
+                divorce) ;
+              - art. 1527 al. 2 Cciv (action en retranchement enfants non
+                communs — avantage matrimonial excessif) ;
+              - art. 912-928 Cciv (réserve héréditaire / réduction des
+                libéralités excessives) ;
+              - Cass. 1ère civ., 4 juin 2014 (distinction avantage
+                matrimonial / libéralité).
+
+            Outil single-country FRANCE — l'équivalent BE est régi par les
+            art. 4.243 et s. CC BE (outil F-FA-BE-DONATION-EPOUX futur,
+            hors périmètre F-216).
+
+            priority 109 — rang spécifique pour un outil P2 famille FR
+            postérieur à F-FA-INDIGNITE-SUCCESSORALE (priority 107).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600023', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-DONATION-ENTRE-EPOUX',
+        'CONTEXTUAL', 'donation_entre_epoux_envisagee', 'true', 109);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600023';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

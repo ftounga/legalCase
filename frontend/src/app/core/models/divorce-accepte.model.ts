@@ -1074,4 +1074,29 @@ export interface FamilleExtractedData {
    * Source backend : `recel_succession_detection.preuve_recel`.
    */
   preuveRecelDetectee?: string | null;
+
+  /**
+   * SF-216-23 : FRANCE — flag CONTEXTUAL indiquant qu'une donation entre
+   * époux ou un avantage matrimonial est envisagé (mention art. 1096
+   * Cciv, donation au dernier vivant, clause d'attribution intégrale,
+   * etc.).
+   * Source backend : `donation_entre_epoux_detection.envisagee`.
+   */
+  donationEntreEpouxEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-23 : FRANCE — true si une révocation expresse (testament
+   * postérieur, acte notarié) ou tacite (faits incompatibles) de la
+   * donation entre époux est documentée dans les pièces (art. 1096
+   * al. 2 Cciv).
+   * Source backend : `donation_entre_epoux_detection.revocabilite_detectee`.
+   */
+  revocabiliteDetectee?: boolean | null;
+
+  /**
+   * SF-216-23 : FRANCE — type principal du bien donné identifié dans
+   * les pièces (IMMOBILIER, MOBILIER, PORTEFEUILLE, NUMERAIRE, AUTRE).
+   * Source backend : `donation_entre_epoux_detection.bien_donne_principal_type`.
+   */
+  bienDonnePrincipalType?: string | null;
 }

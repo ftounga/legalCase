@@ -2486,7 +2486,14 @@ public record CaseAnalysisResponse(
             // recelSuccessoralEnvisage active la visibilité CONTEXTUAL F-IA-04.
             Boolean recelSuccessoralEnvisage,          // FR — CONTEXTUAL : mention art. 778 / recel succession / bien dissimulé
             String typeRecelDetecte,                   // FR — type de recel qualifié dans les pièces (DISSIMULATION_BIEN, DESTRUCTION_TESTAMENT, etc.)
-            String preuveRecelDetectee) {              // FR — nature de la preuve mentionnée (AVEUX, DOCUMENT, TEMOIGNAGE, FAISCEAU_INDICES, etc.)
+            String preuveRecelDetectee,                // FR — nature de la preuve mentionnée (AVEUX, DOCUMENT, TEMOIGNAGE, FAISCEAU_INDICES, etc.)
+            // SF-216-23 : 3 champs IA donation entre époux FR.
+            // Source : `famille_extracted_data.donation_entre_epoux_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // donationEntreEpouxEnvisagee active la visibilité CONTEXTUAL F-IA-04.
+            Boolean donationEntreEpouxEnvisagee,       // FR — CONTEXTUAL : mention art. 1096 / donation au dernier vivant / avantage matrimonial
+            Boolean revocabiliteDetectee,              // FR — true si révocation expresse / tacite détectée (art. 1096 al. 2)
+            String bienDonnePrincipalType) {           // FR — type de bien donné identifié (IMMOBILIER, MOBILIER, PORTEFEUILLE, NUMERAIRE, AUTRE)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2898,6 +2905,13 @@ public record CaseAnalysisResponse(
             public Builder recelSuccessoralEnvisage(Boolean v) { this.recelSuccessoralEnvisage = v; return this; }
             public Builder typeRecelDetecte(String v) { this.typeRecelDetecte = v; return this; }
             public Builder preuveRecelDetectee(String v) { this.preuveRecelDetectee = v; return this; }
+            // SF-216-23 : setters des 3 champs IA donation entre époux FR.
+            private Boolean donationEntreEpouxEnvisagee;
+            private Boolean revocabiliteDetectee;
+            private String bienDonnePrincipalType;
+            public Builder donationEntreEpouxEnvisagee(Boolean v) { this.donationEntreEpouxEnvisagee = v; return this; }
+            public Builder revocabiliteDetectee(Boolean v) { this.revocabiliteDetectee = v; return this; }
+            public Builder bienDonnePrincipalType(String v) { this.bienDonnePrincipalType = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3062,7 +3076,11 @@ public record CaseAnalysisResponse(
                         // SF-216-21 : 3 champs IA recel successoral FR.
                         recelSuccessoralEnvisage,
                         typeRecelDetecte,
-                        preuveRecelDetectee);
+                        preuveRecelDetectee,
+                        // SF-216-23 : 3 champs IA donation entre époux FR.
+                        donationEntreEpouxEnvisagee,
+                        revocabiliteDetectee,
+                        bienDonnePrincipalType);
             }
         }
     }
@@ -5572,6 +5590,20 @@ public record CaseAnalysisResponse(
         boolean sf216_21Present = recelSuccessoralEnvisage != null
                 || typeRecelDetecte != null
                 || preuveRecelDetectee != null;
+        // SF-216-23 : sous-objet `donation_entre_epoux_detection` — 3 champs IA
+        // pour la donation entre époux FR (art. 1091-1100 Cciv + art. 265 al. 2
+        // + art. 1527 al. 2 + art. 912-928).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode donEp = node.get("donation_entre_epoux_detection");
+        boolean donEpObject = donEp != null && donEp.isObject();
+        Boolean donationEntreEpouxEnvisagee = donEpObject ? booleanOrNull(donEp, "envisagee") : null;
+        Boolean revocabiliteDetectee = donEpObject
+                ? booleanOrNull(donEp, "revocabilite_detectee") : null;
+        String bienDonnePrincipalType = donEpObject
+                ? textOrNull(donEp, "bien_donne_principal_type") : null;
+        boolean sf216_23Present = donationEntreEpouxEnvisagee != null
+                || revocabiliteDetectee != null
+                || bienDonnePrincipalType != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5621,7 +5653,8 @@ public record CaseAnalysisResponse(
                 && !sf216_17Present
                 && !sf216_13Present
                 && !sf216_19Present
-                && !sf216_21Present) {
+                && !sf216_21Present
+                && !sf216_23Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5833,6 +5866,10 @@ public record CaseAnalysisResponse(
                 .recelSuccessoralEnvisage(recelSuccessoralEnvisage)
                 .typeRecelDetecte(typeRecelDetecte)
                 .preuveRecelDetectee(preuveRecelDetectee)
+                // SF-216-23 : 3 champs IA donation entre époux FR.
+                .donationEntreEpouxEnvisagee(donationEntreEpouxEnvisagee)
+                .revocabiliteDetectee(revocabiliteDetectee)
+                .bienDonnePrincipalType(bienDonnePrincipalType)
                 .build();
     }
 

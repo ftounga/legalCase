@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600023" author="legalcase">
+        <comment>
+            SF-216-23 : table dédiée à l'outil décisionnel "Donation entre
+            époux" (F-FA-DONATION-ENTRE-EPOUX, FRANCE — art. 1091-1100 Cciv
+            + art. 265 al. 2 Cciv + art. 1527 al. 2 Cciv + art. 912-928 Cciv).
+
+            Outil dédié à la donation entre époux (avantage matrimonial /
+            donation au dernier vivant / donation de biens futurs) :
+              - révocabilité ad nutum jusqu'au décès (art. 1096 al. 1) ;
+              - révocation de plein droit en cas de divorce (art. 265 al. 2) ;
+              - action en retranchement enfants non communs si clause
+                attribution intégrale excessive (art. 1527 al. 2) ;
+              - réduction pour atteinte à la réserve héréditaire
+                (art. 912-928).
+
+            Distinct des outils successoraux F-FA-24-* (acceptation /
+            renonciation / dévolution / partage / réserve) et de l'outil
+            F-FA-INDIGNITE-SUCCESSORALE (SF-216-19).
+
+            Outil single-country FRANCE — l'équivalent BE est régi par les
+            art. 4.243 et suivants CC BE (outil F-FA-BE-DONATION-EPOUX
+            futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI
+            sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 308
+            (couplé à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            pattern SF-216-01 / SF-216-05 / SF-216-07 / SF-216-15 / SF-216-17
+            / SF-216-19).
+        </comment>
+
+        <createTable tableName="donation_entre_epoux_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_donation_entre_epoux_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="donation_entre_epoux_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_donation_entre_epoux_analyses_case_file"/>
+
+        <createIndex tableName="donation_entre_epoux_analyses"
+                     indexName="idx_donation_entre_epoux_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="donation_entre_epoux_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
