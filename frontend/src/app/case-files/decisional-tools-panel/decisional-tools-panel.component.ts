@@ -192,6 +192,8 @@ import { AdoptionInternationaleFrSectionComponent } from '../adoption-internatio
 import { AuditionMineurFrSectionComponent } from '../audition-mineur-fr-section/audition-mineur-fr-section.component';
 // SF-216-20 : composant simulateur Indignité successorale FR (F-FA-INDIGNITE-SUCCESSORALE).
 import { IndigniteSuccessoraleFrSectionComponent } from '../indignite-successorale-fr-section/indignite-successorale-fr-section.component';
+// SF-216-22 : composant simulateur Recel de succession FR (F-FA-RECEL-SUCCESSION).
+import { RecelSuccessionFrSectionComponent } from '../recel-succession-fr-section/recel-succession-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1297,6 +1299,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-INDIGNITE-SUCCESSORALE', {
         displayLabel: 'Indignité successorale (FR)',
         component: IndigniteSuccessoraleFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-22 : composant simulateur complet (POST/GET backend SF-216-21).
+      // Outil P2 famille FR — Recel de succession (art. 778 Cciv +
+      // Cass. 1ère civ., 14/11/2012). 3 champs pré-fill IA
+      // (typeRecel, preuveRecel, date ouverture) — visibility CONTEXTUAL F-IA-04
+      // priority 108.
+      ['F-FA-RECEL-SUCCESSION', {
+        displayLabel: 'Recel de succession (FR)',
+        component: RecelSuccessionFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2779,6 +2796,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-AUDITION-MINEUR', 'DIAGNOSTIC'],
     // SF-216-20 : indignité successorale (FR, art. 726-729-1 Cciv + Loi 2022-1617).
     ['F-FA-INDIGNITE-SUCCESSORALE', 'DIAGNOSTIC'],
+    // SF-216-22 : recel de succession (FR, art. 778 Cciv + Cass. 1ère civ. 14/11/2012).
+    ['F-FA-RECEL-SUCCESSION', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

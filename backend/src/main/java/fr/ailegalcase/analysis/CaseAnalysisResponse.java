@@ -2479,7 +2479,14 @@ public record CaseAnalysisResponse(
             // indigniteSuccessoraleEnvisagee active la visibilité CONTEXTUAL F-IA-04.
             Boolean indigniteSuccessoraleEnvisagee,    // FR — CONTEXTUAL : mention art. 726 / condamnation meurtre + succession
             Boolean condamnationPenaleSuccessionDetectee, // FR — true si condamnation pénale en lien avec le défunt documentée
-            Boolean pardonTestamentaireDetecte) {      // FR — true si pardon explicite dans le testament détecté (art. 728 Cciv)
+            Boolean pardonTestamentaireDetecte,        // FR — true si pardon explicite dans le testament détecté (art. 728 Cciv)
+            // SF-216-21 : 3 champs IA recel successoral FR.
+            // Source : `famille_extracted_data.recel_succession_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // recelSuccessoralEnvisage active la visibilité CONTEXTUAL F-IA-04.
+            Boolean recelSuccessoralEnvisage,          // FR — CONTEXTUAL : mention art. 778 / recel succession / bien dissimulé
+            String typeRecelDetecte,                   // FR — type de recel qualifié dans les pièces (DISSIMULATION_BIEN, DESTRUCTION_TESTAMENT, etc.)
+            String preuveRecelDetectee) {              // FR — nature de la preuve mentionnée (AVEUX, DOCUMENT, TEMOIGNAGE, FAISCEAU_INDICES, etc.)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2884,6 +2891,13 @@ public record CaseAnalysisResponse(
             public Builder indigniteSuccessoraleEnvisagee(Boolean v) { this.indigniteSuccessoraleEnvisagee = v; return this; }
             public Builder condamnationPenaleSuccessionDetectee(Boolean v) { this.condamnationPenaleSuccessionDetectee = v; return this; }
             public Builder pardonTestamentaireDetecte(Boolean v) { this.pardonTestamentaireDetecte = v; return this; }
+            // SF-216-21 : setters des 3 champs IA recel successoral FR.
+            private Boolean recelSuccessoralEnvisage;
+            private String typeRecelDetecte;
+            private String preuveRecelDetectee;
+            public Builder recelSuccessoralEnvisage(Boolean v) { this.recelSuccessoralEnvisage = v; return this; }
+            public Builder typeRecelDetecte(String v) { this.typeRecelDetecte = v; return this; }
+            public Builder preuveRecelDetectee(String v) { this.preuveRecelDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3044,7 +3058,11 @@ public record CaseAnalysisResponse(
                         // SF-216-19 : 3 champs IA indignité successorale FR.
                         indigniteSuccessoraleEnvisagee,
                         condamnationPenaleSuccessionDetectee,
-                        pardonTestamentaireDetecte);
+                        pardonTestamentaireDetecte,
+                        // SF-216-21 : 3 champs IA recel successoral FR.
+                        recelSuccessoralEnvisage,
+                        typeRecelDetecte,
+                        preuveRecelDetectee);
             }
         }
     }
@@ -5543,6 +5561,17 @@ public record CaseAnalysisResponse(
         boolean sf216_19Present = indigniteSuccessoraleEnvisagee != null
                 || condamnationPenaleSuccessionDetectee != null
                 || pardonTestamentaireDetecte != null;
+        // SF-216-21 : sous-objet `recel_succession_detection` — 3 champs IA
+        // pour le recel successoral FR (art. 778 Cciv + Cass. 1ère civ.,
+        // 14/11/2012). FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode recelSuccNode = node.get("recel_succession_detection");
+        boolean recelSuccObject = recelSuccNode != null && recelSuccNode.isObject();
+        Boolean recelSuccessoralEnvisage = recelSuccObject ? booleanOrNull(recelSuccNode, "envisage") : null;
+        String typeRecelDetecte = recelSuccObject ? textOrNull(recelSuccNode, "type_recel") : null;
+        String preuveRecelDetectee = recelSuccObject ? textOrNull(recelSuccNode, "preuve_recel") : null;
+        boolean sf216_21Present = recelSuccessoralEnvisage != null
+                || typeRecelDetecte != null
+                || preuveRecelDetectee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5591,7 +5620,8 @@ public record CaseAnalysisResponse(
                 && !sf216_15Present
                 && !sf216_17Present
                 && !sf216_13Present
-                && !sf216_19Present) {
+                && !sf216_19Present
+                && !sf216_21Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5799,6 +5829,10 @@ public record CaseAnalysisResponse(
                 .indigniteSuccessoraleEnvisagee(indigniteSuccessoraleEnvisagee)
                 .condamnationPenaleSuccessionDetectee(condamnationPenaleSuccessionDetectee)
                 .pardonTestamentaireDetecte(pardonTestamentaireDetecte)
+                // SF-216-21 : 3 champs IA recel successoral FR.
+                .recelSuccessoralEnvisage(recelSuccessoralEnvisage)
+                .typeRecelDetecte(typeRecelDetecte)
+                .preuveRecelDetectee(preuveRecelDetectee)
                 .build();
     }
 

@@ -356,6 +356,11 @@ public class DecisionToolVisibilityService {
         // art. 726-729-1 Cciv + Loi n°2022-1617 du 23/12/2022 violences intrafamiliales).
         addBooleanFlagIfTrueNested(detected, familleNode, "indignite_successorale_detection", "envisagee",
                 "indignite_successorale_envisagee");
+        // === SF-216-21 — 1 flag CONTEXTUAL Famille FR : recel successoral ===
+        // Lire depuis sous-objet `recel_succession_detection.envisage` (même pattern,
+        // art. 778 Cciv + Cass. 1ère civ., 14/11/2012).
+        addBooleanFlagIfTrueNested(detected, familleNode, "recel_succession_detection", "envisage",
+                "recel_successoral_envisage");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

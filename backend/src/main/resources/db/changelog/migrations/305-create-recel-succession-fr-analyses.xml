@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600021" author="legalcase">
+        <comment>
+            SF-216-21 : table dédiée à l'outil décisionnel "Recel de succession"
+            (F-FA-RECEL-SUCCESSION, FRANCE — art. 778 Cciv).
+
+            Outil dédié à la qualification du recel successoral (dissimulation
+            intentionnelle d'un bien / d'une donation / d'un legs de la
+            succession) et à l'évaluation de la sanction civile :
+            privation de la portion sur le bien recelé + obligation de
+            rapporter sans émolument (art. 778 al. 2 Cciv).
+
+            Outil distinct des autres outils successoraux F-FA-24-*
+            (acceptation-renonciation, dévolution légale, rapport, réserve,
+            partage) et de F-FA-INDIGNITE-SUCCESSORALE (déchéance pour
+            crime/délit envers le défunt — art. 726-727).
+
+            Détermine :
+              - la qualification du recel (art. 778 al. 1 — dissimulation
+                intentionnelle + élément matériel) ;
+              - la sanction civile applicable (art. 778 al. 2 — privation
+                sur le bien recelé + obligation de rapporter sans émolument) ;
+              - la suffisance de la preuve disponible (charge sur les
+                cohéritiers demandeurs ; faisceau d'indices admis,
+                Cass. 1ère civ., 14/11/2012) ;
+              - le délai d'action (prescription 5 ans depuis l'ouverture ou
+                la découverte du recel) ;
+              - l'articulation pénale signalée si destruction de testament
+                (volet art. 441-8 CP, hors scope LegalCase V1).
+
+            Outil single-country FRANCE — la matière est régie en Belgique
+            par les art. 4.45 et s. CC BE (réforme 2021) avec des conditions
+            distinctes (outil F-FA-BE-RECEL futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 306 (couplé à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — pattern SF-216-01 / SF-216-05 / SF-216-07
+            / SF-216-15 / SF-216-17 / SF-216-19).
+        </comment>
+
+        <createTable tableName="recel_succession_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_recel_succession_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="recel_succession_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_recel_succession_analyses_case_file"/>
+
+        <createIndex tableName="recel_succession_analyses"
+                     indexName="idx_recel_succession_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="recel_succession_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
