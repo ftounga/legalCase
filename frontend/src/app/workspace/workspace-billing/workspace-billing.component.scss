@@ -31,6 +31,65 @@
   mat-icon { color: #ffc107; }
 }
 
+// SF-255-03 : bandeau d'essai actif + sous-bloc « Avantage adhérents ».
+// Inv. 1 étape 0 bis : sous-bloc INTÉGRÉ au bandeau (pas une nouvelle section).
+// Tonalité informative (bleu LegalCase) — pas d'alerte (l'essai n'a pas expiré).
+.trial-banner {
+  background: #EEF2F7;
+  border: 1px solid #2E6DA4;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  color: #1A3A5C;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trial-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+
+  mat-icon { color: #2E6DA4; }
+}
+
+.trial-banner-text {
+  flex: 1;
+  font-size: 14px;
+}
+
+.trial-banner-promo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed #C9D4E3;
+}
+
+.trial-banner-promo-label {
+  font-size: 13px;
+  color: #1A3A5C;
+  font-weight: 500;
+}
+
+.trial-banner-promo-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trial-banner-promo-field {
+  flex: 0 1 240px;
+}
+
+.trial-banner-promo-button {
+  height: 40px;
+  min-width: 120px;
+}
+
 // SF-247-02 : bandeau « résiliation programmée » — même structure que .expired-banner,
 // tonalité informative (bleu) plutôt qu'alerte.
 .cancellation-banner {

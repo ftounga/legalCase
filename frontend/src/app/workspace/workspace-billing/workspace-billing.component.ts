@@ -1,10 +1,13 @@
 import { Component, computed, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe, DOCUMENT } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
@@ -21,12 +24,15 @@ import { SubscriptionState } from '../../core/models/subscription.model';
 import { fadeInUp } from '../../shared/animations';
 import { CancelSubscriptionDialogComponent } from './cancel-subscription-dialog.component';
 import { PaymentTermsAcceptanceDialogComponent, PaymentTermsDialogData } from './payment-terms-acceptance-dialog/payment-terms-acceptance-dialog.component';
+import { PromoCodeRedemptionService, mapPromoCodeError } from './promo-code-redemption.service';
 
 @Component({
   selector: 'app-workspace-billing',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule
+    RouterLink, DatePipe, FormsModule,
+    MatButtonModule, MatCardModule, MatFormFieldModule, MatIconModule, MatInputModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './workspace-billing.component.html',
   styleUrl: './workspace-billing.component.scss',
@@ -59,6 +65,31 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
       && !sub.cancelAtPeriodEnd
       && this.currentUserRole() === 'OWNER';
   });
+
+  // SF-255-03 : bandeau d'essai + sous-bloc « Avantage adhérents ».
+  /** Saisie utilisateur du code partenaire (normalisée trim + uppercase à l'envoi). */
+  promoCodeInput = signal('');
+  /** Désactive l'input + le bouton « Appliquer » pendant l'appel HTTP. */
+  submittingPromo = signal(false);
+  /**
+   * Vrai si le workspace est en essai gratuit ACTIF (FREE + expiresAt > now).
+   * Inv. 2 étape 0 bis : sous-bloc absent du DOM hors de cet état.
+   * Inv. 4 étape 0 bis : après succès TRIAL_EXTENSION, le backend ré-applique
+   * la contrainte unique partielle ; le sous-bloc reste rendu (l'essai est
+   * encore actif) mais une nouvelle tentative renverra
+   * WORKSPACE_ALREADY_REDEEMED_TRIAL_EXTENSION → message FR explicite.
+   */
+  readonly isTrialActive = computed(() => {
+    const ws = this.workspace();
+    if (!ws || ws.planCode !== 'FREE' || !ws.expiresAt) return false;
+    return new Date(ws.expiresAt).getTime() > Date.now();
+  });
+  /** Garde de sortie après un succès de redemption pour faire disparaître le sous-bloc immédiatement. */
+  private promoRedeemed = signal(false);
+  /** Visibilité finale du sous-bloc « Avantage adhérents » (inv. 2 + inv. 4). */
+  readonly showPromoCodeInput = computed(
+    () => this.isTrialActive() && !this.promoRedeemed()
+  );
 
   private pollSub?: Subscription;
 
@@ -157,7 +188,9 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     @Inject(DOCUMENT) private document: Document,
     private analyticsService: AnalyticsService,
-    private legalConsentService: LegalConsentService
+    private legalConsentService: LegalConsentService,
+    // SF-255-03 : service dédié à la redemption d'un code partenaire.
+    private promoCodeRedemptionService: PromoCodeRedemptionService
   ) {}
 
   ngOnInit(): void {
@@ -338,6 +371,61 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     const ws = this.workspace();
     if (!ws || ws.planCode !== 'FREE' || !ws.expiresAt) return false;
     return new Date(ws.expiresAt) < new Date();
+  }
+
+  /** Date d'expiration courante de l'essai (pour affichage banner). */
+  trialExpiresAt(): string | null {
+    return this.workspace()?.expiresAt ?? null;
+  }
+
+  // SF-255-03 — application d'un code partenaire.
+
+  /**
+   * Soumission du code saisi :
+   *  - normalise (trim + uppercase),
+   *  - bloque double-click via {@code submittingPromo},
+   *  - succès : maj optimiste de {@code workspace.expiresAt}, toast 3s,
+   *    {@code promoRedeemed = true} → sous-bloc disparaît automatiquement.
+   *  - erreur : message FR depuis {@code mapPromoCodeError}, code conservé pour retry.
+   */
+  applyPromoCode(): void {
+    if (this.submittingPromo()) return;
+    const ws = this.workspace();
+    if (!ws) return;
+    const code = this.promoCodeInput().trim().toUpperCase();
+    if (!code) {
+      this.snackBar.open('Veuillez saisir un code partenaire.', 'Fermer', { duration: 3000 });
+      return;
+    }
+    this.submittingPromo.set(true);
+    this.analyticsService.trackEvent('promo_code_submitted', { workspaceId: ws.id });
+    this.promoCodeRedemptionService.redeem(ws.id, code).subscribe({
+      next: response => {
+        // Maj optimiste : la nouvelle date d'expiration vient directement du backend.
+        this.workspace.set({ ...ws, expiresAt: response.newExpiresAt });
+        this.promoRedeemed.set(true);
+        this.promoCodeInput.set('');
+        this.submittingPromo.set(false);
+        this.snackBar.open(
+          `Avantage adhérents ${response.partnerLabel} appliqué — essai prolongé de ${response.addedDays} jours.`,
+          'Fermer',
+          { duration: 3000, panelClass: ['snack-success'] }
+        );
+        // Refresh autoritaire depuis le backend pour cohérence (workspace + subscription).
+        this.workspaceService.getCurrentWorkspace().subscribe({
+          next: fresh => this.workspace.set(fresh),
+          error: () => {}
+        });
+      },
+      error: err => {
+        this.submittingPromo.set(false);
+        // Code conservé dans l'input pour retry — pas de reset de promoCodeInput.
+        this.snackBar.open(mapPromoCodeError(err), 'Fermer', {
+          duration: 4000,
+          panelClass: ['snack-error']
+        });
+      }
+    });
   }
 
   // SF-123-03 : helpers section Utilisateurs actifs

@@ -16,6 +16,8 @@ import { Workspace } from '../../core/models/workspace.model';
 import { SubscriptionState } from '../../core/models/subscription.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { PaymentTermsAcceptanceDialogComponent } from './payment-terms-acceptance-dialog/payment-terms-acceptance-dialog.component';
+import { PromoCodeRedemptionService } from './promo-code-redemption.service';
+import { RedeemResponse } from './promo-code-redemption.model';
 
 const mockWorkspace: Workspace = {
   id: 'ws1', name: 'Test', slug: 'test', planCode: 'SOLO', status: 'ACTIVE'
@@ -44,6 +46,7 @@ const freeSubscription: SubscriptionState = {
 interface BillingMockOptions {
   subscription?: SubscriptionState | 'error';
   members?: WorkspaceMember[] | 'error';
+  workspace?: Workspace;
 }
 
 /**
@@ -57,6 +60,8 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
   legalConsentServiceSpy: jest.Mocked<LegalConsentService>;
   snackBarSpy: jest.Mocked<MatSnackBar>;
   dialogSpy: jest.Mocked<MatDialog>;
+  promoServiceSpy: jest.Mocked<PromoCodeRedemptionService>;
+  workspaceServiceSpy: jest.Mocked<WorkspaceService>;
 }> {
   const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
   const memberServiceSpy = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
@@ -67,8 +72,9 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
   const legalConsentServiceSpy = jasmine.createSpyObj('LegalConsentService', ['acceptConsent']);
   const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
   const dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
+  const promoServiceSpy = jasmine.createSpyObj('PromoCodeRedemptionService', ['redeem']);
 
-  workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+  workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(opts.workspace ?? mockWorkspace));
   billingServiceSpy.getSeatsSummary.mockReturnValue(of({
     planCode: 'SOLO', seatCount: 1, includedSeats: 1, maxSeats: 1,
     extraSeatPriceCents: 0, baseMonthlyCostCents: 9900, totalMonthlyCostCents: 9900
@@ -95,14 +101,18 @@ async function buildComponent(opts: BillingMockOptions = {}): Promise<{
       { provide: MatSnackBar, useValue: snackBarSpy },
       { provide: MatDialog, useValue: dialogSpy },
       { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
-      { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
+      { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
+      { provide: PromoCodeRedemptionService, useValue: promoServiceSpy }
     ]
   }).compileComponents();
 
   const fixture = TestBed.createComponent(WorkspaceBillingComponent);
   const component = fixture.componentInstance;
   fixture.detectChanges();
-  return { fixture, component, billingServiceSpy, legalConsentServiceSpy, snackBarSpy, dialogSpy };
+  return {
+    fixture, component, billingServiceSpy, legalConsentServiceSpy,
+    snackBarSpy, dialogSpy, promoServiceSpy, workspaceServiceSpy
+  };
 }
 
 describe('WorkspaceBillingComponent', () => {
@@ -254,7 +264,8 @@ describe('WorkspaceBillingComponent — topup query params', () => {
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: jasmine.createSpyObj('MatDialog', ['open']) },
         { provide: ActivatedRoute, useValue: { queryParams: of(queryParams) } },
-        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
+        { provide: PromoCodeRedemptionService, useValue: jasmine.createSpyObj('PromoCodeRedemptionService', ['redeem']) }
       ]
     }).compileComponents();
 
@@ -325,7 +336,8 @@ describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: jasmine.createSpyObj('MatDialog', ['open']) },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
-        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
+        { provide: PromoCodeRedemptionService, useValue: jasmine.createSpyObj('PromoCodeRedemptionService', ['redeem']) }
       ]
     }).compileComponents();
 
@@ -606,5 +618,181 @@ describe('WorkspaceBillingComponent — SF-240-03 modale consent paiement', () =
 
     expect(legalConsentServiceSpy.acceptConsent).not.toHaveBeenCalled();
     expect(billingServiceSpy.createTopupSession).not.toHaveBeenCalled();
+  });
+});
+
+// SF-255-03 — sous-bloc « Avantage adhérents » dans le bandeau d'essai.
+describe('WorkspaceBillingComponent — SF-255-03 code partenaire', () => {
+
+  // Workspace en essai actif (FREE + expiresAt futur).
+  const trialingWorkspace: Workspace = {
+    id: 'ws-trial', name: 'Test', slug: 'test',
+    planCode: 'FREE', status: 'ACTIVE',
+    expiresAt: '2099-12-31T23:59:59Z' // futur lointain
+  };
+  // Workspace en essai expiré.
+  const expiredWorkspace: Workspace = {
+    id: 'ws-exp', name: 'Test', slug: 'test',
+    planCode: 'FREE', status: 'ACTIVE',
+    expiresAt: '2020-01-01T00:00:00Z' // passé
+  };
+  // Workspace payant.
+  const paidWorkspace: Workspace = {
+    id: 'ws-paid', name: 'Test', slug: 'test',
+    planCode: 'SOLO', status: 'ACTIVE'
+  };
+
+  const successResponse: RedeemResponse = {
+    newExpiresAt: '2099-12-31T23:59:59Z',
+    addedDays: 30,
+    partnerLabel: 'Adhérents ACE',
+  };
+
+  it('sous-bloc visible si trial actif (FREE + expiresAt futur)', async () => {
+    const { component, fixture } = await buildComponent({ workspace: trialingWorkspace });
+    expect(component.isTrialActive()).toBe(true);
+    expect(component.showPromoCodeInput()).toBe(true);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.trial-banner')).toBeTruthy();
+    expect(html.querySelector('.trial-banner-promo')).toBeTruthy();
+    expect(html.textContent).toContain('Avantage adhérents');
+  });
+
+  it('sous-bloc ABSENT du DOM si plan SOLO (payant)', async () => {
+    const { component, fixture } = await buildComponent({ workspace: paidWorkspace });
+    expect(component.isTrialActive()).toBe(false);
+    expect(component.showPromoCodeInput()).toBe(false);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.trial-banner')).toBeNull();
+    expect(html.querySelector('.trial-banner-promo')).toBeNull();
+  });
+
+  it('sous-bloc ABSENT du DOM si essai expiré (FREE + expiresAt passé)', async () => {
+    const { component, fixture } = await buildComponent({ workspace: expiredWorkspace });
+    expect(component.isTrialActive()).toBe(false);
+    expect(component.showPromoCodeInput()).toBe(false);
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.querySelector('.trial-banner')).toBeNull();
+  });
+
+  it('saisie + applyPromoCode() : succès → toast + maj date bandeau + sous-bloc disparu', async () => {
+    const { component, fixture, promoServiceSpy, snackBarSpy, workspaceServiceSpy } =
+      await buildComponent({ workspace: trialingWorkspace });
+    // Maj optimiste consommée par le composant ; on flush avec une nouvelle date.
+    const newDate = '2099-12-31T23:59:59Z';
+    promoServiceSpy.redeem.mockReturnValue(of({ ...successResponse, newExpiresAt: newDate }));
+    // Refresh autoritaire post-succès : on renvoie le même workspace (test isolation).
+    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(trialingWorkspace));
+
+    component.promoCodeInput.set('ace2026');
+    component.applyPromoCode();
+    fixture.detectChanges();
+
+    expect(promoServiceSpy.redeem).toHaveBeenCalledWith('ws-trial', 'ACE2026');
+    expect(component.showPromoCodeInput()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.trial-banner-promo')).toBeNull();
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      expect.stringContaining('Adhérents ACE'),
+      'Fermer',
+      expect.objectContaining({ duration: 3000, panelClass: ['snack-success'] })
+    );
+    expect(component.workspace()?.expiresAt).toBe(newDate);
+    expect(component.submittingPromo()).toBe(false);
+  });
+
+  // Mapping erreur → message FR : un test par code applicatif (8 codes).
+  const errorCases: { code: string; expectedSubstr: string }[] = [
+    { code: 'PROMO_CODE_NOT_FOUND', expectedSubstr: 'Code partenaire invalide' },
+    { code: 'PROMO_CODE_INACTIVE', expectedSubstr: 'plus actif' },
+    { code: 'PROMO_CODE_EXPIRED', expectedSubstr: 'a expiré' },
+    { code: 'PROMO_CODE_EXHAUSTED', expectedSubstr: 'nombre maximal' },
+    { code: 'WORKSPACE_NOT_TRIALING', expectedSubstr: 'essai est terminé' },
+    { code: 'WORKSPACE_ALREADY_REDEEMED_TRIAL_EXTENSION', expectedSubstr: 'déjà appliqué' },
+    { code: 'PROMO_CODE_TYPE_NOT_SUPPORTED_YET', expectedSubstr: 'prochainement' },
+    { code: 'FORBIDDEN_WORKSPACE', expectedSubstr: 'non autorisée' },
+  ];
+
+  for (const { code, expectedSubstr } of errorCases) {
+    it(`erreur ${code} → snackbar avec le message FR attendu`, async () => {
+      const { component, promoServiceSpy, snackBarSpy } =
+        await buildComponent({ workspace: trialingWorkspace });
+      promoServiceSpy.redeem.mockReturnValue(throwError(() => ({ error: { code } })));
+
+      component.promoCodeInput.set('XYZ');
+      component.applyPromoCode();
+
+      expect(snackBarSpy.open).toHaveBeenCalledWith(
+        expect.stringContaining(expectedSubstr),
+        'Fermer',
+        expect.objectContaining({ panelClass: ['snack-error'] })
+      );
+      expect(component.submittingPromo()).toBe(false);
+    });
+  }
+
+  it('erreur réseau inconnue → snackbar fallback générique', async () => {
+    const { component, promoServiceSpy, snackBarSpy } =
+      await buildComponent({ workspace: trialingWorkspace });
+    promoServiceSpy.redeem.mockReturnValue(throwError(() => new Error('boom')));
+
+    component.promoCodeInput.set('XYZ');
+    component.applyPromoCode();
+
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      expect.stringContaining('réessayer'),
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] })
+    );
+  });
+
+  it('code saisi conservé dans l\'input après erreur (retry possible)', async () => {
+    const { component, promoServiceSpy } =
+      await buildComponent({ workspace: trialingWorkspace });
+    promoServiceSpy.redeem.mockReturnValue(throwError(() => ({ error: { code: 'PROMO_CODE_EXPIRED' } })));
+
+    component.promoCodeInput.set('  ace2026  ');
+    component.applyPromoCode();
+
+    // Le composant n'a pas vidé l'input — retry possible.
+    expect(component.promoCodeInput()).toBe('  ace2026  ');
+    expect(component.showPromoCodeInput()).toBe(true);
+  });
+
+  it('saisie vide ou whitespace → pas d\'appel HTTP', async () => {
+    const { component, promoServiceSpy, snackBarSpy } =
+      await buildComponent({ workspace: trialingWorkspace });
+
+    component.promoCodeInput.set('   ');
+    component.applyPromoCode();
+
+    expect(promoServiceSpy.redeem).not.toHaveBeenCalled();
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      expect.stringContaining('saisir un code'),
+      'Fermer',
+      expect.objectContaining({ duration: 3000 })
+    );
+  });
+
+  it('double-click pendant submit : 2e appel ignoré', async () => {
+    const { component, promoServiceSpy } =
+      await buildComponent({ workspace: trialingWorkspace });
+    promoServiceSpy.redeem.mockReturnValue(NEVER);
+
+    component.promoCodeInput.set('ACE');
+    component.applyPromoCode();
+    component.applyPromoCode(); // 2e click
+
+    expect(promoServiceSpy.redeem).toHaveBeenCalledTimes(1);
+    expect(component.submittingPromo()).toBe(true);
+  });
+
+  it('aucun wording interdit (gratuit/cadeau/promotion) dans le DOM du bandeau', async () => {
+    const { fixture } = await buildComponent({ workspace: trialingWorkspace });
+    const trialBanner = (fixture.nativeElement as HTMLElement).querySelector('.trial-banner');
+    expect(trialBanner).toBeTruthy();
+    const text = (trialBanner as HTMLElement).textContent ?? '';
+    expect(text).not.toMatch(/gratuit/i);
+    expect(text).not.toMatch(/cadeau/i);
+    expect(text).not.toMatch(/promotion/i);
   });
 });
