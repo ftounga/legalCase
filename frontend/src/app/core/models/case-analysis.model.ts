@@ -766,6 +766,25 @@ export interface TravailExtractedData {
   /** Date du transfert effectif au format ISO YYYY-MM-DD. */
   transfertDateTransfert?: string | null;
   // -------------------------------------------------------------------------
+  // SF-212-07 — sous-objet `csp_detail` (FRANCE only)
+  // Pré-fill F-DT-44 (CSP/CRP — conformité de la proposition L. 1233-65 à
+  // L. 1233-70 CT ; ANI CSP 19/07/2011 ; DARES).
+  // Tous nullables — restent `null` pour un dossier Travail BE (le régime
+  // équivalent BE est l'outplacement obligatoire CCT 82, mécanisme distinct).
+  // -------------------------------------------------------------------------
+  /** Effectif total de l'entreprise au moment du licenciement économique (entier 0–100 000). */
+  cspEffectifEntreprise?: number | null;
+  /** Proposition de CSP effectivement remise/notifiée au salarié. */
+  cspProposeDetail?: boolean | null;
+  /** Document d'information CSP remis au salarié (ANI CSP 19/07/2011). */
+  cspDocumentRemis?: boolean | null;
+  /** Date de remise du document d'information au format ISO YYYY-MM-DD. */
+  cspDateRemise?: string | null;
+  /** Adhésion du salarié au CSP — `true` = accepte, `false` = refuse, `null` = inconnu. */
+  cspAdhesion?: boolean | null;
+  /** Salaire mensuel brut de référence pour le calcul ASP (€ > 0). */
+  cspSalaireMensuelBrut?: number | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

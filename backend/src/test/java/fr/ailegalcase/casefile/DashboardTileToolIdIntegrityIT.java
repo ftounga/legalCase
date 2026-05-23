@@ -220,9 +220,16 @@ class DashboardTileToolIdIntegrityIT {
             // livré sans mapper DashboardTile côté backend — exclusion transitoire
             // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile tile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-72-transfert-entreprise-l1224-1",
+            // SF-212-07 (2026-05-24) : F-DT-44 CSP/CRP — conformité de la proposition FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-72-transfert-entreprise-l1224-1"
+            "F-DT-44-csp-crp-conformite"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

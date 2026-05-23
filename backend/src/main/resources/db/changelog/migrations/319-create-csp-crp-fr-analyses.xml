@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200007-create" author="legalcase">
+        <comment>
+            SF-212-07 : table dédiée à l'outil décisionnel "CSP/CRP — conformité
+            de la proposition" (F-DT-44-csp-crp-conformite, FRANCE — L. 1233-65
+            à L. 1233-70 CT ; ANI CSP 19/07/2011 révisé ; DARES).
+
+            Analyse de la conformité de la proposition de CSP (Contrat de
+            Sécurisation Professionnelle) lors d'un licenciement économique
+            dans une entreprise de moins de 1 000 salariés, et estimation de
+            l'ASP (Allocation Spécifique de Reclassement) — 75 % du SJR pendant
+            12 mois (régime de droit commun).
+
+            Outil single-country FRANCE — le CSP L. 1233-65+ CT est un dispositif
+            spécifiquement français (entreprises &lt; 1 000 salariés). Au-delà
+            de ce seuil, le régime applicable est le congé de reclassement
+            L. 1233-71+ CT, couvert par F-DT-45 (P3, F-218 — backlog).
+            Pas d'équivalent direct côté BE (régime outplacement obligatoire
+            relève de la CCT 82 / 51 / 24 — backlog jumeau F-207).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-36 / SF-212-01 / F-DT-50
+            / SF-212-03 / F-DT-72 / SF-212-05).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration suivante
+            (320), couplé à l'entrée TOOL_REGISTRY frontend
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+        </comment>
+
+        <createTable tableName="csp_crp_conformite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_csp_crp_conformite_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="csp_crp_conformite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_csp_crp_conformite_case_file"/>
+
+        <createIndex tableName="csp_crp_conformite_analyses"
+                     indexName="idx_csp_crp_conformite_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="csp_crp_conformite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

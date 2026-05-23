@@ -1,0 +1,282 @@
+<section class="csp-section">
+  <header class="csp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="csp-body">
+    <mat-icon class="csp-icon">gavel</mat-icon>
+    <span class="csp-title">CSP/CRP — CONFORMITÉ</span>
+    @if (result()) {
+      <span class="csp-chip-summary"
+            [class.csp-chip-summary--conforme]="result()!.conformiteCsp === 'CONFORME'"
+            [class.csp-chip-summary--partielle]="result()!.conformiteCsp === 'PARTIELLEMENT_CONFORME'"
+            [class.csp-chip-summary--non-conforme]="result()!.conformiteCsp === 'NON_CONFORME'">
+        {{ verdictBannerLabel(result()!.conformiteCsp) }} — score {{ result()!.scoreConformite }} / 100
+      </span>
+    }
+    <mat-icon class="csp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="csp-body" class="csp-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="csp-country-banner" data-testid="csp-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 1233-65 à L. 1233-70 CT — le CSP est strictement français, réservé aux entreprises de moins de 1 000 salariés).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="csp-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="csp-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Effectif entreprise (L. 1233-66 CT) -->
+            <div class="csp-block csp-full">
+              <span class="csp-block-label">Effectif de l'entreprise</span>
+
+              <mat-form-field appearance="outline" class="csp-inline-field">
+                <mat-label>Effectif total (CSP réservé aux entreprises &lt; 1 000 salariés)</mat-label>
+                <input matInput type="number" min="0" max="100000"
+                       [ngModel]="effectifEntreprise()"
+                       (ngModelChange)="onEffectifChange($event)"
+                       name="effectifEntreprise"
+                       data-testid="csp-input-effectif" />
+              </mat-form-field>
+              @if (provenanceEffectif() === 'IA') {
+                <span class="csp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              @if (effectifHorsChamp()) {
+                <div class="csp-info-banner" data-testid="csp-effectif-hors-champ">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>CSP non applicable — outil réservé aux entreprises de moins de 1 000 salariés (L. 1233-66 CT). Au-delà : congé de reclassement L. 1233-71+ CT.</span>
+                </div>
+              }
+            </div>
+
+            <!-- Bloc 2 — Proposition CSP -->
+            <div class="csp-block csp-full">
+              <span class="csp-block-label">Proposition CSP par l'employeur</span>
+
+              <mat-slide-toggle
+                  [ngModel]="cspPropose()"
+                  (ngModelChange)="onCspProposeChange($event)"
+                  name="cspPropose"
+                  data-testid="csp-toggle-propose">
+                CSP effectivement proposé au salarié (L. 1233-66 CT)
+              </mat-slide-toggle>
+              @if (provenanceCspPropose() === 'IA') {
+                <span class="csp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-slide-toggle
+                  [ngModel]="documentInformationRemis()"
+                  (ngModelChange)="onDocumentRemisChange($event)"
+                  [disabled]="!cspPropose()"
+                  name="documentInformationRemis"
+                  data-testid="csp-toggle-document">
+                Document d'information CSP remis au salarié (ANI CSP 19/07/2011)
+              </mat-slide-toggle>
+              @if (provenanceDocumentRemis() === 'IA') {
+                <span class="csp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-slide-toggle
+                  [ngModel]="delaiReflexionMentionne()"
+                  (ngModelChange)="onDelaiReflexionChange($event)"
+                  [disabled]="!cspPropose()"
+                  name="delaiReflexionMentionne"
+                  data-testid="csp-toggle-delai">
+                Délai de réflexion de 21 jours calendaires mentionné (L. 1233-67 CT)
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Bloc 3 — Dates -->
+            <div class="csp-block csp-full">
+              <span class="csp-block-label">Dates</span>
+
+              <mat-form-field appearance="outline" class="csp-inline-field">
+                <mat-label>Date de remise du document CSP (YYYY-MM-DD)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateRemise()"
+                       (ngModelChange)="onDateRemiseChange($event)"
+                       name="dateRemise"
+                       data-testid="csp-input-date-remise" />
+              </mat-form-field>
+              @if (provenanceDateRemise() === 'IA') {
+                <span class="csp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="csp-inline-field">
+                <mat-label>Date de l'entretien préalable (YYYY-MM-DD)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateEntretienPrealable()"
+                       (ngModelChange)="onDateEntretienChange($event)"
+                       name="dateEntretienPrealable"
+                       data-testid="csp-input-date-entretien" />
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 4 — Adhésion salarié -->
+            <div class="csp-block csp-full">
+              <span class="csp-block-label">Adhésion du salarié</span>
+
+              <mat-form-field appearance="outline" class="csp-inline-field">
+                <mat-label>Décision du salarié sur la proposition CSP</mat-label>
+                <mat-select [ngModel]="adhesionSalarie()"
+                            (ngModelChange)="onAdhesionChange($event)"
+                            name="adhesionSalarie"
+                            data-testid="csp-select-adhesion">
+                  <mat-option value="INCONNU">Inconnu / délai en cours</mat-option>
+                  <mat-option value="OUI">Adhésion (acceptation) — L. 1233-67 CT</mat-option>
+                  <mat-option value="NON">Refus — licenciement normal + préavis</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceAdhesion() === 'IA') {
+                <span class="csp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 5 — Paramètres salariaux -->
+            <div class="csp-block csp-full">
+              <span class="csp-block-label">Paramètres salariaux (pour estimation ASP)</span>
+
+              <mat-form-field appearance="outline" class="csp-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="100"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="csp-input-salaire" />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="csp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="csp-inline-field">
+                <mat-label>Rémunération brute 12 derniers mois (€) — assiette ASP</mat-label>
+                <input matInput type="number" min="0" step="1000"
+                       [ngModel]="remunerationBrute12MoisEuros()"
+                       (ngModelChange)="onRemuneration12moisChange($event)"
+                       name="remunerationBrute12MoisEuros"
+                       data-testid="csp-input-remuneration" />
+              </mat-form-field>
+            </div>
+
+            <div class="csp-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="csp-btn-calculate">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <span>Analyser la conformité CSP</span>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <!-- Affichage du résultat -->
+          <div [class]="verdictBannerClass(result()!.conformiteCsp)" data-testid="csp-verdict-banner">
+            <mat-icon>{{ verdictBannerIcon(result()!.conformiteCsp) }}</mat-icon>
+            <div class="csp-verdict-body">
+              <div class="csp-verdict-title">{{ verdictBannerLabel(result()!.conformiteCsp) }}</div>
+              <div class="csp-verdict-score">Score de conformité : {{ result()!.scoreConformite }} / 100</div>
+            </div>
+          </div>
+
+          @if (!result()!.obligationCspApplicable) {
+            <div class="csp-info-banner" data-testid="csp-non-applicable">
+              <mat-icon>info_outline</mat-icon>
+              <span>CSP non applicable — entreprise de {{ result()!.effectifEntreprise }} salariés (seuil L. 1233-66 CT : moins de 1 000). Régime applicable : congé de reclassement L. 1233-71+ CT.</span>
+            </div>
+          }
+
+          @if (result()!.aspEstimeeAnnuelleEuros !== null) {
+            <div class="csp-asp-block" data-testid="csp-asp-block">
+              <span class="csp-block-label">Allocation Spécifique de Reclassement (ASP) estimée</span>
+              <table class="csp-asp-table">
+                <tbody>
+                  <tr>
+                    <th scope="row">Rémunération 12 mois</th>
+                    <td>{{ formatEuros(result()!.remunerationBrute12MoisEuros) }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Taux ASP (régime droit commun)</th>
+                    <td>75 % du SJR (ANI CSP 19/07/2011, DARES)</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">ASP estimée journalière</th>
+                    <td data-testid="csp-asp-jour">{{ formatEuros(result()!.aspEstimeeJournaliereEuros) }}</td>
+                  </tr>
+                  <tr class="csp-asp-total">
+                    <th scope="row">ASP estimée sur {{ result()!.dureeAspMois }} mois</th>
+                    <td data-testid="csp-asp-annuel">{{ formatEuros(result()!.aspEstimeeAnnuelleEuros) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          }
+
+          @if (result()!.pointsNonConformite.length > 0) {
+            <div class="csp-points-block">
+              <span class="csp-block-label">Points de non-conformité détectés</span>
+              <ul class="csp-points-list">
+                @for (p of result()!.pointsNonConformite; track pointTrackKey($index, p)) {
+                  <li class="csp-point" data-testid="csp-point-item">
+                    <div class="csp-point-head">
+                      <mat-icon>error_outline</mat-icon>
+                      <span class="csp-point-libelle">{{ p.libelle }}</span>
+                    </div>
+                    <div class="csp-point-fondement">{{ p.fondement | legalCitations }}</div>
+                    <div class="csp-point-explication">{{ p.explication }}</div>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result()!.messages.length > 0) {
+            <div class="csp-messages-block">
+              <span class="csp-block-label">Messages</span>
+              <ul class="csp-messages-list">
+                @for (m of result()!.messages; track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result()!.basesJuridiques.length > 0) {
+            <div class="csp-bases-block">
+              <span class="csp-block-label">Bases juridiques</span>
+              <ul class="csp-bases-list">
+                @for (b of result()!.basesJuridiques; track b) {
+                  <li>{{ b | legalCitations }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="csp-actions">
+            <button mat-stroked-button type="button" (click)="editMode()" data-testid="csp-btn-edit">
+              <mat-icon>edit</mat-icon>
+              Modifier les données et recalculer
+            </button>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

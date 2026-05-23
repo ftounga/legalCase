@@ -536,7 +536,18 @@ public record CaseAnalysisResponse(
             Boolean transfertEeaIdentifiee,
             Boolean transfertActivitePreservee,
             Boolean transfertLicenciementsPreTransfert,
-            String transfertDateTransfert) {
+            String transfertDateTransfert,
+            // SF-212-07 : 6 champs IA pour pré-fill F-DT-44-csp-crp-conformite
+            // (Travail FR uniquement, nullables). Sous-objet `csp_detail`.
+            // Le CSP L. 1233-65+ CT est un dispositif strictement français
+            // (entreprises < 1 000 salariés) — ces champs restent null pour
+            // la BE (régime équivalent = outplacement obligatoire CCT 82).
+            Integer cspEffectifEntreprise,
+            Boolean cspProposeDetail,
+            Boolean cspDocumentRemis,
+            String cspDateRemise,
+            Boolean cspAdhesion,
+            Double cspSalaireMensuelBrut) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -779,7 +790,14 @@ public record CaseAnalysisResponse(
                     .transfertEeaIdentifiee(transfertEeaIdentifiee)
                     .transfertActivitePreservee(transfertActivitePreservee)
                     .transfertLicenciementsPreTransfert(transfertLicenciementsPreTransfert)
-                    .transfertDateTransfert(transfertDateTransfert);
+                    .transfertDateTransfert(transfertDateTransfert)
+                    // SF-212-07 — csp_detail (FRANCE uniquement)
+                    .cspEffectifEntreprise(cspEffectifEntreprise)
+                    .cspProposeDetail(cspProposeDetail)
+                    .cspDocumentRemis(cspDocumentRemis)
+                    .cspDateRemise(cspDateRemise)
+                    .cspAdhesion(cspAdhesion)
+                    .cspSalaireMensuelBrut(cspSalaireMensuelBrut);
         }
 
         public static final class Builder {
@@ -1017,6 +1035,13 @@ public record CaseAnalysisResponse(
             private Boolean transfertActivitePreservee;
             private Boolean transfertLicenciementsPreTransfert;
             private String transfertDateTransfert;
+            // SF-212-07 — csp_detail (FRANCE uniquement)
+            private Integer cspEffectifEntreprise;
+            private Boolean cspProposeDetail;
+            private Boolean cspDocumentRemis;
+            private String cspDateRemise;
+            private Boolean cspAdhesion;
+            private Double cspSalaireMensuelBrut;
 
             private Builder() {}
 
@@ -1249,6 +1274,13 @@ public record CaseAnalysisResponse(
             public Builder transfertActivitePreservee(Boolean v) { this.transfertActivitePreservee = v; return this; }
             public Builder transfertLicenciementsPreTransfert(Boolean v) { this.transfertLicenciementsPreTransfert = v; return this; }
             public Builder transfertDateTransfert(String v) { this.transfertDateTransfert = v; return this; }
+            // SF-212-07 — csp_detail (FRANCE uniquement)
+            public Builder cspEffectifEntreprise(Integer v) { this.cspEffectifEntreprise = v; return this; }
+            public Builder cspProposeDetail(Boolean v) { this.cspProposeDetail = v; return this; }
+            public Builder cspDocumentRemis(Boolean v) { this.cspDocumentRemis = v; return this; }
+            public Builder cspDateRemise(String v) { this.cspDateRemise = v; return this; }
+            public Builder cspAdhesion(Boolean v) { this.cspAdhesion = v; return this; }
+            public Builder cspSalaireMensuelBrut(Double v) { this.cspSalaireMensuelBrut = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1378,7 +1410,11 @@ public record CaseAnalysisResponse(
                         // SF-212-05 — transfert_entreprise_detail (FRANCE uniquement)
                         transfertTypeTransfert, transfertEeaIdentifiee,
                         transfertActivitePreservee, transfertLicenciementsPreTransfert,
-                        transfertDateTransfert);
+                        transfertDateTransfert,
+                        // SF-212-07 — csp_detail (FRANCE uniquement)
+                        cspEffectifEntreprise, cspProposeDetail,
+                        cspDocumentRemis, cspDateRemise,
+                        cspAdhesion, cspSalaireMensuelBrut);
             }
         }
     }
@@ -1561,6 +1597,16 @@ public record CaseAnalysisResponse(
             "CESSION", "FUSION", "APPORT_PARTIEL_ACTIF",
             "EXTERNALISATION", "REPRISE_ACTIVITE", "AUTRE"
     );
+
+    /**
+     * SF-212-07 : borne haute de l'effectif d'entreprise pour le pré-fill
+     * F-DT-44 (CSP/CRP conformité, FR). 100 000 = seuil large couvrant tous
+     * les cas réels d'entreprise française (les plus grands groupes ne
+     * dépassent pas ce seuil par société employeur juridique). Au-delà,
+     * la valeur est jugée aberrante par {@code boundedIntOrNull} et ramenée
+     * à {@code null}.
+     */
+    static final int MAX_CSP_EFFECTIF_ENTREPRISE = 100_000;
 
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
@@ -3925,6 +3971,13 @@ public record CaseAnalysisResponse(
             // d'un transfert relève en BE de la CCT 32bis distincte).
             JsonNode transfertEntreprise = node.get("transfert_entreprise_detail");
             boolean hasTransfertEntreprise = transfertEntreprise != null && transfertEntreprise.isObject();
+            // SF-212-07 : sous-objet pour pré-fill F-DT-44 (CSP/CRP conformité,
+            // FRANCE uniquement). Peut être absent (dossier sans proposition
+            // CSP, dossier BE) → tous les 6 champs null. Le prompt impose null
+            // pour la BE (régime équivalent BE = outplacement obligatoire
+            // CCT 82 distincte).
+            JsonNode cspDetail = node.get("csp_detail");
+            boolean hasCspDetail = cspDetail != null && cspDetail.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4248,6 +4301,19 @@ public record CaseAnalysisResponse(
                     .transfertActivitePreservee(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_activite_preservee") : null)
                     .transfertLicenciementsPreTransfert(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_licenciements_pre_transfert") : null)
                     .transfertDateTransfert(hasTransfertEntreprise ? isoDateOrNull(transfertEntreprise, "transfert_date_transfert") : null)
+                    // SF-212-07 : 6 champs IA pour pré-fill F-DT-44 (CSP/CRP
+                    // conformité, FRANCE uniquement). Effectif entier borné
+                    // [0, 100 000] (au-delà = ramené à null), booléens tri-état
+                    // (null si non déterminable), date ISO YYYY-MM-DD, salaire
+                    // mensuel brut strictement positif. Tous null si sous-objet
+                    // `csp_detail` absent (dossier sans proposition CSP ou
+                    // dossier BE).
+                    .cspEffectifEntreprise(hasCspDetail ? boundedIntOrNull(cspDetail, "csp_effectif_entreprise", 0, MAX_CSP_EFFECTIF_ENTREPRISE) : null)
+                    .cspProposeDetail(hasCspDetail ? booleanOrNull(cspDetail, "csp_propose") : null)
+                    .cspDocumentRemis(hasCspDetail ? booleanOrNull(cspDetail, "csp_document_remis") : null)
+                    .cspDateRemise(hasCspDetail ? isoDateOrNull(cspDetail, "csp_date_remise") : null)
+                    .cspAdhesion(hasCspDetail ? booleanOrNull(cspDetail, "csp_adhesion") : null)
+                    .cspSalaireMensuelBrut(hasCspDetail ? positiveDoubleOrNull(cspDetail, "csp_salaire_mensuel_brut") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

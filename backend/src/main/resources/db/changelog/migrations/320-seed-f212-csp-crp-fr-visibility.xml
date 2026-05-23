@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200007-seed" author="legalcase">
+        <comment>
+            SF-212-07 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "CSP/CRP — conformité de la proposition"
+            (F-DT-44-csp-crp-conformite, FRANCE), table créée par
+            SF-212-07 (migration 319).
+
+            Le seed est porté par la migration backend (bundle SF-212-07+08) —
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-212-03/04
+            (migrations 315/316) pour F-DT-50 et SF-212-05/06
+            (migrations 317/318) pour F-DT-72. Sans ce couplage, le garde-fou
+            CI DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une proposition de CSP — trigger
+            `csp_propose` = true (signal métier déjà extrait par
+            TravailPromptBuilder/CaseAnalysisResponse depuis F-205, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue sur travailNode).
+
+            priority 67 — juste après F-DT-72 (transfert d'entreprise, priority 66),
+            outil de qualification post-rupture économique du même bundle
+            Travail FR P2.
+
+            Fondement : L. 1233-65 à L. 1233-70 CT (obligation de proposition du
+            CSP par l'employeur dans les entreprises &lt; 1 000 salariés lors
+            d'un licenciement économique, délai de réflexion 21 jours
+            calendaires, adhésion = rupture amiable hors préavis L. 1233-67,
+            refus = licenciement normal + préavis) ; ANI CSP 19/07/2011 révisé
+            (modalités de remise du document d'information, coordonnées de
+            l'opérateur CSP) ; DARES (statistiques ASP — 75 % du SJR pendant
+            12 mois en régime droit commun).
+
+            Dispositif strictement français — entreprises ≥ 1 000 salariés
+            relèvent du congé de reclassement L. 1233-71+ CT (F-DT-45, P3
+            F-218 backlog). En BE, le régime équivalent est l'outplacement
+            obligatoire (CCT 82 / 51 / 24, backlog jumeau F-207). Pas de seed BE.
+
+            UUID namespace dédié F-212 P2 :
+            f1a04003-0000-0000-0000-eeee21200007.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200007', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-44-csp-crp-conformite', 'CONTEXTUAL', 'csp_propose', 'true', 67);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200007';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
