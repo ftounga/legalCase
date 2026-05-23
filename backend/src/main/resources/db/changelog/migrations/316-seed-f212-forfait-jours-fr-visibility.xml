@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200003-seed" author="legalcase">
+        <comment>
+            SF-212-04 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Forfait jours — validité et rappel HS"
+            (F-DT-50-forfait-jours-validite, FRANCE), table créée par
+            SF-212-03 (migration 315).
+
+            Le seed est porté par la migration backend (bundle SF-212-03+04) —
+            couplé à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Précédent : SF-212-01/02
+            (migrations 276/279) pour F-DT-36. Sans ce couplage, le garde-fou
+            CI DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une convention de forfait jours —
+            trigger `forfait_jours_detecte` = true (signal métier déjà
+            extrait par TravailPromptBuilder/CaseAnalysisResponse depuis
+            F-205, lu par DecisionToolVisibilityService.addBooleanFlagIfTrue
+            sur travailNode).
+
+            priority 65 — juste après F-DT-36 (faute grave/lourde, priority 61),
+            outil de qualification disciplinaire du même bundle Travail FR P2.
+
+            Fondement : L. 3121-58 à L. 3121-66 CT (régime forfait jours et
+            ses garanties : autonomie du cadre, accord collectif autorisant,
+            entretien annuel charge de travail, document de contrôle mensuel,
+            nb jours ≤ 218 sauf accord majoré), Cass. soc. 29/06/2011
+            n°09-71.107 (accord Syntec : exigence d'un mécanisme effectif de
+            garantie du respect de la santé et du repos — sans quoi nullité
+            du forfait), L. 3245-1 CT (prescription 3 ans du rappel de salaire
+            pour heures supplémentaires).
+
+            Mécanisme strictement français — en BE, la durée du travail est
+            régie par les CCT/CP (CP 200 Syntec belge n'a pas le même régime).
+            Pas de seed BE.
+
+            UUID namespace dédié F-212 P2 :
+            f1a04003-0000-0000-0000-eeee21200003.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200003', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-50-forfait-jours-validite', 'CONTEXTUAL', 'forfait_jours_detecte', 'true', 65);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200003';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

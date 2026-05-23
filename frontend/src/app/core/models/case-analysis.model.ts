@@ -733,6 +733,23 @@ export interface TravailExtractedData {
   /** Salaire brut mensuel de référence en euros (> 0). */
   fauteGraveSalaireMensuelBrut?: number | null;
   // -------------------------------------------------------------------------
+  // SF-212-03 — sous-objet `forfait_jours_detail` (FRANCE only)
+  // Pré-fill F-DT-50 (forfait jours — validité et rappel HS).
+  // Tous nullables — restent `null` pour un dossier Travail BE (le régime
+  // forfait jours art. L.3121-58+ CT avec exigences post-Cass. soc. 29/06/2011
+  // est strictement français).
+  // -------------------------------------------------------------------------
+  /** Existence d'un accord collectif autorisant le forfait (L. 3121-63 CT). */
+  forfaitJoursAccordCollectifExiste?: boolean | null;
+  /** Entretien annuel charge de travail formalisé (L. 3121-65 CT). */
+  forfaitJoursEntretienAnnuelRealise?: boolean | null;
+  /** Document de contrôle mensuel des jours travaillés (L. 3121-66 CT). */
+  forfaitJoursDocumentControle?: boolean | null;
+  /** Catégorie cadre autonome / ETAM maîtrisant son temps (L. 3121-58 CT). */
+  forfaitJoursCategorieAutonome?: boolean | null;
+  /** Nombre de jours du forfait annuel (entier 0–235). */
+  forfaitJoursNbJours?: number | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

@@ -207,7 +207,15 @@ class DashboardTileToolIdIntegrityIT {
             // standalone auto-suffisant, restitution via GET du snapshot, pas de
             // besoin métier tuile dashboard immédiat). À résorber par la session
             // F-217 propriétaire qui consolidera les 3+ outils en lot.
-            "contestation-filiation-be"
+            "contestation-filiation-be",
+            // SF-212-03 (2026-05-23) : F-DT-50-forfait-jours-validite livré sans
+            // mapper DashboardTile côté backend — exclusion transitoire alignée
+            // sur le pattern Vague 3 (composant frontend standalone auto-suffisant,
+            // restitution via GET du snapshot, pas de besoin métier tuile
+            // dashboard immédiat dans le bundle F-212 P2 Travail FR). À résorber
+            // par une SF de tile dashboard dédiée si retour terrain prouve le
+            // besoin d'une mise en avant en surface dossier.
+            "F-DT-50-forfait-jours-validite"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

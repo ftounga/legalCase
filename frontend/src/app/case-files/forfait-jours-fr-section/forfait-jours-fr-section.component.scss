@@ -1,0 +1,281 @@
+// SF-212-04 — styles de l'outil "Forfait jours — validité" (F-DT-50, FR).
+// Pattern : licenciement-faute-grave-lourd-section.scss (F-DT-36).
+
+:host {
+  display: block;
+}
+
+.fj-section {
+  border: 1px solid var(--mdc-outlined-card-outline-color, #e0e0e0);
+  border-radius: 8px;
+  background: #fff;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.fj-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  user-select: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+
+  &:focus-visible {
+    outline: 2px solid #1976d2;
+    outline-offset: -2px;
+  }
+}
+
+.fj-icon {
+  color: #1976d2;
+}
+
+.fj-title {
+  flex: 0 0 auto;
+}
+
+.fj-chip-summary {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-left: auto;
+
+  &--valide {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+  &--partielle {
+    background: #fff8e1;
+    color: #8d6e00;
+  }
+  &--nulle {
+    background: #ffebee;
+    color: #b71c1c;
+  }
+}
+
+.fj-toggle {
+  margin-left: 8px;
+}
+
+.fj-body {
+  padding: 16px;
+}
+
+.fj-country-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  color: #0d47a1;
+  font-size: 0.9rem;
+}
+
+.fj-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.fj-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fj-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.fj-block-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fj-inline-field {
+  width: 100%;
+  max-width: 480px;
+}
+
+.fj-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #1976d2;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 12px;
+  align-self: flex-start;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.fj-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.fj-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+
+  &--valide {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #66bb6a;
+  }
+  &--partielle {
+    background: #fff8e1;
+    color: #8d6e00;
+    border: 1px solid #ffca28;
+  }
+  &--nulle {
+    background: #ffebee;
+    color: #b71c1c;
+    border: 1px solid #ef5350;
+  }
+}
+
+.fj-verdict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fj-verdict-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.fj-verdict-score {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.fj-rappel-block,
+.fj-facteurs-block,
+.fj-messages-block,
+.fj-bases-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
+  margin-top: 12px;
+}
+
+.fj-rappel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th, td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+  }
+  th {
+    color: #555;
+    font-weight: 500;
+  }
+  td {
+    color: #222;
+    font-weight: 500;
+  }
+
+  .fj-rappel-total {
+    th, td {
+      font-weight: 700;
+      border-top: 2px solid #1976d2;
+      border-bottom: none;
+      padding-top: 10px;
+    }
+    td {
+      color: #b71c1c;
+      font-size: 1.05rem;
+    }
+  }
+}
+
+.fj-facteurs-list,
+.fj-messages-list,
+.fj-bases-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fj-facteur {
+  padding: 8px;
+  border-left: 3px solid #ef5350;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.fj-facteur-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.fj-facteur-fondement {
+  font-size: 0.8rem;
+  color: #555;
+  margin-top: 4px;
+}
+
+.fj-facteur-explication {
+  font-size: 0.88rem;
+  margin-top: 4px;
+  color: #333;
+}
+
+.fj-messages-list li,
+.fj-bases-list li {
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  font-size: 0.88rem;
+  &:last-child {
+    border-bottom: none;
+  }
+}

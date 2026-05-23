@@ -93,6 +93,8 @@ import { CongesPayesArretMaladieSectionComponent } from '../conges-payes-arret-m
 import { PriseActeRuptureSectionComponent } from '../prise-acte-rupture-section/prise-acte-rupture-section.component';
 // SF-212-02 : outil F-DT-36 licenciement pour faute grave / faute lourde (FR uniquement).
 import { LicenciementFauteGraveLourdSectionComponent } from '../licenciement-faute-grave-lourd-section/licenciement-faute-grave-lourd-section.component';
+// SF-212-04 : outil F-DT-50 forfait jours validité (FR uniquement).
+import { ForfaitJoursFrSectionComponent } from '../forfait-jours-fr-section/forfait-jours-fr-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -802,6 +804,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-36-licenciement-faute-grave-lourde', {
         displayLabel: 'Faute grave / faute lourde (FR)',
         component: LicenciementFauteGraveLourdSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-04 : F-DT-50 forfait jours — validité et rappel HS (FR uniquement,
+      // L. 3121-58 à L. 3121-66 CT ; Cass. soc. 29/06/2011 n°09-71.107 — régime
+      // strictement français). Pré-fill IA réel sur 5 champs `forfaitJours*`
+      // (sous-objet `forfait_jours_detail`, projeté à plat dans
+      // travailExtractedData). Trigger visibilité = `forfait_jours_detecte`
+      // côté backend (seed migration 316, signal métier déjà extrait par F-205).
+      ['F-DT-50-forfait-jours-validite', {
+        displayLabel: 'Forfait jours — validité (FR)',
+        component: ForfaitJoursFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2845,6 +2863,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-212-02 : F-DT-36 — qualification de la faute disciplinaire
     // (diagnostic = comprendre la situation et l'impact indemnitaire).
     ['F-DT-36-licenciement-faute-grave-lourde', 'DIAGNOSTIC'],
+    // SF-212-04 : F-DT-50 — validité de la convention de forfait jours
+    // (diagnostic = vérifier conformité L. 3121-58+ CT et estimer le rappel HS).
+    ['F-DT-50-forfait-jours-validite', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200003-create" author="legalcase">
+        <comment>
+            SF-212-03 : table dédiée à l'outil décisionnel "Forfait jours —
+            validité et rappel heures supplémentaires"
+            (F-DT-50-forfait-jours-validite, FRANCE — L. 3121-58 à L. 3121-66 CT ;
+            Cass. soc. 29/06/2011 n°09-71.107, accord Syntec ; jurisprudence
+            constante sur accord collectif insuffisant).
+
+            Analyse de la validité d'une convention individuelle de forfait
+            jours sur l'année et, en cas de nullité totale, calcul du rappel
+            d'heures supplémentaires estimé sur 3 ans (prescription L. 3245-1).
+
+            Outil single-country FRANCE — le forfait jours art. L.3121-58+ CT
+            avec exigence post-Cass. 29/06/2011 (mécanisme d'alerte, entretien
+            annuel, suivi régulier de la charge de travail) est spécifiquement
+            français. Pas d'équivalent direct côté BE (la durée du travail
+            relève d'un régime distinct CP/CCT — backlog jumeau si besoin).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI
+            sans recalcul (pattern F-DT-36 / SF-212-01 / F-DT-42 / SF-206-01).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration suivante (316), couplé à l'entrée
+            TOOL_REGISTRY frontend (decisional-tools-panel.component.ts). Sans
+            ce couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue
+            (seed en DB sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué).
+        </comment>
+
+        <createTable tableName="forfait_jours_validite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_forfait_jours_validite_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="forfait_jours_validite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_forfait_jours_validite_case_file"/>
+
+        <createIndex tableName="forfait_jours_validite_analyses"
+                     indexName="idx_forfait_jours_validite_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="forfait_jours_validite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
