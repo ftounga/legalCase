@@ -1,0 +1,240 @@
+/**
+ * SF-212-06 : styles outil "Transfert d'entreprise — L. 1224-1" (F-DT-72).
+ * Aligné sur le template canonique `licenciement-faute-grave-lourd-section`.
+ *
+ * Palette verdict 3 niveaux :
+ *   - vert (L1224_APPLICABLE — maintien automatique des contrats)
+ *   - or (L1224_INCERTAIN — EEA mais activité non préservée)
+ *   - rouge (L1224_INAPPLICABLE — absence d'EEA, transfert simple d'actifs)
+ *
+ * Alertes :
+ *   - rouge (alerte licenciements frauduleux pré-transfert — nuls)
+ *   - orange (alerte défaut consultation CSE — délit d'entrave)
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées et
+ * les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.tef-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.tef-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.tef-icon { color: var(--ds-accent-navy, #1d3557); }
+.tef-title { flex: 1; font-weight: 600; letter-spacing: 0.04em; }
+.tef-toggle { color: var(--ds-text-muted, #8a8475); }
+
+.tef-chip-summary {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  &--applicable { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+  &--incertain { background: rgba(201, 165, 75, 0.18); color: #8a6b1d; }
+  &--inapplicable { background: rgba(211, 47, 47, 0.12); color: #c62828; }
+}
+
+.tef-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tef-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.1);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  color: #5a4a1a;
+  font-size: 14px;
+}
+
+.tef-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+
+  &--frauduleux {
+    background: rgba(211, 47, 47, 0.08);
+    border: 1px solid rgba(211, 47, 47, 0.35);
+    color: #8a1a1a;
+  }
+
+  &--cse {
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.4);
+    color: #7a4a00;
+  }
+}
+
+.tef-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.tef-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tef-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.tef-full { width: 100%; }
+
+.tef-block-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.tef-inline-field,
+.tef-inset-field { width: 100%; }
+.tef-inset-field { margin-left: 16px; }
+
+.tef-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tef-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ds-accent-gold, #c9a54b);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.tef-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tef-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tef-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+
+  &--applicable { background: rgba(46, 125, 50, 0.12); color: #1b5e20; }
+  &--incertain { background: rgba(201, 165, 75, 0.2); color: #6a4f0a; }
+  &--inapplicable { background: rgba(211, 47, 47, 0.14); color: #8a1a1a; }
+}
+
+.tef-figures-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.tef-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.tef-figure-label { font-size: 11px; text-transform: uppercase; color: var(--ds-text-muted, #8a8475); }
+.tef-figure-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+.tef-points-block,
+.tef-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.tef-points-label,
+.tef-bases-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.tef-points-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.tef-point-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.tef-point-header { display: flex; justify-content: space-between; align-items: center; }
+.tef-point-libelle { font-weight: 600; }
+.tef-point-fondement { font-size: 12px; color: var(--ds-text-muted, #8a8475); font-family: 'JetBrains Mono', monospace; }
+.tef-point-conclusion { font-size: 13px; color: var(--ds-text, #1f1f1f); }
+
+.tef-bases-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.tef-base-chip {
+  padding: 4px 10px;
+  background: rgba(29, 53, 87, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tef-meta { display: flex; justify-content: flex-end; }
+
+.tef-messages {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ds-text, #1f1f1f);
+  font-size: 13px;
+}

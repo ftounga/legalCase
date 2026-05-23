@@ -749,6 +749,22 @@ export interface TravailExtractedData {
   forfaitJoursCategorieAutonome?: boolean | null;
   /** Nombre de jours du forfait annuel (entier 0–235). */
   forfaitJoursNbJours?: number | null;
+  // SF-212-06 — sous-objet `transfert_entreprise_detail` (FRANCE only)
+  // Pré-fill F-DT-72 (transfert d'entreprise — maintien des contrats
+  // L. 1224-1 CT, Cass. soc. 18/07/2000 n°98-46.071, Directive 2001/23/CE).
+  // Tous nullables — restent `null` pour un dossier Travail BE (maintien
+  // des contrats lors d'un transfert en BE relève de la CCT 32bis distincte).
+  // -------------------------------------------------------------------------
+  /** Type de transfert détecté — `CESSION` | `FUSION` | `APPORT_PARTIEL_ACTIF` | `EXTERNALISATION` | `REPRISE_ACTIVITE` | `AUTRE`. */
+  transfertTypeTransfert?: string | null;
+  /** EEA identifiée avant le transfert (Cass. soc. 18/07/2000 — ensemble organisé de personnes et d'éléments). */
+  transfertEeaIdentifiee?: boolean | null;
+  /** Activité économique poursuivie après le transfert (continuité d'exploitation). */
+  transfertActivitePreservee?: boolean | null;
+  /** Licenciements prononcés par le cédant peu avant le transfert. */
+  transfertLicenciementsPreTransfert?: boolean | null;
+  /** Date du transfert effectif au format ISO YYYY-MM-DD. */
+  transfertDateTransfert?: string | null;
   // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).

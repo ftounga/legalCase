@@ -1,0 +1,270 @@
+<section class="tef-section">
+  <header class="tef-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="tef-body">
+    <mat-icon class="tef-icon">corporate_fare</mat-icon>
+    <span class="tef-title">TRANSFERT D’ENTREPRISE (L. 1224-1)</span>
+    @if (result()) {
+      <span class="tef-chip-summary"
+            [class.tef-chip-summary--applicable]="result()!.analyseL1224_1 === 'L1224_APPLICABLE'"
+            [class.tef-chip-summary--incertain]="result()!.analyseL1224_1 === 'L1224_INCERTAIN'"
+            [class.tef-chip-summary--inapplicable]="result()!.analyseL1224_1 === 'L1224_INAPPLICABLE'">
+        {{ verdictBannerLabel(result()!.analyseL1224_1) }} — score {{ result()!.scoreApplicabilite }} / 100
+      </span>
+    }
+    <mat-icon class="tef-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="tef-body" class="tef-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="tef-country-banner" data-testid="tef-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 1224-1 CT — en Belgique, le maintien des contrats lors d'un transfert relève de la CCT 32bis, régime distinct).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="tef-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="tef-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Type de transfert + date -->
+            <div class="tef-block tef-full">
+              <span class="tef-block-label">Type de transfert</span>
+
+              <mat-form-field appearance="outline" class="tef-inline-field">
+                <mat-label>Type de transfert envisagé / réalisé</mat-label>
+                <mat-select
+                    [ngModel]="typeTransfert()"
+                    (ngModelChange)="onTypeTransfertChange($event)"
+                    name="typeTransfert"
+                    data-testid="tef-select-type">
+                  <mat-option value="CESSION">Cession (fonds de commerce, vente d'établissement)</mat-option>
+                  <mat-option value="FUSION">Fusion (absorption, création)</mat-option>
+                  <mat-option value="APPORT_PARTIEL_ACTIF">Apport partiel d'actif (branche d'activité)</mat-option>
+                  <mat-option value="EXTERNALISATION">Externalisation (sous-traitance avec transfert de moyens)</mat-option>
+                  <mat-option value="REPRISE_ACTIVITE">Reprise d'activité</mat-option>
+                  <mat-option value="AUTRE">Autre</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceTypeTransfert() === 'IA') {
+                <span class="tef-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="tef-inline-field">
+                <mat-label>Date du transfert (AAAA-MM-JJ)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateTransfert()"
+                       (ngModelChange)="onDateTransfertChange($event)"
+                       name="dateTransfert"
+                       data-testid="tef-input-date-transfert" />
+              </mat-form-field>
+              @if (provenanceDateTransfert() === 'IA') {
+                <span class="tef-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Conditions L. 1224-1 (EEA + activité) -->
+            <div class="tef-block tef-full">
+              <span class="tef-block-label">Conditions d'application de L. 1224-1</span>
+
+              <div class="tef-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="eeaIdentifieeAvantTransfert()"
+                    (ngModelChange)="onEeaChange($event)"
+                    name="eeaIdentifieeAvantTransfert"
+                    data-testid="tef-toggle-eea">
+                  Entité économique autonome identifiée avant le transfert (Cass. soc. 18/07/2000)
+                </mat-slide-toggle>
+                @if (provenanceEea() === 'IA') {
+                  <span class="tef-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="tef-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="activiteEconomiquePreservee()"
+                    (ngModelChange)="onActiviteChange($event)"
+                    name="activiteEconomiquePreservee"
+                    data-testid="tef-toggle-activite">
+                  Activité économique poursuivie après le transfert (continuité d'exploitation)
+                </mat-slide-toggle>
+                @if (provenanceActivite() === 'IA') {
+                  <span class="tef-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Salariés et clauses -->
+            <div class="tef-block tef-full">
+              <span class="tef-block-label">Salariés et clauses contractuelles</span>
+
+              <div class="tef-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="salariesTransferes()"
+                    (ngModelChange)="onSalariesTransferesChange($event)"
+                    name="salariesTransferes">
+                  Salariés transférés au repreneur de plein droit
+                </mat-slide-toggle>
+              </div>
+
+              <div class="tef-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="contratsModifiesParRepreneur()"
+                    (ngModelChange)="onContratsModifiesChange($event)"
+                    name="contratsModifiesParRepreneur">
+                  Modification de clauses contractuelles par le repreneur (alerte si oui)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 4 — Irrégularités : licenciements + CSE -->
+            <div class="tef-block tef-full">
+              <span class="tef-block-label">Irrégularités éventuelles</span>
+
+              <div class="tef-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="licenciementsPreTransfert()"
+                    (ngModelChange)="onLicenciementsPreChange($event)"
+                    name="licenciementsPreTransfert"
+                    data-testid="tef-toggle-licenciements">
+                  Licenciements prononcés par le cédant avant le transfert (alerte fraude)
+                </mat-slide-toggle>
+                @if (provenanceLicenciementsPre() === 'IA') {
+                  <span class="tef-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (licenciementsPreTransfert()) {
+                <mat-form-field appearance="outline" class="tef-inset-field">
+                  <mat-label>Nombre de salariés licenciés avant transfert</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="nbLicenciementsPreTransfert()"
+                         (ngModelChange)="onNbLicenciementsChange($event)"
+                         name="nbLicenciementsPreTransfert"
+                         data-testid="tef-input-nb-licenciements" />
+                </mat-form-field>
+              }
+
+              <div class="tef-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="informationConsultationCseRealisee()"
+                    (ngModelChange)="onCseConsulteChange($event)"
+                    name="informationConsultationCseRealisee"
+                    data-testid="tef-toggle-cse">
+                  Information-consultation du CSE réalisée avant le transfert (L. 1224-3 CT)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="tef-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="tef-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="tef-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseL1224_1)"
+                 data-testid="tef-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseL1224_1) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseL1224_1) }}</span>
+            </div>
+
+            <!-- Alerte licenciements frauduleux (rouge) -->
+            @if (result()!.alerteLicenciementsFrauduleux) {
+              <div class="tef-alert tef-alert--frauduleux" data-testid="tef-alert-frauduleux">
+                <mat-icon>error</mat-icon>
+                <span>Alerte licenciements pré-transfert : si l'objectif était de permettre le rachat (vider l'EEA de ses salariés), ces licenciements sont nuls et les contrats doivent être réintégrés chez le repreneur (jurisprudence constante Cass. soc.).</span>
+              </div>
+            }
+
+            <!-- Alerte défaut consultation CSE (orange) -->
+            @if (result()!.alerteDefautConsultationCse) {
+              <div class="tef-alert tef-alert--cse" data-testid="tef-alert-cse">
+                <mat-icon>warning_amber</mat-icon>
+                <span>Alerte défaut de consultation CSE : manquement à l'obligation d'information-consultation préalable (L. 1224-3 CT, L. 2323-1 s. CT). Susceptible de fonder une action en référé du CSE et un délit d'entrave.</span>
+              </div>
+            }
+
+            <!-- Score -->
+            <div class="tef-figures-block">
+              <div class="tef-figure">
+                <span class="tef-figure-label">Score applicabilité</span>
+                <span class="tef-figure-value">{{ result()!.scoreApplicabilite }} / 100</span>
+              </div>
+              @if (result()!.licenciementsPreTransfert) {
+                <div class="tef-figure">
+                  <span class="tef-figure-label">Licenciements pré-transfert</span>
+                  <span class="tef-figure-value">{{ result()!.nbLicenciementsPreTransfert }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Points d'analyse -->
+            @if (result()!.pointsAnalyse?.length) {
+              <div class="tef-points-block">
+                <span class="tef-points-label">Points d'analyse ({{ result()!.pointsAnalyse.length }})</span>
+                <ul class="tef-points-list">
+                  @for (p of result()!.pointsAnalyse; track pointTrackKey($index, p)) {
+                    <li class="tef-point-item" data-testid="tef-point-item">
+                      <div class="tef-point-header">
+                        <span class="tef-point-libelle">{{ p.libelle }}</span>
+                      </div>
+                      <span class="tef-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                      <span class="tef-point-conclusion">{{ p.conclusion }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="tef-bases-block">
+                <span class="tef-bases-label">Bases juridiques</span>
+                <div class="tef-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="tef-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="tef-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="tef-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

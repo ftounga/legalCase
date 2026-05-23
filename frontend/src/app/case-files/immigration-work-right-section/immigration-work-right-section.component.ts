@@ -18,6 +18,7 @@ import { SourceExplanationService } from '../../core/services/source-explanation
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
@@ -52,11 +53,16 @@ export type IM07CoherenceAlert = CoherenceAlert<IM07AlertField>;
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
     ProcedureChecksOutputComponent,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './immigration-work-right-section.component.html',
   styleUrl: './immigration-work-right-section.component.scss'
 })
 export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-07-droit-au-travail';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DROIT AU TRAVAIL';
   static readonly TOOL_ICON = 'work';

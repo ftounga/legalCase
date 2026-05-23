@@ -38,6 +38,7 @@ import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
@@ -84,11 +85,16 @@ const MS_48H = 48 * MS_ONE_HOUR;
     LegalCitationsPipe,
     DecisionalHeaderFlagComponent,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './oqtf-sans-delai-section.component.html',
   styleUrl: './oqtf-sans-delai-section.component.scss',
 })
 export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-08-oqtf-sans-delai-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'OQTF SANS DÉLAI DE DÉPART VOLONTAIRE (FR) — 48H';
   static readonly TOOL_ICON = 'gavel';

@@ -19,6 +19,7 @@ import { SourceExplanationService } from '../../core/services/source-explanation
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
@@ -55,11 +56,16 @@ export type IM06CoherenceAlert = CoherenceAlert<IM06AlertField>;
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
     ProcedureChecksOutputComponent,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './immigration-recours-section.component.html',
   styleUrl: './immigration-recours-section.component.scss'
 })
 export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-06-recours';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RECOURS IMMIGRATION';
   static readonly TOOL_ICON = 'gavel';

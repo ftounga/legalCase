@@ -25,6 +25,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
@@ -65,11 +66,16 @@ export type OqtfCoherenceAlert = CoherenceAlert<OqtfAlertField>;
     CoherencePopoverTriggerDirective,
     // SF-155-07 (DIV-6) : flag header partagé (cohérent avec oqtf-sans-delai + annexe13-be).
     DecisionalHeaderFlagComponent,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './oqtf-avec-delai-section.component.html',
   styleUrl: './oqtf-avec-delai-section.component.scss',
 })
 export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-08-oqtf-avec-delai-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'OQTF AVEC DÉLAI DE DÉPART VOLONTAIRE (FR)';
   static readonly TOOL_ICON = 'gavel';
