@@ -1025,4 +1025,29 @@ export interface FamilleExtractedData {
    * Source backend : `audition_mineur_detection.demande_formalisee_detectee`.
    */
   demandeAuditionFormaliseeDetectee?: boolean | null;
+
+  /**
+   * SF-216-19 : FRANCE — flag CONTEXTUAL indiquant qu'une indignité
+   * successorale est envisagée (mention art. 726 Cciv, condamnation pour
+   * meurtre / tentative / violences graves contre le défunt, témoignage
+   * faux, obstruction au testament).
+   * Source backend : `indignite_successorale_detection.envisagee`.
+   */
+  indigniteSuccessoraleEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-19 : FRANCE — true si une condamnation pénale définitive en
+   * lien avec le défunt (meurtre / tentative / violences graves / actes
+   * de barbarie / témoignage faux) est documentée dans les pièces.
+   * Source backend : `indignite_successorale_detection.condamnation_penale_detectee`.
+   */
+  condamnationPenaleSuccessionDetectee?: boolean | null;
+
+  /**
+   * SF-216-19 : FRANCE — true si le défunt a explicitement pardonné
+   * l'héritier indigne dans son testament (art. 728 Cciv — pardon
+   * testamentaire neutralisant l'indignité).
+   * Source backend : `indignite_successorale_detection.pardon_testamentaire`.
+   */
+  pardonTestamentaireDetecte?: boolean | null;
 }

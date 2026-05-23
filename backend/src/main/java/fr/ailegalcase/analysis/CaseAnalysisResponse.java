@@ -2472,7 +2472,14 @@ public record CaseAnalysisResponse(
             // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
             // auditionMineurEnvisagee active la visibilité CONTEXTUAL F-IA-04.
             Boolean auditionMineurEnvisagee,           // FR — CONTEXTUAL : mention art. 388-1 / audition de l'enfant / entendre l'enfant
-            Boolean demandeAuditionFormaliseeDetectee) { // FR — true si demande d'audition déjà formalisée (pré-fill UI)
+            Boolean demandeAuditionFormaliseeDetectee, // FR — true si demande d'audition déjà formalisée (pré-fill UI)
+            // SF-216-19 : 3 champs IA indignité successorale FR.
+            // Source : `famille_extracted_data.indignite_successorale_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // indigniteSuccessoraleEnvisagee active la visibilité CONTEXTUAL F-IA-04.
+            Boolean indigniteSuccessoraleEnvisagee,    // FR — CONTEXTUAL : mention art. 726 / condamnation meurtre + succession
+            Boolean condamnationPenaleSuccessionDetectee, // FR — true si condamnation pénale en lien avec le défunt documentée
+            Boolean pardonTestamentaireDetecte) {      // FR — true si pardon explicite dans le testament détecté (art. 728 Cciv)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2870,6 +2877,13 @@ public record CaseAnalysisResponse(
             private Boolean demandeAuditionFormaliseeDetectee;
             public Builder auditionMineurEnvisagee(Boolean v) { this.auditionMineurEnvisagee = v; return this; }
             public Builder demandeAuditionFormaliseeDetectee(Boolean v) { this.demandeAuditionFormaliseeDetectee = v; return this; }
+            // SF-216-19 : setters des 3 champs IA indignité successorale FR.
+            private Boolean indigniteSuccessoraleEnvisagee;
+            private Boolean condamnationPenaleSuccessionDetectee;
+            private Boolean pardonTestamentaireDetecte;
+            public Builder indigniteSuccessoraleEnvisagee(Boolean v) { this.indigniteSuccessoraleEnvisagee = v; return this; }
+            public Builder condamnationPenaleSuccessionDetectee(Boolean v) { this.condamnationPenaleSuccessionDetectee = v; return this; }
+            public Builder pardonTestamentaireDetecte(Boolean v) { this.pardonTestamentaireDetecte = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3026,7 +3040,11 @@ public record CaseAnalysisResponse(
                         exequaturRequisDetecte,
                         // SF-216-13 : 2 champs IA audition du mineur par le JAF FR.
                         auditionMineurEnvisagee,
-                        demandeAuditionFormaliseeDetectee);
+                        demandeAuditionFormaliseeDetectee,
+                        // SF-216-19 : 3 champs IA indignité successorale FR.
+                        indigniteSuccessoraleEnvisagee,
+                        condamnationPenaleSuccessionDetectee,
+                        pardonTestamentaireDetecte);
             }
         }
     }
@@ -5512,6 +5530,19 @@ public record CaseAnalysisResponse(
                 ? booleanOrNull(amd, "demande_formalisee_detectee") : null;
         boolean sf216_13Present = auditionMineurEnvisagee != null
                 || demandeAuditionFormaliseeDetectee != null;
+        // SF-216-19 : sous-objet `indignite_successorale_detection` — 3 champs IA
+        // pour l'indignité successorale FR (art. 726-729-1 Cciv + Loi 2022-1617).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode indSucc = node.get("indignite_successorale_detection");
+        boolean indSuccObject = indSucc != null && indSucc.isObject();
+        Boolean indigniteSuccessoraleEnvisagee = indSuccObject ? booleanOrNull(indSucc, "envisagee") : null;
+        Boolean condamnationPenaleSuccessionDetectee = indSuccObject
+                ? booleanOrNull(indSucc, "condamnation_penale_detectee") : null;
+        Boolean pardonTestamentaireDetecte = indSuccObject
+                ? booleanOrNull(indSucc, "pardon_testamentaire") : null;
+        boolean sf216_19Present = indigniteSuccessoraleEnvisagee != null
+                || condamnationPenaleSuccessionDetectee != null
+                || pardonTestamentaireDetecte != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5559,7 +5590,8 @@ public record CaseAnalysisResponse(
                 && !sf216_11Present
                 && !sf216_15Present
                 && !sf216_17Present
-                && !sf216_13Present) {
+                && !sf216_13Present
+                && !sf216_19Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5763,6 +5795,10 @@ public record CaseAnalysisResponse(
                 // SF-216-13 : 2 champs IA audition du mineur par le JAF FR.
                 .auditionMineurEnvisagee(auditionMineurEnvisagee)
                 .demandeAuditionFormaliseeDetectee(demandeAuditionFormaliseeDetectee)
+                // SF-216-19 : 3 champs IA indignité successorale FR.
+                .indigniteSuccessoraleEnvisagee(indigniteSuccessoraleEnvisagee)
+                .condamnationPenaleSuccessionDetectee(condamnationPenaleSuccessionDetectee)
+                .pardonTestamentaireDetecte(pardonTestamentaireDetecte)
                 .build();
     }
 

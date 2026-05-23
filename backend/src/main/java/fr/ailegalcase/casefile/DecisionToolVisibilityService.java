@@ -351,6 +351,11 @@ public class DecisionToolVisibilityService {
         // art. 388-1 Cciv + art. 1074-1 à 1074-3 CPC + CIDE art. 12).
         addBooleanFlagIfTrueNested(detected, familleNode, "audition_mineur_detection", "envisagee",
                 "audition_mineur_envisagee");
+        // === SF-216-19 — 1 flag CONTEXTUAL Famille FR : indignité successorale ===
+        // Lire depuis sous-objet `indignite_successorale_detection.envisagee` (même pattern,
+        // art. 726-729-1 Cciv + Loi n°2022-1617 du 23/12/2022 violences intrafamiliales).
+        addBooleanFlagIfTrueNested(detected, familleNode, "indignite_successorale_detection", "envisagee",
+                "indignite_successorale_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

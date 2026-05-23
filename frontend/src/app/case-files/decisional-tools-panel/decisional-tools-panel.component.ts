@@ -190,6 +190,8 @@ import { AdoptionIntraFrSectionComponent } from '../adoption-intra-fr-section/ad
 import { AdoptionInternationaleFrSectionComponent } from '../adoption-internationale-fr-section/adoption-internationale-fr-section.component';
 // SF-216-14 : composant simulateur Audition du mineur FR (F-FA-AUDITION-MINEUR).
 import { AuditionMineurFrSectionComponent } from '../audition-mineur-fr-section/audition-mineur-fr-section.component';
+// SF-216-20 : composant simulateur Indignité successorale FR (F-FA-INDIGNITE-SUCCESSORALE).
+import { IndigniteSuccessoraleFrSectionComponent } from '../indignite-successorale-fr-section/indignite-successorale-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1280,6 +1282,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-AUDITION-MINEUR', {
         displayLabel: 'Audition du mineur (FR)',
         component: AuditionMineurFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-20 : composant simulateur complet (POST/GET backend SF-216-19).
+      // Outil P2 famille FR — Indignité successorale (art. 726-729-1 Cciv +
+      // Loi n°2022-1617 violences intrafamiliales). 3 champs pré-fill IA
+      // (condamnation, pardon, date ouverture) — visibility CONTEXTUAL F-IA-04
+      // priority 107.
+      ['F-FA-INDIGNITE-SUCCESSORALE', {
+        displayLabel: 'Indignité successorale (FR)',
+        component: IndigniteSuccessoraleFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2760,6 +2777,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-ADOPTION-INTERNATIONALE', 'DIAGNOSTIC'],
     // SF-216-14 : audition du mineur par le JAF (FR, art. 388-1 Cciv + art. 1074-1 à 1074-3 CPC).
     ['F-FA-AUDITION-MINEUR', 'DIAGNOSTIC'],
+    // SF-216-20 : indignité successorale (FR, art. 726-729-1 Cciv + Loi 2022-1617).
+    ['F-FA-INDIGNITE-SUCCESSORALE', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

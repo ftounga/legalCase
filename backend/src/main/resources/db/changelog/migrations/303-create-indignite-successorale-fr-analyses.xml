@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600019" author="legalcase">
+        <comment>
+            SF-216-19 : table dédiée à l'outil décisionnel "Indignité
+            successorale" (F-FA-INDIGNITE-SUCCESSORALE, FRANCE — art. 726-729-1
+            Cciv + Loi n°2001-1135 du 3/12/2001 + Loi n°2022-1617 du 23/12/2022).
+
+            Outil dédié à la déchéance des droits successoraux d'un héritier
+            pour crime / délit commis envers le défunt, distinct des outils
+            successoraux F-FA-24-* (acceptation-renonciation, dévolution
+            légale, rapport, réserve, partage).
+
+            Détermine :
+              - l'indignité de plein droit (art. 726 Cciv — meurtre ou
+                tentative de meurtre du défunt après condamnation pénale
+                définitive) ;
+              - l'indignité judiciaire (art. 727 Cciv — autres causes :
+                témoignage faux, obstruction au testament, violences graves,
+                non-signalement homicide, extension loi 2022-1617 violences
+                intrafamiliales) ;
+              - la neutralisation par pardon testamentaire explicite
+                (art. 728 Cciv) ;
+              - la représentation des descendants de l'indigne
+                (art. 729-1 Cciv — autorisée en cas d'indignité judiciaire,
+                refusée pour indignité de plein droit) ;
+              - le délai d'action 5 ans (art. 729 Cciv) ;
+              - l'effet sur la dévolution successorale.
+
+            Outil single-country FRANCE — la matière est régie en Belgique
+            par les art. 4.6 à 4.10 CC BE (réforme 2021) avec des conditions
+            distinctes (outil F-FA-BE-INDIGNITE futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 304 (couplé à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — pattern SF-216-01 / SF-216-05 / SF-216-07
+            / SF-216-15 / SF-216-17).
+        </comment>
+
+        <createTable tableName="indignite_successorale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_indignite_successorale_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="indignite_successorale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_indignite_successorale_analyses_case_file"/>
+
+        <createIndex tableName="indignite_successorale_analyses"
+                     indexName="idx_indignite_successorale_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="indignite_successorale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

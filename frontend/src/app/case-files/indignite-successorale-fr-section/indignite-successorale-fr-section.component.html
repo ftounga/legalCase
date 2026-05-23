@@ -1,0 +1,185 @@
+<!--
+  SF-216-20 : template de l'outil Indignité successorale
+  (F-FA-INDIGNITE-SUCCESSORALE, FRANCE uniquement — art. 726-729-1 Cciv +
+  Loi n°2001-1135 du 3/12/2001 + Loi n°2022-1617 du 23/12/2022).
+  Pattern : adoption-internationale-fr-section.
+-->
+<section class="indignite-successorale-section"
+         [class.indignite-successorale-section--collapsed]="collapsed()">
+  <header class="indignite-successorale-section__header" (click)="toggleCollapse()">
+    <mat-icon class="indignite-successorale-section__icon">gavel</mat-icon>
+    <h3 class="indignite-successorale-section__title">Indignité successorale</h3>
+    <span class="indignite-successorale-section__country">FR</span>
+    <mat-icon class="indignite-successorale-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="indignite-successorale-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="indignite-successorale-banner indignite-successorale-banner--info"
+         *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, l'indignité
+        successorale est régie par les <strong>art. 4.6 à 4.10 CC BE</strong>
+        (réforme 2021) avec des conditions distinctes (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="indignite-successorale-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="indignite-successorale-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="indignite-successorale-form__intro">
+          Vérifie si un héritier peut être déclaré indigne de succéder
+          (art. 726-727 Cciv) : indignité de plein droit (meurtre / tentative)
+          ou judiciaire (témoignage faux, obstruction testament, violences
+          graves loi 2022), neutralisation possible par pardon testamentaire
+          (art. 728), représentation des descendants (art. 729-1).
+        </p>
+
+        <div class="indignite-successorale-form__row">
+          <mat-form-field appearance="outline" class="indignite-successorale-form__field">
+            <mat-label>Motif d'indignité envisagé</mat-label>
+            <mat-select [ngModel]="motifIndignite()"
+                        (ngModelChange)="onMotifChange($event)"
+                        name="motif"
+                        required>
+              <mat-option *ngFor="let opt of motifsIndignite" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="indignite-successorale-form__row">
+          <mat-form-field appearance="outline" class="indignite-successorale-form__field">
+            <mat-label>Date d'ouverture de la succession</mat-label>
+            <input matInput type="date"
+                   [ngModel]="dateOuvertureSuccession()"
+                   (ngModelChange)="onDateOuvertureChange($event)"
+                   name="dateOuverture"
+                   required />
+            <mat-hint>Point de départ du délai 5 ans (art. 729 Cciv)</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="indignite-successorale-form__field">
+            <mat-label>Nombre de cohéritiers restants</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="nbCoheritiersRestants()"
+                   (ngModelChange)="onNbCoheritiersChange($event)"
+                   name="nbCoheritiers" />
+          </mat-form-field>
+        </div>
+
+        <div class="indignite-successorale-form__row indignite-successorale-form__row--checks">
+          <mat-checkbox [checked]="condamnationPrononcee() === true"
+                        (change)="onCondamnationChange($event.checked)"
+                        name="condamnation">
+            Condamnation pénale définitive prononcée
+            <small class="indignite-successorale-form__hint">Requise pour l'indignité de plein droit (art. 726)</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="indigniteJudiciaireDemandee()"
+                        (change)="onIndigniteDemandeeChange($event.checked)"
+                        name="indigniteDemandee">
+            Indignité judiciaire demandée par d'autres héritiers
+            <small class="indignite-successorale-form__hint">Action devant le TJ (art. 727)</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="pardonTestamentaireDetecte() === true"
+                        (change)="onPardonChange($event.checked)"
+                        name="pardon">
+            Pardon testamentaire détecté
+            <small class="indignite-successorale-form__hint">Disposition expresse du défunt (art. 728) — neutralise l'indignité</small>
+          </mat-checkbox>
+        </div>
+
+        <div class="indignite-successorale-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer l\'indignité successorale' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="indignite-successorale-result" *ngIf="!showForm() && result() as r">
+        <div class="indignite-successorale-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>{{ r.typeIndignite === 'PLEIN_DROIT' || r.delaiForclos ? 'block' : (r.typeIndignite === 'PARDONNEE' ? 'favorite' : 'gavel') }}</mat-icon>
+          <div>
+            <span class="indignite-successorale-result__verdict-label">Type d'indignité</span>
+            <strong class="indignite-successorale-result__verdict-value">
+              {{ typeIndigniteLabel(r.typeIndignite) }} — {{ r.verdictIndignite }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="indignite-successorale-result__metrics">
+          <div class="indignite-successorale-metric">
+            <span class="indignite-successorale-metric__label">Représentation</span>
+            <strong class="indignite-successorale-metric__value">
+              {{ r.representationPossible ? 'Possible (art. 729-1)' : 'Exclue (plein droit)' }}
+            </strong>
+          </div>
+          <div class="indignite-successorale-metric">
+            <span class="indignite-successorale-metric__label">Pardon neutralisant</span>
+            <strong class="indignite-successorale-metric__value">
+              {{ r.pardonNeutralisant ? 'Oui (art. 728)' : 'Non' }}
+            </strong>
+          </div>
+          <div class="indignite-successorale-metric">
+            <span class="indignite-successorale-metric__label">Délai (art. 729)</span>
+            <strong class="indignite-successorale-metric__value">
+              {{ r.delaiForclos ? 'Forclos' : 'Recevable' }}
+            </strong>
+          </div>
+        </div>
+
+        <!-- Effet sur la dévolution -->
+        <div class="indignite-successorale-result__base">
+          <h4>Effet sur la dévolution</h4>
+          <p>{{ r.effetDevolution }}</p>
+        </div>
+
+        <div class="indignite-successorale-result__base">
+          <h4>Délai d'action</h4>
+          <p>{{ r.delaiAction }}</p>
+        </div>
+
+        <div class="indignite-successorale-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="indignite-successorale-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="indignite-successorale-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="indignite-successorale-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="indignite-successorale-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
