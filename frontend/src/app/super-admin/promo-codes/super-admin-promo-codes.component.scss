@@ -58,14 +58,15 @@
   .create-form {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding-top: 8px;
+    gap: 20px;
+    padding-top: 12px;
   }
 
   .form-row {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
+    align-items: flex-start;
 
     mat-form-field {
       flex: 1;
