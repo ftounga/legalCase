@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="304-seed-f216-indignite-successorale-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-19 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Indignité successorale"
+            (F-FA-INDIGNITE-SUCCESSORALE, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que si
+            le pipeline IA détecte une mention d'indignité successorale,
+            d'art. 726 Cciv, de condamnation pour meurtre/tentative de
+            meurtre du défunt, d'obstruction au testament, de témoignage
+            faux ou de violences graves contre le défunt — trigger
+            `indignite_successorale_envisagee` lu depuis le sous-objet
+            `indignite_successorale_detection.envisagee` de
+            `famille_extracted_data` par DecisionToolVisibilityService
+            (méthode addBooleanFlagIfTrueNested, réutilisée depuis SF-216-01
+            / SF-216-05 / SF-216-07 / SF-216-15 / SF-216-17).
+
+            UUID namespace dédié F-216 (bundle 19) :
+            f1a04002-0000-0000-0000-eeee21600019.
+
+            Base juridique :
+              - art. 726 Cciv (indignité de plein droit — meurtre / tentative
+                de meurtre du défunt après condamnation définitive) ;
+              - art. 727 Cciv (indignité judiciaire — extension loi
+                2001-1135 du 3/12/2001 + loi 2022-1617 du 23/12/2022 :
+                violences intrafamiliales, témoignage faux, obstruction
+                testament, non-signalement homicide) ;
+              - art. 728 Cciv (pardon testamentaire — neutralisation
+                possible par disposition expresse du défunt) ;
+              - art. 729 Cciv (délai 5 ans pour demander l'indignité
+                judiciaire) ;
+              - art. 729-1 Cciv (représentation des descendants de l'indigne :
+                possible si indignité judiciaire, exclue si plein droit).
+
+            Outil single-country FRANCE — la matière est régie en Belgique
+            par les art. 4.6 à 4.10 CC BE (réforme 2021) avec des conditions
+            distinctes (outil F-FA-BE-INDIGNITE futur, hors périmètre F-216).
+
+            priority 107 — rang spécifique pour un outil P2 famille FR
+            postérieur à F-FA-ADOPTION-INTERNATIONALE (priority 106).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600019', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-INDIGNITE-SUCCESSORALE',
+        'CONTEXTUAL', 'indignite_successorale_envisagee', 'true', 107);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600019';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
