@@ -42,6 +42,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { MesuresProvisoiresPrefillRules } from './mesures-provisoires-section-prefill-rules';
 
@@ -84,12 +85,17 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './mesures-provisoires-section.component.html',
   styleUrl: './mesures-provisoires-section.component.scss',
 })
 export class MesuresProvisoiresSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-05 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-12-mesures-provisoires';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MESURES PROVISOIRES (FR) — ART. 254 CCIV';
   static readonly TOOL_ICON = 'gavel';
