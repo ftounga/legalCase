@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200009-create" author="legalcase">
+        <comment>
+            SF-212-09 : table dédiée à l'outil décisionnel "Faute inexcusable
+            de l'employeur" (F-DT-91-faute-inexcusable-employeur, FRANCE — art.
+            L. 452-1 à L. 452-5 CSS ; Cass. ass. plén. 24/06/2005 — conscience
+            du danger ; art. L. 4121-1 CT — obligation de sécurité).
+
+            Outil distinct de F-DT-33-at-mp qui se limite à la déclaration AT/MP
+            et aux IJ majorées. Ici on évalue la reconnaissance judiciaire de
+            la faute inexcusable et la majoration de la rente / indemnisation
+            des préjudices personnels indemnisables (Cass. ass. plén. 24/06/2005
+            et CC décision 2010-8 QPC : souffrances physiques et morales,
+            préjudice esthétique, agrément, sexuel, établissement) + recours
+            subrogation CPAM.
+
+            Procédure : recours amiable CPAM (reconnaissance judiciaire possible)
+            → action devant le pôle social du TJ (NON le CPH — distinction
+            procédurale essentielle, invariant de la mini-spec).
+
+            Outil single-country FRANCE — la faute inexcusable telle que
+            définie par la chambre sociale et l'assemblée plénière est française.
+            Pas d'équivalent direct côté BE (le droit belge connaît la faute
+            grave et la faute intentionnelle dans des régimes distincts).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution
+            UI sans recalcul (pattern F-DT-42 / SF-206-01 / SF-212-01 /
+            SF-212-05).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 322 (couplée à l'entrée TOOL_REGISTRY livrée
+            dans le même lot — decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="faute_inexcusable_employeur_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_faute_inexcusable_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="faute_inexcusable_employeur_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_faute_inexcusable_analyses_case_file"/>
+
+        <createIndex tableName="faute_inexcusable_employeur_analyses"
+                     indexName="idx_faute_inexcusable_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="faute_inexcusable_employeur_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

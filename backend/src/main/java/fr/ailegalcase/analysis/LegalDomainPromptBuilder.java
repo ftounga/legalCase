@@ -753,13 +753,28 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 2 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-09 : 3e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART3 = """
+              SF-212-09 — Sous-objet `faute_inexcusable_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent une action en reconnaissance de la faute inexcusable de l'employeur au sens des art. L. 452-1 à L. 452-5 CSS (saisine du pôle social du TJ, demande de majoration de rente AT/MP, manquement à l'obligation de sécurité L. 4121-1 CT, courrier d'avocat évoquant la faute inexcusable, décision CPAM préalable). Laisser null si aucun indice de faute inexcusable n'est présent. Sub-flag de `at_mp_detecte` : émettre uniquement si un AT/MP est documenté.
+              "faute_inexcusable_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "faute_inexcusable_conscience_danger" : booléen. true si les pièces établissent que l'employeur avait ou aurait dû avoir conscience du danger auquel était exposé le salarié (Cass. ass. plén. 24/06/2005) — accidents antérieurs documentés, formation insuffisante connue, vétusté du matériel signalée, secteur d'activité notoirement à risque pour cette exposition. false si les pièces démontrent positivement l'absence de connaissance du danger. Null si non déterminable depuis les pièces.
+                "faute_inexcusable_signalement_prior" : booléen. true si les pièces documentent un signalement antérieur du danger (par le salarié, un collègue, le CSE, le médecin du travail ou l'inspection du travail) AVANT l'AT/MP — courriers de réclamation, comptes rendus CSE, alertes RPS, mise en demeure inspection du travail, fiche de poste avec mention du risque non corrigée. false si aucun signalement n'est documenté. Null si non déterminable.
+                "faute_inexcusable_mesures_prevention" : booléen. true si les pièces démontrent que l'employeur a pris les mesures nécessaires de prévention au sens de l'obligation de sécurité L. 4121-1 CT (équipements de protection individuelle fournis et utilisables, formations sécurité documentées, audit sécurité, suivi des incidents, plan de prévention). false si les pièces établissent positivement l'absence ou l'insuffisance des mesures (absence d'EPI, formations omises, recommandations CHSCT/CSE non suivies). Null si non déterminable.
+                "faute_inexcusable_taux_ipp" : entier (taux d'incapacité permanente partielle reconnu par la CPAM, en %). Extractible de la décision CPAM, de l'attestation médicale ou du rapport d'expertise. Valeur attendue entre 0 et 100 ; toute valeur hors plage sera ignorée. Null si non détectable. NE PAS confondre avec un taux d'IT (incapacité temporaire).
+              Règle NO-OP faute_inexcusable_detail : si aucune pièce n'évoque une action ou une réflexion sur la faute inexcusable de l'employeur, émettre "faute_inexcusable_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 3 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
      */
     private static final String TRAVAIL_INSTRUCTION =
-            TRAVAIL_INSTRUCTION_PART1.concat(TRAVAIL_INSTRUCTION_PART2);
+            TRAVAIL_INSTRUCTION_PART1.concat(TRAVAIL_INSTRUCTION_PART2).concat(TRAVAIL_INSTRUCTION_PART3);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

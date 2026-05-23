@@ -785,6 +785,21 @@ export interface TravailExtractedData {
   /** Salaire mensuel brut de référence pour le calcul ASP (€ > 0). */
   cspSalaireMensuelBrut?: number | null;
   // -------------------------------------------------------------------------
+  // SF-212-09 — sous-objet `faute_inexcusable_detail` (FRANCE only)
+  // Pré-fill F-DT-91 (faute inexcusable de l'employeur — L. 452-1 à L. 452-5
+  // CSS ; Cass. ass. plén. 24/06/2005 ; L. 4121-1 CT).
+  // Tous nullables — restent `null` pour un dossier Travail BE (régimes
+  // faute grave / intentionnelle BE distincts).
+  // -------------------------------------------------------------------------
+  /** Conscience du danger établie chez l'employeur (1re condition Cass. ass. plén. 24/06/2005). */
+  fauteInexcusableConscienceDanger?: boolean | null;
+  /** Signalement antérieur du danger (salarié, CSE, médecin du travail, inspection). */
+  fauteInexcusableSignalementPrior?: boolean | null;
+  /** Mesures de prévention prises (L. 4121-1 CT). */
+  fauteInexcusableMesuresPrevention?: boolean | null;
+  /** Taux d'IPP reconnu par la CPAM en % (entier 0–100). */
+  fauteInexcusableTauxIpp?: number | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

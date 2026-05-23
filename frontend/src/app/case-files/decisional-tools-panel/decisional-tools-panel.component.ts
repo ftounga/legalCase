@@ -99,6 +99,8 @@ import { ForfaitJoursFrSectionComponent } from '../forfait-jours-fr-section/forf
 import { TransfertEntrepriseFrSectionComponent } from '../transfert-entreprise-fr-section/transfert-entreprise-fr-section.component';
 // SF-212-08 : outil F-DT-44 CSP/CRP — conformité de la proposition (FR uniquement).
 import { CspCrpFrSectionComponent } from '../csp-crp-fr-section/csp-crp-fr-section.component';
+// SF-212-10 : outil F-DT-91 faute inexcusable de l'employeur (FR uniquement).
+import { FauteInexcusableFrSectionComponent } from '../faute-inexcusable-fr-section/faute-inexcusable-fr-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -848,15 +850,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
-      // SF-212-08 : F-DT-44 CSP/CRP — conformité de la proposition (FR uniquement,
-      // L. 1233-65 à L. 1233-70 CT ; ANI CSP 19/07/2011 ; DARES — entreprises
-      // < 1 000 salariés). Pré-fill IA réel sur 6 champs `csp*` (sous-objet
-      // `csp_detail`, projeté à plat dans travailExtractedData). Trigger
-      // visibilité = `csp_propose` côté backend (seed migration 320, flag IA
-      // livré par F-205).
+      // SF-212-08 : F-DT-44 CSP/CRP — conformité de la proposition (FR).
       ['F-DT-44-csp-crp-conformite', {
         displayLabel: 'CSP/CRP — conformité de la proposition (FR)',
         component: CspCrpFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-10 : F-DT-91 faute inexcusable de l'employeur (FR).
+      ['F-DT-91-faute-inexcusable-employeur', {
+        displayLabel: 'Faute inexcusable de l’employeur (FR)',
+        component: FauteInexcusableFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2907,9 +2915,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // comprendre l'applicabilité du maintien automatique et détecter les
     // irrégularités pré/post-transfert).
     ['F-DT-72-transfert-entreprise-l1224-1', 'DIAGNOSTIC'],
-    // SF-212-08 : F-DT-44 — CSP/CRP conformité de la proposition (diagnostic =
-    // vérifier la régularité de la procédure CSP et estimer l'ASP).
+    // SF-212-08 : F-DT-44 — CSP/CRP conformité de la proposition.
     ['F-DT-44-csp-crp-conformite', 'DIAGNOSTIC'],
+    // SF-212-10 : F-DT-91 — faute inexcusable de l'employeur.
+    ['F-DT-91-faute-inexcusable-employeur', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative
