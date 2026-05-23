@@ -47,6 +47,7 @@ import {
   CoherenceAlertSource,
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import {
@@ -95,11 +96,16 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './requalification-cdd-cdi-section.component.html',
   styleUrl: './requalification-cdd-cdi-section.component.scss',
 })
 export class RequalificationCddCdiSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-01 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-22-requalification-cdd-cdi';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'REQUALIFICATION CDD → CDI (FR) — ART. L.1245';
 
