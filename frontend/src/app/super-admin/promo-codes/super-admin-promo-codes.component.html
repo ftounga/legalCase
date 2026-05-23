@@ -78,6 +78,80 @@
           </mat-form-field>
         </div>
 
+        <!-- SF-255-02b — Branche STRIPE_DISCOUNT : type de réduction + valeur + (devise) + durée -->
+        @if (isStripeDiscount()) {
+          <div class="form-row" data-testid="stripe-fields-row">
+            <mat-form-field appearance="outline" class="field-value-off-type" data-testid="value-off-type-field" subscriptSizing="dynamic">
+              <mat-label>Type de réduction</mat-label>
+              <mat-select formControlName="valueOffType" data-testid="value-off-type-select">
+                <mat-option value="PERCENT">Pourcentage (%)</mat-option>
+                <mat-option value="AMOUNT">Montant fixe (€)</mat-option>
+              </mat-select>
+              @if (form.get('valueOffType')?.invalid && form.get('valueOffType')?.touched) {
+                <mat-error>Type de réduction requis</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field-value-off-amount" data-testid="value-off-amount-field" subscriptSizing="dynamic">
+              @if (isPercentOff()) {
+                <mat-label>Pourcentage de réduction</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="valueOffAmount"
+                  min="1"
+                  max="100"
+                  data-testid="value-off-amount-input"
+                />
+                <mat-hint>Entre 1 et 100</mat-hint>
+                @if (form.get('valueOffAmount')?.invalid && form.get('valueOffAmount')?.touched) {
+                  <mat-error>Pourcentage requis (1 à 100)</mat-error>
+                }
+              } @else {
+                <mat-label>Montant de réduction (en centimes)</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="valueOffAmount"
+                  min="100"
+                  max="100000"
+                  data-testid="value-off-amount-input"
+                />
+                <mat-hint>Entre 100 (1€) et 100 000 (1 000€)</mat-hint>
+                @if (form.get('valueOffAmount')?.invalid && form.get('valueOffAmount')?.touched) {
+                  <mat-error>Montant requis (100 à 100 000 centimes)</mat-error>
+                }
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            @if (isAmountOff()) {
+              <mat-form-field appearance="outline" class="field-currency" data-testid="currency-field" subscriptSizing="dynamic">
+                <mat-label>Devise</mat-label>
+                <mat-select formControlName="currency" data-testid="currency-select">
+                  <mat-option value="EUR">EUR (€)</mat-option>
+                </mat-select>
+                @if (form.get('currency')?.invalid && form.get('currency')?.touched) {
+                  <mat-error>Devise requise</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            <mat-form-field appearance="outline" class="field-duration" data-testid="duration-field" subscriptSizing="dynamic">
+              <mat-label>Application</mat-label>
+              <mat-select formControlName="duration" data-testid="duration-select">
+                <mat-option value="ONCE">Une seule fois (1ʳᵉ facture)</mat-option>
+                <mat-option value="REPEATING_3">3 cycles consécutifs</mat-option>
+                <mat-option value="FOREVER">Permanente (toutes les factures)</mat-option>
+              </mat-select>
+              @if (form.get('duration')?.invalid && form.get('duration')?.touched) {
+                <mat-error>Application requise</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        }
+
         <div class="form-row">
           <mat-form-field appearance="outline" class="field-max-uses" subscriptSizing="dynamic">
             <mat-label>Nombre max d'utilisations</mat-label>
