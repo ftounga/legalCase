@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600013" author="legalcase">
+        <comment>
+            SF-216-13 : table dédiée à l'outil décisionnel "Audition du mineur
+            par le JAF" (F-FA-AUDITION-MINEUR, FRANCE — art. 388-1 Cciv
+            + art. 1074-1 à 1074-3 CPC + CIDE art. 12).
+
+            Outil distinct des autres outils famille FR : situation
+            procédurale spécifique de l'audition du mineur capable de
+            discernement par le juge aux affaires familiales (et plus
+            largement le juge civil) dans toute procédure le concernant.
+
+            Vérifie :
+              - le droit à l'audition (mineur capable de discernement
+                + demande formalisée) — art. 388-1 al. 1 Cciv ;
+              - les modalités de l'audition (seul, avec avocat, avec tiers)
+                — art. 388-1 al. 3 Cciv + art. 1074-2 CPC ;
+              - la recevabilité d'un refus de l'audition par le juge (refus
+                motivé impératif — Cass. 1ère civ., 18/3/2015, n°14-11.392) ;
+              - l'alerte âge si discernement hautement improbable (enfant
+                de moins de 5 ans, appréciation in concreto) ;
+              - l'alerte manipulation si demande formalisée dans contexte
+                de conflit sévère.
+
+            Outil single-country FRANCE — l'audition du mineur en Belgique
+            est régie par art. 1004/1 et 1004/2 CJ avec un régime distinct
+            (outil F-FA-BE-AUDITION-MINEUR futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI sans
+            recalcul.
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 302 (couplé à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — pattern SF-216-01 / SF-216-05 / SF-216-07
+            / SF-216-15 / SF-216-17).
+        </comment>
+
+        <createTable tableName="audition_mineur_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_audition_mineur_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="audition_mineur_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_audition_mineur_analyses_case_file"/>
+
+        <createIndex tableName="audition_mineur_analyses"
+                     indexName="idx_audition_mineur_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="audition_mineur_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

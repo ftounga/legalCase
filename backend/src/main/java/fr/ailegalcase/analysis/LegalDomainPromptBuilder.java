@@ -338,6 +338,12 @@ public final class LegalDomainPromptBuilder {
                 - "exequatur_requis" : booléen ou null. **FRANCE UNIQUEMENT** — true si une décision d'adoption rendue à l'étranger est documentée (jugement, ordonnance) nécessitant une procédure d'exequatur devant le tribunal judiciaire (art. 370-5 Cciv) ; false si aucune décision étrangère n'est mentionnée ; null si aucune information ne permet de trancher.
               **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 4 champs sans erreur.
               **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
+            SF-216-13 — Nouveau sous-objet `audition_mineur_detection` (FRANCE UNIQUEMENT — art. 388-1 Cciv / audition du mineur capable de discernement + art. 1074-1 à 1074-3 CPC + CIDE art. 12).
+              "audition_mineur_detection" : objet OU null. **FRANCE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille FRANCE comportant une situation d'audition d'un mineur documentée dans les pièces (mention explicite de « audition de l'enfant », « audition du mineur », « art. 388-1 Cciv », « entendre l'enfant », « demande d'audition par l'enfant », « refus d'audition », « avocat de l'enfant », ou présence d'un mineur capable de discernement dans une procédure de divorce / autorité parentale / garde). Pour un dossier famille BELGIQUE, ce sous-objet DOIT rester null (l'équivalent BE est régi par art. 1004/1 et 1004/2 CJ — outil F-FA-BE-AUDITION-MINEUR futur). Les champs internes :
+                - "envisagee" : booléen ou null. **FRANCE UNIQUEMENT** — true si une audition du mineur est envisagée, mentionnée ou en cours (demande formée, décision sollicitée, opportunité évoquée) ; false si le dossier établit explicitement qu'aucune audition n'est envisagée ; null si aucune information ne permet de trancher.
+                - "demande_formalisee_detectee" : booléen ou null. **FRANCE UNIQUEMENT** — true si une demande d'audition a déjà été formellement présentée au juge (mention de requête, conclusions, lettre de demande, ordonnance évoquant la demande) ; false si l'absence de demande est explicitement documentée ; null si aucune information ne permet de trancher.
+              **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 2 champs sans erreur.
+              **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
             """;
 
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis

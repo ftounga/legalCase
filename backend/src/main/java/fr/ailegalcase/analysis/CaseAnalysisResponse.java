@@ -2466,7 +2466,13 @@ public record CaseAnalysisResponse(
             Boolean adoptionInternationaleEnvisagee,   // FR — CONTEXTUAL : mention art. 370-3 / Convention La Haye / OAA / agrément
             String paysOrigineAdopteDetecte,           // FR — pays d'origine de l'enfant extrait des pièces
             Boolean agrement2025DetecteValide,         // FR — true si agrément valide (≤ 5 ans) documenté
-            Boolean exequaturRequisDetecte) {          // FR — true si décision étrangère mentionnée nécessitant exequatur TJ
+            Boolean exequaturRequisDetecte,            // FR — true si décision étrangère mentionnée nécessitant exequatur TJ
+            // SF-216-13 : 2 champs IA audition du mineur par le JAF FR.
+            // Source : `famille_extracted_data.audition_mineur_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // auditionMineurEnvisagee active la visibilité CONTEXTUAL F-IA-04.
+            Boolean auditionMineurEnvisagee,           // FR — CONTEXTUAL : mention art. 388-1 / audition de l'enfant / entendre l'enfant
+            Boolean demandeAuditionFormaliseeDetectee) { // FR — true si demande d'audition déjà formalisée (pré-fill UI)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2859,6 +2865,11 @@ public record CaseAnalysisResponse(
             public Builder paysOrigineAdopteDetecte(String v) { this.paysOrigineAdopteDetecte = v; return this; }
             public Builder agrement2025DetecteValide(Boolean v) { this.agrement2025DetecteValide = v; return this; }
             public Builder exequaturRequisDetecte(Boolean v) { this.exequaturRequisDetecte = v; return this; }
+            // SF-216-13 : setters des 2 champs IA audition du mineur par le JAF FR.
+            private Boolean auditionMineurEnvisagee;
+            private Boolean demandeAuditionFormaliseeDetectee;
+            public Builder auditionMineurEnvisagee(Boolean v) { this.auditionMineurEnvisagee = v; return this; }
+            public Builder demandeAuditionFormaliseeDetectee(Boolean v) { this.demandeAuditionFormaliseeDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3012,7 +3023,10 @@ public record CaseAnalysisResponse(
                         adoptionInternationaleEnvisagee,
                         paysOrigineAdopteDetecte,
                         agrement2025DetecteValide,
-                        exequaturRequisDetecte);
+                        exequaturRequisDetecte,
+                        // SF-216-13 : 2 champs IA audition du mineur par le JAF FR.
+                        auditionMineurEnvisagee,
+                        demandeAuditionFormaliseeDetectee);
             }
         }
     }
@@ -5488,6 +5502,16 @@ public record CaseAnalysisResponse(
                 || paysOrigineAdopteDetecte != null
                 || agrement2025DetecteValide != null
                 || exequaturRequisDetecte != null;
+        // SF-216-13 : sous-objet `audition_mineur_detection` — 2 champs IA pour
+        // l'audition du mineur par le JAF FR (art. 388-1 Cciv + art. 1074-1
+        // à 1074-3 CPC + CIDE art. 12). FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode amd = node.get("audition_mineur_detection");
+        boolean amdObject = amd != null && amd.isObject();
+        Boolean auditionMineurEnvisagee = amdObject ? booleanOrNull(amd, "envisagee") : null;
+        Boolean demandeAuditionFormaliseeDetectee = amdObject
+                ? booleanOrNull(amd, "demande_formalisee_detectee") : null;
+        boolean sf216_13Present = auditionMineurEnvisagee != null
+                || demandeAuditionFormaliseeDetectee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5534,7 +5558,8 @@ public record CaseAnalysisResponse(
                 && !sf216_09Present
                 && !sf216_11Present
                 && !sf216_15Present
-                && !sf216_17Present) {
+                && !sf216_17Present
+                && !sf216_13Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5735,6 +5760,9 @@ public record CaseAnalysisResponse(
                 .paysOrigineAdopteDetecte(paysOrigineAdopteDetecte)
                 .agrement2025DetecteValide(agrement2025DetecteValide)
                 .exequaturRequisDetecte(exequaturRequisDetecte)
+                // SF-216-13 : 2 champs IA audition du mineur par le JAF FR.
+                .auditionMineurEnvisagee(auditionMineurEnvisagee)
+                .demandeAuditionFormaliseeDetectee(demandeAuditionFormaliseeDetectee)
                 .build();
     }
 
