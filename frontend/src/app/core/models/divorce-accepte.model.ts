@@ -1050,4 +1050,28 @@ export interface FamilleExtractedData {
    * Source backend : `indignite_successorale_detection.pardon_testamentaire`.
    */
   pardonTestamentaireDetecte?: boolean | null;
+
+  /**
+   * SF-216-21 : FRANCE — flag CONTEXTUAL indiquant qu'un recel successoral
+   * est envisagé (mention art. 778 Cciv, dissimulation de bien / donation,
+   * destruction de testament, recel de créance).
+   * Source backend : `recel_succession_detection.envisage`.
+   */
+  recelSuccessoralEnvisage?: boolean | null;
+
+  /**
+   * SF-216-21 : FRANCE — type de recel détecté dans les pièces
+   * (DISSIMULATION_BIEN, DISSIMULATION_DONATION, DESTRUCTION_TESTAMENT,
+   * RECEL_CREANCE, AUTRE). Pré-fill UI du champ `typeRecel`.
+   * Source backend : `recel_succession_detection.type_recel`.
+   */
+  typeRecelDetecte?: string | null;
+
+  /**
+   * SF-216-21 : FRANCE — nature de la preuve mentionnée dans les pièces
+   * (AVEUX, DOCUMENT, TEMOIGNAGE, EXPERTISE, FAISCEAU_INDICES, AUCUNE).
+   * Pré-fill UI du champ `preuveRecel`.
+   * Source backend : `recel_succession_detection.preuve_recel`.
+   */
+  preuveRecelDetectee?: string | null;
 }

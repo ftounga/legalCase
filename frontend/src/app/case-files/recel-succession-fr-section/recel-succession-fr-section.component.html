@@ -1,0 +1,192 @@
+<!--
+  SF-216-22 : template de l'outil Recel de succession
+  (F-FA-RECEL-SUCCESSION, FRANCE uniquement — art. 778 Cciv +
+  Cass. 1ère civ., 14/11/2012).
+  Pattern : indignite-successorale-fr-section.
+-->
+<section class="recel-succession-section"
+         [class.recel-succession-section--collapsed]="collapsed()">
+  <header class="recel-succession-section__header" (click)="toggleCollapse()">
+    <mat-icon class="recel-succession-section__icon">visibility_off</mat-icon>
+    <h3 class="recel-succession-section__title">Recel de succession</h3>
+    <span class="recel-succession-section__country">FR</span>
+    <mat-icon class="recel-succession-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="recel-succession-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="recel-succession-banner recel-succession-banner--info"
+         *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, le recel
+        successoral est régi par les <strong>art. 4.45 et s. CC BE</strong>
+        (réforme 2021) avec des conditions distinctes (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="recel-succession-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="recel-succession-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="recel-succession-form__intro">
+          Évalue le recel successoral (art. 778 Cciv) : dissimulation
+          intentionnelle d'un bien, d'une donation, d'une créance ou
+          destruction du testament. Sanction civile : privation de la
+          part sur le bien recelé + obligation de rapporter sans
+          émolument. Faisceau d'indices admis (Cass. 1ère civ.,
+          14/11/2012).
+        </p>
+
+        <div class="recel-succession-form__row">
+          <mat-form-field appearance="outline" class="recel-succession-form__field">
+            <mat-label>Type de recel envisagé</mat-label>
+            <mat-select [ngModel]="typeRecel()"
+                        (ngModelChange)="onTypeChange($event)"
+                        name="type"
+                        required>
+              <mat-option *ngFor="let opt of typesRecel" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="recel-succession-form__field">
+            <mat-label>Nature de la preuve disponible</mat-label>
+            <mat-select [ngModel]="preuveRecel()"
+                        (ngModelChange)="onPreuveChange($event)"
+                        name="preuve"
+                        required>
+              <mat-option *ngFor="let opt of preuvesRecel" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="recel-succession-form__row">
+          <mat-form-field appearance="outline" class="recel-succession-form__field">
+            <mat-label>Qualité du receleur</mat-label>
+            <mat-select [ngModel]="receleurQualite()"
+                        (ngModelChange)="onQualiteChange($event)"
+                        name="qualite">
+              <mat-option *ngFor="let opt of receleursQualite" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="recel-succession-form__field">
+            <mat-label>Date d'ouverture de la succession</mat-label>
+            <input matInput type="date"
+                   [ngModel]="dateOuvertureSuccession()"
+                   (ngModelChange)="onDateOuvertureChange($event)"
+                   name="dateOuverture"
+                   required />
+            <mat-hint>Point de départ du délai 5 ans (art. 2224 Cciv)</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="recel-succession-form__row">
+          <mat-form-field appearance="outline" class="recel-succession-form__field">
+            <mat-label>Valeur du bien / créance recelé(e) (€)</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="bienCeleValeurEur()"
+                   (ngModelChange)="onValeurChange($event)"
+                   name="valeur" />
+          </mat-form-field>
+        </div>
+
+        <div class="recel-succession-form__row recel-succession-form__row--checks">
+          <mat-checkbox [checked]="actionIntentee()"
+                        (change)="onActionIntenteeChange($event.checked)"
+                        name="actionIntentee">
+            Action en recel déjà engagée devant le TJ
+            <small class="recel-succession-form__hint">Délai 5 ans depuis l'ouverture ou la découverte du recel</small>
+          </mat-checkbox>
+        </div>
+
+        <div class="recel-succession-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer le recel successoral' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="recel-succession-result" *ngIf="!showForm() && result() as r">
+        <div class="recel-succession-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>{{ r.delaiForclos ? 'block' : (r.qualificationRecel === 'CARACTERISE' ? 'gavel' : (r.qualificationRecel === 'HORS_PERIMETRE' ? 'block' : 'warning')) }}</mat-icon>
+          <div>
+            <span class="recel-succession-result__verdict-label">Qualification</span>
+            <strong class="recel-succession-result__verdict-value">
+              {{ qualificationLabel(r.qualificationRecel) }} — {{ r.verdictRecel }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="recel-succession-result__metrics">
+          <div class="recel-succession-metric">
+            <span class="recel-succession-metric__label">Délai (art. 2224)</span>
+            <strong class="recel-succession-metric__value">
+              {{ r.delaiForclos ? 'Forclos' : 'Recevable' }}
+            </strong>
+          </div>
+          <div class="recel-succession-metric" *ngIf="r.voletPenalSignale">
+            <span class="recel-succession-metric__label">Volet pénal</span>
+            <strong class="recel-succession-metric__value">
+              Signalé (art. 441-8 CP)
+            </strong>
+          </div>
+        </div>
+
+        <!-- Sanction civile -->
+        <div class="recel-succession-result__base">
+          <h4>Sanction civile (art. 778 al. 2)</h4>
+          <p>{{ r.sanctionCivile }}</p>
+        </div>
+
+        <div class="recel-succession-result__base">
+          <h4>Charge probatoire</h4>
+          <p>{{ r.preuveRequise }}</p>
+        </div>
+
+        <div class="recel-succession-result__base">
+          <h4>Délai d'action</h4>
+          <p>{{ r.delaiAction }}</p>
+        </div>
+
+        <div class="recel-succession-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="recel-succession-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="recel-succession-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="recel-succession-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="recel-succession-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
