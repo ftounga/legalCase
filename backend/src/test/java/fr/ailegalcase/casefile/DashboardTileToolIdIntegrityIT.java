@@ -139,6 +139,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-INDIGNITE-SUCCESSORALE",
             // SF-216-21 : outil recel successoral FR — table dédiée, pas de tile dashboard.
             "F-FA-RECEL-SUCCESSION",
+            // SF-216-23 : outil donation entre époux FR — table dédiée, pas de tile dashboard.
+            "F-FA-DONATION-ENTRE-EPOUX",
             // Checklist référentielle — pas de résultat décisionnel persisté.
             "F-IM-01-checklist-pieces",
             // F-207 — exclusions transitoires (à résorber par la session F-207) :

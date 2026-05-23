@@ -361,6 +361,11 @@ public class DecisionToolVisibilityService {
         // art. 778 Cciv + Cass. 1ère civ., 14/11/2012).
         addBooleanFlagIfTrueNested(detected, familleNode, "recel_succession_detection", "envisage",
                 "recel_successoral_envisage");
+        // === SF-216-23 — 1 flag CONTEXTUAL Famille FR : donation entre époux ===
+        // Lire depuis sous-objet `donation_entre_epoux_detection.envisagee` (même pattern,
+        // art. 1091-1100 Cciv + art. 265 al. 2 + art. 1527 al. 2 + art. 912-928).
+        addBooleanFlagIfTrueNested(detected, familleNode, "donation_entre_epoux_detection", "envisagee",
+                "donation_entre_epoux_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

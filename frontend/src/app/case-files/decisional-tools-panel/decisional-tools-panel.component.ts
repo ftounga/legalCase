@@ -194,6 +194,8 @@ import { AuditionMineurFrSectionComponent } from '../audition-mineur-fr-section/
 import { IndigniteSuccessoraleFrSectionComponent } from '../indignite-successorale-fr-section/indignite-successorale-fr-section.component';
 // SF-216-22 : composant simulateur Recel de succession FR (F-FA-RECEL-SUCCESSION).
 import { RecelSuccessionFrSectionComponent } from '../recel-succession-fr-section/recel-succession-fr-section.component';
+// SF-216-24 : composant simulateur Donation entre époux FR (F-FA-DONATION-ENTRE-EPOUX).
+import { DonationEntreEpouxFrSectionComponent } from '../donation-entre-epoux-fr-section/donation-entre-epoux-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1314,6 +1316,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-RECEL-SUCCESSION', {
         displayLabel: 'Recel de succession (FR)',
         component: RecelSuccessionFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-24 : composant simulateur complet (POST/GET backend SF-216-23).
+      // Outil P2 famille FR — Donation entre époux / avantage matrimonial
+      // (art. 1091-1100 Cciv + art. 265 al. 2 + art. 1527 al. 2 + art. 912-928).
+      // 5 champs pré-fill IA (régime, clause attribution intégrale, enfants
+      // non communs, révocabilité, bien donné) — visibility CONTEXTUAL F-IA-04
+      // priority 109.
+      ['F-FA-DONATION-ENTRE-EPOUX', {
+        displayLabel: 'Donation entre époux (FR)',
+        component: DonationEntreEpouxFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2798,6 +2816,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-INDIGNITE-SUCCESSORALE', 'DIAGNOSTIC'],
     // SF-216-22 : recel de succession (FR, art. 778 Cciv + Cass. 1ère civ. 14/11/2012).
     ['F-FA-RECEL-SUCCESSION', 'DIAGNOSTIC'],
+    // SF-216-24 : donation entre époux (FR, art. 1091-1100 Cciv + art. 265 al. 2).
+    ['F-FA-DONATION-ENTRE-EPOUX', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],
