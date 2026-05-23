@@ -33,6 +33,7 @@ import {
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { ContestationFiliationBeSectionPrefillRules } from './contestation-filiation-be-section-prefill-rules';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -76,11 +77,16 @@ interface QualiteOption { value: QualiteDemandeurFiliationBe; label: string; }
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './contestation-filiation-be-section.component.html',
   styleUrl: './contestation-filiation-be-section.component.scss',
 })
 export class ContestationFiliationBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'contestation-filiation-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'CONTESTATION DE FILIATION — CC art. 318 BE';
   static readonly TOOL_ICON = 'family_restroom';
 

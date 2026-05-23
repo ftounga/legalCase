@@ -14,14 +14,21 @@ import { CaseAnalysisResult, PensionAlimentaireEstimate } from '../../core/model
  * Reprend le bloc `mat-expansion-panel` historique de `synthesis.component.html`
  * lignes 554-598.
  */
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
+
 @Component({
   selector: 'app-pension-alimentaire-section',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, MatIconModule, MatTooltipModule,
+    ToolJurisprudenceCitationsComponent],
   templateUrl: './pension-alimentaire-section.component.html',
   styleUrl: './pension-alimentaire-section.component.scss',
 })
 export class PensionAlimentaireSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-02-pension-alimentaire';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'PENSION ALIMENTAIRE';
   static readonly TOOL_ICON = 'family_restroom';
 

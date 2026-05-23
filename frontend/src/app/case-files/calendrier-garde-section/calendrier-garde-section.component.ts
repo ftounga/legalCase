@@ -19,6 +19,7 @@ import { SourceExplanationService } from '../../core/services/source-explanation
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 import {
@@ -46,11 +47,16 @@ export type FGCoherenceAlert = CoherenceAlert<FGAlertField>;
 @Component({
   selector: 'app-calendrier-garde-section',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatTooltipModule, CoherencePopoverTriggerDirective],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatTooltipModule, CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent],
   templateUrl: './calendrier-garde-section.component.html',
   styleUrl: './calendrier-garde-section.component.scss'
 })
 export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-06-calendrier-garde';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CALENDRIER DE GARDE';
   static readonly TOOL_ICON = 'calendar_month';

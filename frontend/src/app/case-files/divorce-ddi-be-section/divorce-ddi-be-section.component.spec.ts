@@ -19,7 +19,10 @@ describe('DivorceDdiBeSectionComponent', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('rendu nominal : cadre juridique art. 229 et notes visibles', () => {
     const html = fixture.nativeElement as HTMLElement;

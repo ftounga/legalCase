@@ -493,7 +493,10 @@ describe('ImmigrationTitleDecisionSectionComponent — F-192 SF-192-02', () => {
     component.caseFileId = CASE_FILE_ID;
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   function initWithDecision(): void {
     fixture.detectChanges();

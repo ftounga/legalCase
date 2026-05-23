@@ -33,6 +33,7 @@ import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { ProcedureNulliteLicenciementSectionPrefillRules } from './procedure-nullite-licenciement-section-prefill-rules';
 
@@ -82,11 +83,16 @@ const F96_CODE_ENTRETIEN_TENU = 'DT36_ENTRETIEN_TENU';
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './procedure-nullite-licenciement-section.component.html',
   styleUrl: './procedure-nullite-licenciement-section.component.scss',
 })
 export class ProcedureNulliteLicenciementSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-36-procedure-nullite-licenciement';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'NULLITÉ DE PROCÉDURE DE LICENCIEMENT';
   static readonly TOOL_ICON = 'gavel';

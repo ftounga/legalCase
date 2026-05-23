@@ -18,6 +18,7 @@ import { SourceExplanationService } from '../../core/services/source-explanation
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { DivorceChecklistPrefillRules, SIGNATURE_STEP_CODES } from './divorce-checklist-section-prefill-rules';
@@ -54,11 +55,16 @@ const PIECE_CODES = new Set([
 @Component({
   selector: 'app-divorce-checklist-section',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule, CoherencePopoverTriggerDirective],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule, CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent],
   templateUrl: './divorce-checklist-section.component.html',
   styleUrl: './divorce-checklist-section.component.scss'
 })
 export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-07-checklist-divorce';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CHECKLIST DIVORCE';
   static readonly TOOL_ICON = 'checklist';

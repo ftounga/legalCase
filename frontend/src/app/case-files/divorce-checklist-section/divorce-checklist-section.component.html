@@ -126,5 +126,13 @@
         </div>
       }
     </div>
-  }
+  
+        <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (skip standalone) -->
+        @if (!standaloneMode) {
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        }
+}
 </div>

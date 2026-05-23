@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { PensionAlimentaireSectionComponent } from './pension-alimentaire-section.component';
 import { CaseAnalysisResult, PensionAlimentaireEstimate } from '../../core/models/case-analysis.model';
 
@@ -9,6 +11,7 @@ describe('PensionAlimentaireSectionComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PensionAlimentaireSectionComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PensionAlimentaireSectionComponent);

@@ -50,5 +50,13 @@
       <mat-icon>info</mat-icon>
       <p>Aucune donnée de pension alimentaire détectée dans l'analyse.</p>
     </div>
-  }
+  
+        <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (skip standalone) -->
+        @if (!standaloneMode) {
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        }
+}
 </div>

@@ -71,6 +71,7 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   afterEach(() => {
     // SF-155-07 (DIV-7) : absorbe les requêtes source-explanations en attente.
     flushSourceExplanations();
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
     httpMock.verify();
   });
 

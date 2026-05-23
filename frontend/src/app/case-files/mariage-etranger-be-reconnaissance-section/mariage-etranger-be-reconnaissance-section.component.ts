@@ -37,6 +37,7 @@ import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { MariageEtrangerBeReconnaissanceSectionPrefillRules } from './mariage-etranger-be-reconnaissance-section-prefill-rules';
 
@@ -91,11 +92,16 @@ interface NationaliteOption { value: NationalitePartiesBe; label: string; }
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './mariage-etranger-be-reconnaissance-section.component.html',
   styleUrl: './mariage-etranger-be-reconnaissance-section.component.scss',
 })
 export class MariageEtrangerBeReconnaissanceSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'mariage-etranger-be-reconnaissance';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = "RECONNAISSANCE MARIAGE / DIVORCE ÉTRANGER — CDIP BE";
   static readonly TOOL_ICON = 'public';
 
