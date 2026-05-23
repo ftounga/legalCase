@@ -196,6 +196,8 @@ import { IndigniteSuccessoraleFrSectionComponent } from '../indignite-successora
 import { RecelSuccessionFrSectionComponent } from '../recel-succession-fr-section/recel-succession-fr-section.component';
 // SF-216-24 : composant simulateur Donation entre époux FR (F-FA-DONATION-ENTRE-EPOUX).
 import { DonationEntreEpouxFrSectionComponent } from '../donation-entre-epoux-fr-section/donation-entre-epoux-fr-section.component';
+// SF-216-28 : composant simulateur Partage successoral notarié FR (F-FA-PARTAGE-NOTARIAL).
+import { PartageNotarialFrSectionComponent } from '../partage-notarial-fr-section/partage-notarial-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1332,6 +1334,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-DONATION-ENTRE-EPOUX', {
         displayLabel: 'Donation entre époux (FR)',
         component: DonationEntreEpouxFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-28 : composant simulateur complet (POST/GET backend SF-216-27).
+      // Outil P2 famille FR — Partage successoral notarié (art. 816 et s.
+      // Cciv + art. 870 Cciv + art. 1592 CGI + art. 641 CGI + art. 840
+      // Cciv). 4 champs pré-fill IA (date ouverture, cohéritiers, masse,
+      // présence immeuble) — visibility CONTEXTUAL F-IA-04 priority 111.
+      ['F-FA-PARTAGE-NOTARIAL', {
+        displayLabel: 'Partage successoral notarié (FR)',
+        component: PartageNotarialFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2818,6 +2835,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-RECEL-SUCCESSION', 'DIAGNOSTIC'],
     // SF-216-24 : donation entre époux (FR, art. 1091-1100 Cciv + art. 265 al. 2).
     ['F-FA-DONATION-ENTRE-EPOUX', 'DIAGNOSTIC'],
+    // SF-216-28 : partage successoral notarié (FR, art. 816 et s. Cciv + 1592 CGI + 641 CGI).
+    ['F-FA-PARTAGE-NOTARIAL', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

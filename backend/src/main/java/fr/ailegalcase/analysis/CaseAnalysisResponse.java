@@ -2493,7 +2493,14 @@ public record CaseAnalysisResponse(
             // donationEntreEpouxEnvisagee active la visibilité CONTEXTUAL F-IA-04.
             Boolean donationEntreEpouxEnvisagee,       // FR — CONTEXTUAL : mention art. 1096 / donation au dernier vivant / avantage matrimonial
             Boolean revocabiliteDetectee,              // FR — true si révocation expresse / tacite détectée (art. 1096 al. 2)
-            String bienDonnePrincipalType) {           // FR — type de bien donné identifié (IMMOBILIER, MOBILIER, PORTEFEUILLE, NUMERAIRE, AUTRE)
+            String bienDonnePrincipalType,             // FR — type de bien donné identifié (IMMOBILIER, MOBILIER, PORTEFEUILLE, NUMERAIRE, AUTRE)
+            // SF-216-27 : 3 champs IA partage successoral notarié FR.
+            // Source : `famille_extracted_data.partage_notarial_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // partageNotarialEnvisage active la visibilité CONTEXTUAL F-IA-04.
+            Boolean partageNotarialEnvisage,           // FR — CONTEXTUAL : mention art. 816 / partage amiable / notaire désigné succession
+            Boolean presenceImmeubleSuccessionDetecte, // FR — true si la succession comprend un immeuble (art. 1592 CGI — notaire obligatoire)
+            String declarationSuccessionEcheancDetectee) { // FR — échéance fiscale explicitement détectée (ISO date), null si à calculer depuis dateOuverture
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2912,6 +2919,13 @@ public record CaseAnalysisResponse(
             public Builder donationEntreEpouxEnvisagee(Boolean v) { this.donationEntreEpouxEnvisagee = v; return this; }
             public Builder revocabiliteDetectee(Boolean v) { this.revocabiliteDetectee = v; return this; }
             public Builder bienDonnePrincipalType(String v) { this.bienDonnePrincipalType = v; return this; }
+            // SF-216-27 : setters des 3 champs IA partage successoral notarié FR.
+            private Boolean partageNotarialEnvisage;
+            private Boolean presenceImmeubleSuccessionDetecte;
+            private String declarationSuccessionEcheancDetectee;
+            public Builder partageNotarialEnvisage(Boolean v) { this.partageNotarialEnvisage = v; return this; }
+            public Builder presenceImmeubleSuccessionDetecte(Boolean v) { this.presenceImmeubleSuccessionDetecte = v; return this; }
+            public Builder declarationSuccessionEcheancDetectee(String v) { this.declarationSuccessionEcheancDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3080,7 +3094,11 @@ public record CaseAnalysisResponse(
                         // SF-216-23 : 3 champs IA donation entre époux FR.
                         donationEntreEpouxEnvisagee,
                         revocabiliteDetectee,
-                        bienDonnePrincipalType);
+                        bienDonnePrincipalType,
+                        // SF-216-27 : 3 champs IA partage successoral notarié FR.
+                        partageNotarialEnvisage,
+                        presenceImmeubleSuccessionDetecte,
+                        declarationSuccessionEcheancDetectee);
             }
         }
     }
@@ -5604,6 +5622,21 @@ public record CaseAnalysisResponse(
         boolean sf216_23Present = donationEntreEpouxEnvisagee != null
                 || revocabiliteDetectee != null
                 || bienDonnePrincipalType != null;
+        // SF-216-27 : sous-objet `partage_notarial_detection` — 3 champs IA
+        // pour le partage successoral notarié FR (art. 816 et s. Cciv +
+        // art. 870 Cciv + art. 1592 CGI + art. 641 CGI + art. 840 Cciv).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode partageNotNode = node.get("partage_notarial_detection");
+        boolean partageNotObject = partageNotNode != null && partageNotNode.isObject();
+        Boolean partageNotarialEnvisage = partageNotObject
+                ? booleanOrNull(partageNotNode, "envisage") : null;
+        Boolean presenceImmeubleSuccessionDetecte = partageNotObject
+                ? booleanOrNull(partageNotNode, "presence_immeuble") : null;
+        String declarationSuccessionEcheancDetectee = partageNotObject
+                ? isoDateOrNull(partageNotNode, "declaration_succession_echeance") : null;
+        boolean sf216_27Present = partageNotarialEnvisage != null
+                || presenceImmeubleSuccessionDetecte != null
+                || declarationSuccessionEcheancDetectee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5654,7 +5687,8 @@ public record CaseAnalysisResponse(
                 && !sf216_13Present
                 && !sf216_19Present
                 && !sf216_21Present
-                && !sf216_23Present) {
+                && !sf216_23Present
+                && !sf216_27Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5870,6 +5904,10 @@ public record CaseAnalysisResponse(
                 .donationEntreEpouxEnvisagee(donationEntreEpouxEnvisagee)
                 .revocabiliteDetectee(revocabiliteDetectee)
                 .bienDonnePrincipalType(bienDonnePrincipalType)
+                // SF-216-27 : 3 champs IA partage successoral notarié FR.
+                .partageNotarialEnvisage(partageNotarialEnvisage)
+                .presenceImmeubleSuccessionDetecte(presenceImmeubleSuccessionDetecte)
+                .declarationSuccessionEcheancDetectee(declarationSuccessionEcheancDetectee)
                 .build();
     }
 

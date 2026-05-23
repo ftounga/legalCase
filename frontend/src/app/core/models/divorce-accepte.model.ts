@@ -1099,4 +1099,30 @@ export interface FamilleExtractedData {
    * Source backend : `donation_entre_epoux_detection.bien_donne_principal_type`.
    */
   bienDonnePrincipalType?: string | null;
+
+  /**
+   * SF-216-27 : FRANCE — flag CONTEXTUAL indiquant qu'un partage
+   * successoral amiable devant notaire est envisagé (mention
+   * art. 816 Cciv, notaire désigné pour partage, projet de partage,
+   * acte de partage).
+   * Source backend : `partage_notarial_detection.envisage`.
+   */
+  partageNotarialEnvisage?: boolean | null;
+
+  /**
+   * SF-216-27 : FRANCE — true si la succession comprend un immeuble
+   * (déclenche l'obligation notariale art. 1592 CGI — règles de
+   * publicité foncière).
+   * Source backend : `partage_notarial_detection.presence_immeuble`.
+   */
+  presenceImmeubleSuccessionDetecte?: boolean | null;
+
+  /**
+   * SF-216-27 : FRANCE — échéance fiscale explicitement détectée dans
+   * les pièces pour la déclaration de succession (art. 641 CGI —
+   * 6 mois du décès). Date ISO YYYY-MM-DD. Null si à calculer depuis
+   * `dateOuvertureSuccessionDetectee`.
+   * Source backend : `partage_notarial_detection.declaration_succession_echeance`.
+   */
+  declarationSuccessionEcheancDetectee?: string | null;
 }

@@ -366,6 +366,11 @@ public class DecisionToolVisibilityService {
         // art. 1091-1100 Cciv + art. 265 al. 2 + art. 1527 al. 2 + art. 912-928).
         addBooleanFlagIfTrueNested(detected, familleNode, "donation_entre_epoux_detection", "envisagee",
                 "donation_entre_epoux_envisagee");
+        // === SF-216-27 — 1 flag CONTEXTUAL Famille FR : partage successoral notarié ===
+        // Lire depuis sous-objet `partage_notarial_detection.envisage` (même pattern,
+        // art. 816 et s. Cciv + art. 870 Cciv + art. 1592 CGI + art. 641 CGI + art. 840 Cciv).
+        addBooleanFlagIfTrueNested(detected, familleNode, "partage_notarial_detection", "envisage",
+                "partage_notarial_envisage");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

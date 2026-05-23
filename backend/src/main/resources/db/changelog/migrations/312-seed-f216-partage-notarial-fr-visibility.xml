@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="312-seed-f216-partage-notarial-fr-visibility" author="legalcase">
+        <comment>
+            SF-216-27 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Partage successoral notarié"
+            (F-FA-PARTAGE-NOTARIAL, FRANCE).
+
+            Mode CONTEXTUAL : l'outil n'apparaît dans le panel F-IA-04 que
+            si le pipeline IA détecte une mention de partage amiable
+            devant notaire, de désignation notaire pour partage, d'acte
+            de partage notarié, d'art. 816 Cciv, etc. — trigger
+            `partage_notarial_envisage` lu depuis le sous-objet
+            `partage_notarial_detection.envisage` de `famille_extracted_data`
+            par DecisionToolVisibilityService (méthode
+            addBooleanFlagIfTrueNested, réutilisée depuis SF-216-01 /
+            SF-216-05 / SF-216-07 / SF-216-15 / SF-216-17 / SF-216-19 /
+            SF-216-21 / SF-216-23).
+
+            UUID namespace dédié F-216 (bundle 27) :
+            f1a04002-0000-0000-0000-eeee21600027.
+
+            Base juridique :
+              - art. 816-842 Cciv (partage successoral — droit commun) ;
+              - art. 870 Cciv (déclaration de succession) ;
+              - art. 1592 CGI (obligation notariale en présence
+                d'immeubles dans la succession) ;
+              - art. 641 CGI (délai 6 mois déclaration fiscale de
+                succession) ;
+              - art. 840 Cciv (renvoi au partage judiciaire en cas de
+                désaccord — outil F-FA-17-partage-judiciaire).
+
+            Outil single-country FRANCE — la matière successorale BE est
+            régie par les art. 4.62 et s. CC BE (outil F-FA-BE-PARTAGE-
+            NOTARIAL futur, hors périmètre F-216).
+
+            priority 111 — rang spécifique pour un outil P2 famille FR
+            postérieur à F-FA-DONATION-ENTRE-EPOUX (priority 109) et
+            laissant la place 110 à la SF-216-25/26 livrée dans le même
+            bundle parallèle (présomption de paternité).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04002-0000-0000-0000-eeee21600027', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-PARTAGE-NOTARIAL',
+        'CONTEXTUAL', 'partage_notarial_envisage', 'true', 111);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04002-0000-0000-0000-eeee21600027';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

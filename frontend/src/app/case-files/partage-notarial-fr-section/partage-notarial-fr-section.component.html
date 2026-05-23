@@ -1,0 +1,189 @@
+<!--
+  SF-216-28 : template de l'outil Partage successoral notarié
+  (F-FA-PARTAGE-NOTARIAL, FRANCE uniquement — art. 816 et s. Cciv +
+  art. 870 Cciv + art. 1592 CGI + art. 641 CGI + art. 840 Cciv).
+  Pattern : donation-entre-epoux-fr-section.
+-->
+<section class="partage-notarial-section"
+         [class.partage-notarial-section--collapsed]="collapsed()">
+  <header class="partage-notarial-section__header" (click)="toggleCollapse()">
+    <mat-icon class="partage-notarial-section__icon">gavel</mat-icon>
+    <h3 class="partage-notarial-section__title">Partage successoral notarié</h3>
+    <span class="partage-notarial-section__country">FR</span>
+    <mat-icon class="partage-notarial-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="partage-notarial-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="partage-notarial-banner partage-notarial-banner--info"
+         *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, le partage
+        successoral est régi par les
+        <strong>art. 4.62 et s. CC BE</strong> (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="partage-notarial-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="partage-notarial-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="partage-notarial-form__intro">
+          Évalue la procédure de partage successoral amiable devant
+          notaire : notaire obligatoire en présence d'immeuble
+          (art. 1592 CGI), calendrier des 5 étapes (désignation →
+          inventaire → attestation après décès → projet de partage →
+          acte de partage), délai fiscal de 6 mois (art. 641 CGI),
+          bascule vers la voie judiciaire en cas de désaccord
+          (art. 840 Cciv).
+        </p>
+
+        <div class="partage-notarial-form__row">
+          <mat-form-field appearance="outline" class="partage-notarial-form__field">
+            <mat-label>Date d'ouverture de la succession (décès)</mat-label>
+            <input matInput type="date"
+                   [ngModel]="dateOuvertureSuccession()"
+                   (ngModelChange)="onDateOuvertureChange($event)"
+                   name="dateOuverture"
+                   required />
+            <mat-hint>Requise — déclenche le décompte du délai fiscal 6 mois</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="partage-notarial-form__field">
+            <mat-label>Nombre de cohéritiers</mat-label>
+            <input matInput type="number" min="1" step="1"
+                   [ngModel]="nombreCoheritiers()"
+                   (ngModelChange)="onNombreChange($event)"
+                   name="nbHer"
+                   required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="partage-notarial-form__field">
+            <mat-label>Valeur de la masse successorale (€)</mat-label>
+            <input matInput type="number" min="0" step="1"
+                   [ngModel]="valeurMasseSuccessoraleEur()"
+                   (ngModelChange)="onValeurChange($event)"
+                   name="valeurMasse" />
+            <mat-hint>Optionnel</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="partage-notarial-form__row">
+          <mat-form-field appearance="outline" class="partage-notarial-form__field">
+            <mat-label>Échéance fiscale (si connue)</mat-label>
+            <input matInput type="date"
+                   [ngModel]="declarationSuccessionEcheance()"
+                   (ngModelChange)="onEcheanceChange($event)"
+                   name="echeance" />
+            <mat-hint>Optionnel — calculé par défaut à +6 mois (art. 641 CGI)</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="partage-notarial-form__row partage-notarial-form__row--checks">
+          <mat-checkbox [checked]="presenceImmeuble()"
+                        (change)="onPresenceImmeubleChange($event.checked)"
+                        name="immeuble">
+            Présence d'un immeuble dans la succession
+            <small class="partage-notarial-form__hint">Déclenche l'obligation notariale (art. 1592 CGI)</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="consentementsTousDetecte()"
+                        (change)="onConsentementsChange($event.checked)"
+                        name="consentements">
+            Accord de tous les cohéritiers documenté
+            <small class="partage-notarial-form__hint">Condition de la procédure amiable</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="notaireDesigne()"
+                        (change)="onNotaireDesigneChange($event.checked)"
+                        name="notaireDes">
+            Notaire déjà désigné
+            <small class="partage-notarial-form__hint">Étape 1 du calendrier marquée comme acquise</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="desaccordPersistant()"
+                        (change)="onDesaccordChange($event.checked)"
+                        name="desaccord">
+            Désaccord persistant entre cohéritiers
+            <small class="partage-notarial-form__hint">Bascule vers F-FA-17 partage judiciaire (art. 840 Cciv)</small>
+          </mat-checkbox>
+        </div>
+
+        <div class="partage-notarial-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer le partage notarial' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="partage-notarial-result" *ngIf="!showForm() && result() as r">
+        <div class="partage-notarial-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>{{ r.orientationJudiciaire ? 'block' : (r.alerteDelai ? 'warning' : 'check_circle') }}</mat-icon>
+          <div>
+            <span class="partage-notarial-result__verdict-label">Verdict</span>
+            <strong class="partage-notarial-result__verdict-value">{{ verdictLabel() }}</strong>
+          </div>
+        </div>
+
+        <div class="partage-notarial-result__metrics">
+          <div class="partage-notarial-metric">
+            <span class="partage-notarial-metric__label">Notaire</span>
+            <strong class="partage-notarial-metric__value">
+              {{ r.notaireObligatoire ? 'Obligatoire (art. 1592 CGI)' : 'Recommandé' }}
+            </strong>
+          </div>
+          <div class="partage-notarial-metric" *ngIf="r.delaiDeclarationFiscale as d">
+            <span class="partage-notarial-metric__label">Échéance fiscale</span>
+            <strong class="partage-notarial-metric__value">{{ d }}</strong>
+          </div>
+        </div>
+
+        <div class="partage-notarial-result__base">
+          <h4>Calendrier des étapes</h4>
+          <ol>
+            <li *ngFor="let e of r.calendrierEtapes">{{ e }}</li>
+          </ol>
+        </div>
+
+        <div class="partage-notarial-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="partage-notarial-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="partage-notarial-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="partage-notarial-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="partage-notarial-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
