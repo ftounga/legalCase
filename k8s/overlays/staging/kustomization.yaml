@@ -31,6 +31,11 @@ configMapGenerator:
       # Tant que la ligne reste commentée, le backend retombe sur les URLs
       # S3 présignées natives (comportement historique). Pas de régression.
       - CLOUDFRONT_DOMAIN=d2oaldre5efpif.cloudfront.net
+      # F-JU-01 : citations jurisprudentielles auto-pilot Claude.
+      # Activé staging 2026-05-24 (compte OAuth2 PISTE + bootstrap initial mappings).
+      # Active aussi le cron mensuel JurisprudenceWatchScheduler côté backend.
+      # Reste désactivé en production tant que le bootstrap staging n'a pas été validé.
+      - JURISPRUDENCE_WATCH_ENABLED=true
 
 patches:
   - path: service-account-patch.yaml
