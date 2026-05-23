@@ -36,6 +36,7 @@ import {
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { ProtectionMajeurBeSectionPrefillRules } from './protection-majeur-be-section-prefill-rules';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -76,11 +77,16 @@ interface SaisineOption { value: ModeSaisineProtectionBe; label: string; }
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './protection-majeur-be-section.component.html',
   styleUrl: './protection-majeur-be-section.component.scss',
 })
 export class ProtectionMajeurBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'protection-majeur-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = "PROTECTION DU MAJEUR — LOI 17/03/2013 BE";
   static readonly TOOL_ICON = 'shield_person';
 

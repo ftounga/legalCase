@@ -15,14 +15,21 @@ import { MatIconModule } from '@angular/material/icon';
  *
  * Pattern de référence : `rupture-amiable-info-section` (SF-132-03 / F-237 SF-237-02).
  */
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
+
 @Component({
   selector: 'app-divorce-ddi-be-section',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule,
+    ToolJurisprudenceCitationsComponent],
   templateUrl: './divorce-ddi-be-section.component.html',
   styleUrl: './divorce-ddi-be-section.component.scss',
 })
 export class DivorceDdiBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-11-desunion-irremediable-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'DIVORCE DDI 3 VOIES (BE)';
   static readonly TOOL_ICON = 'rule';
 

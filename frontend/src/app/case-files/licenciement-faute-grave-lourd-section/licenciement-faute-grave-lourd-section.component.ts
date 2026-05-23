@@ -28,6 +28,7 @@ import {
 } from '../../core/models/licenciement-faute-grave-lourd.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { LicenciementFauteGraveLourdSectionPrefillRules } from './licenciement-faute-grave-lourd-section-prefill-rules';
 
@@ -60,11 +61,16 @@ import { LicenciementFauteGraveLourdSectionPrefillRules } from './licenciement-f
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './licenciement-faute-grave-lourd-section.component.html',
   styleUrl: './licenciement-faute-grave-lourd-section.component.scss',
 })
 export class LicenciementFauteGraveLourdSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-36-licenciement-faute-grave-lourd';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'FAUTE GRAVE / FAUTE LOURDE';
   static readonly TOOL_ICON = 'gavel';
