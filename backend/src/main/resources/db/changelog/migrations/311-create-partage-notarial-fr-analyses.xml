@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600027" author="legalcase">
+        <comment>
+            SF-216-27 : table dédiée à l'outil décisionnel "Partage
+            successoral notarié" (F-FA-PARTAGE-NOTARIAL, FRANCE — art. 816
+            et s. Cciv + art. 870 Cciv + art. 1592 CGI + art. 641 CGI +
+            art. 840 Cciv pour le renvoi judiciaire).
+
+            Outil dédié à la procédure de partage successoral amiable
+            devant notaire :
+              - calendrier des 5 étapes (désignation notaire → bilan
+                patrimonial → attestation après décès → projet de partage
+                → signature acte de partage) ;
+              - notaire obligatoire en présence d'immeuble dans la
+                succession (art. 1592 CGI) ;
+              - délai fiscal de 6 mois pour la déclaration de succession
+                (art. 641 CGI) — alerte si dépassé ;
+              - bascule vers le partage judiciaire (F-FA-17) en cas de
+                désaccord persistant entre cohéritiers (art. 840 Cciv).
+
+            Outil distinct de :
+              - F-FA-24-partage-successoral (qui ne distinguait pas
+                notarié vs judiciaire — outil legacy général) ;
+              - F-FA-17-partage-judiciaire (contentieux uniquement —
+                désignation par TJ, art. 1359-1376 CPC).
+
+            Outil single-country FRANCE — la matière successorale BE est
+            régie par les art. 4.62 et s. CC BE (outil F-FA-BE-PARTAGE-
+            NOTARIAL futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI
+            sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 312
+            (couplé à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            pattern SF-216-01 / SF-216-05 / SF-216-07 / SF-216-15 /
+            SF-216-17 / SF-216-19 / SF-216-21 / SF-216-23).
+        </comment>
+
+        <createTable tableName="partage_notarial_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_partage_notarial_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="partage_notarial_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_partage_notarial_analyses_case_file"/>
+
+        <createIndex tableName="partage_notarial_analyses"
+                     indexName="idx_partage_notarial_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="partage_notarial_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
