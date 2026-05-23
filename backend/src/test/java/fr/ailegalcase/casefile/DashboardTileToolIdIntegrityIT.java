@@ -133,6 +133,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-XX-delegation-ap",
             // SF-216-11 : outil retrait autorité parentale FR — table dédiée, pas de tile dashboard.
             "F-FA-RETRAIT-AP",
+            // SF-216-13 : outil Audition du mineur par le JAF FR — table dédiée, pas de tile dashboard.
+            "F-FA-AUDITION-MINEUR",
             // Checklist référentielle — pas de résultat décisionnel persisté.
             "F-IM-01-checklist-pieces",
             // F-207 — exclusions transitoires (à résorber par la session F-207) :

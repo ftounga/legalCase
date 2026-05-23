@@ -346,6 +346,11 @@ public class DecisionToolVisibilityService {
         // art. 370-3 à 370-5 Cciv + Convention La Haye 1993).
         addBooleanFlagIfTrueNested(detected, familleNode, "adoption_internationale_detection", "envisagee",
                 "adoption_internationale_envisagee");
+        // === SF-216-13 — 1 flag CONTEXTUAL Famille FR : audition du mineur ===
+        // Lire depuis sous-objet `audition_mineur_detection.envisagee` (même pattern,
+        // art. 388-1 Cciv + art. 1074-1 à 1074-3 CPC + CIDE art. 12).
+        addBooleanFlagIfTrueNested(detected, familleNode, "audition_mineur_detection", "envisagee",
+                "audition_mineur_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",

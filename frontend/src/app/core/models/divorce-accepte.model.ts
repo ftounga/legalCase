@@ -1008,4 +1008,21 @@ export interface FamilleExtractedData {
    * Source backend : `adoption_internationale_detection.exequatur_requis`.
    */
   exequaturRequisDetecte?: boolean | null;
+
+  /**
+   * SF-216-13 : FRANCE — flag CONTEXTUAL indiquant qu'une audition du mineur
+   * par le JAF est envisagée (mention art. 388-1 Cciv, demande d'audition,
+   * entendre l'enfant, avocat de l'enfant).
+   * Source backend : `audition_mineur_detection.envisagee`.
+   * V1 — utilisé pour activer la visibilité du panel F-IA-04 (CONTEXTUAL).
+   */
+  auditionMineurEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-13 : FRANCE — true si une demande d'audition du mineur a déjà
+   * été formellement présentée au juge (requête, conclusions, ordonnance).
+   * Pré-fill UI du champ `demandeFormalisee`.
+   * Source backend : `audition_mineur_detection.demande_formalisee_detectee`.
+   */
+  demandeAuditionFormaliseeDetectee?: boolean | null;
 }

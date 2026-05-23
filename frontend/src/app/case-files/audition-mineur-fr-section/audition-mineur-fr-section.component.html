@@ -1,0 +1,194 @@
+<!--
+  SF-216-14 : template de l'outil Audition du mineur par le JAF
+  (F-FA-AUDITION-MINEUR, FRANCE uniquement — art. 388-1 Cciv + art. 1074-1
+  à 1074-3 CPC + CIDE art. 12 + Cass. 1ère civ., 18/3/2015, n°14-11.392).
+  Pattern : adoption-internationale-fr-section.
+-->
+<section class="audition-mineur-section"
+         [class.audition-mineur-section--collapsed]="collapsed()">
+  <header class="audition-mineur-section__header" (click)="toggleCollapse()">
+    <mat-icon class="audition-mineur-section__icon">record_voice_over</mat-icon>
+    <h3 class="audition-mineur-section__title">Audition du mineur (art. 388-1)</h3>
+    <span class="audition-mineur-section__country">FR</span>
+    <mat-icon class="audition-mineur-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="audition-mineur-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE -->
+    <div class="audition-mineur-banner audition-mineur-banner--info"
+         *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France. En Belgique, l'audition du
+        mineur est régie par les <strong>art. 1004/1 et 1004/2 CJ</strong>
+        avec un régime distinct (outil dédié à venir).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="audition-mineur-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="audition-mineur-form" *ngIf="showForm() && !loading()"
+            (submit)="$event.preventDefault(); calculate()">
+        <p class="audition-mineur-form__intro">
+          Évalue les conditions d'audition du mineur capable de discernement
+          (art. 388-1 Cciv) : droit à l'audition, modalité recommandée,
+          contestabilité d'un refus.
+        </p>
+
+        <div class="audition-mineur-form__row">
+          <mat-form-field appearance="outline" class="audition-mineur-form__field">
+            <mat-label>Âge de l'enfant</mat-label>
+            <input matInput type="number" min="0" max="17" step="1"
+                   [ngModel]="ageEnfant()"
+                   (ngModelChange)="onAgeChange($event)"
+                   name="ageEnfant"
+                   required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="audition-mineur-form__field">
+            <mat-label>Capacité de discernement</mat-label>
+            <mat-select [ngModel]="capaciteDiscernement()"
+                        (ngModelChange)="onCapaciteChange($event)"
+                        name="capacite"
+                        required>
+              <mat-option *ngFor="let c of capacites" [value]="c.value">{{ c.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Alerte UI préventive — discernement improbable -->
+        <div class="audition-mineur-banner audition-mineur-banner--warning"
+             *ngIf="isJeuneEnfant()">
+          <mat-icon>warning</mat-icon>
+          <p>
+            <strong>Enfant de moins de 5 ans.</strong> Le discernement est
+            hautement improbable selon la jurisprudence dominante. Le juge
+            peut refuser l'audition pour défaut de discernement caractérisé
+            (motivation obligatoire — Cass. 1ère civ., 18/3/2015).
+          </p>
+        </div>
+
+        <div class="audition-mineur-form__row">
+          <mat-form-field appearance="outline" class="audition-mineur-form__field">
+            <mat-label>Procédure en cours</mat-label>
+            <mat-select [ngModel]="procedureEnCours()"
+                        (ngModelChange)="onProcedureChange($event)"
+                        name="procedure">
+              <mat-option *ngFor="let p of procedures" [value]="p.value">{{ p.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="audition-mineur-form__row audition-mineur-form__row--checks">
+          <mat-checkbox [checked]="demandeFormalisee()"
+                        (change)="onDemandeFormaliseeChange($event.checked)"
+                        name="demandeFormalisee">
+            Demande d'audition déjà formellement présentée au juge
+            <small class="audition-mineur-form__hint">requête, conclusions, lettre</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="demandeParEnfantLuiMeme()"
+                        (change)="onDemandeParEnfantChange($event.checked)"
+                        name="demandeEnfant">
+            Demande formulée par l'enfant lui-même
+            <small class="audition-mineur-form__hint">art. 388-1 al. 1 — audition de droit</small>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="refusMotive()"
+                        (change)="onRefusMotiveChange($event.checked)"
+                        name="refus">
+            Le juge a déjà refusé l'audition
+          </mat-checkbox>
+        </div>
+
+        <div class="audition-mineur-form__row" *ngIf="refusMotive()">
+          <mat-form-field appearance="outline" class="audition-mineur-form__field audition-mineur-form__field--wide">
+            <mat-label>Motivation du refus (telle qu'écrite par le juge)</mat-label>
+            <textarea matInput rows="3"
+                      [ngModel]="motivationRefus()"
+                      (ngModelChange)="onMotivationRefusChange($event)"
+                      name="motivationRefus"
+                      placeholder="Citer textuellement la motivation du juge…"></textarea>
+          </mat-form-field>
+        </div>
+
+        <div class="audition-mineur-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer l\'audition du mineur' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="audition-mineur-result" *ngIf="!showForm() && result() as r">
+        <div class="audition-mineur-result__verdict" [ngClass]="verdictClass()">
+          <mat-icon>
+            {{ r.refusContestable ? 'gavel' : (r.conditionsRemplies || r.verdict === 'AUDITION_DE_DROIT' ? 'fact_check' : 'help_outline') }}
+          </mat-icon>
+          <div>
+            <span class="audition-mineur-result__verdict-label">Verdict</span>
+            <strong class="audition-mineur-result__verdict-value">
+              {{ r.verdict }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="audition-mineur-result__metrics">
+          <div class="audition-mineur-metric">
+            <span class="audition-mineur-metric__label">Modalité recommandée</span>
+            <strong class="audition-mineur-metric__value">
+              {{ modaliteLabel(r.modaliteRecommandee) }}
+            </strong>
+          </div>
+          <div class="audition-mineur-metric">
+            <span class="audition-mineur-metric__label">Droit à l'audition</span>
+            <strong class="audition-mineur-metric__value">
+              {{ r.droitAuditionReconnu ? 'Reconnu' : 'Non reconnu' }}
+            </strong>
+          </div>
+          <div class="audition-mineur-metric" *ngIf="r.refusContestable">
+            <span class="audition-mineur-metric__label">Refus juge</span>
+            <strong class="audition-mineur-metric__value">Contestable</strong>
+          </div>
+        </div>
+
+        <div class="audition-mineur-result__alertes" *ngIf="r.alertes.length > 0">
+          <h4>Points d'attention</h4>
+          <ul>
+            <li *ngFor="let a of r.alertes" class="audition-mineur-alerte">
+              <mat-icon>warning</mat-icon>
+              <span>{{ a }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="audition-mineur-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="audition-mineur-result__base">
+          <h4>Base juridique</h4>
+          <p>{{ r.baseLegale | legalCitations }}</p>
+        </div>
+
+        <div class="audition-mineur-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>

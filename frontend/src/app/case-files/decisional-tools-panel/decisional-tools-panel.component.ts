@@ -188,6 +188,8 @@ import { RetraitApFrSectionComponent } from '../retrait-ap-fr-section/retrait-ap
 import { AdoptionIntraFrSectionComponent } from '../adoption-intra-fr-section/adoption-intra-fr-section.component';
 // SF-216-18 : composant simulateur Adoption internationale FR (F-FA-ADOPTION-INTERNATIONALE).
 import { AdoptionInternationaleFrSectionComponent } from '../adoption-internationale-fr-section/adoption-internationale-fr-section.component';
+// SF-216-14 : composant simulateur Audition du mineur FR (F-FA-AUDITION-MINEUR).
+import { AuditionMineurFrSectionComponent } from '../audition-mineur-fr-section/audition-mineur-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1264,6 +1266,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-ADOPTION-INTERNATIONALE', {
         displayLabel: 'Adoption internationale (FR)',
         component: AdoptionInternationaleFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-14 : composant simulateur complet (POST/GET backend SF-216-13).
+      // Outil P2 famille FR — Audition du mineur par le JAF (art. 388-1 Cciv
+      // + art. 1074-1 à 1074-3 CPC + CIDE art. 12). 2 champs pré-fill IA
+      // (âge enfant, demande formalisée) — visibility CONTEXTUAL F-IA-04 priority 104.
+      ['F-FA-AUDITION-MINEUR', {
+        displayLabel: 'Audition du mineur (FR)',
+        component: AuditionMineurFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2742,6 +2758,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-ADOPTION-INTRA', 'DIAGNOSTIC'],
     // SF-216-18 : adoption internationale (FR, art. 370-3 Cciv + Convention La Haye 1993).
     ['F-FA-ADOPTION-INTERNATIONALE', 'DIAGNOSTIC'],
+    // SF-216-14 : audition du mineur par le JAF (FR, art. 388-1 Cciv + art. 1074-1 à 1074-3 CPC).
+    ['F-FA-AUDITION-MINEUR', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],
