@@ -143,6 +143,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-DONATION-ENTRE-EPOUX",
             // SF-216-27 : outil partage successoral notarié FR — table dédiée, pas de tile dashboard.
             "F-FA-PARTAGE-NOTARIAL",
+            // SF-216-25 : outil présomption de paternité FR — table dédiée, pas de tile dashboard.
+            "F-FA-PRESOMPTION-PATERNITE",
             // Checklist référentielle — pas de résultat décisionnel persisté.
             "F-IM-01-checklist-pieces",
             // F-207 — exclusions transitoires (à résorber par la session F-207) :

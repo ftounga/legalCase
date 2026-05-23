@@ -2500,7 +2500,15 @@ public record CaseAnalysisResponse(
             // partageNotarialEnvisage active la visibilité CONTEXTUAL F-IA-04.
             Boolean partageNotarialEnvisage,           // FR — CONTEXTUAL : mention art. 816 / partage amiable / notaire désigné succession
             Boolean presenceImmeubleSuccessionDetecte, // FR — true si la succession comprend un immeuble (art. 1592 CGI — notaire obligatoire)
-            String declarationSuccessionEcheancDetectee) { // FR — échéance fiscale explicitement détectée (ISO date), null si à calculer depuis dateOuverture
+            String declarationSuccessionEcheancDetectee, // FR — échéance fiscale explicitement détectée (ISO date), null si à calculer depuis dateOuverture
+            // SF-216-25 : 4 champs IA présomption de paternité du mari + désaveu FR.
+            // Source : `famille_extracted_data.presomption_paternite_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // presomptionPaterniteEnvisagee active la visibilité CONTEXTUAL F-IA-04.
+            Boolean presomptionPaterniteEnvisagee,     // FR — CONTEXTUAL : mention art. 312-316 / désaveu paternité / présomption mari
+            Boolean desaveuEnvisage,                   // FR — true si action en désaveu (art. 316 al. 2 Cciv) documentée
+            String dateConclusionMariageDetectee,      // FR — date conclusion du mariage extraite (ISO YYYY-MM-DD)
+            String dateDissolutionMariageDetectee) {   // FR — date dissolution du mariage extraite (ISO YYYY-MM-DD)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -2926,6 +2934,15 @@ public record CaseAnalysisResponse(
             public Builder partageNotarialEnvisage(Boolean v) { this.partageNotarialEnvisage = v; return this; }
             public Builder presenceImmeubleSuccessionDetecte(Boolean v) { this.presenceImmeubleSuccessionDetecte = v; return this; }
             public Builder declarationSuccessionEcheancDetectee(String v) { this.declarationSuccessionEcheancDetectee = v; return this; }
+            // SF-216-25 : setters des 4 champs IA présomption de paternité FR.
+            private Boolean presomptionPaterniteEnvisagee;
+            private Boolean desaveuEnvisage;
+            private String dateConclusionMariageDetectee;
+            private String dateDissolutionMariageDetectee;
+            public Builder presomptionPaterniteEnvisagee(Boolean v) { this.presomptionPaterniteEnvisagee = v; return this; }
+            public Builder desaveuEnvisage(Boolean v) { this.desaveuEnvisage = v; return this; }
+            public Builder dateConclusionMariageDetectee(String v) { this.dateConclusionMariageDetectee = v; return this; }
+            public Builder dateDissolutionMariageDetectee(String v) { this.dateDissolutionMariageDetectee = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -3098,7 +3115,12 @@ public record CaseAnalysisResponse(
                         // SF-216-27 : 3 champs IA partage successoral notarié FR.
                         partageNotarialEnvisage,
                         presenceImmeubleSuccessionDetecte,
-                        declarationSuccessionEcheancDetectee);
+                        declarationSuccessionEcheancDetectee,
+                        // SF-216-25 : 4 champs IA présomption de paternité FR.
+                        presomptionPaterniteEnvisagee,
+                        desaveuEnvisage,
+                        dateConclusionMariageDetectee,
+                        dateDissolutionMariageDetectee);
             }
         }
     }
@@ -5637,6 +5659,24 @@ public record CaseAnalysisResponse(
         boolean sf216_27Present = partageNotarialEnvisage != null
                 || presenceImmeubleSuccessionDetecte != null
                 || declarationSuccessionEcheancDetectee != null;
+        // SF-216-25 : sous-objet `presomption_paternite_detection` — 4 champs IA
+        // pour la présomption de paternité du mari FR (art. 312-316 Cciv +
+        // art. 333 al. 1 + Cass. 1ère civ., 19/2/2014).
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode presPat = node.get("presomption_paternite_detection");
+        boolean presPatObject = presPat != null && presPat.isObject();
+        Boolean presomptionPaterniteEnvisagee = presPatObject
+                ? booleanOrNull(presPat, "envisagee") : null;
+        Boolean desaveuEnvisage = presPatObject
+                ? booleanOrNull(presPat, "desaveu_envisage") : null;
+        String dateConclusionMariageDetectee = presPatObject
+                ? textOrNull(presPat, "date_conclusion_mariage") : null;
+        String dateDissolutionMariageDetectee = presPatObject
+                ? textOrNull(presPat, "date_dissolution_mariage") : null;
+        boolean sf216_25Present = presomptionPaterniteEnvisagee != null
+                || desaveuEnvisage != null
+                || dateConclusionMariageDetectee != null
+                || dateDissolutionMariageDetectee != null;
 
         boolean communautePartageProtectionV2Present = contratNotarieDetected != null
                 || enfantsNonCommunsDetected != null
@@ -5688,7 +5728,8 @@ public record CaseAnalysisResponse(
                 && !sf216_19Present
                 && !sf216_21Present
                 && !sf216_23Present
-                && !sf216_27Present) {
+                && !sf216_27Present
+                && !sf216_25Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -5908,6 +5949,11 @@ public record CaseAnalysisResponse(
                 .partageNotarialEnvisage(partageNotarialEnvisage)
                 .presenceImmeubleSuccessionDetecte(presenceImmeubleSuccessionDetecte)
                 .declarationSuccessionEcheancDetectee(declarationSuccessionEcheancDetectee)
+                // SF-216-25 : 4 champs IA présomption de paternité FR.
+                .presomptionPaterniteEnvisagee(presomptionPaterniteEnvisagee)
+                .desaveuEnvisage(desaveuEnvisage)
+                .dateConclusionMariageDetectee(dateConclusionMariageDetectee)
+                .dateDissolutionMariageDetectee(dateDissolutionMariageDetectee)
                 .build();
     }
 
