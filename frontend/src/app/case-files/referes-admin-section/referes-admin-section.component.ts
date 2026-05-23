@@ -44,6 +44,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSeverity,
@@ -95,11 +96,16 @@ export type RefereCoherenceAlert = CoherenceAlert<RefereAlertField>;
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
     DecisionalHeaderFlagComponent,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './referes-admin-section.component.html',
   styleUrl: './referes-admin-section.component.scss',
 })
 export class ReferesAdminSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-08-referes-admin-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉFÉRÉS ADMINISTRATIFS L.521-1 / L.521-2 (FR)';
   static readonly TOOL_ICON = 'gavel';
