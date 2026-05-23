@@ -19,6 +19,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -76,12 +77,17 @@ export type PartageCoherenceAlert = CoherenceAlert<PartageAlertField>;
     MatButtonModule, MatIconModule, MatSelectModule,
     MatFormFieldModule, MatInputModule, MatProgressSpinnerModule,
     MatSlideToggleModule, MatTooltipModule,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './partage-immobilier-section.component.html',
   styleUrl: './partage-immobilier-section.component.scss'
 })
 export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-05 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-05-partage-immobilier';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PARTAGE IMMOBILIER';
   static readonly TOOL_ICON = 'home';

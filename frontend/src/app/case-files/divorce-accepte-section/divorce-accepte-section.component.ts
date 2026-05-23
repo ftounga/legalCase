@@ -30,6 +30,7 @@ import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -83,12 +84,17 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
     MatFormFieldModule, MatInputModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './divorce-accepte-section.component.html',
   styleUrl: './divorce-accepte-section.component.scss',
 })
 export class DivorceAccepteSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-05 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-10-divorce-accepte';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DIVORCE ACCEPTÉ — ART. 233 CCIV';
   static readonly TOOL_ICON = 'how_to_vote';

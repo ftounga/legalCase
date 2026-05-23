@@ -27,6 +27,7 @@ import {
 import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { LiquidationCommunauteFrPrefillRules } from './liquidation-communaute-fr-section-prefill-rules';
 
 /**
@@ -75,12 +76,17 @@ import { LiquidationCommunauteFrPrefillRules } from './liquidation-communaute-fr
     MatFormFieldModule, MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    LegalCitationsPipe,
+    LegalCitationsPipe,,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './liquidation-communaute-fr-section.component.html',
   styleUrl: './liquidation-communaute-fr-section.component.scss',
 })
 export class LiquidationCommunauteFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-05 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-04-liquidation-communaute';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'LIQUIDATION DE COMMUNAUTÉ';
   static readonly TOOL_ICON = 'account_balance';

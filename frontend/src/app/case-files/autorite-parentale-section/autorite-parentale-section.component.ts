@@ -42,6 +42,7 @@ import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -103,12 +104,17 @@ const VALID_REGIMES: ReadonlySet<string> = new Set<RegimeExercice>([
     MatSlideToggleModule, MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './autorite-parentale-section.component.html',
   styleUrl: './autorite-parentale-section.component.scss',
 })
 export class AutoriteParentaleSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-05 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-19-autorite-parentale';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AUTORITÉ PARENTALE — EXERCICE (FR) — ART. 372-373 CCIV';
   static readonly TOOL_ICON = 'family_restroom';
