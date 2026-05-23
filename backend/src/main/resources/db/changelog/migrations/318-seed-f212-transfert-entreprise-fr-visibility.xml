@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200005-seed" author="legalcase">
+        <comment>
+            SF-212-06 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Transfert d'entreprise — L. 1224-1" (F-DT-72, FRANCE),
+            table créée par SF-212-05 (migration 317).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le garde-fou
+            CI DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué — cas réel
+            F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte un transfert d'entreprise au sens
+            de l'art. L. 1224-1 CT — trigger `transfert_entreprise_detecte`
+            (signal métier extrait par TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue, ligne 230).
+            Flag livré par F-205 (extension TravailExtractedData).
+
+            priority 62 — juste après F-DT-36 (faute grave/lourde, priority 61).
+
+            Fondement : L. 1224-1 CT (maintien automatique des contrats au
+            repreneur), L. 1224-3 CT (information-consultation du CSE),
+            Directive 2001/23/CE (transferts d'entreprises au niveau UE),
+            Cass. soc. 18/07/2000 n°98-46.071 (entité économique autonome),
+            Cass. soc. — licenciements pré-transfert frauduleux nuls.
+
+            Mécanisme strictement français — en BE, le maintien des contrats
+            lors d'un transfert relève de la CCT 32bis (régime distinct,
+            outil à venir si besoin métier).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200005', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-72-transfert-entreprise-l1224-1', 'CONTEXTUAL', 'transfert_entreprise_detecte', 'true', 62);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200005';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

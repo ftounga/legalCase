@@ -529,7 +529,14 @@ public record CaseAnalysisResponse(
             Boolean forfaitJoursEntretienAnnuelRealise,
             Boolean forfaitJoursDocumentControle,
             Boolean forfaitJoursCategorieAutonome,
-            Integer forfaitJoursNbJours) {
+            Integer forfaitJoursNbJours,
+            // SF-212-05 : 5 champs IA pour pré-fill F-DT-72-transfert-entreprise-l1224-1
+            // (Travail FR uniquement, nullables). Sous-objet `transfert_entreprise_detail`.
+            String transfertTypeTransfert,
+            Boolean transfertEeaIdentifiee,
+            Boolean transfertActivitePreservee,
+            Boolean transfertLicenciementsPreTransfert,
+            String transfertDateTransfert) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -766,7 +773,13 @@ public record CaseAnalysisResponse(
                     .forfaitJoursEntretienAnnuelRealise(forfaitJoursEntretienAnnuelRealise)
                     .forfaitJoursDocumentControle(forfaitJoursDocumentControle)
                     .forfaitJoursCategorieAutonome(forfaitJoursCategorieAutonome)
-                    .forfaitJoursNbJours(forfaitJoursNbJours);
+                    .forfaitJoursNbJours(forfaitJoursNbJours)
+                    // SF-212-05 — transfert_entreprise_detail (FRANCE uniquement)
+                    .transfertTypeTransfert(transfertTypeTransfert)
+                    .transfertEeaIdentifiee(transfertEeaIdentifiee)
+                    .transfertActivitePreservee(transfertActivitePreservee)
+                    .transfertLicenciementsPreTransfert(transfertLicenciementsPreTransfert)
+                    .transfertDateTransfert(transfertDateTransfert);
         }
 
         public static final class Builder {
@@ -998,6 +1011,12 @@ public record CaseAnalysisResponse(
             private Boolean forfaitJoursDocumentControle;
             private Boolean forfaitJoursCategorieAutonome;
             private Integer forfaitJoursNbJours;
+            // SF-212-05 — transfert_entreprise_detail (FRANCE uniquement)
+            private String transfertTypeTransfert;
+            private Boolean transfertEeaIdentifiee;
+            private Boolean transfertActivitePreservee;
+            private Boolean transfertLicenciementsPreTransfert;
+            private String transfertDateTransfert;
 
             private Builder() {}
 
@@ -1224,6 +1243,12 @@ public record CaseAnalysisResponse(
             public Builder forfaitJoursDocumentControle(Boolean v) { this.forfaitJoursDocumentControle = v; return this; }
             public Builder forfaitJoursCategorieAutonome(Boolean v) { this.forfaitJoursCategorieAutonome = v; return this; }
             public Builder forfaitJoursNbJours(Integer v) { this.forfaitJoursNbJours = v; return this; }
+            // SF-212-05 — transfert_entreprise_detail (FRANCE uniquement)
+            public Builder transfertTypeTransfert(String v) { this.transfertTypeTransfert = v; return this; }
+            public Builder transfertEeaIdentifiee(Boolean v) { this.transfertEeaIdentifiee = v; return this; }
+            public Builder transfertActivitePreservee(Boolean v) { this.transfertActivitePreservee = v; return this; }
+            public Builder transfertLicenciementsPreTransfert(Boolean v) { this.transfertLicenciementsPreTransfert = v; return this; }
+            public Builder transfertDateTransfert(String v) { this.transfertDateTransfert = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1349,7 +1374,11 @@ public record CaseAnalysisResponse(
                         // SF-212-03 — forfait_jours_detail (FRANCE uniquement)
                         forfaitJoursAccordCollectifExiste, forfaitJoursEntretienAnnuelRealise,
                         forfaitJoursDocumentControle, forfaitJoursCategorieAutonome,
-                        forfaitJoursNbJours);
+                        forfaitJoursNbJours,
+                        // SF-212-05 — transfert_entreprise_detail (FRANCE uniquement)
+                        transfertTypeTransfert, transfertEeaIdentifiee,
+                        transfertActivitePreservee, transfertLicenciementsPreTransfert,
+                        transfertDateTransfert);
             }
         }
     }
@@ -1522,6 +1551,16 @@ public record CaseAnalysisResponse(
      * ramenée à {@code null}.
      */
     static final int MAX_FORFAIT_JOURS_NB_JOURS = 235;
+
+    /**
+     * SF-212-05 : codes de type de transfert d'entreprise (F-DT-72) — alignés
+     * sur l'enum {@code TransfertEntrepriseL12241Calculator.TypeTransfert}
+     * (FR uniquement, L. 1224-1 CT ; Directive 2001/23/CE).
+     */
+    static final Set<String> TYPE_TRANSFERT_CODES = Set.of(
+            "CESSION", "FUSION", "APPORT_PARTIEL_ACTIF",
+            "EXTERNALISATION", "REPRISE_ACTIVITE", "AUTRE"
+    );
 
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
@@ -3879,6 +3918,13 @@ public record CaseAnalysisResponse(
             // (régime forfait jours L.3121-58+ CT strictement français).
             JsonNode forfaitJours = node.get("forfait_jours_detail");
             boolean hasForfaitJours = forfaitJours != null && forfaitJours.isObject();
+            // SF-212-05 : sous-objet pour pré-fill F-DT-72 (transfert d'entreprise
+            // L. 1224-1, FRANCE uniquement). Peut être absent (dossier sans
+            // document de transfert, dossier BE) → tous les 5 champs null.
+            // Le prompt impose null pour la BE (maintien des contrats lors
+            // d'un transfert relève en BE de la CCT 32bis distincte).
+            JsonNode transfertEntreprise = node.get("transfert_entreprise_detail");
+            boolean hasTransfertEntreprise = transfertEntreprise != null && transfertEntreprise.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4191,6 +4237,17 @@ public record CaseAnalysisResponse(
                     .forfaitJoursDocumentControle(hasForfaitJours ? booleanOrNull(forfaitJours, "forfait_jours_document_controle") : null)
                     .forfaitJoursCategorieAutonome(hasForfaitJours ? booleanOrNull(forfaitJours, "forfait_jours_categorie_autonome") : null)
                     .forfaitJoursNbJours(hasForfaitJours ? boundedIntOrNull(forfaitJours, "forfait_jours_nb_jours", 0, MAX_FORFAIT_JOURS_NB_JOURS) : null)
+                    // SF-212-05 : 5 champs IA pour pré-fill F-DT-72 (transfert
+                    // d'entreprise L. 1224-1, FRANCE uniquement). Code type transfert
+                    // normalisé sur enum 6 valeurs (code hors whitelist → null),
+                    // 3 booléens tri-état (null si non déterminable), date ISO
+                    // YYYY-MM-DD. Tous null si sous-objet `transfert_entreprise_detail`
+                    // absent (dossier sans document de transfert ou dossier BE).
+                    .transfertTypeTransfert(hasTransfertEntreprise ? normalizeEnumCode(textOrNull(transfertEntreprise, "transfert_type_transfert"), TYPE_TRANSFERT_CODES) : null)
+                    .transfertEeaIdentifiee(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_eea_identifiee") : null)
+                    .transfertActivitePreservee(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_activite_preservee") : null)
+                    .transfertLicenciementsPreTransfert(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_licenciements_pre_transfert") : null)
+                    .transfertDateTransfert(hasTransfertEntreprise ? isoDateOrNull(transfertEntreprise, "transfert_date_transfert") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

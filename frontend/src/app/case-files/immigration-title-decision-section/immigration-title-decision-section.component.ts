@@ -18,6 +18,7 @@ import { SourceExplanationService } from '../../core/services/source-explanation
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
@@ -62,11 +63,16 @@ const CODE_TO_MOTIF = ImmigrationTitleDecisionPrefillRules.CODE_TO_MOTIF;
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
     ProcedureChecksOutputComponent,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './immigration-title-decision-section.component.html',
   styleUrl: './immigration-title-decision-section.component.scss'
 })
 export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-05-arbre-decisionnel-titre';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'TITRE DE SÉJOUR RECOMMANDÉ';
   static readonly TOOL_ICON = 'account_tree';
