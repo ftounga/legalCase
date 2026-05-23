@@ -42,6 +42,7 @@ class PromoCodeServiceTest {
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private SuperAdminService superAdminService;
     @Mock private CurrentUserResolver currentUserResolver;
+    @Mock private StripePromoCodeService stripePromoCodeService;
     @Mock private OidcUser oidcUser;
     @Mock private Principal principal;
 
@@ -54,7 +55,7 @@ class PromoCodeServiceTest {
     void setUp() {
         service = new PromoCodeService(promoCodeRepository, redemptionRepository,
                 subscriptionRepository, workspaceMemberRepository, superAdminService,
-                currentUserResolver);
+                currentUserResolver, stripePromoCodeService);
 
         adminUser = new User();
         adminUser.setId(UUID.randomUUID());
@@ -179,18 +180,34 @@ class PromoCodeServiceTest {
     }
 
     @Test
-    void createCode_stripeDiscount_canBeStoredWithoutValueDays() {
+    void createCode_stripeDiscount_canBeStoredWithoutValueDays() throws Exception {
+        // SF-255-04 : un STRIPE_DISCOUNT minimal valide demande valueOffType
+        // + valueOffAmount + duration. Le test originel SF-01 (qui passait
+        // null partout) est mis à jour pour respecter la nouvelle validation.
         when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
         when(promoCodeRepository.findByCodeIgnoreCase("DISC2026")).thenReturn(Optional.empty());
         when(promoCodeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(stripePromoCodeService.createCouponAndPromotionCode(any()))
+                .thenAnswer(inv -> {
+                    PromoCode pc = inv.getArgument(0);
+                    pc.setStripeCouponId("coupon_test");
+                    return "promo_test";
+                });
 
         PromoCodeCreateRequest req = new PromoCodeCreateRequest(
-                "DISC2026", PromoCodeType.STRIPE_DISCOUNT, null, "PARTENAIRE", 50,
+                "DISC2026", PromoCodeType.STRIPE_DISCOUNT, null,
+                PromoCodeValueOffType.PERCENT, 10, null, PromoCodeDuration.ONCE,
+                "PARTENAIRE", 50,
                 Instant.now().plus(30, ChronoUnit.DAYS));
 
         PromoCodeDto dto = service.createCode(req, oidcUser, "GOOGLE");
         assertThat(dto.type()).isEqualTo(PromoCodeType.STRIPE_DISCOUNT);
         assertThat(dto.valueDays()).isNull();
+        assertThat(dto.valueOffType()).isEqualTo(PromoCodeValueOffType.PERCENT);
+        assertThat(dto.valueOffAmount()).isEqualTo(10);
+        assertThat(dto.duration()).isEqualTo(PromoCodeDuration.ONCE);
+        assertThat(dto.stripeCouponId()).isEqualTo("coupon_test");
+        assertThat(dto.stripePromotionCodeId()).isEqualTo("promo_test");
     }
 
     // ===== Listing =====
@@ -524,6 +541,139 @@ class PromoCodeServiceTest {
 
         verify(subscriptionRepository).findByWorkspaceId(currentWorkspaceId);
         verify(subscriptionRepository, never()).findByWorkspaceId(eq(otherWorkspaceId));
+    }
+
+    // ===== SF-255-04 — STRIPE_DISCOUNT =====
+
+    @Test
+    void createCode_stripeDiscount_nominalPercent_callsStripeAndPersists() throws Exception {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+        when(promoCodeRepository.findByCodeIgnoreCase("DISC20")).thenReturn(Optional.empty());
+        when(promoCodeRepository.save(any())).thenAnswer(inv -> {
+            PromoCode c = inv.getArgument(0);
+            c.setId(UUID.randomUUID());
+            return c;
+        });
+        when(stripePromoCodeService.createCouponAndPromotionCode(any())).thenAnswer(inv -> {
+            PromoCode pc = inv.getArgument(0);
+            pc.setStripeCouponId("coupon_xx");
+            return "promo_yy";
+        });
+
+        PromoCodeCreateRequest req = new PromoCodeCreateRequest(
+                "DISC20", PromoCodeType.STRIPE_DISCOUNT, null,
+                PromoCodeValueOffType.PERCENT, 20, null, PromoCodeDuration.REPEATING_3,
+                "ACE", 50, Instant.now().plus(60, ChronoUnit.DAYS));
+
+        PromoCodeDto dto = service.createCode(req, oidcUser, "GOOGLE");
+
+        assertThat(dto.type()).isEqualTo(PromoCodeType.STRIPE_DISCOUNT);
+        assertThat(dto.valueOffType()).isEqualTo(PromoCodeValueOffType.PERCENT);
+        assertThat(dto.valueOffAmount()).isEqualTo(20);
+        assertThat(dto.duration()).isEqualTo(PromoCodeDuration.REPEATING_3);
+        assertThat(dto.stripeCouponId()).isEqualTo("coupon_xx");
+        assertThat(dto.stripePromotionCodeId()).isEqualTo("promo_yy");
+
+        verify(stripePromoCodeService).createCouponAndPromotionCode(any());
+        ArgumentCaptor<PromoCode> cap = ArgumentCaptor.forClass(PromoCode.class);
+        verify(promoCodeRepository).save(cap.capture());
+        assertThat(cap.getValue().getStripePromotionCodeId()).isEqualTo("promo_yy");
+    }
+
+    @Test
+    void createCode_stripeDiscount_withValueDays_isRefused() {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+
+        PromoCodeCreateRequest req = new PromoCodeCreateRequest(
+                "MIX", PromoCodeType.STRIPE_DISCOUNT, 30,
+                PromoCodeValueOffType.PERCENT, 10, null, PromoCodeDuration.ONCE,
+                "ACE", 50, Instant.now().plus(30, ChronoUnit.DAYS));
+
+        assertThatThrownBy(() -> service.createCode(req, oidcUser, "GOOGLE"))
+                .isInstanceOf(PromoCodeException.class)
+                .satisfies(e -> assertThat(((PromoCodeException) e).getCode())
+                        .isEqualTo(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET));
+        verifyNoInteractions(stripePromoCodeService);
+        verify(promoCodeRepository, never()).save(any());
+    }
+
+    @Test
+    void createCode_stripeDiscount_missingValueOffType_isRefused() {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+
+        PromoCodeCreateRequest req = new PromoCodeCreateRequest(
+                "MISS", PromoCodeType.STRIPE_DISCOUNT, null,
+                null, 10, null, PromoCodeDuration.ONCE,
+                "ACE", 50, Instant.now().plus(30, ChronoUnit.DAYS));
+
+        assertThatThrownBy(() -> service.createCode(req, oidcUser, "GOOGLE"))
+                .isInstanceOf(PromoCodeException.class)
+                .satisfies(e -> assertThat(((PromoCodeException) e).getCode())
+                        .isEqualTo(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET));
+        verifyNoInteractions(stripePromoCodeService);
+    }
+
+    @Test
+    void createCode_stripeDiscount_percentOutOfRange_isRefused() {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+
+        PromoCodeCreateRequest req = new PromoCodeCreateRequest(
+                "BAD", PromoCodeType.STRIPE_DISCOUNT, null,
+                PromoCodeValueOffType.PERCENT, 150, null, PromoCodeDuration.ONCE,
+                "ACE", 50, Instant.now().plus(30, ChronoUnit.DAYS));
+
+        assertThatThrownBy(() -> service.createCode(req, oidcUser, "GOOGLE"))
+                .isInstanceOf(PromoCodeException.class)
+                .satisfies(e -> assertThat(((PromoCodeException) e).getCode())
+                        .isEqualTo(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET));
+        verifyNoInteractions(stripePromoCodeService);
+    }
+
+    @Test
+    void createCode_stripeDiscount_stripeFails_throws502AndNoInsert() throws Exception {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+        when(promoCodeRepository.findByCodeIgnoreCase("DOWN")).thenReturn(Optional.empty());
+        when(stripePromoCodeService.createCouponAndPromotionCode(any()))
+                .thenThrow(new com.stripe.exception.ApiException("down", "req_x", null, 500, null));
+
+        PromoCodeCreateRequest req = new PromoCodeCreateRequest(
+                "DOWN", PromoCodeType.STRIPE_DISCOUNT, null,
+                PromoCodeValueOffType.PERCENT, 10, null, PromoCodeDuration.ONCE,
+                "ACE", 50, Instant.now().plus(30, ChronoUnit.DAYS));
+
+        assertThatThrownBy(() -> service.createCode(req, oidcUser, "GOOGLE"))
+                .isInstanceOf(PromoCodeException.class)
+                .satisfies(e -> assertThat(((PromoCodeException) e).getCode())
+                        .isEqualTo(PromoCodeErrorCode.STRIPE_API_UNAVAILABLE));
+        verify(promoCodeRepository, never()).save(any());
+    }
+
+    @Test
+    void deactivateCode_stripeDiscount_propagatesToStripe() {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+        PromoCode code = newCode("DISC", PromoCodeType.STRIPE_DISCOUNT, null, 50);
+        code.setStripePromotionCodeId("promo_to_kill");
+        code.setActive(true);
+        when(promoCodeRepository.findById(code.getId())).thenReturn(Optional.of(code));
+        when(redemptionRepository.countByPromoCodeId(code.getId())).thenReturn(0L);
+
+        service.deactivateCode(code.getId(), oidcUser, "GOOGLE");
+
+        verify(stripePromoCodeService).deactivatePromotionCode("promo_to_kill");
+        assertThat(code.isActive()).isFalse();
+    }
+
+    @Test
+    void deactivateCode_trialExtension_noStripeCall() {
+        when(superAdminService.assertSuperAdmin(oidcUser, "GOOGLE")).thenReturn(adminUser);
+        PromoCode code = newCode("TRIAL", PromoCodeType.TRIAL_EXTENSION, 30, 50);
+        code.setActive(true);
+        when(promoCodeRepository.findById(code.getId())).thenReturn(Optional.of(code));
+        when(redemptionRepository.countByPromoCodeId(code.getId())).thenReturn(0L);
+
+        service.deactivateCode(code.getId(), oidcUser, "GOOGLE");
+
+        verify(stripePromoCodeService, never()).deactivatePromotionCode(any());
     }
 
     // ===== Helpers =====

@@ -28,7 +28,13 @@ public enum PromoCodeErrorCode {
     /** Redemption : l'utilisateur authentifié n'est pas membre du workspace ciblé. */
     FORBIDDEN_WORKSPACE(HttpStatus.FORBIDDEN),
     /** Redemption : type STRIPE_DISCOUNT non implémenté en SF-01 (réservé à SF-255-04). */
-    PROMO_CODE_TYPE_NOT_SUPPORTED_YET(HttpStatus.CONFLICT);
+    PROMO_CODE_TYPE_NOT_SUPPORTED_YET(HttpStatus.CONFLICT),
+    /**
+     * SF-255-04 — création STRIPE_DISCOUNT : l'API Stripe a renvoyé une
+     * exception (down, clé invalide, etc.). Le service rollback la
+     * transaction → aucun INSERT local. HTTP 502 (Bad Gateway).
+     */
+    STRIPE_API_UNAVAILABLE(HttpStatus.BAD_GATEWAY);
 
     private final HttpStatus status;
 

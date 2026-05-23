@@ -153,6 +153,51 @@ class StripeCheckoutServiceTest {
         }
     }
 
+    // SF-255-04 — U-07 : allow_promotion_codes activé sur la session
+    @Test
+    void createCheckoutSession_setsAllowPromotionCodes() throws Exception {
+        StripeCheckoutService service = buildService(true);
+
+        Session mockSession = mock(Session.class);
+        when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/x");
+
+        try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
+            org.mockito.ArgumentCaptor<SessionCreateParams> cap =
+                    org.mockito.ArgumentCaptor.forClass(SessionCreateParams.class);
+            sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
+                    .thenReturn(mockSession);
+
+            service.createCheckoutSession("SOLO", oidcUser, "google", null);
+
+            sessionStatic.verify(() -> Session.create(cap.capture()));
+            assertThat(cap.getValue().getAllowPromotionCodes()).isTrue();
+        }
+    }
+
+    // SF-255-04 — U-08 : allow_promotion_codes activé sur création nouveau workspace
+    @Test
+    void createSubscriptionSessionForNewWorkspace_setsAllowPromotionCodes() throws Exception {
+        StripeCheckoutService service = buildService(true);
+        when(stripeCustomerService.createCustomer(any(), any()))
+                .thenReturn(Optional.of("cus_new_ws"));
+
+        Session mockSession = mock(Session.class);
+        when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/new");
+
+        try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
+            org.mockito.ArgumentCaptor<SessionCreateParams> cap =
+                    org.mockito.ArgumentCaptor.forClass(SessionCreateParams.class);
+            sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
+                    .thenReturn(mockSession);
+
+            service.createSubscriptionSessionForNewWorkspace(
+                    "TEAM", "owner@example.com", UUID.randomUUID());
+
+            sessionStatic.verify(() -> Session.create(cap.capture()));
+            assertThat(cap.getValue().getAllowPromotionCodes()).isTrue();
+        }
+    }
+
     // U-06 : erreur Stripe → 502
     @Test
     void createCheckoutSession_stripeException_throws502() throws Exception {

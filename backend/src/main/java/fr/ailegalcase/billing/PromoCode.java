@@ -52,6 +52,46 @@ public class PromoCode {
     @Column(name = "stripe_coupon_id", length = 255)
     private String stripeCouponId;
 
+    /**
+     * F-255 SF-255-04 — ID Stripe du {@code PromotionCode} créé en miroir du
+     * code local pour les codes de type {@link PromoCodeType#STRIPE_DISCOUNT}.
+     * Reste {@code null} pour TRIAL_EXTENSION. Indexé par migration 301 pour
+     * le lookup webhook {@code customer.discount.created}.
+     */
+    @Column(name = "stripe_promotion_code_id", length = 255)
+    private String stripePromotionCodeId;
+
+    /**
+     * F-255 SF-255-04 — type de réduction (PERCENT | AMOUNT) pour
+     * {@link PromoCodeType#STRIPE_DISCOUNT}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "value_off_type", length = 10)
+    private PromoCodeValueOffType valueOffType;
+
+    /**
+     * F-255 SF-255-04 — montant de réduction :
+     * pourcentage 1..100 si {@link #valueOffType} = PERCENT,
+     * centimes EUR si AMOUNT.
+     */
+    @Column(name = "value_off_amount")
+    private Integer valueOffAmount;
+
+    /**
+     * F-255 SF-255-04 — devise (V1 : EUR uniquement). Requis si
+     * {@link #valueOffType} = AMOUNT.
+     */
+    @Column(name = "currency", length = 3)
+    private String currency;
+
+    /**
+     * F-255 SF-255-04 — durée d'application Stripe (ONCE | REPEATING_3 |
+     * FOREVER). Requis pour {@link PromoCodeType#STRIPE_DISCOUNT}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "duration", length = 20)
+    private PromoCodeDuration duration;
+
     @Column(name = "partner_label", nullable = false, length = 100)
     private String partnerLabel;
 

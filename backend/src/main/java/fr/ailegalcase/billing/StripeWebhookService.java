@@ -1,6 +1,7 @@
 package fr.ailegalcase.billing;
 
 import com.stripe.exception.StripeException;
+import com.stripe.model.Discount;
 import com.stripe.model.Event;
 import com.stripe.model.Invoice;
 import com.stripe.model.Subscription;
@@ -25,6 +26,8 @@ public class StripeWebhookService {
     private final SubscriptionRepository subscriptionRepository;
     private final CreditPurchaseService creditPurchaseService;
     private final WorkspaceRepository workspaceRepository;
+    private final PromoCodeRepository promoCodeRepository;
+    private final PromoCodeRedemptionRepository promoCodeRedemptionRepository;
     private final String priceIdSolo;
     private final String priceIdTeam;
     private final String priceIdPro;
@@ -35,6 +38,8 @@ public class StripeWebhookService {
     public StripeWebhookService(SubscriptionRepository subscriptionRepository,
                                 CreditPurchaseService creditPurchaseService,
                                 WorkspaceRepository workspaceRepository,
+                                PromoCodeRepository promoCodeRepository,
+                                PromoCodeRedemptionRepository promoCodeRedemptionRepository,
                                 @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
                                 @Value("${app.stripe.price-id-team:}") String priceIdTeam,
                                 @Value("${app.stripe.price-id-pro:}") String priceIdPro,
@@ -44,6 +49,8 @@ public class StripeWebhookService {
         this.subscriptionRepository = subscriptionRepository;
         this.creditPurchaseService = creditPurchaseService;
         this.workspaceRepository = workspaceRepository;
+        this.promoCodeRepository = promoCodeRepository;
+        this.promoCodeRedemptionRepository = promoCodeRedemptionRepository;
         this.priceIdSolo = priceIdSolo;
         this.priceIdTeam = priceIdTeam;
         this.priceIdPro = priceIdPro;
@@ -64,6 +71,10 @@ public class StripeWebhookService {
             // SF-156-01 : un paiement échoué sur un workspace pendant
             // déclenche le passage en CANCELLED.
             case "invoice.payment_failed" -> handleInvoicePaymentFailed(event);
+            // SF-255-04 : Stripe émet customer.discount.created lorsqu'un
+            // user applique un PromotionCode au Checkout. On synchronise la
+            // redemption locale (audit + incrément uses_count).
+            case "customer.discount.created" -> handleCustomerDiscountCreated(event);
             default -> log.debug("Unhandled Stripe event: {}", event.getType());
         }
     }
@@ -376,6 +387,118 @@ public class StripeWebhookService {
             subscriptionRepository.save(sub);
         });
         log.info("Workspace {} basculé en CANCELLED suite à invoice.payment_failed", workspaceId);
+    }
+
+    /**
+     * SF-255-04 — synchronise une redemption locale lorsque Stripe émet un
+     * {@code customer.discount.created} (un user a appliqué un PromotionCode
+     * au Checkout).
+     *
+     * <p>Pipeline :
+     * <ol>
+     *   <li>Déserialise le {@link Discount} ; ignore si pas lié à un
+     *       PromotionCode (discount manuel admin Stripe).</li>
+     *   <li>Lookup local par {@code stripe_promotion_code_id} ; warn si
+     *       inconnu (cas : code créé hors LegalCase via Stripe Dashboard).</li>
+     *   <li>Idempotence : si {@code event.id} déjà persisté en
+     *       {@code source_event_id}, no-op (Stripe peut ré-émettre).</li>
+     *   <li>Résout {@code workspace_id} via {@code stripe_customer_id} →
+     *       Subscription → workspace.</li>
+     *   <li>INSERT {@link PromoCodeRedemption} (snapshot complet) +
+     *       incrément atomique {@code uses_count}.</li>
+     * </ol>
+     */
+    private void handleCustomerDiscountCreated(Event event) {
+        Discount discount;
+        try {
+            discount = (Discount) event.getDataObjectDeserializer().deserializeUnsafe();
+        } catch (StripeException e) {
+            log.error("Cannot deserialize customer.discount.created event {}: {}",
+                    event.getId(), e.getMessage());
+            return;
+        }
+        if (discount == null) {
+            log.warn("Null discount after deserialization for event {}", event.getId());
+            return;
+        }
+        String promotionCodeId = discount.getPromotionCode();
+        if (promotionCodeId == null) {
+            // Discount appliqué directement (sans passer par un PromotionCode)
+            // — par ex. coupon manuel via Dashboard Stripe. Pas de tracking
+            // local : ce n'est pas un code F-255.
+            log.debug("customer.discount.created sans promotion_code, event={} — ignoré",
+                    event.getId());
+            return;
+        }
+
+        // Idempotence : si l'event a déjà été traité, no-op.
+        if (event.getId() != null
+                && promoCodeRedemptionRepository.findBySourceEventId(event.getId()).isPresent()) {
+            log.info("customer.discount.created déjà traité (idempotence) event={} promoId={}",
+                    event.getId(), promotionCodeId);
+            return;
+        }
+
+        PromoCode promo = promoCodeRepository.findByStripePromotionCodeId(promotionCodeId).orElse(null);
+        if (promo == null) {
+            log.warn("customer.discount.created pour PromotionCode inconnu localement: {} event={}",
+                    promotionCodeId, event.getId());
+            return;
+        }
+
+        String customerId = discount.getCustomer();
+        if (customerId == null) {
+            log.warn("customer.discount.created sans customer event={} promoId={}",
+                    event.getId(), promotionCodeId);
+            return;
+        }
+        UUID workspaceId = subscriptionRepository.findByStripeCustomerId(customerId)
+                .map(fr.ailegalcase.billing.Subscription::getWorkspaceId)
+                .orElse(null);
+        if (workspaceId == null) {
+            log.warn("customer.discount.created pour customer inconnu localement: {} event={}",
+                    customerId, event.getId());
+            return;
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElse(null);
+        if (workspace == null) {
+            log.warn("customer.discount.created : workspace {} introuvable event={}",
+                    workspaceId, event.getId());
+            return;
+        }
+
+        Integer appliedAmount = null;
+        if (discount.getCoupon() != null && discount.getCoupon().getAmountOff() != null) {
+            appliedAmount = discount.getCoupon().getAmountOff().intValue();
+        }
+
+        UUID appliedByUserId = workspace.getOwner() != null
+                ? workspace.getOwner().getId()
+                : promo.getCreatedByUserId();
+
+        PromoCodeRedemption redemption = new PromoCodeRedemption();
+        redemption.setWorkspaceId(workspaceId);
+        redemption.setPromoCodeId(promo.getId());
+        redemption.setCodeAtRedemption(promo.getCode());
+        redemption.setType(PromoCodeType.STRIPE_DISCOUNT);
+        redemption.setValueAppliedAmount(appliedAmount);
+        redemption.setAppliedByUserId(appliedByUserId);
+        redemption.setSourceEventId(event.getId());
+        promoCodeRedemptionRepository.save(redemption);
+
+        // Incrément atomique du compteur. Si le code est épuisé côté local
+        // (uses_count >= max_uses) on log warn — Stripe a quand même appliqué
+        // la réduction, l'audit reflète la réalité métier.
+        int updated = promoCodeRepository.incrementUsesCount(promo.getId());
+        if (updated == 0) {
+            log.warn("customer.discount.created : promoCode {} déjà à max_uses, "
+                    + "redemption {} enregistrée mais uses_count non incrémenté",
+                    promo.getCode(), redemption.getId());
+        }
+
+        log.info("customer.discount.created traité event={} promoId={} code={} workspaceId={} appliedAmount={}",
+                event.getId(), promotionCodeId, promo.getCode(), workspaceId, appliedAmount);
     }
 
     /**

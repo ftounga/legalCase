@@ -2,6 +2,7 @@ package fr.ailegalcase.billing;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PromoCodeRedemptionRepository extends JpaRepository<PromoCodeRedemption, UUID> {
@@ -16,4 +17,12 @@ public interface PromoCodeRedemptionRepository extends JpaRepository<PromoCodeRe
     boolean existsByWorkspaceIdAndType(UUID workspaceId, PromoCodeType type);
 
     long countByPromoCodeId(UUID promoCodeId);
+
+    /**
+     * SF-255-04 — idempotence webhook : si Stripe ré-émet le même event
+     * {@code customer.discount.created}, on retrouve la redemption précédente
+     * et on no-op. Doublé par une contrainte UNIQUE (nullable) DB
+     * (migration 302) comme défense en profondeur.
+     */
+    Optional<PromoCodeRedemption> findBySourceEventId(String sourceEventId);
 }
