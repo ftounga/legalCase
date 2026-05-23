@@ -34,6 +34,7 @@ import {
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -96,11 +97,16 @@ const MOTIF_OPTIONS: ReadonlyArray<MotifOption> = [
     MatProgressSpinnerModule, MatSelectModule, MatSlideToggleModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './aes-humanitaire-section.component.html',
   styleUrl: './aes-humanitaire-section.component.scss',
 })
 export class AesHumanitaireSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-09-aes-humanitaire';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AES — VOIE HUMANITAIRE (L.435-2)';
   static readonly TOOL_ICON = 'volunteer_activism';
