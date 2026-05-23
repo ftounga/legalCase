@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04002-0000-0000-0000-eeee21600025" author="legalcase">
+        <comment>
+            SF-216-25 : table dédiée à l'outil décisionnel "Présomption de
+            paternité du mari et désaveu" (F-FA-PRESOMPTION-PATERNITE,
+            FRANCE — art. 312-315 Cciv (Pater is est quem nuptiae demonstrant)
+            + art. 316 al. 2 Cciv (désaveu) + art. 333 al. 1 Cciv (possession
+            d'état conforme)).
+
+            Outil dédié à la présomption de paternité du mari :
+              - présomption applicable (art. 312) : enfant conçu pendant
+                le mariage + né moins de 300 jours après dissolution ;
+              - présomption renversée (art. 313-314) : enfant né plus de
+                300 jours après dissolution OU moins de 180 jours après
+                conclusion du mariage ET mari nie + pas de possession
+                d'état ;
+              - désaveu de paternité (art. 316 al. 2) : délai 6 mois à
+                compter de la naissance / connaissance de la naissance
+                (Cass. 1ère civ., 19/2/2014) ;
+              - possession d'état conforme (art. 333 al. 1) : neutralise
+                contestation.
+
+            Distinct des outils filiation existants (F-FA-18-contestation-
+            paternite, F-FA-18-reconnaissance, F-FA-18-recherche-paternite)
+            qui visent la filiation déjà établie, pas la présomption.
+
+            Outil single-country FRANCE — l'équivalent BE est régi par les
+            art. 315 et s. CC BE (outil F-FA-BE-PRESOMPTION-PATERNITE
+            futur, hors périmètre F-216).
+
+            Snapshot JSON complet (inputs + outputs) pour restitution UI
+            sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 310
+            (couplé à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            pattern SF-216-01 / SF-216-05 / SF-216-07 / SF-216-15 /
+            SF-216-17 / SF-216-19 / SF-216-21 / SF-216-23).
+        </comment>
+
+        <createTable tableName="presomption_paternite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_presomption_paternite_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="presomption_paternite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_presomption_paternite_analyses_case_file"/>
+
+        <createIndex tableName="presomption_paternite_analyses"
+                     indexName="idx_presomption_paternite_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="presomption_paternite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

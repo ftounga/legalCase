@@ -1125,4 +1125,34 @@ export interface FamilleExtractedData {
    * Source backend : `partage_notarial_detection.declaration_succession_echeance`.
    */
   declarationSuccessionEcheancDetectee?: string | null;
+
+  /**
+   * SF-216-25 : FRANCE — flag CONTEXTUAL indiquant qu'une situation de
+   * présomption de paternité du mari (application, renversement, désaveu)
+   * est envisagée (mention art. 312-316 Cciv, désaveu, présomption mari).
+   * Source backend : `presomption_paternite_detection.envisagee`.
+   */
+  presomptionPaterniteEnvisagee?: boolean | null;
+
+  /**
+   * SF-216-25 : FRANCE — true si une action en désaveu de paternité
+   * (art. 316 al. 2 Cciv) est envisagée, introduite ou documentée
+   * dans les pièces.
+   * Source backend : `presomption_paternite_detection.desaveu_envisage`.
+   */
+  desaveuEnvisage?: boolean | null;
+
+  /**
+   * SF-216-25 : FRANCE — date de conclusion du mariage extraite des
+   * pièces (acte de mariage, livret de famille). Format ISO YYYY-MM-DD.
+   * Source backend : `presomption_paternite_detection.date_conclusion_mariage`.
+   */
+  dateConclusionMariageDetectee?: string | null;
+
+  /**
+   * SF-216-25 : FRANCE — date de dissolution du mariage extraite des
+   * pièces (jugement de divorce, acte de décès). Format ISO YYYY-MM-DD.
+   * Source backend : `presomption_paternite_detection.date_dissolution_mariage`.
+   */
+  dateDissolutionMariageDetectee?: string | null;
 }

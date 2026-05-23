@@ -198,6 +198,8 @@ import { RecelSuccessionFrSectionComponent } from '../recel-succession-fr-sectio
 import { DonationEntreEpouxFrSectionComponent } from '../donation-entre-epoux-fr-section/donation-entre-epoux-fr-section.component';
 // SF-216-28 : composant simulateur Partage successoral notarié FR (F-FA-PARTAGE-NOTARIAL).
 import { PartageNotarialFrSectionComponent } from '../partage-notarial-fr-section/partage-notarial-fr-section.component';
+// SF-216-26 : composant simulateur Présomption de paternité FR (F-FA-PRESOMPTION-PATERNITE).
+import { PresomptionPaterniteFrSectionComponent } from '../presomption-paternite-fr-section/presomption-paternite-fr-section.component';
 // SF-216-04 : nouveau composant simulateur F-FA-02 (remplace le wrapper
 // SF-198-02 `PensionAlimentaireSectionComponent` qui n'est plus référencé).
 import { PensionAlimentaireEnfantFrSectionComponent } from '../pension-alimentaire-enfant-fr-section/pension-alimentaire-enfant-fr-section.component';
@@ -1349,6 +1351,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-FA-PARTAGE-NOTARIAL', {
         displayLabel: 'Partage successoral notarié (FR)',
         component: PartageNotarialFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-216-26 : composant simulateur complet (POST/GET backend SF-216-25).
+      // Outil P2 famille FR — Présomption de paternité du mari et désaveu
+      // (art. 312-315 Cciv + art. 316 al. 2 + art. 333 al. 1 + Cass. 1ère
+      // civ., 19/2/2014). 5 champs pré-fill IA (date naissance, possession
+      // état conforme, dates mariage / dissolution, désaveu envisagé) —
+      // visibility CONTEXTUAL F-IA-04 priority 110.
+      ['F-FA-PRESOMPTION-PATERNITE', {
+        displayLabel: 'Présomption de paternité (FR)',
+        component: PresomptionPaterniteFrSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2837,6 +2855,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-DONATION-ENTRE-EPOUX', 'DIAGNOSTIC'],
     // SF-216-28 : partage successoral notarié (FR, art. 816 et s. Cciv + 1592 CGI + 641 CGI).
     ['F-FA-PARTAGE-NOTARIAL', 'DIAGNOSTIC'],
+    // SF-216-26 : présomption de paternité du mari et désaveu (FR, art. 312-316 Cciv + art. 333 al. 1).
+    ['F-FA-PRESOMPTION-PATERNITE', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

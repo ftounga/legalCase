@@ -371,6 +371,11 @@ public class DecisionToolVisibilityService {
         // art. 816 et s. Cciv + art. 870 Cciv + art. 1592 CGI + art. 641 CGI + art. 840 Cciv).
         addBooleanFlagIfTrueNested(detected, familleNode, "partage_notarial_detection", "envisage",
                 "partage_notarial_envisage");
+        // === SF-216-25 — 1 flag CONTEXTUAL Famille FR : présomption de paternité ===
+        // Lire depuis sous-objet `presomption_paternite_detection.envisagee` (même pattern,
+        // art. 312-316 Cciv + art. 333 al. 1 + Cass. 1ère civ., 19/2/2014).
+        addBooleanFlagIfTrueNested(detected, familleNode, "presomption_paternite_detection", "envisagee",
+                "presomption_paternite_envisagee");
         // === SF-216-03 — 1 flag CONTEXTUAL Famille FR : pension alimentaire enfant ===
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",
