@@ -806,13 +806,18 @@ Règles :
 
 ## promo_codes
 
-Table (F-255 SF-255-01, migration 299) :
+Table (F-255 SF-255-01 migration 299, F-255 SF-255-04 migration 301) :
 
 id (UUID PK)
 code (varchar 64, unique global — trim + uppercase côté Java, regex [A-Z0-9_-]+)
 type (varchar 20 — valeurs : TRIAL_EXTENSION, STRIPE_DISCOUNT)
 value_days (int, nullable — non null pour TRIAL_EXTENSION, null pour STRIPE_DISCOUNT)
 stripe_coupon_id (varchar 255, nullable — renseigné par SF-255-04 pour les codes STRIPE_DISCOUNT)
+stripe_promotion_code_id (varchar 255, nullable, INDEX — renseigné par SF-255-04, sert au lookup webhook)
+value_off_type (varchar 10, nullable — PERCENT ou AMOUNT, requis si type=STRIPE_DISCOUNT)
+value_off_amount (int, nullable — pourcentage 1-100 ou centimes EUR, requis si type=STRIPE_DISCOUNT)
+currency (varchar 3, nullable — EUR V1, requis si value_off_type=AMOUNT)
+duration (varchar 20, nullable — ONCE | REPEATING_3 | FOREVER, requis si type=STRIPE_DISCOUNT)
 partner_label (varchar 100, non null — libellé partenaire libre, ex « ACE »)
 max_uses (int, non null)
 uses_count (int, non null, défaut 0)
@@ -825,38 +830,45 @@ Index :
 
 idx_promo_codes_code (unique sur code)
 idx_promo_codes_active_expires (sur active, expires_at)
+idx_promo_codes_stripe_promotion_code_id (sur stripe_promotion_code_id, pour lookup webhook)
 
 Règles :
 
 - Créés exclusivement par un super-admin via `POST /api/v1/super-admin/promo-codes`
 - `uses_count` incrémenté atomiquement via UPDATE conditionnel `WHERE uses_count < max_uses` — 0 rows = épuisé, retourne 409 PROMO_CODE_EXHAUSTED
-- `active = false` (désactivation manuelle SUPER_ADMIN) empêche toute nouvelle redemption mais conserve l'historique
-- Un code STRIPE_DISCOUNT créé en V1 (SF-01) ne peut pas encore être redeemé (409 PROMO_CODE_TYPE_NOT_SUPPORTED_YET) ; activation par SF-255-04
+- `active = false` (désactivation manuelle SUPER_ADMIN) empêche toute nouvelle redemption — pour STRIPE_DISCOUNT, propage l'`active=false` au PromotionCode Stripe (best-effort, log warning si KO)
+- **TRIAL_EXTENSION** : aucune interaction Stripe, extension d'essai 100 % locale via UPDATE direct sur `subscriptions.expires_at`. L'utilisateur saisit le code dans `/workspace/billing`
+- **STRIPE_DISCOUNT** : Coupon + PromotionCode créés via Stripe API à la création locale, l'utilisateur saisit le code dans Stripe Checkout (champ natif activé via `allow_promotion_codes=true`), webhook `customer.discount.created` synchronise les redemptions localement
+- À la redemption sur l'endpoint user `/workspace/billing/promo-codes/redeem`, un code STRIPE_DISCOUNT retourne 409 PROMO_CODE_TYPE_NOT_SUPPORTED_YET (volontaire — conservé après SF-04 pour orienter le user vers Stripe Checkout)
 
 ## promo_code_redemptions
 
-Table (F-255 SF-255-01, migration 300) :
+Table (F-255 SF-255-01 migration 300, F-255 SF-255-04 migration 302) :
 
 id (UUID PK)
 workspace_id (UUID FK → workspaces)
 promo_code_id (UUID FK → promo_codes)
 code_at_redemption (varchar 64, non null — copie immuable du code au moment T pour audit, même si le code source est renommé en V2)
 type (varchar 20 — copie du type au moment T)
-value_applied_days (int, nullable — copie de la valeur appliquée)
+value_applied_days (int, nullable — copie de la valeur appliquée pour TRIAL_EXTENSION)
+value_applied_amount (int, nullable — centimes EUR de réduction réellement appliquée pour STRIPE_DISCOUNT, renseigné par le webhook)
+source_event_id (varchar 255, nullable UNIQUE — event.getId() Stripe pour idempotence webhook, NULL pour les redemptions TRIAL_EXTENSION)
 redeemed_at (timestamptz, non null)
-applied_by_user_id (UUID FK → users — utilisateur authentifié qui a redeemé)
+applied_by_user_id (UUID FK → users — utilisateur authentifié qui a redeemé ou owner du workspace pour les webhooks Stripe)
 
 Index :
 
 idx_promo_code_redemptions_promo_code_id (sur promo_code_id, pour recalcul uses_count)
 ux_promo_code_redemptions_workspace_trial (UNIQUE sur (workspace_id, type) WHERE type='TRIAL_EXTENSION', PostgreSQL uniquement — matérialise l'invariant anti-abus 1 TRIAL_EXTENSION par workspace à vie ; vérif applicative équivalente dans PromoCodeService pour les tests H2)
+ux_promo_code_redemptions_source_event_id (UNIQUE sur source_event_id, pour idempotence webhook Stripe — pas de double INSERT si Stripe ré-émet le même event)
 
 Règles :
 
 - Une ligne par redemption, immuable (pas d'UPDATE/DELETE)
-- workspace_id dérivé du contexte de sécurité (jamais du body de la requête)
-- applied_by_user_id = utilisateur authentifié au moment de la redemption
-- code_at_redemption + type + value_applied_days = copies de sûreté pour réconciliation a posteriori
+- `workspace_id` dérivé du contexte de sécurité (TRIAL_EXTENSION : path utilisateur authentifié ; STRIPE_DISCOUNT : `subscription.workspace_id` retrouvé depuis `customer_id` Stripe)
+- `applied_by_user_id` = utilisateur authentifié (TRIAL_EXTENSION) ou owner du workspace (STRIPE_DISCOUNT webhook, fallback `createdByUserId` du code promo si owner null)
+- `code_at_redemption` + `type` + `value_applied_*` = copies de sûreté pour réconciliation a posteriori
+- `source_event_id` = clé d'idempotence pour les webhooks Stripe (Stripe peut ré-émettre le même event)
 
 ## credit_purchases
 
