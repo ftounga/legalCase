@@ -31,6 +31,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { Annexe13BePrefillRules, MOTIFS_OQT_WHITELIST } from './annexe13-be-section-prefill-rules';
@@ -70,11 +71,16 @@ export type IM08AnnexeBeCoherenceAlert = CoherenceAlert<IM08AnnexeBeAlertField>;
     LegalCitationsPipe,
     DecisionalHeaderFlagComponent,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './annexe13-be-section.component.html',
   styleUrl: './annexe13-be-section.component.scss',
 })
 export class Annexe13BeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-08-annexe13-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ANNEXE 13 — OQT BELGE (BE)';
   static readonly TOOL_ICON = 'gavel';

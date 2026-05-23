@@ -35,6 +35,7 @@ import { ImmigrationExtractedData } from '../../core/models/case-analysis.model'
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -82,11 +83,16 @@ export type IM14_40terCoherenceAlert = CoherenceAlert<IM14_40terAlertField>;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './belgian-40ter-section.component.html',
   styleUrl: './belgian-40ter-section.component.scss',
 })
 export class Belgian40terSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-14-40ter-familial-belge-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = '40TER FAMILIAL BELGE (BE)';
   static readonly TOOL_ICON = 'family_restroom';

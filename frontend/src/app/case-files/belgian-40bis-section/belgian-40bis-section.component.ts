@@ -40,6 +40,7 @@ import {
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -91,6 +92,7 @@ export type Belgian40bisCoherenceAlert = CoherenceAlert<Belgian40bisAlertField>;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './belgian-40bis-section.component.html',
   styleUrl: './belgian-40bis-section.component.scss',

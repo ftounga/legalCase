@@ -37,6 +37,7 @@ import {
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 import {
   CoherenceAlert,
   CoherenceAlertSource,
@@ -91,11 +92,16 @@ const AGE_DIVERGENCE_ANNEES = 1;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './credit-temps-be-section.component.html',
   styleUrl: './credit-temps-be-section.component.scss',
 })
 export class CreditTempsBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-29-credit-temps-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CRÉDIT-TEMPS / INTERRUPTION DE CARRIÈRE BE';
 
