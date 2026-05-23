@@ -9,6 +9,47 @@
     </div>
   }
 
+  <!-- SF-255-03 : bandeau d'essai + sous-bloc « Avantage adhérents » (input inline, sans modal).
+       Visibilité contrôlée par showPromoCodeInput() : @if Angular, sous-bloc absent du DOM hors trial actif. -->
+  @if (showPromoCodeInput()) {
+    <div class="trial-banner">
+      <div class="trial-banner-main">
+        <mat-icon>schedule</mat-icon>
+        <span class="trial-banner-text">
+          Essai en cours
+          @if (trialExpiresAt()) {
+            — fin le {{ trialExpiresAt() | date:'longDate' }}.
+          }
+        </span>
+      </div>
+      <div class="trial-banner-promo">
+        <span class="trial-banner-promo-label">Avantage adhérents — saisissez votre code partenaire :</span>
+        <div class="trial-banner-promo-form">
+          <mat-form-field appearance="outline" class="trial-banner-promo-field">
+            <mat-label>Code partenaire</mat-label>
+            <input matInput
+              type="text"
+              maxlength="64"
+              placeholder="Ex. ACE2026"
+              [disabled]="submittingPromo()"
+              [ngModel]="promoCodeInput()"
+              (ngModelChange)="promoCodeInput.set($event)"
+              (keyup.enter)="applyPromoCode()" />
+          </mat-form-field>
+          <button mat-flat-button class="btn-gold trial-banner-promo-button"
+            [disabled]="submittingPromo() || !promoCodeInput().trim()"
+            (click)="applyPromoCode()">
+            @if (submittingPromo()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              Appliquer
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- SF-247-02 : bandeau résiliation programmée — en haut, visible sans scroll -->
   @if (cancellationScheduled()) {
     <div class="cancellation-banner">
