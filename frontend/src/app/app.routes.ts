@@ -154,6 +154,13 @@ export const routes: Routes = [
         path: 'super-admin/jurisprudence-watch',
         loadComponent: () => import('./super-admin/jurisprudence-watch/jurisprudence-watch.component')
           .then(m => m.JurisprudenceWatchComponent)
+      },
+      {
+        // F-255 SF-255-02 — écran admin codes promo (création / listing / désactivation).
+        // Sécurité super-admin assurée côté backend + redirection /case-files dans ngOnInit du composant.
+        path: 'super-admin/promo-codes',
+        loadComponent: () => import('./super-admin/promo-codes/super-admin-promo-codes.component')
+          .then(m => m.SuperAdminPromoCodesComponent)
       }
     ]
   },

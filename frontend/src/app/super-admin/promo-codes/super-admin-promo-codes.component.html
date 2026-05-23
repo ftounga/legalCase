@@ -1,0 +1,230 @@
+<div class="promo-codes-page">
+  <div class="page-header">
+    <h1 class="page-title">Codes promo</h1>
+    <p class="page-subtitle">
+      Gestion des codes partenaires (essai gratuit prolongé). Les codes restent
+      en table après désactivation pour traçabilité audit.
+    </p>
+  </div>
+
+  <!-- Bloc 1 — Formulaire de création -->
+  <mat-card class="section-card section-card--form">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>add_circle_outline</mat-icon>
+        Créer un nouveau code
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="field-code">
+            <mat-label>Code</mat-label>
+            <input
+              matInput
+              formControlName="code"
+              placeholder="ex: BARREAU2026"
+              maxlength="64"
+              autocomplete="off"
+              data-testid="promo-code-input"
+            />
+            <mat-hint>Lettres, chiffres, tiret, underscore — uppercase appliqué côté serveur</mat-hint>
+            @if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <mat-error>Code requis, format [A-Z0-9_-]</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="field-type">
+            <mat-label>Type</mat-label>
+            <mat-select formControlName="type" data-testid="promo-type-select">
+              <mat-option value="TRIAL_EXTENSION">Extension essai</mat-option>
+              <mat-option value="STRIPE_DISCOUNT">Réduction Stripe (V2)</mat-option>
+            </mat-select>
+            <mat-hint>STRIPE_DISCOUNT : stocké uniquement en V1 (redemption désactivée)</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          @if (isTrialExtension()) {
+            <mat-form-field appearance="outline" class="field-value-days" data-testid="value-days-field">
+              <mat-label>Durée d'extension (jours)</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="valueDays"
+                min="1"
+                max="365"
+                data-testid="value-days-input"
+              />
+              <mat-hint>Entre 1 et 365</mat-hint>
+              @if (form.get('valueDays')?.invalid && form.get('valueDays')?.touched) {
+                <mat-error>Durée requise (1 à 365)</mat-error>
+              }
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline" class="field-partner">
+            <mat-label>Partenaire</mat-label>
+            <input
+              matInput
+              formControlName="partnerLabel"
+              placeholder="ex: Barreau de Bordeaux"
+              maxlength="100"
+              autocomplete="off"
+              data-testid="partner-label-input"
+            />
+            @if (form.get('partnerLabel')?.invalid && form.get('partnerLabel')?.touched) {
+              <mat-error>Libellé partenaire requis</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="field-max-uses">
+            <mat-label>Nombre max d'utilisations</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="maxUses"
+              min="1"
+              max="100000"
+              data-testid="max-uses-input"
+            />
+            <mat-hint>Entre 1 et 100 000</mat-hint>
+            @if (form.get('maxUses')?.invalid && form.get('maxUses')?.touched) {
+              <mat-error>Quota requis (1 à 100000)</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="field-expires-at">
+            <mat-label>Expire le</mat-label>
+            <input
+              matInput
+              type="date"
+              formControlName="expiresAt"
+              data-testid="expires-at-input"
+            />
+            <mat-hint>L'expiration est fixée à 23:59:59 UTC du jour choisi</mat-hint>
+            @if (form.get('expiresAt')?.invalid && form.get('expiresAt')?.touched) {
+              <mat-error>Date d'expiration requise</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            class="cta-primary"
+            [disabled]="form.invalid || submitting()"
+            data-testid="submit-button"
+          >
+            @if (submitting()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon>save</mat-icon>
+            }
+            <span>Créer le code</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Bloc 2 — Liste des codes existants -->
+  <mat-card class="section-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>list_alt</mat-icon>
+        Codes existants
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (loading()) {
+        <div class="loading-center">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else {
+        <table mat-table [dataSource]="codes()" class="full-width-table" data-testid="codes-table">
+          <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef>Code</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="code-mono">{{ row.code }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef>Type</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="type-badge type-badge--{{ row.type === 'TRIAL_EXTENSION' ? 'trial' : 'stripe' }}">
+                {{ typeLabel(row.type) }}
+              </span>
+              @if (row.type === 'TRIAL_EXTENSION' && row.valueDays) {
+                <span class="value-days-suffix">+{{ row.valueDays }} j</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="partnerLabel">
+            <th mat-header-cell *matHeaderCellDef>Partenaire</th>
+            <td mat-cell *matCellDef="let row">{{ row.partnerLabel }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="uses">
+            <th mat-header-cell *matHeaderCellDef>Utilisations</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="uses-counter">{{ row.usesCount }} / {{ row.maxUses }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="expiresAt">
+            <th mat-header-cell *matHeaderCellDef>Expire le</th>
+            <td mat-cell *matCellDef="let row">{{ row.expiresAt | date:'dd/MM/yyyy' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="active">
+            <th mat-header-cell *matHeaderCellDef>État</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.active) {
+                <span class="state-badge state-badge--ok">Actif</span>
+              } @else {
+                <span class="state-badge state-badge--off">Désactivé</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Créé le</th>
+            <td mat-cell *matCellDef="let row">{{ row.createdAt | date:'dd/MM/yyyy' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.active) {
+                <button
+                  mat-stroked-button
+                  class="deactivate-btn"
+                  (click)="confirmDeactivate(row)"
+                  [attr.data-testid]="'deactivate-' + row.id"
+                  aria-label="Désactiver le code promo"
+                >
+                  <mat-icon>block</mat-icon>
+                  <span>Désactiver</span>
+                </button>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+
+        @if (codes().length === 0) {
+          <p class="empty-state">Aucun code promo. Créez le premier via le formulaire ci-dessus.</p>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
