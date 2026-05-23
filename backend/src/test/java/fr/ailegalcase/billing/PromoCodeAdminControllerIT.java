@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
@@ -26,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +50,10 @@ class PromoCodeAdminControllerIT {
     @Autowired private PromoCodeRedemptionRepository redemptionRepository;
     @Autowired private WorkspaceRepository workspaceRepository;
     @Autowired private ObjectMapper objectMapper;
+
+    // SF-255-04 — mock du wrapper Stripe pour ne pas dépendre d'un API key
+    // réel ni d'un appel réseau pendant les tests d'intégration.
+    @MockBean private StripePromoCodeService stripePromoCodeService;
 
     private OAuth2AuthenticationToken superAdminAuth;
     private OAuth2AuthenticationToken regularAuth;
@@ -295,6 +303,64 @@ class PromoCodeAdminControllerIT {
         mockMvc.perform(post("/api/v1/super-admin/promo-codes/" + code.getId() + "/deactivate")
                         .with(authentication(regularAuth)))
                 .andExpect(status().isForbidden());
+    }
+
+    // SF-255-04 — création STRIPE_DISCOUNT 201 + appel Stripe mocké
+    @Test
+    void createCode_stripeDiscount_returns201AndCallsStripe() throws Exception {
+        when(stripePromoCodeService.createCouponAndPromotionCode(any()))
+                .thenAnswer(inv -> {
+                    PromoCode pc = inv.getArgument(0);
+                    pc.setStripeCouponId("coupon_mock_id");
+                    return "promo_mock_id";
+                });
+
+        String body = objectMapper.writeValueAsString(Map.of(
+                "code", "PARTNER25",
+                "type", "STRIPE_DISCOUNT",
+                "valueOffType", "PERCENT",
+                "valueOffAmount", 25,
+                "duration", "ONCE",
+                "partnerLabel", "ACE",
+                "maxUses", 100,
+                "expiresAt", Instant.now().plus(60, ChronoUnit.DAYS).toString()));
+
+        mockMvc.perform(post("/api/v1/super-admin/promo-codes")
+                        .with(authentication(superAdminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("PARTNER25"))
+                .andExpect(jsonPath("$.type").value("STRIPE_DISCOUNT"))
+                .andExpect(jsonPath("$.valueOffType").value("PERCENT"))
+                .andExpect(jsonPath("$.valueOffAmount").value(25))
+                .andExpect(jsonPath("$.duration").value("ONCE"))
+                .andExpect(jsonPath("$.stripeCouponId").value("coupon_mock_id"))
+                .andExpect(jsonPath("$.stripePromotionCodeId").value("promo_mock_id"));
+
+        verify(stripePromoCodeService).createCouponAndPromotionCode(any());
+    }
+
+    // SF-255-04 — création STRIPE_DISCOUNT avec valueDays → 409 (champs incompatibles)
+    @Test
+    void createCode_stripeDiscount_withValueDays_returns409() throws Exception {
+        String body = objectMapper.writeValueAsString(Map.of(
+                "code", "BADMIX",
+                "type", "STRIPE_DISCOUNT",
+                "valueDays", 30,
+                "valueOffType", "PERCENT",
+                "valueOffAmount", 10,
+                "duration", "ONCE",
+                "partnerLabel", "ACE",
+                "maxUses", 100,
+                "expiresAt", Instant.now().plus(30, ChronoUnit.DAYS).toString()));
+
+        mockMvc.perform(post("/api/v1/super-admin/promo-codes")
+                        .with(authentication(superAdminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROMO_CODE_TYPE_NOT_SUPPORTED_YET"));
     }
 
     // Auth — sans authentification → 401

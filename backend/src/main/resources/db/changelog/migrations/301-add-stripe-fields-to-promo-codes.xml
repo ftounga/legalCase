@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="301-add-stripe-fields-to-promo-codes" author="legalcase">
+        <comment>
+            F-255 SF-255-04 — extension de la table `promo_codes` avec les
+            5 champs Stripe nécessaires pour la branche STRIPE_DISCOUNT.
+
+            Tous les champs sont nullables : compatibilité descendante avec
+            les codes TRIAL_EXTENSION existants (créés en SF-01) qui n'ont
+            aucune interaction Stripe.
+
+              * stripe_promotion_code_id : ID Stripe du PromotionCode créé en
+                miroir du code local (le couponId existant `stripe_coupon_id`
+                pointe vers le Coupon parent du PromotionCode). Le lookup
+                webhook `customer.discount.created` se fait sur ce champ via
+                l'index dédié.
+              * value_off_type : `PERCENT` (pourcentage) ou `AMOUNT` (centimes).
+              * value_off_amount : valeur 1..100 si PERCENT, centimes EUR sinon.
+              * currency : `EUR` (V1 mono-devise).
+              * duration : `ONCE` | `REPEATING_3` (= 3 mois) | `FOREVER` —
+                mappé sur la `Duration` Stripe à la création.
+
+            Namespace UUID F-255 SF-04 : f1a04002-0000-0000-0000-eeee25500103.
+        </comment>
+
+        <addColumn tableName="promo_codes">
+            <column name="stripe_promotion_code_id" type="varchar(255)"/>
+            <column name="value_off_type" type="varchar(10)"/>
+            <column name="value_off_amount" type="int"/>
+            <column name="currency" type="varchar(3)"/>
+            <column name="duration" type="varchar(20)"/>
+        </addColumn>
+
+        <createIndex tableName="promo_codes"
+                     indexName="idx_promo_codes_stripe_promotion_code_id">
+            <column name="stripe_promotion_code_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="promo_codes"
+                       indexName="idx_promo_codes_stripe_promotion_code_id"/>
+            <dropColumn tableName="promo_codes" columnName="duration"/>
+            <dropColumn tableName="promo_codes" columnName="currency"/>
+            <dropColumn tableName="promo_codes" columnName="value_off_amount"/>
+            <dropColumn tableName="promo_codes" columnName="value_off_type"/>
+            <dropColumn tableName="promo_codes" columnName="stripe_promotion_code_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

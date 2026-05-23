@@ -25,13 +25,15 @@ class StripeWebhookServiceTest {
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private CreditPurchaseService creditPurchaseService;
     @Mock private fr.ailegalcase.workspace.WorkspaceRepository workspaceRepository;
+    @Mock private PromoCodeRepository promoCodeRepository;
+    @Mock private PromoCodeRedemptionRepository promoCodeRedemptionRepository;
 
     private StripeWebhookService service;
 
     @BeforeEach
     void setUp() {
         service = new StripeWebhookService(subscriptionRepository, creditPurchaseService,
-                workspaceRepository,
+                workspaceRepository, promoCodeRepository, promoCodeRedemptionRepository,
                 "price_solo_test", "price_team_test", "price_pro_test",
                 "price_tokens_1m_test", "price_tokens_5m_test", "price_tokens_20m_test");
     }
@@ -301,6 +303,139 @@ class StripeWebhookServiceTest {
         verify(subscriptionRepository).save(captor.capture());
         assertThat(captor.getValue().getPlanCode()).isEqualTo("FREE");
         assertThat(captor.getValue().isCancelAtPeriodEnd()).isFalse();
+    }
+
+    // ===== SF-255-04 — customer.discount.created =====
+
+    @Test
+    void handleEvent_customerDiscountCreated_nominal_persistsRedemptionAndIncrements() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID promoCodeId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+
+        PromoCode promo = new PromoCode();
+        promo.setId(promoCodeId);
+        promo.setCode("PARTNER20");
+        promo.setType(PromoCodeType.STRIPE_DISCOUNT);
+        promo.setStripePromotionCodeId("promo_pc_1");
+        when(promoCodeRepository.findByStripePromotionCodeId("promo_pc_1"))
+                .thenReturn(Optional.of(promo));
+
+        fr.ailegalcase.billing.Subscription sub = new fr.ailegalcase.billing.Subscription();
+        sub.setWorkspaceId(workspaceId);
+        when(subscriptionRepository.findByStripeCustomerId("cus_dx"))
+                .thenReturn(Optional.of(sub));
+
+        fr.ailegalcase.auth.User owner = new fr.ailegalcase.auth.User();
+        owner.setId(ownerId);
+        fr.ailegalcase.workspace.Workspace ws = new fr.ailegalcase.workspace.Workspace();
+        ws.setId(workspaceId);
+        ws.setOwner(owner);
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(ws));
+
+        when(promoCodeRedemptionRepository.findBySourceEventId("evt_1"))
+                .thenReturn(Optional.empty());
+        when(promoCodeRepository.incrementUsesCount(promoCodeId)).thenReturn(1);
+
+        com.stripe.model.Discount discount = mock(com.stripe.model.Discount.class);
+        when(discount.getPromotionCode()).thenReturn("promo_pc_1");
+        when(discount.getCustomer()).thenReturn("cus_dx");
+        com.stripe.model.Coupon coupon = mock(com.stripe.model.Coupon.class);
+        when(coupon.getAmountOff()).thenReturn(500L);
+        when(discount.getCoupon()).thenReturn(coupon);
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) discount); }
+        catch (com.stripe.exception.StripeException ignored) {}
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.discount.created");
+        when(event.getId()).thenReturn("evt_1");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        ArgumentCaptor<PromoCodeRedemption> cap =
+                ArgumentCaptor.forClass(PromoCodeRedemption.class);
+        verify(promoCodeRedemptionRepository).save(cap.capture());
+        PromoCodeRedemption persisted = cap.getValue();
+        assertThat(persisted.getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(persisted.getPromoCodeId()).isEqualTo(promoCodeId);
+        assertThat(persisted.getCodeAtRedemption()).isEqualTo("PARTNER20");
+        assertThat(persisted.getType()).isEqualTo(PromoCodeType.STRIPE_DISCOUNT);
+        assertThat(persisted.getValueAppliedAmount()).isEqualTo(500);
+        assertThat(persisted.getAppliedByUserId()).isEqualTo(ownerId);
+        assertThat(persisted.getSourceEventId()).isEqualTo("evt_1");
+        verify(promoCodeRepository).incrementUsesCount(promoCodeId);
+    }
+
+    @Test
+    void handleEvent_customerDiscountCreated_unknownPromotionCode_warnsAndIgnores() {
+        when(promoCodeRepository.findByStripePromotionCodeId("promo_unknown"))
+                .thenReturn(Optional.empty());
+
+        com.stripe.model.Discount discount = mock(com.stripe.model.Discount.class);
+        when(discount.getPromotionCode()).thenReturn("promo_unknown");
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) discount); }
+        catch (com.stripe.exception.StripeException ignored) {}
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.discount.created");
+        when(event.getId()).thenReturn("evt_unknown");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+        when(promoCodeRedemptionRepository.findBySourceEventId("evt_unknown"))
+                .thenReturn(Optional.empty());
+
+        service.handleEvent(event);
+
+        verify(promoCodeRedemptionRepository, never()).save(any());
+        verify(promoCodeRepository, never()).incrementUsesCount(any());
+    }
+
+    @Test
+    void handleEvent_customerDiscountCreated_noPromotionCode_ignored() {
+        com.stripe.model.Discount discount = mock(com.stripe.model.Discount.class);
+        when(discount.getPromotionCode()).thenReturn(null);
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) discount); }
+        catch (com.stripe.exception.StripeException ignored) {}
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.discount.created");
+        when(event.getId()).thenReturn("evt_manual");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        verify(promoCodeRedemptionRepository, never()).save(any());
+        verify(promoCodeRepository, never()).findByStripePromotionCodeId(any());
+    }
+
+    @Test
+    void handleEvent_customerDiscountCreated_duplicateEventId_isIdempotent() {
+        when(promoCodeRedemptionRepository.findBySourceEventId("evt_dup"))
+                .thenReturn(Optional.of(new PromoCodeRedemption()));
+
+        com.stripe.model.Discount discount = mock(com.stripe.model.Discount.class);
+        when(discount.getPromotionCode()).thenReturn("promo_pc_dup");
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) discount); }
+        catch (com.stripe.exception.StripeException ignored) {}
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.discount.created");
+        when(event.getId()).thenReturn("evt_dup");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        verify(promoCodeRedemptionRepository, never()).save(any());
+        verify(promoCodeRepository, never()).incrementUsesCount(any());
+        verify(promoCodeRepository, never()).findByStripePromotionCodeId(any());
     }
 
     // SF-247-01 — customer.subscription.updated avec cancel_at_period_end=true → synchro locale

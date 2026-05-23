@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="302-add-value-applied-amount-to-promo-code-redemptions" author="legalcase">
+        <comment>
+            F-255 SF-255-04 — extension de la table `promo_code_redemptions`
+            avec deux champs nullables :
+
+              * value_applied_amount : centimes EUR effectivement appliqués
+                par Stripe lors de la redemption d'un STRIPE_DISCOUNT.
+                Snapshot — l'audit doit refléter ce que Stripe a appliqué.
+                Reste NULL pour TRIAL_EXTENSION (où `value_applied_days` est
+                la valeur pertinente).
+              * source_event_id : ID de l'événement Stripe à l'origine de la
+                redemption (ex : `evt_...`). Contrainte UNIQUE (nullable) qui
+                matérialise l'idempotence webhook : si Stripe ré-émet le même
+                event, l'INSERT échoue et le service no-op. Reste NULL pour
+                TRIAL_EXTENSION (pas de webhook).
+
+            Namespace UUID F-255 SF-04 : f1a04002-0000-0000-0000-eeee25500104.
+        </comment>
+
+        <addColumn tableName="promo_code_redemptions">
+            <column name="value_applied_amount" type="int"/>
+            <column name="source_event_id" type="varchar(255)"/>
+        </addColumn>
+
+        <addUniqueConstraint tableName="promo_code_redemptions"
+                             columnNames="source_event_id"
+                             constraintName="uq_promo_code_redemptions_source_event_id"/>
+
+        <rollback>
+            <dropUniqueConstraint tableName="promo_code_redemptions"
+                                  constraintName="uq_promo_code_redemptions_source_event_id"/>
+            <dropColumn tableName="promo_code_redemptions" columnName="source_event_id"/>
+            <dropColumn tableName="promo_code_redemptions" columnName="value_applied_amount"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

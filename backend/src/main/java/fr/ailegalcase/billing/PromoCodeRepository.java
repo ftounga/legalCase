@@ -18,6 +18,13 @@ public interface PromoCodeRepository extends JpaRepository<PromoCode, UUID> {
      */
     Optional<PromoCode> findByCodeIgnoreCase(String code);
 
+    /**
+     * SF-255-04 — lookup pour le webhook {@code customer.discount.created} :
+     * Stripe envoie l'ID du PromotionCode, le repository remonte le
+     * {@link PromoCode} local correspondant.
+     */
+    Optional<PromoCode> findByStripePromotionCodeId(String stripePromotionCodeId);
+
     List<PromoCode> findAllByOrderByCreatedAtDesc();
 
     /**

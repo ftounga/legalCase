@@ -44,13 +44,15 @@ class StripeWebhookServiceSf15601Test {
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private CreditPurchaseService creditPurchaseService;
     @Mock private WorkspaceRepository workspaceRepository;
+    @Mock private PromoCodeRepository promoCodeRepository;
+    @Mock private PromoCodeRedemptionRepository promoCodeRedemptionRepository;
 
     private StripeWebhookService service;
 
     @BeforeEach
     void setUp() {
         service = new StripeWebhookService(subscriptionRepository, creditPurchaseService,
-                workspaceRepository,
+                workspaceRepository, promoCodeRepository, promoCodeRedemptionRepository,
                 "price_solo_test", "price_team_test", "price_pro_test",
                 "price_tokens_1m_test", "price_tokens_5m_test", "price_tokens_20m_test");
     }

@@ -1,5 +1,6 @@
 package fr.ailegalcase.billing;
 
+import com.stripe.exception.StripeException;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.superadmin.SuperAdminService;
@@ -43,19 +44,22 @@ public class PromoCodeService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final SuperAdminService superAdminService;
     private final CurrentUserResolver currentUserResolver;
+    private final StripePromoCodeService stripePromoCodeService;
 
     public PromoCodeService(PromoCodeRepository promoCodeRepository,
                             PromoCodeRedemptionRepository redemptionRepository,
                             SubscriptionRepository subscriptionRepository,
                             WorkspaceMemberRepository workspaceMemberRepository,
                             SuperAdminService superAdminService,
-                            CurrentUserResolver currentUserResolver) {
+                            CurrentUserResolver currentUserResolver,
+                            StripePromoCodeService stripePromoCodeService) {
         this.promoCodeRepository = promoCodeRepository;
         this.redemptionRepository = redemptionRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.superAdminService = superAdminService;
         this.currentUserResolver = currentUserResolver;
+        this.stripePromoCodeService = stripePromoCodeService;
     }
 
     @Transactional
@@ -63,7 +67,7 @@ public class PromoCodeService {
                                    OidcUser oidcUser,
                                    String provider) {
         User admin = assertSuperAdmin(oidcUser, provider);
-        validateTypeValueDays(request.type(), request.valueDays());
+        validateTypeAndValueFields(request);
         validateExpiresAtFuture(request.expiresAt());
 
         String normalized = normalize(request.code());
@@ -77,6 +81,10 @@ public class PromoCodeService {
         entity.setCode(normalized);
         entity.setType(request.type());
         entity.setValueDays(request.valueDays());
+        entity.setValueOffType(request.valueOffType());
+        entity.setValueOffAmount(request.valueOffAmount());
+        entity.setCurrency(request.currency());
+        entity.setDuration(request.duration());
         entity.setPartnerLabel(request.partnerLabel().trim());
         entity.setMaxUses(request.maxUses());
         entity.setUsesCount(0);
@@ -84,10 +92,27 @@ public class PromoCodeService {
         entity.setActive(true);
         entity.setCreatedByUserId(admin.getId());
 
+        // SF-255-04 — branche STRIPE_DISCOUNT : appel Stripe AVANT l'INSERT
+        // local pour garantir l'atomicité. Si Stripe échoue, on lève 502 et
+        // la @Transactional rollback (mais on n'a rien encore inséré).
+        if (request.type() == PromoCodeType.STRIPE_DISCOUNT) {
+            try {
+                String promoId = stripePromoCodeService.createCouponAndPromotionCode(entity);
+                entity.setStripePromotionCodeId(promoId);
+                // stripeCouponId est renseigné par StripePromoCodeService.
+            } catch (StripeException e) {
+                log.error("PromoCode action=CREATE code={} Stripe error: {}",
+                        normalized, e.getMessage());
+                throw new PromoCodeException(PromoCodeErrorCode.STRIPE_API_UNAVAILABLE,
+                        "Stripe API unavailable: " + e.getMessage());
+            }
+        }
+
         PromoCode saved = promoCodeRepository.save(entity);
-        log.info("PromoCode action=CREATE id={} code={} type={} partner={} maxUses={} expiresAt={}",
+        log.info("PromoCode action=CREATE id={} code={} type={} partner={} maxUses={} expiresAt={} stripeCouponId={} stripePromotionCodeId={}",
                 saved.getId(), saved.getCode(), saved.getType(), saved.getPartnerLabel(),
-                saved.getMaxUses(), saved.getExpiresAt());
+                saved.getMaxUses(), saved.getExpiresAt(),
+                saved.getStripeCouponId(), saved.getStripePromotionCodeId());
         return PromoCodeDto.from(saved, 0L);
     }
 
@@ -112,6 +137,14 @@ public class PromoCodeService {
             code.setActive(false);
             promoCodeRepository.save(code);
             log.info("PromoCode action=DEACTIVATE id={} code={}", code.getId(), code.getCode());
+
+            // SF-255-04 — propage la désactivation côté Stripe pour les
+            // STRIPE_DISCOUNT (best-effort : un échec Stripe ne bloque pas
+            // la réponse HTTP 200 — le code reste inactif localement).
+            if (code.getStripePromotionCodeId() != null
+                    && !code.getStripePromotionCodeId().isBlank()) {
+                stripePromoCodeService.deactivatePromotionCode(code.getStripePromotionCodeId());
+            }
         } else {
             log.info("PromoCode action=DEACTIVATE id={} code={} (already inactive, idempotent)",
                     code.getId(), code.getCode());
@@ -231,10 +264,55 @@ public class PromoCodeService {
         }
     }
 
-    private void validateTypeValueDays(PromoCodeType type, Integer valueDays) {
-        if (type == PromoCodeType.TRIAL_EXTENSION && valueDays == null) {
-            throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
-                    "valueDays is required for TRIAL_EXTENSION");
+    /**
+     * SF-255-01 + SF-255-04 — validation conditionnelle des champs métier
+     * en fonction du type :
+     * <ul>
+     *   <li>TRIAL_EXTENSION : {@code valueDays} requis ; les champs Stripe
+     *       (valueOff*, currency, duration) doivent être absents.</li>
+     *   <li>STRIPE_DISCOUNT : {@code valueOffType} + {@code valueOffAmount} +
+     *       {@code duration} requis ; {@code currency} requis si AMOUNT (sinon
+     *       défaut EUR) ; {@code valueDays} interdit. Si PERCENT : valeur
+     *       1..100.</li>
+     * </ul>
+     */
+    private void validateTypeAndValueFields(PromoCodeCreateRequest request) {
+        PromoCodeType type = request.type();
+        if (type == PromoCodeType.TRIAL_EXTENSION) {
+            if (request.valueDays() == null) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "valueDays is required for TRIAL_EXTENSION");
+            }
+            if (request.valueOffType() != null || request.valueOffAmount() != null
+                    || request.duration() != null) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "Stripe fields (valueOffType/valueOffAmount/duration) "
+                                + "are forbidden for TRIAL_EXTENSION");
+            }
+            return;
+        }
+        if (type == PromoCodeType.STRIPE_DISCOUNT) {
+            if (request.valueDays() != null) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "valueDays is forbidden for STRIPE_DISCOUNT");
+            }
+            if (request.valueOffType() == null) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "valueOffType is required for STRIPE_DISCOUNT");
+            }
+            if (request.valueOffAmount() == null) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "valueOffAmount is required for STRIPE_DISCOUNT");
+            }
+            if (request.duration() == null) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "duration is required for STRIPE_DISCOUNT");
+            }
+            if (request.valueOffType() == PromoCodeValueOffType.PERCENT
+                    && (request.valueOffAmount() < 1 || request.valueOffAmount() > 100)) {
+                throw new PromoCodeException(PromoCodeErrorCode.PROMO_CODE_TYPE_NOT_SUPPORTED_YET,
+                        "valueOffAmount must be between 1 and 100 for PERCENT type");
+            }
         }
     }
 

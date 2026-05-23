@@ -100,6 +100,11 @@ public class StripeCheckoutService {
             Stripe.apiKey = secretKey;
             SessionCreateParams.Builder params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+                    // SF-255-04 — active la saisie native d'un code promo
+                    // STRIPE_DISCOUNT dans Stripe Checkout. Aucun impact pour
+                    // les users qui ne saisissent pas de code (champ optionnel
+                    // côté Stripe).
+                    .setAllowPromotionCodes(true)
                     .setSuccessUrl(frontendUrl + "/workspace/billing?success=true")
                     .setCancelUrl(frontendUrl + "/workspace/billing?canceled=true")
                     .addLineItem(SessionCreateParams.LineItem.builder()
@@ -182,6 +187,10 @@ public class StripeCheckoutService {
             Stripe.apiKey = secretKey;
             SessionCreateParams.Builder params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+                    // SF-255-04 — active la saisie native d'un code promo
+                    // STRIPE_DISCOUNT dans Stripe Checkout pour les
+                    // workspaces nouvellement créés (PENDING_PAYMENT).
+                    .setAllowPromotionCodes(true)
                     .setSuccessUrl(frontendUrl + "/workspaces?workspace_created=success&workspace_id=" + newWorkspaceId)
                     .setCancelUrl(frontendUrl + "/workspaces?workspace_created=cancelled&workspace_id=" + newWorkspaceId)
                     .addLineItem(SessionCreateParams.LineItem.builder()

@@ -48,6 +48,25 @@ public class PromoCodeRedemption {
     @Column(name = "value_applied_days")
     private Integer valueAppliedDays;
 
+    /**
+     * F-255 SF-255-04 — centimes EUR de réduction effectivement appliqués
+     * lors d'une redemption {@link PromoCodeType#STRIPE_DISCOUNT}. Reste
+     * {@code null} pour TRIAL_EXTENSION (la valeur pertinente est alors
+     * {@link #valueAppliedDays}).
+     */
+    @Column(name = "value_applied_amount")
+    private Integer valueAppliedAmount;
+
+    /**
+     * F-255 SF-255-04 — ID de l'événement Stripe (ex. {@code evt_…}) à
+     * l'origine de la redemption. Sert de garde-fou d'idempotence webhook :
+     * contrainte UNIQUE (nullable) au niveau DB → si Stripe ré-émet le même
+     * event, l'INSERT échoue et le service no-op. Reste {@code null} pour
+     * TRIAL_EXTENSION (pas de webhook).
+     */
+    @Column(name = "source_event_id", length = 255)
+    private String sourceEventId;
+
     @Column(name = "redeemed_at", nullable = false)
     private Instant redeemedAt;
 
