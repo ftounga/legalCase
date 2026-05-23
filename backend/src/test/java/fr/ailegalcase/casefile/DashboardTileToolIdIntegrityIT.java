@@ -215,7 +215,7 @@ class DashboardTileToolIdIntegrityIT {
             // dashboard immédiat dans le bundle F-212 P2 Travail FR). À résorber
             // par une SF de tile dashboard dédiée si retour terrain prouve le
             // besoin d'une mise en avant en surface dossier.
-            "F-DT-50-forfait-jours-validite"
+            "F-DT-50-forfait-jours-validite",
             // SF-212-05 (2026-05-23) : F-DT-72 transfert d'entreprise L. 1224-1 FR
             // livré sans mapper DashboardTile côté backend — exclusion transitoire
             // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
