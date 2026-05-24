@@ -55,7 +55,10 @@ describe('DublinRecoursSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('TOOL_LABEL and TOOL_ICON statics', () => {
     expect(DublinRecoursSectionComponent.TOOL_LABEL).toContain('DUBLIN');

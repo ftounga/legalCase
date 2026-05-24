@@ -44,6 +44,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { CrrvRefusVisaPrefillRules } from './crrv-refus-visa-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -65,6 +66,7 @@ export type CrrvCoherenceAlert = CoherenceAlert<CrrvAlertField>;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
     DecisionalHeaderFlagComponent,
   ],
@@ -72,6 +74,10 @@ export type CrrvCoherenceAlert = CoherenceAlert<CrrvAlertField>;
   styleUrl: './crrv-refus-visa-section.component.scss',
 })
 export class CrrvRefusVisaSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-23-crrv-refus-visa-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'CRRV RECOURS REFUS DE VISA (FR)';
   static readonly TOOL_ICON = 'mail';
   static readonly PREFILL_COUNT_ALWAYS_ZERO = true;

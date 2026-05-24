@@ -44,6 +44,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { JldRetentionPrefillRules } from './jld-retention-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -72,6 +73,7 @@ export type JldCoherenceAlert = CoherenceAlert<JldAlertField>;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
     DecisionalHeaderFlagComponent,
   ],
@@ -79,6 +81,10 @@ export type JldCoherenceAlert = CoherenceAlert<JldAlertField>;
   styleUrl: './jld-retention-section.component.scss',
 })
 export class JldRetentionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-21-jld-retention-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'JLD RETENTION ADMINISTRATIVE (FR)';
   static readonly TOOL_ICON = 'gavel';
   static readonly PREFILL_COUNT_ALWAYS_ZERO = true;
