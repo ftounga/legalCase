@@ -905,6 +905,13 @@ export interface TravailExtractedData {
   /** Sous-objet IA pour pré-fill F-DT-56 (FRANCE only) — null si non documenté. */
   egaliteSalarialeDetail?: EgaliteSalarialeDetail | null;
   // -------------------------------------------------------------------------
+  // SF-212-17 — F-DT-43 rupture anticipée du CDD (FRANCE only).
+  // Pas de sous-objet IA projeté : limite JVM 255 slots du record
+  // TravailExtractedData côté backend (saturé par les vagues F-212 antérieures
+  // + SF-212-23). Seul le flag top-level `rupture_anticipee_cdd_detectee` est
+  // exposé. Le pré-fill IA sera traité par une SF de rattrapage ultérieure.
+  // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation
@@ -1013,6 +1020,7 @@ export interface EgaliteSalarialeDetail {
   /** Écart en pourcentage avec les comparants identifiés (0 à 100). */
   ecartPourcentage?: number | null;
 }
+
 
 export interface ImmigrationExtractedData {
   dateExpirationTitre?: string | null;

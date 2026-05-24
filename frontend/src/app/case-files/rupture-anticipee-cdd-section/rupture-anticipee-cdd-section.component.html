@@ -1,0 +1,219 @@
+<section class="rac-section">
+  <header class="rac-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rac-body">
+    <mat-icon class="rac-icon">event_busy</mat-icon>
+    <span class="rac-title">RUPTURE ANTICIPÉE CDD</span>
+    @if (result()) {
+      <span class="rac-chip-summary"
+            [class.rac-chip-summary--legitime]="result()!.analyseRuptureAnticipee === 'LEGITIME'"
+            [class.rac-chip-summary--employeur]="result()!.analyseRuptureAnticipee === 'ILLEGITIME_EMPLOYEUR'"
+            [class.rac-chip-summary--salarie]="result()!.analyseRuptureAnticipee === 'ILLEGITIME_SALARIE'">
+        {{ verdictBannerLabel(result()!.analyseRuptureAnticipee) }} — {{ result()!.totalDuSalarieEuros | number:'1.2-2' }} €
+      </span>
+    }
+    <mat-icon class="rac-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rac-body" class="rac-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="rac-country-banner" data-testid="rac-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 1243-1 à L. 1243-4 CT — en Belgique, régime du CDD distinct relevant de la Loi du 03/07/1978).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="rac-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="rac-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Auteur et motif de la rupture -->
+            <div class="rac-block rac-full">
+              <span class="rac-block-label">Qualification de la rupture (L. 1243-1 à L. 1243-3 CT)</span>
+
+              <mat-form-field appearance="outline" class="rac-inline-field">
+                <mat-label>Auteur de la rupture</mat-label>
+                <mat-select
+                    [ngModel]="auteurRupture()"
+                    (ngModelChange)="onAuteurChange($event)"
+                    name="auteurRupture"
+                    data-testid="rac-select-auteur">
+                  @for (opt of auteurOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceAuteur() === 'IA') {
+                <span class="rac-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="rac-inline-field">
+                <mat-label>Motif invoqué</mat-label>
+                <mat-select
+                    [ngModel]="motifRupture()"
+                    (ngModelChange)="onMotifChange($event)"
+                    name="motifRupture"
+                    data-testid="rac-select-motif">
+                  @for (opt of motifOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceMotif() === 'IA') {
+                <span class="rac-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Dates -->
+            <div class="rac-block rac-full">
+              <span class="rac-block-label">Dates</span>
+
+              <mat-form-field appearance="outline" class="rac-inline-field">
+                <mat-label>Date du terme prévu du CDD</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateTermeCdd()"
+                       (ngModelChange)="onDateTermeChange($event)"
+                       name="dateTermeCdd"
+                       data-testid="rac-input-date-terme" />
+              </mat-form-field>
+              @if (provenanceDateTerme() === 'IA') {
+                <span class="rac-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="rac-inline-field">
+                <mat-label>Date effective de la rupture anticipée</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateRupture()"
+                       (ngModelChange)="onDateRuptureChange($event)"
+                       name="dateRupture"
+                       data-testid="rac-input-date-rupture" />
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 3 — Salaires (bases L. 1243-4 + L. 1243-8) -->
+            <div class="rac-block rac-full">
+              <span class="rac-block-label">Salaire et rémunération (bases L. 1243-4 / L. 1243-8 CT)</span>
+
+              <mat-form-field appearance="outline" class="rac-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireMensuelChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="rac-input-salaire" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="rac-inline-field">
+                <mat-label>Rémunération brute totale depuis début CDD (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="remunerationBruteTotaleContratEuros()"
+                       (ngModelChange)="onRemunerationTotaleChange($event)"
+                       name="remunerationBruteTotaleContratEuros"
+                       data-testid="rac-input-remuneration" />
+              </mat-form-field>
+            </div>
+
+            <div class="rac-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="rac-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="rac-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseRuptureAnticipee)"
+                 data-testid="rac-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseRuptureAnticipee) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseRuptureAnticipee) }}</span>
+            </div>
+
+            <!-- Tableau indemnités -->
+            <div class="rac-figures-block">
+              <div class="rac-figure">
+                <span class="rac-figure-label">Mois restants</span>
+                <span class="rac-figure-value">{{ result()!.moisRestantsContrat }}</span>
+              </div>
+              <div class="rac-figure" data-testid="rac-figure-indemnite-rupture">
+                <span class="rac-figure-label">Indemnité rupture (L. 1243-4)</span>
+                <span class="rac-figure-value">{{ result()!.indemnitesRuptureAnticipeeEuros | number:'1.2-2' }} €</span>
+              </div>
+              <div class="rac-figure" data-testid="rac-figure-precarite">
+                <span class="rac-figure-label">Indemnité précarité (L. 1243-8)</span>
+                <span class="rac-figure-value">{{ result()!.indemnitePrecariteEuros | number:'1.2-2' }} €</span>
+              </div>
+              <div class="rac-figure rac-figure-total" data-testid="rac-figure-total">
+                <span class="rac-figure-label">Total dû au salarié</span>
+                <span class="rac-figure-value">{{ result()!.totalDuSalarieEuros | number:'1.2-2' }} €</span>
+              </div>
+            </div>
+
+            <!-- Points d'analyse F-IA-03 -->
+            @if (result()!.pointsAnalyse?.length) {
+              <div class="rac-points-block">
+                <span class="rac-points-label">Points d'analyse ({{ result()!.pointsAnalyse.length }})</span>
+                <ul class="rac-points-list">
+                  @for (p of result()!.pointsAnalyse; track pointTrackKey($index, p)) {
+                    <li class="rac-point-item" data-testid="rac-point-item">
+                      <div class="rac-point-header">
+                        <span class="rac-point-libelle">{{ p.code }} — {{ p.libelle }}</span>
+                      </div>
+                      <span class="rac-point-conclusion">{{ p.conclusion }}</span>
+                      <span class="rac-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="rac-bases-block">
+                <span class="rac-bases-label">Bases juridiques</span>
+                <div class="rac-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="rac-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="rac-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="rac-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
