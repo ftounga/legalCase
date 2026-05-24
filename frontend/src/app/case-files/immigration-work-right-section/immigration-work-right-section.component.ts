@@ -87,6 +87,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
   }
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   // SF-155-11 : inputs IA (tous optionnels — null-safe partout).

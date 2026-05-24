@@ -129,6 +129,8 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
   }
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
   /** SF-IM-05-04 : événements déclencheurs F-150 — priorité sur aiData pour déduire motif+situation. */

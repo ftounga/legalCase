@@ -105,6 +105,8 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     return ImmigrationRecoursPrefillRules.computePrefillCount(input);
   }
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
   @Input() aiData?: ImmigrationExtractedData | null;
