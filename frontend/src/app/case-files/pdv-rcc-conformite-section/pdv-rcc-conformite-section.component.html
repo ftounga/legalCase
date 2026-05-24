@@ -1,0 +1,237 @@
+<section class="prc-section">
+  <header class="prc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="prc-body">
+    <mat-icon class="prc-icon">groups</mat-icon>
+    <span class="prc-title">PDV / RCC — CONFORMITÉ</span>
+    @if (result()) {
+      <span class="prc-chip-summary"
+            [class.prc-chip-summary--conforme]="result()!.analysePdvRcc === 'CONFORME'"
+            [class.prc-chip-summary--partiel]="result()!.analysePdvRcc === 'PARTIELLEMENT_CONFORME'"
+            [class.prc-chip-summary--nonconforme]="result()!.analysePdvRcc === 'NON_CONFORME'">
+        {{ verdictBannerLabel(result()!.analysePdvRcc) }} — score {{ result()!.scoreConformite }} / 100
+      </span>
+    }
+    <mat-icon class="prc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="prc-body" class="prc-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="prc-country-banner" data-testid="prc-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français. La rupture conventionnelle collective (RCC) est un dispositif franco-français institué par l'ord. n°2017-1387 du 22/09/2017 (L. 1237-17 à L. 1237-19-14 CT) — pas d'équivalent direct côté belge.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="prc-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="prc-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Type de dispositif -->
+            <div class="prc-block prc-full">
+              <span class="prc-block-label">Type de dispositif (L. 1237-17 à L. 1237-19 CT)</span>
+
+              <mat-form-field appearance="outline" class="prc-inline-field">
+                <mat-label>Type de dispositif</mat-label>
+                <mat-select
+                    [ngModel]="typeDispositif()"
+                    (ngModelChange)="onTypeChange($event)"
+                    name="typeDispositif"
+                    data-testid="prc-select-type">
+                  @for (opt of typeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceType() === 'IA') {
+                <span class="prc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Accord collectif & DREETS (RCC) -->
+            <div class="prc-block prc-full">
+              <span class="prc-block-label">Accord collectif & validation DREETS (L. 1237-19-1, L. 1237-19-3 CT)</span>
+
+              <div class="prc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="accordCollectifMajoritaire()"
+                    (ngModelChange)="onAccordChange($event)"
+                    name="accordCollectifMajoritaire"
+                    data-testid="prc-toggle-accord-majoritaire">
+                  Accord collectif majoritaire (≥ 50 % suffrages au 1er tour)
+                </mat-slide-toggle>
+                @if (provenanceAccord() === 'IA') {
+                  <span class="prc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> IA
+                  </span>
+                }
+              </div>
+
+              <div class="prc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="validationDREETSObtenue()"
+                    (ngModelChange)="onDreetsChange($event)"
+                    name="validationDREETSObtenue"
+                    data-testid="prc-toggle-validation-dreets">
+                  Validation DREETS obtenue
+                </mat-slide-toggle>
+                @if (provenanceDreets() === 'IA') {
+                  <span class="prc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> IA
+                  </span>
+                }
+              </div>
+
+              @if (validationDREETSObtenue()) {
+                <div class="prc-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="delaiValidation15JRespectee()"
+                      (ngModelChange)="onDelai15JChange($event)"
+                      name="delaiValidation15JRespectee"
+                      data-testid="prc-toggle-delai-15j">
+                    Délai de 15 jours respecté (L. 1237-19-3 CT)
+                  </mat-slide-toggle>
+                </div>
+              }
+            </div>
+
+            <!-- Bloc 3 — Indemnités -->
+            <div class="prc-block prc-full">
+              <span class="prc-block-label">Indemnités de départ (L. 1237-19-1 al. 5 CT)</span>
+
+              <div class="prc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="indemnitesAuMoinsLegales()"
+                    (ngModelChange)="onIndemnitesChange($event)"
+                    name="indemnitesAuMoinsLegales"
+                    data-testid="prc-toggle-indemnites">
+                  Indemnités ≥ indemnité légale de licenciement (L. 1234-9 CT)
+                </mat-slide-toggle>
+                @if (provenanceIndemnites() === 'IA') {
+                  <span class="prc-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> IA
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 4 — Adhésion individuelle -->
+            <div class="prc-block prc-full">
+              <span class="prc-block-label">Adhésion individuelle (L. 1237-19-2 CT)</span>
+
+              <div class="prc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="adhesionVolontaireIndividuelle()"
+                    (ngModelChange)="onAdhesionChange($event)"
+                    name="adhesionVolontaireIndividuelle"
+                    data-testid="prc-toggle-adhesion">
+                  Adhésion libre, écrite, dans le délai de réflexion
+                </mat-slide-toggle>
+              </div>
+
+              <div class="prc-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="informationIndividuelleComplete()"
+                    (ngModelChange)="onInformationChange($event)"
+                    name="informationIndividuelleComplete"
+                    data-testid="prc-toggle-information">
+                  Information individuelle complète (indemnités, ARE, rétractation)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="prc-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="prc-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="prc-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analysePdvRcc)"
+                 data-testid="prc-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analysePdvRcc) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analysePdvRcc) }}</span>
+            </div>
+
+            <!-- Badge droit ARE confirmé (uniquement si RCC conforme) -->
+            @if (result()!.droitAreConfirme) {
+              <div class="prc-badge-are" data-testid="prc-badge-are">
+                <mat-icon>verified</mat-icon>
+                <span>Droit ARE confirmé — la RCC validée par la DREETS ouvre droit à l'allocation d'aide au retour à l'emploi pour les salariés volontaires.</span>
+              </div>
+            }
+
+            <!-- Chiffres : score -->
+            <div class="prc-figures-block">
+              <div class="prc-figure">
+                <span class="prc-figure-label">Score conformité</span>
+                <span class="prc-figure-value">{{ result()!.scoreConformite }} / 100</span>
+              </div>
+            </div>
+
+            <!-- Points d'irrégularité F-IA-03 -->
+            @if (result()!.pointsIrregularite?.length) {
+              <div class="prc-points-block">
+                <span class="prc-points-label">Points d'irrégularité ({{ result()!.pointsIrregularite.length }})</span>
+                <ul class="prc-points-list">
+                  @for (p of result()!.pointsIrregularite; track pointTrackKey($index, p)) {
+                    <li class="prc-point-item" data-testid="prc-point-item">
+                      <div class="prc-point-header">
+                        <span class="prc-point-libelle">{{ p.code }} — {{ p.libelle }}</span>
+                      </div>
+                      <span class="prc-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="prc-bases-block">
+                <span class="prc-bases-label">Bases juridiques</span>
+                <div class="prc-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="prc-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="prc-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="prc-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

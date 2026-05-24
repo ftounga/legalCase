@@ -275,7 +275,14 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-41-demission-validite-equivoque"
+            "F-DT-41-demission-validite-equivoque",
+            // SF-212-35 (2026-05-24) : F-DT-46 PDV / RCC — conformité FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-46-pdv-rcc-conformite"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

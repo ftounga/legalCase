@@ -115,6 +115,8 @@ import { MiseAPiedDisciplinaireSectionComponent } from '../mise-a-pied-disciplin
 import { EgaliteSalarialeFhSectionComponent } from '../egalite-salariale-fh-section/egalite-salariale-fh-section.component';
 // SF-212-22 : outil F-DT-41 démission validité équivoque (FR uniquement).
 import { DemissionEquivoqueSectionComponent } from '../demission-equivoque-section/demission-equivoque-section.component';
+// SF-212-36 : outil F-DT-46 PDV / RCC — conformité (FR uniquement).
+import { PdvRccConformiteSectionComponent } from '../pdv-rcc-conformite-section/pdv-rcc-conformite-section.component';
 // SF-212-18 : outil F-DT-43 rupture anticipée du CDD (FR uniquement).
 import { RuptureAnticipeeCddSectionComponent } from '../rupture-anticipee-cdd-section/rupture-anticipee-cdd-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
@@ -947,6 +949,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-56-egalite-salariale-femmes-hommes', {
         displayLabel: 'Égalité salariale femmes/hommes (FR)',
         component: EgaliteSalarialeFhSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-36 : F-DT-46 PDV / RCC — conformité (FR).
+      ['F-DT-46-pdv-rcc-conformite', {
+        displayLabel: 'PDV / RCC — conformité (FR)',
+        component: PdvRccConformiteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3035,6 +3048,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-48-mise-a-pied-disciplinaire', 'DIAGNOSTIC'],
     // SF-212-24 : F-DT-56 — égalité salariale femmes/hommes.
     ['F-DT-56-egalite-salariale-femmes-hommes', 'DIAGNOSTIC'],
+    // SF-212-36 : F-DT-46 — PDV / RCC conformité.
+    ['F-DT-46-pdv-rcc-conformite', 'DIAGNOSTIC'],
     // SF-212-18 : F-DT-43 — rupture anticipée du CDD.
     ['F-DT-43-rupture-anticipee-cdd', 'DIAGNOSTIC'],
     // SF-212-22 : F-DT-41 — démission validité équivoque.

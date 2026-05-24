@@ -905,6 +905,20 @@ export interface TravailExtractedData {
   /** Sous-objet IA pour pré-fill F-DT-56 (FRANCE only) — null si non documenté. */
   egaliteSalarialeDetail?: EgaliteSalarialeDetail | null;
   // -------------------------------------------------------------------------
+  // SF-212-35 — sous-objet `pdv_rcc_detail` (FRANCE only)
+  // Pré-fill F-DT-46 (PDV / RCC conformité — L. 1237-17 à L. 1237-19-14 CT ;
+  // ord. n°2017-1387 du 22/09/2017 ; décret 2017-1718 du 20/12/2017).
+  // NOTE : sous-objet NON projeté côté backend (limite JVM 255 slots du
+  // constructeur canonical TravailExtractedData atteinte — cf. commentaire
+  // dans CaseAnalysisResponse.java). Reste défini ici pour aligner le contrat
+  // sur le prompt IA (LegalDomainPromptBuilder PART12) ; sera réactivé par la
+  // SF de rattrapage qui refactorera le record backend en plusieurs records
+  // spécialisés. En attendant, `aiData.pdvRccDetail` reste `undefined` et le
+  // pré-fill IA retourne 0 — comportement aligné sur SF-212-17 (F-DT-43).
+  // -------------------------------------------------------------------------
+  /** Sous-objet IA pour pré-fill F-DT-46 (FRANCE only) — undefined côté backend actuel. */
+  pdvRccDetail?: PdvRccDetail | null;
+  // -------------------------------------------------------------------------
   // SF-212-17 — F-DT-43 rupture anticipée du CDD (FRANCE only).
   // Pas de sous-objet IA projeté : limite JVM 255 slots du record
   // TravailExtractedData côté backend (saturé par les vagues F-212 antérieures
@@ -1019,6 +1033,24 @@ export interface EgaliteSalarialeDetail {
   anciennete?: number | null;
   /** Écart en pourcentage avec les comparants identifiés (0 à 100). */
   ecartPourcentage?: number | null;
+}
+
+/**
+ * SF-212-35 — sous-objet IA pour l'outil F-DT-46 (PDV / RCC conformité,
+ * FRANCE — L. 1237-17 à L. 1237-19-14 CT ; ord. n°2017-1387 du 22/09/2017).
+ * Tous champs nullables ; null implique pas de données IA pour la projection
+ * sur le formulaire UI. NOTE : non projeté actuellement côté backend (cf.
+ * commentaire sur le champ `pdvRccDetail` ci-dessus).
+ */
+export interface PdvRccDetail {
+  /** Type de dispositif — RCC | PDV. */
+  pdvRccTypeDispositif?: string | null;
+  /** Accord majoritaire signé (≥ 50 % suffrages) — L. 1237-19-1 CT. */
+  pdvRccAccordMajoritaire?: boolean | null;
+  /** Validation DREETS obtenue — L. 1237-19-3 CT. */
+  pdvRccValidationDREETS?: boolean | null;
+  /** Indemnités ≥ légales — L. 1237-19-1 al. 5 CT. */
+  pdvRccIndemnitesLegales?: boolean | null;
 }
 
 
