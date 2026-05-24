@@ -1,0 +1,267 @@
+<section class="tta-section">
+  <header class="tta-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="tta-body">
+    <mat-icon class="tta-icon">desktop_windows</mat-icon>
+    <span class="tta-title">TÉLÉTRAVAIL — CONFORMITÉ</span>
+    @if (result()) {
+      <span class="tta-chip-summary"
+            [class.tta-chip-summary--conforme]="result()!.analyseTeletravail === 'CONFORME'"
+            [class.tta-chip-summary--non-conforme]="result()!.analyseTeletravail === 'NON_CONFORME'"
+            [class.tta-chip-summary--litige]="result()!.analyseTeletravail === 'LITIGE_IDENTIFIE'">
+        {{ verdictBannerLabel(result()!.analyseTeletravail) }} — score {{ result()!.scoreTeletravail }} / 100
+      </span>
+    }
+    <mat-icon class="tta-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="tta-body" class="tta-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="tta-country-banner" data-testid="tta-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 1222-9 à L. 1222-11 CT ; ANI télétravail 26/11/2020). En Belgique, le télétravail relève de régimes distincts — CCT n°85 (télétravail structurel) et Loi du 05/03/2017 (télétravail occasionnel).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="tta-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="tta-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Cadre juridique -->
+            <div class="tta-block tta-full">
+              <span class="tta-block-label">Cadre juridique (L. 1222-9 CT)</span>
+
+              <mat-form-field appearance="outline" class="tta-inline-field">
+                <mat-label>Cadre juridique du télétravail</mat-label>
+                <mat-select
+                    [ngModel]="cadreTeletravail()"
+                    (ngModelChange)="onCadreChange($event)"
+                    name="cadreTeletravail"
+                    data-testid="tta-select-cadre">
+                  @for (opt of cadreOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceCadre() === 'IA') {
+                <span class="tta-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="tta-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="doubleVolontariatRespectee()"
+                    (ngModelChange)="onDoubleVolontariatChange($event)"
+                    name="doubleVolontariatRespectee"
+                    data-testid="tta-toggle-volontariat">
+                  Double volontariat employeur + salarié respecté
+                </mat-slide-toggle>
+                @if (provenanceDoubleVolontariat() === 'IA') {
+                  <span class="tta-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Indemnité d'occupation -->
+            <div class="tta-block tta-full">
+              <span class="tta-block-label">Indemnité d'occupation (ANI 2020 art. 6.2)</span>
+
+              <div class="tta-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="indemniteOccupationVersee()"
+                    (ngModelChange)="onIndemniteVerseeChange($event)"
+                    name="indemniteOccupationVersee"
+                    data-testid="tta-toggle-indemnite">
+                  Indemnité d'occupation / remboursement de frais versée
+                </mat-slide-toggle>
+                @if (provenanceIndemnite() === 'IA') {
+                  <span class="tta-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (indemniteOccupationVersee()) {
+                <mat-form-field appearance="outline" class="tta-inline-field">
+                  <mat-label>Montant journalier (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="montantIndemniteJournalierEuros()"
+                         (ngModelChange)="onMontantChange($event)"
+                         name="montantIndemniteJournalierEuros"
+                         data-testid="tta-input-montant" />
+                </mat-form-field>
+                @if (provenanceMontant() === 'IA') {
+                  <span class="tta-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              }
+            </div>
+
+            <!-- Bloc 3 — Litiges -->
+            <div class="tta-block tta-full">
+              <span class="tta-block-label">Litiges (L. 1222-9 al. 4 + al. 6 ; L. 1222-10)</span>
+
+              <div class="tta-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="accidentDomicileDetecte()"
+                    (ngModelChange)="onAccidentChange($event)"
+                    name="accidentDomicileDetecte"
+                    data-testid="tta-toggle-accident">
+                  Accident survenu à domicile pendant la plage horaire de télétravail
+                </mat-slide-toggle>
+                @if (provenanceAccident() === 'IA') {
+                  <span class="tta-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="tta-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="retourBureauImposeUnilateralement()"
+                    (ngModelChange)="onRetourImposeChange($event)"
+                    name="retourBureauImposeUnilateralement"
+                    data-testid="tta-toggle-retour">
+                  Retour au bureau imposé unilatéralement sans préavis
+                </mat-slide-toggle>
+                @if (provenanceRetourImpose() === 'IA') {
+                  <span class="tta-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="tta-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="refusTeletravailCauseIncrimination()"
+                    (ngModelChange)="onRefusIncrimineChange($event)"
+                    name="refusTeletravailCauseIncrimination"
+                    data-testid="tta-toggle-refus">
+                  Refus de télétravailler invoqué comme cause / motif aggravant
+                </mat-slide-toggle>
+                @if (provenanceRefus() === 'IA') {
+                  <span class="tta-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="tta-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="tta-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="tta-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseTeletravail)"
+                 data-testid="tta-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseTeletravail) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseTeletravail) }}</span>
+            </div>
+
+            <!-- Alertes distinctes (UX critique — chacune sur son propre bandeau) -->
+            @if (result()!.alerteAccidentTravailDomicile) {
+              <div class="tta-alerte tta-alerte--at" data-testid="tta-alerte-accident">
+                <mat-icon>medical_services</mat-icon>
+                <span>
+                  <strong>Présomption d'accident du travail</strong> —
+                  L. 1222-9 al. 4 CT : l'accident survenu sur le lieu et pendant
+                  les horaires de télétravail bénéficie de la présomption AT.
+                </span>
+              </div>
+            }
+            @if (result()!.alerteRefusTeletravailLicenciement) {
+              <div class="tta-alerte tta-alerte--refus" data-testid="tta-alerte-refus">
+                <mat-icon>gavel</mat-icon>
+                <span>
+                  <strong>Refus de télétravailler invoqué comme cause</strong> —
+                  L. 1222-9 al. 6 CT INTERDIT cette qualification : le refus du
+                  télétravail ne peut constituer en soi un motif de rupture.
+                </span>
+              </div>
+            }
+
+            <!-- Score + indemnité due estimée -->
+            <div class="tta-figures-block">
+              <div class="tta-figure">
+                <span class="tta-figure-label">Score télétravail</span>
+                <span class="tta-figure-value">{{ result()!.scoreTeletravail }} / 100</span>
+              </div>
+              @if (result()!.indemniteDueEstimeeEuros !== null) {
+                <div class="tta-figure tta-figure--alert" data-testid="tta-indemnite-due">
+                  <span class="tta-figure-label">Indemnité due estimée (annuelle)</span>
+                  <span class="tta-figure-value">{{ result()!.indemniteDueEstimeeEuros | number:'1.2-2' }} €</span>
+                </div>
+              }
+            </div>
+
+            <!-- Points d'analyse F-IA-03 -->
+            @if (result()!.pointsTeletravail?.length) {
+              <div class="tta-points-block">
+                <span class="tta-points-label">Points d'analyse ({{ result()!.pointsTeletravail.length }})</span>
+                <ul class="tta-points-list">
+                  @for (p of result()!.pointsTeletravail; track pointTrackKey($index, p)) {
+                    <li class="tta-point-item" data-testid="tta-point-item">
+                      <div class="tta-point-header">
+                        <span class="tta-point-libelle">{{ p.code }} — {{ p.libelle }}</span>
+                      </div>
+                      <span class="tta-point-conclusion">{{ p.conclusion }}</span>
+                      <span class="tta-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="tta-bases-block">
+                <span class="tta-bases-label">Bases juridiques</span>
+                <div class="tta-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="tta-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="tta-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="tta-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

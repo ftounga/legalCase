@@ -851,6 +851,27 @@ export interface TravailExtractedData {
   /** Motif de la mutation rattaché à un besoin professionnel objectif. */
   mutationMotifProfessionnel?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-15 — sous-objet `teletravail_detail` (FRANCE only)
+  // Pré-fill F-DT-82 (télétravail — conformité et litige — L. 1222-9 à
+  // L. 1222-11 CT ; ANI télétravail du 26/11/2020).
+  // Tous nullables — restent `null` pour un dossier Travail BE (CCT n°85 et
+  // Loi du 05/03/2017 — régime distinct).
+  // -------------------------------------------------------------------------
+  /** Cadre juridique du télétravail (ACCORD_COLLECTIF, CHARTE_UNILATERALE, ACCORD_INDIVIDUEL, AUCUN). */
+  teletravailCadre?: string | null;
+  /** Double volontariat employeur + salarié documenté (L. 1222-9 al. 1). */
+  teletravailDoubleVolontariat?: boolean | null;
+  /** Indemnité d'occupation / remboursement de frais versée (ANI 2020 art. 6.2). */
+  teletravailIndemniteVersee?: boolean | null;
+  /** Montant journalier de l'indemnité d'occupation en euros. */
+  teletravailMontantIndemniteJournalier?: number | null;
+  /** Accident survenu à domicile pendant la plage de télétravail (L. 1222-9 al. 4). */
+  teletravailAccidentDomicile?: boolean | null;
+  /** Retour au bureau imposé unilatéralement sans accord ni délai de prévenance. */
+  teletravailRetourBureauImpose?: boolean | null;
+  /** Refus de télétravailler invoqué comme cause de licenciement (L. 1222-9 al. 6 interdit). */
+  teletravailRefusCauseIncrimination?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation
