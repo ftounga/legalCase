@@ -181,6 +181,12 @@ public record CaseAnalysisResponse(
             boolean miseAPiedDisciplinaireDetectee,
             // SF-212-23 : nouveau flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes (FR).
             boolean egaliteSalarialePressentie,
+            // SF-212-21 : flag F-205 `demission_equivoque_pressentie` (déclenche F-DT-41
+            // démission validité équivoque FR) intentionnellement OMIS du record Java —
+            // limite JVM 255 slots du constructeur canonical saturée par SF-212-23. La
+            // détection F-IA-04 reste fonctionnelle : DecisionToolVisibilityService lit
+            // le flag depuis le JSON brut `travailNode` (cf. ligne 241) — il n'a pas
+            // besoin d'être présent sur le record Java. Pattern aligné sur SF-212-17.
             // SF-212-17 : nouveau flag F-205 — déclenche F-DT-43 rupture anticipée CDD (FR).
             boolean ruptureAnticipeeCddDetectee,
             boolean fauteGraveEnvisagee,
@@ -596,6 +602,16 @@ public record CaseAnalysisResponse(
             // peuvent ajouter qu'un nombre minimal de params au record). Sub-flag de
             // egaliteSalarialePressentie : null si non documenté ou hors FRANCE.
             EgaliteSalarialeDetail egaliteSalarialeDetail) {
+            // SF-212-21 : pas de sous-objet IA pour F-DT-41-demission-validite-equivoque —
+            // la limite JVM 255 slots du constructeur canonical du record
+            // TravailExtractedData (saturé par les vagues F-212 antérieures + SF-212-23,
+            // 254 params avant cette PR, 255 après l'ajout du flag F-205
+            // `demissionEquivoquePressentie`) ne permet pas d'ajouter un sous-record
+            // supplémentaire. Le déclenchement F-IA-04 reste fonctionnel via le flag
+            // top-level `demissionEquivoquePressentie` ci-dessus. Le pré-fill IA côté
+            // frontend pour F-DT-41 sera traité par une SF de rattrapage ultérieure
+            // (refactor de TravailExtractedData en plusieurs records ou consommation
+            // de l'analysis_result raw JSON) — pattern aligné sur SF-212-17 F-DT-43.
             // SF-212-17 : pas de sous-objet IA pour F-DT-43-rupture-anticipee-cdd —
             // la limite JVM 255 slots du constructeur canonical du record
             // TravailExtractedData (saturé par les vagues F-212 antérieures + SF-212-23)
@@ -4259,6 +4275,11 @@ public record CaseAnalysisResponse(
                             intOrNull(egaliteSalarialeDetailNode, "egalite_salariale_anciennete"),
                             doubleOrNull(egaliteSalarialeDetailNode, "egalite_salariale_ecart_pourcentage"))
                     : null;
+            // SF-212-21 : pas de sous-objet IA pour F-DT-41 — limite JVM 255 slots
+            // du record TravailExtractedData (saturé par SF-212-23). Le déclenchement
+            // F-IA-04 reste fonctionnel via le flag top-level
+            // `demission_equivoque_pressentie` ci-dessus. Le pré-fill IA sera traité
+            // par une SF de rattrapage ultérieure — pattern aligné sur SF-212-17.
             // SF-212-17 : pas de sous-objet IA pour F-DT-43 — limite JVM 255 slots
             // du record TravailExtractedData (saturé par les vagues F-212 antérieures
             // + SF-212-23). Le déclenchement F-IA-04 reste fonctionnel via le flag
@@ -4325,6 +4346,9 @@ public record CaseAnalysisResponse(
                     .miseAPiedDisciplinaireDetectee(booleanOrFalse(node, "mise_a_pied_disciplinaire_detectee"))
                     // SF-212-23 : flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes.
                     .egaliteSalarialePressentie(booleanOrFalse(node, "egalite_salariale_pressentie"))
+                    // SF-212-21 : flag F-205 `demission_equivoque_pressentie` lu uniquement
+                    // dans DecisionToolVisibilityService depuis le JSON brut (pas de slot
+                    // sur le record — limite JVM 255 saturée). Pattern aligné sur SF-212-17.
                     // SF-212-17 : flag F-205 — déclenche F-DT-43 rupture anticipée CDD.
                     .ruptureAnticipeeCddDetectee(booleanOrFalse(node, "rupture_anticipee_cdd_detectee"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))

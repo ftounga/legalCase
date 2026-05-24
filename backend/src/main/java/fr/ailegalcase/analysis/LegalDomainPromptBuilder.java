@@ -554,6 +554,7 @@ public final class LegalDomainPromptBuilder {
               "teletravail_litige_detecte" : booléen — true uniquement si les pièces évoquent un litige relatif au télétravail au sens des art. L. 1222-9 à L. 1222-11 CT et de l'ANI télétravail du 26/11/2020 (refus d'accorder le télétravail invoqué comme motif disciplinaire ou de licenciement, demande d'indemnité d'occupation du domicile, accident survenu à domicile en télétravail, retour au bureau imposé unilatéralement sans accord ni délai de prévenance, désaccord sur le cadre juridique — accord collectif vs charte vs accord individuel). False par défaut. Pertinent pour F-DT-82.
               "mise_a_pied_disciplinaire_detectee" : booléen — true uniquement si les pièces évoquent une mise à pied notifiée au salarié dans un cadre disciplinaire OU conservatoire (lettre notifiant une mise à pied, mention "mise à pied disciplinaire" / "mise à pied conservatoire", convocation à entretien avec sanction envisagée, bulletin de paie avec suspension de salaire au titre d'une mise à pied). Émettre true même si la nature (disciplinaire / conservatoire) reste à requalifier par l'avocat. False par défaut. Pertinent pour F-DT-48.
               "egalite_salariale_pressentie" : booléen — true uniquement si les pièces évoquent une situation potentielle de discrimination salariale fondée sur le sexe (écart de rémunération signalé par le salarié, courrier de réclamation salariale, comparaison explicite avec des collègues de sexe opposé mieux rémunérés à qualification équivalente, mention de l'index égalité de l'entreprise au sens de la loi du 05/09/2018 "avenir professionnel", saisine du défenseur des droits, plainte CSE sur la rémunération comparée). False par défaut. Pertinent pour F-DT-56.
+              "demission_equivoque_pressentie" : booléen — true uniquement si les pièces évoquent une démission dont la validité peut être contestée au regard de l'exigence d'une volonté claire et non équivoque (Cass. soc. 09/05/2007) : démission par mail/SMS suite à altercation, démission sous pression ou menace, démission pendant arrêt maladie ou état émotionnel perturbé, rétractation rapide, démission concomitante à des manquements employeur. False par défaut. Pertinent pour F-DT-41.
               "faute_grave_envisagee" : booléen — true uniquement si les pièces évoquent une faute grave reprochée au salarié au sens de la jurisprudence (faute rendant impossible le maintien du salarié dans l'entreprise même pendant la durée du préavis : insubordination répétée, vol, violence, abandon de poste fautif, mise à pied conservatoire). False par défaut. Distinct de "faute_lourde_envisagee" (intention de nuire).
               "faute_lourde_envisagee" : booléen — true uniquement si les pièces évoquent une faute lourde caractérisée par l'intention de nuire à l'employeur (sabotage, divulgation de secrets, concurrence déloyale active pendant le contrat, vol qualifié), avec privation de l'indemnité de congés payés. False par défaut.
               "cdd_requalification_envisagee" : booléen — true uniquement si le dossier vise la requalification d'un CDD ou d'une succession de CDD en CDI au sens des art. L.1245-1+ CT (motif de recours discutable, dépassement de la durée maximale, succession de CDD sans interruption, absence d'écrit, transmission tardive). False par défaut. Pertinent pour F-DT-43.
@@ -885,7 +886,23 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 9 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-21 : 11e part du prompt TRAVAIL — pas de sous-objet IA pour
+     * F-DT-41 (limite JVM 255 slots du record TravailExtractedData saturée
+     * après SF-212-23). Le déclenchement F-IA-04 reste fonctionnel via le
+     * flag top-level `demission_equivoque_pressentie` listé en PART2 — le
+     * pré-fill IA fera l'objet d'une SF de rattrapage ultérieure (pattern
+     * SF-212-17 F-DT-43).
+     *
+     * Ce prompt PART11 est volontairement minimaliste — il documente
+     * explicitement l'absence de sous-objet pour empêcher l'IA d'inventer
+     * un objet qui ne serait pas parsé.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART11 = """
+              SF-212-21 — Pas de sous-objet `demission_equivoque_detail` à émettre dans cette PR (limite JVM 255 slots du record TravailExtractedData saturée — pattern SF-212-17 F-DT-43). Le déclenchement F-IA-04 de l'outil F-DT-41 (démission validité équivoque, FR) reste fonctionnel via le flag top-level `demission_equivoque_pressentie` listé plus haut. Ne pas émettre de clé `demission_equivoque_detail` — elle ne serait pas parsée.
+            """;
+
+    /**
+     * Concaténation des 11 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -900,7 +917,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART7)
                     .concat(TRAVAIL_INSTRUCTION_PART8)
                     .concat(TRAVAIL_INSTRUCTION_PART9)
-                    .concat(TRAVAIL_INSTRUCTION_PART10);
+                    .concat(TRAVAIL_INSTRUCTION_PART10)
+                    .concat(TRAVAIL_INSTRUCTION_PART11);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

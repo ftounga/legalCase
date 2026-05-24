@@ -1,0 +1,214 @@
+<section class="dem-section">
+  <header class="dem-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dem-body">
+    <mat-icon class="dem-icon">help_outline</mat-icon>
+    <span class="dem-title">DÉMISSION — VALIDITÉ ET CARACTÈRE ÉQUIVOQUE</span>
+    @if (result()) {
+      <span class="dem-chip-summary"
+            [class.dem-chip-summary--claire]="result()!.analyseDemission === 'VOLONTE_CLAIRE'"
+            [class.dem-chip-summary--equivoque]="result()!.analyseDemission === 'DEMISSION_EQUIVOQUE'"
+            [class.dem-chip-summary--retract]="result()!.analyseDemission === 'RETRACTATION_POSSIBLE'">
+        {{ verdictBannerLabel(result()!.analyseDemission) }} — score {{ result()!.scoreEquivocite }} / 100
+      </span>
+    }
+    <mat-icon class="dem-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dem-body" class="dem-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="dem-country-banner" data-testid="dem-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (Cass. soc. 09/05/2007 — exigence d'une volonté claire et non équivoque, propre à la jurisprudence française ; côté Belgique, régime distinct relevant des art. 32 et 37 de la loi du 03/07/1978).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="dem-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="dem-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Mode d'expression -->
+            <div class="dem-block dem-full">
+              <span class="dem-block-label">Mode d'expression de la démission (L. 1237-1 CT)</span>
+
+              <mat-form-field appearance="outline" class="dem-inline-field">
+                <mat-label>Mode d'expression</mat-label>
+                <mat-select
+                    [ngModel]="modeExpressionDemission()"
+                    (ngModelChange)="onModeChange($event)"
+                    name="modeExpressionDemission"
+                    data-testid="dem-select-mode">
+                  @for (opt of modeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 2 — Contexte de la démission -->
+            <div class="dem-block dem-full">
+              <span class="dem-block-label">Contexte de la démission (Cass. soc. 09/05/2007 — volonté claire et non équivoque)</span>
+
+              <div class="dem-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="contexteAltercation()"
+                    (ngModelChange)="onAltercationChange($event)"
+                    name="contexteAltercation"
+                    data-testid="dem-toggle-altercation">
+                  Contexte d'altercation, dispute ou réunion conflictuelle immédiate
+                </mat-slide-toggle>
+              </div>
+
+              <div class="dem-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="pressionOuMenace()"
+                    (ngModelChange)="onPressionChange($event)"
+                    name="pressionOuMenace"
+                    data-testid="dem-toggle-pression">
+                  Pression, menace ou contrainte de l'employeur
+                </mat-slide-toggle>
+              </div>
+
+              <div class="dem-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="etatEmotionnelPerturbe()"
+                    (ngModelChange)="onEtatPerturbeChange($event)"
+                    name="etatEmotionnelPerturbe"
+                    data-testid="dem-toggle-etat-perturbe">
+                  État émotionnel perturbé (burn-out, deuil, syndrome dépressif)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Rétractation -->
+            <div class="dem-block dem-full">
+              <span class="dem-block-label">Rétractation de la démission</span>
+
+              <div class="dem-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="retractationDansDelai()"
+                    (ngModelChange)="onRetractationChange($event)"
+                    name="retractationDansDelai"
+                    data-testid="dem-toggle-retractation">
+                  Le salarié a rétracté sa démission
+                </mat-slide-toggle>
+              </div>
+
+              @if (retractationDansDelai()) {
+                <mat-form-field appearance="outline" class="dem-inline-field">
+                  <mat-label>Délai entre démission et rétractation (jours)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="delaiRetractationJours()"
+                         (ngModelChange)="onDelaiChange($event)"
+                         name="delaiRetractationJours"
+                         data-testid="dem-input-delai" />
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc 4 — Manquements employeur -->
+            <div class="dem-block dem-full">
+              <span class="dem-block-label">Manquements employeur contemporains (Cass. soc. constante — prise d'acte)</span>
+
+              <div class="dem-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="manquementsEmployeurContemporains()"
+                    (ngModelChange)="onManquementsChange($event)"
+                    name="manquementsEmployeurContemporains"
+                    data-testid="dem-toggle-manquements">
+                  Manquements employeur contemporains (impayés, harcèlement, modification unilatérale)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="dem-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="dem-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="dem-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseDemission)"
+                 data-testid="dem-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseDemission) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseDemission) }}</span>
+            </div>
+
+            <!-- Chiffres : score + requalification possible -->
+            <div class="dem-figures-block">
+              <div class="dem-figure">
+                <span class="dem-figure-label">Score équivocité</span>
+                <span class="dem-figure-value">{{ result()!.scoreEquivocite }} / 100</span>
+              </div>
+              <div class="dem-figure" data-testid="dem-figure-requalification"
+                   [class.dem-figure--alert]="result()!.requalificationPossible">
+                <span class="dem-figure-label">Requalification possible</span>
+                <span class="dem-figure-value">{{ result()!.requalificationPossible ? 'OUI' : 'NON' }}</span>
+              </div>
+            </div>
+
+            <!-- Facteurs F-IA-03 -->
+            @if (result()!.facteursEquivocite?.length) {
+              <div class="dem-factors-block">
+                <span class="dem-factors-label">Facteurs d'équivocité ({{ result()!.facteursEquivocite.length }})</span>
+                <ul class="dem-factors-list">
+                  @for (f of result()!.facteursEquivocite; track factorTrackKey($index, f)) {
+                    <li class="dem-factor-item" data-testid="dem-factor-item">
+                      <div class="dem-factor-header">
+                        <span class="dem-factor-libelle">{{ f.code }} — {{ f.libelle }} (poids {{ f.poids }})</span>
+                      </div>
+                      <span class="dem-factor-explication">{{ f.explication }}</span>
+                      <span class="dem-factor-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="dem-bases-block">
+                <span class="dem-bases-label">Bases juridiques</span>
+                <div class="dem-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="dem-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="dem-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="dem-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
