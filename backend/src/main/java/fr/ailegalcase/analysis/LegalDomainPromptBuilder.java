@@ -783,14 +783,32 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 4 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-11 : 5e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART5 = """
+              SF-212-11 — Sous-objet `modification_contrat_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent une proposition de modification d'un élément du contrat (rémunération, durée du travail, qualification, lieu, horaires, tâches) — avenant proposé, courrier de l'employeur informant d'une modification, échange RH documenté. Laisser null si aucun indice de modification proposée n'est présent. Sub-flag de `modification_contrat_refusee` : émettre uniquement si une réponse du salarié est documentée ou anticipée.
+              "modification_contrat_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "modif_contrat_element_modifie" : chaîne. Élément modifié, une des valeurs : REMUNERATION, QUALIFICATION, DUREE_TRAVAIL, LIEU_TRAVAIL, HORAIRES, TACHES, AUTRE. REMUNERATION = montant, structure, prime contractuelle. QUALIFICATION = catégorie professionnelle, niveau, coefficient. DUREE_TRAVAIL = volume horaire contractualisé. LIEU_TRAVAIL = adresse du site de rattachement. HORAIRES = répartition de la journée/semaine. TACHES = missions confiées dans la qualification. AUTRE = élément non standard. Null si non identifiable depuis les pièces.
+                "modif_contrat_contractualise" : booléen. true si l'élément modifié est explicitement contractualisé (clause écrite dans le contrat ou avenant antérieur — clause de mobilité, clause de rémunération, fixation contractuelle de la durée du travail). false si l'élément n'est pas explicitement contractualisé (horaires variables, lieu sans clause de mobilité). Null si non déterminable.
+                "modif_contrat_motif_eco" : booléen. true si la modification est proposée pour un motif économique au sens des art. L. 1222-6 et L. 1233-3 CT (difficultés économiques, mutations technologiques, sauvegarde de la compétitivité, cessation d'activité). false si la modification est motivée par des considérations disciplinaires, organisationnelles ou personnelles non économiques. Null si le motif n'est pas documenté.
+                "modif_contrat_notif_ecrite" : booléen. true si la procédure L. 1222-6 est respectée — notification écrite par LRAR du salarié avec mention du délai de réflexion d'un mois (deux mois en cas de PSE). false si la notification écrite manque ou si elle est faite par mail ou oralement sans LRAR. Null si la procédure n'est pas documentée ou si le motif n'est pas économique (champ alors sans objet).
+              Règle NO-OP modification_contrat_detail : si aucune pièce n'évoque une proposition de modification d'un élément du contrat, émettre "modification_contrat_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 5 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
      */
     private static final String TRAVAIL_INSTRUCTION =
-            TRAVAIL_INSTRUCTION_PART1.concat(TRAVAIL_INSTRUCTION_PART2)
-                    .concat(TRAVAIL_INSTRUCTION_PART3).concat(TRAVAIL_INSTRUCTION_PART4);
+            TRAVAIL_INSTRUCTION_PART1
+                    .concat(TRAVAIL_INSTRUCTION_PART2)
+                    .concat(TRAVAIL_INSTRUCTION_PART3)
+                    .concat(TRAVAIL_INSTRUCTION_PART4)
+                    .concat(TRAVAIL_INSTRUCTION_PART5);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

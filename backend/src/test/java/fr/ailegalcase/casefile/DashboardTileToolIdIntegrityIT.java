@@ -231,7 +231,9 @@ class DashboardTileToolIdIntegrityIT {
             // propriétaire qui consolidera les outils P2 en lot.
             "F-DT-44-csp-crp-conformite",
             "F-DT-91-faute-inexcusable-employeur",
-            "F-DT-61-lanceur-alerte-protection"
+            "F-DT-61-lanceur-alerte-protection",
+            // SF-212-11 (2026-05-24) : F-DT-70 modification du contrat — refus du salarié FR
+            "F-DT-70-modification-contrat-refus"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

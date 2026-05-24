@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200011-seed" author="legalcase">
+        <comment>
+            SF-212-12 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Modification du contrat — refus du salarié"
+            (F-DT-70, FRANCE), table créée par SF-212-11 (migration 323).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une proposition de modification du
+            contrat refusée par le salarié — trigger
+            `modification_contrat_refusee` (signal métier extrait par
+            TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue, ligne 235).
+            Flag livré par F-205 (extension TravailExtractedData).
+
+            priority 64 — juste après F-DT-91 (faute inexcusable, priority 63).
+
+            Fondement : Cass. soc. sur la distinction modification du contrat
+            / changement des conditions de travail ; L. 1222-6 CT (procédure
+            de modification pour motif économique) ; L. 1233-3 CT (licenciement
+            économique) ; Cass. soc. 16/06/1998 n°96-40.881 (refus de
+            modification ne caractérise pas une cause réelle et sérieuse).
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE
+            (régime de l'acte équipollent à rupture distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200011', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-70-modification-contrat-refus', 'CONTEXTUAL', 'modification_contrat_refusee', 'true', 64);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200011';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

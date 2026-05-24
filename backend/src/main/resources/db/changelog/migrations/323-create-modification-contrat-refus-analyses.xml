@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200011-create" author="legalcase">
+        <comment>
+            SF-212-11 : table dédiée à l'outil décisionnel "Modification du
+            contrat — refus du salarié" (F-DT-70-modification-contrat-refus,
+            FRANCE — Cass. soc. sur la distinction modification du contrat /
+            changement des conditions de travail ; L. 1222-6 CT — modification
+            pour motif économique).
+
+            L'outil distingue :
+            - les éléments essentiels du contrat (modification = accord nécessaire) :
+              rémunération, qualification professionnelle, durée du travail
+              contractuellement stipulée, lieu de travail (si clause explicite).
+            - les conditions de travail (pouvoir de direction, pas d'accord
+              nécessaire) : horaires dans la plage contractuelle, lieu dans le
+              même secteur géographique, tâches dans la qualification.
+
+            En cas de modification pour motif économique (L. 1222-6) :
+            notification écrite + délai de réflexion 1 mois (2 mois si PSE).
+
+            Conséquences du refus :
+            - Modification sans motif éco : l'employeur doit soit renoncer,
+              soit licencier (risque de licenciement sans cause réelle et
+              sérieuse si la modification est illégitime).
+            - Modification pour motif éco (L. 1222-6) : refus dans le délai →
+              licenciement économique L. 1233-3 CT.
+
+            Outil single-country FRANCE — la distinction française
+            "modification du contrat / changement des conditions de travail"
+            est jurisprudentielle. Pas d'équivalent direct côté BE (régime
+            distinct de l'acte équipollent à rupture et de la modification
+            de l'élément essentiel).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 324 (couplée à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="modification_contrat_refus_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_modif_contrat_refus_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="modification_contrat_refus_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_modif_contrat_refus_analyses_case_file"/>
+
+        <createIndex tableName="modification_contrat_refus_analyses"
+                     indexName="idx_modif_contrat_refus_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="modification_contrat_refus_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

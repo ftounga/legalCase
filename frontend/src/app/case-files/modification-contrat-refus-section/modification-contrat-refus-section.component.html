@@ -1,0 +1,219 @@
+<section class="mcr-section">
+  <header class="mcr-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="mcr-body">
+    <mat-icon class="mcr-icon">edit_note</mat-icon>
+    <span class="mcr-title">MODIFICATION DU CONTRAT — REFUS DU SALARIÉ</span>
+    @if (result()) {
+      <span class="mcr-chip-summary"
+            [class.mcr-chip-summary--modification]="result()!.analyseModification === 'MODIFICATION_CONTRAT'"
+            [class.mcr-chip-summary--changement]="result()!.analyseModification === 'CHANGEMENT_CONDITIONS_TRAVAIL'"
+            [class.mcr-chip-summary--incertain]="result()!.analyseModification === 'INCERTAIN'">
+        {{ verdictBannerLabel(result()!.analyseModification) }} — score {{ result()!.scoreModificationContrat }} / 100
+      </span>
+    }
+    <mat-icon class="mcr-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mcr-body" class="mcr-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="mcr-country-banner" data-testid="mcr-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (Cass. soc. distinction modification du contrat / changement des conditions de travail ; L. 1222-6 CT — en Belgique, régime de l'acte équipollent à rupture distinct).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="mcr-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="mcr-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Élément modifié -->
+            <div class="mcr-block mcr-full">
+              <span class="mcr-block-label">Élément modifié (Cass. soc. — distinction modification du contrat / changement des conditions de travail)</span>
+
+              <mat-form-field appearance="outline" class="mcr-inline-field">
+                <mat-label>Élément modifié</mat-label>
+                <mat-select
+                    [ngModel]="elementModifie()"
+                    (ngModelChange)="onElementChange($event)"
+                    name="elementModifie"
+                    data-testid="mcr-select-element">
+                  @for (opt of elementOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceElementModifie() === 'IA') {
+                <span class="mcr-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="mcr-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="elementExplicitementContractualise()"
+                    (ngModelChange)="onContractualiseChange($event)"
+                    name="elementExplicitementContractualise"
+                    data-testid="mcr-toggle-contractualise">
+                  Élément explicitement contractualisé (clause écrite)
+                </mat-slide-toggle>
+                @if (provenanceContractualise() === 'IA') {
+                  <span class="mcr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Motif économique + procédure L. 1222-6 -->
+            <div class="mcr-block mcr-full">
+              <span class="mcr-block-label">Procédure L. 1222-6 CT (modification pour motif économique)</span>
+
+              <div class="mcr-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="motifEconomique()"
+                    (ngModelChange)="onMotifEcoChange($event)"
+                    name="motifEconomique"
+                    data-testid="mcr-toggle-motif-eco">
+                  Modification pour motif économique (L. 1222-6 CT)
+                </mat-slide-toggle>
+                @if (provenanceMotifEco() === 'IA') {
+                  <span class="mcr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (motifEconomique()) {
+                <div class="mcr-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="notificationEcriteL1222_6() === true"
+                      (ngModelChange)="onNotifEcriteChange($event)"
+                      name="notificationEcriteL1222_6"
+                      data-testid="mcr-toggle-notif">
+                    Notification écrite LRAR L. 1222-6 envoyée
+                  </mat-slide-toggle>
+                  @if (provenanceNotifEcrite() === 'IA') {
+                    <span class="mcr-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+
+                <mat-form-field appearance="outline" class="mcr-inline-field">
+                  <mat-label>Délai de réflexion accordé (mois)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="delaiReflexionRespecteMois()"
+                         (ngModelChange)="onDelaiChange($event)"
+                         name="delaiReflexionRespecteMois"
+                         data-testid="mcr-input-delai" />
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc 3 — Réponse du salarié -->
+            <div class="mcr-block mcr-full">
+              <span class="mcr-block-label">Réponse du salarié</span>
+
+              <mat-form-field appearance="outline" class="mcr-inline-field">
+                <mat-label>Réponse du salarié</mat-label>
+                <mat-select
+                    [ngModel]="reponseSalarie()"
+                    (ngModelChange)="onReponseChange($event)"
+                    name="reponseSalarie"
+                    data-testid="mcr-select-reponse">
+                  @for (opt of reponseOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="mcr-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="mcr-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="mcr-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseModification)"
+                 data-testid="mcr-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseModification) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseModification) }}</span>
+            </div>
+
+            <!-- Alerte délai réflexion L. 1222-6 si applicable -->
+            @if (result()!.alerteDelaiReflexion) {
+              <div class="mcr-alerte-banner" data-testid="mcr-alerte-banner">
+                <mat-icon>error_outline</mat-icon>
+                <span><strong>Procédure L. 1222-6 CT non respectée</strong> — notification écrite LRAR absente ou délai de réflexion inférieur à 1 mois (2 mois si PSE). Le silence du salarié ne vaut PAS acceptation (L. 1222-6 al. 2 CT).</span>
+              </div>
+            }
+
+            <!-- Score -->
+            <div class="mcr-figures-block">
+              <div class="mcr-figure">
+                <span class="mcr-figure-label">Score modification du contrat</span>
+                <span class="mcr-figure-value">{{ result()!.scoreModificationContrat }} / 100</span>
+              </div>
+            </div>
+
+            <!-- Conséquences du refus -->
+            @if (result()!.consequences?.length) {
+              <div class="mcr-points-block">
+                <span class="mcr-points-label">Conséquences ({{ result()!.consequences.length }})</span>
+                <ul class="mcr-points-list">
+                  @for (c of result()!.consequences; track consequenceTrackKey($index, c)) {
+                    <li class="mcr-point-item" data-testid="mcr-consequence-item">
+                      <div class="mcr-point-header">
+                        <span class="mcr-point-libelle">{{ c.type }}</span>
+                      </div>
+                      <span class="mcr-point-description">{{ c.description }}</span>
+                      <span class="mcr-point-fondement" [innerHTML]="c.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="mcr-bases-block">
+                <span class="mcr-bases-label">Bases juridiques</span>
+                <div class="mcr-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="mcr-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="mcr-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="mcr-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

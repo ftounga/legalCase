@@ -553,7 +553,12 @@ public record CaseAnalysisResponse(
             String lanceurAlerteNatureSignalement,
             String lanceurAlerteProcedure,
             Boolean lanceurAlerteMesureRepresaille,
-            String lanceurAlerteNatureMesure) {
+            String lanceurAlerteNatureMesure,
+            // SF-212-11 : 4 champs IA pour pré-fill F-DT-70-modification-contrat-refus (FR).
+            String modifContratElementModifie,
+            Boolean modifContratContractualise,
+            Boolean modifContratMotifEco,
+            Boolean modifContratNotifEcrite) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -813,7 +818,12 @@ public record CaseAnalysisResponse(
                     .lanceurAlerteNatureSignalement(lanceurAlerteNatureSignalement)
                     .lanceurAlerteProcedure(lanceurAlerteProcedure)
                     .lanceurAlerteMesureRepresaille(lanceurAlerteMesureRepresaille)
-                    .lanceurAlerteNatureMesure(lanceurAlerteNatureMesure);
+                    .lanceurAlerteNatureMesure(lanceurAlerteNatureMesure)
+                    // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
+                    .modifContratElementModifie(modifContratElementModifie)
+                    .modifContratContractualise(modifContratContractualise)
+                    .modifContratMotifEco(modifContratMotifEco)
+                    .modifContratNotifEcrite(modifContratNotifEcrite);
         }
 
         public static final class Builder {
@@ -1068,6 +1078,11 @@ public record CaseAnalysisResponse(
             private String lanceurAlerteProcedure;
             private Boolean lanceurAlerteMesureRepresaille;
             private String lanceurAlerteNatureMesure;
+            // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
+            private String modifContratElementModifie;
+            private Boolean modifContratContractualise;
+            private Boolean modifContratMotifEco;
+            private Boolean modifContratNotifEcrite;
 
             private Builder() {}
 
@@ -1317,6 +1332,11 @@ public record CaseAnalysisResponse(
             public Builder lanceurAlerteProcedure(String v) { this.lanceurAlerteProcedure = v; return this; }
             public Builder lanceurAlerteMesureRepresaille(Boolean v) { this.lanceurAlerteMesureRepresaille = v; return this; }
             public Builder lanceurAlerteNatureMesure(String v) { this.lanceurAlerteNatureMesure = v; return this; }
+            // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
+            public Builder modifContratElementModifie(String v) { this.modifContratElementModifie = v; return this; }
+            public Builder modifContratContractualise(Boolean v) { this.modifContratContractualise = v; return this; }
+            public Builder modifContratMotifEco(Boolean v) { this.modifContratMotifEco = v; return this; }
+            public Builder modifContratNotifEcrite(Boolean v) { this.modifContratNotifEcrite = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1460,7 +1480,12 @@ public record CaseAnalysisResponse(
                         lanceurAlerteNatureSignalement,
                         lanceurAlerteProcedure,
                         lanceurAlerteMesureRepresaille,
-                        lanceurAlerteNatureMesure);
+                        lanceurAlerteNatureMesure,
+                        // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
+                        modifContratElementModifie,
+                        modifContratContractualise,
+                        modifContratMotifEco,
+                        modifContratNotifEcrite);
             }
         }
     }
@@ -4026,6 +4051,9 @@ public record CaseAnalysisResponse(
             // SF-212-25 : sous-objet pour pré-fill F-DT-61 (protection lanceur d'alerte FR).
             JsonNode lanceurAlerteDetail = node.get("lanceur_alerte_detail");
             boolean hasLanceurAlerte = lanceurAlerteDetail != null && lanceurAlerteDetail.isObject();
+            // SF-212-11 : sous-objet pour pré-fill F-DT-70 (modification contrat refus FR).
+            JsonNode modificationContratDetail = node.get("modification_contrat_detail");
+            boolean hasModificationContrat = modificationContratDetail != null && modificationContratDetail.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4366,6 +4394,11 @@ public record CaseAnalysisResponse(
                     .lanceurAlerteProcedure(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_procedure") : null)
                     .lanceurAlerteMesureRepresaille(hasLanceurAlerte ? booleanOrNull(lanceurAlerteDetail, "lanceur_alerte_mesure_represaille") : null)
                     .lanceurAlerteNatureMesure(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_nature_mesure") : null)
+                    // SF-212-11 : 4 champs IA pour pré-fill F-DT-70 (modification contrat refus FR).
+                    .modifContratElementModifie(hasModificationContrat ? textOrNull(modificationContratDetail, "modif_contrat_element_modifie") : null)
+                    .modifContratContractualise(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_contractualise") : null)
+                    .modifContratMotifEco(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_motif_eco") : null)
+                    .modifContratNotifEcrite(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_notif_ecrite") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }
