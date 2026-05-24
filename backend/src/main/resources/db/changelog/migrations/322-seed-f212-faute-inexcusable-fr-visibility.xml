@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200009-seed" author="legalcase">
+        <comment>
+            SF-212-10 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Faute inexcusable de l'employeur" (F-DT-91, FRANCE),
+            table créée par SF-212-09 (migration 321).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le garde-fou
+            CI DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué — cas réel
+            F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une demande de reconnaissance de
+            faute inexcusable au sens de l'art. L. 452-1 CSS — trigger
+            `faute_inexcusable_envisagee` (signal métier extrait par
+            TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue, ligne 231).
+            Flag livré par F-205 (extension TravailExtractedData).
+
+            priority 63 — juste après F-DT-72 (transfert d'entreprise, priority 62).
+
+            Fondement : L. 452-1 à L. 452-5 CSS (faute inexcusable et ses
+            conséquences indemnitaires), Cass. ass. plén. 24/06/2005
+            (conscience du danger + obligation de sécurité), CC décision
+            2010-8 QPC (réparation intégrale des préjudices personnels),
+            L. 4121-1 CT (obligation de sécurité de l'employeur).
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE
+            (régimes belges distincts faute grave / faute intentionnelle).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200009', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-91-faute-inexcusable-employeur', 'CONTEXTUAL', 'faute_inexcusable_envisagee', 'true', 63);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200009';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,233 @@
+<section class="fie-section">
+  <header class="fie-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="fie-body">
+    <mat-icon class="fie-icon">gpp_maybe</mat-icon>
+    <span class="fie-title">FAUTE INEXCUSABLE DE L’EMPLOYEUR</span>
+    @if (result()) {
+      <span class="fie-chip-summary"
+            [class.fie-chip-summary--probable]="result()!.evaluationFauteInexcusable === 'FAUTE_INEXCUSABLE_PROBABLE'"
+            [class.fie-chip-summary--possible]="result()!.evaluationFauteInexcusable === 'FAUTE_INEXCUSABLE_POSSIBLE'"
+            [class.fie-chip-summary--peu-probable]="result()!.evaluationFauteInexcusable === 'FAUTE_INEXCUSABLE_PEU_PROBABLE'">
+        {{ verdictBannerLabel(result()!.evaluationFauteInexcusable) }} — score {{ result()!.scoreFauteInexcusable }} / 100
+      </span>
+    }
+    <mat-icon class="fie-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="fie-body" class="fie-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="fie-country-banner" data-testid="fie-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 452-X CSS — en Belgique, les régimes faute grave / intentionnelle relèvent de mécanismes distincts).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="fie-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        <!-- Bannière alerte procédure pôle social — TOUJOURS visible (invariant SF-212-10). -->
+        <div class="fie-procedure-banner" data-testid="fie-procedure-banner">
+          <mat-icon>gavel</mat-icon>
+          <span><strong>Action devant le pôle social du TJ</strong> — non devant le CPH (art. L. 142-1 CSS, L. 142-2 CSS — contentieux de la sécurité sociale, compétence exclusive du pôle social du tribunal judiciaire).</span>
+        </div>
+
+        @if (showForm()) {
+          <form class="fie-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Conditions de la faute inexcusable -->
+            <div class="fie-block fie-full">
+              <span class="fie-block-label">Conditions de la faute inexcusable (Cass. ass. plén. 24/06/2005)</span>
+
+              <div class="fie-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="conscienceDangerEmployeurEtablie()"
+                    (ngModelChange)="onConscienceChange($event)"
+                    name="conscienceDangerEmployeurEtablie"
+                    data-testid="fie-toggle-conscience">
+                  Conscience du danger établie chez l'employeur
+                </mat-slide-toggle>
+                @if (provenanceConscienceDanger() === 'IA') {
+                  <span class="fie-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="fie-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="mesuresPreventionPrises()"
+                    (ngModelChange)="onMesuresChange($event)"
+                    name="mesuresPreventionPrises"
+                    data-testid="fie-toggle-mesures">
+                  Mesures de prévention nécessaires prises (L. 4121-1 CT)
+                </mat-slide-toggle>
+                @if (provenanceMesuresPrevention() === 'IA') {
+                  <span class="fie-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Indices supplémentaires -->
+            <div class="fie-block fie-full">
+              <span class="fie-block-label">Indices supplémentaires (jurisprudence consolidée)</span>
+
+              <div class="fie-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="signalementDangerPrior()"
+                    (ngModelChange)="onSignalementChange($event)"
+                    name="signalementDangerPrior"
+                    data-testid="fie-toggle-signalement">
+                  Signalement antérieur du danger (salarié, CSE, médecin du travail, inspection)
+                </mat-slide-toggle>
+                @if (provenanceSignalementPrior() === 'IA') {
+                  <span class="fie-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="fie-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="documentUniqueEvalue()"
+                    (ngModelChange)="onDuerChange($event)"
+                    name="documentUniqueEvalue"
+                    data-testid="fie-toggle-duer">
+                  DUERP existe et à jour (R. 4121-1 CT)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="fie-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="formationSecuriteProdiguee()"
+                    (ngModelChange)="onFormationChange($event)"
+                    name="formationSecuriteProdiguee">
+                  Formation à la sécurité organisée (L. 4141-2 CT)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Données chiffrées -->
+            <div class="fie-block fie-full">
+              <span class="fie-block-label">Données chiffrées (calcul majoration rente L. 452-2 CSS)</span>
+
+              <mat-form-field appearance="outline" class="fie-inline-field">
+                <mat-label>Taux d'IPP reconnu CPAM (%)</mat-label>
+                <input matInput type="number" min="0" max="100" step="1"
+                       [ngModel]="tauxIpp()"
+                       (ngModelChange)="onTauxIppChange($event)"
+                       name="tauxIpp"
+                       data-testid="fie-input-taux-ipp" />
+              </mat-form-field>
+              @if (provenanceTauxIpp() === 'IA') {
+                <span class="fie-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="fie-inline-field">
+                <mat-label>Rente mensuelle existante (€) — facultatif</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="renteMensuelleEuros()"
+                       (ngModelChange)="onRenteChange($event)"
+                       name="renteMensuelleEuros"
+                       data-testid="fie-input-rente" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="fie-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="fie-input-salaire" />
+              </mat-form-field>
+            </div>
+
+            <div class="fie-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="fie-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="fie-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.evaluationFauteInexcusable)"
+                 data-testid="fie-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.evaluationFauteInexcusable) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.evaluationFauteInexcusable) }}</span>
+            </div>
+
+            <!-- Score + majoration rente -->
+            <div class="fie-figures-block">
+              <div class="fie-figure">
+                <span class="fie-figure-label">Score faute inexcusable</span>
+                <span class="fie-figure-value">{{ result()!.scoreFauteInexcusable }} / 100</span>
+              </div>
+              @if (result()!.majorationRenteEstimeeEuros !== null) {
+                <div class="fie-figure" data-testid="fie-figure-majoration">
+                  <span class="fie-figure-label">Majoration rente estimée (L. 452-2 CSS)</span>
+                  <span class="fie-figure-value">{{ formatEuros(result()!.majorationRenteEstimeeEuros) }} / mois</span>
+                </div>
+              }
+            </div>
+
+            <!-- Facteurs -->
+            @if (result()!.facteursFauteInexcusable?.length) {
+              <div class="fie-points-block">
+                <span class="fie-points-label">Facteurs détectés ({{ result()!.facteursFauteInexcusable.length }})</span>
+                <ul class="fie-points-list">
+                  @for (f of result()!.facteursFauteInexcusable; track facteurTrackKey($index, f)) {
+                    <li class="fie-point-item" data-testid="fie-facteur-item">
+                      <div class="fie-point-header">
+                        <span class="fie-point-libelle">{{ f.libelle }}</span>
+                        <span class="fie-point-poids">poids {{ f.poids }}</span>
+                      </div>
+                      <span class="fie-point-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                      <span class="fie-point-conclusion">{{ f.explication }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="fie-bases-block">
+                <span class="fie-bases-label">Bases juridiques</span>
+                <div class="fie-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="fie-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="fie-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="fie-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
