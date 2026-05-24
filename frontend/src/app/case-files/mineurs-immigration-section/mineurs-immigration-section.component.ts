@@ -44,6 +44,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { MineursImmigrationPrefillRules } from './mineurs-immigration-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-IM-19-02 : champs F-IA-03 audités par l'outil "Mineurs étrangers".
@@ -79,12 +80,17 @@ export type MineursCoherenceAlert = CoherenceAlert<MineursAlertField>;
     MatRadioModule, MatSlideToggleModule,
     MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './mineurs-immigration-section.component.html',
   styleUrl: './mineurs-immigration-section.component.scss',
 })
 export class MineursImmigrationSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c v2 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-19-mineurs';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MINEURS ÉTRANGERS (FR)';
   static readonly TOOL_ICON = 'child_care';

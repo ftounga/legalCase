@@ -1,0 +1,34 @@
+package fr.ailegalcase.casefile;
+
+import fr.ailegalcase.jurisprudencemapping.ToolUsage;
+import fr.ailegalcase.jurisprudencemapping.ToolUsageContributor;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+import java.util.UUID;
+
+/** F-JU-03 / SF-JU-03-99c v2 — détecte l'usage de F-IM-12-asile-avance via AsileAvanceAnalysis. */
+@Component
+public class AsileAvanceToolUsageContributor implements ToolUsageContributor {
+    private final AsileAvanceRepository repository;
+
+    public AsileAvanceToolUsageContributor(AsileAvanceRepository repository) {
+        this.repository = repository;
+    }
+
+    @Override
+    public String toolId() {
+        return AsileAvanceToolBranchRegistry.TOOL_ID;
+    }
+
+    @Override
+    public Optional<ToolUsage> detectUsage(UUID caseFileId) {
+        if (caseFileId == null) {
+            return Optional.empty();
+        }
+        return repository.findByCaseFileId(caseFileId)
+                .map(x -> new ToolUsage(
+                        AsileAvanceToolBranchRegistry.TOOL_ID,
+                        AsileAvanceToolBranchRegistry.BRANCHE_DEFAULT));
+    }
+}

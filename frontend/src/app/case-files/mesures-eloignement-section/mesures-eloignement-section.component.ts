@@ -50,6 +50,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { MesuresEloignementPrefillRules } from './mesures-eloignement-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-IM-20-02 : champs F-IA-03 audités par l'outil "Mesures d'éloignement".
@@ -84,12 +85,17 @@ export type MesuresEloignementCoherenceAlert = CoherenceAlert<MesuresEloignement
     MatRadioModule, MatSlideToggleModule,
     MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './mesures-eloignement-section.component.html',
   styleUrl: './mesures-eloignement-section.component.scss',
 })
 export class MesuresEloignementSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c v2 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-20-mesures-eloignement';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = "MESURE D'ÉLOIGNEMENT (FR)";
   static readonly TOOL_ICON = 'flight_takeoff';

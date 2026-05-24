@@ -45,6 +45,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { AsileAvancePrefillRules } from './asile-avance-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-IM-12-02 : champs F-IA-03 audités par l'outil "Asile avancé".
@@ -79,12 +80,17 @@ export type AsileAvanceCoherenceAlert = CoherenceAlert<AsileAvanceAlertField>;
     MatRadioModule, MatSlideToggleModule,
     MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './asile-avance-section.component.html',
   styleUrl: './asile-avance-section.component.scss',
 })
 export class AsileAvanceSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c v2 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-12-asile-avance';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ASILE AVANCÉ (FR)';
   static readonly TOOL_ICON = 'support';
