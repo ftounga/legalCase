@@ -237,6 +237,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "mise_a_pied_disciplinaire_detectee");
         // SF-212-23 : nouveau flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes.
         addBooleanFlagIfTrue(detected, travailNode, "egalite_salariale_pressentie");
+        // SF-212-21 : nouveau flag F-205 — déclenche F-DT-41 démission validité équivoque.
+        addBooleanFlagIfTrue(detected, travailNode, "demission_equivoque_pressentie");
         // SF-212-17 : nouveau flag F-205 — déclenche F-DT-43 rupture anticipée CDD.
         addBooleanFlagIfTrue(detected, travailNode, "rupture_anticipee_cdd_detectee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");

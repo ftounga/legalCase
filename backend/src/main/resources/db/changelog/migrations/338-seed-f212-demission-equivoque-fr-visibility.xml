@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200021-seed" author="legalcase">
+        <comment>
+            SF-212-22 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Démission — validité et caractère équivoque »
+            (F-DT-41-demission-validite-equivoque, FRANCE), table créée par
+            SF-212-21 (migration 337).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une démission dont le caractère
+            équivoque est susceptible d'être invoqué — trigger
+            `demission_equivoque_pressentie` (nouveau flag F-205 introduit
+            par SF-212-21, ajouté à CaseAnalysisResponse +
+            LegalDomainPromptBuilder PART2 +
+            DecisionToolVisibilityService.addBooleanFlagIfTrue dans la même
+            PR).
+
+            priority 68 — distinct des autres outils de rupture du contrat
+            (F-DT-40 résiliation judiciaire, F-DT-42 prise d'acte) car
+            l'angle est ici l'analyse rétrospective d'une démission déjà
+            posée pour évaluer sa validité, alors que les autres outils
+            traitent du choix prospectif du mode de rupture.
+
+            Fondement : L. 1237-1 CT — démission régulière du CDI par le
+            salarié ; Cass. soc. 09/05/2007 — la démission ne peut résulter
+            que d'une volonté claire et non équivoque ; Cass. soc. constante
+            — requalification possible en prise d'acte de la rupture aux
+            torts de l'employeur.
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE
+            (art. 32 et 37 loi du 03/07/1978 — régime distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200021', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-41-demission-validite-equivoque', 'CONTEXTUAL', 'demission_equivoque_pressentie', 'true', 68);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200021';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

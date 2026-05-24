@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200021-create" author="legalcase">
+        <comment>
+            SF-212-21 : table dédiée à l'outil décisionnel « Démission —
+            validité et caractère équivoque »
+            (F-DT-41-demission-validite-equivoque, FRANCE — fondements :
+            L. 1237-1 CT — démission régulière du CDI par le salarié ;
+            Cass. soc. 09/05/2007 — la démission ne peut résulter que d'une
+            volonté claire et non équivoque ; Cass. soc. constante —
+            requalification possible en prise d'acte de la rupture aux torts
+            de l'employeur ou en licenciement sans cause réelle et sérieuse).
+
+            L'outil distingue trois verdicts :
+            - VOLONTE_CLAIRE : démission régulière, hors contexte particulier,
+              la volonté du salarié paraît libre et éclairée ; pas d'élément
+              d'équivocité significatif.
+            - DEMISSION_EQUIVOQUE : éléments d'équivocité caractérisés
+              (altercation, pression, état émotionnel perturbé, manquements
+              employeur contemporains) — la démission peut être requalifiée
+              par le CPH en prise d'acte de la rupture ou en licenciement
+              sans cause réelle et sérieuse.
+            - RETRACTATION_POSSIBLE : rétractation rapide documentée OU
+              délai pour rétracter court et volonté non confirmée — la
+              démission peut être contestée sur ce seul motif.
+
+            Outil single-country FRANCE — l'exigence de volonté claire et
+            non équivoque relève de la jurisprudence française de la chambre
+            sociale ; côté BE, régime distinct fondé sur les art. 32 et 37
+            de la loi du 03/07/1978 relative aux contrats de travail (non
+            couvert ici).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09 / SF-212-11 / SF-212-13 /
+            SF-212-19 / SF-212-23).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 338
+            (couplée à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="demission_equivoque_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_demission_equivoque_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="demission_equivoque_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_demission_equivoque_analyses_case_file"/>
+
+        <createIndex tableName="demission_equivoque_analyses"
+                     indexName="idx_demission_equivoque_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="demission_equivoque_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
