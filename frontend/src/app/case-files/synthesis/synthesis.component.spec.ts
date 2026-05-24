@@ -15,6 +15,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { JurisprudenceCheckService } from '../../core/services/jurisprudence-check.service';
+import { JurisprudenceApplicableService } from '../../core/services/jurisprudence-applicable.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
 import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
@@ -182,6 +183,8 @@ describe('SynthesisComponent', () => {
         { provide: BadgeNavigationService, useValue: badgeNavigationMock },
         // F-179 SF-179-03 — stub du service de vérification de jurisprudence.
         { provide: JurisprudenceCheckService, useValue: { getChecks: jest.fn().mockReturnValue(of({ checks: [] })) } },
+        // F-JU-02 SF-JU-02-02 — stub du service de jurisprudence applicable injecté par le forkJoin PDF export.
+        { provide: JurisprudenceApplicableService, useValue: { getJurisprudenceApplicable: jest.fn().mockReturnValue(of({ entries: [] })) } },
       ]
     }).compileComponents();
 
