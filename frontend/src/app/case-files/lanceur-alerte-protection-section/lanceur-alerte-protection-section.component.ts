@@ -33,6 +33,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { LanceurAlerteProtectionSectionPrefillRules } from './lanceur-alerte-protection-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-212-26 : composant Angular standalone pour l'outil décisionnel
@@ -65,11 +66,16 @@ import { LanceurAlerteProtectionSectionPrefillRules } from './lanceur-alerte-pro
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './lanceur-alerte-protection-section.component.html',
   styleUrl: './lanceur-alerte-protection-section.component.scss',
 })
 export class LanceurAlerteProtectionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-61-lanceur-alerte-protection';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'PROTECTION DU LANCEUR D’ALERTE';
   static readonly TOOL_ICON = 'campaign';
