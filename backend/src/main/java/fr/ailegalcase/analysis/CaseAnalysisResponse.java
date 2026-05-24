@@ -558,7 +558,14 @@ public record CaseAnalysisResponse(
             String modifContratElementModifie,
             Boolean modifContratContractualise,
             Boolean modifContratMotifEco,
-            Boolean modifContratNotifEcrite) {
+            Boolean modifContratNotifEcrite,
+            // SF-212-13 : 6 champs IA pour pré-fill F-DT-71-mutation-clause-mobilite (FR).
+            Boolean mutationClausePresente,
+            Boolean mutationZoneGeographiquePrecise,
+            Boolean mutationInteretLegitimeEmployeur,
+            Integer mutationDelaiPrevenanceSemaines,
+            Boolean mutationSituationFamilialeContraingnante,
+            Boolean mutationMotifProfessionnel) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -823,7 +830,14 @@ public record CaseAnalysisResponse(
                     .modifContratElementModifie(modifContratElementModifie)
                     .modifContratContractualise(modifContratContractualise)
                     .modifContratMotifEco(modifContratMotifEco)
-                    .modifContratNotifEcrite(modifContratNotifEcrite);
+                    .modifContratNotifEcrite(modifContratNotifEcrite)
+                    // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
+                    .mutationClausePresente(mutationClausePresente)
+                    .mutationZoneGeographiquePrecise(mutationZoneGeographiquePrecise)
+                    .mutationInteretLegitimeEmployeur(mutationInteretLegitimeEmployeur)
+                    .mutationDelaiPrevenanceSemaines(mutationDelaiPrevenanceSemaines)
+                    .mutationSituationFamilialeContraingnante(mutationSituationFamilialeContraingnante)
+                    .mutationMotifProfessionnel(mutationMotifProfessionnel);
         }
 
         public static final class Builder {
@@ -1083,6 +1097,13 @@ public record CaseAnalysisResponse(
             private Boolean modifContratContractualise;
             private Boolean modifContratMotifEco;
             private Boolean modifContratNotifEcrite;
+            // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
+            private Boolean mutationClausePresente;
+            private Boolean mutationZoneGeographiquePrecise;
+            private Boolean mutationInteretLegitimeEmployeur;
+            private Integer mutationDelaiPrevenanceSemaines;
+            private Boolean mutationSituationFamilialeContraingnante;
+            private Boolean mutationMotifProfessionnel;
 
             private Builder() {}
 
@@ -1337,6 +1358,13 @@ public record CaseAnalysisResponse(
             public Builder modifContratContractualise(Boolean v) { this.modifContratContractualise = v; return this; }
             public Builder modifContratMotifEco(Boolean v) { this.modifContratMotifEco = v; return this; }
             public Builder modifContratNotifEcrite(Boolean v) { this.modifContratNotifEcrite = v; return this; }
+            // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
+            public Builder mutationClausePresente(Boolean v) { this.mutationClausePresente = v; return this; }
+            public Builder mutationZoneGeographiquePrecise(Boolean v) { this.mutationZoneGeographiquePrecise = v; return this; }
+            public Builder mutationInteretLegitimeEmployeur(Boolean v) { this.mutationInteretLegitimeEmployeur = v; return this; }
+            public Builder mutationDelaiPrevenanceSemaines(Integer v) { this.mutationDelaiPrevenanceSemaines = v; return this; }
+            public Builder mutationSituationFamilialeContraingnante(Boolean v) { this.mutationSituationFamilialeContraingnante = v; return this; }
+            public Builder mutationMotifProfessionnel(Boolean v) { this.mutationMotifProfessionnel = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1485,7 +1513,14 @@ public record CaseAnalysisResponse(
                         modifContratElementModifie,
                         modifContratContractualise,
                         modifContratMotifEco,
-                        modifContratNotifEcrite);
+                        modifContratNotifEcrite,
+                        // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
+                        mutationClausePresente,
+                        mutationZoneGeographiquePrecise,
+                        mutationInteretLegitimeEmployeur,
+                        mutationDelaiPrevenanceSemaines,
+                        mutationSituationFamilialeContraingnante,
+                        mutationMotifProfessionnel);
             }
         }
     }
@@ -4054,6 +4089,9 @@ public record CaseAnalysisResponse(
             // SF-212-11 : sous-objet pour pré-fill F-DT-70 (modification contrat refus FR).
             JsonNode modificationContratDetail = node.get("modification_contrat_detail");
             boolean hasModificationContrat = modificationContratDetail != null && modificationContratDetail.isObject();
+            // SF-212-13 : sous-objet pour pré-fill F-DT-71 (mutation clause de mobilité FR).
+            JsonNode mutationMobiliteDetail = node.get("mutation_mobilite_detail");
+            boolean hasMutationMobilite = mutationMobiliteDetail != null && mutationMobiliteDetail.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4399,6 +4437,13 @@ public record CaseAnalysisResponse(
                     .modifContratContractualise(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_contractualise") : null)
                     .modifContratMotifEco(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_motif_eco") : null)
                     .modifContratNotifEcrite(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_notif_ecrite") : null)
+                    // SF-212-13 : 6 champs IA pour pré-fill F-DT-71 (mutation clause de mobilité FR).
+                    .mutationClausePresente(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_clause_presente") : null)
+                    .mutationZoneGeographiquePrecise(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_zone_geographique_precise") : null)
+                    .mutationInteretLegitimeEmployeur(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_interet_legitime_employeur") : null)
+                    .mutationDelaiPrevenanceSemaines(hasMutationMobilite ? intOrNull(mutationMobiliteDetail, "mutation_delai_prevenance_semaines") : null)
+                    .mutationSituationFamilialeContraingnante(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_situation_familiale_contraingnante") : null)
+                    .mutationMotifProfessionnel(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_motif_professionnel") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

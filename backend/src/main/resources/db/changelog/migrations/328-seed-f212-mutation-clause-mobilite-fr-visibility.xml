@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200013-seed" author="legalcase">
+        <comment>
+            SF-212-14 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Mutation — validité de la clause de mobilité"
+            (F-DT-71-mutation-clause-mobilite, FRANCE), table créée par
+            SF-212-13 (migration 327).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une mutation imposée par l'employeur
+            sur le fondement d'une clause de mobilité refusée par le salarié
+            — trigger `mutation_refusee` (signal métier extrait par
+            TravailPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue, ligne 235).
+            Flag livré par F-205 (extension TravailExtractedData) +
+            LegalDomainPromptBuilder ligne 552.
+
+            priority 65 — juste après F-DT-70 (modification du contrat —
+            refus du salarié, priority 64).
+
+            Fondement : jurisprudence Cass. soc. constante sur la clause de
+            mobilité : Cass. soc. 07/06/2006 n°04-45.846 et Cass. soc.
+            24/01/2008 n°06-45.088 (zone géographique précise) ; Cass. soc.
+            23/02/2005 n°03-42.018 (intérêt légitime, pas de détournement
+            de pouvoir) ; Cass. soc. 03/03/2010 n°08-44.859 (délai de
+            prévenance raisonnable) ; Cass. soc. 14/10/2008 n°07-40.523
+            (atteinte à la vie personnelle / familiale) ; Cass. soc.
+            04/01/2000 n°97-44.566 (refus de mutation = faute si clause
+            valide) ; Cass. soc. 04/05/1999 n°97-40.576 (sans clause, la
+            mutation est modification du contrat).
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE
+            (Loi du 03/07/1978, modification d'un élément essentiel du
+            contrat).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200013', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-71-mutation-clause-mobilite', 'CONTEXTUAL', 'mutation_refusee', 'true', 65);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200013';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

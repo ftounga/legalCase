@@ -105,6 +105,8 @@ import { FauteInexcusableFrSectionComponent } from '../faute-inexcusable-fr-sect
 import { LanceurAlerteProtectionSectionComponent } from '../lanceur-alerte-protection-section/lanceur-alerte-protection-section.component';
 // SF-212-12 : outil F-DT-70 modification du contrat — refus du salarié (FR uniquement).
 import { ModificationContratRefusSectionComponent } from '../modification-contrat-refus-section/modification-contrat-refus-section.component';
+// SF-212-14 : outil F-DT-71 mutation — validité de la clause de mobilité (FR uniquement).
+import { MutationClauseMobiliteSectionComponent } from '../mutation-clause-mobilite-section/mutation-clause-mobilite-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -891,6 +893,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-70-modification-contrat-refus', {
         displayLabel: 'Modification du contrat — refus du salarié (FR)',
         component: ModificationContratRefusSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-14 : F-DT-71 mutation — validité de la clause de mobilité (FR).
+      ['F-DT-71-mutation-clause-mobilite', {
+        displayLabel: 'Mutation — validité de la clause de mobilité (FR)',
+        component: MutationClauseMobiliteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2949,6 +2962,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-61-lanceur-alerte-protection', 'DIAGNOSTIC'],
     // SF-212-12 : F-DT-70 — modification du contrat — refus du salarié.
     ['F-DT-70-modification-contrat-refus', 'DIAGNOSTIC'],
+    // SF-212-14 : F-DT-71 — mutation — validité de la clause de mobilité.
+    ['F-DT-71-mutation-clause-mobilite', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative
