@@ -85,7 +85,7 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,,
+    CoherencePopoverTriggerDirective,
     ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './mesures-provisoires-section.component.html',

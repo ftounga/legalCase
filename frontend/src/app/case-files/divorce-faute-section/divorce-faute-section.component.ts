@@ -97,7 +97,7 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
     MatSlideToggleModule, MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,,
+    CoherencePopoverTriggerDirective,
     ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './divorce-faute-section.component.html',

@@ -70,7 +70,7 @@ const DUREE_MARIAGE_DIVERGENCE_ANNEES = 1;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,,
+    CoherencePopoverTriggerDirective,
     ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './divorce-alteration-section.component.html',
