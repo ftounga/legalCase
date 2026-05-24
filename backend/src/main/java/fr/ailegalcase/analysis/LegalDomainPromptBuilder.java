@@ -768,13 +768,29 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 3 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-25 : 4e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART4 = """
+              SF-212-25 — Sous-objet `lanceur_alerte_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent un signalement caractérisé au sens de l'art. L. 1132-3-3 CT, de la loi Sapin II n° 2016-1691 du 09/12/2016 ou de la loi Waserman n° 2022-401 du 21/03/2022 (signalement écrit à un référent désigné, saisine du Défenseur des droits / AFA / ANSSI / inspection du travail, divulgation publique, courrier dénonçant un crime/délit/violation du droit UE/menace pour l'intérêt général, mention "lanceur d'alerte" dans le dossier). Laisser null si aucun indice de signalement n'est présent.
+              "lanceur_alerte_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "lanceur_alerte_nature_signalement" : string parmi {CRIME_DELIT, VIOLATION_DROIT_UE, MENACE_INTERET_GENERAL, AUTRE}. CRIME_DELIT si le signalement porte sur un crime ou un délit pénal (fraude, corruption, abus de biens sociaux, etc.). VIOLATION_DROIT_UE si le signalement porte sur une violation du droit de l'Union (RGPD, concurrence, environnement, marchés financiers, etc., champ matériel de la directive 2019/1937). MENACE_INTERET_GENERAL si le signalement vise une menace ou un préjudice pour l'intérêt général (santé publique, sécurité, environnement, droits fondamentaux). AUTRE si le contenu est ambigu ou ne relève d'aucune des 3 premières catégories. Null si non détectable.
+                "lanceur_alerte_procedure" : string parmi {INTERNE, EXTERNE, DIVULGATION_PUBLIQUE}. INTERNE si le signalement est transmis via le canal interne de l'entreprise (référent désigné, supérieur hiérarchique, DRH écrit). EXTERNE si le signalement est adressé directement à une autorité externe (Défenseur des droits, AFA, ANSSI, ARS, inspection du travail, procureur, etc.). DIVULGATION_PUBLIQUE si le signalement a été rendu public (presse, réseaux sociaux, plainte ouverte, communication associative). Null si non détectable.
+                "lanceur_alerte_mesure_represaille" : booléen. true si les pièces documentent une mesure défavorable subie par le salarié POSTÉRIEURE au signalement (licenciement, sanction disciplinaire, mutation forcée, refus de promotion, baisse de rémunération, mise au placard, harcèlement post-signalement). false si aucune mesure défavorable n'est rapportée. Null si non détectable depuis les pièces.
+                "lanceur_alerte_nature_mesure" : string parmi {LICENCIEMENT, SANCTION, MESURE_DISCRIMINATOIRE, AUTRE, AUCUNE}. LICENCIEMENT pour une rupture du contrat de travail à l'initiative de l'employeur. SANCTION pour une sanction disciplinaire formelle (avertissement, blâme, mise à pied disciplinaire). MESURE_DISCRIMINATOIRE pour une mesure défavorable indirecte (mutation forcée, refus de promotion, baisse de rémunération, mise au placard, refus de formation). AUTRE pour toute autre mesure défavorable non couverte. AUCUNE si aucune mesure n'est rapportée. Doit valoir AUCUNE si `lanceur_alerte_mesure_represaille=false`. Null si non détectable.
+              Règle NO-OP lanceur_alerte_detail : si aucune pièce n'évoque un signalement au sens des lois Sapin II ou Waserman, émettre "lanceur_alerte_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 4 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
      */
     private static final String TRAVAIL_INSTRUCTION =
-            TRAVAIL_INSTRUCTION_PART1.concat(TRAVAIL_INSTRUCTION_PART2).concat(TRAVAIL_INSTRUCTION_PART3);
+            TRAVAIL_INSTRUCTION_PART1.concat(TRAVAIL_INSTRUCTION_PART2)
+                    .concat(TRAVAIL_INSTRUCTION_PART3).concat(TRAVAIL_INSTRUCTION_PART4);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

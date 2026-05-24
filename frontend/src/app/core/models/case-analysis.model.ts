@@ -800,6 +800,21 @@ export interface TravailExtractedData {
   /** Taux d'IPP reconnu par la CPAM en % (entier 0–100). */
   fauteInexcusableTauxIpp?: number | null;
   // -------------------------------------------------------------------------
+  // SF-212-25 — sous-objet `lanceur_alerte_detail` (FRANCE only)
+  // Pré-fill F-DT-61 (protection du lanceur d'alerte — L. 1132-3-3 CT ;
+  // loi Sapin II n° 2016-1691 ; loi Waserman n° 2022-401 du 21/03/2022).
+  // Tous nullables — restent `null` pour un dossier Travail BE (régime
+  // belge distinct via loi du 28/11/2022).
+  // -------------------------------------------------------------------------
+  /** Nature du signalement (CRIME_DELIT, VIOLATION_DROIT_UE, MENACE_INTERET_GENERAL, AUTRE). */
+  lanceurAlerteNatureSignalement?: string | null;
+  /** Procédure utilisée (INTERNE, EXTERNE, DIVULGATION_PUBLIQUE). */
+  lanceurAlerteProcedure?: string | null;
+  /** Mesure de représailles détectée (L. 1132-3-3 CT). */
+  lanceurAlerteMesureRepresaille?: boolean | null;
+  /** Nature de la mesure (LICENCIEMENT, SANCTION, MESURE_DISCRIMINATOIRE, AUTRE, AUCUNE). */
+  lanceurAlerteNatureMesure?: string | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

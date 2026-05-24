@@ -101,6 +101,8 @@ import { TransfertEntrepriseFrSectionComponent } from '../transfert-entreprise-f
 import { CspCrpFrSectionComponent } from '../csp-crp-fr-section/csp-crp-fr-section.component';
 // SF-212-10 : outil F-DT-91 faute inexcusable de l'employeur (FR uniquement).
 import { FauteInexcusableFrSectionComponent } from '../faute-inexcusable-fr-section/faute-inexcusable-fr-section.component';
+// SF-212-26 : outil F-DT-61 protection du lanceur d'alerte (FR uniquement).
+import { LanceurAlerteProtectionSectionComponent } from '../lanceur-alerte-protection-section/lanceur-alerte-protection-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -865,6 +867,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-91-faute-inexcusable-employeur', {
         displayLabel: 'Faute inexcusable de l’employeur (FR)',
         component: FauteInexcusableFrSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-26 : F-DT-61 protection du lanceur d'alerte (FR).
+      ['F-DT-61-lanceur-alerte-protection', {
+        displayLabel: 'Protection du lanceur d’alerte (FR)',
+        component: LanceurAlerteProtectionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2919,6 +2932,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-44-csp-crp-conformite', 'DIAGNOSTIC'],
     // SF-212-10 : F-DT-91 — faute inexcusable de l'employeur.
     ['F-DT-91-faute-inexcusable-employeur', 'DIAGNOSTIC'],
+    // SF-212-26 : F-DT-61 — protection du lanceur d'alerte.
+    ['F-DT-61-lanceur-alerte-protection', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative

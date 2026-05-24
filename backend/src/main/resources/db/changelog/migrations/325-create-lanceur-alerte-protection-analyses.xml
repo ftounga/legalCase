@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200025-create" author="legalcase">
+        <comment>
+            SF-212-25 : table dédiée à l'outil décisionnel "Protection du
+            lanceur d'alerte" (F-DT-61-lanceur-alerte-protection, FRANCE —
+            art. L. 1132-3-3 CT ; loi Sapin II n° 2016-1691 du 09/12/2016 ;
+            loi Waserman n° 2022-401 du 21/03/2022 transposant la directive
+            UE 2019/1937).
+
+            Évalue la qualité de lanceur d'alerte (loi Waserman 2022), la
+            conformité de la procédure de signalement (interne/externe/
+            divulgation publique), les mesures de représailles interdites
+            (L. 1132-3-3 CT, nullité de plein droit), et le montant minimum
+            de dommages et intérêts (10 000 € loi Waserman 2022, sanction
+            civile pour procédure abusive contre le lanceur d'alerte).
+
+            Outil single-country FRANCE — la loi Waserman et son régime
+            d'indemnisation minimum sont français. La BE dispose d'un
+            régime distinct (loi du 28/11/2022 transposant la même directive
+            UE 2019/1937 avec des modalités propres).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 326 (couplée à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="lanceur_alerte_protection_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_lanceur_alerte_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="lanceur_alerte_protection_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_lanceur_alerte_analyses_case_file"/>
+
+        <createIndex tableName="lanceur_alerte_protection_analyses"
+                     indexName="idx_lanceur_alerte_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="lanceur_alerte_protection_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
