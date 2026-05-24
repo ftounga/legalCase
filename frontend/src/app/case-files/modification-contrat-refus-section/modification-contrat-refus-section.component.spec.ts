@@ -82,7 +82,10 @@ describe('ModificationContratRefusSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   // ---------------------------------------------------------------------------
   // Chargement (GET) et gate pays

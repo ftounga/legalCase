@@ -32,6 +32,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { ModificationContratRefusSectionPrefillRules } from './modification-contrat-refus-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-212-12 : composant Angular standalone pour l'outil décisionnel
@@ -62,11 +63,16 @@ import { ModificationContratRefusSectionPrefillRules } from './modification-cont
     MatSelectModule, MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './modification-contrat-refus-section.component.html',
   styleUrl: './modification-contrat-refus-section.component.scss',
 })
 export class ModificationContratRefusSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-70-modification-contrat-refus';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'MODIFICATION DU CONTRAT — REFUS DU SALARIÉ';
   static readonly TOOL_ICON = 'edit_note';
