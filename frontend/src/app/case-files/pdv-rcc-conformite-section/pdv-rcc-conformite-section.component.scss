@@ -1,0 +1,230 @@
+/**
+ * SF-212-36 : styles outil "PDV / RCC — conformité" (F-DT-46).
+ * Aligné sur le template canonique `egalite-salariale-fh-section`.
+ *
+ * Palette verdict 3 niveaux :
+ *   - vert (CONFORME — dispositif validé)
+ *   - or (PARTIELLEMENT_CONFORME — régularisations possibles)
+ *   - rouge (NON_CONFORME — vice fondamental)
+ *
+ * Badge droit ARE confirmé : bandeau visible uniquement si la RCC est
+ * conforme — différence majeure RCC vs PDV hors PSE.
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées et
+ * les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.prc-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.prc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.prc-icon { color: var(--ds-accent-navy, #1d3557); }
+.prc-title { flex: 1; font-weight: 600; letter-spacing: 0.04em; }
+.prc-toggle { color: var(--ds-text-muted, #8a8475); }
+
+.prc-chip-summary {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  &--conforme { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+  &--partiel { background: rgba(201, 165, 75, 0.18); color: #8a6b1d; }
+  &--nonconforme { background: rgba(211, 47, 47, 0.12); color: #c62828; }
+}
+
+.prc-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prc-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.1);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  color: #5a4a1a;
+  font-size: 14px;
+}
+
+.prc-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.prc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.prc-full { width: 100%; }
+
+.prc-block-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.prc-inline-field { width: 100%; }
+
+.prc-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.prc-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ds-accent-gold, #c9a54b);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.prc-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.prc-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prc-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+
+  &--conforme { background: rgba(46, 125, 50, 0.12); color: #1b5e20; }
+  &--partiel { background: rgba(201, 165, 75, 0.2); color: #6a4f0a; }
+  &--nonconforme { background: rgba(211, 47, 47, 0.12); color: #8a1a1a; }
+}
+
+/* Badge droit ARE confirmé — visible uniquement si RCC conforme. */
+.prc-badge-are {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(46, 125, 50, 0.1);
+  border-left: 4px solid #2e7d32;
+  font-size: 13px;
+  color: #1b5e20;
+
+  mat-icon { color: #2e7d32; }
+}
+
+.prc-figures-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.prc-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.prc-figure-label { font-size: 11px; text-transform: uppercase; color: var(--ds-text-muted, #8a8475); }
+.prc-figure-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+.prc-points-block,
+.prc-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.prc-points-label,
+.prc-bases-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.prc-points-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.prc-point-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.prc-point-header { display: flex; justify-content: space-between; align-items: center; }
+.prc-point-libelle { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.prc-point-fondement { font-size: 12px; color: var(--ds-text-muted, #8a8475); font-family: 'JetBrains Mono', monospace; }
+
+.prc-bases-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.prc-base-chip {
+  padding: 4px 10px;
+  background: rgba(29, 53, 87, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.prc-meta { display: flex; justify-content: flex-end; }
+
+.prc-messages {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ds-text, #1f1f1f);
+  font-size: 13px;
+}

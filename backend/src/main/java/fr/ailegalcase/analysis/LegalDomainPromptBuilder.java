@@ -902,7 +902,24 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 11 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-35 : 12e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART12 = """
+              SF-212-35 — Flag F-205 et sous-objet `pdv_rcc_detail` (FRANCE UNIQUEMENT).
+              "pdv_rcc_envisage" : booléen — true uniquement si les pièces évoquent un plan de départs volontaires (PDV) ou une rupture conventionnelle collective (RCC, instituée par l'ord. n°2017-1387 du 22/09/2017 — L. 1237-17 à L. 1237-19-14 CT) : accord collectif d'entreprise prévoyant des départs volontaires ouverts aux salariés, mention "RCC" ou "rupture conventionnelle collective", procès-verbal d'accord majoritaire, dossier déposé à la DREETS, validation DREETS produite, lettre d'adhésion individuelle d'un salarié au dispositif, indemnité de rupture mentionnée comme issue d'un PDV / RCC. Distinct du PSE (couvert F-DT-14, licenciements contraints) et de la rupture conventionnelle individuelle (couverte F-DT-10). False par défaut. Pertinent pour F-DT-46.
+              Sous-objet `pdv_rcc_detail` — laisser null intégralement pour un dossier BELGIQUE.
+              Émettre UNIQUEMENT si les pièces évoquent un PDV ou une RCC (accord collectif d'entreprise prévoyant des départs volontaires, mention "RCC", procès-verbal d'accord majoritaire, dossier déposé à la DREETS, validation DREETS produite, lettre d'adhésion individuelle, indemnité de rupture mentionnée comme issue d'un PDV / RCC). Laisser null si aucun indice n'est documenté. Sub-flag de `pdv_rcc_envisage` : émettre uniquement si un dispositif est documenté ou explicitement référencé.
+              "pdv_rcc_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "pdv_rcc_type_dispositif" : chaîne dans l'enum {"RCC", "PDV"}. RCC si les pièces qualifient le dispositif de rupture conventionnelle collective au sens de l'art. L. 1237-19 CT (accord collectif majoritaire + adhésion individuelle volontaire + ouverture des droits ARE pour le salarié adhérent). PDV si les pièces décrivent un plan de départs volontaires hors RCC (plan unilatéral employeur OU accord ne portant pas la qualification RCC). Null si la qualification ne ressort pas explicitement des pièces.
+                "pdv_rcc_accord_majoritaire" : booléen — true si l'accord collectif a été signé par des organisations syndicales représentatives ayant recueilli ≥ 50 % des suffrages exprimés au premier tour des élections professionnelles (majorité renforcée L. 1237-19-1 CT, indispensable pour la validité d'une RCC). False si seuils non atteints, accord minoritaire, ou décision unilatérale employeur. Null si l'information ne ressort pas des pièces.
+                "pdv_rcc_validation_dreets" : booléen — true si la décision de validation de la DREETS (ex DIRECCTE) a été obtenue ou est produite au dossier (courrier de validation, décision implicite à l'issue du délai de 15 jours L. 1237-19-3 CT). False si refus exprès ou absence de décision. Null si non documenté.
+                "pdv_rcc_indemnites_legales" : booléen — true si les indemnités de départ prévues par le PDV ou la RCC sont au moins égales à l'indemnité légale de licenciement (L. 1237-19-1 al. 5 CT — barème L. 1234-9 et R. 1234-1 et s. CT). False si indemnités inférieures au plancher légal. Null si le montant n'est pas chiffré dans les pièces.
+              Règle NO-OP pdv_rcc_detail : si aucune pièce n'évoque un PDV / RCC, émettre "pdv_rcc_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 12 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -918,7 +935,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART8)
                     .concat(TRAVAIL_INSTRUCTION_PART9)
                     .concat(TRAVAIL_INSTRUCTION_PART10)
-                    .concat(TRAVAIL_INSTRUCTION_PART11);
+                    .concat(TRAVAIL_INSTRUCTION_PART11)
+                    .concat(TRAVAIL_INSTRUCTION_PART12);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

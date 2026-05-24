@@ -189,6 +189,16 @@ public record CaseAnalysisResponse(
             // besoin d'être présent sur le record Java. Pattern aligné sur SF-212-17.
             // SF-212-17 : nouveau flag F-205 — déclenche F-DT-43 rupture anticipée CDD (FR).
             boolean ruptureAnticipeeCddDetectee,
+            // SF-212-35 : flag F-205 `pdv_rcc_envisage` (FR — déclenche F-DT-46
+            // PDV / RCC conformité) NON projeté sur ce record car la limite JVM
+            // 255 slots du constructeur canonical TravailExtractedData est atteinte
+            // (254 params + this = 255 slots). DecisionToolVisibilityService lit
+            // le flag directement depuis le JsonNode brut (hors record). Le
+            // sous-objet IA pdv_rcc_detail décrit dans LegalDomainPromptBuilder
+            // PART12 est également NON projeté côté backend (cf. dette F-DT-46
+            // pré-fill, alignée sur la dette F-DT-43 documentée par SF-212-17 PR
+            // #1302). Pré-fill IA différé à la SF de rattrapage qui refactorera
+            // TravailExtractedData en plusieurs records spécialisés.
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -634,6 +644,16 @@ public record CaseAnalysisResponse(
                 Integer anciennete,
                 Double ecartPourcentage
         ) {}
+
+        // SF-212-35 : sous-objet `pdv_rcc_detail` (PDV / RCC, FRANCE — L. 1237-17
+        // à L. 1237-19-14 CT) NON projeté sur le record TravailExtractedData en
+        // raison de la limite JVM 255 slots atteinte (254 params + this = 255).
+        // Le pré-fill IA des 4 champs (typeDispositif, accordMajoritaire,
+        // validationDREETS, indemnitesLegales) est différé à une SF de
+        // rattrapage qui refactorera TravailExtractedData en plusieurs records.
+        // Le flag `pdv_rcc_envisage` reste lisible depuis le JsonNode brut par
+        // DecisionToolVisibilityService — le déclenchement F-IA-04 reste donc
+        // fonctionnel sans projection record.
 
 
         /**
@@ -4285,6 +4305,11 @@ public record CaseAnalysisResponse(
             // + SF-212-23). Le déclenchement F-IA-04 reste fonctionnel via le flag
             // top-level `rupture_anticipee_cdd_detectee` ci-dessus. Le pré-fill IA
             // sera traité par une SF de rattrapage ultérieure.
+            // SF-212-35 : sous-objet `pdv_rcc_detail` (F-DT-46 PDV / RCC conformité FR)
+            // NON projeté sur le record TravailExtractedData (limite JVM 255 slots
+            // atteinte). Pré-fill IA différé à la SF de rattrapage qui refactorera
+            // le record. Le flag top-level `pdv_rcc_envisage` reste lu par
+            // DecisionToolVisibilityService directement depuis travailNode brut.
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4351,6 +4376,10 @@ public record CaseAnalysisResponse(
                     // sur le record — limite JVM 255 saturée). Pattern aligné sur SF-212-17.
                     // SF-212-17 : flag F-205 — déclenche F-DT-43 rupture anticipée CDD.
                     .ruptureAnticipeeCddDetectee(booleanOrFalse(node, "rupture_anticipee_cdd_detectee"))
+                    // SF-212-35 : `pdv_rcc_envisage` non projeté sur le record (cf.
+                    // commentaire dans la déclaration du record TravailExtractedData).
+                    // Le flag est lu directement depuis travailNode par
+                    // DecisionToolVisibilityService.addBooleanFlagIfTrue.
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

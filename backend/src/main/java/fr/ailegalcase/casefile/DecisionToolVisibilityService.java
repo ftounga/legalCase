@@ -241,6 +241,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "demission_equivoque_pressentie");
         // SF-212-17 : nouveau flag F-205 — déclenche F-DT-43 rupture anticipée CDD.
         addBooleanFlagIfTrue(detected, travailNode, "rupture_anticipee_cdd_detectee");
+        // SF-212-35 : nouveau flag F-205 — déclenche F-DT-46 PDV / RCC conformité.
+        addBooleanFlagIfTrue(detected, travailNode, "pdv_rcc_envisage");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");

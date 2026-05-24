@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200035-seed" author="legalcase">
+        <comment>
+            SF-212-36 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "PDV / RCC — conformité"
+            (F-DT-46-pdv-rcc-conformite, FRANCE), table créée par SF-212-35
+            (migration 339).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte un dispositif PDV / RCC à analyser
+            — trigger `pdv_rcc_envisage` (nouveau flag F-205 introduit par
+            SF-212-35, ajouté à CaseAnalysisResponse + LegalDomainPromptBuilder
+            PART2 + DecisionToolVisibilityService.addBooleanFlagIfTrue dans
+            la même PR).
+
+            priority 71 — distinct des autres outils rupture
+            (F-DT-10 rupture conventionnelle individuelle ; F-DT-14 PSE)
+            car la RCC est un dispositif collectif sui generis, instituée
+            par l'ord. n°2017-1387 du 22/09/2017, codifiée aux articles
+            L. 1237-17 à L. 1237-19-14 CT — accord collectif majoritaire +
+            validation DREETS + adhésion individuelle volontaire ouvrant
+            droit à l'ARE.
+
+            Fondement : L. 1237-17 à L. 1237-19-14 CT ; décret n°2017-1718
+            du 20/12/2017 ; circulaire DGT du 19/09/2018.
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200035', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-46-pdv-rcc-conformite', 'CONTEXTUAL', 'pdv_rcc_envisage', 'true', 71);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200035';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
