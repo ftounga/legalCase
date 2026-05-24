@@ -31,6 +31,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { TransfertEntrepriseFrSectionPrefillRules } from './transfert-entreprise-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-212-06 : composant Angular standalone pour l'outil décisionnel
@@ -64,11 +65,16 @@ import { TransfertEntrepriseFrSectionPrefillRules } from './transfert-entreprise
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './transfert-entreprise-fr-section.component.html',
   styleUrl: './transfert-entreprise-fr-section.component.scss',
 })
 export class TransfertEntrepriseFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-72-transfert-entreprise-l1224-1';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'TRANSFERT D’ENTREPRISE (L. 1224-1)';
   static readonly TOOL_ICON = 'corporate_fare';

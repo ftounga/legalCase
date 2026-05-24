@@ -30,6 +30,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { CspCrpFrSectionPrefillRules } from './csp-crp-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-212-08 : composant Angular standalone pour l'outil décisionnel
@@ -60,11 +61,16 @@ import { CspCrpFrSectionPrefillRules } from './csp-crp-fr-section-prefill-rules'
     MatProgressSpinnerModule,
     MatSelectModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './csp-crp-fr-section.component.html',
   styleUrl: './csp-crp-fr-section.component.scss',
 })
 export class CspCrpFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-44-csp-crp-conformite';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'CSP/CRP — CONFORMITÉ';
   static readonly TOOL_ICON = 'gavel';
