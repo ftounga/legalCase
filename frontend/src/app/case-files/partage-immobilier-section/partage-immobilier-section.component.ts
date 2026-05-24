@@ -77,7 +77,7 @@ export type PartageCoherenceAlert = CoherenceAlert<PartageAlertField>;
     MatButtonModule, MatIconModule, MatSelectModule,
     MatFormFieldModule, MatInputModule, MatProgressSpinnerModule,
     MatSlideToggleModule, MatTooltipModule,
-    CoherencePopoverTriggerDirective,,
+    CoherencePopoverTriggerDirective,
     ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './partage-immobilier-section.component.html',

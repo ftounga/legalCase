@@ -104,7 +104,7 @@ const VALID_REGIMES: ReadonlySet<string> = new Set<RegimeExercice>([
     MatSlideToggleModule, MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
-    CoherencePopoverTriggerDirective,,
+    CoherencePopoverTriggerDirective,
     ToolJurisprudenceCitationsComponent
   ],
   templateUrl: './autorite-parentale-section.component.html',

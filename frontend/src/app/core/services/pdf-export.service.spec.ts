@@ -1550,6 +1550,172 @@ describe('PdfExportService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // F-JU-02 SF-JU-02-02 — Section « 📚 Jurisprudence applicable »
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const jurisprudenceUnOutilDeuxArrets = {
+    entries: [
+      {
+        toolId: 'f-dt-30-indemnite-licenciement-macron',
+        brancheCalculId: 'default',
+        citations: [
+          {
+            id: 'cit-1',
+            arretRef: 'Cass. soc. 8 janv. 2025, n° 23-12.345',
+            juridiction: 'Cour de cassation, chambre sociale',
+            dateArret: '2025-01-08',
+            numeroPourvoi: '23-12.345',
+            lienLegifrance: 'https://legifrance.gouv.fr/x',
+            chapeauOfficiel: 'Le barème Macron s\'applique sans exception.',
+            lastVerifiedAt: '2026-05-01T00:00:00Z',
+            confidenceScore: '0.95',
+          },
+          {
+            id: 'cit-2',
+            arretRef: 'Cass. soc. 11 mai 2022, n° 21-10.000',
+            juridiction: 'Cour de cassation, chambre sociale',
+            dateArret: '2022-05-11',
+            numeroPourvoi: '21-10.000',
+            lienLegifrance: 'https://legifrance.gouv.fr/y',
+            chapeauOfficiel: 'Conventionnalité du barème confirmée.',
+            lastVerifiedAt: '2026-05-01T00:00:00Z',
+            confidenceScore: '0.90',
+          },
+        ],
+      },
+    ],
+  };
+
+  it('SF-JU-02-02: jurisprudenceApplicable absent (legacy) → section omise (fail-open)', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('📚 Jurisprudence applicable');
+  });
+
+  it('SF-JU-02-02: entries vide → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [],
+      { entries: [] },
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('📚 Jurisprudence applicable');
+  });
+
+  it('SF-JU-02-02: entry avec citations vide → section omise (filtre défensif)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [],
+      { entries: [{ toolId: 'f-dt-30', brancheCalculId: 'default', citations: [] }] },
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('📚 Jurisprudence applicable');
+  });
+
+  it('SF-JU-02-02: 1 outil + 2 arrêts → bloc bien formé avec arrêts et chapeaux', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [],
+      jurisprudenceUnOutilDeuxArrets,
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('📚 Jurisprudence applicable');
+    expect(s).toContain('Arrêts structurants mappés');
+    expect(s).toContain('Cass. soc. 8 janv. 2025, n° 23-12.345');
+    expect(s).toContain('Cass. soc. 11 mai 2022, n° 21-10.000');
+    expect(s).toContain('barème Macron');
+    expect(s).toContain('Conventionnalité du barème confirmée.');
+    // toolId brut affiché si pas de resolver
+    expect(s).toContain('f-dt-30-indemnite-licenciement-macron');
+    expect(s).toContain('branche : default');
+  });
+
+  it('SF-JU-02-02: toolLabelResolver fourni → label humain plutôt que toolId brut', () => {
+    const resolver = (toolId: string): string | null =>
+      toolId === 'f-dt-30-indemnite-licenciement-macron' ? 'Indemnité Macron (FR)' : null;
+
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], resolver, [], [], [], [],
+      jurisprudenceUnOutilDeuxArrets,
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Indemnité Macron (FR)');
+  });
+
+  it('SF-JU-02-02: ordre canonique → jurisprudence APRÈS questions et AVANT chronologie', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Licenciement' }],
+    };
+    const questionRepondue: AiQuestionAlignment = {
+      questionId: 'q1',
+      questionText: 'Avez-vous le contrat ?',
+      answerText: 'oui',
+      pieceLibelleDeduit: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synWithTimeline,
+      [], undefined, [], [], [], [questionRepondue],
+      jurisprudenceUnOutilDeuxArrets,
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const questionsIdx = flat.indexOf('❓ Réponses aux questions complémentaires');
+    const jurisIdx = flat.indexOf('📚 Jurisprudence applicable');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(questionsIdx).toBeGreaterThan(-1);
+    expect(jurisIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(questionsIdx).toBeLessThan(jurisIdx);
+    expect(jurisIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-JU-02-02: 2 outils distincts → 2 blocs (labels + arrêts respectifs)', () => {
+    const deuxOutils = {
+      entries: [
+        {
+          toolId: 'f-dt-30',
+          brancheCalculId: 'default',
+          citations: [{
+            id: 'a',
+            arretRef: 'Cass. soc. 1 janv. 2025',
+            juridiction: 'CCass',
+            dateArret: '2025-01-01',
+            numeroPourvoi: '0',
+            lienLegifrance: 'https://x',
+            chapeauOfficiel: 'Chapeau A',
+            lastVerifiedAt: '2026-05-01T00:00:00Z',
+            confidenceScore: '0.8',
+          }],
+        },
+        {
+          toolId: 'f-dt-08',
+          brancheCalculId: 'cause-reelle-serieuse',
+          citations: [{
+            id: 'b',
+            arretRef: 'Cass. soc. 2 janv. 2025',
+            juridiction: 'CCass',
+            dateArret: '2025-01-02',
+            numeroPourvoi: '0',
+            lienLegifrance: 'https://y',
+            chapeauOfficiel: 'Chapeau B',
+            lastVerifiedAt: '2026-05-01T00:00:00Z',
+            confidenceScore: '0.8',
+          }],
+        },
+      ],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [],
+      deuxOutils,
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('f-dt-30');
+    expect(s).toContain('f-dt-08');
+    expect(s).toContain('Cass. soc. 1 janv. 2025');
+    expect(s).toContain('Cass. soc. 2 janv. 2025');
+    expect(s).toContain('Chapeau A');
+    expect(s).toContain('Chapeau B');
+    expect(s).toContain('branche : cause-reelle-serieuse');
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // SF-98-51 — Export PDF des conclusions
   // ─────────────────────────────────────────────────────────────────────────
 

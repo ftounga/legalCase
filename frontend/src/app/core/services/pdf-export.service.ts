@@ -15,6 +15,7 @@ import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.mod
 import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
 import { RisqueAlignment } from '../models/risque-alignment.model';
 import { AiQuestionAlignment } from '../models/ai-question-alignment.model';
+import { JurisprudenceApplicableResponse } from '../models/jurisprudence-applicable.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -54,6 +55,7 @@ export class PdfExportService {
     piecesAlignment?: PieceManquanteAlignment[],
     risquesAlignment?: RisqueAlignment[],
     aiQuestionsAlignment?: AiQuestionAlignment[],
+    jurisprudenceApplicable?: JurisprudenceApplicableResponse,
   ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
@@ -70,6 +72,7 @@ export class PdfExportService {
           piecesAlignment,
           risquesAlignment,
           aiQuestionsAlignment,
+          jurisprudenceApplicable,
         ) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
@@ -86,6 +89,7 @@ export class PdfExportService {
     piecesAlignment?: PieceManquanteAlignment[],
     risquesAlignment?: RisqueAlignment[],
     aiQuestionsAlignment?: AiQuestionAlignment[],
+    jurisprudenceApplicable?: JurisprudenceApplicableResponse,
   ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
@@ -104,6 +108,7 @@ export class PdfExportService {
       ...this.buildRisquesACreuserSection(risquesAlignment, toolLabelResolver),
       ...this.buildRisquesValidesSection(risquesAlignment, synthesis, toolLabelResolver),
       ...this.buildAiQuestionsSection(aiQuestionsAlignment),
+      ...this.buildJurisprudenceApplicableSection(jurisprudenceApplicable, toolLabelResolver),
       ...this.buildSections(synthesis),
     ];
 
@@ -1213,6 +1218,110 @@ export class PdfExportService {
     }
 
     return { stack };
+  }
+
+  /**
+   * F-JU-02 SF-JU-02-02 — Section « 📚 Jurisprudence applicable » insérée
+   * APRÈS « Réponses aux questions complémentaires » (F-196) et AVANT la
+   * chronologie / faits / corps de synthèse.
+   *
+   * Comportement :
+   *   - response null / undefined / entries vide → tableau vide
+   *     (section omise — fail-open identique aux 5 sections F-192..F-196).
+   *   - ≥ 1 outil avec ≥ 1 arrêt → titre navy 16/bold + sous-titre
+   *     explicatif + un bloc par outil (libellé outil via `toolLabelResolver`
+   *     ou fallback toolId brut + branche de calcul + liste des arrêts).
+   *
+   * Chaque arrêt : référence (gras navy) + portée/chapeau officiel (texte
+   * gris secondaire, italique, taille 9). Pattern visuel cohérent avec
+   * `buildAiQuestionsSection` (F-196 SF-196-03).
+   */
+  private buildJurisprudenceApplicableSection(
+    response: JurisprudenceApplicableResponse | null | undefined,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!response || !response.entries || response.entries.length === 0) {
+      return [];
+    }
+    // Garde supplémentaire : un outil sans aucun arrêt ne doit pas afficher
+    // un bloc vide. Filtre défensif au cas où le backend remonterait une
+    // entrée à `citations: []` (impossible côté `ConclusionsJurisprudenceContext`
+    // qui filtre déjà, mais ceinture+bretelles).
+    const entries = response.entries.filter(
+      e => Array.isArray(e.citations) && e.citations.length > 0,
+    );
+    if (entries.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '📚 Jurisprudence applicable',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 6],
+      },
+      {
+        text: 'Arrêts structurants mappés aux outils décisionnels utilisés sur ce dossier.',
+        fontSize: 10,
+        color: TEXT_SECONDARY,
+        italics: true,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    for (const entry of entries) {
+      sections.push(this.buildJurisprudenceApplicableEntryBloc(entry, toolLabelResolver));
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    return sections;
+  }
+
+  private buildJurisprudenceApplicableEntryBloc(
+    entry: { toolId: string; brancheCalculId: string; citations: { arretRef: string; chapeauOfficiel: string; juridiction: string; dateArret: string }[] },
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const resolvedLabel = toolLabelResolver ? toolLabelResolver(entry.toolId) : null;
+    const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+      ? resolvedLabel
+      : entry.toolId;
+
+    const stack: object[] = [
+      {
+        text: [
+          { text: '⚖️ ', color: ACCENT, fontSize: 11 },
+          { text: label, color: PRIMARY, fontSize: 11, bold: true },
+          { text: ` — branche : ${entry.brancheCalculId}`, color: TEXT_SECONDARY, fontSize: 9, italics: true },
+        ],
+        margin: [0, 0, 0, 4],
+      },
+    ];
+
+    for (const citation of entry.citations) {
+      stack.push({
+        text: [
+          { text: '• ', color: ACCENT, fontSize: 10 },
+          { text: citation.arretRef ?? '', color: TEXT, fontSize: 10, bold: true },
+        ],
+        margin: [12, 0, 0, 2],
+      });
+      if (citation.chapeauOfficiel && citation.chapeauOfficiel.trim().length > 0) {
+        stack.push({
+          text: citation.chapeauOfficiel,
+          font: 'JetBrainsMono',
+          italics: true,
+          fontSize: 9,
+          color: TEXT_SECONDARY,
+          margin: [22, 0, 0, 6],
+        });
+      } else {
+        stack.push({ text: '', margin: [0, 0, 0, 4] });
+      }
+    }
+
+    return { stack, margin: [0, 0, 0, 8] };
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {

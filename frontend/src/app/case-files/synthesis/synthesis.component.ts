@@ -43,6 +43,8 @@ import { RisqueAlignmentService } from '../../core/services/risque-alignment.ser
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
 import { AiQuestionAlignmentService } from '../../core/services/ai-question-alignment.service';
 import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+import { JurisprudenceApplicableService } from '../../core/services/jurisprudence-applicable.service';
+import { JurisprudenceApplicableResponse } from '../../core/models/jurisprudence-applicable.model';
 import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
 import {
   TypeLitigeOverrideResponse,
@@ -622,6 +624,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private typeLitigeOverrideService: TypeLitigeOverrideService,
     private badgeNavigation: BadgeNavigationService,
     private jurisprudenceCheckService: JurisprudenceCheckService,
+    private jurisprudenceApplicableService: JurisprudenceApplicableService,
   ) {}
 
   ngOnInit(): void {
@@ -1449,7 +1452,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     // F-194 SF-194-03 — pièces manquantes markables + alignement outil cible.
     // F-195 SF-195-03 — risques markables + alignement outil cible.
     // F-196 SF-196-03 — questions complémentaires + déduction pièces.
-    // Les 5 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
+    // F-JU-02 SF-JU-02-02 — jurisprudence applicable (arrêts F-JU-01).
+    // Les 6 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
     // INDÉPENDANT : si l'un échoue, les autres sont utilisés quand même
     // (catchError local par stream). L'export PDF n'est jamais bloqué.
     forkJoin({
@@ -1468,10 +1472,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
       aiQuestionsAlignment: this.aiQuestionAlignmentService.getForCaseFile(cf.id).pipe(
         catchError(() => of([] as AiQuestionAlignment[])),
       ),
+      jurisprudenceApplicable: this.jurisprudenceApplicableService.getJurisprudenceApplicable(cf.id).pipe(
+        catchError(() => of({ entries: [] } as JurisprudenceApplicableResponse)),
+      ),
     }).subscribe({
-      next: ({ retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment }) =>
-        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment),
-      error: () => this.runPdfExport(cf, syn, [], [], [], [], []),
+      next: ({ retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment, jurisprudenceApplicable }) =>
+        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment, jurisprudenceApplicable),
+      error: () => this.runPdfExport(cf, syn, [], [], [], [], [], { entries: [] }),
     });
   }
 
@@ -1483,6 +1490,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     piecesAlignment: PieceManquanteAlignment[],
     risquesAlignment: RisqueAlignment[],
     aiQuestionsAlignment: AiQuestionAlignment[],
+    jurisprudenceApplicable: JurisprudenceApplicableResponse,
   ): void {
     try {
       this.pdfExportService.export(
@@ -1494,6 +1502,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         piecesAlignment,
         risquesAlignment,
         aiQuestionsAlignment,
+        jurisprudenceApplicable,
       );
       this.analyticsService.trackEvent('pdf_exported');
     } catch {
