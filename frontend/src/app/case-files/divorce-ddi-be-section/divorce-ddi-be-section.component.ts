@@ -43,6 +43,8 @@ export class DivorceDdiBeSectionComponent implements OnInit, OnChanges {
     return 0;
   }
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   @Input() forceExpanded = false;
 

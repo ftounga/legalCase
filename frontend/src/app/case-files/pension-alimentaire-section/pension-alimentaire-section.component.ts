@@ -47,6 +47,8 @@ export class PensionAlimentaireSectionComponent implements OnInit, OnChanges {
 
   @Input() synthesis: CaseAnalysisResult | null = null;
   @Input() forceExpanded = false;
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
 
   collapsed = signal(false);
 

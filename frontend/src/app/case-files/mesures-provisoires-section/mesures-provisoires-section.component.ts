@@ -112,6 +112,8 @@ export class MesuresProvisoiresSectionComponent implements OnInit, OnChanges {
     return MesuresProvisoiresPrefillRules.computePrefillCount(input);
   }
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   /** SF-FA-12-02 : pré-fill IA Famille — facultatif, no-op si absent. */

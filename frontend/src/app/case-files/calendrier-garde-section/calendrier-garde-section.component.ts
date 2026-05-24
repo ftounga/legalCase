@@ -61,6 +61,8 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'CALENDRIER DE GARDE';
   static readonly TOOL_ICON = 'calendar_month';
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   @Input() aiModeGardeDetaille?: string | null;
   @Input() workspaceCountry: string = 'FRANCE';

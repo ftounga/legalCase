@@ -69,6 +69,8 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'CHECKLIST DIVORCE';
   static readonly TOOL_ICON = 'checklist';
 
+  // F-JU-03 SF-JU-03-99c — flag standalone (mode simulateur). False = mode dossier (défaut).
+  @Input() standaloneMode = false;
   @Input() caseFileId!: string;
   // SF-155-19 : inputs IA (tous optionnels — null-safe partout). aiData = pré-fill ;
   // les 3 autres alimentent F-IA-03.
