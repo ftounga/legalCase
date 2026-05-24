@@ -553,6 +553,7 @@ public final class LegalDomainPromptBuilder {
               "modification_contrat_refusee" : booléen — true uniquement si les pièces évoquent une proposition de modification du contrat (rémunération, durée du travail, qualification, lieu de travail) refusée par le salarié (avenant proposé, courrier de refus, courrier subséquent employeur). False par défaut. Pertinent pour F-DT-70.
               "teletravail_litige_detecte" : booléen — true uniquement si les pièces évoquent un litige relatif au télétravail au sens des art. L. 1222-9 à L. 1222-11 CT et de l'ANI télétravail du 26/11/2020 (refus d'accorder le télétravail invoqué comme motif disciplinaire ou de licenciement, demande d'indemnité d'occupation du domicile, accident survenu à domicile en télétravail, retour au bureau imposé unilatéralement sans accord ni délai de prévenance, désaccord sur le cadre juridique — accord collectif vs charte vs accord individuel). False par défaut. Pertinent pour F-DT-82.
               "mise_a_pied_disciplinaire_detectee" : booléen — true uniquement si les pièces évoquent une mise à pied notifiée au salarié dans un cadre disciplinaire OU conservatoire (lettre notifiant une mise à pied, mention "mise à pied disciplinaire" / "mise à pied conservatoire", convocation à entretien avec sanction envisagée, bulletin de paie avec suspension de salaire au titre d'une mise à pied). Émettre true même si la nature (disciplinaire / conservatoire) reste à requalifier par l'avocat. False par défaut. Pertinent pour F-DT-48.
+              "egalite_salariale_pressentie" : booléen — true uniquement si les pièces évoquent une situation potentielle de discrimination salariale fondée sur le sexe (écart de rémunération signalé par le salarié, courrier de réclamation salariale, comparaison explicite avec des collègues de sexe opposé mieux rémunérés à qualification équivalente, mention de l'index égalité de l'entreprise au sens de la loi du 05/09/2018 "avenir professionnel", saisine du défenseur des droits, plainte CSE sur la rémunération comparée). False par défaut. Pertinent pour F-DT-56.
               "faute_grave_envisagee" : booléen — true uniquement si les pièces évoquent une faute grave reprochée au salarié au sens de la jurisprudence (faute rendant impossible le maintien du salarié dans l'entreprise même pendant la durée du préavis : insubordination répétée, vol, violence, abandon de poste fautif, mise à pied conservatoire). False par défaut. Distinct de "faute_lourde_envisagee" (intention de nuire).
               "faute_lourde_envisagee" : booléen — true uniquement si les pièces évoquent une faute lourde caractérisée par l'intention de nuire à l'employeur (sabotage, divulgation de secrets, concurrence déloyale active pendant le contrat, vol qualifié), avec privation de l'indemnité de congés payés. False par défaut.
               "cdd_requalification_envisagee" : booléen — true uniquement si le dossier vise la requalification d'un CDD ou d'une succession de CDD en CDI au sens des art. L.1245-1+ CT (motif de recours discutable, dépassement de la durée maximale, succession de CDD sans interruption, absence d'écrit, transmission tardive). False par défaut. Pertinent pour F-DT-43.
@@ -853,7 +854,24 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 8 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-23 : 10e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     * (PART9 réservée pour un autre outil livré en parallèle dans la même
+     * vague F-212.)
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART10 = """
+              SF-212-23 — Sous-objet `egalite_salariale_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent une situation potentielle de discrimination salariale fondée sur le sexe (écart de rémunération invoqué par le salarié, courrier de réclamation salariale comparée, mention de l'index égalité de l'entreprise, comparaison explicite avec des collègues de sexe opposé). Laisser null si aucun indice de différentiel salarial n'est documenté. Sub-flag de `egalite_salariale_pressentie` : émettre uniquement si une situation est documentée ou explicitement référencée.
+              "egalite_salariale_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "egalite_salariale_sexe_salarie" : chaîne dans l'enum {"FEMME", "HOMME"}. Sexe du salarié concerné par la comparaison salariale, tel qu'il ressort des pièces du dossier (état civil, bulletin de paie, contrat). Null si non déterminable depuis les pièces.
+                "egalite_salariale_salaire_brut" : nombre décimal (EUROS par mois). Salaire mensuel brut du salarié, repris du bulletin de paie le plus récent ou du contrat de travail. Convertir un salaire annuel en mensuel en divisant par 12. Null si non chiffré dans les pièces.
+                "egalite_salariale_anciennete" : entier (MOIS). Ancienneté du salarié dans l'entreprise, exprimée en mois, calculée entre la date d'embauche (contrat ou DPAE) et la date du dossier ou de la réclamation salariale. Convertir années → mois (× 12). Null si la date d'embauche n'est pas documentée.
+                "egalite_salariale_ecart_pourcentage" : nombre décimal (POURCENTAGE de 0 à 100). Écart en pourcentage entre le salaire du salarié et la moyenne (ou l'élément de comparaison) des comparants identifiés de sexe opposé à qualification et ancienneté approximativement équivalentes. Calculer : ((salaire_comparants - salaire_salarié) / salaire_salarié) × 100. Reprendre une valeur déjà calculée dans une pièce (rapport CSE, défenseur des droits, expertise) si elle est disponible. Null si l'écart n'est pas chiffré et ne peut être calculé.
+              Règle NO-OP egalite_salariale_detail : si aucune pièce n'évoque une situation de discrimination salariale, émettre "egalite_salariale_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 9 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -866,7 +884,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART5)
                     .concat(TRAVAIL_INSTRUCTION_PART6)
                     .concat(TRAVAIL_INSTRUCTION_PART7)
-                    .concat(TRAVAIL_INSTRUCTION_PART8);
+                    .concat(TRAVAIL_INSTRUCTION_PART8)
+                    .concat(TRAVAIL_INSTRUCTION_PART10);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

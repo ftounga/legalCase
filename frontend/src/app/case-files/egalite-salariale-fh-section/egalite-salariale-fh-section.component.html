@@ -1,0 +1,263 @@
+<section class="egs-section">
+  <header class="egs-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="egs-body">
+    <mat-icon class="egs-icon">balance</mat-icon>
+    <span class="egs-title">ÉGALITÉ SALARIALE F/H</span>
+    @if (result()) {
+      <span class="egs-chip-summary"
+            [class.egs-chip-summary--probable]="result()!.analyseEgaliteSalariale === 'DISCRIMINATION_PROBABLE'"
+            [class.egs-chip-summary--possible]="result()!.analyseEgaliteSalariale === 'DISCRIMINATION_POSSIBLE'"
+            [class.egs-chip-summary--apparent]="result()!.analyseEgaliteSalariale === 'PAS_DE_DISCRIMINATION_APPARENTE'">
+        {{ verdictBannerLabel(result()!.analyseEgaliteSalariale) }} — score {{ result()!.scoreDiscrimination }} / 100
+      </span>
+    }
+    <mat-icon class="egs-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="egs-body" class="egs-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="egs-country-banner" data-testid="egs-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (L. 1144-1 charge de la preuve aménagée et index égalité L. 1142-8 sont propres au droit français — en Belgique, régime distinct relevant de la loi du 22/04/2012 et de la CCT n°25).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="egs-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="egs-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Identité du salarié -->
+            <div class="egs-block egs-full">
+              <span class="egs-block-label">Identité salarié (L. 3221-2 CT — à travail égal salaire égal)</span>
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Sexe du salarié</mat-label>
+                <mat-select
+                    [ngModel]="sexeSalarie()"
+                    (ngModelChange)="onSexeChange($event)"
+                    name="sexeSalarie"
+                    data-testid="egs-select-sexe">
+                  @for (opt of sexeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceSexe() === 'IA') {
+                <span class="egs-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Qualification / poste</mat-label>
+                <input matInput type="text"
+                       [ngModel]="qualification()"
+                       (ngModelChange)="onQualificationChange($event)"
+                       name="qualification"
+                       data-testid="egs-input-qualification" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="salaireMensuelBrutSalarieEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutSalarieEuros"
+                       data-testid="egs-input-salaire" />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="egs-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Ancienneté (mois)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteMois()"
+                       (ngModelChange)="onAncienneteChange($event)"
+                       name="ancienneteMois"
+                       data-testid="egs-input-anciennete" />
+              </mat-form-field>
+              @if (provenanceAnciennete() === 'IA') {
+                <span class="egs-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Comparants et écart -->
+            <div class="egs-block egs-full">
+              <span class="egs-block-label">Comparants et écart salarial (L. 1142-7 CT)</span>
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Nombre de comparants de sexe opposé mieux rémunérés</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="nombreComparantsMieuxPayes()"
+                       (ngModelChange)="onNbComparantsChange($event)"
+                       name="nombreComparantsMieuxPayes"
+                       data-testid="egs-input-nb-comparants" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Écart moyen avec comparants (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="ecartSalaireMoyenComparantsEuros()"
+                       (ngModelChange)="onEcartEurosChange($event)"
+                       name="ecartSalaireMoyenComparantsEuros"
+                       data-testid="egs-input-ecart-euros" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="egs-inline-field">
+                <mat-label>Écart en pourcentage (%)</mat-label>
+                <input matInput type="number" min="0" max="100" step="0.1"
+                       [ngModel]="ecartPourcentage()"
+                       (ngModelChange)="onEcartPctChange($event)"
+                       name="ecartPourcentage"
+                       data-testid="egs-input-ecart-pct" />
+              </mat-form-field>
+              @if (provenanceEcartPct() === 'IA') {
+                <span class="egs-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 3 — Index égalité (loi 05/09/2018) -->
+            <div class="egs-block egs-full">
+              <span class="egs-block-label">Index égalité L. 1142-8 CT — loi 05/09/2018 « avenir professionnel »</span>
+
+              <div class="egs-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="indexEgaliteConnu()"
+                    (ngModelChange)="onIndexConnuChange($event)"
+                    name="indexEgaliteConnu"
+                    data-testid="egs-toggle-index-connu">
+                  Index égalité connu / publié
+                </mat-slide-toggle>
+              </div>
+
+              @if (indexEgaliteConnu()) {
+                <mat-form-field appearance="outline" class="egs-inline-field">
+                  <mat-label>Score index égalité (0 à 100)</mat-label>
+                  <input matInput type="number" min="0" max="100" step="1"
+                         [ngModel]="scoreIndexEgalite()"
+                         (ngModelChange)="onScoreIndexChange($event)"
+                         name="scoreIndexEgalite"
+                         data-testid="egs-input-score-index" />
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Bloc 4 — Charge de la preuve aménagée -->
+            <div class="egs-block egs-full">
+              <span class="egs-block-label">Charge de la preuve aménagée (L. 1144-1 CT)</span>
+
+              <div class="egs-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="justificationsEmployeurObjectives()"
+                    (ngModelChange)="onJustificationsChange($event)"
+                    name="justificationsEmployeurObjectives"
+                    data-testid="egs-toggle-justifications">
+                  Justifications objectives produites par l'employeur (compétences, expérience, performance)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="egs-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="egs-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="egs-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseEgaliteSalariale)"
+                 data-testid="egs-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseEgaliteSalariale) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseEgaliteSalariale) }}</span>
+            </div>
+
+            <!-- INVARIANT produit : alerte non-plafonnement TOUJOURS visible -->
+            <div class="egs-alert-non-plafonnement" data-testid="egs-alert-non-plafonnement">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.alerteNonPlafonnement }}</span>
+            </div>
+
+            <!-- Chiffres : score + prescription -->
+            <div class="egs-figures-block">
+              <div class="egs-figure">
+                <span class="egs-figure-label">Score discrimination</span>
+                <span class="egs-figure-value">{{ result()!.scoreDiscrimination }} / 100</span>
+              </div>
+              <div class="egs-figure" data-testid="egs-figure-prescription">
+                <span class="egs-figure-label">Prescription (L. 1134-5 CT)</span>
+                <span class="egs-figure-value">{{ result()!.prescriptionActionAns }} ans</span>
+              </div>
+            </div>
+
+            <!-- Facteurs F-IA-03 -->
+            @if (result()!.facteursDisparite?.length) {
+              <div class="egs-factors-block">
+                <span class="egs-factors-label">Facteurs de disparité ({{ result()!.facteursDisparite.length }})</span>
+                <ul class="egs-factors-list">
+                  @for (f of result()!.facteursDisparite; track factorTrackKey($index, f)) {
+                    <li class="egs-factor-item" data-testid="egs-factor-item">
+                      <div class="egs-factor-header">
+                        <span class="egs-factor-libelle">{{ f.code }} — {{ f.libelle }} (poids {{ f.poids }})</span>
+                      </div>
+                      <span class="egs-factor-explication">{{ f.explication }}</span>
+                      <span class="egs-factor-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="egs-bases-block">
+                <span class="egs-bases-label">Bases juridiques</span>
+                <div class="egs-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="egs-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="egs-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="egs-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

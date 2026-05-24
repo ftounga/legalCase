@@ -254,7 +254,14 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-48-mise-a-pied-disciplinaire"
+            "F-DT-48-mise-a-pied-disciplinaire",
+            // SF-212-23 (2026-05-24) : F-DT-56 égalité salariale femmes/hommes FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-56-egalite-salariale-femmes-hommes"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

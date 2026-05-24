@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200023-seed" author="legalcase">
+        <comment>
+            SF-212-24 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Égalité salariale femmes-hommes"
+            (F-DT-56-egalite-salariale-femmes-hommes, FRANCE), table créée par
+            SF-212-23 (migration 335).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une situation potentielle de
+            discrimination salariale fondée sur le sexe à analyser — trigger
+            `egalite_salariale_pressentie` (nouveau flag F-205 introduit par
+            SF-212-23, ajouté à CaseAnalysisResponse + LegalDomainPromptBuilder
+            PART2 + DecisionToolVisibilityService.addBooleanFlagIfTrue dans
+            la même PR).
+
+            priority 67 — distinct des outils discrimination existants
+            (F-DT-12 discrimination licenciement) car l'angle est ici la
+            rémunération en cours d'exécution du contrat (action individuelle
+            L. 1134-5 CT, prescription 5 ans, non soumise au plafond Macron).
+
+            Fondement : L. 1142-7 à L. 1142-10 CT — principe d'égalité de
+            rémunération et obligations employeur ; L. 1144-1 CT — charge de
+            la preuve aménagée ; loi 05/09/2018 « avenir professionnel »
+            instituant l'index égalité (entreprises ≥ 50 salariés) ;
+            L. 1132-1 CT — interdiction des discriminations ; L. 3221-2 CT —
+            principe à travail égal salaire égal ; L. 1134-5 CT — prescription
+            5 ans de l'action individuelle.
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE
+            (loi du 22/04/2012 et CCT n°25 — régime distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200023', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-56-egalite-salariale-femmes-hommes', 'CONTEXTUAL', 'egalite_salariale_pressentie', 'true', 67);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200023';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
