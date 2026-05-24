@@ -44,6 +44,21 @@ export interface Page<T> {
 
 export type ArbitrateDecision = 'REPLACE' | 'ADD' | 'IGNORE';
 
+export interface JurisprudenceBootstrapEntry {
+  toolId: string;
+  brancheCalculId: string;
+  motCleRecherche: string;
+  juridictionFiltre?: string;
+  dateMin?: string;
+}
+
+export interface JurisprudenceBootstrapResponse {
+  entriesProcessed: number;
+  mappingsCreated: number;
+  entriesSkipped: number;
+  durationMs: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class JurisprudenceWatchAdminClientService {
 
@@ -70,5 +85,12 @@ export class JurisprudenceWatchAdminClientService {
   listAuditLog(page = 0, size = 50): Observable<Page<JurisprudenceAuditLog>> {
     const params = new HttpParams().set('page', page).set('size', size);
     return this.http.get<Page<JurisprudenceAuditLog>>(`${this.base}/audit-log`, { params });
+  }
+
+  triggerBootstrap(entries: JurisprudenceBootstrapEntry[]):
+      Observable<JurisprudenceBootstrapResponse> {
+    return this.http.post<JurisprudenceBootstrapResponse>(
+      `${this.base}/bootstrap`,
+      { entries });
   }
 }
