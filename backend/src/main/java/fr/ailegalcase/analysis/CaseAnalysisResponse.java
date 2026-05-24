@@ -177,6 +177,8 @@ public record CaseAnalysisResponse(
             boolean mutationRefusee,
             boolean modificationContratRefusee,
             boolean teletravailLitigeDetecte,
+            // SF-212-19 : nouveau flag F-205 — déclenche F-DT-48 mise à pied disciplinaire (FR).
+            boolean miseAPiedDisciplinaireDetectee,
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -574,7 +576,15 @@ public record CaseAnalysisResponse(
             Double teletravailMontantIndemniteJournalier,
             Boolean teletravailAccidentDomicile,
             Boolean teletravailRetourBureauImpose,
-            Boolean teletravailRefusCauseIncrimination) {
+            Boolean teletravailRefusCauseIncrimination,
+            // SF-212-19 : 7 champs IA pour pré-fill F-DT-48-mise-a-pied-disciplinaire (FR).
+            String mapDisciplinaireNature,
+            Boolean mapDisciplinaireProcedureSuivie,
+            Boolean mapDisciplinairePrescriptionFaute,
+            Boolean mapDisciplinaireDureeRi,
+            Integer mapDisciplinaireDureeJours,
+            Boolean mapDisciplinaireSalaireSuspendu,
+            Boolean mapDisciplinaireSanctionsAnterieures) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -637,6 +647,7 @@ public record CaseAnalysisResponse(
                     .mutationRefusee(mutationRefusee)
                     .modificationContratRefusee(modificationContratRefusee)
                     .teletravailLitigeDetecte(teletravailLitigeDetecte)
+                    .miseAPiedDisciplinaireDetectee(miseAPiedDisciplinaireDetectee)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -855,7 +866,15 @@ public record CaseAnalysisResponse(
                     .teletravailMontantIndemniteJournalier(teletravailMontantIndemniteJournalier)
                     .teletravailAccidentDomicile(teletravailAccidentDomicile)
                     .teletravailRetourBureauImpose(teletravailRetourBureauImpose)
-                    .teletravailRefusCauseIncrimination(teletravailRefusCauseIncrimination);
+                    .teletravailRefusCauseIncrimination(teletravailRefusCauseIncrimination)
+                    // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
+                    .mapDisciplinaireNature(mapDisciplinaireNature)
+                    .mapDisciplinaireProcedureSuivie(mapDisciplinaireProcedureSuivie)
+                    .mapDisciplinairePrescriptionFaute(mapDisciplinairePrescriptionFaute)
+                    .mapDisciplinaireDureeRi(mapDisciplinaireDureeRi)
+                    .mapDisciplinaireDureeJours(mapDisciplinaireDureeJours)
+                    .mapDisciplinaireSalaireSuspendu(mapDisciplinaireSalaireSuspendu)
+                    .mapDisciplinaireSanctionsAnterieures(mapDisciplinaireSanctionsAnterieures);
         }
 
         public static final class Builder {
@@ -907,6 +926,8 @@ public record CaseAnalysisResponse(
             private boolean mutationRefusee;
             private boolean modificationContratRefusee;
             private boolean teletravailLitigeDetecte;
+            // SF-212-19 — F-205 flag (FRANCE only) — déclenche F-DT-48 mise à pied disciplinaire.
+            private boolean miseAPiedDisciplinaireDetectee;
             private boolean fauteGraveEnvisagee;
             private boolean fauteLourdeEnvisagee;
             private boolean cddRequalificationEnvisagee;
@@ -1131,6 +1152,14 @@ public record CaseAnalysisResponse(
             private Boolean teletravailAccidentDomicile;
             private Boolean teletravailRetourBureauImpose;
             private Boolean teletravailRefusCauseIncrimination;
+            // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
+            private String mapDisciplinaireNature;
+            private Boolean mapDisciplinaireProcedureSuivie;
+            private Boolean mapDisciplinairePrescriptionFaute;
+            private Boolean mapDisciplinaireDureeRi;
+            private Integer mapDisciplinaireDureeJours;
+            private Boolean mapDisciplinaireSalaireSuspendu;
+            private Boolean mapDisciplinaireSanctionsAnterieures;
 
             private Builder() {}
 
@@ -1182,6 +1211,8 @@ public record CaseAnalysisResponse(
             public Builder mutationRefusee(boolean v) { this.mutationRefusee = v; return this; }
             public Builder modificationContratRefusee(boolean v) { this.modificationContratRefusee = v; return this; }
             public Builder teletravailLitigeDetecte(boolean v) { this.teletravailLitigeDetecte = v; return this; }
+            // SF-212-19 — F-205 flag (FRANCE only) — déclenche F-DT-48 mise à pied disciplinaire.
+            public Builder miseAPiedDisciplinaireDetectee(boolean v) { this.miseAPiedDisciplinaireDetectee = v; return this; }
             public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
             public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
             public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
@@ -1401,6 +1432,14 @@ public record CaseAnalysisResponse(
             public Builder teletravailAccidentDomicile(Boolean v) { this.teletravailAccidentDomicile = v; return this; }
             public Builder teletravailRetourBureauImpose(Boolean v) { this.teletravailRetourBureauImpose = v; return this; }
             public Builder teletravailRefusCauseIncrimination(Boolean v) { this.teletravailRefusCauseIncrimination = v; return this; }
+            // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
+            public Builder mapDisciplinaireNature(String v) { this.mapDisciplinaireNature = v; return this; }
+            public Builder mapDisciplinaireProcedureSuivie(Boolean v) { this.mapDisciplinaireProcedureSuivie = v; return this; }
+            public Builder mapDisciplinairePrescriptionFaute(Boolean v) { this.mapDisciplinairePrescriptionFaute = v; return this; }
+            public Builder mapDisciplinaireDureeRi(Boolean v) { this.mapDisciplinaireDureeRi = v; return this; }
+            public Builder mapDisciplinaireDureeJours(Integer v) { this.mapDisciplinaireDureeJours = v; return this; }
+            public Builder mapDisciplinaireSalaireSuspendu(Boolean v) { this.mapDisciplinaireSalaireSuspendu = v; return this; }
+            public Builder mapDisciplinaireSanctionsAnterieures(Boolean v) { this.mapDisciplinaireSanctionsAnterieures = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1423,7 +1462,11 @@ public record CaseAnalysisResponse(
                         abandonPosteDetecte, arretMaladieLongDetecte, priseActeEnvisagee,
                         resiliationJudiciaireEnvisagee, forfaitJoursDetecte, transfertEntrepriseDetecte,
                         fauteInexcusableEnvisagee, csCrpEnvisage, cspPropose,
-                        mutationRefusee, modificationContratRefusee, teletravailLitigeDetecte, fauteGraveEnvisagee,
+                        mutationRefusee, modificationContratRefusee,
+                        teletravailLitigeDetecte,
+                        // SF-212-19 — F-205 flag F-DT-48 mise à pied disciplinaire.
+                        miseAPiedDisciplinaireDetectee,
+                        fauteGraveEnvisagee,
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
                         entretienPreavisObtenu, cseConsultationDemandee, irpElectionDemandee,
@@ -1564,7 +1607,15 @@ public record CaseAnalysisResponse(
                         teletravailMontantIndemniteJournalier,
                         teletravailAccidentDomicile,
                         teletravailRetourBureauImpose,
-                        teletravailRefusCauseIncrimination);
+                        teletravailRefusCauseIncrimination,
+                        // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
+                        mapDisciplinaireNature,
+                        mapDisciplinaireProcedureSuivie,
+                        mapDisciplinairePrescriptionFaute,
+                        mapDisciplinaireDureeRi,
+                        mapDisciplinaireDureeJours,
+                        mapDisciplinaireSalaireSuspendu,
+                        mapDisciplinaireSanctionsAnterieures);
             }
         }
     }
@@ -4139,6 +4190,9 @@ public record CaseAnalysisResponse(
             // SF-212-15 : sous-objet pour pré-fill F-DT-82 (télétravail — conformité et litige FR).
             JsonNode teletravailDetail = node.get("teletravail_detail");
             boolean hasTeletravail = teletravailDetail != null && teletravailDetail.isObject();
+            // SF-212-19 : sous-objet pour pré-fill F-DT-48 (mise à pied disciplinaire FR).
+            JsonNode miseAPiedDetail = node.get("mise_a_pied_detail");
+            boolean hasMiseAPied = miseAPiedDetail != null && miseAPiedDetail.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4196,6 +4250,8 @@ public record CaseAnalysisResponse(
                     .mutationRefusee(booleanOrFalse(node, "mutation_refusee"))
                     .modificationContratRefusee(booleanOrFalse(node, "modification_contrat_refusee"))
                     .teletravailLitigeDetecte(booleanOrFalse(node, "teletravail_litige_detecte"))
+                    // SF-212-19 : flag F-205 — déclenche F-DT-48 mise à pied disciplinaire.
+                    .miseAPiedDisciplinaireDetectee(booleanOrFalse(node, "mise_a_pied_disciplinaire_detectee"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4500,6 +4556,14 @@ public record CaseAnalysisResponse(
                     .teletravailAccidentDomicile(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_accident_domicile") : null)
                     .teletravailRetourBureauImpose(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_retour_bureau_impose") : null)
                     .teletravailRefusCauseIncrimination(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_refus_cause_incrimination") : null)
+                    // SF-212-19 : 7 champs IA pour pré-fill F-DT-48 (mise à pied disciplinaire FR).
+                    .mapDisciplinaireNature(hasMiseAPied ? textOrNull(miseAPiedDetail, "map_disciplinaire_nature") : null)
+                    .mapDisciplinaireProcedureSuivie(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_procedure_suivie") : null)
+                    .mapDisciplinairePrescriptionFaute(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_prescription_faute") : null)
+                    .mapDisciplinaireDureeRi(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_duree_ri") : null)
+                    .mapDisciplinaireDureeJours(hasMiseAPied ? intOrNull(miseAPiedDetail, "map_disciplinaire_duree_jours") : null)
+                    .mapDisciplinaireSalaireSuspendu(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_salaire_suspendu") : null)
+                    .mapDisciplinaireSanctionsAnterieures(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_sanctions_anterieures") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

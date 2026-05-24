@@ -1,0 +1,258 @@
+<section class="mapd-section">
+  <header class="mapd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="mapd-body">
+    <mat-icon class="mapd-icon">gavel</mat-icon>
+    <span class="mapd-title">MISE À PIED DISCIPLINAIRE</span>
+    @if (result()) {
+      <span class="mapd-chip-summary"
+            [class.mapd-chip-summary--reguliere]="result()!.analyseMiseAPied === 'REGULIERE'"
+            [class.mapd-chip-summary--forme]="result()!.analyseMiseAPied === 'IRREGULIERE_FORME'"
+            [class.mapd-chip-summary--fond]="result()!.analyseMiseAPied === 'IRREGULIERE_FOND'"
+            [class.mapd-chip-summary--conservatoire]="result()!.analyseMiseAPied === 'CONSERVATOIRE'">
+        {{ verdictBannerLabel(result()!.analyseMiseAPied) }} — score {{ result()!.scoreMiseAPied }} / 100
+      </span>
+    }
+    <mat-icon class="mapd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mapd-body" class="mapd-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="mapd-country-banner" data-testid="mapd-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (procédure disciplinaire L. 1332-1 à L. 1332-4 CT — en Belgique, régime distinct relevant de la Loi du 03/07/1978 et des CCT applicables).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="mapd-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="mapd-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Nature de la mise à pied -->
+            <div class="mapd-block mapd-full">
+              <span class="mapd-block-label">Qualification de la mesure (Cass. soc. 26/10/2010 n°09-42.740)</span>
+
+              <mat-form-field appearance="outline" class="mapd-inline-field">
+                <mat-label>Nature de la mise à pied</mat-label>
+                <mat-select
+                    [ngModel]="natureMiseAPied()"
+                    (ngModelChange)="onNatureChange($event)"
+                    name="natureMiseAPied"
+                    data-testid="mapd-select-nature">
+                  @for (opt of natureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceNature() === 'IA') {
+                <span class="mapd-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Procédure et durée (uniquement si non conservatoire) -->
+            @if (natureMiseAPied() !== 'CONSERVATOIRE') {
+              <div class="mapd-block mapd-full">
+                <span class="mapd-block-label">Procédure disciplinaire (L. 1332-1 à L. 1332-3 CT ; L. 1311-2 CT)</span>
+
+                <div class="mapd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="procedureEntretienSuivie()"
+                      (ngModelChange)="onProcedureChange($event)"
+                      name="procedureEntretienSuivie"
+                      data-testid="mapd-toggle-procedure">
+                    Procédure d'entretien préalable suivie
+                  </mat-slide-toggle>
+                  @if (provenanceProcedure() === 'IA') {
+                    <span class="mapd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+
+                <div class="mapd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="dureeDefiniedansRI()"
+                      (ngModelChange)="onDureeRiChange($event)"
+                      name="dureeDefiniedansRI"
+                      data-testid="mapd-toggle-duree-ri">
+                    Durée prévue par le règlement intérieur ou l'accord collectif
+                  </mat-slide-toggle>
+                  @if (provenanceDureeRi() === 'IA') {
+                    <span class="mapd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+
+                <mat-form-field appearance="outline" class="mapd-inline-field">
+                  <mat-label>Durée de la mise à pied (jours)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="dureeJours()"
+                         (ngModelChange)="onDureeJoursChange($event)"
+                         name="dureeJours"
+                         data-testid="mapd-input-duree-jours" />
+                </mat-form-field>
+                @if (provenanceDureeJours() === 'IA') {
+                  <span class="mapd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Bloc 3 — Fond : prescription + double sanction -->
+              <div class="mapd-block mapd-full">
+                <span class="mapd-block-label">Fond de la sanction (L. 1332-4 CT ; Cass. soc. — non bis in idem)</span>
+
+                <div class="mapd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="prescriptionFauteVerifiee()"
+                      (ngModelChange)="onPrescriptionChange($event)"
+                      name="prescriptionFauteVerifiee"
+                      data-testid="mapd-toggle-prescription">
+                    Sanction notifiée dans le délai de 2 mois (prescription respectée)
+                  </mat-slide-toggle>
+                  @if (provenancePrescription() === 'IA') {
+                    <span class="mapd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+
+                <div class="mapd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="sancionsAnterieuresMemesFaits()"
+                      (ngModelChange)="onSanctionsAntChange($event)"
+                      name="sancionsAnterieuresMemesFaits"
+                      data-testid="mapd-toggle-sanctions-ant">
+                    Sanction antérieure prononcée pour les mêmes faits
+                  </mat-slide-toggle>
+                  @if (provenanceSanctionsAnt() === 'IA') {
+                    <span class="mapd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Bloc 4 — Salaire -->
+            <div class="mapd-block mapd-full">
+              <span class="mapd-block-label">Salaire et période</span>
+
+              <div class="mapd-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="salaireSuspendu()"
+                    (ngModelChange)="onSalaireSuspenduChange($event)"
+                    name="salaireSuspendu"
+                    data-testid="mapd-toggle-salaire-suspendu">
+                  Salaire effectivement suspendu pendant la période
+                </mat-slide-toggle>
+                @if (provenanceSalaireSuspendu() === 'IA') {
+                  <span class="mapd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="mapd-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireMensuelChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="mapd-input-salaire" />
+              </mat-form-field>
+            </div>
+
+            <div class="mapd-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="mapd-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="mapd-result">
+            <!-- Bannière verdict — 4 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseMiseAPied)"
+                 data-testid="mapd-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseMiseAPied) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseMiseAPied) }}</span>
+            </div>
+
+            <!-- Chiffres : score + salaire dû -->
+            <div class="mapd-figures-block">
+              <div class="mapd-figure">
+                <span class="mapd-figure-label">Score régularité</span>
+                <span class="mapd-figure-value">{{ result()!.scoreMiseAPied }} / 100</span>
+              </div>
+              <div class="mapd-figure" data-testid="mapd-figure-salaire-du">
+                <span class="mapd-figure-label">Salaire dû période</span>
+                <span class="mapd-figure-value">{{ result()!.salaireDuPeriodeMiseAPiedEuros | number:'1.2-2' }} €</span>
+              </div>
+            </div>
+
+            <!-- Points de régularité F-IA-03 -->
+            @if (result()!.pointsRegularite?.length) {
+              <div class="mapd-points-block">
+                <span class="mapd-points-label">Points de régularité ({{ result()!.pointsRegularite.length }})</span>
+                <ul class="mapd-points-list">
+                  @for (p of result()!.pointsRegularite; track pointTrackKey($index, p)) {
+                    <li class="mapd-point-item" data-testid="mapd-point-item">
+                      <div class="mapd-point-header">
+                        <span class="mapd-point-libelle">{{ p.code }} — {{ p.libelle }}</span>
+                      </div>
+                      <span class="mapd-point-conclusion">{{ p.conclusion }}</span>
+                      <span class="mapd-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="mapd-bases-block">
+                <span class="mapd-bases-label">Bases juridiques</span>
+                <div class="mapd-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="mapd-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="mapd-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="mapd-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

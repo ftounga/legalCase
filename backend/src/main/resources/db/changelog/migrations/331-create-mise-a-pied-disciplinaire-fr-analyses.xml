@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200019-create" author="legalcase">
+        <comment>
+            SF-212-19 : table dédiée à l'outil décisionnel "Mise à pied
+            disciplinaire — régularité" (F-DT-48-mise-a-pied-disciplinaire,
+            FRANCE — fondements : L. 1331-1 CT — définition de la sanction
+            disciplinaire ; L. 1332-1 à L. 1332-3 CT — procédure d'entretien
+            préalable ; L. 1332-4 CT — prescription de 2 mois ; L. 1311-2 CT
+            — durée définie dans le règlement intérieur ; Cass. soc.
+            26/10/2010 n°09-42.740 — distinction mise à pied conservatoire vs
+            disciplinaire ; jurisprudence constante Cass. soc. — interdiction
+            de la double sanction des mêmes faits).
+
+            L'outil distingue quatre verdicts :
+            - REGULIERE : sanction disciplinaire formellement et matériellement
+              régulière (procédure suivie, durée dans RI, prescription
+              respectée, pas de double sanction). Salaire suspendu licite.
+            - IRREGULIERE_FORME : vice de forme (procédure d'entretien non
+              suivie OU durée non prévue par le règlement intérieur). La
+              sanction encourt l'annulation pour non-respect du formalisme
+              protecteur — salaire dû pour la période.
+            - IRREGULIERE_FOND : vice de fond (prescription dépassée OU
+              double sanction des mêmes faits). Annulation, salaire dû.
+            - CONSERVATOIRE : la mesure est qualifiée de mise à pied
+              conservatoire (Cass. soc. 26/10/2010) — provisoire dans
+              l'attente de la décision finale. Le salaire est dû pendant
+              la période (sauf licenciement pour faute grave/lourde).
+
+            Outil single-country FRANCE — la procédure disciplinaire FR
+            (L. 1332-1 à L. 1332-4 CT) n'a pas d'équivalent direct côté BE
+            (Loi du 03/07/1978 et CCT applicables).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09 / SF-212-11 / SF-212-13).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 332
+            (couplée à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="mise_a_pied_disciplinaire_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mise_a_pied_disc_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mise_a_pied_disciplinaire_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mise_a_pied_disc_analyses_case_file"/>
+
+        <createIndex tableName="mise_a_pied_disciplinaire_analyses"
+                     indexName="idx_mise_a_pied_disc_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="mise_a_pied_disciplinaire_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

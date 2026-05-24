@@ -247,7 +247,14 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-82-teletravail-accord"
+            "F-DT-82-teletravail-accord",
+            // SF-212-19 (2026-05-24) : F-DT-48 mise à pied disciplinaire — régularité FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-48-mise-a-pied-disciplinaire"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
