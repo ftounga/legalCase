@@ -854,10 +854,24 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-212-17 : 9e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART9 = """
+              SF-212-17 — Flag F-205 et sous-objet `rupture_anticipee_cdd_detail` (FRANCE UNIQUEMENT).
+              "rupture_anticipee_cdd_detectee" : booléen — true uniquement si les pièces évoquent une rupture anticipée d'un contrat à durée déterminée AVANT son terme prévu (lettre de rupture anticipée du CDD, démission anticipée pour embauche en CDI, accord de rupture anticipée, force majeure invoquée, faute grave reprochée au salarié en CDD, inaptitude médicale CDD). Le contrat doit être identifié comme un CDD aux pièces (type_contrat = CDD ou mention explicite "CDD" / "contrat à durée déterminée"). Émettre true même si le motif (accord, faute, force majeure, embauche CDI, inaptitude, AUTRE) reste à qualifier par l'avocat. False par défaut. Pertinent pour F-DT-43.
+              Sous-objet `rupture_anticipee_cdd_detail` — laisser null intégralement pour un dossier BELGIQUE.
+              Émettre UNIQUEMENT si les pièces évoquent une rupture anticipée d'un contrat à durée déterminée avant son terme prévu (lettre de rupture anticipée du CDD, courrier démission anticipée pour embauche en CDI, accord écrit de rupture anticipée, lettre de licenciement CDD pour faute grave, attestation force majeure, courrier d'inaptitude médicale CDD). Le contrat doit être identifié comme un CDD aux pièces. Laisser null si aucun indice de rupture anticipée n'est présent ou si le contrat est un CDI. Sub-flag de `rupture_anticipee_cdd_detectee` : émettre uniquement si une rupture anticipée est documentée ou explicitement référencée.
+              "rupture_anticipee_cdd_detail" : objet OU null. Si émis, contient EXACTEMENT les 3 clés suivantes :
+                "rupture_anticipee_cdd_auteur" : chaîne dans l'enum {"EMPLOYEUR", "SALARIE"}. EMPLOYEUR si la rupture anticipée a été notifiée par l'employeur (lettre de licenciement CDD, courrier RH de rupture). SALARIE si la rupture a été initiée par le salarié (démission CDD anticipée, lettre de départ pour embauche CDI). Null si l'auteur de la rupture n'est pas déterminable depuis les pièces.
+                "rupture_anticipee_cdd_motif" : chaîne dans l'enum {"ACCORD_PARTIES", "FAUTE_GRAVE", "FORCE_MAJEURE", "INAPTITUDE", "CDI_EMBAUCHE", "AUTRE"}. ACCORD_PARTIES si la rupture est par accord écrit (L. 1243-3 CT). FAUTE_GRAVE si l'employeur invoque la faute grave du salarié (L. 1243-1 CT). FORCE_MAJEURE si un événement imprévisible, irrésistible et extérieur est invoqué (L. 1243-1 CT). INAPTITUDE si l'inaptitude médicale constatée par le médecin du travail est invoquée (L. 1226-4-2 CT). CDI_EMBAUCHE si le salarié justifie d'une embauche en CDI ailleurs (L. 1243-2 CT). AUTRE si aucun motif légal n'est invoqué (rupture sans cause — déclenche L. 1243-4 CT). Null si le motif n'est pas qualifiable depuis les pièces. Ne JAMAIS renvoyer "AUTRE" pour signifier "inconnu" — utiliser null dans ce cas.
+                "rupture_anticipee_cdd_date_terme" : date du terme normal du CDD au format YYYY-MM-DD strict (date de fin prévue au contrat, NON la date de la rupture anticipée). Extractible du contrat de travail CDD produit aux pièces, ou de la lettre d'engagement précisant la durée du CDD. NE PAS confondre avec la date de rupture effective (qui sera saisie séparément par l'avocat). Null si le terme prévu du CDD n'est pas lisible avec certitude dans les pièces.
+              Règle NO-OP rupture_anticipee_cdd_detail : si aucune pièce n'évoque une rupture anticipée d'un CDD, émettre "rupture_anticipee_cdd_detail": null — ne jamais inventer.
+            """;
+
+    /**
      * SF-212-23 : 10e part du prompt TRAVAIL — split pour rester sous la limite
      * UTF-8 de 65535 octets du constant pool Java par String literal.
-     * (PART9 réservée pour un autre outil livré en parallèle dans la même
-     * vague F-212.)
      */
     private static final String TRAVAIL_INSTRUCTION_PART10 = """
               SF-212-23 — Sous-objet `egalite_salariale_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
@@ -885,6 +899,7 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART6)
                     .concat(TRAVAIL_INSTRUCTION_PART7)
                     .concat(TRAVAIL_INSTRUCTION_PART8)
+                    .concat(TRAVAIL_INSTRUCTION_PART9)
                     .concat(TRAVAIL_INSTRUCTION_PART10);
 
     private static final String IMMIGRATION_INSTRUCTION = """

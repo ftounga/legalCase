@@ -113,6 +113,8 @@ import { TeletravailAccordSectionComponent } from '../teletravail-accord-section
 import { MiseAPiedDisciplinaireSectionComponent } from '../mise-a-pied-disciplinaire-section/mise-a-pied-disciplinaire-section.component';
 // SF-212-24 : outil F-DT-56 égalité salariale femmes/hommes (FR uniquement).
 import { EgaliteSalarialeFhSectionComponent } from '../egalite-salariale-fh-section/egalite-salariale-fh-section.component';
+// SF-212-18 : outil F-DT-43 rupture anticipée du CDD (FR uniquement).
+import { RuptureAnticipeeCddSectionComponent } from '../rupture-anticipee-cdd-section/rupture-anticipee-cdd-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -943,6 +945,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-56-egalite-salariale-femmes-hommes', {
         displayLabel: 'Égalité salariale femmes/hommes (FR)',
         component: EgaliteSalarialeFhSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-18 : F-DT-43 rupture anticipée du CDD (FR).
+      ['F-DT-43-rupture-anticipee-cdd', {
+        displayLabel: 'Rupture anticipée du CDD (FR)',
+        component: RuptureAnticipeeCddSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3009,6 +3022,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-48-mise-a-pied-disciplinaire', 'DIAGNOSTIC'],
     // SF-212-24 : F-DT-56 — égalité salariale femmes/hommes.
     ['F-DT-56-egalite-salariale-femmes-hommes', 'DIAGNOSTIC'],
+    // SF-212-18 : F-DT-43 — rupture anticipée du CDD.
+    ['F-DT-43-rupture-anticipee-cdd', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative

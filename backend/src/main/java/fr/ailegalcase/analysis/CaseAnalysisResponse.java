@@ -181,6 +181,8 @@ public record CaseAnalysisResponse(
             boolean miseAPiedDisciplinaireDetectee,
             // SF-212-23 : nouveau flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes (FR).
             boolean egaliteSalarialePressentie,
+            // SF-212-17 : nouveau flag F-205 — déclenche F-DT-43 rupture anticipée CDD (FR).
+            boolean ruptureAnticipeeCddDetectee,
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -594,6 +596,15 @@ public record CaseAnalysisResponse(
             // peuvent ajouter qu'un nombre minimal de params au record). Sub-flag de
             // egaliteSalarialePressentie : null si non documenté ou hors FRANCE.
             EgaliteSalarialeDetail egaliteSalarialeDetail) {
+            // SF-212-17 : pas de sous-objet IA pour F-DT-43-rupture-anticipee-cdd —
+            // la limite JVM 255 slots du constructeur canonical du record
+            // TravailExtractedData (saturé par les vagues F-212 antérieures + SF-212-23)
+            // ne permet pas d'ajouter un sous-record supplémentaire. Le pré-fill IA
+            // côté frontend pour F-DT-43 sera traité par une SF de rattrapage
+            // ultérieure (refactor de TravailExtractedData en plusieurs records
+            // ou consommation de l'analysis_result raw JSON). Le déclenchement
+            // F-IA-04 reste fonctionnel via le flag top-level
+            // `ruptureAnticipeeCddDetectee` ci-dessus.
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -607,6 +618,7 @@ public record CaseAnalysisResponse(
                 Integer anciennete,
                 Double ecartPourcentage
         ) {}
+
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -671,6 +683,7 @@ public record CaseAnalysisResponse(
                     .teletravailLitigeDetecte(teletravailLitigeDetecte)
                     .miseAPiedDisciplinaireDetectee(miseAPiedDisciplinaireDetectee)
                     .egaliteSalarialePressentie(egaliteSalarialePressentie)
+                    .ruptureAnticipeeCddDetectee(ruptureAnticipeeCddDetectee)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -955,6 +968,8 @@ public record CaseAnalysisResponse(
             private boolean miseAPiedDisciplinaireDetectee;
             // SF-212-23 — F-205 flag (FRANCE only) — déclenche F-DT-56 égalité salariale femmes/hommes.
             private boolean egaliteSalarialePressentie;
+            // SF-212-17 — F-205 flag (FRANCE only) — déclenche F-DT-43 rupture anticipée CDD.
+            private boolean ruptureAnticipeeCddDetectee;
             private boolean fauteGraveEnvisagee;
             private boolean fauteLourdeEnvisagee;
             private boolean cddRequalificationEnvisagee;
@@ -1244,6 +1259,8 @@ public record CaseAnalysisResponse(
             public Builder miseAPiedDisciplinaireDetectee(boolean v) { this.miseAPiedDisciplinaireDetectee = v; return this; }
             // SF-212-23 — F-205 flag (FRANCE only) — déclenche F-DT-56 égalité salariale femmes/hommes.
             public Builder egaliteSalarialePressentie(boolean v) { this.egaliteSalarialePressentie = v; return this; }
+            // SF-212-17 — F-205 flag (FRANCE only) — déclenche F-DT-43 rupture anticipée CDD.
+            public Builder ruptureAnticipeeCddDetectee(boolean v) { this.ruptureAnticipeeCddDetectee = v; return this; }
             public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
             public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
             public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
@@ -1501,6 +1518,8 @@ public record CaseAnalysisResponse(
                         miseAPiedDisciplinaireDetectee,
                         // SF-212-23 — F-205 flag F-DT-56 égalité salariale femmes/hommes.
                         egaliteSalarialePressentie,
+                        // SF-212-17 — F-205 flag F-DT-43 rupture anticipée CDD.
+                        ruptureAnticipeeCddDetectee,
                         fauteGraveEnvisagee,
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
@@ -4240,6 +4259,11 @@ public record CaseAnalysisResponse(
                             intOrNull(egaliteSalarialeDetailNode, "egalite_salariale_anciennete"),
                             doubleOrNull(egaliteSalarialeDetailNode, "egalite_salariale_ecart_pourcentage"))
                     : null;
+            // SF-212-17 : pas de sous-objet IA pour F-DT-43 — limite JVM 255 slots
+            // du record TravailExtractedData (saturé par les vagues F-212 antérieures
+            // + SF-212-23). Le déclenchement F-IA-04 reste fonctionnel via le flag
+            // top-level `rupture_anticipee_cdd_detectee` ci-dessus. Le pré-fill IA
+            // sera traité par une SF de rattrapage ultérieure.
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4301,6 +4325,8 @@ public record CaseAnalysisResponse(
                     .miseAPiedDisciplinaireDetectee(booleanOrFalse(node, "mise_a_pied_disciplinaire_detectee"))
                     // SF-212-23 : flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes.
                     .egaliteSalarialePressentie(booleanOrFalse(node, "egalite_salariale_pressentie"))
+                    // SF-212-17 : flag F-205 — déclenche F-DT-43 rupture anticipée CDD.
+                    .ruptureAnticipeeCddDetectee(booleanOrFalse(node, "rupture_anticipee_cdd_detectee"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
