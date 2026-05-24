@@ -29,6 +29,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { FauteInexcusableFrSectionPrefillRules } from './faute-inexcusable-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-212-10 : composant Angular standalone pour l'outil décisionnel
@@ -61,11 +62,16 @@ import { FauteInexcusableFrSectionPrefillRules } from './faute-inexcusable-fr-se
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './faute-inexcusable-fr-section.component.html',
   styleUrl: './faute-inexcusable-fr-section.component.scss',
 })
 export class FauteInexcusableFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-DT-91-faute-inexcusable-employeur';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'FAUTE INEXCUSABLE DE L’EMPLOYEUR';
   static readonly TOOL_ICON = 'gpp_maybe';

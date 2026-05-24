@@ -68,7 +68,7 @@ import { LicenciementFauteGraveLourdSectionPrefillRules } from './licenciement-f
 })
 export class LicenciementFauteGraveLourdSectionComponent implements OnInit, OnChanges {
   // F-JU-03 — citations jurisprudentielles F-JU-01.
-  protected readonly toolIdForJurisprudence = 'F-DT-36-licenciement-faute-grave-lourd';
+  protected readonly toolIdForJurisprudence = 'F-DT-36-licenciement-faute-grave-lourde';
   protected readonly brancheActiveForJurisprudence = 'default';
 
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.

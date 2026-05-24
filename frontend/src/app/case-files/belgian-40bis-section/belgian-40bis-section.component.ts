@@ -132,6 +132,11 @@ export class BelgianCohabitantUeBeSectionComponent implements OnInit, OnChanges 
    * Default `false` — mode case-file scoped inchangé.
    */
   @Input() standaloneMode: boolean = false;
+
+  // F-JU-03 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-14-40bis-cohabitant-ue-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // Snapshots signal des inputs IA (computed-friendly).
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
