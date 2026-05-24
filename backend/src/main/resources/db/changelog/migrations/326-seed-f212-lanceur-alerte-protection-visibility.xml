@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200025-seed" author="legalcase">
+        <comment>
+            SF-212-26 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Protection du lanceur d'alerte" (F-DT-61, FRANCE),
+            table créée par SF-212-25 (migration 325).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en
+            DB sans entrée TOOL_REGISTRY frontend = outil silencieusement
+            masqué — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil apparaît
+            quand le pipeline IA détecte un signalement caractérisé au sens
+            de L. 1132-3-3 CT + loi Waserman 2022 — trigger `lanceur_alerte`
+            (signal métier extrait par TravailPromptBuilder dans le contexte
+            statut protégé / rupture, projeté au niveau travail_extracted_data
+            par F-205 / F-252).
+
+            priority 65 — juste après F-DT-91 (faute inexcusable employeur,
+            priority 63) pour la séquence F-212 P2.
+
+            Fondement : L. 1132-3-3 CT (interdiction des mesures de
+            représailles et nullité de plein droit), loi Sapin II
+            n° 2016-1691 du 09/12/2016 (régime initial), loi Waserman
+            n° 2022-401 du 21/03/2022 (transposition directive UE 2019/1937,
+            champ matériel élargi, sanction civile minimum 10 000 €).
+
+            Mécanisme strictement français — la BE transpose la même
+            directive UE 2019/1937 par sa loi du 28/11/2022 avec un régime
+            d'indemnisation distinct, qui justifie un outil BE séparé hors
+            périmètre de la SF-212-25/26.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200025', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-61-lanceur-alerte-protection', 'CONTEXTUAL', 'lanceur_alerte', 'true', 65);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200025';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

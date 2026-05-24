@@ -548,7 +548,12 @@ public record CaseAnalysisResponse(
             Boolean fauteInexcusableConscienceDanger,
             Boolean fauteInexcusableSignalementPrior,
             Boolean fauteInexcusableMesuresPrevention,
-            Integer fauteInexcusableTauxIpp) {
+            Integer fauteInexcusableTauxIpp,
+            // SF-212-25 : 4 champs IA pour pré-fill F-DT-61-lanceur-alerte-protection (FR).
+            String lanceurAlerteNatureSignalement,
+            String lanceurAlerteProcedure,
+            Boolean lanceurAlerteMesureRepresaille,
+            String lanceurAlerteNatureMesure) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -803,7 +808,12 @@ public record CaseAnalysisResponse(
                     .fauteInexcusableConscienceDanger(fauteInexcusableConscienceDanger)
                     .fauteInexcusableSignalementPrior(fauteInexcusableSignalementPrior)
                     .fauteInexcusableMesuresPrevention(fauteInexcusableMesuresPrevention)
-                    .fauteInexcusableTauxIpp(fauteInexcusableTauxIpp);
+                    .fauteInexcusableTauxIpp(fauteInexcusableTauxIpp)
+                    // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
+                    .lanceurAlerteNatureSignalement(lanceurAlerteNatureSignalement)
+                    .lanceurAlerteProcedure(lanceurAlerteProcedure)
+                    .lanceurAlerteMesureRepresaille(lanceurAlerteMesureRepresaille)
+                    .lanceurAlerteNatureMesure(lanceurAlerteNatureMesure);
         }
 
         public static final class Builder {
@@ -1053,6 +1063,11 @@ public record CaseAnalysisResponse(
             private Boolean fauteInexcusableSignalementPrior;
             private Boolean fauteInexcusableMesuresPrevention;
             private Integer fauteInexcusableTauxIpp;
+            // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
+            private String lanceurAlerteNatureSignalement;
+            private String lanceurAlerteProcedure;
+            private Boolean lanceurAlerteMesureRepresaille;
+            private String lanceurAlerteNatureMesure;
 
             private Builder() {}
 
@@ -1297,6 +1312,11 @@ public record CaseAnalysisResponse(
             public Builder fauteInexcusableSignalementPrior(Boolean v) { this.fauteInexcusableSignalementPrior = v; return this; }
             public Builder fauteInexcusableMesuresPrevention(Boolean v) { this.fauteInexcusableMesuresPrevention = v; return this; }
             public Builder fauteInexcusableTauxIpp(Integer v) { this.fauteInexcusableTauxIpp = v; return this; }
+            // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
+            public Builder lanceurAlerteNatureSignalement(String v) { this.lanceurAlerteNatureSignalement = v; return this; }
+            public Builder lanceurAlerteProcedure(String v) { this.lanceurAlerteProcedure = v; return this; }
+            public Builder lanceurAlerteMesureRepresaille(Boolean v) { this.lanceurAlerteMesureRepresaille = v; return this; }
+            public Builder lanceurAlerteNatureMesure(String v) { this.lanceurAlerteNatureMesure = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1435,7 +1455,12 @@ public record CaseAnalysisResponse(
                         fauteInexcusableConscienceDanger,
                         fauteInexcusableSignalementPrior,
                         fauteInexcusableMesuresPrevention,
-                        fauteInexcusableTauxIpp);
+                        fauteInexcusableTauxIpp,
+                        // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
+                        lanceurAlerteNatureSignalement,
+                        lanceurAlerteProcedure,
+                        lanceurAlerteMesureRepresaille,
+                        lanceurAlerteNatureMesure);
             }
         }
     }
@@ -3998,6 +4023,9 @@ public record CaseAnalysisResponse(
             // SF-212-09 : sous-objet pour pré-fill F-DT-91 (faute inexcusable employeur FR).
             JsonNode fauteInexcusable = node.get("faute_inexcusable_detail");
             boolean hasFauteInexcusable = fauteInexcusable != null && fauteInexcusable.isObject();
+            // SF-212-25 : sous-objet pour pré-fill F-DT-61 (protection lanceur d'alerte FR).
+            JsonNode lanceurAlerteDetail = node.get("lanceur_alerte_detail");
+            boolean hasLanceurAlerte = lanceurAlerteDetail != null && lanceurAlerteDetail.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4333,6 +4361,11 @@ public record CaseAnalysisResponse(
                     .fauteInexcusableSignalementPrior(hasFauteInexcusable ? booleanOrNull(fauteInexcusable, "faute_inexcusable_signalement_prior") : null)
                     .fauteInexcusableMesuresPrevention(hasFauteInexcusable ? booleanOrNull(fauteInexcusable, "faute_inexcusable_mesures_prevention") : null)
                     .fauteInexcusableTauxIpp(hasFauteInexcusable ? boundedIntOrNull(fauteInexcusable, "faute_inexcusable_taux_ipp", 0, MAX_IPP_TAUX) : null)
+                    // SF-212-25 : 4 champs IA pour pré-fill F-DT-61 (protection lanceur d'alerte FR).
+                    .lanceurAlerteNatureSignalement(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_nature_signalement") : null)
+                    .lanceurAlerteProcedure(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_procedure") : null)
+                    .lanceurAlerteMesureRepresaille(hasLanceurAlerte ? booleanOrNull(lanceurAlerteDetail, "lanceur_alerte_mesure_represaille") : null)
+                    .lanceurAlerteNatureMesure(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_nature_mesure") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

@@ -1,0 +1,234 @@
+<section class="lap-section">
+  <header class="lap-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="lap-body">
+    <mat-icon class="lap-icon">campaign</mat-icon>
+    <span class="lap-title">PROTECTION DU LANCEUR D’ALERTE</span>
+    @if (result()) {
+      <span class="lap-chip-summary"
+            [class.lap-chip-summary--forte]="result()!.analyseLanceurAlerte === 'PROTECTION_FORTE'"
+            [class.lap-chip-summary--partielle]="result()!.analyseLanceurAlerte === 'PROTECTION_PARTIELLE'"
+            [class.lap-chip-summary--hors-champ]="result()!.analyseLanceurAlerte === 'HORS_CHAMP'">
+        {{ verdictBannerLabel(result()!.analyseLanceurAlerte) }} — score {{ result()!.scoreProtection }} / 100
+      </span>
+    }
+    <mat-icon class="lap-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="lap-body" class="lap-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="lap-country-banner" data-testid="lap-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (loi Waserman n° 2022-401 du 21/03/2022). Le droit belge transpose la même directive UE 2019/1937 par la loi du 28/11/2022 avec un régime d'indemnisation distinct.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="lap-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="lap-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Nature du signalement (loi Waserman 2022) -->
+            <div class="lap-block lap-full">
+              <span class="lap-block-label">Nature du signalement (loi Waserman 2022)</span>
+
+              <mat-form-field appearance="outline" class="lap-inline-field">
+                <mat-label>Nature du signalement</mat-label>
+                <mat-select
+                    [ngModel]="natureSignalement()"
+                    (ngModelChange)="onNatureSignalementChange($event)"
+                    name="natureSignalement"
+                    data-testid="lap-select-nature-signalement">
+                  <mat-option value="CRIME_DELIT">Crime ou délit</mat-option>
+                  <mat-option value="VIOLATION_DROIT_UE">Violation du droit de l'UE</mat-option>
+                  <mat-option value="MENACE_INTERET_GENERAL">Menace pour l'intérêt général</mat-option>
+                  <mat-option value="AUTRE">Autre</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceNatureSignalement() === 'IA') {
+                <span class="lap-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="lap-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="contrepartieFinanciere()"
+                    (ngModelChange)="onContrepartieChange($event)"
+                    name="contrepartieFinanciere"
+                    data-testid="lap-toggle-contrepartie">
+                  Contrepartie financière directe perçue (cause d'exclusion loi Waserman)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Procédure de signalement -->
+            <div class="lap-block lap-full">
+              <span class="lap-block-label">Procédure de signalement</span>
+
+              <mat-form-field appearance="outline" class="lap-inline-field">
+                <mat-label>Procédure utilisée</mat-label>
+                <mat-select
+                    [ngModel]="procedureSignalement()"
+                    (ngModelChange)="onProcedureChange($event)"
+                    name="procedureSignalement"
+                    data-testid="lap-select-procedure">
+                  <mat-option value="INTERNE">Interne (référent désigné)</mat-option>
+                  <mat-option value="EXTERNE">Externe (Défenseur des droits, AFA, ANSSI, etc.)</mat-option>
+                  <mat-option value="DIVULGATION_PUBLIQUE">Divulgation publique (subsidiaire)</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceProcedure() === 'IA') {
+                <span class="lap-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              @if (procedureSignalement() === 'INTERNE') {
+                <div class="lap-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="referentInterneSaisi()"
+                      (ngModelChange)="onReferentSaisiChange($event)"
+                      name="referentInterneSaisi"
+                      data-testid="lap-toggle-referent">
+                    Référent interne effectivement saisi
+                  </mat-slide-toggle>
+                </div>
+              }
+            </div>
+
+            <!-- Bloc 3 — Mesure de représailles -->
+            <div class="lap-block lap-full">
+              <span class="lap-block-label">Mesure de représailles (L. 1132-3-3 CT — nullité de plein droit)</span>
+
+              <div class="lap-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="mesureRepresailleDetectee()"
+                    (ngModelChange)="onMesureRepresailleChange($event)"
+                    name="mesureRepresailleDetectee"
+                    data-testid="lap-toggle-mesure">
+                  Mesure de représailles détectée
+                </mat-slide-toggle>
+                @if (provenanceMesureRepresaille() === 'IA') {
+                  <span class="lap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (mesureRepresailleDetectee()) {
+                <mat-form-field appearance="outline" class="lap-inline-field">
+                  <mat-label>Nature de la mesure</mat-label>
+                  <mat-select
+                      [ngModel]="natureMesureRepresaille()"
+                      (ngModelChange)="onNatureMesureChange($event)"
+                      name="natureMesureRepresaille"
+                      data-testid="lap-select-nature-mesure">
+                    <mat-option value="LICENCIEMENT">Licenciement</mat-option>
+                    <mat-option value="SANCTION">Sanction disciplinaire</mat-option>
+                    <mat-option value="MESURE_DISCRIMINATOIRE">Mesure discriminatoire (mutation, refus de promotion, etc.)</mat-option>
+                    <mat-option value="AUTRE">Autre mesure défavorable</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceNatureMesure() === 'IA') {
+                  <span class="lap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              }
+            </div>
+
+            <div class="lap-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="lap-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="lap-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseLanceurAlerte)"
+                 data-testid="lap-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseLanceurAlerte) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseLanceurAlerte) }}</span>
+            </div>
+
+            <!-- Chip nullité de la mesure -->
+            @if (result()!.nulliteMesureRepresaille) {
+              <div class="lap-nullite-chip" data-testid="lap-nullite-chip">
+                <mat-icon>gavel</mat-icon>
+                <span><strong>Nullité de plein droit</strong> de la mesure de représailles (L. 1132-3-3 CT) — réintégration possible.</span>
+              </div>
+            }
+
+            <!-- Score + montant DI Waserman -->
+            <div class="lap-figures-block">
+              <div class="lap-figure">
+                <span class="lap-figure-label">Score protection</span>
+                <span class="lap-figure-value">{{ result()!.scoreProtection }} / 100</span>
+              </div>
+              @if (result()!.montantMinDommagesInterets > 0) {
+                <div class="lap-figure" data-testid="lap-figure-montant-di">
+                  <span class="lap-figure-label">Montant minimum DI (loi Waserman 2022)</span>
+                  <span class="lap-figure-value">{{ formatEuros(result()!.montantMinDommagesInterets) }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Points d'analyse F-IA-03 -->
+            @if (result()!.pointsAnalyse?.length) {
+              <div class="lap-points-block">
+                <span class="lap-points-label">Points d'analyse F-IA-03 ({{ result()!.pointsAnalyse.length }})</span>
+                <ul class="lap-points-list">
+                  @for (p of result()!.pointsAnalyse; track pointTrackKey($index, p)) {
+                    <li class="lap-point-item" data-testid="lap-point-item">
+                      <div class="lap-point-header">
+                        <span class="lap-point-libelle">{{ p.libelle }}</span>
+                        <span class="lap-point-code">{{ p.code }}</span>
+                      </div>
+                      <span class="lap-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                      <span class="lap-point-conclusion">{{ p.conclusion }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="lap-bases-block">
+                <span class="lap-bases-label">Bases juridiques</span>
+                <div class="lap-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="lap-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="lap-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="lap-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
