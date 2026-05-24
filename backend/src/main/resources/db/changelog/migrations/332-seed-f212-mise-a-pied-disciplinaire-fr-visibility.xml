@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200019-seed" author="legalcase">
+        <comment>
+            SF-212-20 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Mise à pied disciplinaire — régularité"
+            (F-DT-48-mise-a-pied-disciplinaire, FRANCE), table créée par
+            SF-212-19 (migration 331).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une mise à pied disciplinaire ou
+            conservatoire à analyser — trigger `mise_a_pied_disciplinaire_detectee`
+            (nouveau flag F-205 introduit par SF-212-19, ajouté à
+            CaseAnalysisResponse + LegalDomainPromptBuilder PART2 +
+            DecisionToolVisibilityService.addBooleanFlagIfTrue dans la même PR).
+
+            priority 63 — proche des autres outils sanctions disciplinaires
+            (F-DT-70 modification du contrat refus, priority 64 ;
+            F-DT-71 mutation clause de mobilité, priority 65).
+
+            Fondement : L. 1331-1 CT — définition de la sanction
+            disciplinaire ; L. 1332-1 à L. 1332-3 CT — procédure d'entretien
+            préalable ; L. 1332-4 CT — prescription de 2 mois à compter de
+            la connaissance des faits ; L. 1311-2 CT — durée définie dans
+            le règlement intérieur ; Cass. soc. 26/10/2010 n°09-42.740 —
+            distinction mise à pied conservatoire (mesure provisoire,
+            salaire dû) vs disciplinaire (sanction définitive, salaire
+            suspendu) ; jurisprudence constante Cass. soc. — interdiction
+            de la double sanction des mêmes faits.
+
+            Mécanisme strictement français — pas d'équivalent direct côté BE
+            (Loi du 03/07/1978 et CCT applicables, régime distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200019', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-48-mise-a-pied-disciplinaire', 'CONTEXTUAL', 'mise_a_pied_disciplinaire_detectee', 'true', 63);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200019';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -109,6 +109,8 @@ import { ModificationContratRefusSectionComponent } from '../modification-contra
 import { MutationClauseMobiliteSectionComponent } from '../mutation-clause-mobilite-section/mutation-clause-mobilite-section.component';
 // SF-212-16 : outil F-DT-82 télétravail — conformité et litige (FR uniquement).
 import { TeletravailAccordSectionComponent } from '../teletravail-accord-section/teletravail-accord-section.component';
+// SF-212-20 : outil F-DT-48 mise à pied disciplinaire — régularité (FR uniquement).
+import { MiseAPiedDisciplinaireSectionComponent } from '../mise-a-pied-disciplinaire-section/mise-a-pied-disciplinaire-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
 import { RupturePeriodeEssaiSectionComponent } from '../rupture-periode-essai-section/rupture-periode-essai-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
@@ -917,6 +919,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-82-teletravail-accord', {
         displayLabel: 'Télétravail — conformité et litige (FR)',
         component: TeletravailAccordSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-20 : F-DT-48 mise à pied disciplinaire — régularité (FR).
+      ['F-DT-48-mise-a-pied-disciplinaire', {
+        displayLabel: 'Mise à pied disciplinaire — régularité (FR)',
+        component: MiseAPiedDisciplinaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -2979,6 +2992,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-71-mutation-clause-mobilite', 'DIAGNOSTIC'],
     // SF-212-16 : F-DT-82 — télétravail — conformité et litige.
     ['F-DT-82-teletravail-accord', 'DIAGNOSTIC'],
+    // SF-212-20 : F-DT-48 — mise à pied disciplinaire — régularité.
+    ['F-DT-48-mise-a-pied-disciplinaire', 'DIAGNOSTIC'],
     // SF-206-08 : résiliation judiciaire du contrat aux torts de l'employeur
     // (FR, Cass. soc. 16/03/1989 ; Cass. soc. 20/01/1998 ; art. L.1411-1 CT ;
     // art. 1224, 1227-1228 C. civ.). Groupe F-169 « Rupture — initiative

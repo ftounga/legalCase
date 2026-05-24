@@ -872,6 +872,28 @@ export interface TravailExtractedData {
   /** Refus de télétravailler invoqué comme cause de licenciement (L. 1222-9 al. 6 interdit). */
   teletravailRefusCauseIncrimination?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-19 — sous-objet `mise_a_pied_detail` (FRANCE only)
+  // Pré-fill F-DT-48 (mise à pied disciplinaire — régularité — L. 1331-1 CT ;
+  // L. 1332-1 à L. 1332-4 CT ; Cass. soc. 26/10/2010 n°09-42.740 ;
+  // jurisprudence constante Cass. soc. — interdiction de la double sanction).
+  // Tous nullables — restent `null` pour un dossier Travail BE (régime
+  // disciplinaire distinct, Loi du 03/07/1978 et CCT applicables).
+  // -------------------------------------------------------------------------
+  /** Nature de la mise à pied — DISCIPLINAIRE / CONSERVATOIRE / INCONNUE. */
+  mapDisciplinaireNature?: string | null;
+  /** Procédure d'entretien préalable suivie (L. 1332-1 à L. 1332-3 CT). */
+  mapDisciplinaireProcedureSuivie?: boolean | null;
+  /** Prescription des faits respectée — sanction < 2 mois (L. 1332-4 CT). */
+  mapDisciplinairePrescriptionFaute?: boolean | null;
+  /** Durée prévue par le règlement intérieur ou l'accord collectif (L. 1311-2 CT). */
+  mapDisciplinaireDureeRi?: boolean | null;
+  /** Durée de la mise à pied en jours calendaires. */
+  mapDisciplinaireDureeJours?: number | null;
+  /** Salaire effectivement suspendu pendant la période. */
+  mapDisciplinaireSalaireSuspendu?: boolean | null;
+  /** Sanction antérieure pour les mêmes faits — double sanction interdite. */
+  mapDisciplinaireSanctionsAnterieures?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

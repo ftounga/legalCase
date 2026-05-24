@@ -552,6 +552,7 @@ public final class LegalDomainPromptBuilder {
               "mutation_refusee" : booléen — true uniquement si les pièces évoquent une mutation imposée par l'employeur sur le fondement d'une clause de mobilité refusée par le salarié (clause mobilité contractuelle citée, courrier de mutation, refus écrit du salarié, lettre de licenciement consécutive éventuelle). False par défaut. Pertinent pour F-DT-71.
               "modification_contrat_refusee" : booléen — true uniquement si les pièces évoquent une proposition de modification du contrat (rémunération, durée du travail, qualification, lieu de travail) refusée par le salarié (avenant proposé, courrier de refus, courrier subséquent employeur). False par défaut. Pertinent pour F-DT-70.
               "teletravail_litige_detecte" : booléen — true uniquement si les pièces évoquent un litige relatif au télétravail au sens des art. L. 1222-9 à L. 1222-11 CT et de l'ANI télétravail du 26/11/2020 (refus d'accorder le télétravail invoqué comme motif disciplinaire ou de licenciement, demande d'indemnité d'occupation du domicile, accident survenu à domicile en télétravail, retour au bureau imposé unilatéralement sans accord ni délai de prévenance, désaccord sur le cadre juridique — accord collectif vs charte vs accord individuel). False par défaut. Pertinent pour F-DT-82.
+              "mise_a_pied_disciplinaire_detectee" : booléen — true uniquement si les pièces évoquent une mise à pied notifiée au salarié dans un cadre disciplinaire OU conservatoire (lettre notifiant une mise à pied, mention "mise à pied disciplinaire" / "mise à pied conservatoire", convocation à entretien avec sanction envisagée, bulletin de paie avec suspension de salaire au titre d'une mise à pied). Émettre true même si la nature (disciplinaire / conservatoire) reste à requalifier par l'avocat. False par défaut. Pertinent pour F-DT-48.
               "faute_grave_envisagee" : booléen — true uniquement si les pièces évoquent une faute grave reprochée au salarié au sens de la jurisprudence (faute rendant impossible le maintien du salarié dans l'entreprise même pendant la durée du préavis : insubordination répétée, vol, violence, abandon de poste fautif, mise à pied conservatoire). False par défaut. Distinct de "faute_lourde_envisagee" (intention de nuire).
               "faute_lourde_envisagee" : booléen — true uniquement si les pièces évoquent une faute lourde caractérisée par l'intention de nuire à l'employeur (sabotage, divulgation de secrets, concurrence déloyale active pendant le contrat, vol qualifié), avec privation de l'indemnité de congés payés. False par défaut.
               "cdd_requalification_envisagee" : booléen — true uniquement si le dossier vise la requalification d'un CDD ou d'une succession de CDD en CDI au sens des art. L.1245-1+ CT (motif de recours discutable, dépassement de la durée maximale, succession de CDD sans interruption, absence d'écrit, transmission tardive). False par défaut. Pertinent pour F-DT-43.
@@ -834,7 +835,25 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 7 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-19 : 8e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART8 = """
+              SF-212-19 — Sous-objet `mise_a_pied_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent une mise à pied notifiée au salarié (lettre de mise à pied disciplinaire ou conservatoire, mention "mise à pied" dans une convocation à entretien préalable, bulletin de paie avec suspension de salaire au titre d'une mise à pied, courrier RH précisant la nature ou la durée de la mise à pied). Laisser null si aucun indice de mise à pied n'est présent. Sub-flag de `mise_a_pied_disciplinaire_detectee` : émettre uniquement si une mesure de mise à pied est documentée ou explicitement référencée.
+              "mise_a_pied_detail" : objet OU null. Si émis, contient EXACTEMENT les 7 clés suivantes :
+                "map_disciplinaire_nature" : chaîne dans l'enum {"DISCIPLINAIRE", "CONSERVATOIRE", "INCONNUE"}. DISCIPLINAIRE si la lettre qualifie expressément la mesure de mise à pied disciplinaire (sanction définitive privant de salaire — L. 1331-1 CT). CONSERVATOIRE si la lettre qualifie la mesure de mise à pied conservatoire (mesure provisoire dans l'attente de la décision finale — Cass. soc. 26/10/2010 n°09-42.740). INCONNUE si la lettre est silencieuse sur la nature de la mesure. Null si la nature n'est pas déterminable depuis les pièces. Ne JAMAIS retourner "INCONNUE" pour signifier "non documenté" — utiliser null dans ce cas.
+                "map_disciplinaire_procedure_suivie" : booléen. true si la procédure disciplinaire (L. 1332-1 à L. 1332-3 CT) a été suivie : convocation à entretien préalable + entretien tenu + notification écrite de la sanction. false si la procédure d'entretien préalable a été omise ou écourtée (sanction notifiée sans entretien, convocation absente). Null si la procédure n'est pas documentée.
+                "map_disciplinaire_prescription_faute" : booléen. true si la sanction a été notifiée dans le délai de 2 mois à compter de la connaissance des faits par l'employeur (L. 1332-4 CT). false si la sanction a été notifiée plus de 2 mois après la connaissance des faits (prescription dépassée). Null si la date de connaissance des faits ou la date de notification n'est pas documentée.
+                "map_disciplinaire_duree_ri" : booléen. true si la durée de la mise à pied disciplinaire est prévue par le règlement intérieur ou un accord collectif applicable (L. 1311-2 CT). false si la durée n'est prévue par aucun texte interne (la sanction est alors nulle). Null si le règlement intérieur n'est pas produit aux pièces.
+                "map_disciplinaire_duree_jours" : entier (nombre de jours calendaires). Durée de la mise à pied telle qu'indiquée dans la lettre de notification. Convertir en jours si la lettre exprime la durée en semaines (1 semaine = 7 jours) ou en mois (1 mois = 30 jours). Valeur attendue entre 0 et 365 ; toute valeur hors plage sera ignorée. Null si la durée n'est pas chiffrée dans les pièces.
+                "map_disciplinaire_salaire_suspendu" : booléen. true si le bulletin de paie de la période de mise à pied atteste effectivement de la suspension du salaire (incohérent avec une mise à pied conservatoire suivie d'une sanction inférieure au licenciement — Cass. soc. 26/10/2010). false si le salaire a été maintenu durant la période. Null si le bulletin de paie correspondant n'est pas produit.
+                "map_disciplinaire_sanctions_anterieures" : booléen. true si une sanction antérieure (avertissement, blâme, mise à pied antérieure) a déjà été prononcée pour les MÊMES faits — double sanction interdite par la jurisprudence Cass. soc. constante (principe non bis in idem disciplinaire). false si aucune sanction antérieure pour les mêmes faits n'est documentée. Null si les antécédents disciplinaires ne sont pas accessibles.
+              Règle NO-OP mise_a_pied_detail : si aucune pièce n'évoque une mise à pied, émettre "mise_a_pied_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 8 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -846,7 +865,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART4)
                     .concat(TRAVAIL_INSTRUCTION_PART5)
                     .concat(TRAVAIL_INSTRUCTION_PART6)
-                    .concat(TRAVAIL_INSTRUCTION_PART7);
+                    .concat(TRAVAIL_INSTRUCTION_PART7)
+                    .concat(TRAVAIL_INSTRUCTION_PART8);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 
