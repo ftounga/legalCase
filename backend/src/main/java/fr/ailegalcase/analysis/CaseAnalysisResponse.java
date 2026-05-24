@@ -179,6 +179,8 @@ public record CaseAnalysisResponse(
             boolean teletravailLitigeDetecte,
             // SF-212-19 : nouveau flag F-205 — déclenche F-DT-48 mise à pied disciplinaire (FR).
             boolean miseAPiedDisciplinaireDetectee,
+            // SF-212-23 : nouveau flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes (FR).
+            boolean egaliteSalarialePressentie,
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -584,7 +586,27 @@ public record CaseAnalysisResponse(
             Boolean mapDisciplinaireDureeRi,
             Integer mapDisciplinaireDureeJours,
             Boolean mapDisciplinaireSalaireSuspendu,
-            Boolean mapDisciplinaireSanctionsAnterieures) {
+            Boolean mapDisciplinaireSanctionsAnterieures,
+            // SF-212-23 : sous-objet IA pour pré-fill F-DT-56-egalite-salariale-femmes-hommes (FR).
+            // Regroupé en un seul record imbriqué pour rester sous la limite JVM 255 slots du
+            // constructeur canonical du record TravailExtractedData (≈ saturé par les vagues
+            // F-212 antérieures — cf. SF-212-19 PR #1300, l'agent A SF-212-17 et SF-212-23 ne
+            // peuvent ajouter qu'un nombre minimal de params au record). Sub-flag de
+            // egaliteSalarialePressentie : null si non documenté ou hors FRANCE.
+            EgaliteSalarialeDetail egaliteSalarialeDetail) {
+
+        /**
+         * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
+         * salariale femmes/hommes, FRANCE — L. 1142-7 à L. 1142-10 CT ;
+         * L. 1144-1 CT ; loi 05/09/2018). Tous champs nullables ; null
+         * implique pas de données IA pour la projection sur le formulaire UI.
+         */
+        public record EgaliteSalarialeDetail(
+                String sexeSalarie,
+                Double salaireBrut,
+                Integer anciennete,
+                Double ecartPourcentage
+        ) {}
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -648,6 +670,7 @@ public record CaseAnalysisResponse(
                     .modificationContratRefusee(modificationContratRefusee)
                     .teletravailLitigeDetecte(teletravailLitigeDetecte)
                     .miseAPiedDisciplinaireDetectee(miseAPiedDisciplinaireDetectee)
+                    .egaliteSalarialePressentie(egaliteSalarialePressentie)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -874,7 +897,9 @@ public record CaseAnalysisResponse(
                     .mapDisciplinaireDureeRi(mapDisciplinaireDureeRi)
                     .mapDisciplinaireDureeJours(mapDisciplinaireDureeJours)
                     .mapDisciplinaireSalaireSuspendu(mapDisciplinaireSalaireSuspendu)
-                    .mapDisciplinaireSanctionsAnterieures(mapDisciplinaireSanctionsAnterieures);
+                    .mapDisciplinaireSanctionsAnterieures(mapDisciplinaireSanctionsAnterieures)
+                    // SF-212-23 — egalite_salariale_detail (FRANCE uniquement)
+                    .egaliteSalarialeDetail(egaliteSalarialeDetail);
         }
 
         public static final class Builder {
@@ -928,6 +953,8 @@ public record CaseAnalysisResponse(
             private boolean teletravailLitigeDetecte;
             // SF-212-19 — F-205 flag (FRANCE only) — déclenche F-DT-48 mise à pied disciplinaire.
             private boolean miseAPiedDisciplinaireDetectee;
+            // SF-212-23 — F-205 flag (FRANCE only) — déclenche F-DT-56 égalité salariale femmes/hommes.
+            private boolean egaliteSalarialePressentie;
             private boolean fauteGraveEnvisagee;
             private boolean fauteLourdeEnvisagee;
             private boolean cddRequalificationEnvisagee;
@@ -1160,6 +1187,8 @@ public record CaseAnalysisResponse(
             private Integer mapDisciplinaireDureeJours;
             private Boolean mapDisciplinaireSalaireSuspendu;
             private Boolean mapDisciplinaireSanctionsAnterieures;
+            // SF-212-23 — egalite_salariale_detail (FRANCE uniquement) — sous-record regroupé.
+            private EgaliteSalarialeDetail egaliteSalarialeDetail;
 
             private Builder() {}
 
@@ -1213,6 +1242,8 @@ public record CaseAnalysisResponse(
             public Builder teletravailLitigeDetecte(boolean v) { this.teletravailLitigeDetecte = v; return this; }
             // SF-212-19 — F-205 flag (FRANCE only) — déclenche F-DT-48 mise à pied disciplinaire.
             public Builder miseAPiedDisciplinaireDetectee(boolean v) { this.miseAPiedDisciplinaireDetectee = v; return this; }
+            // SF-212-23 — F-205 flag (FRANCE only) — déclenche F-DT-56 égalité salariale femmes/hommes.
+            public Builder egaliteSalarialePressentie(boolean v) { this.egaliteSalarialePressentie = v; return this; }
             public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
             public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
             public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
@@ -1440,6 +1471,8 @@ public record CaseAnalysisResponse(
             public Builder mapDisciplinaireDureeJours(Integer v) { this.mapDisciplinaireDureeJours = v; return this; }
             public Builder mapDisciplinaireSalaireSuspendu(Boolean v) { this.mapDisciplinaireSalaireSuspendu = v; return this; }
             public Builder mapDisciplinaireSanctionsAnterieures(Boolean v) { this.mapDisciplinaireSanctionsAnterieures = v; return this; }
+            // SF-212-23 — egalite_salariale_detail (FRANCE uniquement) — sous-record regroupé.
+            public Builder egaliteSalarialeDetail(EgaliteSalarialeDetail v) { this.egaliteSalarialeDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1466,6 +1499,8 @@ public record CaseAnalysisResponse(
                         teletravailLitigeDetecte,
                         // SF-212-19 — F-205 flag F-DT-48 mise à pied disciplinaire.
                         miseAPiedDisciplinaireDetectee,
+                        // SF-212-23 — F-205 flag F-DT-56 égalité salariale femmes/hommes.
+                        egaliteSalarialePressentie,
                         fauteGraveEnvisagee,
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
@@ -1615,7 +1650,9 @@ public record CaseAnalysisResponse(
                         mapDisciplinaireDureeRi,
                         mapDisciplinaireDureeJours,
                         mapDisciplinaireSalaireSuspendu,
-                        mapDisciplinaireSanctionsAnterieures);
+                        mapDisciplinaireSanctionsAnterieures,
+                        // SF-212-23 — egalite_salariale_detail (FRANCE uniquement) — sous-record regroupé.
+                        egaliteSalarialeDetail);
             }
         }
     }
@@ -4193,6 +4230,16 @@ public record CaseAnalysisResponse(
             // SF-212-19 : sous-objet pour pré-fill F-DT-48 (mise à pied disciplinaire FR).
             JsonNode miseAPiedDetail = node.get("mise_a_pied_detail");
             boolean hasMiseAPied = miseAPiedDetail != null && miseAPiedDetail.isObject();
+            // SF-212-23 : sous-objet pour pré-fill F-DT-56 (égalité salariale femmes/hommes FR).
+            JsonNode egaliteSalarialeDetailNode = node.get("egalite_salariale_detail");
+            boolean hasEgaliteSalariale = egaliteSalarialeDetailNode != null && egaliteSalarialeDetailNode.isObject();
+            TravailExtractedData.EgaliteSalarialeDetail egaliteSalarialeDetail = hasEgaliteSalariale
+                    ? new TravailExtractedData.EgaliteSalarialeDetail(
+                            textOrNull(egaliteSalarialeDetailNode, "egalite_salariale_sexe_salarie"),
+                            doubleOrNull(egaliteSalarialeDetailNode, "egalite_salariale_salaire_brut"),
+                            intOrNull(egaliteSalarialeDetailNode, "egalite_salariale_anciennete"),
+                            doubleOrNull(egaliteSalarialeDetailNode, "egalite_salariale_ecart_pourcentage"))
+                    : null;
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4252,6 +4299,8 @@ public record CaseAnalysisResponse(
                     .teletravailLitigeDetecte(booleanOrFalse(node, "teletravail_litige_detecte"))
                     // SF-212-19 : flag F-205 — déclenche F-DT-48 mise à pied disciplinaire.
                     .miseAPiedDisciplinaireDetectee(booleanOrFalse(node, "mise_a_pied_disciplinaire_detectee"))
+                    // SF-212-23 : flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes.
+                    .egaliteSalarialePressentie(booleanOrFalse(node, "egalite_salariale_pressentie"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4564,6 +4613,8 @@ public record CaseAnalysisResponse(
                     .mapDisciplinaireDureeJours(hasMiseAPied ? intOrNull(miseAPiedDetail, "map_disciplinaire_duree_jours") : null)
                     .mapDisciplinaireSalaireSuspendu(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_salaire_suspendu") : null)
                     .mapDisciplinaireSanctionsAnterieures(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_sanctions_anterieures") : null)
+                    // SF-212-23 : sous-objet IA pour pré-fill F-DT-56 (égalité salariale femmes/hommes FR).
+                    .egaliteSalarialeDetail(egaliteSalarialeDetail)
                     .build();
         } catch (Exception ignored) { return null; }
     }

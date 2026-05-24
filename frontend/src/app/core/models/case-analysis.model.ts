@@ -894,6 +894,17 @@ export interface TravailExtractedData {
   /** Sanction antérieure pour les mêmes faits — double sanction interdite. */
   mapDisciplinaireSanctionsAnterieures?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-23 — sous-objet `egalite_salariale_detail` (FRANCE only)
+  // Pré-fill F-DT-56 (égalité salariale femmes/hommes — L. 1142-7 à L. 1142-10 CT ;
+  // L. 1144-1 CT charge de la preuve aménagée ; L. 3221-2 CT à travail égal
+  // salaire égal ; loi 05/09/2018 « avenir professionnel »). Regroupé en sous-objet
+  // imbriqué pour rester sous la limite JVM 255 slots du constructeur canonical
+  // du record TravailExtractedData côté backend (saturé par les vagues F-212).
+  // Tous nullables — reste `null` pour un dossier Travail BE.
+  // -------------------------------------------------------------------------
+  /** Sous-objet IA pour pré-fill F-DT-56 (FRANCE only) — null si non documenté. */
+  egaliteSalarialeDetail?: EgaliteSalarialeDetail | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation
@@ -985,6 +996,22 @@ export interface HeuresSupMentionnees {
   totalDeclarees25pct?: number | null;
   totalDeclarees50pct?: number | null;
   horsContingent?: number | null;
+}
+
+/**
+ * SF-212-23 — sous-objet IA pour l'outil F-DT-56 (égalité salariale
+ * femmes/hommes, FRANCE). Tous champs nullables ; null implique pas de
+ * données IA pour la projection sur le formulaire UI.
+ */
+export interface EgaliteSalarialeDetail {
+  /** Sexe du salarié — FEMME | HOMME. */
+  sexeSalarie?: string | null;
+  /** Salaire mensuel brut en euros. */
+  salaireBrut?: number | null;
+  /** Ancienneté dans l'entreprise en mois. */
+  anciennete?: number | null;
+  /** Écart en pourcentage avec les comparants identifiés (0 à 100). */
+  ecartPourcentage?: number | null;
 }
 
 export interface ImmigrationExtractedData {

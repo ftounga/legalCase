@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200023-create" author="legalcase">
+        <comment>
+            SF-212-23 : table dédiée à l'outil décisionnel "Égalité salariale
+            femmes-hommes" (F-DT-56-egalite-salariale-femmes-hommes, FRANCE —
+            fondements : L. 1142-7 à L. 1142-10 CT — principe d'égalité de
+            rémunération et obligations employeur ; L. 1144-1 CT — charge de la
+            preuve aménagée (le salarié établit des faits laissant supposer la
+            discrimination, l'employeur prouve les éléments objectifs étrangers
+            à toute discrimination) ; loi 05/09/2018 « avenir professionnel »
+            instituant l'index égalité (entreprises ≥ 50 salariés) ; L. 1132-1
+            CT — interdiction des discriminations ; L. 3221-2 CT — principe à
+            travail égal salaire égal ; L. 1134-5 CT — prescription 5 ans pour
+            l'action individuelle).
+
+            L'outil distingue trois verdicts :
+            - DISCRIMINATION_PROBABLE : écart salarial > 20 % + comparants
+              identifiés de sexe opposé mieux rémunérés à qualification et
+              ancienneté équivalentes + absence de justifications objectives
+              de l'employeur. La charge de la preuve aménagée (L. 1144-1)
+              joue pleinement, dommages non plafonnés (hors barème Macron).
+            - DISCRIMINATION_POSSIBLE : écart modéré (entre 5 % et 20 %) OU
+              comparants identifiés sans écart marqué OU index égalité faible
+              (&lt; 75/100). La preuve d'une discrimination reste à étayer.
+            - PAS_DE_DISCRIMINATION_APPARENTE : écart négligeable OU
+              justifications objectives produites par l'employeur OU absence
+              de comparants identifiables.
+
+            Outil single-country FRANCE — l'index égalité L. 1142-8 CT et la
+            charge de la preuve aménagée L. 1144-1 CT sont propres au droit
+            français (côté BE, régime distinct fondé sur la loi du 22/04/2012
+            et la CCT n°25 — non couvert ici).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09 / SF-212-11 / SF-212-13 /
+            SF-212-19).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 336
+            (couplée à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="egalite_salariale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_egalite_salariale_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="egalite_salariale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_egalite_salariale_analyses_case_file"/>
+
+        <createIndex tableName="egalite_salariale_analyses"
+                     indexName="idx_egalite_salariale_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="egalite_salariale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

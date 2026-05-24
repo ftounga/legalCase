@@ -235,6 +235,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "modification_contrat_refusee");
         // SF-212-19 : nouveau flag F-205 — déclenche F-DT-48 mise à pied disciplinaire.
         addBooleanFlagIfTrue(detected, travailNode, "mise_a_pied_disciplinaire_detectee");
+        // SF-212-23 : nouveau flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes.
+        addBooleanFlagIfTrue(detected, travailNode, "egalite_salariale_pressentie");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");
