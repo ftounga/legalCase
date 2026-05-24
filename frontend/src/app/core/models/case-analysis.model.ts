@@ -831,6 +831,26 @@ export interface TravailExtractedData {
   /** Notification écrite L. 1222-6 (LRAR) envoyée au salarié. */
   modifContratNotifEcrite?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-13 — sous-objet `mutation_mobilite_detail` (FRANCE only)
+  // Pré-fill F-DT-71 (mutation — validité de la clause de mobilité — Cass.
+  // soc. constante : zone précise, intérêt légitime, délai de prévenance,
+  // motif professionnel, situation familiale).
+  // Tous nullables — restent `null` pour un dossier Travail BE (régime de
+  // modification d'un élément essentiel du contrat, Loi du 03/07/1978).
+  // -------------------------------------------------------------------------
+  /** Clause de mobilité contractuelle présente dans le contrat (ou avenant signé). */
+  mutationClausePresente?: boolean | null;
+  /** Zone géographique de la clause définie avec précision (Cass. soc. 07/06/2006). */
+  mutationZoneGeographiquePrecise?: boolean | null;
+  /** Intérêt légitime de l'employeur démontré (Cass. soc. 23/02/2005). */
+  mutationInteretLegitimeEmployeur?: boolean | null;
+  /** Délai de prévenance accordé en semaines (Cass. soc. 03/03/2010). */
+  mutationDelaiPrevenanceSemaines?: number | null;
+  /** Situation familiale du salarié contraignante (Cass. soc. 14/10/2008). */
+  mutationSituationFamilialeContraingnante?: boolean | null;
+  /** Motif de la mutation rattaché à un besoin professionnel objectif. */
+  mutationMotifProfessionnel?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

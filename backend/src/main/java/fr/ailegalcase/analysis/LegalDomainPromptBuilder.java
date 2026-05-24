@@ -798,7 +798,24 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 5 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-13 : 6e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART6 = """
+              SF-212-13 — Sous-objet `mutation_mobilite_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent une mutation imposée par l'employeur sur le fondement d'une clause de mobilité (clause mobilité contractuelle citée, courrier de mutation, lettre de mutation imposée, refus écrit du salarié, lettre de licenciement consécutive éventuelle). Laisser null si aucun indice de mutation par clause de mobilité n'est présent. Sub-flag de `mutation_refusee` : émettre uniquement si une réponse du salarié est documentée ou anticipée.
+              "mutation_mobilite_detail" : objet OU null. Si émis, contient EXACTEMENT les 6 clés suivantes :
+                "mutation_clause_presente" : booléen. true si une clause de mobilité est explicitement présente dans le contrat de travail ou un avenant signé (clause citée par référence à un article du contrat, paragraphe spécifique mentionnant "clause de mobilité", obligation contractuelle de mobilité documentée). false si aucune clause de mobilité n'est documentée alors qu'une mutation est envisagée. Null si non déterminable depuis les pièces.
+                "mutation_zone_geographique_precise" : booléen. true si la zone géographique de la clause est définie avec précision (région nommée, départements listés, rayon kilométrique autour d'un point — Cass. soc. 07/06/2006 n°04-45.846). false si la zone est imprécise ou formulée "France entière" / "tout territoire" sans justification par le secteur d'activité (Cass. soc. 24/01/2008 n°06-45.088). Null si la clause n'est pas lisible ou en l'absence de clause.
+                "mutation_interet_legitime_employeur" : booléen. true si la mutation est justifiée par un intérêt légitime objectif de l'entreprise (réorganisation documentée, ouverture/fermeture de site, transfert de poste, besoin de compétences sur un autre site — Cass. soc. 23/02/2005 n°03-42.018). false si la mutation paraît motivée par un détournement de pouvoir (motif disciplinaire déguisé, vengeance, mise à l'écart). Null si l'intérêt n'est pas documenté.
+                "mutation_delai_prevenance_semaines" : entier (nombre de semaines). Délai de prévenance accordé au salarié entre la notification de la mutation et la prise d'effet effective. Convertir en semaines si la lettre exprime le délai en jours (7 jours = 1 semaine) ou en mois (1 mois = 4 semaines). Valeur attendue entre 0 et 52 ; toute valeur hors plage sera ignorée. Le seuil de Cass. soc. 03/03/2010 n°08-44.859 est apprécié à 2 semaines minimum. Null si le délai n'est pas chiffré dans les pièces.
+                "mutation_situation_familiale_contraingnante" : booléen. true si la situation familiale du salarié est contraignante (enfants en bas âge, scolarisation, conjoint travaillant localement, parents à charge, garde alternée — Cass. soc. 14/10/2008 n°07-40.523). false si aucune contrainte familiale n'est documentée. Null si la situation personnelle du salarié n'est pas évoquée.
+                "mutation_motif_professionnel" : booléen. true si le motif de la mutation est rattaché à un besoin professionnel objectif (réorganisation, ouverture de site, transfert de poste, équilibrage d'effectifs). false si la mutation semble relever d'un motif personnel ou disciplinaire déguisé. Null si le motif n'est pas documenté.
+              Règle NO-OP mutation_mobilite_detail : si aucune pièce n'évoque une mutation par clause de mobilité, émettre "mutation_mobilite_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 6 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -808,7 +825,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART2)
                     .concat(TRAVAIL_INSTRUCTION_PART3)
                     .concat(TRAVAIL_INSTRUCTION_PART4)
-                    .concat(TRAVAIL_INSTRUCTION_PART5);
+                    .concat(TRAVAIL_INSTRUCTION_PART5)
+                    .concat(TRAVAIL_INSTRUCTION_PART6);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

@@ -1,0 +1,262 @@
+<section class="mcm-section">
+  <header class="mcm-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="mcm-body">
+    <mat-icon class="mcm-icon">swap_horiz</mat-icon>
+    <span class="mcm-title">MUTATION — CLAUSE DE MOBILITÉ</span>
+    @if (result()) {
+      <span class="mcm-chip-summary"
+            [class.mcm-chip-summary--valide]="result()!.analyseMutation === 'CLAUSE_VALIDE'"
+            [class.mcm-chip-summary--invalide]="result()!.analyseMutation === 'CLAUSE_INVALIDE'"
+            [class.mcm-chip-summary--absence]="result()!.analyseMutation === 'ABSENCE_CLAUSE'">
+        {{ verdictBannerLabel(result()!.analyseMutation) }} — score {{ result()!.scoreMutation }} / 100
+      </span>
+    }
+    <mat-icon class="mcm-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mcm-body" class="mcm-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="mcm-country-banner" data-testid="mcm-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (Cass. soc. constante sur la clause de mobilité — en Belgique, régime distinct de modification d'un élément essentiel du contrat, Loi du 03/07/1978).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="mcm-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="mcm-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Existence + précision de la clause -->
+            <div class="mcm-block mcm-full">
+              <span class="mcm-block-label">Clause de mobilité (Cass. soc. 03/06/2003 ; Cass. soc. 24/01/2008)</span>
+
+              <div class="mcm-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="clauseMobilitePresente()"
+                    (ngModelChange)="onClausePresenteChange($event)"
+                    name="clauseMobilitePresente"
+                    data-testid="mcm-toggle-clause">
+                  Clause de mobilité présente dans le contrat
+                </mat-slide-toggle>
+                @if (provenanceClausePresente() === 'IA') {
+                  <span class="mcm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              @if (clauseMobilitePresente()) {
+                <div class="mcm-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="zoneGeographiquePrecise()"
+                      (ngModelChange)="onZonePreciseChange($event)"
+                      name="zoneGeographiquePrecise"
+                      data-testid="mcm-toggle-zone">
+                    Zone géographique définie avec précision
+                  </mat-slide-toggle>
+                  @if (provenanceZonePrecise() === 'IA') {
+                    <span class="mcm-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Bloc 2 — Mise en oeuvre : intérêt légitime + motif + délai -->
+            @if (clauseMobilitePresente()) {
+              <div class="mcm-block mcm-full">
+                <span class="mcm-block-label">Mise en œuvre de la clause (Cass. soc. 23/02/2005 ; Cass. soc. 03/03/2010)</span>
+
+                <div class="mcm-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="interetLegitimeEmployeur()"
+                      (ngModelChange)="onInteretLegitimeChange($event)"
+                      name="interetLegitimeEmployeur"
+                      data-testid="mcm-toggle-interet">
+                    Intérêt légitime de l'employeur démontré
+                  </mat-slide-toggle>
+                  @if (provenanceInteretLegitime() === 'IA') {
+                    <span class="mcm-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+
+                <div class="mcm-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="motifMutationProfessionnel()"
+                      (ngModelChange)="onMotifProChange($event)"
+                      name="motifMutationProfessionnel"
+                      data-testid="mcm-toggle-motif-pro">
+                    Motif professionnel objectif (pas de motif disciplinaire déguisé)
+                  </mat-slide-toggle>
+                  @if (provenanceMotifPro() === 'IA') {
+                    <span class="mcm-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+
+                <mat-form-field appearance="outline" class="mcm-inline-field">
+                  <mat-label>Délai de prévenance accordé (semaines)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="delaiPrevenanceSemaines()"
+                         (ngModelChange)="onDelaiChange($event)"
+                         name="delaiPrevenanceSemaines"
+                         data-testid="mcm-input-delai" />
+                </mat-form-field>
+                @if (provenanceDelai() === 'IA') {
+                  <span class="mcm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            }
+
+            <!-- Bloc 3 — Situation personnelle + réponse -->
+            <div class="mcm-block mcm-full">
+              <span class="mcm-block-label">Situation du salarié (Cass. soc. 14/10/2008)</span>
+
+              <div class="mcm-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="situationFamilialeSalarieContraignante()"
+                    (ngModelChange)="onSituationFamilialeChange($event)"
+                    name="situationFamilialeSalarieContraignante"
+                    data-testid="mcm-toggle-famille">
+                  Situation familiale contraignante (enfants, conjoint, soins)
+                </mat-slide-toggle>
+                @if (provenanceSituationFamiliale() === 'IA') {
+                  <span class="mcm-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="mcm-inline-field">
+                <mat-label>Réponse du salarié</mat-label>
+                <mat-select
+                    [ngModel]="reponseSalarie()"
+                    (ngModelChange)="onReponseChange($event)"
+                    name="reponseSalarie"
+                    data-testid="mcm-select-reponse">
+                  @for (opt of reponseOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="mcm-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="mcm-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="mcm-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseMutation)"
+                 data-testid="mcm-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseMutation) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseMutation) }}</span>
+            </div>
+
+            <!-- Conséquences du refus (chapeau textuel) -->
+            @if (result()!.consequencesRefus) {
+              <div class="mcm-consequences-summary" data-testid="mcm-consequences-refus">
+                <mat-icon>gavel</mat-icon>
+                <span [innerHTML]="result()!.consequencesRefus | legalCitations"></span>
+              </div>
+            }
+
+            <!-- Score -->
+            <div class="mcm-figures-block">
+              <div class="mcm-figure">
+                <span class="mcm-figure-label">Score mutation</span>
+                <span class="mcm-figure-value">{{ result()!.scoreMutation }} / 100</span>
+              </div>
+            </div>
+
+            <!-- Points d'analyse F-IA-03 -->
+            @if (result()!.pointsAnalyse?.length) {
+              <div class="mcm-points-block">
+                <span class="mcm-points-label">Points d'analyse ({{ result()!.pointsAnalyse.length }})</span>
+                <ul class="mcm-points-list">
+                  @for (p of result()!.pointsAnalyse; track pointTrackKey($index, p)) {
+                    <li class="mcm-point-item" data-testid="mcm-point-item">
+                      <div class="mcm-point-header">
+                        <span class="mcm-point-libelle">{{ p.code }} — {{ p.libelle }}</span>
+                      </div>
+                      <span class="mcm-point-conclusion">{{ p.conclusion }}</span>
+                      <span class="mcm-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Conséquences du refus (liste détaillée) -->
+            @if (result()!.consequences?.length) {
+              <div class="mcm-points-block">
+                <span class="mcm-points-label">Conséquences ({{ result()!.consequences.length }})</span>
+                <ul class="mcm-points-list">
+                  @for (c of result()!.consequences; track consequenceTrackKey($index, c)) {
+                    <li class="mcm-point-item" data-testid="mcm-consequence-item">
+                      <div class="mcm-point-header">
+                        <span class="mcm-point-libelle">{{ c.type }}</span>
+                      </div>
+                      <span class="mcm-point-description">{{ c.description }}</span>
+                      <span class="mcm-point-fondement" [innerHTML]="c.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="mcm-bases-block">
+                <span class="mcm-bases-label">Bases juridiques</span>
+                <div class="mcm-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="mcm-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="mcm-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="mcm-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
