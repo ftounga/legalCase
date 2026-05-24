@@ -1,0 +1,245 @@
+/**
+ * SF-212-16 : styles outil "Télétravail — conformité et litige"
+ * (F-DT-82). Aligné sur le template canonique
+ * `mutation-clause-mobilite-section`.
+ *
+ * Palette verdict 3 niveaux :
+ *   - vert (CONFORME — dispositif respectant L. 1222-9 + ANI 2020)
+ *   - rouge (NON_CONFORME — absence cadre / violation structurelle)
+ *   - or (LITIGE_IDENTIFIE — litige caractérisé)
+ *
+ * Alertes distinctes — AT domicile (bleu médical), refus-licenciement (rouge).
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées et
+ * les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.tta-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.tta-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.tta-icon { color: var(--ds-accent-navy, #1d3557); }
+.tta-title { flex: 1; font-weight: 600; letter-spacing: 0.04em; }
+.tta-toggle { color: var(--ds-text-muted, #8a8475); }
+
+.tta-chip-summary {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  &--conforme { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+  &--non-conforme { background: rgba(211, 47, 47, 0.12); color: #c62828; }
+  &--litige { background: rgba(201, 165, 75, 0.18); color: #8a6b1d; }
+}
+
+.tta-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tta-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.1);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  color: #5a4a1a;
+  font-size: 14px;
+}
+
+.tta-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.tta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.tta-full { width: 100%; }
+
+.tta-block-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.tta-inline-field { width: 100%; }
+
+.tta-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tta-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ds-accent-gold, #c9a54b);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.tta-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tta-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tta-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+
+  &--conforme { background: rgba(46, 125, 50, 0.12); color: #1b5e20; }
+  &--non-conforme { background: rgba(211, 47, 47, 0.12); color: #8a1a1a; }
+  &--litige { background: rgba(201, 165, 75, 0.2); color: #6a4f0a; }
+}
+
+/* Alertes distinctes — chaque alerte sur son propre bandeau pour UX explicite. */
+.tta-alerte {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+
+  &--at {
+    background: rgba(33, 150, 243, 0.10);
+    border: 1px solid rgba(33, 150, 243, 0.35);
+    color: #0d47a1;
+    mat-icon { color: #1565c0; }
+  }
+  &--refus {
+    background: rgba(211, 47, 47, 0.10);
+    border: 1px solid rgba(211, 47, 47, 0.35);
+    color: #8a1a1a;
+    mat-icon { color: #c62828; }
+  }
+}
+
+.tta-figures-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.tta-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+
+  &--alert {
+    border-color: rgba(211, 47, 47, 0.4);
+    background: rgba(211, 47, 47, 0.06);
+  }
+}
+
+.tta-figure-label { font-size: 11px; text-transform: uppercase; color: var(--ds-text-muted, #8a8475); }
+.tta-figure-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+.tta-points-block,
+.tta-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.tta-points-label,
+.tta-bases-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.tta-points-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.tta-point-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.tta-point-header { display: flex; justify-content: space-between; align-items: center; }
+.tta-point-libelle { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.tta-point-conclusion { font-size: 13px; color: var(--ds-text, #1f1f1f); }
+.tta-point-fondement { font-size: 12px; color: var(--ds-text-muted, #8a8475); font-family: 'JetBrains Mono', monospace; }
+
+.tta-bases-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.tta-base-chip {
+  padding: 4px 10px;
+  background: rgba(29, 53, 87, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tta-meta { display: flex; justify-content: flex-end; }
+
+.tta-messages {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ds-text, #1f1f1f);
+  font-size: 13px;
+}

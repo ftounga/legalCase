@@ -176,6 +176,7 @@ public record CaseAnalysisResponse(
             boolean cspPropose,
             boolean mutationRefusee,
             boolean modificationContratRefusee,
+            boolean teletravailLitigeDetecte,
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -565,7 +566,15 @@ public record CaseAnalysisResponse(
             Boolean mutationInteretLegitimeEmployeur,
             Integer mutationDelaiPrevenanceSemaines,
             Boolean mutationSituationFamilialeContraingnante,
-            Boolean mutationMotifProfessionnel) {
+            Boolean mutationMotifProfessionnel,
+            // SF-212-15 : 7 champs IA pour pré-fill F-DT-82-teletravail-accord (FR).
+            String teletravailCadre,
+            Boolean teletravailDoubleVolontariat,
+            Boolean teletravailIndemniteVersee,
+            Double teletravailMontantIndemniteJournalier,
+            Boolean teletravailAccidentDomicile,
+            Boolean teletravailRetourBureauImpose,
+            Boolean teletravailRefusCauseIncrimination) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -627,6 +636,7 @@ public record CaseAnalysisResponse(
                     .cspPropose(cspPropose)
                     .mutationRefusee(mutationRefusee)
                     .modificationContratRefusee(modificationContratRefusee)
+                    .teletravailLitigeDetecte(teletravailLitigeDetecte)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -837,7 +847,15 @@ public record CaseAnalysisResponse(
                     .mutationInteretLegitimeEmployeur(mutationInteretLegitimeEmployeur)
                     .mutationDelaiPrevenanceSemaines(mutationDelaiPrevenanceSemaines)
                     .mutationSituationFamilialeContraingnante(mutationSituationFamilialeContraingnante)
-                    .mutationMotifProfessionnel(mutationMotifProfessionnel);
+                    .mutationMotifProfessionnel(mutationMotifProfessionnel)
+                    // SF-212-15 — teletravail_detail (FRANCE uniquement)
+                    .teletravailCadre(teletravailCadre)
+                    .teletravailDoubleVolontariat(teletravailDoubleVolontariat)
+                    .teletravailIndemniteVersee(teletravailIndemniteVersee)
+                    .teletravailMontantIndemniteJournalier(teletravailMontantIndemniteJournalier)
+                    .teletravailAccidentDomicile(teletravailAccidentDomicile)
+                    .teletravailRetourBureauImpose(teletravailRetourBureauImpose)
+                    .teletravailRefusCauseIncrimination(teletravailRefusCauseIncrimination);
         }
 
         public static final class Builder {
@@ -888,6 +906,7 @@ public record CaseAnalysisResponse(
             private boolean cspPropose;
             private boolean mutationRefusee;
             private boolean modificationContratRefusee;
+            private boolean teletravailLitigeDetecte;
             private boolean fauteGraveEnvisagee;
             private boolean fauteLourdeEnvisagee;
             private boolean cddRequalificationEnvisagee;
@@ -1104,6 +1123,14 @@ public record CaseAnalysisResponse(
             private Integer mutationDelaiPrevenanceSemaines;
             private Boolean mutationSituationFamilialeContraingnante;
             private Boolean mutationMotifProfessionnel;
+            // SF-212-15 — teletravail_detail (FRANCE uniquement)
+            private String teletravailCadre;
+            private Boolean teletravailDoubleVolontariat;
+            private Boolean teletravailIndemniteVersee;
+            private Double teletravailMontantIndemniteJournalier;
+            private Boolean teletravailAccidentDomicile;
+            private Boolean teletravailRetourBureauImpose;
+            private Boolean teletravailRefusCauseIncrimination;
 
             private Builder() {}
 
@@ -1154,6 +1181,7 @@ public record CaseAnalysisResponse(
             public Builder cspPropose(boolean v) { this.cspPropose = v; return this; }
             public Builder mutationRefusee(boolean v) { this.mutationRefusee = v; return this; }
             public Builder modificationContratRefusee(boolean v) { this.modificationContratRefusee = v; return this; }
+            public Builder teletravailLitigeDetecte(boolean v) { this.teletravailLitigeDetecte = v; return this; }
             public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
             public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
             public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
@@ -1365,6 +1393,14 @@ public record CaseAnalysisResponse(
             public Builder mutationDelaiPrevenanceSemaines(Integer v) { this.mutationDelaiPrevenanceSemaines = v; return this; }
             public Builder mutationSituationFamilialeContraingnante(Boolean v) { this.mutationSituationFamilialeContraingnante = v; return this; }
             public Builder mutationMotifProfessionnel(Boolean v) { this.mutationMotifProfessionnel = v; return this; }
+            // SF-212-15 — teletravail_detail (FRANCE uniquement)
+            public Builder teletravailCadre(String v) { this.teletravailCadre = v; return this; }
+            public Builder teletravailDoubleVolontariat(Boolean v) { this.teletravailDoubleVolontariat = v; return this; }
+            public Builder teletravailIndemniteVersee(Boolean v) { this.teletravailIndemniteVersee = v; return this; }
+            public Builder teletravailMontantIndemniteJournalier(Double v) { this.teletravailMontantIndemniteJournalier = v; return this; }
+            public Builder teletravailAccidentDomicile(Boolean v) { this.teletravailAccidentDomicile = v; return this; }
+            public Builder teletravailRetourBureauImpose(Boolean v) { this.teletravailRetourBureauImpose = v; return this; }
+            public Builder teletravailRefusCauseIncrimination(Boolean v) { this.teletravailRefusCauseIncrimination = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1387,7 +1423,7 @@ public record CaseAnalysisResponse(
                         abandonPosteDetecte, arretMaladieLongDetecte, priseActeEnvisagee,
                         resiliationJudiciaireEnvisagee, forfaitJoursDetecte, transfertEntrepriseDetecte,
                         fauteInexcusableEnvisagee, csCrpEnvisage, cspPropose,
-                        mutationRefusee, modificationContratRefusee, fauteGraveEnvisagee,
+                        mutationRefusee, modificationContratRefusee, teletravailLitigeDetecte, fauteGraveEnvisagee,
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
                         entretienPreavisObtenu, cseConsultationDemandee, irpElectionDemandee,
@@ -1520,7 +1556,15 @@ public record CaseAnalysisResponse(
                         mutationInteretLegitimeEmployeur,
                         mutationDelaiPrevenanceSemaines,
                         mutationSituationFamilialeContraingnante,
-                        mutationMotifProfessionnel);
+                        mutationMotifProfessionnel,
+                        // SF-212-15 — teletravail_detail (FRANCE uniquement)
+                        teletravailCadre,
+                        teletravailDoubleVolontariat,
+                        teletravailIndemniteVersee,
+                        teletravailMontantIndemniteJournalier,
+                        teletravailAccidentDomicile,
+                        teletravailRetourBureauImpose,
+                        teletravailRefusCauseIncrimination);
             }
         }
     }
@@ -4092,6 +4136,9 @@ public record CaseAnalysisResponse(
             // SF-212-13 : sous-objet pour pré-fill F-DT-71 (mutation clause de mobilité FR).
             JsonNode mutationMobiliteDetail = node.get("mutation_mobilite_detail");
             boolean hasMutationMobilite = mutationMobiliteDetail != null && mutationMobiliteDetail.isObject();
+            // SF-212-15 : sous-objet pour pré-fill F-DT-82 (télétravail — conformité et litige FR).
+            JsonNode teletravailDetail = node.get("teletravail_detail");
+            boolean hasTeletravail = teletravailDetail != null && teletravailDetail.isObject();
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4148,6 +4195,7 @@ public record CaseAnalysisResponse(
                     .cspPropose(booleanOrFalse(node, "csp_propose"))
                     .mutationRefusee(booleanOrFalse(node, "mutation_refusee"))
                     .modificationContratRefusee(booleanOrFalse(node, "modification_contrat_refusee"))
+                    .teletravailLitigeDetecte(booleanOrFalse(node, "teletravail_litige_detecte"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4444,6 +4492,14 @@ public record CaseAnalysisResponse(
                     .mutationDelaiPrevenanceSemaines(hasMutationMobilite ? intOrNull(mutationMobiliteDetail, "mutation_delai_prevenance_semaines") : null)
                     .mutationSituationFamilialeContraingnante(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_situation_familiale_contraingnante") : null)
                     .mutationMotifProfessionnel(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_motif_professionnel") : null)
+                    // SF-212-15 : 7 champs IA pour pré-fill F-DT-82 (télétravail — conformité et litige FR).
+                    .teletravailCadre(hasTeletravail ? textOrNull(teletravailDetail, "teletravail_cadre") : null)
+                    .teletravailDoubleVolontariat(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_double_volontariat") : null)
+                    .teletravailIndemniteVersee(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_indemnite_versee") : null)
+                    .teletravailMontantIndemniteJournalier(hasTeletravail ? doubleOrNull(teletravailDetail, "teletravail_montant_indemnite_journalier") : null)
+                    .teletravailAccidentDomicile(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_accident_domicile") : null)
+                    .teletravailRetourBureauImpose(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_retour_bureau_impose") : null)
+                    .teletravailRefusCauseIncrimination(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_refus_cause_incrimination") : null)
                     .build();
         } catch (Exception ignored) { return null; }
     }

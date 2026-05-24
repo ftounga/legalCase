@@ -551,6 +551,7 @@ public final class LegalDomainPromptBuilder {
               "csp_propose" : booléen — true uniquement si l'employeur a explicitement PROPOSÉ un CSP au salarié (entretien préalable mentionnant le CSP, document de proposition CSP remis, attestation de remise du document d'information CSP). Distinct de "cs_crp_envisage" qui couvre l'envisage stratégique côté avocat — ici on factualise la proposition employeur. False par défaut.
               "mutation_refusee" : booléen — true uniquement si les pièces évoquent une mutation imposée par l'employeur sur le fondement d'une clause de mobilité refusée par le salarié (clause mobilité contractuelle citée, courrier de mutation, refus écrit du salarié, lettre de licenciement consécutive éventuelle). False par défaut. Pertinent pour F-DT-71.
               "modification_contrat_refusee" : booléen — true uniquement si les pièces évoquent une proposition de modification du contrat (rémunération, durée du travail, qualification, lieu de travail) refusée par le salarié (avenant proposé, courrier de refus, courrier subséquent employeur). False par défaut. Pertinent pour F-DT-70.
+              "teletravail_litige_detecte" : booléen — true uniquement si les pièces évoquent un litige relatif au télétravail au sens des art. L. 1222-9 à L. 1222-11 CT et de l'ANI télétravail du 26/11/2020 (refus d'accorder le télétravail invoqué comme motif disciplinaire ou de licenciement, demande d'indemnité d'occupation du domicile, accident survenu à domicile en télétravail, retour au bureau imposé unilatéralement sans accord ni délai de prévenance, désaccord sur le cadre juridique — accord collectif vs charte vs accord individuel). False par défaut. Pertinent pour F-DT-82.
               "faute_grave_envisagee" : booléen — true uniquement si les pièces évoquent une faute grave reprochée au salarié au sens de la jurisprudence (faute rendant impossible le maintien du salarié dans l'entreprise même pendant la durée du préavis : insubordination répétée, vol, violence, abandon de poste fautif, mise à pied conservatoire). False par défaut. Distinct de "faute_lourde_envisagee" (intention de nuire).
               "faute_lourde_envisagee" : booléen — true uniquement si les pièces évoquent une faute lourde caractérisée par l'intention de nuire à l'employeur (sabotage, divulgation de secrets, concurrence déloyale active pendant le contrat, vol qualifié), avec privation de l'indemnité de congés payés. False par défaut.
               "cdd_requalification_envisagee" : booléen — true uniquement si le dossier vise la requalification d'un CDD ou d'une succession de CDD en CDI au sens des art. L.1245-1+ CT (motif de recours discutable, dépassement de la durée maximale, succession de CDD sans interruption, absence d'écrit, transmission tardive). False par défaut. Pertinent pour F-DT-43.
@@ -815,7 +816,25 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 6 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-15 : 7e part du prompt TRAVAIL — split pour rester sous la limite
+     * UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART7 = """
+              SF-212-15 — Sous-objet `teletravail_detail` (FRANCE UNIQUEMENT — laisser null intégralement pour un dossier BELGIQUE).
+              Émettre UNIQUEMENT si les pièces évoquent un dispositif de télétravail (accord collectif ou charte unilatérale citée, avenant individuel de télétravail, courrier de demande de télétravail, demande d'indemnité d'occupation, accident survenu à domicile en télétravail, courrier de retour au bureau, refus de télétravail invoqué dans un licenciement). Laisser null si aucun indice de télétravail n'est présent. Sub-flag de `teletravail_litige_detecte` : émettre uniquement si un litige ou un motif d'analyse est documenté ou anticipé.
+              "teletravail_detail" : objet OU null. Si émis, contient EXACTEMENT les 7 clés suivantes :
+                "teletravail_cadre" : chaîne. Cadre juridique du télétravail, une des valeurs : ACCORD_COLLECTIF, CHARTE_UNILATERALE, ACCORD_INDIVIDUEL, AUCUN. ACCORD_COLLECTIF = accord d'entreprise ou de branche encadrant le télétravail (L. 1222-9 al. 1). CHARTE_UNILATERALE = charte élaborée par l'employeur après consultation du CSE (L. 1222-9 al. 2). ACCORD_INDIVIDUEL = accord direct par tout moyen, avenant ou échange écrit (L. 1222-9 al. 3). AUCUN = pratique informelle sans cadre formalisé. Null si non identifiable depuis les pièces.
+                "teletravail_double_volontariat" : booléen. true si le télétravail repose sur le volontariat documenté de l'employeur ET du salarié (demande écrite du salarié acceptée, avenant signé, échanges montrant l'accord mutuel). false si le télétravail est imposé unilatéralement par l'une des parties hors cas exceptionnels (L. 1222-11 — pandémie, force majeure). Null si la procédure n'est pas documentée.
+                "teletravail_indemnite_versee" : booléen. true si une indemnité d'occupation du domicile / remboursement de frais professionnels est versée au salarié (mention sur bulletin de paie, note de frais validée, accord d'entreprise prévoyant 2,60 €/jour ou montant sur justificatifs — ANI 2020 art. 6.2 ; tolérance URSSAF). false si l'absence de versement est documentée (revendication écrite du salarié, refus exprès employeur). Null si l'indemnité n'est pas évoquée dans les pièces.
+                "teletravail_montant_indemnite_journalier" : nombre décimal (EUROS par jour de télétravail). Montant journalier de l'indemnité d'occupation versée. Reprendre la valeur littérale du bulletin de paie ou de l'accord. Si la pièce exprime un montant mensuel ou hebdomadaire, le ramener au jour en divisant par le nombre de jours travaillés correspondants (mensuel ÷ ~20, hebdomadaire ÷ 5). Valeur attendue entre 0 et 50 ; toute valeur hors plage sera ignorée. Null si non chiffré ou si aucune indemnité n'est versée.
+                "teletravail_accident_domicile" : booléen. true si un accident est survenu au domicile du salarié pendant la plage horaire de télétravail (déclaration d'accident, certificat médical initial AT, contestation par l'employeur du caractère professionnel — présomption L. 1222-9 al. 4). false si aucun accident à domicile n'est documenté ou si l'accident relève hors plage horaire / hors lieu de télétravail. Null si non déterminable.
+                "teletravail_retour_bureau_impose" : booléen. true si l'employeur a imposé unilatéralement le retour au bureau sans accord du salarié ni respect du délai de prévenance prévu par l'accord ou la charte (courrier de fin de télétravail sans préavis, mise en demeure de présence). false si le retour respecte la procédure prévue ou résulte d'un accord mutuel. Null si non documenté.
+                "teletravail_refus_cause_incrimination" : booléen. true si le refus du salarié de télétravailler — ou inversement la demande non satisfaite — est invoqué par l'employeur comme cause ou motif aggravant dans une procédure disciplinaire ou un licenciement (mention dans lettre de licenciement, courrier d'avertissement liant le refus à une faute — l'art. L. 1222-9 al. 6 CT interdit cette qualification). false si aucun lien causal n'est documenté entre télétravail et procédure. Null si non documenté.
+              Règle NO-OP teletravail_detail : si aucune pièce n'évoque le télétravail (ni accord, ni charte, ni avenant, ni litige), émettre "teletravail_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 7 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -826,7 +845,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART3)
                     .concat(TRAVAIL_INSTRUCTION_PART4)
                     .concat(TRAVAIL_INSTRUCTION_PART5)
-                    .concat(TRAVAIL_INSTRUCTION_PART6);
+                    .concat(TRAVAIL_INSTRUCTION_PART6)
+                    .concat(TRAVAIL_INSTRUCTION_PART7);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

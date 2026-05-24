@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200015-create" author="legalcase">
+        <comment>
+            SF-212-15 : table dédiée à l'outil décisionnel "Télétravail —
+            conformité et litige" (F-DT-82-teletravail-accord, FRANCE —
+            L. 1222-9 à L. 1222-11 CT ; ANI télétravail du 26/11/2020 ;
+            accord d'entreprise ou charte unilatérale ; jurisprudence
+            constante Cass. soc. sur le télétravail).
+
+            L'outil distingue trois verdicts :
+            - CONFORME : cadre juridique présent (accord collectif, charte
+              unilatérale consultée CSE, ou accord individuel), double
+              volontariat respecté (L. 1222-9 al. 1), indemnité d'occupation
+              versée (ANI 2020 art. 6.2), aucun litige caractérisé.
+            - NON_CONFORME : absence de cadre juridique opposable
+              (L. 1222-9 CT) ou violation d'un élément structurel
+              (volontariat hors L. 1222-11, indemnité due non versée).
+            - LITIGE_IDENTIFIE : cadre conforme mais litige caractérisé —
+              accident à domicile (présomption AT L. 1222-9 al. 4), retour
+              au bureau imposé unilatéralement (L. 1222-10), refus de
+              télétravailler invoqué comme cause de licenciement
+              (interdit par L. 1222-9 al. 6).
+
+            Outil single-country FRANCE — l'ANI 2020 et le régime
+            L. 1222-9 à L. 1222-11 sont strictement français. En droit
+            belge, le télétravail relève de la CCT n°85 (télétravail
+            structurel) et de la Loi du 05/03/2017 (télétravail occasionnel),
+            régimes distincts.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09 / SF-212-11 / SF-212-13).
+
+            Le seed de la règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porté par la migration 330 (couplée à l'entrée TOOL_REGISTRY
+            livrée dans le même lot — decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="teletravail_accord_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_teletravail_accord_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="teletravail_accord_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_teletravail_accord_analyses_case_file"/>
+
+        <createIndex tableName="teletravail_accord_analyses"
+                     indexName="idx_teletravail_accord_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="teletravail_accord_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

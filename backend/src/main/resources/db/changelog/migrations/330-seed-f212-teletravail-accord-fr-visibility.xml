@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200015-seed" author="legalcase">
+        <comment>
+            SF-212-16 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Télétravail — conformité et litige"
+            (F-DT-82-teletravail-accord, FRANCE), table créée par SF-212-15
+            (migration 329).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte un litige relatif au télétravail
+            — trigger `teletravail_litige_detecte` (signal métier livré par
+            SF-212-15, extension TravailExtractedData + LegalDomainPromptBuilder
+            PART2 + PART7).
+
+            priority 66 — juste après F-DT-71 (mutation — clause de mobilité,
+            priority 65).
+
+            Fondement : L. 1222-9 à L. 1222-11 CT (cadre juridique du
+            télétravail, double volontariat, présomption AT à domicile,
+            réversibilité, refus ≠ motif de rupture) ; ANI télétravail du
+            26/11/2020 (art. 6.2 — indemnité d'occupation, prise en charge
+            des frais professionnels) ; jurisprudence constante Cass. soc.
+            sur la qualification AT en télétravail et le caractère
+            disciplinaire du refus de télétravailler.
+
+            Mécanisme strictement français — pas d'équivalent direct en BE
+            (CCT n°85 et Loi du 05/03/2017 — régime distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200015', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-82-teletravail-accord', 'CONTEXTUAL', 'teletravail_litige_detecte', 'true', 66);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200015';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
