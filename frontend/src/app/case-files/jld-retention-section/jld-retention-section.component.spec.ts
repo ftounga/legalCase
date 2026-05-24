@@ -55,7 +55,10 @@ describe('JldRetentionSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('exposes TOOL_LABEL and TOOL_ICON statics', () => {
     expect(JldRetentionSectionComponent.TOOL_LABEL).toContain('JLD');

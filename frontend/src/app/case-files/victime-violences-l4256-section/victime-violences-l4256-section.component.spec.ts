@@ -56,7 +56,10 @@ describe('VictimeViolencesL4256SectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('TOOL_LABEL and TOOL_ICON statics', () => {
     expect(VictimeViolencesL4256SectionComponent.TOOL_LABEL).toContain('VICTIME');

@@ -39,3 +39,6 @@ e2e/screenshots/output/
 
 # Artefacts intermédiaires du motion designer (garder uniquement les rendus finaux)
 docs/marketing/demo-dossier-vision/resultat/_workdir/
+
+# LibreOffice/OpenOffice lock files
+.~lock.*#

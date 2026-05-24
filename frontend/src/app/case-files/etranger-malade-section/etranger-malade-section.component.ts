@@ -33,6 +33,7 @@ import { ImmigrationExtractedData } from '../../core/models/case-analysis.model'
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { EtrangerMaladePrefillRules } from './etranger-malade-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-214-02 — Outil décisionnel « Étranger malade L. 425-9 CESEDA » (F-IM-25).
@@ -64,11 +65,16 @@ import { EtrangerMaladePrefillRules } from './etranger-malade-section-prefill-ru
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './etranger-malade-section.component.html',
   styleUrl: './etranger-malade-section.component.scss',
 })
 export class EtrangerMaladeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-25-etranger-malade-l4259-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'ÉTRANGER MALADE L.425-9 (FR)';
   static readonly TOOL_ICON = 'medical_services';
 

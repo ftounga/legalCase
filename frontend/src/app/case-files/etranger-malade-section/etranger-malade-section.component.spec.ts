@@ -53,7 +53,10 @@ describe('EtrangerMaladeSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('exposes TOOL_LABEL and TOOL_ICON statics', () => {
     expect(EtrangerMaladeSectionComponent.TOOL_LABEL).toContain('L.425-9');

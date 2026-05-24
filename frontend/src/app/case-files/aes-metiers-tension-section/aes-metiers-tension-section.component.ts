@@ -41,6 +41,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { AesMetiersTensionPrefillRules } from './aes-metiers-tension-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /** Regex ISO strict YYYY-MM-DD. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,12 +73,17 @@ export type AesMtCoherenceAlert = CoherenceAlert<AesMtAlertField>;
     MatFormFieldModule, MatInputModule,
     MatSlideToggleModule, MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './aes-metiers-tension-section.component.html',
   styleUrl: './aes-metiers-tension-section.component.scss',
 })
 export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-09-aes-metiers-tension';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AES MÉTIERS EN TENSION (FR)';
   static readonly TOOL_ICON = 'how_to_reg';

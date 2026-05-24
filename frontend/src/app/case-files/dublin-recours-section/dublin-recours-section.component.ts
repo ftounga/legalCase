@@ -44,6 +44,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { DublinRecoursPrefillRules } from './dublin-recours-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -66,6 +67,7 @@ export type DublinCoherenceAlert = CoherenceAlert<DublinAlertField>;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
     DecisionalHeaderFlagComponent,
   ],
@@ -73,6 +75,10 @@ export type DublinCoherenceAlert = CoherenceAlert<DublinAlertField>;
   styleUrl: './dublin-recours-section.component.scss',
 })
 export class DublinRecoursSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-22-dublin-recours-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'DUBLIN RECOURS 7J SUSPENSIF (FR)';
   static readonly TOOL_ICON = 'flight_takeoff';
   static readonly PREFILL_COUNT_ALWAYS_ZERO = true;

@@ -39,6 +39,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { VictimeViolencesL4256PrefillRules } from './victime-violences-l4256-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -60,6 +61,7 @@ export type VVL4256CoherenceAlert = CoherenceAlert<VVL4256AlertField>;
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
     DecisionalHeaderFlagComponent,
   ],
@@ -67,6 +69,10 @@ export type VVL4256CoherenceAlert = CoherenceAlert<VVL4256AlertField>;
   styleUrl: './victime-violences-l4256-section.component.scss',
 })
 export class VictimeViolencesL4256SectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-24-victime-violences-l4256-fr';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'VICTIME VIOLENCES L.425-6 (FR)';
   static readonly TOOL_ICON = 'shield';
 
