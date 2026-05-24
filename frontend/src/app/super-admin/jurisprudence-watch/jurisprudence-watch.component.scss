@@ -1,4 +1,4 @@
-/* F-JU-01 / SF-JU-01-05 — dashboard admin */
+/* F-JU-01 / SF-JU-01-05 + SF-JU-01-06 — dashboard admin */
 
 :host { display: block; }
 
@@ -135,4 +135,64 @@
   &__actor { color: var(--ds-text-secondary, #5A6878); }
   &__date { font-family: 'JetBrains Mono', monospace; }
   &__reason { color: var(--ds-text-secondary, #5A6878); }
+}
+
+.jurisprudence-watch__help {
+  color: var(--ds-text-secondary, #5A6878);
+  font-size: 13px;
+  margin: 0 0 12px;
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: #f0f2f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+}
+
+.bootstrap {
+  &__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid var(--ds-border, #e0e4ea);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    resize: vertical;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--ds-text-secondary, #5A6878);
+  }
+
+  &__counter--over { color: #b53a3a; font-weight: 600; }
+
+  &__errors {
+    list-style: disc;
+    padding-left: 24px;
+    margin: 4px 0;
+    color: #b53a3a;
+    li { margin: 2px 0; }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  &__result {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #eaf7ec;
+    border-left: 4px solid #2e7d32;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #1b5e20;
+  }
 }

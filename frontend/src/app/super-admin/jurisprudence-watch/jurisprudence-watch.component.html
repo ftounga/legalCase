@@ -7,6 +7,71 @@
   </header>
 
   <mat-tab-group>
+    <mat-tab label="Bootstrap" data-test="tab-bootstrap">
+      <section class="jurisprudence-watch__section">
+        <div class="jurisprudence-watch__section-header">
+          <h2>Bootstrap initial des mappings outils → jurisprudence</h2>
+          <button mat-stroked-button type="button"
+                  (click)="loadExample()"
+                  data-test="bootstrap-example">
+            <mat-icon>auto_fix_high</mat-icon> Exemple
+          </button>
+        </div>
+
+        <p class="jurisprudence-watch__help">
+          Une ligne CSV par entrée :
+          <code>toolId,brancheCalculId,motCleRecherche[,juridictionFiltre[,dateMin (YYYY-MM-DD)]]</code>.
+          Le backend interroge JUDILIBRE puis demande à Claude de sélectionner un arrêt
+          structurant par entrée. Limite : {{ bootstrapMaxEntries }} entrées par batch.
+        </p>
+
+        <textarea class="bootstrap__textarea"
+                  rows="12"
+                  placeholder="f-dt-07,anciennete-licenciement,ancienneté préavis indemnité"
+                  [ngModel]="csvInput"
+                  (ngModelChange)="onCsvInputChange($event)"
+                  data-test="bootstrap-csv"></textarea>
+
+        <div class="bootstrap__meta">
+          <span data-test="bootstrap-counter"
+                [class.bootstrap__counter--over]="parseResult.entries.length > bootstrapMaxEntries">
+            {{ parseResult.entries.length }} / {{ bootstrapMaxEntries }} entrées détectées
+          </span>
+          @if (parseResult.errors.length > 0) {
+            <ul class="bootstrap__errors" data-test="bootstrap-errors">
+              @for (e of parseResult.errors; track e) {
+                <li>{{ e }}</li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div class="bootstrap__actions">
+          <button mat-flat-button color="primary"
+                  type="button"
+                  (click)="runBootstrap()"
+                  [disabled]="!canLaunchBootstrap()"
+                  data-test="bootstrap-launch">
+            @if (loadingBootstrap) {
+              En cours…
+            } @else {
+              Lancer le bootstrap
+            }
+          </button>
+        </div>
+
+        @if (lastBootstrapResult) {
+          <div class="bootstrap__result" data-test="bootstrap-result">
+            <strong>Dernier batch :</strong>
+            {{ lastBootstrapResult.entriesProcessed }} processed,
+            {{ lastBootstrapResult.mappingsCreated }} created,
+            {{ lastBootstrapResult.entriesSkipped }} skipped
+            ({{ lastBootstrapResult.durationMs }}ms)
+          </div>
+        }
+      </section>
+    </mat-tab>
+
     <mat-tab label="Flags à arbitrer" data-test="tab-flags">
       <section class="jurisprudence-watch__section">
         <div class="jurisprudence-watch__section-header">
