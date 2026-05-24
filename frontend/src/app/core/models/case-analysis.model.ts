@@ -815,6 +815,22 @@ export interface TravailExtractedData {
   /** Nature de la mesure (LICENCIEMENT, SANCTION, MESURE_DISCRIMINATOIRE, AUTRE, AUCUNE). */
   lanceurAlerteNatureMesure?: string | null;
   // -------------------------------------------------------------------------
+  // SF-212-11 — sous-objet `modification_contrat_detail` (FRANCE only)
+  // Pré-fill F-DT-70 (modification du contrat — refus du salarié — Cass. soc.
+  // distinction modification / changement des conditions de travail ;
+  // L. 1222-6 CT — modification pour motif économique).
+  // Tous nullables — restent `null` pour un dossier Travail BE (régime de
+  // l'acte équipollent à rupture distinct).
+  // -------------------------------------------------------------------------
+  /** Élément du contrat modifié (REMUNERATION, QUALIFICATION, DUREE_TRAVAIL, LIEU_TRAVAIL, HORAIRES, TACHES, AUTRE). */
+  modifContratElementModifie?: string | null;
+  /** Élément modifié explicitement contractualisé (clause écrite). */
+  modifContratContractualise?: boolean | null;
+  /** Modification proposée pour un motif économique (L. 1222-6 CT). */
+  modifContratMotifEco?: boolean | null;
+  /** Notification écrite L. 1222-6 (LRAR) envoyée au salarié. */
+  modifContratNotifEcrite?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation
