@@ -45,6 +45,7 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { NaturalisationPrefillRules } from './naturalisation-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-IM-13-02 : champs F-IA-03 audités par l'outil "Naturalisation".
@@ -78,12 +79,17 @@ export type NaturalisationCoherenceAlert = CoherenceAlert<NaturalisationAlertFie
     MatRadioModule, MatSlideToggleModule,
     MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './naturalisation-section.component.html',
   styleUrl: './naturalisation-section.component.scss',
 })
 export class NaturalisationSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99c v2 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-IM-13-naturalisation';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'NATURALISATION (FR)';
   static readonly TOOL_ICON = 'how_to_reg';

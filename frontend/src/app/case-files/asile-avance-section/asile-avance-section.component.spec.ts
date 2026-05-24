@@ -55,7 +55,10 @@ describe('AsileAvanceSectionComponent (SF-IM-12-02)', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   // ---------------------------------------------------------------------------
   // 1. Mount + lifecycle
