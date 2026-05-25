@@ -192,6 +192,114 @@ describe('JurisprudenceWatchComponent', () => {
     });
   });
 
+  it('T-11 — onFileSelected with valid CSV fills csvInput and shows info snackbar', async () => {
+    fixture.detectChanges();
+    const csvContent = 'f-dt-07,b1,ancienneté\nf-im-05,b2,L. 423-23 CESEDA';
+    const file = new File([csvContent], 'bootstrap-batch-1.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'size', { value: csvContent.length });
+    const event = buildFileSelectedEvent(file);
+
+    // Stub FileReader for deterministic synchronous test (jsdom's async loader
+    // is racy under Jest fake/real timers; we control the lifecycle explicitly)
+    const stubReader: Partial<FileReader> = {
+      readAsText: jest.fn(function (this: FileReader) {
+        Object.defineProperty(this, 'result', { value: csvContent });
+        if (this.onload) {
+          this.onload({} as ProgressEvent<FileReader>);
+        }
+      }),
+    };
+    const fileReaderSpy = jest.spyOn(window, 'FileReader')
+      .mockImplementation(() => stubReader as FileReader);
+
+    try {
+      component['onFileSelected'](event);
+    } finally {
+      fileReaderSpy.mockRestore();
+    }
+
+    expect(component.csvInput).toBe(csvContent);
+    expect(component.parseResult.entries).toHaveLength(2);
+    expect(component.loadingFile).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Fichier "bootstrap-batch-1.csv" chargé (2 entrées détectées)'),
+      'OK',
+      expect.anything(),
+    );
+    // input reset for re-upload of same file
+    expect((event.target as HTMLInputElement).value).toBe('');
+  });
+
+  it('T-11b — onFileSelected propagates FileReader.onerror to snackbar', () => {
+    fixture.detectChanges();
+    const file = new File(['x'], 'broken.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'size', { value: 100 });
+    const event = buildFileSelectedEvent(file);
+
+    const stubReader: Partial<FileReader> = {
+      readAsText: jest.fn(function (this: FileReader) {
+        if (this.onerror) {
+          this.onerror({} as ProgressEvent<FileReader>);
+        }
+      }),
+    };
+    const fileReaderSpy = jest.spyOn(window, 'FileReader')
+      .mockImplementation(() => stubReader as FileReader);
+
+    try {
+      component['onFileSelected'](event);
+    } finally {
+      fileReaderSpy.mockRestore();
+    }
+
+    expect(component.loadingFile).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Erreur de lecture du fichier',
+      'OK',
+      expect.anything(),
+    );
+    expect((event.target as HTMLInputElement).value).toBe('');
+  });
+
+  it('T-12 — onFileSelected with empty file shows error snackbar and keeps csvInput intact', () => {
+    fixture.detectChanges();
+    component.csvInput = 'previous content';
+    const file = new File([], 'empty.csv', { type: 'text/csv' });
+    const event = buildFileSelectedEvent(file);
+
+    component['onFileSelected'](event);
+
+    expect(snackBar.open).toHaveBeenCalledWith('Fichier vide', 'OK', expect.anything());
+    expect(component.csvInput).toBe('previous content');
+    expect((event.target as HTMLInputElement).value).toBe('');
+  });
+
+  it('T-13 — onFileSelected with file > 1 Mo shows error snackbar and keeps csvInput intact', () => {
+    fixture.detectChanges();
+    component.csvInput = 'previous content';
+    // Build a fake File whose .size exceeds 1 Mo without allocating real bytes
+    const file = new File(['x'], 'huge.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'size', { value: 2_000_000 });
+    const event = buildFileSelectedEvent(file);
+
+    component['onFileSelected'](event);
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Fichier trop volumineux (max 1 Mo)',
+      'OK',
+      expect.anything(),
+    );
+    expect(component.csvInput).toBe('previous content');
+    expect((event.target as HTMLInputElement).value).toBe('');
+  });
+
+  function buildFileSelectedEvent(file: File): Event {
+    const input = document.createElement('input');
+    input.type = 'file';
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    return { target: input } as unknown as Event;
+  }
+
   function buildFlag(id: string): JurisprudenceWatchFlag {
     return {
       id,

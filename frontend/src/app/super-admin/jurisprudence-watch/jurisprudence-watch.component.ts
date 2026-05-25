@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,6 +21,7 @@ export interface BootstrapParseResult {
 }
 
 const BOOTSTRAP_MAX_ENTRIES = 200;
+const BOOTSTRAP_MAX_FILE_SIZE_BYTES = 1_048_576; // 1 Mo — SF-JU-01-07
 const TOOL_OR_BRANCHE_REGEX = /^[a-zA-Z0-9_-]{1,100}$/;
 const BOOTSTRAP_EXAMPLE_CSV = [
   'f-dt-07,anciennete-licenciement,ancienneté préavis indemnité licenciement',
@@ -77,10 +78,11 @@ export function parseBootstrapCsv(input: string): BootstrapParseResult {
 }
 
 /**
- * F-JU-01 / SF-JU-01-05 + SF-JU-01-06 — dashboard admin `/super-admin/jurisprudence-watch`.
+ * F-JU-01 / SF-JU-01-05 + SF-JU-01-06 + SF-JU-01-07 — dashboard admin
+ * `/super-admin/jurisprudence-watch`.
  *
- * 3 onglets : Bootstrap (lancement initial), Flags PENDING (3 actions inline),
- * Audit log (lecture seule).
+ * 3 onglets : Bootstrap (lancement initial via copier-coller ou upload .csv),
+ * Flags PENDING (3 actions inline), Audit log (lecture seule).
  */
 @Component({
   selector: 'app-jurisprudence-watch',
@@ -93,6 +95,7 @@ export function parseBootstrapCsv(input: string): BootstrapParseResult {
 export class JurisprudenceWatchComponent implements OnInit {
 
   readonly bootstrapMaxEntries = BOOTSTRAP_MAX_ENTRIES;
+  readonly bootstrapMaxFileSizeBytes = BOOTSTRAP_MAX_FILE_SIZE_BYTES;
 
   flags: JurisprudenceWatchFlag[] = [];
   auditLog: JurisprudenceAuditLog[] = [];
@@ -104,7 +107,11 @@ export class JurisprudenceWatchComponent implements OnInit {
   csvInput = '';
   parseResult: BootstrapParseResult = { entries: [], errors: [] };
   loadingBootstrap = false;
+  loadingFile = false;
   lastBootstrapResult: JurisprudenceBootstrapResponse | null = null;
+
+  @ViewChild('fileInput', { static: false })
+  protected fileInput?: ElementRef<HTMLInputElement>;
 
   private readonly client = inject(JurisprudenceWatchAdminClientService);
   private readonly snackBar = inject(MatSnackBar);
@@ -189,6 +196,48 @@ export class JurisprudenceWatchComponent implements OnInit {
         && this.parseResult.entries.length > 0
         && this.parseResult.entries.length <= BOOTSTRAP_MAX_ENTRIES
         && this.parseResult.errors.length === 0;
+  }
+
+  /** SF-JU-01-07 — déclenche l'ouverture du sélecteur fichier OS via le bouton stylé. */
+  protected triggerFileSelector(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  /** SF-JU-01-07 — lit le fichier CSV sélectionné et alimente le textarea. */
+  protected onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files.length > 0 ? input.files[0] : null;
+    if (!file) {
+      return;
+    }
+    if (file.size === 0) {
+      this.snackBar.open('Fichier vide', 'OK', { duration: 4000 });
+      input.value = '';
+      return;
+    }
+    if (file.size > BOOTSTRAP_MAX_FILE_SIZE_BYTES) {
+      this.snackBar.open('Fichier trop volumineux (max 1 Mo)', 'OK', { duration: 4000 });
+      input.value = '';
+      return;
+    }
+    this.loadingFile = true;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      this.onCsvInputChange(text);
+      this.loadingFile = false;
+      const msg = `Fichier "${file.name}" chargé (${this.parseResult.entries.length} entrées détectées)`;
+      this.snackBar.open(msg, 'OK', { duration: 4000 });
+      input.value = '';
+      this.cdr.markForCheck();
+    };
+    reader.onerror = () => {
+      this.loadingFile = false;
+      this.snackBar.open('Erreur de lecture du fichier', 'OK', { duration: 4000 });
+      input.value = '';
+      this.cdr.markForCheck();
+    };
+    reader.readAsText(file, 'UTF-8');
   }
 
   protected runBootstrap(): void {

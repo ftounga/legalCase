@@ -11,11 +11,27 @@
       <section class="jurisprudence-watch__section">
         <div class="jurisprudence-watch__section-header">
           <h2>Bootstrap initial des mappings outils → jurisprudence</h2>
-          <button mat-stroked-button type="button"
-                  (click)="loadExample()"
-                  data-test="bootstrap-example">
-            <mat-icon>auto_fix_high</mat-icon> Exemple
-          </button>
+          <div class="bootstrap__header-actions">
+            <button mat-stroked-button color="accent" type="button"
+                    (click)="triggerFileSelector()"
+                    [disabled]="loadingFile"
+                    data-test="bootstrap-file-upload">
+              <mat-icon>upload_file</mat-icon>
+              @if (loadingFile) {
+                Chargement…
+              } @else {
+                Charger depuis un fichier .csv
+              }
+            </button>
+            <input #fileInput type="file" accept=".csv,text/csv" hidden
+                   (change)="onFileSelected($event)"
+                   data-test="bootstrap-file-input" />
+            <button mat-stroked-button type="button"
+                    (click)="loadExample()"
+                    data-test="bootstrap-example">
+              <mat-icon>auto_fix_high</mat-icon> Exemple
+            </button>
+          </div>
         </div>
 
         <p class="jurisprudence-watch__help">
