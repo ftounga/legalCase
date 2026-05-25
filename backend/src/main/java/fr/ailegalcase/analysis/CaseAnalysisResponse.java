@@ -610,6 +610,16 @@ public record CaseAnalysisResponse(
             // 4 champs (diagnostic, taux IPP, surcharge documentée, arrêts maladie).
             // Sub-flag de burnoutDetecte. @JsonUnwrapped — JSON HTTP plat préservé.
             @JsonUnwrapped BurnoutDetail burnoutDetail,
+            // SF-212-31 : flag F-205 — déclenche F-DT-65 élections CSE conformité (FR).
+            // Pertinent quand un dossier évoque une procédure électorale CSE en cours
+            // ou contestée (organisation, contestation, PAP, PV de carence, invitation
+            // OS, vote électronique). L. 2314-1 à L. 2314-37 CT ; ordonnance n°2017-1386
+            // du 22/09/2017 instituant le CSE. Mécanisme franco-français.
+            boolean electionCseDetectee,
+            // SF-212-31 : sous-objet IA pour pré-fill F-DT-65 élections CSE conformité (FR).
+            // 4 champs (date élection, PAP négocié, collèges conformes, résultats contestés).
+            // Sub-flag de electionCseDetectee. @JsonUnwrapped — JSON HTTP plat préservé.
+            @JsonUnwrapped ElectionsCseDetail electionsCseDetail,
             // SF-212-33 : flag F-205 — déclenche F-DT-49 temps partiel — requalification en
             // temps plein (FR). Pertinent quand un dossier évoque une situation de temps
             // partiel susceptible d'être requalifié en temps complet : absence des mentions
@@ -808,6 +818,28 @@ public record CaseAnalysisResponse(
                 Integer burnoutTauxIpp,
                 Boolean burnoutSurchargeDocumentee,
                 Boolean burnoutArretsMaladie
+        ) {}
+
+        /**
+         * SF-212-31 — sous-record IA pour F-DT-65 élections CSE conformité
+         * (FRANCE only — L. 2314-1 à L. 2314-37 CT ; R. 2314-1+ CT ;
+         * ordonnance n°2017-1386 du 22/09/2017 instituant le CSE). 4 champs
+         * alignés sur le prompt PART15 :
+         * {@code election_cse_date_election} (ISO YYYY-MM-DD — date du 1er
+         * tour, base du calcul du délai de contestation de 15 jours
+         * L. 2314-32 CT),
+         * {@code election_cse_pap_negocie} (PAP négocié avec OS L. 2314-6 CT),
+         * {@code election_cse_colleges_conformes} (au moins 2 collèges
+         * L. 2314-11 CT),
+         * {@code election_cse_resultats_contestes} (résultats contestés).
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         * @JsonUnwrapped — JSON HTTP plat préservé (parité contrat externe stricte).
+         */
+        public record ElectionsCseDetail(
+                String electionCseDateElection,
+                Boolean electionCsePapNegocie,
+                Boolean electionCseCollegesConformes,
+                Boolean electionCseResultatsContestes
         ) {}
 
         /**
@@ -1115,6 +1147,9 @@ public record CaseAnalysisResponse(
                     // SF-212-27 — burn-out reconnaissance MP (FR)
                     .burnoutDetecte(burnoutDetecte)
                     .burnoutDetail(burnoutDetail)
+                    // SF-212-31 — élections CSE conformité (FR)
+                    .electionCseDetectee(electionCseDetectee)
+                    .electionsCseDetail(electionsCseDetail)
                     // SF-212-33 — temps partiel — requalification (FR)
                     .tempsPartielRequalificationEnvisagee(tempsPartielRequalificationEnvisagee)
                     .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail);
@@ -1387,6 +1422,9 @@ public record CaseAnalysisResponse(
             // SF-212-27 — flag F-205 + sous-record burn-out reconnaissance MP (FR uniquement)
             private boolean burnoutDetecte;
             private BurnoutDetail burnoutDetail;
+            // SF-212-31 — flag F-205 + sous-record élections CSE conformité (FR uniquement)
+            private boolean electionCseDetectee;
+            private ElectionsCseDetail electionsCseDetail;
             // SF-212-33 — flag F-205 + sous-record temps partiel — requalification (FR uniquement)
             private boolean tempsPartielRequalificationEnvisagee;
             private TempsPartielRequalificationDetail tempsPartielRequalificationDetail;
@@ -1655,6 +1693,10 @@ public record CaseAnalysisResponse(
             public Builder burnoutDetecte(boolean v) { this.burnoutDetecte = v; return this; }
             // SF-212-27 — burnout_detail (FRANCE uniquement) — sous-record IA.
             public Builder burnoutDetail(BurnoutDetail v) { this.burnoutDetail = v; return this; }
+            // SF-212-31 — F-205 flag (FRANCE only) — déclenche F-DT-65 élections CSE conformité.
+            public Builder electionCseDetectee(boolean v) { this.electionCseDetectee = v; return this; }
+            // SF-212-31 — elections_cse_detail (FRANCE uniquement) — sous-record IA.
+            public Builder electionsCseDetail(ElectionsCseDetail v) { this.electionsCseDetail = v; return this; }
             // SF-212-33 — F-205 flag (FRANCE only) — déclenche F-DT-49 temps partiel — requalification.
             public Builder tempsPartielRequalificationEnvisagee(boolean v) { this.tempsPartielRequalificationEnvisagee = v; return this; }
             // SF-212-33 — temps_partiel_requalification_detail (FRANCE uniquement) — sous-record IA.
@@ -1822,6 +1864,9 @@ public record CaseAnalysisResponse(
                         // SF-212-27 — burn-out reconnaissance MP (FR)
                         burnoutDetecte,
                         burnoutDetail,
+                        // SF-212-31 — élections CSE conformité (FR)
+                        electionCseDetectee,
+                        electionsCseDetail,
                         // SF-212-33 — temps partiel — requalification en temps plein (FR)
                         tempsPartielRequalificationEnvisagee,
                         tempsPartielRequalificationDetail);
@@ -4556,6 +4601,18 @@ public record CaseAnalysisResponse(
                             booleanOrNull(burnoutNode, "burnout_surcharge_documentee"),
                             booleanOrNull(burnoutNode, "burnout_arrets_maladie"))
                     : null;
+            // SF-212-31 : sous-objet pour pré-fill F-DT-65 (élections CSE conformité FR).
+            // 4 champs : date élection (ISO YYYY-MM-DD), PAP négocié, collèges conformes,
+            // résultats contestés.
+            JsonNode electionsCseNode = node.get("elections_cse_detail");
+            boolean hasElectionsCse = electionsCseNode != null && electionsCseNode.isObject();
+            TravailExtractedData.ElectionsCseDetail electionsCseDetail = hasElectionsCse
+                    ? new TravailExtractedData.ElectionsCseDetail(
+                            isoDateOrNull(electionsCseNode, "election_cse_date_election"),
+                            booleanOrNull(electionsCseNode, "election_cse_pap_negocie"),
+                            booleanOrNull(electionsCseNode, "election_cse_colleges_conformes"),
+                            booleanOrNull(electionsCseNode, "election_cse_resultats_contestes"))
+                    : null;
             // SF-212-33 : sous-objet pour pré-fill F-DT-49 (temps partiel — requalification FR).
             // 4 champs : durée contractuelle (h/sem), mentions durée, mentions répartition,
             // HC moyenne (h/sem). Tous nullables ; FRANCE uniquement (régime BE distinct).
@@ -4639,6 +4696,8 @@ public record CaseAnalysisResponse(
                     .congeMaternitePaterniteDetecte(booleanOrFalse(node, "conge_maternite_paternite_detecte"))
                     // SF-212-27 : flag F-205 — déclenche F-DT-64 burn-out reconnaissance MP.
                     .burnoutDetecte(booleanOrFalse(node, "burnout_detecte"))
+                    // SF-212-31 : flag F-205 — déclenche F-DT-65 élections CSE conformité.
+                    .electionCseDetectee(booleanOrFalse(node, "election_cse_detectee"))
                     // SF-212-33 : flag F-205 — déclenche F-DT-49 temps partiel — requalification.
                     .tempsPartielRequalificationEnvisagee(booleanOrFalse(node, "temps_partiel_requalification_envisagee"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
@@ -4926,6 +4985,8 @@ public record CaseAnalysisResponse(
                     .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail)
                     // SF-212-27 — burn-out reconnaissance MP (FR)
                     .burnoutDetail(burnoutDetail)
+                    // SF-212-31 — élections CSE conformité (FR)
+                    .electionsCseDetail(electionsCseDetail)
                     // SF-212-33 — temps partiel — requalification en temps plein (FR)
                     .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail)
                     .build();

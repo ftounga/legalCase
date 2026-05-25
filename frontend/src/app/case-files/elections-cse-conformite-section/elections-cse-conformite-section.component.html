@@ -1,0 +1,240 @@
+<section class="cse-section">
+  <header class="cse-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cse-body">
+    <mat-icon class="cse-icon">how_to_vote</mat-icon>
+    <span class="cse-title">ÉLECTIONS CSE — CONFORMITÉ</span>
+    @if (result()) {
+      <span class="cse-chip-summary"
+            [class.cse-chip-summary--conforme]="result()!.analyseElectionsCse === 'CONFORME'"
+            [class.cse-chip-summary--mineure]="result()!.analyseElectionsCse === 'IRREGULARITE_MINEURE'"
+            [class.cse-chip-summary--majeure]="result()!.analyseElectionsCse === 'IRREGULARITE_MAJEURE'">
+        {{ verdictBannerLabel(result()!.analyseElectionsCse) }} — score {{ result()!.scoreConformite }} / 100
+      </span>
+    }
+    <mat-icon class="cse-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cse-body" class="cse-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="cse-country-banner" data-testid="cse-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (élections CSE, L. 2314-1 à L. 2314-37 CT, ordonnance n°2017-1386 du 22/09/2017). La Belgique dispose d'un régime distinct (conseil d'entreprise + délégation syndicale, loi du 4/8/1996).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cse-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="cse-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Entreprise & PAP -->
+            <div class="cse-block cse-full">
+              <span class="cse-block-label">Entreprise & protocole d'accord préélectoral (L. 2314-6 CT)</span>
+
+              <mat-form-field appearance="outline" class="cse-inline-field">
+                <mat-label>Effectif de l'entreprise (salariés)</mat-label>
+                <input matInput type="number" min="1" step="1"
+                       [ngModel]="effectifEntreprise()"
+                       (ngModelChange)="onEffectifChange($event)"
+                       name="effectifEntreprise"
+                       data-testid="cse-input-effectif">
+                <mat-hint>Seuil légal CSE : 11 salariés (L. 2311-2 CT)</mat-hint>
+              </mat-form-field>
+
+              <div class="cse-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="papNegocieAvecOS()"
+                    (ngModelChange)="onPapChange($event)"
+                    name="papNegocieAvecOS"
+                    data-testid="cse-toggle-pap">
+                  PAP négocié avec les organisations syndicales représentatives
+                </mat-slide-toggle>
+                @if (provenancePapNegocie() === 'IA') {
+                  <span class="cse-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="cse-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="delaiInvitationOSRespectee()"
+                    (ngModelChange)="onDelaiInvitationChange($event)"
+                    name="delaiInvitationOSRespectee"
+                    data-testid="cse-toggle-delai-invitation">
+                  Délai d'invitation des OS respecté (≥ 2 mois avant expiration mandats — L. 2314-4 CT)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Collèges -->
+            <div class="cse-block cse-full">
+              <span class="cse-block-label">Collèges électoraux (L. 2314-11 CT)</span>
+
+              <div class="cse-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="collegesConformes()"
+                    (ngModelChange)="onCollegesChange($event)"
+                    name="collegesConformes"
+                    data-testid="cse-toggle-colleges">
+                  Au moins 2 collèges constitués (ouvriers/employés + agents de maîtrise/cadres)
+                </mat-slide-toggle>
+                @if (provenanceColleges() === 'IA') {
+                  <span class="cse-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Contestation des résultats (P1 procédural — délai 15 jours) -->
+            <div class="cse-block cse-full">
+              <span class="cse-block-label">Contestation des résultats (L. 2314-32 CT — délai 15 jours)</span>
+
+              <div class="cse-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="resultatsContestes()"
+                    (ngModelChange)="onResultatsContestesChange($event)"
+                    name="resultatsContestes"
+                    data-testid="cse-toggle-resultats-contestes">
+                  Résultats contestés (saisine tribunal judiciaire)
+                </mat-slide-toggle>
+                @if (provenanceResultatsContestes() === 'IA') {
+                  <span class="cse-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="cse-inline-field">
+                <mat-label>Date de l'élection</mat-label>
+                <input matInput [matDatepicker]="picker"
+                       [ngModel]="dateElection()"
+                       (ngModelChange)="onDateElectionChange($event)"
+                       name="dateElection"
+                       data-testid="cse-input-date-election">
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+                <mat-hint>Base du calcul du délai 15 jours (L. 2314-32 CT)</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateElection() === 'IA') {
+                <span class="cse-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="cse-inline-field">
+                <mat-label>Motif de contestation invoqué (facultatif)</mat-label>
+                <input matInput type="text"
+                       [ngModel]="motifContestation()"
+                       (ngModelChange)="onMotifChange($event)"
+                       name="motifContestation"
+                       maxlength="500"
+                       data-testid="cse-input-motif">
+              </mat-form-field>
+            </div>
+
+            <div class="cse-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="cse-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cse-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseElectionsCse)"
+                 data-testid="cse-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseElectionsCse) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseElectionsCse) }}</span>
+            </div>
+
+            <!-- Alerte délai contestation 15 jours -->
+            @if (result()!.alerteDelaiContestation) {
+              <div class="cse-alerte-delai" data-testid="cse-alerte-delai">
+                <mat-icon>warning</mat-icon>
+                <span><strong>Délai de contestation court</strong> : 15 jours à compter de l'élection (L. 2314-32 CT). Date limite : <strong>{{ result()!.dateLimitContestationSiConnue }}</strong>. Saisine du tribunal judiciaire à engager sans délai.</span>
+              </div>
+            }
+
+            <!-- Score + délai + date limite -->
+            <div class="cse-figures-block">
+              <div class="cse-figure">
+                <span class="cse-figure-label">Score conformité</span>
+                <span class="cse-figure-value">{{ result()!.scoreConformite }} / 100</span>
+              </div>
+              <div class="cse-figure" data-testid="cse-figure-delai">
+                <span class="cse-figure-label">Délai contestation</span>
+                <span class="cse-figure-value">{{ formatDelaiContestation() }}</span>
+              </div>
+              @if (result()!.dateLimitContestationSiConnue) {
+                <div class="cse-figure" data-testid="cse-figure-date-limite">
+                  <span class="cse-figure-label">Date limite</span>
+                  <span class="cse-figure-value">{{ result()!.dateLimitContestationSiConnue }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Points d'irrégularité F-IA-03 -->
+            @if (result()!.pointsIrregularite?.length) {
+              <div class="cse-points-block">
+                <span class="cse-points-label">Points d'irrégularité ({{ result()!.pointsIrregularite.length }})</span>
+                <ul class="cse-points-list">
+                  @for (p of result()!.pointsIrregularite; track pointTrackKey($index, p)) {
+                    <li class="cse-point-item" data-testid="cse-point-item">
+                      <div class="cse-point-header">
+                        <span class="cse-point-libelle">{{ p.libelle }}</span>
+                        <span class="cse-point-code">{{ p.code }}</span>
+                      </div>
+                      <span class="cse-point-fondement" [innerHTML]="p.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="cse-bases-block">
+                <span class="cse-bases-label">Bases juridiques</span>
+                <div class="cse-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="cse-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="cse-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="cse-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

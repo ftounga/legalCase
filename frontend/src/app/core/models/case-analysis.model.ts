@@ -962,6 +962,24 @@ export interface TravailExtractedData {
   /** SF-212-27 — flag F-205 déclenchant F-DT-64 burn-out reconnaissance MP (FRANCE only). */
   burnoutDetecte?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-31 — sous-objet `elections_cse_detail` (FRANCE only)
+  // Pré-fill F-DT-65 (élections CSE — conformité procédure — L. 2314-1 à
+  // L. 2314-37 CT ; R. 2314-1+ CT ; ordonnance n°2017-1386 du 22/09/2017
+  // instituant le CSE ; L. 2314-32 CT — délai contestation 15 jours).
+  // @JsonUnwrapped côté backend — JSON HTTP plat. Tous nullables — restent
+  // `null` pour un dossier Travail BE (régime conseil d'entreprise distinct).
+  // -------------------------------------------------------------------------
+  /** Date d'élection ISO YYYY-MM-DD — base du calcul du délai de contestation. */
+  electionCseDateElection?: string | null;
+  /** PAP négocié avec les organisations syndicales (L. 2314-6 CT). */
+  electionCsePapNegocie?: boolean | null;
+  /** Collèges électoraux conformes (au moins 2 — L. 2314-11 CT). */
+  electionCseCollegesConformes?: boolean | null;
+  /** Résultats contestés devant le tribunal judiciaire (L. 2314-32 CT). */
+  electionCseResultatsContestes?: boolean | null;
+  /** SF-212-31 — flag F-205 déclenchant F-DT-65 élections CSE conformité (FRANCE only). */
+  electionCseDetectee?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-212-33 — sous-objet `temps_partiel_requalification_detail` (FRANCE only)
   // Pré-fill F-DT-49 (temps partiel — requalification en temps plein —
   // L. 3123-1 à L. 3123-20 CT ; L. 3123-6 mentions obligatoires ; L. 3123-9

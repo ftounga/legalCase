@@ -1,0 +1,232 @@
+/**
+ * SF-212-32 : styles outil "Élections CSE — conformité" (F-DT-65).
+ * Aligné sur le template canonique `burnout-reconnaissance-mp-section`.
+ *
+ * Palette verdict 3 niveaux :
+ *   - vert (CONFORME — procédure régulière)
+ *   - or (IRREGULARITE_MINEURE — formalité accessoire)
+ *   - rouge (IRREGULARITE_MAJEURE — PAP absent, collèges non conformes)
+ *
+ * Alerte délai contestation 15 jours (L. 2314-32 CT) en couleur d'alerte
+ * forte — délai très court, P1 procédural.
+ *
+ * Inter pour le texte courant, JetBrains Mono pour les valeurs chiffrées
+ * et les bases juridiques. Espacements multiples de 4 px.
+ */
+
+.cse-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.cse-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.cse-icon { color: var(--ds-accent-navy, #1d3557); }
+.cse-title { flex: 1; font-weight: 600; letter-spacing: 0.04em; }
+.cse-toggle { color: var(--ds-text-muted, #8a8475); }
+
+.cse-chip-summary {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  &--conforme { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+  &--mineure { background: rgba(201, 165, 75, 0.18); color: #8a6b1d; }
+  &--majeure { background: rgba(211, 47, 47, 0.12); color: #c62828; }
+}
+
+.cse-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cse-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.1);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  color: #5a4a1a;
+  font-size: 14px;
+}
+
+.cse-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.cse-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cse-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.cse-full { width: 100%; }
+
+.cse-block-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.cse-inline-field { width: 100%; }
+
+.cse-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cse-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ds-accent-gold, #c9a54b);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.cse-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cse-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cse-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+
+  &--conforme { background: rgba(46, 125, 50, 0.12); color: #1b5e20; }
+  &--mineure { background: rgba(201, 165, 75, 0.2); color: #6a4f0a; }
+  &--majeure { background: rgba(211, 47, 47, 0.14); color: #8a1a1a; }
+}
+
+/* Alerte délai contestation 15 jours — P1 procédural. */
+.cse-alerte-delai {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(211, 47, 47, 0.08);
+  border: 1px solid rgba(211, 47, 47, 0.35);
+  color: #8a1a1a;
+  font-size: 13px;
+  line-height: 1.45;
+
+  mat-icon { color: #c62828; }
+}
+
+.cse-figures-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.cse-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.cse-figure-label { font-size: 11px; text-transform: uppercase; color: var(--ds-text-muted, #8a8475); }
+.cse-figure-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+.cse-points-block,
+.cse-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.cse-points-label,
+.cse-bases-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.cse-points-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.cse-point-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.cse-point-header { display: flex; justify-content: space-between; align-items: center; }
+.cse-point-libelle { font-weight: 600; }
+.cse-point-code { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--ds-text-muted, #8a8475); }
+.cse-point-fondement { font-size: 12px; color: var(--ds-text-muted, #8a8475); font-family: 'JetBrains Mono', monospace; }
+
+.cse-bases-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cse-base-chip {
+  padding: 4px 10px;
+  background: rgba(29, 53, 87, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cse-meta { display: flex; justify-content: flex-end; }
+
+.cse-messages {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ds-text, #1f1f1f);
+  font-size: 13px;
+}
