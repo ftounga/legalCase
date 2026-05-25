@@ -161,6 +161,13 @@ export const routes: Routes = [
         path: 'super-admin/promo-codes',
         loadComponent: () => import('./super-admin/promo-codes/super-admin-promo-codes.component')
           .then(m => m.SuperAdminPromoCodesComponent)
+      },
+      {
+        // F-251 SF-251-04 — écran admin Bootstrap prospect (formulaire 1 clic provisionnement).
+        // Sécurité super-admin assurée côté backend + redirection /case-files dans ngOnInit du composant.
+        path: 'super-admin/prospect-bootstrap',
+        loadComponent: () => import('./super-admin/prospect-bootstrap/prospect-bootstrap-page.component')
+          .then(m => m.ProspectBootstrapPageComponent)
       }
     ]
   },

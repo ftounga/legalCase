@@ -1,0 +1,218 @@
+/**
+ * F-251 SF-251-04 — Styles écran super-admin Bootstrap prospect.
+ * Palette DESIGN_SYSTEM : navy #1A3A5C, or #C9973A, vert succès #27AE60.
+ * Inter pour le texte, JetBrains Mono pour les IDs UUID.
+ * Espacements multiples de 4px.
+ */
+.prospect-bootstrap-page {
+  padding: 24px;
+  max-width: 1280px;
+
+  .page-header {
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-family: Merriweather, serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1A3A5C;
+    margin: 0 0 8px 0;
+  }
+
+  .page-subtitle {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    color: #6B7A8D;
+    margin: 0;
+    max-width: 720px;
+  }
+
+  .section-card {
+    margin-bottom: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: Merriweather, serif;
+      font-size: 18px;
+      color: #1A3A5C;
+
+      mat-icon {
+        color: #1A3A5C;
+      }
+    }
+  }
+
+  .section-card--form {
+    border-left: 4px solid #C9973A;
+  }
+
+  .section-card--success {
+    border-left: 4px solid #27AE60;
+
+    mat-card-title mat-icon {
+      color: #27AE60;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Formulaire de bootstrap
+  // ---------------------------------------------------------------------------
+
+  .bootstrap-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 12px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .field-email,
+    .field-workspace-name {
+      flex: 2;
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+
+    .cta-primary {
+      background-color: #C9973A;
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 24px;
+      height: 40px;
+      font-family: Inter, sans-serif;
+      font-weight: 600;
+
+      &:disabled {
+        background-color: rgba(201, 151, 58, 0.4);
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Panneau résumé succès
+  // ---------------------------------------------------------------------------
+
+  .success-intro {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    color: #1C2B3A;
+    margin: 0 0 16px 0;
+  }
+
+  .success-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px 24px;
+    margin: 0 0 20px 0;
+    padding: 16px;
+    background: #F8F9FB;
+    border-radius: 6px;
+  }
+
+  .success-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    dt {
+      font-family: Inter, sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6B7A8D;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin: 0;
+    }
+
+    dd {
+      margin: 0;
+      word-break: break-all;
+    }
+  }
+
+  .success-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #1A3A5C;
+    background: rgba(26, 58, 92, 0.06);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .success-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+
+    a, button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: Inter, sans-serif;
+      font-weight: 500;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .cta-secondary {
+      background-color: #1A3A5C;
+      color: #FFFFFF;
+      height: 40px;
+      padding: 0 20px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .prospect-bootstrap-page {
+    padding: 16px;
+
+    .form-row {
+      flex-direction: column;
+    }
+
+    .success-actions {
+      justify-content: stretch;
+
+      a, button {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  }
+}
