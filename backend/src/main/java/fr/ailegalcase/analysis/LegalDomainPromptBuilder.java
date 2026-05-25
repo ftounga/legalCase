@@ -945,7 +945,29 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-27 : 13e part du prompt TRAVAIL — flag F-205 et sous-objet
+     * `burnout_detail` (FRANCE UNIQUEMENT — L. 461-1 al. 4 et 5 CSS ; comité
+     * régional de reconnaissance des maladies professionnelles CRRMP ;
+     * circulaire DGT 2016/01 ; tableau 57 des maladies professionnelles —
+     * affections péri-articulaires, sans le burn-out, d'où la voie hors
+     * tableau). Split pour rester sous la limite UTF-8 de 65535 octets du
+     * constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART13 = """
+              SF-212-27 — Flag F-205 et sous-objet `burnout_detail` (FRANCE UNIQUEMENT).
+              "burnout_detecte" : booléen — true uniquement si les pièces évoquent une demande de reconnaissance du burn-out (syndrome d'épuisement professionnel) comme maladie professionnelle hors tableau au sens de l'art. L. 461-1 al. 4 et 5 du Code de la sécurité sociale : certificat médical caractérisant un burn-out / syndrome d'épuisement professionnel, dossier de saisine CPAM / CRRMP (comité régional de reconnaissance des maladies professionnelles), rapport médical reliant la pathologie à des conditions de travail (surcharge documentée, manquements employeur obligation sécurité L. 4121-1 CT, harcèlement), arrêts maladie cumulés en lien avec le travail, demande explicite "reconnaissance MP" / "maladie professionnelle" mentionnant le burn-out. Distinct du tableau 57 (affections péri-articulaires) qui n'inclut pas le burn-out — la voie passe exclusivement par la procédure hors tableau CRRMP (taux IPP ≥ 25 % requis). False par défaut. Pertinent pour F-DT-64.
+              Sous-objet `burnout_detail` — laisser null intégralement pour un dossier BELGIQUE (la BE reconnaît le burn-out via Fedris et un régime distinct, hors périmètre de cet outil).
+              Émettre UNIQUEMENT si les pièces évoquent une demande de reconnaissance du burn-out comme maladie professionnelle hors tableau (certificat médical, saisine CPAM/CRRMP, rapport médical, arrêts maladie cumulés en lien avec le travail). Laisser null si aucun indice n'est documenté. Sub-flag de `burnout_detecte` : émettre uniquement si un dispositif est documenté ou explicitement référencé.
+              "burnout_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "burnout_diagnostic" : booléen — true uniquement si une pièce médicale (certificat médical, compte-rendu de spécialiste, rapport médical d'expertise) caractérise expressément un burn-out / syndrome d'épuisement professionnel. False si les pièces établissent qu'aucun diagnostic n'est posé. Null si non factualisable.
+                "burnout_taux_ipp" : entier — taux d'incapacité permanente partielle (IPP) en POURCENTAGE de 0 à 100, tel qu'il ressort des pièces (notification CPAM, rapport médical d'évaluation IPP, expertise médicale). Le seuil de 25 % est la condition d'ouverture de la procédure hors tableau (L. 461-1 al. 4 CSS) — un taux < 25 % rend la voie CRRMP irrecevable (sauf décès). Null si le taux n'est pas chiffré dans les pièces ou si la procédure d'évaluation IPP n'a pas encore eu lieu.
+                "burnout_surcharge_documentee" : booléen — true uniquement si les pièces documentent une surcharge de travail caractérisée ou des manquements de l'employeur à l'obligation de sécurité (L. 4121-1 CT) : heures supplémentaires non payées documentées, alertes CHSCT/CSE sur la charge de travail, signalement RPS, courrier de mise en garde du médecin du travail, témoignages de collègues, plainte interne pour harcèlement managérial / sur-engagement. False si aucun indice de surcharge n'est documenté. Null si non factualisable.
+                "burnout_arrets_maladie" : booléen — true uniquement si les pièces produisent des arrêts de travail multiples ou prolongés en lien avec le contexte professionnel (certificats d'arrêt successifs, attestation médecin traitant, attestation CPAM des indemnités journalières, mention "arrêt longue durée"). False si aucun arrêt maladie n'est documenté ou si les arrêts sont sans lien apparent avec le travail. Null si non factualisable.
+              Règle NO-OP burnout_detail : si aucune pièce n'évoque une démarche de reconnaissance du burn-out comme MP, émettre "burnout_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 14 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -963,6 +985,7 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART10)
                     .concat(TRAVAIL_INSTRUCTION_PART11)
                     .concat(TRAVAIL_INSTRUCTION_PART12)
+                    .concat(TRAVAIL_INSTRUCTION_PART13)
                     .concat(TRAVAIL_INSTRUCTION_PART14);
 
     private static final String IMMIGRATION_INSTRUCTION = """

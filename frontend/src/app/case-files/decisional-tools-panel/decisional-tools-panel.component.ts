@@ -119,6 +119,8 @@ import { DemissionEquivoqueSectionComponent } from '../demission-equivoque-secti
 import { PdvRccConformiteSectionComponent } from '../pdv-rcc-conformite-section/pdv-rcc-conformite-section.component';
 // SF-212-30 : outil F-DT-77 congé maternité / paternité — protection & indemnités (FR uniquement).
 import { CongeMaternitePaterniteSectionComponent } from '../conge-maternite-paternite-section/conge-maternite-paternite-section.component';
+// SF-212-28 : outil F-DT-64 burn-out — reconnaissance maladie professionnelle hors tableau (FR uniquement).
+import { BurnoutReconnaissanceMpSectionComponent } from '../burnout-reconnaissance-mp-section/burnout-reconnaissance-mp-section.component';
 // SF-212-18 : outil F-DT-43 rupture anticipée du CDD (FR uniquement).
 import { RuptureAnticipeeCddSectionComponent } from '../rupture-anticipee-cdd-section/rupture-anticipee-cdd-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
@@ -973,6 +975,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-77-conge-paternite-maternite', {
         displayLabel: 'Congé maternité / paternité — protection & indemnités (FR)',
         component: CongeMaternitePaterniteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-28 : F-DT-64 burn-out — reconnaissance maladie professionnelle hors tableau (FR).
+      ['F-DT-64-burnout-reconnaissance-mp', {
+        displayLabel: 'Burn-out — reconnaissance MP (FR)',
+        component: BurnoutReconnaissanceMpSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3065,6 +3078,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-46-pdv-rcc-conformite', 'DIAGNOSTIC'],
     // SF-212-30 : F-DT-77 — congé maternité / paternité (protection & indemnités).
     ['F-DT-77-conge-paternite-maternite', 'DIAGNOSTIC'],
+    // SF-212-28 : F-DT-64 — burn-out reconnaissance maladie professionnelle.
+    ['F-DT-64-burnout-reconnaissance-mp', 'DIAGNOSTIC'],
     // SF-212-18 : F-DT-43 — rupture anticipée du CDD.
     ['F-DT-43-rupture-anticipee-cdd', 'DIAGNOSTIC'],
     // SF-212-22 : F-DT-41 — démission validité équivoque.

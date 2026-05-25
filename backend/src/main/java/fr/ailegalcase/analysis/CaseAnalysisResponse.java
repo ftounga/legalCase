@@ -599,7 +599,17 @@ public record CaseAnalysisResponse(
             // SF-212-29 : sous-objet IA pour pré-fill F-DT-77 congé maternité / paternité (FR).
             // 5 champs (typeConge, rangEnfant, naissanceMultiple, dateDebut, salaire).
             // Sub-flag de congeMaternitePaterniteDetecte.
-            CongeMaternitePaterniteDetail congeMaternitePaterniteDetail) {
+            CongeMaternitePaterniteDetail congeMaternitePaterniteDetail,
+            // SF-212-27 : flag F-205 — déclenche F-DT-64 burn-out reconnaissance MP (FR).
+            // Pertinent quand un dossier évoque une demande de reconnaissance du burn-out
+            // comme maladie professionnelle hors tableau via procédure CRRMP
+            // (L. 461-1 al. 4 et 5 CSS, comité régional de reconnaissance des maladies
+            // professionnelles, circulaire DGT 2016/01). Mécanisme franco-français.
+            boolean burnoutDetecte,
+            // SF-212-27 : sous-objet IA pour pré-fill F-DT-64 burn-out reconnaissance MP (FR).
+            // 4 champs (diagnostic, taux IPP, surcharge documentée, arrêts maladie).
+            // Sub-flag de burnoutDetecte. @JsonUnwrapped — JSON HTTP plat préservé.
+            @JsonUnwrapped BurnoutDetail burnoutDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -767,6 +777,27 @@ public record CaseAnalysisResponse(
                 Double congeMaterniteSalaireMensuelBrut
         ) {}
 
+        /**
+         * SF-212-27 — sous-record IA pour F-DT-64 burn-out reconnaissance maladie
+         * professionnelle hors tableau (FRANCE only — L. 461-1 al. 4 et 5 CSS ;
+         * comité régional de reconnaissance des maladies professionnelles CRRMP ;
+         * circulaire DGT 2016/01). 4 champs alignés sur le prompt PART13 :
+         * {@code burnout_diagnostic} (diagnostic médical posé),
+         * {@code burnout_taux_ipp} (taux d'incapacité permanente partielle estimé
+         * en %, doit être ≥ 25 % pour ouvrir la procédure hors tableau),
+         * {@code burnout_surcharge_documentee} (surcharge / manquements employeur
+         * obligation sécurité L. 4121-1 documentés), {@code burnout_arrets_maladie}
+         * (arrêts maladie cumulés documentés).
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         * @JsonUnwrapped — JSON HTTP plat préservé (parité contrat externe stricte).
+         */
+        public record BurnoutDetail(
+                Boolean burnoutDiagnostic,
+                Integer burnoutTauxIpp,
+                Boolean burnoutSurchargeDocumentee,
+                Boolean burnoutArretsMaladie
+        ) {}
+
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -836,6 +867,7 @@ public record CaseAnalysisResponse(
                     .pdvRccEnvisage(pdvRccEnvisage)
                     // SF-212-29 — F-205 flag F-DT-77 congé maternité / paternité.
                     .congeMaternitePaterniteDetecte(congeMaternitePaterniteDetecte)
+                    .burnoutDetecte(burnoutDetecte)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -1041,7 +1073,10 @@ public record CaseAnalysisResponse(
                     // F-256 SF-212-35 — pdv_rcc_detail
                     .pdvRccDetail(pdvRccDetail)
                     // SF-212-29 — conge_maternite_paternite_detail
-                    .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail);
+                    .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail)
+                    // SF-212-27 — burn-out reconnaissance MP (FR)
+                    .burnoutDetecte(burnoutDetecte)
+                    .burnoutDetail(burnoutDetail);
         }
 
         public static final class Builder {
@@ -1308,6 +1343,9 @@ public record CaseAnalysisResponse(
             private PdvRccDetail pdvRccDetail;
             // SF-212-29 — conge_maternite_paternite_detail (FRANCE uniquement)
             private CongeMaternitePaterniteDetail congeMaternitePaterniteDetail;
+            // SF-212-27 — flag F-205 + sous-record burn-out reconnaissance MP (FR uniquement)
+            private boolean burnoutDetecte;
+            private BurnoutDetail burnoutDetail;
 
             private Builder() {}
 
@@ -1569,6 +1607,10 @@ public record CaseAnalysisResponse(
             public Builder pdvRccDetail(PdvRccDetail v) { this.pdvRccDetail = v; return this; }
             // SF-212-29 — sous-record pré-fill IA pour F-DT-77 congé maternité / paternité.
             public Builder congeMaternitePaterniteDetail(CongeMaternitePaterniteDetail v) { this.congeMaternitePaterniteDetail = v; return this; }
+            // SF-212-27 — F-205 flag (FRANCE only) — déclenche F-DT-64 burn-out reconnaissance MP.
+            public Builder burnoutDetecte(boolean v) { this.burnoutDetecte = v; return this; }
+            // SF-212-27 — burnout_detail (FRANCE uniquement) — sous-record IA.
+            public Builder burnoutDetail(BurnoutDetail v) { this.burnoutDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1728,7 +1770,10 @@ public record CaseAnalysisResponse(
                         demissionEquivoqueDetail,
                         pdvRccDetail,
                         // SF-212-29 — conge_maternite_paternite_detail
-                        congeMaternitePaterniteDetail);
+                        congeMaternitePaterniteDetail,
+                        // SF-212-27 — burn-out reconnaissance MP (FR)
+                        burnoutDetecte,
+                        burnoutDetail);
             }
         }
     }
@@ -4450,6 +4495,16 @@ public record CaseAnalysisResponse(
                             isoDateOrNull(congeMpNode, "conge_maternite_date_debut"),
                             positiveDoubleOrNull(congeMpNode, "conge_maternite_salaire_mensuel_brut"))
                     : null;
+            // SF-212-27 : sous-objet pour pré-fill F-DT-64 (burn-out reconnaissance MP FR).
+            JsonNode burnoutNode = node.get("burnout_detail");
+            boolean hasBurnout = burnoutNode != null && burnoutNode.isObject();
+            TravailExtractedData.BurnoutDetail burnoutDetail = hasBurnout
+                    ? new TravailExtractedData.BurnoutDetail(
+                            booleanOrNull(burnoutNode, "burnout_diagnostic"),
+                            boundedIntOrNull(burnoutNode, "burnout_taux_ipp", 0, MAX_IPP_TAUX),
+                            booleanOrNull(burnoutNode, "burnout_surcharge_documentee"),
+                            booleanOrNull(burnoutNode, "burnout_arrets_maladie"))
+                    : null;
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4519,6 +4574,8 @@ public record CaseAnalysisResponse(
                     .pdvRccEnvisage(booleanOrFalse(node, "pdv_rcc_envisage"))
                     // SF-212-29 : flag F-205 — déclenche F-DT-77 congé maternité / paternité.
                     .congeMaternitePaterniteDetecte(booleanOrFalse(node, "conge_maternite_paternite_detecte"))
+                    // SF-212-27 : flag F-205 — déclenche F-DT-64 burn-out reconnaissance MP.
+                    .burnoutDetecte(booleanOrFalse(node, "burnout_detecte"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4802,6 +4859,8 @@ public record CaseAnalysisResponse(
                     .pdvRccDetail(pdvRccDetail)
                     // SF-212-29 — sous-record pré-fill IA F-DT-77 congé maternité / paternité.
                     .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail)
+                    // SF-212-27 — burn-out reconnaissance MP (FR)
+                    .burnoutDetail(burnoutDetail)
                     .build();
         } catch (Exception ignored) { return null; }
     }

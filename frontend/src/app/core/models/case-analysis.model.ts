@@ -944,6 +944,24 @@ export interface TravailExtractedData {
   /** SF-212-29 — flag F-205 déclenchant F-DT-77 congé maternité / paternité (FRANCE only). */
   congeMaternitePaterniteDetecte?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-27 — sous-objet `burnout_detail` (FRANCE only)
+  // Pré-fill F-DT-64 (burn-out — reconnaissance MP hors tableau — L. 461-1
+  // al. 4 et 5 CSS ; CRRMP ; circulaire DGT 2016/01). Tableau 57 n'inclut
+  // pas le burn-out, d'où la voie hors tableau obligatoire (taux IPP ≥ 25 %).
+  // @JsonUnwrapped côté backend — JSON HTTP plat. Tous nullables — restent
+  // `null` pour un dossier Travail BE (régime Fedris distinct).
+  // -------------------------------------------------------------------------
+  /** Diagnostic de burn-out posé (certificat / expertise médicale). */
+  burnoutDiagnostic?: boolean | null;
+  /** Taux d'IPP estimé (entier %, doit être ≥ 25 pour ouvrir CRRMP). */
+  burnoutTauxIpp?: number | null;
+  /** Surcharge / manquements employeur obligation sécurité L. 4121-1 documentés. */
+  burnoutSurchargeDocumentee?: boolean | null;
+  /** Arrêts maladie multiples ou prolongés en lien avec le travail. */
+  burnoutArretsMaladie?: boolean | null;
+  /** SF-212-27 — flag F-205 déclenchant F-DT-64 burn-out reconnaissance MP (FRANCE only). */
+  burnoutDetecte?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

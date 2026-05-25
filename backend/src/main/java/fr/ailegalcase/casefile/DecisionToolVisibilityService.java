@@ -245,6 +245,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "pdv_rcc_envisage");
         // SF-212-29 : nouveau flag F-205 — déclenche F-DT-77 congé maternité / paternité.
         addBooleanFlagIfTrue(detected, travailNode, "conge_maternite_paternite_detecte");
+        // SF-212-27 : nouveau flag F-205 — déclenche F-DT-64 burn-out reconnaissance MP.
+        addBooleanFlagIfTrue(detected, travailNode, "burnout_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");
