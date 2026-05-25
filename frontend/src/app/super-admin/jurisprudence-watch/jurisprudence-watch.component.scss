@@ -150,6 +150,13 @@
 }
 
 .bootstrap {
+  &__header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
   &__textarea {
     width: 100%;
     box-sizing: border-box;
