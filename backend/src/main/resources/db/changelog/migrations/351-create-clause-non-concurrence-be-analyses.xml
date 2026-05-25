@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="78ef9420-ff15-43da-b7d7-eb827402d918-create" author="legalcase">
+        <comment>
+            SF-213-01 : table dédiée à l'outil décisionnel "Clause de non-concurrence
+            BE — validité + indemnité légale" (clause-non-concurrence-be, BELGIQUE —
+            fondements : Loi du 3 juillet 1978 sur les contrats de travail art. 65
+            (conditions de validité substantielles : seuil de rémunération annuelle
+            brute, durée max 12 mois, zone géographique limitée à la Belgique sauf
+            activité internationale prouvée) ; CCT n°13 du 24 février 1971 modifiée
+            (seuil de rémunération indexé annuellement — 73 571 € en 2024 ;
+            indemnité légale obligatoire = ½ rémunération brute correspondant à la
+            durée de la clause, payable dans les 15 jours suivant la fin du contrat).
+
+            L'outil évalue la validité via 3 verdicts :
+            - VALIDE : conditions de fond respectées (rémunération &gt; seuil, durée
+              ≤ 12 mois, zone Belgique ou activité internationale prouvée).
+            - NULLE : rémunération insuffisante OU durée excessive OU zone non
+              spécifiée.
+            - PARTIELLEMENT_NULLE : zone BELGIQUE_ET_ETRANGER sans activité
+              internationale prouvée (nulle pour la partie étrangère).
+
+            Outil single-country BELGIQUE — l'équivalent FR (F-DT-24 clause non-
+            concurrence FR) suit un régime juridiquement distinct : montant libre,
+            pas de plancher légal de ½ rémunération ; conditions de validité
+            jurisprudentielles (Cass. soc. 10/07/2002 — quatre conditions
+            cumulatives) différentes des conditions légales belges.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-207-06).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules) est
+            volontairement portée par la migration de SF-213-01b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou DecisionToolVisibilityIntegrityIT
+            (cas réel F-164 staging 2026-04-26 — 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="clause_non_concurrence_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_clause_nc_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="clause_non_concurrence_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_clause_nc_be_analyses_case_file"/>
+
+        <createIndex tableName="clause_non_concurrence_be_analyses"
+                     indexName="idx_clause_nc_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="clause_non_concurrence_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
