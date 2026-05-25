@@ -29,6 +29,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { PrestationCompensatoireSectionPrefillRules } from './prestation-compensatoire-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-02 : composant Angular standalone pour l'outil décisionnel
@@ -79,11 +80,16 @@ import { PrestationCompensatoireSectionPrefillRules } from './prestation-compens
     MatSelectModule, MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './prestation-compensatoire-section.component.html',
   styleUrl: './prestation-compensatoire-section.component.scss',
 })
 export class PrestationCompensatoireSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v3 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-01-prestation-compensatoire';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'PRESTATION COMPENSATOIRE';
   static readonly TOOL_ICON = 'balance';

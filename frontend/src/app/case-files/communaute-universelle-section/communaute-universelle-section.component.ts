@@ -38,6 +38,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { CommunauteUniversellePrefillRules } from './communaute-universelle-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-16-02 : champs d'alerte F-IA-03 exposés par l'outil
@@ -81,12 +82,17 @@ export type CommUnivCoherenceAlert = CoherenceAlert<CommUnivAlertField>;
     MatRadioModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './communaute-universelle-section.component.html',
   styleUrl: './communaute-universelle-section.component.scss',
 })
 export class CommunauteUniverselleSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v3 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-16-communaute-universelle';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'COMMUNAUTÉ UNIVERSELLE (FR)';
   static readonly TOOL_ICON = 'family_restroom';

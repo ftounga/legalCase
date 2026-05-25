@@ -39,6 +39,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PartageJudiciairePrefillRules } from './partage-judiciaire-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-17-02 : champs d'alerte F-IA-03 exposés par l'outil "Partage judiciaire".
@@ -79,12 +80,17 @@ export type PartageJudiciaireCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './partage-judiciaire-section.component.html',
   styleUrl: './partage-judiciaire-section.component.scss',
 })
 export class PartageJudiciaireSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v3 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-17-partage-judiciaire';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PARTAGE JUDICIAIRE (FR)';
   static readonly TOOL_ICON = 'balance';
