@@ -27,6 +27,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { PresomptionPaterniteFrPrefillRules } from './presomption-paternite-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-26 : composant Angular standalone pour l'outil décisionnel
@@ -60,11 +61,16 @@ import { PresomptionPaterniteFrPrefillRules } from './presomption-paternite-fr-s
     MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './presomption-paternite-fr-section.component.html',
   styleUrl: './presomption-paternite-fr-section.component.scss',
 })
 export class PresomptionPaterniteFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-PRESOMPTION-PATERNITE';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'PRÉSOMPTION DE PATERNITÉ';
   static readonly TOOL_ICON = 'family_restroom';

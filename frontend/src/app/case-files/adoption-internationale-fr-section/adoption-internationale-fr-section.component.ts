@@ -30,6 +30,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { AdoptionInternationaleFrPrefillRules } from './adoption-internationale-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-18 : composant Angular standalone pour l'outil décisionnel
@@ -62,11 +63,16 @@ import { AdoptionInternationaleFrPrefillRules } from './adoption-internationale-
     MatSelectModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './adoption-internationale-fr-section.component.html',
   styleUrl: './adoption-internationale-fr-section.component.scss',
 })
 export class AdoptionInternationaleFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-ADOPTION-INTERNATIONALE';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'ADOPTION INTERNATIONALE';
   static readonly TOOL_ICON = 'public';
