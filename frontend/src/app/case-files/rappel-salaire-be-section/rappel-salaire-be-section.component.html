@@ -1,0 +1,224 @@
+<div class="rappel-salaire-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">paid</mat-icon>
+    <span class="section-title">Rappel de salaire (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="prescriptionClass(result()!.statutPrescription)">
+        {{ humanizeStatutPrescription(result()!.statutPrescription) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="rappel-salaire-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi 12/04/1965 art. 10 — intérêts moratoires 10 % de plein droit).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calcule un rappel de salaire BE : prescription (5 ans pendant
+            contrat / 1 an post-rupture — Loi 03/07/1978 art. 15) et intérêts
+            moratoires de plein droit (10 %, Loi 12/04/1965 art. 10).
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Montant brut réclamé -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Montant brut réclamé (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="montantBrut()"
+                       (ngModelChange)="onMontantBrutChange($event)"
+                       name="montantBrut" />
+                <mat-hint>Arriérés de salaire brut sur la période concernée.</mat-hint>
+              </mat-form-field>
+              @if (provenanceMontantBrut() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 2. Date début période -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Début de la période d'arriéré *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutPeriode()"
+                       (ngModelChange)="onDateDebutPeriodeChange($event)"
+                       name="dateDebutPeriode" />
+              </mat-form-field>
+              @if (provenanceDateDebutPeriode() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 3. Date fin période -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Fin de la période d'arriéré *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFinPeriode()"
+                       (ngModelChange)="onDateFinPeriodeChange($event)"
+                       name="dateFinPeriode" />
+                <mat-hint>Date d'exigibilité principale.</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateFinPeriode() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 4. Type d'arriéré -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Régime de prescription *</mat-label>
+                <mat-select required
+                            [ngModel]="typeArriereEnum()"
+                            (ngModelChange)="onTypeArriereChange($event)"
+                            name="typeArriereEnum">
+                  @for (t of typesArriere; track t) {
+                    <mat-option [value]="t">{{ humanizeTypeArriere(t) }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceTypeArriere() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Dérivé de l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 5. Date de rupture (optionnelle sauf POST_RUPTURE) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>
+                  Date de rupture du contrat
+                  @if (typeArriereEnum() === 'POST_RUPTURE') {
+                    <span>*</span>
+                  }
+                </mat-label>
+                <input matInput
+                       type="date"
+                       [required]="typeArriereEnum() === 'POST_RUPTURE'"
+                       [ngModel]="dateRupture()"
+                       (ngModelChange)="onDateRuptureChange($event)"
+                       name="dateRupture" />
+                <mat-hint>Requise pour le régime post-rupture (1 an, art. 15 al. 1).</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateRupture() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer le rappel</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="rappel-salaire-be-result">
+          <div class="result-banner"
+               [class]="prescriptionClass(result()!.statutPrescription)"
+               role="status">
+            <mat-icon>{{ prescriptionIcon(result()!.statutPrescription) }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ humanizeStatutPrescription(result()!.statutPrescription) }}
+              </div>
+              <div class="result-banner-sub">
+                Prescription au {{ result()!.dateLimitePrescription }} —
+                {{ result()!.joursRestantsAvantPrescription }} jour(s) restant(s).
+              </div>
+            </div>
+          </div>
+
+          <ul class="result-breakdown">
+            <li>
+              <span class="bd-label">Montant brut réclamé</span>
+              <span class="bd-value">{{ formatEuro(result()!.montantBrut) }}</span>
+            </li>
+            <li>
+              <span class="bd-label">Intérêts moratoires</span>
+              <span class="bd-value">{{ formatEuro(result()!.interetsCourus) }}</span>
+            </li>
+            <li>
+              <span class="bd-label">Taux moratoire</span>
+              <span class="bd-value bd-value--mono">{{ result()!.tauxMoratoire }}</span>
+            </li>
+            <li class="result-breakdown-total">
+              <span class="bd-label">Total réclamable</span>
+              <span class="bd-value">{{ formatEuro(result()!.totalReclame) }}</span>
+            </li>
+            @if (result()!.formuleCalcul) {
+              <li>
+                <span class="bd-label">Formule</span>
+                <span class="bd-value bd-value--mono">{{ result()!.formuleCalcul }}</span>
+              </li>
+            }
+          </ul>
+
+          <div class="result-meta">
+            <span class="result-meta-base">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

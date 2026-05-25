@@ -151,6 +151,7 @@ import { ReferesAdminSectionComponent } from '../referes-admin-section/referes-a
 import { ContestationAreSectionComponent } from '../contestation-are-section/contestation-are-section.component';
 import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
 import { ClauseNonConcurrenceBeSectionComponent } from '../clause-non-concurrence-be-section/clause-non-concurrence-be-section.component';
+import { RappelSalaireBeSectionComponent } from '../rappel-salaire-be-section/rappel-salaire-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1886,6 +1887,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-02b : rappel de salaire BE (Loi 12/04/1965 art. 10 — intérêts
+      // moratoires 10 % + Loi 03/07/1978 art. 15 al. 1 — prescription 1 an
+      // post-rupture / 5 ans pendant contrat). BE-only, ALWAYS_ON.
+      // 4 champs IA pré-remplis depuis TravailExtractedData branche BE
+      // (montantArrieresSalaireBrut, dateDebutArrieresSalaire,
+      // dateFinArrieresSalaire, dateRuptureContrat) + typeArriereEnum dérivé.
+      ['rappel-salaire-be', {
+        displayLabel: 'Rappel de salaire (Belgique)',
+        component: RappelSalaireBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -2940,6 +2959,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-18-fin-mission-interim', 'INDEMNITES'],
     ['F-DT-19-heures-sup', 'INDEMNITES'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
+    // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
+    // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).
+    ['rappel-salaire-be', 'INDEMNITES'],
     ['F-DT-21-travail-dissimule', 'INDEMNITES'],
     ['F-DT-25-indemnite-preavis', 'INDEMNITES'],
     ['F-DT-26-conges-payes-indemnite', 'INDEMNITES'],

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="011faeec-a449-4665-b2f9-3ab79b170650-create" author="legalcase">
+        <comment>
+            SF-213-02 : table dédiée à l'outil décisionnel "Rappel de salaire BE
+            — calculateur indemnité + intérêts moratoires" (rappel-salaire-be,
+            BELGIQUE — fondements : Loi du 12 avril 1965 sur la protection de la
+            rémunération des travailleurs, art. 10 (taux d'intérêts moratoires
+            spécifique 10 % applicable aux créances salariales, distinct du taux
+            légal civil belge et du taux légal français) ; Loi du 3 juillet 1978
+            sur les contrats de travail, art. 15 (prescription : 1 an post-rupture
+            pour les créances ex-contrat, 5 ans pour les arriérés exigibles
+            pendant le contrat) ; CC art. 2262bis (prescription subsidiaire de
+            droit commun, cas marginaux hors scope V1).
+
+            L'outil calcule :
+            - les intérêts moratoires 10 % annuel sur la période écoulée depuis
+              la date d'exigibilité jusqu'à la date d'action envisagée ;
+            - la date limite de prescription selon le type d'arriéré
+              (PENDANT_CONTRAT = 5 ans depuis dateFinPeriode, POST_RUPTURE =
+              1 an depuis dateRupture, MIXTE = prescription la plus stricte
+              1 an post-rupture en V1) ;
+            - le statut de prescription : PRESCRIT / IMMINENT (≤ 30 j) /
+              NON_PRESCRIT.
+
+            Outil single-country BELGIQUE — l'équivalent FR (rappel-salaire FR)
+            suit un régime juridiquement distinct : intérêts légaux variables
+            semestriels (art. 1153 C.civ.) + prescription 3 ans (C. trav. art.
+            L. 3245-1).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-207-06 /
+            SF-213-01).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules) est
+            volontairement portée par la migration de SF-213-02b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT (cas réel F-164 staging
+            2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check). Pattern miroir
+            SF-213-01 backend.
+        </comment>
+
+        <createTable tableName="rappel_salaire_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rappel_salaire_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rappel_salaire_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rappel_salaire_be_analyses_case_file"/>
+
+        <createIndex tableName="rappel_salaire_be_analyses"
+                     indexName="idx_rappel_salaire_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rappel_salaire_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
