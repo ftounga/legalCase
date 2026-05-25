@@ -1,45 +1,95 @@
 /**
- * SF-212-18 — Helper partagé pour l'outil "Rupture anticipée du CDD"
+ * SF-212-18 / F-256 — Helper partagé pour l'outil « Rupture anticipée du CDD »
  * (F-DT-43). Module pur — runtime (`prefillFromAi()`) et static
  * (`getPrefillCount()`) appellent les MÊMES fonctions (contrat F-236 / F-237 /
  * F-246).
  *
- * Note importante : le sous-objet IA `rupture_anticipee_cdd_detail` n'est pas
- * actuellement projeté à plat sur `TravailExtractedData` côté backend (limite
- * JVM 255 slots du constructeur canonical du record, saturé par les vagues
- * F-212 antérieures + SF-212-23). Le pré-fill IA pour F-DT-43 sera traité par
- * une SF de rattrapage ultérieure (refactor de TravailExtractedData en
- * plusieurs records ou consommation de l'analysis_result raw JSON).
+ * Pré-fill IA réactivé par F-256 : le sous-objet `rupture_anticipee_cdd_detail`
+ * est désormais projeté à plat sur `TravailExtractedData` côté backend (slot
+ * libéré par le refactor TravailExtractedData en sous-records).
  *
- * `computePrefillCount()` retourne donc 0 sur les fixtures normales —
- * l'avocat saisit manuellement les 6 champs du formulaire. Le déclenchement
- * F-IA-04 de l'outil reste fonctionnel via le flag top-level
- * `rupture_anticipee_cdd_detectee` (DecisionToolVisibilityService).
+ *   auteurRupture   ← aiData.ruptureAnticipeeCddDetail.ruptureAnticipeeCddAuteur
+ *   motifRupture    ← aiData.ruptureAnticipeeCddDetail.ruptureAnticipeeCddMotif
+ *   dateTermeCdd    ← aiData.ruptureAnticipeeCddDetail.ruptureAnticipeeCddDateTerme
  *
- * Cette signature est conservée pour parité d'interface avec les autres
- * helpers de pré-fill (contrat F-236).
+ * FRANCE uniquement (`workspaceCountry === 'FRANCE'`).
  */
 
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 
+/** Auteur de la rupture anticipée (enum F-DT-43). */
+export type RacAuteurRuptureValue = 'EMPLOYEUR' | 'SALARIE';
+
+/** Motif invoqué (enum F-DT-43). */
+export type RacMotifRuptureValue =
+  | 'ACCORD_PARTIES'
+  | 'FAUTE_GRAVE'
+  | 'FORCE_MAJEURE'
+  | 'INAPTITUDE'
+  | 'CDI_EMBAUCHE'
+  | 'AUTRE';
+
+const AUTEUR_VALEURS: ReadonlySet<RacAuteurRuptureValue> = new Set(['EMPLOYEUR', 'SALARIE']);
+const MOTIF_VALEURS: ReadonlySet<RacMotifRuptureValue> = new Set([
+  'ACCORD_PARTIES',
+  'FAUTE_GRAVE',
+  'FORCE_MAJEURE',
+  'INAPTITUDE',
+  'CDI_EMBAUCHE',
+  'AUTRE',
+]);
+
 /** Sous-ensemble du record `TravailExtractedData` consommé par le pré-fill. */
 export interface RuptureAnticipeeCddPrefillInput {
-  aiData?: TravailExtractedData | null;
+  aiData?: Pick<TravailExtractedData, 'ruptureAnticipeeCddDetail'> | null;
   workspaceCountry?: string;
+}
+
+function isFrance(input: RuptureAnticipeeCddPrefillInput): boolean {
+  return input.workspaceCountry === 'FRANCE';
+}
+
+/** Enum — `auteurRupture`. */
+export function computeAuteur(input: RuptureAnticipeeCddPrefillInput): RacAuteurRuptureValue | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.ruptureAnticipeeCddDetail?.ruptureAnticipeeCddAuteur;
+  if (typeof v !== 'string') return null;
+  return AUTEUR_VALEURS.has(v as RacAuteurRuptureValue) ? (v as RacAuteurRuptureValue) : null;
+}
+
+/** Enum — `motifRupture`. */
+export function computeMotif(input: RuptureAnticipeeCddPrefillInput): RacMotifRuptureValue | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.ruptureAnticipeeCddDetail?.ruptureAnticipeeCddMotif;
+  if (typeof v !== 'string') return null;
+  return MOTIF_VALEURS.has(v as RacMotifRuptureValue) ? (v as RacMotifRuptureValue) : null;
+}
+
+/** Date ISO YYYY-MM-DD — `dateTermeCdd`. */
+export function computeDateTerme(input: RuptureAnticipeeCddPrefillInput): string | null {
+  if (!isFrance(input)) return null;
+  const v = input.aiData?.ruptureAnticipeeCddDetail?.ruptureAnticipeeCddDateTerme;
+  if (typeof v !== 'string') return null;
+  // Format ISO simple YYYY-MM-DD
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
 }
 
 /**
  * Nombre exact de champs pré-remplissables — parité stricte avec
- * `prefillFromAi()` du composant. Retourne 0 actuellement (limite JVM
- * du backend — voir commentaire d'en-tête du module).
+ * `prefillFromAi()` du composant. Retourne 0 si non-FRANCE.
  */
-export function computePrefillCount(_input: RuptureAnticipeeCddPrefillInput): number {
-  // Pas de pré-fill IA tant que le sous-objet `ruptureAnticipeeCddDetail`
-  // n'est pas projeté côté backend. SF de rattrapage à prévoir post-refactor
-  // de TravailExtractedData.
-  return 0;
+export function computePrefillCount(input: RuptureAnticipeeCddPrefillInput): number {
+  if (!isFrance(input)) return 0;
+  let count = 0;
+  if (computeAuteur(input) !== null) count++;
+  if (computeMotif(input) !== null) count++;
+  if (computeDateTerme(input) !== null) count++;
+  return count;
 }
 
 export const RuptureAnticipeeCddSectionPrefillRules = {
+  computeAuteur,
+  computeMotif,
+  computeDateTerme,
   computePrefillCount,
 };

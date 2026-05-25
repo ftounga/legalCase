@@ -886,19 +886,22 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * SF-212-21 : 11e part du prompt TRAVAIL — pas de sous-objet IA pour
-     * F-DT-41 (limite JVM 255 slots du record TravailExtractedData saturée
-     * après SF-212-23). Le déclenchement F-IA-04 reste fonctionnel via le
-     * flag top-level `demission_equivoque_pressentie` listé en PART2 — le
-     * pré-fill IA fera l'objet d'une SF de rattrapage ultérieure (pattern
-     * SF-212-17 F-DT-43).
-     *
-     * Ce prompt PART11 est volontairement minimaliste — il documente
-     * explicitement l'absence de sous-objet pour empêcher l'IA d'inventer
-     * un objet qui ne serait pas parsé.
+     * F-256 SF-212-21 : 11e part du prompt TRAVAIL — flag F-205 et sous-objet
+     * `demission_equivoque_detail` (FRANCE UNIQUEMENT). Réactivé par F-256
+     * (refactor TravailExtractedData en sous-records — slot libéré).
      */
     private static final String TRAVAIL_INSTRUCTION_PART11 = """
-              SF-212-21 — Pas de sous-objet `demission_equivoque_detail` à émettre dans cette PR (limite JVM 255 slots du record TravailExtractedData saturée — pattern SF-212-17 F-DT-43). Le déclenchement F-IA-04 de l'outil F-DT-41 (démission validité équivoque, FR) reste fonctionnel via le flag top-level `demission_equivoque_pressentie` listé plus haut. Ne pas émettre de clé `demission_equivoque_detail` — elle ne serait pas parsée.
+              F-256 SF-212-21 — Sous-objet `demission_equivoque_detail` (FRANCE UNIQUEMENT).
+              Le flag top-level `demission_equivoque_pressentie` reste listé en PART2 (cf. plus haut).
+              Sous-objet `demission_equivoque_detail` — laisser null intégralement pour un dossier BELGIQUE.
+              Émettre UNIQUEMENT si les pièces évoquent une démission dont la validité peut être contestée au regard de l'exigence d'une volonté claire et non équivoque (Cass. soc. 09/05/2007) : SMS / mail / message instantané, courrier informel rédigé à chaud, démission post-altercation, mention de pression / menace, rétractation rapide, démission concomitante à des manquements employeur. Laisser null si aucun indice n'est documenté.
+              "demission_equivoque_detail" : objet OU null. Si émis, contient EXACTEMENT les 5 clés suivantes :
+                "demission_mode_expression" : chaîne libre courte décrivant le mode d'expression de la démission tel qu'il ressort des pièces (ex. "SMS", "courrier", "mail", "verbale témoin", "lettre recommandée", "remise main propre"). Champ informatif pour aider l'avocat à apprécier la qualité de l'écrit. Null si non déterminable.
+                "demission_contexte_altercation" : booléen — true uniquement si les pièces évoquent une altercation, dispute ou conflit ouvert avec l'employeur juste avant ou au moment de la démission (incident relaté par mail, plainte interne, témoignage, échanges de messages tendus). False si aucun contexte conflictuel n'est documenté. Null si non factualisable depuis les pièces.
+                "demission_pression" : booléen — true uniquement si les pièces évoquent une pression directe ou indirecte exercée par l'employeur sur le salarié pour obtenir la démission (menace de sanction, ultimatum, harcèlement caractérisé, propos rapportés). False sinon. Null si non factualisable.
+                "demission_retractation" : booléen — true uniquement si les pièces produisent un acte de rétractation rapide de la démission par le salarié (courrier, mail dans les jours suivants, demande de réintégration). False si aucune rétractation n'est documentée. Null si non factualisable.
+                "demission_manquements_employeur" : booléen — true uniquement si les pièces évoquent des manquements graves de l'employeur contemporains de la démission (non-paiement de salaire, harcèlement caractérisé, modification unilatérale du contrat, défaut de sécurité). False si aucun manquement n'est documenté. Null si non factualisable.
+              Règle NO-OP demission_equivoque_detail : si aucune pièce n'évoque une démission dont la validité peut être contestée, émettre "demission_equivoque_detail": null — ne jamais inventer.
             """;
 
     /**
