@@ -19,7 +19,10 @@ describe('PacteSuccessoralBe2018SectionComponent', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('rendu nominal : loi 31/07/2017 et notes visibles', () => {
     const html = fixture.nativeElement as HTMLElement;

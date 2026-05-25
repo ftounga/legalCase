@@ -38,6 +38,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { DivorceDcBeSectionPrefillRules } from './divorce-dc-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * F-243 : champs F-IA-03 audités par l'outil F-FA-11 BE.
@@ -77,12 +78,17 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
     MatFormFieldModule, MatInputModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './divorce-dc-be-section.component.html',
   styleUrl: './divorce-dc-be-section.component.scss',
 })
 export class DivorceDcBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'divorce-dc-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'DIVORCE CONSENTEMENT MUTUEL — CJ ART. 1287 BE';
   static readonly TOOL_ICON = 'handshake';
 

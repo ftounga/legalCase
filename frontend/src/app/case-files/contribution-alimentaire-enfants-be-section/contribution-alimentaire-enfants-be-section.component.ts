@@ -29,6 +29,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { ContributionAlimentaireEnfantsBeSectionPrefillRules } from './contribution-alimentaire-enfants-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /** Option de tranche d'âge (alignée sur l'enum backend `TrancheAgeEnfantBe`). */
 interface TrancheAgeOption {
@@ -63,11 +64,16 @@ interface TrancheAgeOption {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './contribution-alimentaire-enfants-be-section.component.html',
   styleUrl: './contribution-alimentaire-enfants-be-section.component.scss',
 })
 export class ContributionAlimentaireEnfantsBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'contribution-alimentaire-enfants-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'CONTRIBUTION ALIMENTAIRE ENFANTS — MÉTHODE RENARD BE';
   static readonly TOOL_ICON = 'savings';
 

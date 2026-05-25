@@ -45,6 +45,7 @@ import {
 } from '../../core/models/c4-onem-checklist.model';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { C4OnemChecklistPrefillRules } from './c4-onem-checklist-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-207-02b — Champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -84,12 +85,16 @@ const DATE_DIVERGENCE_DAYS = 15;
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatCheckboxModule,
     MatProgressSpinnerModule,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './c4-onem-checklist-section.component.html',
   styleUrl: './c4-onem-checklist-section.component.scss',
 })
 export class C4OnemChecklistSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'c4-onem-checklist';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CHECKLIST C4 ONEM (BE)';
   static readonly TOOL_ICON = 'fact_check';

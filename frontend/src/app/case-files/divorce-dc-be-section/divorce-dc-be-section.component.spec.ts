@@ -23,7 +23,10 @@ describe('DivorceDcBeSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('expose statics TOOL_LABEL, TOOL_ICON, getPrefillCount', () => {
     expect(DivorceDcBeSectionComponent.TOOL_LABEL).toBe('DIVORCE CONSENTEMENT MUTUEL — CJ ART. 1287 BE');

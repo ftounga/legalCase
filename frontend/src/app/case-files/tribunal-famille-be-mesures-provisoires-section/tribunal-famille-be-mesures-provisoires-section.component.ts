@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-211-05 : wrapper informationnel V1 pour l'outil "Mesures provisoires
@@ -22,6 +23,10 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrl: './tribunal-famille-be-mesures-provisoires-section.component.scss',
 })
 export class TribunalFamilleBeMesuresProvisoiresSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'tribunal-famille-be-mesures-prov';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'MESURES PROVISOIRES TRIBUNAL FAMILLE (BE)';
   static readonly TOOL_ICON = 'gavel';
 

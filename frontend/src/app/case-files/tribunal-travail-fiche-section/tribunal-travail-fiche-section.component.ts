@@ -45,6 +45,7 @@ import {
   computeSiegeSocialDefendeur as computeSiegeSocialDefendeurRule,
   computeNumeroBce as computeNumeroBceRule,
 } from './tribunal-travail-fiche-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-173-02 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-06
@@ -63,12 +64,16 @@ export type TribunalCoherenceAlert = CoherenceAlert<TribunalAlertField>;
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatTooltipModule,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './tribunal-travail-fiche-section.component.html',
   styleUrl: './tribunal-travail-fiche-section.component.scss'
 })
 export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'F-DT-06-requete-tribunal-travail';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'REQUÊTE TRIBUNAL DU TRAVAIL';
   static readonly TOOL_ICON = 'balance';

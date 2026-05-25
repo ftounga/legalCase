@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-211-05 : wrapper informationnel V1 pour l'outil "Pacte successoral 2018
@@ -22,6 +23,10 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrl: './pacte-successoral-be-2018-section.component.scss',
 })
 export class PacteSuccessoralBe2018SectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'pacte-successoral-be-2018';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'PACTE SUCCESSORAL 2018 (BE)';
   static readonly TOOL_ICON = 'description';
 

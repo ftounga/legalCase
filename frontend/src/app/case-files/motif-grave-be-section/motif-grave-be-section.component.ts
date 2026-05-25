@@ -42,6 +42,7 @@ import {
   computeDateConnaissanceFait,
   computeDateNotificationMotifs,
 } from './motif-grave-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-DT-27-02 : champs d'alerte F-IA-03 exposés par l'outil F-DT-27
@@ -89,12 +90,17 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
     MatFormFieldModule, MatInputModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './motif-grave-be-section.component.html',
   styleUrl: './motif-grave-be-section.component.scss',
 })
 export class MotifGraveBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'F-DT-27-motif-grave-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MOTIF GRAVE BE (ART. 35 LOI 03/07/1978)';
 

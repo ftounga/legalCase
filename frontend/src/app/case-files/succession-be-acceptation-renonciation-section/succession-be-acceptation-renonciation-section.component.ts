@@ -42,6 +42,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SuccessionBeAcceptationRenonciationSectionPrefillRules } from './succession-be-acceptation-renonciation-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * F-217 SF-217-13 : champ F-IA-03 audité par l'outil acceptation /
@@ -92,12 +93,17 @@ interface VolonteOption { value: VolonteClientSuccessionBe; label: string; }
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './succession-be-acceptation-renonciation-section.component.html',
   styleUrl: './succession-be-acceptation-renonciation-section.component.scss',
 })
 export class SuccessionBeAcceptationRenonciationSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'succession-be-acceptation-renonciation';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = "ACCEPTATION / RENONCIATION À SUCCESSION — CC art. 774+ BE";
   static readonly TOOL_ICON = 'gavel';
 

@@ -40,6 +40,7 @@ import {
 import { RccBeConditionsService } from '../../core/services/rcc-be-conditions.service';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { RccBeConditionsPrefillRules } from './rcc-be-conditions-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-207-06b : outil décisionnel "RCC BE — conditions d'éligibilité" (F-207).
@@ -62,12 +63,16 @@ import { RccBeConditionsPrefillRules } from './rcc-be-conditions-section-prefill
     CommonModule, FormsModule,
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatCheckboxModule,
-    MatProgressSpinnerModule,
+    MatProgressSpinnerModule,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './rcc-be-conditions-section.component.html',
   styleUrl: './rcc-be-conditions-section.component.scss',
 })
 export class RccBeConditionsSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'rcc-be-conditions';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RCC BE — CONDITIONS D\'ÉLIGIBILITÉ';
   static readonly TOOL_ICON = 'elderly';

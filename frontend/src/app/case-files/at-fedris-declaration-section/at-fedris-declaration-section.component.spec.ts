@@ -86,7 +86,10 @@ describe('AtFedrisDeclarationSectionComponent', () => {
     component.workspaceCountry = 'BELGIQUE';
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   function flushSE(): void {
     httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));

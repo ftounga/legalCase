@@ -24,7 +24,10 @@ describe('ContributionAlimentaireEnfantsBeSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('expose les statics TOOL_LABEL, TOOL_ICON, getPrefillCount', () => {
     expect(ContributionAlimentaireEnfantsBeSectionComponent.TOOL_LABEL)

@@ -37,6 +37,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SuccessionBeDevolutionReserveSectionPrefillRules } from './succession-be-devolution-reserve-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * F-217 SF-217-13 : champ F-IA-03 audité par l'outil dévolution / réserve BE.
@@ -91,12 +92,17 @@ interface RegimeMatrimonialOption {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './succession-be-devolution-reserve-section.component.html',
   styleUrl: './succession-be-devolution-reserve-section.component.scss',
 })
 export class SuccessionBeDevolutionReserveSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'succession-be-devolution-reserve';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL =
     'DÉVOLUTION & RÉSERVE HÉRÉDITAIRE — CC LIVRE 4 BE (loi 31/07/2017)';
   static readonly TOOL_ICON = 'family_restroom';
