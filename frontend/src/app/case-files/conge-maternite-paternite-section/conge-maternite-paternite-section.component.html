@@ -1,0 +1,232 @@
+<section class="cmp-section">
+  <header class="cmp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cmp-body">
+    <mat-icon class="cmp-icon">child_friendly</mat-icon>
+    <span class="cmp-title">CONGÉ MATERNITÉ / PATERNITÉ — PROTECTION & INDEMNITÉS</span>
+    @if (result()) {
+      <span class="cmp-chip-summary">
+        Durée {{ result()!.dureeCongeJours }} j — IJ {{ result()!.ijJournaliereEstimeeEuros }} €/j
+      </span>
+    }
+    <mat-icon class="cmp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cmp-body" class="cmp-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="cmp-country-banner" data-testid="cmp-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français. Le régime de congé maternité / paternité belge (INAMI / mutualité — loi du 16/03/1971 et AR du 25/11/1991) est juridiquement distinct et relève d'un outil jumeau.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cmp-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="cmp-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Type de congé -->
+            <div class="cmp-block cmp-full">
+              <span class="cmp-block-label">Type de congé (L. 1225-17 / L. 1225-35 CT)</span>
+
+              <mat-form-field appearance="outline" class="cmp-inline-field">
+                <mat-label>Type de congé</mat-label>
+                <mat-select
+                    [ngModel]="typeConge()"
+                    (ngModelChange)="onTypeChange($event)"
+                    name="typeConge"
+                    data-testid="cmp-select-type">
+                  @for (opt of typeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceType() === 'IA') {
+                <span class="cmp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Rang enfant + naissance multiple (maternité uniquement utile, mais affiché pour les deux) -->
+            <div class="cmp-block cmp-full">
+              <span class="cmp-block-label">Rang de l'enfant et naissance multiple (L. 1225-17 al. 1 CT)</span>
+
+              <mat-form-field appearance="outline" class="cmp-inline-field">
+                <mat-label>Rang de l'enfant (1=premier, 3=troisième+)</mat-label>
+                <input matInput type="number" min="1" max="20"
+                       [ngModel]="rangEnfant()"
+                       (ngModelChange)="onRangChange($event)"
+                       name="rangEnfant"
+                       data-testid="cmp-input-rang"/>
+              </mat-form-field>
+              @if (provenanceRang() === 'IA') {
+                <span class="cmp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> IA
+                </span>
+              }
+
+              <div class="cmp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="naissanceMultiple()"
+                    (ngModelChange)="onMultipleChange($event)"
+                    name="naissanceMultiple"
+                    data-testid="cmp-toggle-multiple">
+                  Naissance multiple (jumeaux / triplés+)
+                </mat-slide-toggle>
+                @if (provenanceMultiple() === 'IA') {
+                  <span class="cmp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> IA
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Date début + salaire -->
+            <div class="cmp-block cmp-full">
+              <span class="cmp-block-label">Date de début et base de calcul (L. 331-3 CSS)</span>
+
+              <mat-form-field appearance="outline" class="cmp-inline-field">
+                <mat-label>Date de début du congé</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateDebutConge()"
+                       (ngModelChange)="onDateChange($event)"
+                       name="dateDebutConge"
+                       data-testid="cmp-input-date"/>
+              </mat-form-field>
+              @if (provenanceDate() === 'IA') {
+                <span class="cmp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> IA
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="cmp-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="100"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="cmp-input-salaire"/>
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="cmp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> IA
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 4 — Alertes (toggles) -->
+            <div class="cmp-block cmp-full">
+              <span class="cmp-block-label">Alertes (L. 1225-4 / L. 1225-25 CT)</span>
+
+              <div class="cmp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="licenciementPendantConge()"
+                    (ngModelChange)="onLicenciementChange($event)"
+                    name="licenciementPendantConge"
+                    data-testid="cmp-toggle-licenciement">
+                  Licenciement notifié pendant la période protégée
+                </mat-slide-toggle>
+              </div>
+
+              <div class="cmp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="retourPosteDifferent()"
+                    (ngModelChange)="onRetourPosteChange($event)"
+                    name="retourPosteDifferent"
+                    data-testid="cmp-toggle-retour-poste">
+                  Réintégration sur un poste différent au retour
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="cmp-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="cmp-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cmp-result">
+            <!-- Tableau synthèse -->
+            <div class="cmp-figures-block">
+              <div class="cmp-figure">
+                <span class="cmp-figure-label">Durée du congé</span>
+                <span class="cmp-figure-value">{{ result()!.dureeCongeJours }} jours</span>
+              </div>
+              <div class="cmp-figure">
+                <span class="cmp-figure-label">Date de fin théorique</span>
+                <span class="cmp-figure-value">{{ result()!.dateFinCongeTheorique }}</span>
+              </div>
+              <div class="cmp-figure">
+                <span class="cmp-figure-label">IJ journalière estimée</span>
+                <span class="cmp-figure-value">{{ result()!.ijJournaliereEstimeeEuros }} €</span>
+              </div>
+              <div class="cmp-figure">
+                <span class="cmp-figure-label">IJ totale estimée</span>
+                <span class="cmp-figure-value">{{ result()!.ijTotaleEstimeeEuros }} €</span>
+              </div>
+              <div class="cmp-figure">
+                <span class="cmp-figure-label">Protection licenciement jusqu'au</span>
+                <span class="cmp-figure-value">{{ result()!.protectionLicenciementJusqua }}</span>
+              </div>
+            </div>
+
+            <!-- Alertes visuelles distinctes -->
+            @if (result()!.alerteLicenciementIllegal) {
+              <div class="cmp-alert cmp-alert--licenciement" data-testid="cmp-alert-licenciement">
+                <mat-icon>warning_amber</mat-icon>
+                <span>Licenciement illégal — un licenciement notifié pendant la période protégée est nul de plein droit (L. 1225-4 CT pour la maternité ; L. 1225-4-1 CT pour la paternité), sauf faute grave ou impossibilité de maintien du contrat pour motif étranger à la grossesse / paternité (Cass. soc. 28/01/2016 n°14-26.706).</span>
+              </div>
+            }
+            @if (result()!.alerteRetourPosteIllegal) {
+              <div class="cmp-alert cmp-alert--retour" data-testid="cmp-alert-retour-poste">
+                <mat-icon>warning_amber</mat-icon>
+                <span>Retour sur poste différent — la réintégration sur un poste autre que celui occupé avant le congé est susceptible de caractériser un manquement à L. 1225-25 CT (retour à un poste identique ou équivalent + entretien professionnel L. 1225-27 CT). Ouvre la voie à une demande de résiliation judiciaire ou à des dommages-intérêts.</span>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="cmp-bases-block">
+                <span class="cmp-bases-label">Bases juridiques</span>
+                <div class="cmp-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="cmp-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="cmp-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="cmp-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

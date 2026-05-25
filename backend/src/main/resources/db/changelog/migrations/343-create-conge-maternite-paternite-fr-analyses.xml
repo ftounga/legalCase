@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200029-create" author="legalcase">
+        <comment>
+            SF-212-29 : table dédiée à l'outil décisionnel "Congé maternité /
+            paternité — protection et indemnités"
+            (F-DT-77-conge-paternite-maternite, FRANCE — fondements :
+            L. 1225-1 à L. 1225-34 CT — congé maternité (durée 16 / 26 / 34
+            / 46 semaines selon rang et naissance multiple — L. 1225-17 CT) ;
+            L. 1225-35 à L. 1225-40 CT — congé paternité (25 jours
+            calendaires, 32 jours pour naissance multiple, dont 4 jours
+            obligatoires consécutifs à la naissance — loi du 16/03/2021
+            portant réforme du congé paternité) ; L. 331-3 CSS — indemnités
+            journalières maternité (100 % du salaire journalier de référence
+            plafonné au PMSS) ; L. 1225-4 CT — interdiction de licencier
+            pendant le congé maternité et dans les 10 semaines suivant le
+            retour ; L. 1225-4-1 CT — protection paternité équivalente ;
+            L. 1225-25 et L. 1225-27 CT — retour à un poste identique ou
+            équivalent + entretien professionnel).
+
+            L'outil calcule :
+            - la durée du congé en jours calendaires selon le type, le rang
+              de l'enfant et le caractère multiple de la naissance,
+            - la date de fin théorique du congé,
+            - une estimation des indemnités journalières CPAM (montant
+              journalier et total — approximation 100 % SJR × 80 % net
+              plafonné PMSS),
+            - la date jusqu'à laquelle la protection contre le licenciement
+              s'applique (congé + 10 semaines post-retour),
+            - deux alertes : licenciement notifié pendant la période
+              protégée (nullité de plein droit, sauf faute grave) et
+              retour sur poste différent (manquement à L. 1225-25 CT).
+
+            Outil single-country FRANCE — le régime BE (loi 16/03/1971 et
+            AR 25/11/1991, prestations INAMI / mutualité) est juridiquement
+            distinct et relève d'un outil jumeau hors scope SF-212-29.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-206-01 /
+            SF-212-01 / SF-212-05 / SF-212-09 / SF-212-11 / SF-212-13 /
+            SF-212-19 / SF-212-23 / SF-212-35).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 344
+            (couplée à l'entrée TOOL_REGISTRY livrée dans le même lot —
+            decisional-tools-panel.component.ts).
+        </comment>
+
+        <createTable tableName="conge_maternite_paternite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_conge_mat_pat_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="conge_maternite_paternite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_conge_mat_pat_analyses_case_file"/>
+
+        <createIndex tableName="conge_maternite_paternite_analyses"
+                     indexName="idx_conge_mat_pat_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="conge_maternite_paternite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

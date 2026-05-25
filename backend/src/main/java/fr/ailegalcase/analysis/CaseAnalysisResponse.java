@@ -193,6 +193,12 @@ public record CaseAnalysisResponse(
             // PDV / RCC conformité). Projeté sur le record depuis F-256 (slot libéré par
             // refactor sous-records).
             boolean pdvRccEnvisage,
+            // SF-212-29 : nouveau flag F-205 `conge_maternite_paternite_detecte` (FR —
+            // déclenche F-DT-77 congé maternité / paternité). True si le pipeline IA
+            // détecte une situation de congé maternité ou paternité à analyser
+            // (certificat médical de grossesse, déclaration de paternité, congé
+            // notifié, retour de congé, indices L. 1225-1 à L. 1225-40 CT).
+            boolean congeMaternitePaterniteDetecte,
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -589,7 +595,11 @@ public record CaseAnalysisResponse(
             // F-256 SF-212-35 : sous-objet IA pour pré-fill F-DT-46 PDV / RCC conformité (FR).
             // 4 champs (typeDispositif, accordMajoritaire, validationDREETS, indemnitesLegales).
             // Sub-flag de pdvRccEnvisage.
-            PdvRccDetail pdvRccDetail) {
+            PdvRccDetail pdvRccDetail,
+            // SF-212-29 : sous-objet IA pour pré-fill F-DT-77 congé maternité / paternité (FR).
+            // 5 champs (typeConge, rangEnfant, naissanceMultiple, dateDebut, salaire).
+            // Sub-flag de congeMaternitePaterniteDetecte.
+            CongeMaternitePaterniteDetail congeMaternitePaterniteDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -739,6 +749,24 @@ public record CaseAnalysisResponse(
                 Boolean pdvRccIndemnitesLegales
         ) {}
 
+        /**
+         * SF-212-29 — sous-record IA pour F-DT-77 congé maternité / paternité
+         * (FRANCE only). 5 champs alignés sur le prompt PART14 :
+         * {@code conge_maternite_paternite_type} (MATERNITE / PATERNITE),
+         * {@code conge_maternite_rang_enfant} (entier ≥ 1),
+         * {@code conge_maternite_naissance_multiple},
+         * {@code conge_maternite_date_debut} (ISO YYYY-MM-DD),
+         * {@code conge_maternite_salaire_mensuel_brut} (€).
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         */
+        public record CongeMaternitePaterniteDetail(
+                String congeMaternitePaterniteType,
+                Integer congeMaterniteRangEnfant,
+                Boolean congeMaterniteNaissanceMultiple,
+                String congeMaterniteDateDebut,
+                Double congeMaterniteSalaireMensuelBrut
+        ) {}
+
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -806,6 +834,8 @@ public record CaseAnalysisResponse(
                     .ruptureAnticipeeCddDetectee(ruptureAnticipeeCddDetectee)
                     .demissionEquivoquePressentie(demissionEquivoquePressentie)
                     .pdvRccEnvisage(pdvRccEnvisage)
+                    // SF-212-29 — F-205 flag F-DT-77 congé maternité / paternité.
+                    .congeMaternitePaterniteDetecte(congeMaternitePaterniteDetecte)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -1009,7 +1039,9 @@ public record CaseAnalysisResponse(
                     // F-256 SF-212-21 — demission_equivoque_detail
                     .demissionEquivoqueDetail(demissionEquivoqueDetail)
                     // F-256 SF-212-35 — pdv_rcc_detail
-                    .pdvRccDetail(pdvRccDetail);
+                    .pdvRccDetail(pdvRccDetail)
+                    // SF-212-29 — conge_maternite_paternite_detail
+                    .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail);
         }
 
         public static final class Builder {
@@ -1071,6 +1103,8 @@ public record CaseAnalysisResponse(
             private boolean demissionEquivoquePressentie;
             // F-256 SF-212-35 — F-205 flag (FRANCE only) — déclenche F-DT-46 PDV/RCC conformité.
             private boolean pdvRccEnvisage;
+            // SF-212-29 — F-205 flag (FRANCE only) — déclenche F-DT-77 congé maternité / paternité.
+            private boolean congeMaternitePaterniteDetecte;
             private boolean fauteGraveEnvisagee;
             private boolean fauteLourdeEnvisagee;
             private boolean cddRequalificationEnvisagee;
@@ -1272,6 +1306,8 @@ public record CaseAnalysisResponse(
             private RuptureAnticipeeCddDetail ruptureAnticipeeCddDetail;
             private DemissionEquivoqueDetail demissionEquivoqueDetail;
             private PdvRccDetail pdvRccDetail;
+            // SF-212-29 — conge_maternite_paternite_detail (FRANCE uniquement)
+            private CongeMaternitePaterniteDetail congeMaternitePaterniteDetail;
 
             private Builder() {}
 
@@ -1333,6 +1369,8 @@ public record CaseAnalysisResponse(
             public Builder demissionEquivoquePressentie(boolean v) { this.demissionEquivoquePressentie = v; return this; }
             // F-256 SF-212-35 — F-205 flag (FRANCE only) — déclenche F-DT-46 PDV/RCC conformité.
             public Builder pdvRccEnvisage(boolean v) { this.pdvRccEnvisage = v; return this; }
+            // SF-212-29 — F-205 flag (FRANCE only) — déclenche F-DT-77 congé maternité / paternité.
+            public Builder congeMaternitePaterniteDetecte(boolean v) { this.congeMaternitePaterniteDetecte = v; return this; }
             public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
             public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
             public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
@@ -1529,6 +1567,8 @@ public record CaseAnalysisResponse(
             public Builder ruptureAnticipeeCddDetail(RuptureAnticipeeCddDetail v) { this.ruptureAnticipeeCddDetail = v; return this; }
             public Builder demissionEquivoqueDetail(DemissionEquivoqueDetail v) { this.demissionEquivoqueDetail = v; return this; }
             public Builder pdvRccDetail(PdvRccDetail v) { this.pdvRccDetail = v; return this; }
+            // SF-212-29 — sous-record pré-fill IA pour F-DT-77 congé maternité / paternité.
+            public Builder congeMaternitePaterniteDetail(CongeMaternitePaterniteDetail v) { this.congeMaternitePaterniteDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1563,6 +1603,8 @@ public record CaseAnalysisResponse(
                         demissionEquivoquePressentie,
                         // F-256 SF-212-35 — F-205 flag F-DT-46 PDV/RCC conformité.
                         pdvRccEnvisage,
+                        // SF-212-29 — F-205 flag F-DT-77 congé maternité / paternité.
+                        congeMaternitePaterniteDetecte,
                         fauteGraveEnvisagee,
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
@@ -1684,7 +1726,9 @@ public record CaseAnalysisResponse(
                         // F-256 — sous-records pour les 3 dettes pré-fill
                         ruptureAnticipeeCddDetail,
                         demissionEquivoqueDetail,
-                        pdvRccDetail);
+                        pdvRccDetail,
+                        // SF-212-29 — conge_maternite_paternite_detail
+                        congeMaternitePaterniteDetail);
             }
         }
     }
@@ -1897,6 +1941,14 @@ public record CaseAnalysisResponse(
      * — alignés sur l'enum {@code PdvRccTypeDispositif} du frontend et le prompt PART12.
      */
     static final Set<String> PDV_RCC_TYPE_DISPOSITIF_CODES = Set.of("RCC", "PDV");
+
+    /**
+     * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
+     * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
+     * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
+     * à {@code null} par {@code normalizeEnumCode}.
+     */
+    static final Set<String> CONGE_MAT_PAT_TYPE_CODES = Set.of("MATERNITE", "PATERNITE");
 
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
@@ -4385,6 +4437,19 @@ public record CaseAnalysisResponse(
                             booleanOrNull(pdvNode, "pdv_rcc_validation_dreets"),
                             booleanOrNull(pdvNode, "pdv_rcc_indemnites_legales"))
                     : null;
+            // SF-212-29 : sous-objet pour pré-fill F-DT-77 (congé maternité / paternité FR).
+            // 5 champs : type (MATERNITE/PATERNITE), rang enfant (≥1), naissance multiple,
+            // date début (ISO YYYY-MM-DD), salaire mensuel brut (€).
+            JsonNode congeMpNode = node.get("conge_maternite_paternite_detail");
+            boolean hasCongeMp = congeMpNode != null && congeMpNode.isObject();
+            TravailExtractedData.CongeMaternitePaterniteDetail congeMaternitePaterniteDetail = hasCongeMp
+                    ? new TravailExtractedData.CongeMaternitePaterniteDetail(
+                            normalizeEnumCode(textOrNull(congeMpNode, "conge_maternite_paternite_type"), CONGE_MAT_PAT_TYPE_CODES),
+                            boundedIntOrNull(congeMpNode, "conge_maternite_rang_enfant", 1, 20),
+                            booleanOrNull(congeMpNode, "conge_maternite_naissance_multiple"),
+                            isoDateOrNull(congeMpNode, "conge_maternite_date_debut"),
+                            positiveDoubleOrNull(congeMpNode, "conge_maternite_salaire_mensuel_brut"))
+                    : null;
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4452,6 +4517,8 @@ public record CaseAnalysisResponse(
                     .demissionEquivoquePressentie(booleanOrFalse(node, "demission_equivoque_pressentie"))
                     // F-256 SF-212-35 : flag F-205 — déclenche F-DT-46 PDV/RCC conformité.
                     .pdvRccEnvisage(booleanOrFalse(node, "pdv_rcc_envisage"))
+                    // SF-212-29 : flag F-205 — déclenche F-DT-77 congé maternité / paternité.
+                    .congeMaternitePaterniteDetecte(booleanOrFalse(node, "conge_maternite_paternite_detecte"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4733,6 +4800,8 @@ public record CaseAnalysisResponse(
                     .ruptureAnticipeeCddDetail(ruptureAnticipeeCddDetail)
                     .demissionEquivoqueDetail(demissionEquivoqueDetail)
                     .pdvRccDetail(pdvRccDetail)
+                    // SF-212-29 — sous-record pré-fill IA F-DT-77 congé maternité / paternité.
+                    .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail)
                     .build();
         } catch (Exception ignored) { return null; }
     }

@@ -905,6 +905,29 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-212-29 : 14e part du prompt TRAVAIL — flag F-205 et sous-objet
+     * `conge_maternite_paternite_detail` (FRANCE UNIQUEMENT). Pré-fill F-DT-77
+     * congé maternité / paternité (L. 1225-1 à L. 1225-40 CT ; L. 331-3 CSS ;
+     * loi du 16/03/2021).
+     *
+     * <p>Note : numérotation PART14 (la PART13 est réservée à l'agent A
+     * de la vague parallèle F-212 vague 7 — outil jumeau).</p>
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART14 = """
+              SF-212-29 — Flag F-205 et sous-objet `conge_maternite_paternite_detail` (FRANCE UNIQUEMENT).
+              "conge_maternite_paternite_detecte" : booléen — true uniquement si les pièces évoquent une situation de congé maternité ou paternité à analyser : certificat médical de grossesse, déclaration de paternité, attestation de l'employeur, courrier de notification du congé, retour de congé maternité/paternité avec litige, mentions explicites L. 1225-1 à L. 1225-40 CT, indemnités journalières CPAM mentionnées, période protégée évoquée. False par défaut. Pertinent pour F-DT-77.
+              Sous-objet `conge_maternite_paternite_detail` — laisser null intégralement pour un dossier BELGIQUE (régime INAMI / mutualité, loi 16/03/1971 et AR 25/11/1991, juridiquement distinct).
+              Émettre UNIQUEMENT si les pièces évoquent un congé maternité ou paternité (certificat médical, déclaration, notification employeur, IJ CPAM, retour de congé). Laisser null si aucun indice n'est documenté. Sub-flag de `conge_maternite_paternite_detecte` : émettre uniquement si un congé est documenté ou explicitement référencé.
+              "conge_maternite_paternite_detail" : objet OU null. Si émis, contient EXACTEMENT les 5 clés suivantes :
+                "conge_maternite_paternite_type" : chaîne dans l'enum {"MATERNITE", "PATERNITE"}. MATERNITE si les pièces qualifient le congé comme congé de maternité (L. 1225-17 CT — 16/26/34/46 sem). PATERNITE si les pièces qualifient le congé comme congé de paternité et d'accueil de l'enfant (L. 1225-35 CT — 25/32 jours, loi 16/03/2021). Null si la qualification ne ressort pas explicitement des pièces.
+                "conge_maternite_rang_enfant" : entier ≥ 1 indiquant le rang du nouvel enfant à naître / né (1 = premier enfant à charge, 2 = deuxième, 3 = troisième et plus — détermine la durée maternité L. 1225-17 CT : 16 sem si rang ≤ 2, 26 sem si rang ≥ 3). Null si non documenté. Plage acceptée [1, 20] ; hors plage → null.
+                "conge_maternite_naissance_multiple" : booléen — true si les pièces évoquent une naissance multiple (jumeaux, triplés et plus — détermine la durée maternité L. 1225-17 CT à 34 sem pour jumeaux, 46 sem pour triplés+, et porte le paternité à 32 jours calendaires L. 1225-35 al. 1 CT). False si naissance simple. Null si non factualisable.
+                "conge_maternite_date_debut" : chaîne ISO YYYY-MM-DD — date de début effective du congé telle qu'elle ressort des pièces (certificat médical, courrier employeur, attestation CPAM). Null si non documentée. Fail-open sur format non ISO → null.
+                "conge_maternite_salaire_mensuel_brut" : nombre décimal (EUROS par mois) — salaire mensuel brut du salarié au moment du congé (base du calcul des IJ CPAM, L. 331-3 CSS — 100 % du salaire journalier de référence plafonné PMSS). Reprendre le bulletin de paie le plus récent ou le contrat. Null si non chiffré. Strictement positif ; hors plage → null.
+              Règle NO-OP conge_maternite_paternite_detail : si aucune pièce n'évoque un congé maternité ou paternité, émettre "conge_maternite_paternite_detail": null — ne jamais inventer.
+            """;
+
+    /**
      * SF-212-35 : 12e part du prompt TRAVAIL — split pour rester sous la limite
      * UTF-8 de 65535 octets du constant pool Java par String literal.
      */
@@ -922,7 +945,7 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 12 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * Concaténation des parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -939,7 +962,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART9)
                     .concat(TRAVAIL_INSTRUCTION_PART10)
                     .concat(TRAVAIL_INSTRUCTION_PART11)
-                    .concat(TRAVAIL_INSTRUCTION_PART12);
+                    .concat(TRAVAIL_INSTRUCTION_PART12)
+                    .concat(TRAVAIL_INSTRUCTION_PART14);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 
