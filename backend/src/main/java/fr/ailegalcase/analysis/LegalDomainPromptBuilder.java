@@ -967,6 +967,27 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-212-31 : 15e part du prompt TRAVAIL — flag F-205 et sous-objet
+     * `elections_cse_detail` (FRANCE UNIQUEMENT — L. 2314-1 à L. 2314-37 CT ;
+     * R. 2314-1+ CT ; ordonnance n°2017-1386 du 22/09/2017 instituant le CSE ;
+     * loi n°2018-217 du 29/03/2018 de ratification). Split pour rester sous
+     * la limite UTF-8 de 65535 octets du constant pool Java par String literal.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART15 = """
+              SF-212-31 — Flag F-205 et sous-objet `elections_cse_detail` (FRANCE UNIQUEMENT).
+              "election_cse_detectee" : booléen — true uniquement si les pièces évoquent une procédure d'élection du comité social et économique (CSE) à analyser : protocole d'accord préélectoral (PAP), procès-verbal des élections, lettre de contestation devant le tribunal judiciaire, invitation des organisations syndicales à négocier le PAP, procès-verbal de carence (R. 2314-30 CT), résultats du 1er ou 2nd tour, mention des collèges électoraux, vote électronique, contestation par un électeur ou un syndicat, mention explicite L. 2314-1 à L. 2314-37 CT, ordonnances Macron 22/09/2017 sur le CSE. False par défaut. Pertinent pour F-DT-65.
+              Distinct du flag plus large `irp_election_demandee` (qui concerne toute demande d'organisation IRP, y compris hors CSE) — `election_cse_detectee` cible spécifiquement la conformité d'une procédure CSE en cours ou contestée.
+              Sous-objet `elections_cse_detail` — laisser null intégralement pour un dossier BELGIQUE (régime conseil d'entreprise + délégation syndicale, loi du 4/8/1996 + AR 25/2/1971 — élections sociales quadriennales, juridiquement distinct).
+              Émettre UNIQUEMENT si les pièces évoquent une procédure d'élections CSE (PAP, PV élections, lettre de contestation, invitation OS, PV de carence). Laisser null si aucun indice n'est documenté. Sub-flag de `election_cse_detectee` : émettre uniquement si la procédure est documentée ou explicitement référencée.
+              "elections_cse_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "election_cse_date_election" : chaîne ISO YYYY-MM-DD — date effective de l'élection (1er tour) telle qu'elle ressort des pièces (PV des élections, lettre de convocation, attestation employeur). Sert de base au calcul du délai de contestation des résultats (15 jours à compter de l'élection — L. 2314-32 CT). Null si non documentée. Fail-open sur format non ISO → null.
+                "election_cse_pap_negocie" : booléen — true si les pièces établissent que le protocole d'accord préélectoral (PAP) a été négocié avec les organisations syndicales représentatives (L. 2314-6 CT) — PAP signé, PV de négociation, accord majoritaire. False si l'employeur a fixé unilatéralement les modalités sans négociation avec les OS représentatives (cause majeure d'annulation des élections). Null si l'information ne ressort pas des pièces.
+                "election_cse_colleges_conformes" : booléen — true si les pièces établissent que les collèges électoraux respectent l'exigence légale d'au moins 2 collèges (ouvriers/employés + agents de maîtrise/cadres — L. 2314-11 CT), sauf accord majoritaire de regroupement. False si la configuration des collèges n'est pas conforme (collège unique imposé hors accord majoritaire, exclusion de catégories de salariés). Null si l'information ne ressort pas des pièces.
+                "election_cse_resultats_contestes" : booléen — true si les pièces évoquent une contestation des résultats déposée par un électeur ou une organisation syndicale devant le tribunal judiciaire (assignation, requête, mention « contestation des élections CSE »). False si aucune contestation n'est documentée. Null si non factualisable.
+              Règle NO-OP elections_cse_detail : si aucune pièce n'évoque une procédure d'élections CSE, émettre "elections_cse_detail": null — ne jamais inventer.
+            """;
+
+    /**
      * SF-212-33 : 16e part du prompt TRAVAIL — flag F-205 et sous-objet
      * `temps_partiel_requalification_detail` (FRANCE UNIQUEMENT — L. 3123-1
      * à L. 3123-20 CT ; L. 3123-6 mentions obligatoires ; L. 3123-9 plafond
@@ -992,7 +1013,7 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 15 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * Concaténation des 16 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -1012,6 +1033,7 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART12)
                     .concat(TRAVAIL_INSTRUCTION_PART13)
                     .concat(TRAVAIL_INSTRUCTION_PART14)
+                    .concat(TRAVAIL_INSTRUCTION_PART15)
                     .concat(TRAVAIL_INSTRUCTION_PART16);
 
     private static final String IMMIGRATION_INSTRUCTION = """
