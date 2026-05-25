@@ -25,6 +25,13 @@ configMapGenerator:
       #    backend-secrets via le workflow CI/CD ;
       # 2) remplacer le placeholder par le domaine CloudFront prod réel.
       - CLOUDFRONT_DOMAIN=dmnw3n9yylwnp.cloudfront.net
+      # F-JU-01 — activation en production (2026-05-25). Pré-requis :
+      # secrets JUDILIBRE_CLIENT_ID + JUDILIBRE_CLIENT_SECRET clonés depuis
+      # staging (commande kubectl du 2026-05-25) — compte OAuth2 PISTE
+      # ailegalcase unique pour staging+prod. Active aussi le cron mensuel
+      # JurisprudenceWatchScheduler côté backend + endpoint super-admin
+      # POST /api/v1/super-admin/jurisprudence-watch/bootstrap.
+      - JURISPRUDENCE_WATCH_ENABLED=true
 
 patches:
   - path: ingress-patch.yaml
