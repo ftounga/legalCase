@@ -56,7 +56,10 @@ describe('OrdonnanceRequeteSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   // ============================================================
   // FR + BE actifs (pas de gate pays)

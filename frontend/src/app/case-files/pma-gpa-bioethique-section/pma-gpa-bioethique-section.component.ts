@@ -39,6 +39,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PmaGpaBioethiquePrefillRules } from './pma-gpa-bioethique-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-27-02 : champs d'alerte F-IA-03 exposés par l'outil
@@ -84,12 +85,17 @@ export type PmaGpaCoherenceAlert = CoherenceAlert<PmaGpaAlertField>;
     MatRadioModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './pma-gpa-bioethique-section.component.html',
   styleUrl: './pma-gpa-bioethique-section.component.scss',
 })
 export class PmaGpaBioethiqueSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-27-pma-gpa';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PMA / GPA / BIOÉTHIQUE (FR)';
   static readonly TOOL_ICON = 'child_friendly';

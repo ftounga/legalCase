@@ -58,6 +58,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { MajeursProtegesPrefillRules } from './majeurs-proteges-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-25-02 : champs F-IA-03 audités par l'outil F-FA-25
@@ -120,12 +121,17 @@ const VALID_DEMANDEURS = MajeursProtegesPrefillRules.VALID_DEMANDEURS;
     MatSlideToggleModule, MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './majeurs-proteges-section.component.html',
   styleUrl: './majeurs-proteges-section.component.scss',
 })
 export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-25-majeurs-proteges';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'MAJEURS PROTÉGÉS (FR) — ART. 425-494 / 494-1 CCIV';
   static readonly TOOL_ICON = 'supervisor_account';

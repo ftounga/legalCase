@@ -52,6 +52,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { ChangementEtatCivilPrefillRules } from './changement-etat-civil-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-26-02 : champs F-IA-03 audités par l'outil F-FA-26 (changement
@@ -118,12 +119,17 @@ const VALID_MOTIFS: ReadonlySet<string> = new Set<MotifInvoque>([
     MatSlideToggleModule, MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './changement-etat-civil-section.component.html',
   styleUrl: './changement-etat-civil-section.component.scss',
 })
 export class ChangementEtatCivilSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-26-changement-etat-civil';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CHANGEMENT D\'ÉTAT CIVIL (FR) — ART. 60 / 61-1 / 61-5 CCIV';
   static readonly TOOL_ICON = 'badge';
