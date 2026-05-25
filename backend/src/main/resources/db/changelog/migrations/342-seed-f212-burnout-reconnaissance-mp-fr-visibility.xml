@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200027-seed" author="legalcase">
+        <comment>
+            SF-212-28 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Burn-out — reconnaissance maladie professionnelle
+            hors tableau" (F-DT-64-burnout-reconnaissance-mp, FRANCE), table
+            créée par SF-212-27 (migration 341).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une demande de reconnaissance du
+            burn-out comme MP — trigger `burnout_detecte` (nouveau flag F-205
+            introduit par SF-212-27, ajouté à CaseAnalysisResponse +
+            LegalDomainPromptBuilder PART2 + PART13 + DecisionToolVisibilityService
+            dans la même PR).
+
+            priority 67 — juste après F-DT-61 (lanceur d'alerte, priority 65)
+            pour la séquence F-212 P2 P3 (outils diagnostiques de pathologie /
+            statut salarié).
+
+            Fondement : L. 461-1 al. 4 et 5 CSS — procédure hors tableau via
+            CRRMP (comité régional de reconnaissance des maladies
+            professionnelles) ; tableau 57 des maladies professionnelles —
+            affections péri-articulaires sans le burn-out, d'où la voie hors
+            tableau obligatoire ; circulaire DGT 2016/01 — instruction des
+            pathologies psychiques par les CRRMP ; L. 4121-1 CT — obligation
+            de sécurité employeur ; L. 1152-1 CT — harcèlement moral.
+
+            Mécanisme strictement français — la BE reconnaît le burn-out via
+            Fedris (Agence fédérale des risques professionnels) et la
+            loi du 03/07/1967 modifiée, qui justifie un outil BE séparé hors
+            périmètre de la SF-212-27/28.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200027', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-64-burnout-reconnaissance-mp', 'CONTEXTUAL', 'burnout_detecte', 'true', 67);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200027';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

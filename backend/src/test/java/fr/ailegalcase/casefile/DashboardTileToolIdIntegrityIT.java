@@ -289,7 +289,14 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-77-conge-paternite-maternite"
+            "F-DT-77-conge-paternite-maternite",
+            // SF-212-27 (2026-05-25) : F-DT-64 burn-out — reconnaissance MP hors tableau FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-64-burnout-reconnaissance-mp"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

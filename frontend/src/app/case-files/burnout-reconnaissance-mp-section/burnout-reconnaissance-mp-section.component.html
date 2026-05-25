@@ -1,0 +1,245 @@
+<section class="bo-section">
+  <header class="bo-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="bo-body">
+    <mat-icon class="bo-icon">sentiment_very_dissatisfied</mat-icon>
+    <span class="bo-title">BURN-OUT — RECONNAISSANCE MP</span>
+    @if (result()) {
+      <span class="bo-chip-summary"
+            [class.bo-chip-summary--importantes]="result()!.analyseChancesCRRMP === 'CHANCES_IMPORTANTES'"
+            [class.bo-chip-summary--moderees]="result()!.analyseChancesCRRMP === 'CHANCES_MODEREES'"
+            [class.bo-chip-summary--faibles]="result()!.analyseChancesCRRMP === 'CHANCES_FAIBLES'">
+        {{ verdictBannerLabel(result()!.analyseChancesCRRMP) }} — score {{ result()!.scoreChances }} / 100
+      </span>
+    }
+    <mat-icon class="bo-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="bo-body" class="bo-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="bo-country-banner" data-testid="bo-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (procédure CRRMP, L. 461-1 al. 4 et 5 CSS). La Belgique reconnaît le burn-out via Fedris dans un cadre distinct (loi 03/07/1967 modifiée).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="bo-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="bo-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Pathologie & IPP -->
+            <div class="bo-block bo-full">
+              <span class="bo-block-label">Diagnostic & taux IPP (L. 461-1 al. 4 CSS)</span>
+
+              <div class="bo-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="diagnosticBurnoutPose()"
+                    (ngModelChange)="onDiagnosticChange($event)"
+                    name="diagnosticBurnoutPose"
+                    data-testid="bo-toggle-diagnostic">
+                  Diagnostic de burn-out posé (certificat / expertise)
+                </mat-slide-toggle>
+                @if (provenanceDiagnostic() === 'IA') {
+                  <span class="bo-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="bo-inline-field">
+                <mat-label>Taux IPP estimé (%)</mat-label>
+                <input matInput type="number" min="0" max="100" step="1"
+                       [ngModel]="tauxIPPEstime()"
+                       (ngModelChange)="onTauxIppChange($event)"
+                       name="tauxIPPEstime"
+                       data-testid="bo-input-taux-ipp">
+                <mat-hint>Seuil légal CRRMP : 25 %</mat-hint>
+              </mat-form-field>
+              @if (provenanceTauxIpp() === 'IA') {
+                <span class="bo-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="bo-inline-field">
+                <mat-label>Années d'exposition professionnelle</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="anneesExpositionProfessionnelle()"
+                       (ngModelChange)="onAnneesExpoChange($event)"
+                       name="anneesExpo"
+                       data-testid="bo-input-annees-expo">
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 2 — Contexte professionnel -->
+            <div class="bo-block bo-full">
+              <span class="bo-block-label">Contexte professionnel (L. 4121-1 CT, L. 1152-1 CT)</span>
+
+              <div class="bo-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="surchargeChargeDocumentee()"
+                    (ngModelChange)="onSurchargeChange($event)"
+                    name="surcharge"
+                    data-testid="bo-toggle-surcharge">
+                  Surcharge / charge de travail documentée
+                </mat-slide-toggle>
+                @if (provenanceSurcharge() === 'IA') {
+                  <span class="bo-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="bo-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="manquementsSecuriteDocumentes()"
+                    (ngModelChange)="onManquementsChange($event)"
+                    name="manquementsSecurite"
+                    data-testid="bo-toggle-manquements">
+                  Manquements à l'obligation de sécurité (L. 4121-1 CT)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="bo-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="harcelementConcomitant()"
+                    (ngModelChange)="onHarcelementChange($event)"
+                    name="harcelementConcomitant"
+                    data-testid="bo-toggle-harcelement">
+                  Harcèlement moral concomitant (L. 1152-1 CT)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="bo-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="arretsMaladieMultiples()"
+                    (ngModelChange)="onArretsMaladieChange($event)"
+                    name="arretsMaladieMultiples"
+                    data-testid="bo-toggle-arrets">
+                  Arrêts maladie multiples ou prolongés
+                </mat-slide-toggle>
+                @if (provenanceArretsMaladie() === 'IA') {
+                  <span class="bo-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Lien causal direct -->
+            <div class="bo-block bo-full">
+              <span class="bo-block-label">Lien direct travail / pathologie (L. 461-1 al. 4 CSS)</span>
+
+              <div class="bo-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="lienCausalDirectEtabli()"
+                    (ngModelChange)="onLienCausalChange($event)"
+                    name="lienCausal"
+                    data-testid="bo-toggle-lien-causal">
+                  Lien direct entre la pathologie et le travail établi par une pièce médicale
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="bo-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="bo-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="bo-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseChancesCRRMP)"
+                 data-testid="bo-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseChancesCRRMP) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseChancesCRRMP) }}</span>
+            </div>
+
+            <!-- Alerte IPP < 25 % -->
+            @if (result()!.alerteIPPInsuffisante) {
+              <div class="bo-alerte-ipp" data-testid="bo-alerte-ipp">
+                <mat-icon>warning</mat-icon>
+                <span><strong>Condition légale d'IPP non remplie</strong> : taux estimé &lt; 25 % — la procédure CRRMP hors tableau est en l'état irrecevable (L. 461-1 al. 4 CSS), sauf décès du salarié (al. 5).</span>
+              </div>
+            }
+
+            <!-- Score + délai instruction -->
+            <div class="bo-figures-block">
+              <div class="bo-figure">
+                <span class="bo-figure-label">Score chances</span>
+                <span class="bo-figure-value">{{ result()!.scoreChances }} / 100</span>
+              </div>
+              <div class="bo-figure" data-testid="bo-figure-delai">
+                <span class="bo-figure-label">Délai instruction CRRMP</span>
+                <span class="bo-figure-value">{{ formatDelaiInstruction() }}</span>
+              </div>
+              <div class="bo-figure">
+                <span class="bo-figure-label">Condition IPP ≥ 25 %</span>
+                <span class="bo-figure-value">{{ result()!.conditionIPPRemplie ? 'Remplie' : 'NON remplie' }}</span>
+              </div>
+            </div>
+
+            <!-- Facteurs F-IA-03 -->
+            @if (result()!.facteursDossier?.length) {
+              <div class="bo-points-block">
+                <span class="bo-points-label">Facteurs du dossier ({{ result()!.facteursDossier.length }})</span>
+                <ul class="bo-points-list">
+                  @for (f of result()!.facteursDossier; track facteurTrackKey($index, f)) {
+                    <li class="bo-point-item" data-testid="bo-point-item">
+                      <div class="bo-point-header">
+                        <span class="bo-point-libelle">{{ f.libelle }}</span>
+                        <span class="bo-point-code">{{ f.code }} — poids {{ f.poids }}</span>
+                      </div>
+                      <span class="bo-point-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="bo-bases-block">
+                <span class="bo-bases-label">Bases juridiques</span>
+                <div class="bo-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="bo-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="bo-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="bo-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
