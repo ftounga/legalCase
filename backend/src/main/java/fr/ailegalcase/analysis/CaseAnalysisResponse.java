@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -181,24 +182,17 @@ public record CaseAnalysisResponse(
             boolean miseAPiedDisciplinaireDetectee,
             // SF-212-23 : nouveau flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes (FR).
             boolean egaliteSalarialePressentie,
-            // SF-212-21 : flag F-205 `demission_equivoque_pressentie` (déclenche F-DT-41
-            // démission validité équivoque FR) intentionnellement OMIS du record Java —
-            // limite JVM 255 slots du constructeur canonical saturée par SF-212-23. La
-            // détection F-IA-04 reste fonctionnelle : DecisionToolVisibilityService lit
-            // le flag depuis le JSON brut `travailNode` (cf. ligne 241) — il n'a pas
-            // besoin d'être présent sur le record Java. Pattern aligné sur SF-212-17.
             // SF-212-17 : nouveau flag F-205 — déclenche F-DT-43 rupture anticipée CDD (FR).
             boolean ruptureAnticipeeCddDetectee,
-            // SF-212-35 : flag F-205 `pdv_rcc_envisage` (FR — déclenche F-DT-46
-            // PDV / RCC conformité) NON projeté sur ce record car la limite JVM
-            // 255 slots du constructeur canonical TravailExtractedData est atteinte
-            // (254 params + this = 255 slots). DecisionToolVisibilityService lit
-            // le flag directement depuis le JsonNode brut (hors record). Le
-            // sous-objet IA pdv_rcc_detail décrit dans LegalDomainPromptBuilder
-            // PART12 est également NON projeté côté backend (cf. dette F-DT-46
-            // pré-fill, alignée sur la dette F-DT-43 documentée par SF-212-17 PR
-            // #1302). Pré-fill IA différé à la SF de rattrapage qui refactorera
-            // TravailExtractedData en plusieurs records spécialisés.
+            // SF-212-21 / F-256 : flag F-205 `demission_equivoque_pressentie` (FR — déclenche
+            // F-DT-41 démission validité équivoque). Projeté sur le record depuis F-256
+            // (slot libéré par refactor sous-records). DecisionToolVisibilityService continue
+            // de le lire depuis le JsonNode brut — projection redondante OK.
+            boolean demissionEquivoquePressentie,
+            // SF-212-35 / F-256 : flag F-205 `pdv_rcc_envisage` (FR — déclenche F-DT-46
+            // PDV / RCC conformité). Projeté sur le record depuis F-256 (slot libéré par
+            // refactor sous-records).
+            boolean pdvRccEnvisage,
             boolean fauteGraveEnvisagee,
             boolean fauteLourdeEnvisagee,
             boolean cddRequalificationEnvisagee,
@@ -561,76 +555,41 @@ public record CaseAnalysisResponse(
             Boolean transfertLicenciementsPreTransfert,
             String transfertDateTransfert,
             // SF-212-07 : 6 champs IA pour pré-fill F-DT-44-csp-crp-conformite (FR).
-            Integer cspEffectifEntreprise,
-            Boolean cspProposeDetail,
-            Boolean cspDocumentRemis,
-            String cspDateRemise,
-            Boolean cspAdhesion,
-            Double cspSalaireMensuelBrut,
+            // F-256 : regroupés en sous-record @JsonUnwrapped.
+            @JsonUnwrapped CspDetail cspDetail,
             // SF-212-09 : 4 champs IA pour pré-fill F-DT-91-faute-inexcusable-employeur (FR).
-            Boolean fauteInexcusableConscienceDanger,
-            Boolean fauteInexcusableSignalementPrior,
-            Boolean fauteInexcusableMesuresPrevention,
-            Integer fauteInexcusableTauxIpp,
+            // F-256 : regroupés en sous-record @JsonUnwrapped.
+            @JsonUnwrapped FauteInexcusableDetail fauteInexcusableDetail,
             // SF-212-25 : 4 champs IA pour pré-fill F-DT-61-lanceur-alerte-protection (FR).
-            String lanceurAlerteNatureSignalement,
-            String lanceurAlerteProcedure,
-            Boolean lanceurAlerteMesureRepresaille,
-            String lanceurAlerteNatureMesure,
+            // F-256 : regroupés en sous-record @JsonUnwrapped.
+            @JsonUnwrapped LanceurAlerteDetail lanceurAlerteDetail,
             // SF-212-11 : 4 champs IA pour pré-fill F-DT-70-modification-contrat-refus (FR).
-            String modifContratElementModifie,
-            Boolean modifContratContractualise,
-            Boolean modifContratMotifEco,
-            Boolean modifContratNotifEcrite,
+            // F-256 : regroupés en sous-record @JsonUnwrapped.
+            @JsonUnwrapped ModifContratDetail modifContratDetail,
             // SF-212-13 : 6 champs IA pour pré-fill F-DT-71-mutation-clause-mobilite (FR).
-            Boolean mutationClausePresente,
-            Boolean mutationZoneGeographiquePrecise,
-            Boolean mutationInteretLegitimeEmployeur,
-            Integer mutationDelaiPrevenanceSemaines,
-            Boolean mutationSituationFamilialeContraingnante,
-            Boolean mutationMotifProfessionnel,
+            // F-256 : regroupés en sous-record @JsonUnwrapped.
+            @JsonUnwrapped MutationMobiliteDetail mutationMobiliteDetail,
             // SF-212-15 : 7 champs IA pour pré-fill F-DT-82-teletravail-accord (FR).
-            String teletravailCadre,
-            Boolean teletravailDoubleVolontariat,
-            Boolean teletravailIndemniteVersee,
-            Double teletravailMontantIndemniteJournalier,
-            Boolean teletravailAccidentDomicile,
-            Boolean teletravailRetourBureauImpose,
-            Boolean teletravailRefusCauseIncrimination,
+            // F-256 : regroupés en sous-record @JsonUnwrapped.
+            @JsonUnwrapped TeletravailDetail teletravailDetail,
             // SF-212-19 : 7 champs IA pour pré-fill F-DT-48-mise-a-pied-disciplinaire (FR).
-            String mapDisciplinaireNature,
-            Boolean mapDisciplinaireProcedureSuivie,
-            Boolean mapDisciplinairePrescriptionFaute,
-            Boolean mapDisciplinaireDureeRi,
-            Integer mapDisciplinaireDureeJours,
-            Boolean mapDisciplinaireSalaireSuspendu,
-            Boolean mapDisciplinaireSanctionsAnterieures,
+            // F-256 : regroupés en sous-record @JsonUnwrapped — JSON HTTP plat préservé,
+            // 6 slots libérés sur le constructeur canonical.
+            @JsonUnwrapped MiseAPiedDetail miseAPiedDetail,
             // SF-212-23 : sous-objet IA pour pré-fill F-DT-56-egalite-salariale-femmes-hommes (FR).
-            // Regroupé en un seul record imbriqué pour rester sous la limite JVM 255 slots du
-            // constructeur canonical du record TravailExtractedData (≈ saturé par les vagues
-            // F-212 antérieures — cf. SF-212-19 PR #1300, l'agent A SF-212-17 et SF-212-23 ne
-            // peuvent ajouter qu'un nombre minimal de params au record). Sub-flag de
-            // egaliteSalarialePressentie : null si non documenté ou hors FRANCE.
-            EgaliteSalarialeDetail egaliteSalarialeDetail) {
-            // SF-212-21 : pas de sous-objet IA pour F-DT-41-demission-validite-equivoque —
-            // la limite JVM 255 slots du constructeur canonical du record
-            // TravailExtractedData (saturé par les vagues F-212 antérieures + SF-212-23,
-            // 254 params avant cette PR, 255 après l'ajout du flag F-205
-            // `demissionEquivoquePressentie`) ne permet pas d'ajouter un sous-record
-            // supplémentaire. Le déclenchement F-IA-04 reste fonctionnel via le flag
-            // top-level `demissionEquivoquePressentie` ci-dessus. Le pré-fill IA côté
-            // frontend pour F-DT-41 sera traité par une SF de rattrapage ultérieure
-            // (refactor de TravailExtractedData en plusieurs records ou consommation
-            // de l'analysis_result raw JSON) — pattern aligné sur SF-212-17 F-DT-43.
-            // SF-212-17 : pas de sous-objet IA pour F-DT-43-rupture-anticipee-cdd —
-            // la limite JVM 255 slots du constructeur canonical du record
-            // TravailExtractedData (saturé par les vagues F-212 antérieures + SF-212-23)
-            // ne permet pas d'ajouter un sous-record supplémentaire. Le pré-fill IA
-            // côté frontend pour F-DT-43 sera traité par une SF de rattrapage
-            // ultérieure (refactor de TravailExtractedData en plusieurs records
-            // ou consommation de l'analysis_result raw JSON). Le déclenchement
-            // F-IA-04 reste fonctionnel via le flag top-level
-            // `ruptureAnticipeeCddDetectee` ci-dessus.
+            // Sub-flag de egaliteSalarialePressentie : null si non documenté ou hors FRANCE.
+            EgaliteSalarialeDetail egaliteSalarialeDetail,
+            // F-256 SF-212-17 : sous-objet IA pour pré-fill F-DT-43 rupture anticipée CDD (FR).
+            // 3 champs (auteur, motif, dateTerme). Sub-flag de ruptureAnticipeeCddDetectee.
+            RuptureAnticipeeCddDetail ruptureAnticipeeCddDetail,
+            // F-256 SF-212-21 : sous-objet IA pour pré-fill F-DT-41 démission équivoque (FR).
+            // 5 champs (modeExpression, contexteAltercation, pression, retractation,
+            // manquementsEmployeur). Sub-flag de demissionEquivoquePressentie.
+            DemissionEquivoqueDetail demissionEquivoqueDetail,
+            // F-256 SF-212-35 : sous-objet IA pour pré-fill F-DT-46 PDV / RCC conformité (FR).
+            // 4 champs (typeDispositif, accordMajoritaire, validationDREETS, indemnitesLegales).
+            // Sub-flag de pdvRccEnvisage.
+            PdvRccDetail pdvRccDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -645,15 +604,140 @@ public record CaseAnalysisResponse(
                 Double ecartPourcentage
         ) {}
 
-        // SF-212-35 : sous-objet `pdv_rcc_detail` (PDV / RCC, FRANCE — L. 1237-17
-        // à L. 1237-19-14 CT) NON projeté sur le record TravailExtractedData en
-        // raison de la limite JVM 255 slots atteinte (254 params + this = 255).
-        // Le pré-fill IA des 4 champs (typeDispositif, accordMajoritaire,
-        // validationDREETS, indemnitesLegales) est différé à une SF de
-        // rattrapage qui refactorera TravailExtractedData en plusieurs records.
-        // Le flag `pdv_rcc_envisage` reste lisible depuis le JsonNode brut par
-        // DecisionToolVisibilityService — le déclenchement F-IA-04 reste donc
-        // fonctionnel sans projection record.
+        /**
+         * F-256 SF-212-19 — sous-record consolidant les 7 champs IA de F-DT-48
+         * (mise à pied disciplinaire, FRANCE only). @JsonUnwrapped côté record
+         * parent : les champs apparaissent à plat dans le JSON HTTP (parité
+         * stricte du contrat externe).
+         */
+        public record MiseAPiedDetail(
+                String mapDisciplinaireNature,
+                Boolean mapDisciplinaireProcedureSuivie,
+                Boolean mapDisciplinairePrescriptionFaute,
+                Boolean mapDisciplinaireDureeRi,
+                Integer mapDisciplinaireDureeJours,
+                Boolean mapDisciplinaireSalaireSuspendu,
+                Boolean mapDisciplinaireSanctionsAnterieures
+        ) {}
+
+        /**
+         * F-256 SF-212-15 — sous-record consolidant les 7 champs IA de F-DT-82
+         * (télétravail accord, FRANCE only). @JsonUnwrapped — JSON HTTP plat.
+         */
+        public record TeletravailDetail(
+                String teletravailCadre,
+                Boolean teletravailDoubleVolontariat,
+                Boolean teletravailIndemniteVersee,
+                Double teletravailMontantIndemniteJournalier,
+                Boolean teletravailAccidentDomicile,
+                Boolean teletravailRetourBureauImpose,
+                Boolean teletravailRefusCauseIncrimination
+        ) {}
+
+        /**
+         * F-256 SF-212-13 — sous-record consolidant les 6 champs IA de F-DT-71
+         * (mutation / clause de mobilité, FRANCE only). @JsonUnwrapped — JSON HTTP plat.
+         */
+        public record MutationMobiliteDetail(
+                Boolean mutationClausePresente,
+                Boolean mutationZoneGeographiquePrecise,
+                Boolean mutationInteretLegitimeEmployeur,
+                Integer mutationDelaiPrevenanceSemaines,
+                Boolean mutationSituationFamilialeContraingnante,
+                Boolean mutationMotifProfessionnel
+        ) {}
+
+        /**
+         * F-256 SF-212-11 — sous-record consolidant les 4 champs IA de F-DT-70
+         * (modification du contrat — refus, FRANCE only). @JsonUnwrapped — JSON HTTP plat.
+         */
+        public record ModifContratDetail(
+                String modifContratElementModifie,
+                Boolean modifContratContractualise,
+                Boolean modifContratMotifEco,
+                Boolean modifContratNotifEcrite
+        ) {}
+
+        /**
+         * F-256 SF-212-25 — sous-record consolidant les 4 champs IA de F-DT-61
+         * (protection lanceur d'alerte, FRANCE only). @JsonUnwrapped — JSON HTTP plat.
+         */
+        public record LanceurAlerteDetail(
+                String lanceurAlerteNatureSignalement,
+                String lanceurAlerteProcedure,
+                Boolean lanceurAlerteMesureRepresaille,
+                String lanceurAlerteNatureMesure
+        ) {}
+
+        /**
+         * F-256 SF-212-09 — sous-record consolidant les 4 champs IA de F-DT-91
+         * (faute inexcusable employeur, FRANCE only). @JsonUnwrapped — JSON HTTP plat.
+         */
+        public record FauteInexcusableDetail(
+                Boolean fauteInexcusableConscienceDanger,
+                Boolean fauteInexcusableSignalementPrior,
+                Boolean fauteInexcusableMesuresPrevention,
+                Integer fauteInexcusableTauxIpp
+        ) {}
+
+        /**
+         * F-256 SF-212-07 — sous-record consolidant les 6 champs IA de F-DT-44
+         * (CSP / CRP conformité, FRANCE only). @JsonUnwrapped — JSON HTTP plat.
+         */
+        public record CspDetail(
+                Integer cspEffectifEntreprise,
+                Boolean cspProposeDetail,
+                Boolean cspDocumentRemis,
+                String cspDateRemise,
+                Boolean cspAdhesion,
+                Double cspSalaireMensuelBrut
+        ) {}
+
+        /**
+         * F-256 SF-212-17 — sous-record IA pour F-DT-43 rupture anticipée du CDD
+         * (FRANCE only). 3 champs alignés sur le prompt PART9 :
+         * {@code rupture_anticipee_cdd_auteur} (EMPLOYEUR / SALARIE),
+         * {@code rupture_anticipee_cdd_motif} (ACCORD_PARTIES / FAUTE_GRAVE /
+         * FORCE_MAJEURE / INAPTITUDE / CDI_EMBAUCHE / AUTRE),
+         * {@code rupture_anticipee_cdd_date_terme} (ISO YYYY-MM-DD).
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         */
+        public record RuptureAnticipeeCddDetail(
+                String ruptureAnticipeeCddAuteur,
+                String ruptureAnticipeeCddMotif,
+                String ruptureAnticipeeCddDateTerme
+        ) {}
+
+        /**
+         * F-256 SF-212-21 — sous-record IA pour F-DT-41 démission validité
+         * équivoque (FRANCE only). 5 champs alignés sur la mini-spec SF-212-21 :
+         * mode d'expression de la démission (texte libre / enum à raffiner),
+         * contexte d'altercation, pression sur le salarié, rétractation rapide,
+         * manquements employeur contemporains. Tous nullables — null hors FRANCE.
+         */
+        public record DemissionEquivoqueDetail(
+                String demissionModeExpression,
+                Boolean demissionContexteAltercation,
+                Boolean demissionPression,
+                Boolean demissionRetractation,
+                Boolean demissionManquementsEmployeur
+        ) {}
+
+        /**
+         * F-256 SF-212-35 — sous-record IA pour F-DT-46 PDV / RCC conformité
+         * (FRANCE only). 4 champs alignés sur le prompt PART12 :
+         * {@code pdv_rcc_type_dispositif} (RCC / PDV),
+         * {@code pdv_rcc_accord_majoritaire},
+         * {@code pdv_rcc_validation_dreets},
+         * {@code pdv_rcc_indemnites_legales}.
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         */
+        public record PdvRccDetail(
+                String pdvRccTypeDispositif,
+                Boolean pdvRccAccordMajoritaire,
+                Boolean pdvRccValidationDREETS,
+                Boolean pdvRccIndemnitesLegales
+        ) {}
 
 
         /**
@@ -720,6 +804,8 @@ public record CaseAnalysisResponse(
                     .miseAPiedDisciplinaireDetectee(miseAPiedDisciplinaireDetectee)
                     .egaliteSalarialePressentie(egaliteSalarialePressentie)
                     .ruptureAnticipeeCddDetectee(ruptureAnticipeeCddDetectee)
+                    .demissionEquivoquePressentie(demissionEquivoquePressentie)
+                    .pdvRccEnvisage(pdvRccEnvisage)
                     .fauteGraveEnvisagee(fauteGraveEnvisagee)
                     .fauteLourdeEnvisagee(fauteLourdeEnvisagee)
                     .cddRequalificationEnvisagee(cddRequalificationEnvisagee)
@@ -902,53 +988,28 @@ public record CaseAnalysisResponse(
                     .transfertActivitePreservee(transfertActivitePreservee)
                     .transfertLicenciementsPreTransfert(transfertLicenciementsPreTransfert)
                     .transfertDateTransfert(transfertDateTransfert)
-                    // SF-212-07 — csp_detail (FRANCE uniquement)
-                    .cspEffectifEntreprise(cspEffectifEntreprise)
-                    .cspProposeDetail(cspProposeDetail)
-                    .cspDocumentRemis(cspDocumentRemis)
-                    .cspDateRemise(cspDateRemise)
-                    .cspAdhesion(cspAdhesion)
-                    .cspSalaireMensuelBrut(cspSalaireMensuelBrut)
-                    // SF-212-09 — faute_inexcusable_detail (FRANCE uniquement)
-                    .fauteInexcusableConscienceDanger(fauteInexcusableConscienceDanger)
-                    .fauteInexcusableSignalementPrior(fauteInexcusableSignalementPrior)
-                    .fauteInexcusableMesuresPrevention(fauteInexcusableMesuresPrevention)
-                    .fauteInexcusableTauxIpp(fauteInexcusableTauxIpp)
-                    // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
-                    .lanceurAlerteNatureSignalement(lanceurAlerteNatureSignalement)
-                    .lanceurAlerteProcedure(lanceurAlerteProcedure)
-                    .lanceurAlerteMesureRepresaille(lanceurAlerteMesureRepresaille)
-                    .lanceurAlerteNatureMesure(lanceurAlerteNatureMesure)
-                    // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
-                    .modifContratElementModifie(modifContratElementModifie)
-                    .modifContratContractualise(modifContratContractualise)
-                    .modifContratMotifEco(modifContratMotifEco)
-                    .modifContratNotifEcrite(modifContratNotifEcrite)
-                    // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
-                    .mutationClausePresente(mutationClausePresente)
-                    .mutationZoneGeographiquePrecise(mutationZoneGeographiquePrecise)
-                    .mutationInteretLegitimeEmployeur(mutationInteretLegitimeEmployeur)
-                    .mutationDelaiPrevenanceSemaines(mutationDelaiPrevenanceSemaines)
-                    .mutationSituationFamilialeContraingnante(mutationSituationFamilialeContraingnante)
-                    .mutationMotifProfessionnel(mutationMotifProfessionnel)
-                    // SF-212-15 — teletravail_detail (FRANCE uniquement)
-                    .teletravailCadre(teletravailCadre)
-                    .teletravailDoubleVolontariat(teletravailDoubleVolontariat)
-                    .teletravailIndemniteVersee(teletravailIndemniteVersee)
-                    .teletravailMontantIndemniteJournalier(teletravailMontantIndemniteJournalier)
-                    .teletravailAccidentDomicile(teletravailAccidentDomicile)
-                    .teletravailRetourBureauImpose(teletravailRetourBureauImpose)
-                    .teletravailRefusCauseIncrimination(teletravailRefusCauseIncrimination)
-                    // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
-                    .mapDisciplinaireNature(mapDisciplinaireNature)
-                    .mapDisciplinaireProcedureSuivie(mapDisciplinaireProcedureSuivie)
-                    .mapDisciplinairePrescriptionFaute(mapDisciplinairePrescriptionFaute)
-                    .mapDisciplinaireDureeRi(mapDisciplinaireDureeRi)
-                    .mapDisciplinaireDureeJours(mapDisciplinaireDureeJours)
-                    .mapDisciplinaireSalaireSuspendu(mapDisciplinaireSalaireSuspendu)
-                    .mapDisciplinaireSanctionsAnterieures(mapDisciplinaireSanctionsAnterieures)
-                    // SF-212-23 — egalite_salariale_detail (FRANCE uniquement)
-                    .egaliteSalarialeDetail(egaliteSalarialeDetail);
+                    // F-256 SF-212-07 — csp_detail consolidé
+                    .cspDetail(cspDetail)
+                    // F-256 SF-212-09 — faute_inexcusable_detail consolidé
+                    .fauteInexcusableDetail(fauteInexcusableDetail)
+                    // F-256 SF-212-25 — lanceur_alerte_detail consolidé
+                    .lanceurAlerteDetail(lanceurAlerteDetail)
+                    // F-256 SF-212-11 — modification_contrat_detail consolidé
+                    .modifContratDetail(modifContratDetail)
+                    // F-256 SF-212-13 — mutation_mobilite_detail consolidé
+                    .mutationMobiliteDetail(mutationMobiliteDetail)
+                    // F-256 SF-212-15 — teletravail_detail consolidé
+                    .teletravailDetail(teletravailDetail)
+                    // F-256 SF-212-19 — mise_a_pied_detail consolidé
+                    .miseAPiedDetail(miseAPiedDetail)
+                    // SF-212-23 — egalite_salariale_detail
+                    .egaliteSalarialeDetail(egaliteSalarialeDetail)
+                    // F-256 SF-212-17 — rupture_anticipee_cdd_detail
+                    .ruptureAnticipeeCddDetail(ruptureAnticipeeCddDetail)
+                    // F-256 SF-212-21 — demission_equivoque_detail
+                    .demissionEquivoqueDetail(demissionEquivoqueDetail)
+                    // F-256 SF-212-35 — pdv_rcc_detail
+                    .pdvRccDetail(pdvRccDetail);
         }
 
         public static final class Builder {
@@ -1006,6 +1067,10 @@ public record CaseAnalysisResponse(
             private boolean egaliteSalarialePressentie;
             // SF-212-17 — F-205 flag (FRANCE only) — déclenche F-DT-43 rupture anticipée CDD.
             private boolean ruptureAnticipeeCddDetectee;
+            // F-256 SF-212-21 — F-205 flag (FRANCE only) — déclenche F-DT-41 démission équivoque.
+            private boolean demissionEquivoquePressentie;
+            // F-256 SF-212-35 — F-205 flag (FRANCE only) — déclenche F-DT-46 PDV/RCC conformité.
+            private boolean pdvRccEnvisage;
             private boolean fauteGraveEnvisagee;
             private boolean fauteLourdeEnvisagee;
             private boolean cddRequalificationEnvisagee;
@@ -1193,53 +1258,20 @@ public record CaseAnalysisResponse(
             private Boolean transfertActivitePreservee;
             private Boolean transfertLicenciementsPreTransfert;
             private String transfertDateTransfert;
-            // SF-212-07 — csp_detail (FRANCE uniquement)
-            private Integer cspEffectifEntreprise;
-            private Boolean cspProposeDetail;
-            private Boolean cspDocumentRemis;
-            private String cspDateRemise;
-            private Boolean cspAdhesion;
-            private Double cspSalaireMensuelBrut;
-            // SF-212-09 — faute_inexcusable_detail (FRANCE uniquement)
-            private Boolean fauteInexcusableConscienceDanger;
-            private Boolean fauteInexcusableSignalementPrior;
-            private Boolean fauteInexcusableMesuresPrevention;
-            private Integer fauteInexcusableTauxIpp;
-            // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
-            private String lanceurAlerteNatureSignalement;
-            private String lanceurAlerteProcedure;
-            private Boolean lanceurAlerteMesureRepresaille;
-            private String lanceurAlerteNatureMesure;
-            // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
-            private String modifContratElementModifie;
-            private Boolean modifContratContractualise;
-            private Boolean modifContratMotifEco;
-            private Boolean modifContratNotifEcrite;
-            // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
-            private Boolean mutationClausePresente;
-            private Boolean mutationZoneGeographiquePrecise;
-            private Boolean mutationInteretLegitimeEmployeur;
-            private Integer mutationDelaiPrevenanceSemaines;
-            private Boolean mutationSituationFamilialeContraingnante;
-            private Boolean mutationMotifProfessionnel;
-            // SF-212-15 — teletravail_detail (FRANCE uniquement)
-            private String teletravailCadre;
-            private Boolean teletravailDoubleVolontariat;
-            private Boolean teletravailIndemniteVersee;
-            private Double teletravailMontantIndemniteJournalier;
-            private Boolean teletravailAccidentDomicile;
-            private Boolean teletravailRetourBureauImpose;
-            private Boolean teletravailRefusCauseIncrimination;
-            // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
-            private String mapDisciplinaireNature;
-            private Boolean mapDisciplinaireProcedureSuivie;
-            private Boolean mapDisciplinairePrescriptionFaute;
-            private Boolean mapDisciplinaireDureeRi;
-            private Integer mapDisciplinaireDureeJours;
-            private Boolean mapDisciplinaireSalaireSuspendu;
-            private Boolean mapDisciplinaireSanctionsAnterieures;
+            // F-256 — sous-records consolidés (slots libérés)
+            private CspDetail cspDetail;
+            private FauteInexcusableDetail fauteInexcusableDetail;
+            private LanceurAlerteDetail lanceurAlerteDetail;
+            private ModifContratDetail modifContratDetail;
+            private MutationMobiliteDetail mutationMobiliteDetail;
+            private TeletravailDetail teletravailDetail;
+            private MiseAPiedDetail miseAPiedDetail;
             // SF-212-23 — egalite_salariale_detail (FRANCE uniquement) — sous-record regroupé.
             private EgaliteSalarialeDetail egaliteSalarialeDetail;
+            // F-256 — 3 sous-records pour résorber les dettes pré-fill
+            private RuptureAnticipeeCddDetail ruptureAnticipeeCddDetail;
+            private DemissionEquivoqueDetail demissionEquivoqueDetail;
+            private PdvRccDetail pdvRccDetail;
 
             private Builder() {}
 
@@ -1297,6 +1329,10 @@ public record CaseAnalysisResponse(
             public Builder egaliteSalarialePressentie(boolean v) { this.egaliteSalarialePressentie = v; return this; }
             // SF-212-17 — F-205 flag (FRANCE only) — déclenche F-DT-43 rupture anticipée CDD.
             public Builder ruptureAnticipeeCddDetectee(boolean v) { this.ruptureAnticipeeCddDetectee = v; return this; }
+            // F-256 SF-212-21 — F-205 flag (FRANCE only) — déclenche F-DT-41 démission équivoque.
+            public Builder demissionEquivoquePressentie(boolean v) { this.demissionEquivoquePressentie = v; return this; }
+            // F-256 SF-212-35 — F-205 flag (FRANCE only) — déclenche F-DT-46 PDV/RCC conformité.
+            public Builder pdvRccEnvisage(boolean v) { this.pdvRccEnvisage = v; return this; }
             public Builder fauteGraveEnvisagee(boolean v) { this.fauteGraveEnvisagee = v; return this; }
             public Builder fauteLourdeEnvisagee(boolean v) { this.fauteLourdeEnvisagee = v; return this; }
             public Builder cddRequalificationEnvisagee(boolean v) { this.cddRequalificationEnvisagee = v; return this; }
@@ -1479,53 +1515,20 @@ public record CaseAnalysisResponse(
             public Builder transfertActivitePreservee(Boolean v) { this.transfertActivitePreservee = v; return this; }
             public Builder transfertLicenciementsPreTransfert(Boolean v) { this.transfertLicenciementsPreTransfert = v; return this; }
             public Builder transfertDateTransfert(String v) { this.transfertDateTransfert = v; return this; }
-            // SF-212-07 — csp_detail (FRANCE uniquement)
-            public Builder cspEffectifEntreprise(Integer v) { this.cspEffectifEntreprise = v; return this; }
-            public Builder cspProposeDetail(Boolean v) { this.cspProposeDetail = v; return this; }
-            public Builder cspDocumentRemis(Boolean v) { this.cspDocumentRemis = v; return this; }
-            public Builder cspDateRemise(String v) { this.cspDateRemise = v; return this; }
-            public Builder cspAdhesion(Boolean v) { this.cspAdhesion = v; return this; }
-            public Builder cspSalaireMensuelBrut(Double v) { this.cspSalaireMensuelBrut = v; return this; }
-            // SF-212-09 — faute_inexcusable_detail (FRANCE uniquement)
-            public Builder fauteInexcusableConscienceDanger(Boolean v) { this.fauteInexcusableConscienceDanger = v; return this; }
-            public Builder fauteInexcusableSignalementPrior(Boolean v) { this.fauteInexcusableSignalementPrior = v; return this; }
-            public Builder fauteInexcusableMesuresPrevention(Boolean v) { this.fauteInexcusableMesuresPrevention = v; return this; }
-            public Builder fauteInexcusableTauxIpp(Integer v) { this.fauteInexcusableTauxIpp = v; return this; }
-            // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
-            public Builder lanceurAlerteNatureSignalement(String v) { this.lanceurAlerteNatureSignalement = v; return this; }
-            public Builder lanceurAlerteProcedure(String v) { this.lanceurAlerteProcedure = v; return this; }
-            public Builder lanceurAlerteMesureRepresaille(Boolean v) { this.lanceurAlerteMesureRepresaille = v; return this; }
-            public Builder lanceurAlerteNatureMesure(String v) { this.lanceurAlerteNatureMesure = v; return this; }
-            // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
-            public Builder modifContratElementModifie(String v) { this.modifContratElementModifie = v; return this; }
-            public Builder modifContratContractualise(Boolean v) { this.modifContratContractualise = v; return this; }
-            public Builder modifContratMotifEco(Boolean v) { this.modifContratMotifEco = v; return this; }
-            public Builder modifContratNotifEcrite(Boolean v) { this.modifContratNotifEcrite = v; return this; }
-            // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
-            public Builder mutationClausePresente(Boolean v) { this.mutationClausePresente = v; return this; }
-            public Builder mutationZoneGeographiquePrecise(Boolean v) { this.mutationZoneGeographiquePrecise = v; return this; }
-            public Builder mutationInteretLegitimeEmployeur(Boolean v) { this.mutationInteretLegitimeEmployeur = v; return this; }
-            public Builder mutationDelaiPrevenanceSemaines(Integer v) { this.mutationDelaiPrevenanceSemaines = v; return this; }
-            public Builder mutationSituationFamilialeContraingnante(Boolean v) { this.mutationSituationFamilialeContraingnante = v; return this; }
-            public Builder mutationMotifProfessionnel(Boolean v) { this.mutationMotifProfessionnel = v; return this; }
-            // SF-212-15 — teletravail_detail (FRANCE uniquement)
-            public Builder teletravailCadre(String v) { this.teletravailCadre = v; return this; }
-            public Builder teletravailDoubleVolontariat(Boolean v) { this.teletravailDoubleVolontariat = v; return this; }
-            public Builder teletravailIndemniteVersee(Boolean v) { this.teletravailIndemniteVersee = v; return this; }
-            public Builder teletravailMontantIndemniteJournalier(Double v) { this.teletravailMontantIndemniteJournalier = v; return this; }
-            public Builder teletravailAccidentDomicile(Boolean v) { this.teletravailAccidentDomicile = v; return this; }
-            public Builder teletravailRetourBureauImpose(Boolean v) { this.teletravailRetourBureauImpose = v; return this; }
-            public Builder teletravailRefusCauseIncrimination(Boolean v) { this.teletravailRefusCauseIncrimination = v; return this; }
-            // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
-            public Builder mapDisciplinaireNature(String v) { this.mapDisciplinaireNature = v; return this; }
-            public Builder mapDisciplinaireProcedureSuivie(Boolean v) { this.mapDisciplinaireProcedureSuivie = v; return this; }
-            public Builder mapDisciplinairePrescriptionFaute(Boolean v) { this.mapDisciplinairePrescriptionFaute = v; return this; }
-            public Builder mapDisciplinaireDureeRi(Boolean v) { this.mapDisciplinaireDureeRi = v; return this; }
-            public Builder mapDisciplinaireDureeJours(Integer v) { this.mapDisciplinaireDureeJours = v; return this; }
-            public Builder mapDisciplinaireSalaireSuspendu(Boolean v) { this.mapDisciplinaireSalaireSuspendu = v; return this; }
-            public Builder mapDisciplinaireSanctionsAnterieures(Boolean v) { this.mapDisciplinaireSanctionsAnterieures = v; return this; }
+            // F-256 — setters sous-records consolidés (SF-212-07/09/11/13/15/19/25)
+            public Builder cspDetail(CspDetail v) { this.cspDetail = v; return this; }
+            public Builder fauteInexcusableDetail(FauteInexcusableDetail v) { this.fauteInexcusableDetail = v; return this; }
+            public Builder lanceurAlerteDetail(LanceurAlerteDetail v) { this.lanceurAlerteDetail = v; return this; }
+            public Builder modifContratDetail(ModifContratDetail v) { this.modifContratDetail = v; return this; }
+            public Builder mutationMobiliteDetail(MutationMobiliteDetail v) { this.mutationMobiliteDetail = v; return this; }
+            public Builder teletravailDetail(TeletravailDetail v) { this.teletravailDetail = v; return this; }
+            public Builder miseAPiedDetail(MiseAPiedDetail v) { this.miseAPiedDetail = v; return this; }
             // SF-212-23 — egalite_salariale_detail (FRANCE uniquement) — sous-record regroupé.
             public Builder egaliteSalarialeDetail(EgaliteSalarialeDetail v) { this.egaliteSalarialeDetail = v; return this; }
+            // F-256 — 3 sous-records pour les dettes pré-fill IA
+            public Builder ruptureAnticipeeCddDetail(RuptureAnticipeeCddDetail v) { this.ruptureAnticipeeCddDetail = v; return this; }
+            public Builder demissionEquivoqueDetail(DemissionEquivoqueDetail v) { this.demissionEquivoqueDetail = v; return this; }
+            public Builder pdvRccDetail(PdvRccDetail v) { this.pdvRccDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1556,6 +1559,10 @@ public record CaseAnalysisResponse(
                         egaliteSalarialePressentie,
                         // SF-212-17 — F-205 flag F-DT-43 rupture anticipée CDD.
                         ruptureAnticipeeCddDetectee,
+                        // F-256 SF-212-21 — F-205 flag F-DT-41 démission équivoque.
+                        demissionEquivoquePressentie,
+                        // F-256 SF-212-35 — F-205 flag F-DT-46 PDV/RCC conformité.
+                        pdvRccEnvisage,
                         fauteGraveEnvisagee,
                         fauteLourdeEnvisagee, cddRequalificationEnvisagee, interimRequalificationEnvisagee,
                         forfaitJoursValiditeContestee, prescriptionProcheDetectee, ruptureAmiableNegociee,
@@ -1664,50 +1671,20 @@ public record CaseAnalysisResponse(
                         transfertTypeTransfert, transfertEeaIdentifiee,
                         transfertActivitePreservee, transfertLicenciementsPreTransfert,
                         transfertDateTransfert,
-                        // SF-212-07 — csp_detail (FRANCE uniquement)
-                        cspEffectifEntreprise, cspProposeDetail,
-                        cspDocumentRemis, cspDateRemise,
-                        cspAdhesion, cspSalaireMensuelBrut,
-                        // SF-212-09 — faute_inexcusable_detail (FRANCE uniquement)
-                        fauteInexcusableConscienceDanger,
-                        fauteInexcusableSignalementPrior,
-                        fauteInexcusableMesuresPrevention,
-                        fauteInexcusableTauxIpp,
-                        // SF-212-25 — lanceur_alerte_detail (FRANCE uniquement)
-                        lanceurAlerteNatureSignalement,
-                        lanceurAlerteProcedure,
-                        lanceurAlerteMesureRepresaille,
-                        lanceurAlerteNatureMesure,
-                        // SF-212-11 — modification_contrat_detail (FRANCE uniquement)
-                        modifContratElementModifie,
-                        modifContratContractualise,
-                        modifContratMotifEco,
-                        modifContratNotifEcrite,
-                        // SF-212-13 — mutation_mobilite_detail (FRANCE uniquement)
-                        mutationClausePresente,
-                        mutationZoneGeographiquePrecise,
-                        mutationInteretLegitimeEmployeur,
-                        mutationDelaiPrevenanceSemaines,
-                        mutationSituationFamilialeContraingnante,
-                        mutationMotifProfessionnel,
-                        // SF-212-15 — teletravail_detail (FRANCE uniquement)
-                        teletravailCadre,
-                        teletravailDoubleVolontariat,
-                        teletravailIndemniteVersee,
-                        teletravailMontantIndemniteJournalier,
-                        teletravailAccidentDomicile,
-                        teletravailRetourBureauImpose,
-                        teletravailRefusCauseIncrimination,
-                        // SF-212-19 — mise_a_pied_detail (FRANCE uniquement)
-                        mapDisciplinaireNature,
-                        mapDisciplinaireProcedureSuivie,
-                        mapDisciplinairePrescriptionFaute,
-                        mapDisciplinaireDureeRi,
-                        mapDisciplinaireDureeJours,
-                        mapDisciplinaireSalaireSuspendu,
-                        mapDisciplinaireSanctionsAnterieures,
-                        // SF-212-23 — egalite_salariale_detail (FRANCE uniquement) — sous-record regroupé.
-                        egaliteSalarialeDetail);
+                        // F-256 — sous-records consolidés
+                        cspDetail,
+                        fauteInexcusableDetail,
+                        lanceurAlerteDetail,
+                        modifContratDetail,
+                        mutationMobiliteDetail,
+                        teletravailDetail,
+                        miseAPiedDetail,
+                        // SF-212-23 — egalite_salariale_detail
+                        egaliteSalarialeDetail,
+                        // F-256 — sous-records pour les 3 dettes pré-fill
+                        ruptureAnticipeeCddDetail,
+                        demissionEquivoqueDetail,
+                        pdvRccDetail);
             }
         }
     }
@@ -1900,6 +1877,26 @@ public record CaseAnalysisResponse(
      * SF-212-09 : borne haute du taux d'IPP (F-DT-91 faute inexcusable).
      */
     static final int MAX_IPP_TAUX = 100;
+
+    /**
+     * F-256 SF-212-17 : codes d'auteur de rupture anticipée du CDD (F-DT-43)
+     * — alignés sur l'enum {@code RacAuteurRupture} du frontend.
+     */
+    static final Set<String> RAC_AUTEUR_CODES = Set.of("EMPLOYEUR", "SALARIE");
+
+    /**
+     * F-256 SF-212-17 : codes de motif de rupture anticipée du CDD (F-DT-43)
+     * — alignés sur l'enum {@code RacMotifRupture} du frontend et le prompt PART9.
+     */
+    static final Set<String> RAC_MOTIF_CODES = Set.of(
+            "ACCORD_PARTIES", "FAUTE_GRAVE", "FORCE_MAJEURE",
+            "INAPTITUDE", "CDI_EMBAUCHE", "AUTRE");
+
+    /**
+     * F-256 SF-212-35 : codes de type de dispositif PDV / RCC (F-DT-46)
+     * — alignés sur l'enum {@code PdvRccTypeDispositif} du frontend et le prompt PART12.
+     */
+    static final Set<String> PDV_RCC_TYPE_DISPOSITIF_CODES = Set.of("RCC", "PDV");
 
     /**
      * SF-206-01 : codes de motif d'absence invoqué par le salarié en cas
@@ -4264,27 +4261,90 @@ public record CaseAnalysisResponse(
             // d'un transfert relève en BE de la CCT 32bis distincte).
             JsonNode transfertEntreprise = node.get("transfert_entreprise_detail");
             boolean hasTransfertEntreprise = transfertEntreprise != null && transfertEntreprise.isObject();
+            // F-256 : sous-records consolidés (SF-212-07/09/11/13/15/19/25 + 17/21/35).
+            // Les 7 premiers étaient à plat — désormais regroupés pour libérer des slots
+            // sur le constructeur canonical de TravailExtractedData. JSON HTTP plat préservé
+            // grâce à @JsonUnwrapped (parité contrat externe stricte).
             // SF-212-07 : sous-objet pour pré-fill F-DT-44 (CSP/CRP conformité FR).
-            JsonNode cspDetail = node.get("csp_detail");
-            boolean hasCspDetail = cspDetail != null && cspDetail.isObject();
+            JsonNode cspNode = node.get("csp_detail");
+            boolean hasCspNode = cspNode != null && cspNode.isObject();
+            TravailExtractedData.CspDetail cspDetail = hasCspNode
+                    ? new TravailExtractedData.CspDetail(
+                            boundedIntOrNull(cspNode, "csp_effectif_entreprise", 0, MAX_CSP_EFFECTIF_ENTREPRISE),
+                            booleanOrNull(cspNode, "csp_propose"),
+                            booleanOrNull(cspNode, "csp_document_remis"),
+                            isoDateOrNull(cspNode, "csp_date_remise"),
+                            booleanOrNull(cspNode, "csp_adhesion"),
+                            positiveDoubleOrNull(cspNode, "csp_salaire_mensuel_brut"))
+                    : null;
             // SF-212-09 : sous-objet pour pré-fill F-DT-91 (faute inexcusable employeur FR).
-            JsonNode fauteInexcusable = node.get("faute_inexcusable_detail");
-            boolean hasFauteInexcusable = fauteInexcusable != null && fauteInexcusable.isObject();
+            JsonNode fauteInexcusableNode = node.get("faute_inexcusable_detail");
+            boolean hasFauteInexcusableNode = fauteInexcusableNode != null && fauteInexcusableNode.isObject();
+            TravailExtractedData.FauteInexcusableDetail fauteInexcusableDetail = hasFauteInexcusableNode
+                    ? new TravailExtractedData.FauteInexcusableDetail(
+                            booleanOrNull(fauteInexcusableNode, "faute_inexcusable_conscience_danger"),
+                            booleanOrNull(fauteInexcusableNode, "faute_inexcusable_signalement_prior"),
+                            booleanOrNull(fauteInexcusableNode, "faute_inexcusable_mesures_prevention"),
+                            boundedIntOrNull(fauteInexcusableNode, "faute_inexcusable_taux_ipp", 0, MAX_IPP_TAUX))
+                    : null;
             // SF-212-25 : sous-objet pour pré-fill F-DT-61 (protection lanceur d'alerte FR).
-            JsonNode lanceurAlerteDetail = node.get("lanceur_alerte_detail");
-            boolean hasLanceurAlerte = lanceurAlerteDetail != null && lanceurAlerteDetail.isObject();
+            JsonNode lanceurAlerteNode = node.get("lanceur_alerte_detail");
+            boolean hasLanceurAlerteNode = lanceurAlerteNode != null && lanceurAlerteNode.isObject();
+            TravailExtractedData.LanceurAlerteDetail lanceurAlerteDetail = hasLanceurAlerteNode
+                    ? new TravailExtractedData.LanceurAlerteDetail(
+                            textOrNull(lanceurAlerteNode, "lanceur_alerte_nature_signalement"),
+                            textOrNull(lanceurAlerteNode, "lanceur_alerte_procedure"),
+                            booleanOrNull(lanceurAlerteNode, "lanceur_alerte_mesure_represaille"),
+                            textOrNull(lanceurAlerteNode, "lanceur_alerte_nature_mesure"))
+                    : null;
             // SF-212-11 : sous-objet pour pré-fill F-DT-70 (modification contrat refus FR).
-            JsonNode modificationContratDetail = node.get("modification_contrat_detail");
-            boolean hasModificationContrat = modificationContratDetail != null && modificationContratDetail.isObject();
+            JsonNode modifContratNode = node.get("modification_contrat_detail");
+            boolean hasModifContratNode = modifContratNode != null && modifContratNode.isObject();
+            TravailExtractedData.ModifContratDetail modifContratDetail = hasModifContratNode
+                    ? new TravailExtractedData.ModifContratDetail(
+                            textOrNull(modifContratNode, "modif_contrat_element_modifie"),
+                            booleanOrNull(modifContratNode, "modif_contrat_contractualise"),
+                            booleanOrNull(modifContratNode, "modif_contrat_motif_eco"),
+                            booleanOrNull(modifContratNode, "modif_contrat_notif_ecrite"))
+                    : null;
             // SF-212-13 : sous-objet pour pré-fill F-DT-71 (mutation clause de mobilité FR).
-            JsonNode mutationMobiliteDetail = node.get("mutation_mobilite_detail");
-            boolean hasMutationMobilite = mutationMobiliteDetail != null && mutationMobiliteDetail.isObject();
+            JsonNode mutationNode = node.get("mutation_mobilite_detail");
+            boolean hasMutationNode = mutationNode != null && mutationNode.isObject();
+            TravailExtractedData.MutationMobiliteDetail mutationMobiliteDetail = hasMutationNode
+                    ? new TravailExtractedData.MutationMobiliteDetail(
+                            booleanOrNull(mutationNode, "mutation_clause_presente"),
+                            booleanOrNull(mutationNode, "mutation_zone_geographique_precise"),
+                            booleanOrNull(mutationNode, "mutation_interet_legitime_employeur"),
+                            intOrNull(mutationNode, "mutation_delai_prevenance_semaines"),
+                            booleanOrNull(mutationNode, "mutation_situation_familiale_contraingnante"),
+                            booleanOrNull(mutationNode, "mutation_motif_professionnel"))
+                    : null;
             // SF-212-15 : sous-objet pour pré-fill F-DT-82 (télétravail — conformité et litige FR).
-            JsonNode teletravailDetail = node.get("teletravail_detail");
-            boolean hasTeletravail = teletravailDetail != null && teletravailDetail.isObject();
+            JsonNode teletravailNode = node.get("teletravail_detail");
+            boolean hasTeletravailNode = teletravailNode != null && teletravailNode.isObject();
+            TravailExtractedData.TeletravailDetail teletravailDetail = hasTeletravailNode
+                    ? new TravailExtractedData.TeletravailDetail(
+                            textOrNull(teletravailNode, "teletravail_cadre"),
+                            booleanOrNull(teletravailNode, "teletravail_double_volontariat"),
+                            booleanOrNull(teletravailNode, "teletravail_indemnite_versee"),
+                            doubleOrNull(teletravailNode, "teletravail_montant_indemnite_journalier"),
+                            booleanOrNull(teletravailNode, "teletravail_accident_domicile"),
+                            booleanOrNull(teletravailNode, "teletravail_retour_bureau_impose"),
+                            booleanOrNull(teletravailNode, "teletravail_refus_cause_incrimination"))
+                    : null;
             // SF-212-19 : sous-objet pour pré-fill F-DT-48 (mise à pied disciplinaire FR).
-            JsonNode miseAPiedDetail = node.get("mise_a_pied_detail");
-            boolean hasMiseAPied = miseAPiedDetail != null && miseAPiedDetail.isObject();
+            JsonNode miseAPiedNode = node.get("mise_a_pied_detail");
+            boolean hasMiseAPiedNode = miseAPiedNode != null && miseAPiedNode.isObject();
+            TravailExtractedData.MiseAPiedDetail miseAPiedDetail = hasMiseAPiedNode
+                    ? new TravailExtractedData.MiseAPiedDetail(
+                            textOrNull(miseAPiedNode, "map_disciplinaire_nature"),
+                            booleanOrNull(miseAPiedNode, "map_disciplinaire_procedure_suivie"),
+                            booleanOrNull(miseAPiedNode, "map_disciplinaire_prescription_faute"),
+                            booleanOrNull(miseAPiedNode, "map_disciplinaire_duree_ri"),
+                            intOrNull(miseAPiedNode, "map_disciplinaire_duree_jours"),
+                            booleanOrNull(miseAPiedNode, "map_disciplinaire_salaire_suspendu"),
+                            booleanOrNull(miseAPiedNode, "map_disciplinaire_sanctions_anterieures"))
+                    : null;
             // SF-212-23 : sous-objet pour pré-fill F-DT-56 (égalité salariale femmes/hommes FR).
             JsonNode egaliteSalarialeDetailNode = node.get("egalite_salariale_detail");
             boolean hasEgaliteSalariale = egaliteSalarialeDetailNode != null && egaliteSalarialeDetailNode.isObject();
@@ -4295,21 +4355,36 @@ public record CaseAnalysisResponse(
                             intOrNull(egaliteSalarialeDetailNode, "egalite_salariale_anciennete"),
                             doubleOrNull(egaliteSalarialeDetailNode, "egalite_salariale_ecart_pourcentage"))
                     : null;
-            // SF-212-21 : pas de sous-objet IA pour F-DT-41 — limite JVM 255 slots
-            // du record TravailExtractedData (saturé par SF-212-23). Le déclenchement
-            // F-IA-04 reste fonctionnel via le flag top-level
-            // `demission_equivoque_pressentie` ci-dessus. Le pré-fill IA sera traité
-            // par une SF de rattrapage ultérieure — pattern aligné sur SF-212-17.
-            // SF-212-17 : pas de sous-objet IA pour F-DT-43 — limite JVM 255 slots
-            // du record TravailExtractedData (saturé par les vagues F-212 antérieures
-            // + SF-212-23). Le déclenchement F-IA-04 reste fonctionnel via le flag
-            // top-level `rupture_anticipee_cdd_detectee` ci-dessus. Le pré-fill IA
-            // sera traité par une SF de rattrapage ultérieure.
-            // SF-212-35 : sous-objet `pdv_rcc_detail` (F-DT-46 PDV / RCC conformité FR)
-            // NON projeté sur le record TravailExtractedData (limite JVM 255 slots
-            // atteinte). Pré-fill IA différé à la SF de rattrapage qui refactorera
-            // le record. Le flag top-level `pdv_rcc_envisage` reste lu par
-            // DecisionToolVisibilityService directement depuis travailNode brut.
+            // F-256 SF-212-17 : sous-objet pour pré-fill F-DT-43 (rupture anticipée du CDD FR).
+            JsonNode racNode = node.get("rupture_anticipee_cdd_detail");
+            boolean hasRac = racNode != null && racNode.isObject();
+            TravailExtractedData.RuptureAnticipeeCddDetail ruptureAnticipeeCddDetail = hasRac
+                    ? new TravailExtractedData.RuptureAnticipeeCddDetail(
+                            normalizeEnumCode(textOrNull(racNode, "rupture_anticipee_cdd_auteur"), RAC_AUTEUR_CODES),
+                            normalizeEnumCode(textOrNull(racNode, "rupture_anticipee_cdd_motif"), RAC_MOTIF_CODES),
+                            isoDateOrNull(racNode, "rupture_anticipee_cdd_date_terme"))
+                    : null;
+            // F-256 SF-212-21 : sous-objet pour pré-fill F-DT-41 (démission équivoque FR).
+            JsonNode demNode = node.get("demission_equivoque_detail");
+            boolean hasDem = demNode != null && demNode.isObject();
+            TravailExtractedData.DemissionEquivoqueDetail demissionEquivoqueDetail = hasDem
+                    ? new TravailExtractedData.DemissionEquivoqueDetail(
+                            textOrNull(demNode, "demission_mode_expression"),
+                            booleanOrNull(demNode, "demission_contexte_altercation"),
+                            booleanOrNull(demNode, "demission_pression"),
+                            booleanOrNull(demNode, "demission_retractation"),
+                            booleanOrNull(demNode, "demission_manquements_employeur"))
+                    : null;
+            // F-256 SF-212-35 : sous-objet pour pré-fill F-DT-46 (PDV / RCC conformité FR).
+            JsonNode pdvNode = node.get("pdv_rcc_detail");
+            boolean hasPdv = pdvNode != null && pdvNode.isObject();
+            TravailExtractedData.PdvRccDetail pdvRccDetail = hasPdv
+                    ? new TravailExtractedData.PdvRccDetail(
+                            normalizeEnumCode(textOrNull(pdvNode, "pdv_rcc_type_dispositif"), PDV_RCC_TYPE_DISPOSITIF_CODES),
+                            booleanOrNull(pdvNode, "pdv_rcc_accord_majoritaire"),
+                            booleanOrNull(pdvNode, "pdv_rcc_validation_dreets"),
+                            booleanOrNull(pdvNode, "pdv_rcc_indemnites_legales"))
+                    : null;
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4371,15 +4446,12 @@ public record CaseAnalysisResponse(
                     .miseAPiedDisciplinaireDetectee(booleanOrFalse(node, "mise_a_pied_disciplinaire_detectee"))
                     // SF-212-23 : flag F-205 — déclenche F-DT-56 égalité salariale femmes/hommes.
                     .egaliteSalarialePressentie(booleanOrFalse(node, "egalite_salariale_pressentie"))
-                    // SF-212-21 : flag F-205 `demission_equivoque_pressentie` lu uniquement
-                    // dans DecisionToolVisibilityService depuis le JSON brut (pas de slot
-                    // sur le record — limite JVM 255 saturée). Pattern aligné sur SF-212-17.
                     // SF-212-17 : flag F-205 — déclenche F-DT-43 rupture anticipée CDD.
                     .ruptureAnticipeeCddDetectee(booleanOrFalse(node, "rupture_anticipee_cdd_detectee"))
-                    // SF-212-35 : `pdv_rcc_envisage` non projeté sur le record (cf.
-                    // commentaire dans la déclaration du record TravailExtractedData).
-                    // Le flag est lu directement depuis travailNode par
-                    // DecisionToolVisibilityService.addBooleanFlagIfTrue.
+                    // F-256 SF-212-21 : flag F-205 — déclenche F-DT-41 démission équivoque.
+                    .demissionEquivoquePressentie(booleanOrFalse(node, "demission_equivoque_pressentie"))
+                    // F-256 SF-212-35 : flag F-205 — déclenche F-DT-46 PDV/RCC conformité.
+                    .pdvRccEnvisage(booleanOrFalse(node, "pdv_rcc_envisage"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4647,53 +4719,20 @@ public record CaseAnalysisResponse(
                     .transfertActivitePreservee(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_activite_preservee") : null)
                     .transfertLicenciementsPreTransfert(hasTransfertEntreprise ? booleanOrNull(transfertEntreprise, "transfert_licenciements_pre_transfert") : null)
                     .transfertDateTransfert(hasTransfertEntreprise ? isoDateOrNull(transfertEntreprise, "transfert_date_transfert") : null)
-                    // SF-212-07 : 6 champs IA pour pré-fill F-DT-44 (CSP/CRP conformité FR).
-                    .cspEffectifEntreprise(hasCspDetail ? boundedIntOrNull(cspDetail, "csp_effectif_entreprise", 0, MAX_CSP_EFFECTIF_ENTREPRISE) : null)
-                    .cspProposeDetail(hasCspDetail ? booleanOrNull(cspDetail, "csp_propose") : null)
-                    .cspDocumentRemis(hasCspDetail ? booleanOrNull(cspDetail, "csp_document_remis") : null)
-                    .cspDateRemise(hasCspDetail ? isoDateOrNull(cspDetail, "csp_date_remise") : null)
-                    .cspAdhesion(hasCspDetail ? booleanOrNull(cspDetail, "csp_adhesion") : null)
-                    .cspSalaireMensuelBrut(hasCspDetail ? positiveDoubleOrNull(cspDetail, "csp_salaire_mensuel_brut") : null)
-                    // SF-212-09 : 4 champs IA pour pré-fill F-DT-91 (faute inexcusable employeur FR).
-                    .fauteInexcusableConscienceDanger(hasFauteInexcusable ? booleanOrNull(fauteInexcusable, "faute_inexcusable_conscience_danger") : null)
-                    .fauteInexcusableSignalementPrior(hasFauteInexcusable ? booleanOrNull(fauteInexcusable, "faute_inexcusable_signalement_prior") : null)
-                    .fauteInexcusableMesuresPrevention(hasFauteInexcusable ? booleanOrNull(fauteInexcusable, "faute_inexcusable_mesures_prevention") : null)
-                    .fauteInexcusableTauxIpp(hasFauteInexcusable ? boundedIntOrNull(fauteInexcusable, "faute_inexcusable_taux_ipp", 0, MAX_IPP_TAUX) : null)
-                    // SF-212-25 : 4 champs IA pour pré-fill F-DT-61 (protection lanceur d'alerte FR).
-                    .lanceurAlerteNatureSignalement(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_nature_signalement") : null)
-                    .lanceurAlerteProcedure(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_procedure") : null)
-                    .lanceurAlerteMesureRepresaille(hasLanceurAlerte ? booleanOrNull(lanceurAlerteDetail, "lanceur_alerte_mesure_represaille") : null)
-                    .lanceurAlerteNatureMesure(hasLanceurAlerte ? textOrNull(lanceurAlerteDetail, "lanceur_alerte_nature_mesure") : null)
-                    // SF-212-11 : 4 champs IA pour pré-fill F-DT-70 (modification contrat refus FR).
-                    .modifContratElementModifie(hasModificationContrat ? textOrNull(modificationContratDetail, "modif_contrat_element_modifie") : null)
-                    .modifContratContractualise(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_contractualise") : null)
-                    .modifContratMotifEco(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_motif_eco") : null)
-                    .modifContratNotifEcrite(hasModificationContrat ? booleanOrNull(modificationContratDetail, "modif_contrat_notif_ecrite") : null)
-                    // SF-212-13 : 6 champs IA pour pré-fill F-DT-71 (mutation clause de mobilité FR).
-                    .mutationClausePresente(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_clause_presente") : null)
-                    .mutationZoneGeographiquePrecise(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_zone_geographique_precise") : null)
-                    .mutationInteretLegitimeEmployeur(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_interet_legitime_employeur") : null)
-                    .mutationDelaiPrevenanceSemaines(hasMutationMobilite ? intOrNull(mutationMobiliteDetail, "mutation_delai_prevenance_semaines") : null)
-                    .mutationSituationFamilialeContraingnante(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_situation_familiale_contraingnante") : null)
-                    .mutationMotifProfessionnel(hasMutationMobilite ? booleanOrNull(mutationMobiliteDetail, "mutation_motif_professionnel") : null)
-                    // SF-212-15 : 7 champs IA pour pré-fill F-DT-82 (télétravail — conformité et litige FR).
-                    .teletravailCadre(hasTeletravail ? textOrNull(teletravailDetail, "teletravail_cadre") : null)
-                    .teletravailDoubleVolontariat(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_double_volontariat") : null)
-                    .teletravailIndemniteVersee(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_indemnite_versee") : null)
-                    .teletravailMontantIndemniteJournalier(hasTeletravail ? doubleOrNull(teletravailDetail, "teletravail_montant_indemnite_journalier") : null)
-                    .teletravailAccidentDomicile(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_accident_domicile") : null)
-                    .teletravailRetourBureauImpose(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_retour_bureau_impose") : null)
-                    .teletravailRefusCauseIncrimination(hasTeletravail ? booleanOrNull(teletravailDetail, "teletravail_refus_cause_incrimination") : null)
-                    // SF-212-19 : 7 champs IA pour pré-fill F-DT-48 (mise à pied disciplinaire FR).
-                    .mapDisciplinaireNature(hasMiseAPied ? textOrNull(miseAPiedDetail, "map_disciplinaire_nature") : null)
-                    .mapDisciplinaireProcedureSuivie(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_procedure_suivie") : null)
-                    .mapDisciplinairePrescriptionFaute(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_prescription_faute") : null)
-                    .mapDisciplinaireDureeRi(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_duree_ri") : null)
-                    .mapDisciplinaireDureeJours(hasMiseAPied ? intOrNull(miseAPiedDetail, "map_disciplinaire_duree_jours") : null)
-                    .mapDisciplinaireSalaireSuspendu(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_salaire_suspendu") : null)
-                    .mapDisciplinaireSanctionsAnterieures(hasMiseAPied ? booleanOrNull(miseAPiedDetail, "map_disciplinaire_sanctions_anterieures") : null)
-                    // SF-212-23 : sous-objet IA pour pré-fill F-DT-56 (égalité salariale femmes/hommes FR).
+                    // F-256 — sous-records consolidés (SF-212-07/09/11/13/15/19/25)
+                    .cspDetail(cspDetail)
+                    .fauteInexcusableDetail(fauteInexcusableDetail)
+                    .lanceurAlerteDetail(lanceurAlerteDetail)
+                    .modifContratDetail(modifContratDetail)
+                    .mutationMobiliteDetail(mutationMobiliteDetail)
+                    .teletravailDetail(teletravailDetail)
+                    .miseAPiedDetail(miseAPiedDetail)
+                    // SF-212-23 : sous-objet IA pour pré-fill F-DT-56 (égalité salariale FR).
                     .egaliteSalarialeDetail(egaliteSalarialeDetail)
+                    // F-256 — 3 sous-records pour les dettes pré-fill IA (SF-212-17/21/35)
+                    .ruptureAnticipeeCddDetail(ruptureAnticipeeCddDetail)
+                    .demissionEquivoqueDetail(demissionEquivoqueDetail)
+                    .pdvRccDetail(pdvRccDetail)
                     .build();
         } catch (Exception ignored) { return null; }
     }

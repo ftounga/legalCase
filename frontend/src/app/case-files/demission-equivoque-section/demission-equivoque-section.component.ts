@@ -46,9 +46,8 @@ import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprud
  *  - DEMISSION_EQUIVOQUE (rouge — éléments d'équivocité caractérisés)
  *  - RETRACTATION_POSSIBLE (or — rétractation rapide ou délai favorable)
  *
- * Pré-remplissage IA : désactivé en SF-212-22 (sous-objet backend non
- * disponible — limite JVM 255 du record TravailExtractedData). Pattern
- * aligné sur SF-212-17 F-DT-43. À résorber par SF de rattrapage.
+ * F-256 : pré-fill IA réactivé sur les 5 champs du sous-objet
+ * `demissionEquivoqueDetail` désormais projeté côté backend.
  */
 @Component({
   selector: 'app-demission-equivoque-section',
@@ -76,9 +75,9 @@ export class DemissionEquivoqueSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_ICON = 'help_outline';
 
   /**
-   * Délégué au helper partagé — toujours 0 en SF-212-22 (sous-objet IA
-   * backend non disponible). À brancher dès que la SF de rattrapage aura
-   * livré `demissionEquivoqueDetail` dans `TravailExtractedData`.
+   * Délégué au helper partagé (parité stricte avec `prefillFromAi()`).
+   * F-256 : pré-fill IA actif sur les 5 champs du sous-objet
+   * `demissionEquivoqueDetail`.
    */
   static getPrefillCount(input: {
     aiData?: TravailExtractedData | null;
@@ -131,8 +130,16 @@ export class DemissionEquivoqueSectionComponent implements OnInit, OnChanges {
     @Optional() private dashboardRefresh: CaseDashboardRefreshService | null,
   ) {}
 
+  // Provenance IA par champ pré-rempli (F-237) — réactivée par F-256.
+  provenanceMode = signal<'IA' | null>(null);
+  provenanceAltercation = signal<'IA' | null>(null);
+  provenancePression = signal<'IA' | null>(null);
+  provenanceRetractation = signal<'IA' | null>(null);
+  provenanceManquements = signal<'IA' | null>(null);
+
   ngOnInit(): void {
     if (this.forceExpanded) this.collapsed.set(false);
+    this.prefillFromAi();
     if (this.workspaceCountry === 'FRANCE') {
       this.load();
     }
@@ -140,7 +147,55 @@ export class DemissionEquivoqueSectionComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
-    // Pas de pré-fill IA — sous-objet backend non disponible (SF-212-21).
+    // F-256 : pré-fill IA branché sur le sous-objet `demissionEquivoqueDetail`.
+    if (changes['aiData'] && !changes['aiData'].firstChange
+        && this.showForm() && !this.result()) {
+      this.prefillFromAi();
+    }
+  }
+
+  /**
+   * F-256 SF-212-21 — pré-fill IA depuis le sous-objet
+   * `demissionEquivoqueDetail` projeté côté backend par F-256.
+   * Map `demissionModeExpression` (texte libre) → enum frontend si match.
+   */
+  private prefillFromAi(): void {
+    if (this.standaloneMode) return;
+    const input = { aiData: this.aiData, workspaceCountry: this.workspaceCountry };
+    // Mode d'expression : map texte libre → enum DemModeExpression.
+    const modeRaw = DemissionEquivoqueSectionPrefillRules.computeModeExpression(input);
+    if (modeRaw !== null) {
+      const upper = modeRaw.trim().toUpperCase();
+      const mapped: DemModeExpression | null =
+        upper === 'SMS' ? 'SMS'
+        : upper === 'EMAIL' || upper === 'MAIL' ? 'EMAIL'
+        : upper === 'ORAL' || upper === 'VERBALE' || upper === 'VERBAL' ? 'ORAL'
+        : upper === 'ECRIT_FORMEL' || upper === 'COURRIER' || upper === 'LRAR'
+            || upper === 'LETTRE' || upper === 'LETTRE RECOMMANDEE' ? 'ECRIT_FORMEL'
+        : 'AUTRE';
+      this.modeExpressionDemission.set(mapped);
+      this.provenanceMode.set('IA');
+    }
+    const altercation = DemissionEquivoqueSectionPrefillRules.computeContexteAltercation(input);
+    if (altercation !== null) {
+      this.contexteAltercation.set(altercation);
+      this.provenanceAltercation.set('IA');
+    }
+    const pression = DemissionEquivoqueSectionPrefillRules.computePression(input);
+    if (pression !== null) {
+      this.pressionOuMenace.set(pression);
+      this.provenancePression.set('IA');
+    }
+    const retractation = DemissionEquivoqueSectionPrefillRules.computeRetractation(input);
+    if (retractation !== null) {
+      this.retractationDansDelai.set(retractation);
+      this.provenanceRetractation.set('IA');
+    }
+    const manquements = DemissionEquivoqueSectionPrefillRules.computeManquementsEmployeur(input);
+    if (manquements !== null) {
+      this.manquementsEmployeurContemporains.set(manquements);
+      this.provenanceManquements.set('IA');
+    }
   }
 
   toggleCollapse(): void {
@@ -166,18 +221,22 @@ export class DemissionEquivoqueSectionComponent implements OnInit, OnChanges {
 
   onModeChange(value: DemModeExpression): void {
     this.modeExpressionDemission.set(value);
+    this.provenanceMode.set(null);
   }
 
   onAltercationChange(value: boolean): void {
     this.contexteAltercation.set(value);
+    this.provenanceAltercation.set(null);
   }
 
   onPressionChange(value: boolean): void {
     this.pressionOuMenace.set(value);
+    this.provenancePression.set(null);
   }
 
   onRetractationChange(value: boolean): void {
     this.retractationDansDelai.set(value);
+    this.provenanceRetractation.set(null);
     if (!value) {
       this.delaiRetractationJours.set(null);
     }
@@ -194,6 +253,7 @@ export class DemissionEquivoqueSectionComponent implements OnInit, OnChanges {
 
   onManquementsChange(value: boolean): void {
     this.manquementsEmployeurContemporains.set(value);
+    this.provenanceManquements.set(null);
   }
 
   onEtatPerturbeChange(value: boolean): void {

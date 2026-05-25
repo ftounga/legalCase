@@ -1,32 +1,33 @@
 /**
- * SF-212-22 — Tests unitaires du helper partagé
- * `demission-equivoque-section-prefill-rules`. Pattern aligné sur SF-212-20
- * (mise-a-pied-disciplinaire-section-prefill-rules).
- *
- * **Note SF-212-21** : le sous-objet IA backend n'est pas livré dans cette
- * SF (limite JVM 255 du record `TravailExtractedData`). Le helper renvoie
- * toujours 0 — les tests valident ce contrat.
+ * SF-212-22 / F-256 — Tests unitaires du helper partagé
+ * `demission-equivoque-section-prefill-rules` (5 champs IA réactivés).
  */
 
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { DemissionEquivoqueSectionPrefillRules } from './demission-equivoque-section-prefill-rules';
 
 describe('DemissionEquivoqueSectionPrefillRules', () => {
+  const EMPTY_AI_DATA: TravailExtractedData = {};
+
   const FULL_AI_DATA: TravailExtractedData = {
-    // Pas de sous-objet `demissionEquivoqueDetail` — non disponible
-    // tant que la SF de rattrapage backend n'aura pas livré le sous-record
-    // dans `TravailExtractedData`.
+    demissionEquivoqueDetail: {
+      demissionModeExpression: 'SMS',
+      demissionContexteAltercation: true,
+      demissionPression: true,
+      demissionRetractation: false,
+      demissionManquementsEmployeur: true,
+    },
   };
 
   describe('computePrefillCount', () => {
-    it('retourne 0 sur fixture IA FR (sous-objet non disponible)', () => {
+    it('retourne 0 sur fixture vide FR', () => {
       expect(DemissionEquivoqueSectionPrefillRules.computePrefillCount({
-        aiData: FULL_AI_DATA,
+        aiData: EMPTY_AI_DATA,
         workspaceCountry: 'FRANCE',
       })).toBe(0);
     });
 
-    it('retourne 0 hors France', () => {
+    it('retourne 0 hors France même si sous-objet rempli', () => {
       expect(DemissionEquivoqueSectionPrefillRules.computePrefillCount({
         aiData: FULL_AI_DATA,
         workspaceCountry: 'BELGIQUE',
@@ -46,10 +47,60 @@ describe('DemissionEquivoqueSectionPrefillRules', () => {
       })).toBe(0);
     });
 
-    it('retourne 0 avec aiData undefined', () => {
+    it('retourne 5 avec sous-objet entièrement rempli FR', () => {
       expect(DemissionEquivoqueSectionPrefillRules.computePrefillCount({
+        aiData: FULL_AI_DATA,
         workspaceCountry: 'FRANCE',
-      })).toBe(0);
+      })).toBe(5);
+    });
+
+    it('retourne le bon partial count avec quelques champs', () => {
+      expect(DemissionEquivoqueSectionPrefillRules.computePrefillCount({
+        aiData: {
+          demissionEquivoqueDetail: {
+            demissionContexteAltercation: true,
+            demissionRetractation: false,
+          },
+        },
+        workspaceCountry: 'FRANCE',
+      })).toBe(2);
+    });
+  });
+
+  describe('compute* (par champ)', () => {
+    it('computeModeExpression retourne string', () => {
+      expect(DemissionEquivoqueSectionPrefillRules.computeModeExpression({
+        aiData: FULL_AI_DATA,
+        workspaceCountry: 'FRANCE',
+      })).toBe('SMS');
+    });
+
+    it('computeContexteAltercation retourne boolean', () => {
+      expect(DemissionEquivoqueSectionPrefillRules.computeContexteAltercation({
+        aiData: FULL_AI_DATA,
+        workspaceCountry: 'FRANCE',
+      })).toBe(true);
+    });
+
+    it('computePression retourne null hors FR', () => {
+      expect(DemissionEquivoqueSectionPrefillRules.computePression({
+        aiData: FULL_AI_DATA,
+        workspaceCountry: 'BELGIQUE',
+      })).toBeNull();
+    });
+
+    it('computeRetractation false correctement retourné', () => {
+      expect(DemissionEquivoqueSectionPrefillRules.computeRetractation({
+        aiData: FULL_AI_DATA,
+        workspaceCountry: 'FRANCE',
+      })).toBe(false);
+    });
+
+    it('computeManquementsEmployeur retourne true', () => {
+      expect(DemissionEquivoqueSectionPrefillRules.computeManquementsEmployeur({
+        aiData: FULL_AI_DATA,
+        workspaceCountry: 'FRANCE',
+      })).toBe(true);
     });
   });
 });

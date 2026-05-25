@@ -77,9 +77,8 @@ export class RuptureAnticipeeCddSectionComponent implements OnInit, OnChanges {
 
   /**
    * Délégué au helper partagé (parité stricte avec `prefillFromAi()`).
-   * Retourne 0 actuellement — pas de sous-objet IA projeté côté backend pour
-   * F-DT-43 (limite JVM 255 slots de TravailExtractedData saturée par les
-   * vagues F-212 antérieures + SF-212-23). SF de rattrapage à prévoir.
+   * F-256 : pré-fill IA réactivé (slot libéré sur TravailExtractedData
+   * par le refactor en sous-records).
    */
   static getPrefillCount(input: {
     aiData?: TravailExtractedData | null;
@@ -161,15 +160,27 @@ export class RuptureAnticipeeCddSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Pré-fill IA (SF-212-18) — no-op actuellement : le sous-objet IA
-   * `rupture_anticipee_cdd_detail` n'est pas projeté côté backend (limite JVM
-   * 255 slots de TravailExtractedData saturée). Conservé pour parité avec le
-   * pattern des autres outils. Le composant attend une SF de rattrapage
-   * post-refactor de TravailExtractedData pour activer le pré-fill IA.
+   * F-256 SF-212-18 — pré-fill IA depuis le sous-objet
+   * `ruptureAnticipeeCddDetail` projeté côté backend par F-256.
    */
   private prefillFromAi(): void {
     if (this.standaloneMode) return;
-    // No-op — cf. doc de classe.
+    const input = { aiData: this.aiData, workspaceCountry: this.workspaceCountry };
+    const auteur = RuptureAnticipeeCddSectionPrefillRules.computeAuteur(input);
+    if (auteur !== null) {
+      this.auteurRupture.set(auteur);
+      this.provenanceAuteur.set('IA');
+    }
+    const motif = RuptureAnticipeeCddSectionPrefillRules.computeMotif(input);
+    if (motif !== null) {
+      this.motifRupture.set(motif);
+      this.provenanceMotif.set('IA');
+    }
+    const dateTerme = RuptureAnticipeeCddSectionPrefillRules.computeDateTerme(input);
+    if (dateTerme !== null) {
+      this.dateTermeCdd.set(dateTerme);
+      this.provenanceDateTerme.set('IA');
+    }
   }
 
   toggleCollapse(): void {

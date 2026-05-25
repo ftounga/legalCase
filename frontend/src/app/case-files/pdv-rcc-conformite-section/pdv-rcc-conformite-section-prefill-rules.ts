@@ -3,14 +3,9 @@
  * Module pur — runtime (`prefillFromAi()`) et static (`getPrefillCount()`)
  * appellent les MÊMES fonctions (contrat F-236 / F-237 / F-246).
  *
- * Le sous-objet IA `pdvRccDetail` côté `TravailExtractedData` n'est PAS
- * projeté côté backend actuellement (limite JVM 255 slots — cf. dette F-DT-46
- * documentée dans la PR). Les fonctions ci-dessous restent définies pour
- * pré-figurer le pré-fill quand la dette sera levée par la SF de rattrapage
- * qui refactorera `TravailExtractedData` en plusieurs records spécialisés.
- * Tant que le sous-objet n'est pas projeté, `aiData.pdvRccDetail` reste
- * `undefined` et `getPrefillCount()` retourne 0 — comportement aligné sur
- * SF-212-17 (F-DT-43).
+ * F-256 : le sous-objet IA `pdvRccDetail` est désormais projeté côté backend
+ * (refactor TravailExtractedData en sous-records — slot libéré). Les 4
+ * champs sont pré-remplis depuis le pipeline IA si documentés dans les pièces.
  *
  *   typeDispositif                  ← aiData.pdvRccDetail.pdvRccTypeDispositif
  *   accordCollectifMajoritaire      ← aiData.pdvRccDetail.pdvRccAccordMajoritaire
@@ -83,8 +78,8 @@ export function computeIndemnitesLegales(
 /**
  * Nombre exact de champs pré-remplissables — parité stricte avec
  * `prefillFromAi()` du composant. Retourne 0 si `workspaceCountry !== 'FRANCE'`.
- * Couvre les 4 champs IA du sous-objet `pdvRccDetail` (NB : 0 actuellement
- * car le sous-objet n'est pas projeté côté backend — dette F-DT-46).
+ * Couvre les 4 champs IA du sous-objet `pdvRccDetail`. F-256 : pré-fill IA
+ * désormais branché (slot libéré côté backend).
  */
 export function computePrefillCount(input: PdvRccConformitePrefillInput): number {
   if (!isFrance(input)) return 0;

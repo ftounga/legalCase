@@ -905,26 +905,35 @@ export interface TravailExtractedData {
   /** Sous-objet IA pour pré-fill F-DT-56 (FRANCE only) — null si non documenté. */
   egaliteSalarialeDetail?: EgaliteSalarialeDetail | null;
   // -------------------------------------------------------------------------
-  // SF-212-35 — sous-objet `pdv_rcc_detail` (FRANCE only)
+  // F-256 SF-212-35 — sous-objet `pdv_rcc_detail` (FRANCE only)
   // Pré-fill F-DT-46 (PDV / RCC conformité — L. 1237-17 à L. 1237-19-14 CT ;
   // ord. n°2017-1387 du 22/09/2017 ; décret 2017-1718 du 20/12/2017).
-  // NOTE : sous-objet NON projeté côté backend (limite JVM 255 slots du
-  // constructeur canonical TravailExtractedData atteinte — cf. commentaire
-  // dans CaseAnalysisResponse.java). Reste défini ici pour aligner le contrat
-  // sur le prompt IA (LegalDomainPromptBuilder PART12) ; sera réactivé par la
-  // SF de rattrapage qui refactorera le record backend en plusieurs records
-  // spécialisés. En attendant, `aiData.pdvRccDetail` reste `undefined` et le
-  // pré-fill IA retourne 0 — comportement aligné sur SF-212-17 (F-DT-43).
+  // Désormais projeté côté backend par F-256 (refactor TravailExtractedData
+  // en sous-records, slot libéré).
   // -------------------------------------------------------------------------
-  /** Sous-objet IA pour pré-fill F-DT-46 (FRANCE only) — undefined côté backend actuel. */
+  /** Sous-objet IA pour pré-fill F-DT-46 (FRANCE only). */
   pdvRccDetail?: PdvRccDetail | null;
   // -------------------------------------------------------------------------
-  // SF-212-17 — F-DT-43 rupture anticipée du CDD (FRANCE only).
-  // Pas de sous-objet IA projeté : limite JVM 255 slots du record
-  // TravailExtractedData côté backend (saturé par les vagues F-212 antérieures
-  // + SF-212-23). Seul le flag top-level `rupture_anticipee_cdd_detectee` est
-  // exposé. Le pré-fill IA sera traité par une SF de rattrapage ultérieure.
+  // F-256 SF-212-17 — sous-objet `rupture_anticipee_cdd_detail` (FRANCE only)
+  // Pré-fill F-DT-43 (rupture anticipée du CDD — L. 1243-1 à L. 1243-4 CT).
+  // Réactivé par F-256 (slot libéré sur le constructeur canonical de
+  // TravailExtractedData). Le flag top-level `ruptureAnticipeeCddDetectee`
+  // reste exposé pour le déclenchement F-IA-04.
   // -------------------------------------------------------------------------
+  /** Sous-objet IA pour pré-fill F-DT-43 (FRANCE only). */
+  ruptureAnticipeeCddDetail?: RuptureAnticipeeCddDetail | null;
+  // -------------------------------------------------------------------------
+  // F-256 SF-212-21 — sous-objet `demission_equivoque_detail` (FRANCE only)
+  // Pré-fill F-DT-41 (démission validité équivoque — Cass. soc. 09/05/2007).
+  // Réactivé par F-256 (slot libéré). Le flag top-level `demissionEquivoquePressentie`
+  // est désormais aussi projeté sur le record Java (auparavant lu depuis raw JsonNode).
+  // -------------------------------------------------------------------------
+  /** Sous-objet IA pour pré-fill F-DT-41 (FRANCE only). */
+  demissionEquivoqueDetail?: DemissionEquivoqueDetail | null;
+  /** F-256 SF-212-21 — flag F-205 déclenchant F-DT-41 démission validité équivoque (FRANCE only). */
+  demissionEquivoquePressentie?: boolean | null;
+  /** F-256 SF-212-35 — flag F-205 déclenchant F-DT-46 PDV/RCC conformité (FRANCE only). */
+  pdvRccEnvisage?: boolean | null;
   // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
@@ -1036,11 +1045,11 @@ export interface EgaliteSalarialeDetail {
 }
 
 /**
- * SF-212-35 — sous-objet IA pour l'outil F-DT-46 (PDV / RCC conformité,
+ * SF-212-35 / F-256 — sous-objet IA pour l'outil F-DT-46 (PDV / RCC conformité,
  * FRANCE — L. 1237-17 à L. 1237-19-14 CT ; ord. n°2017-1387 du 22/09/2017).
  * Tous champs nullables ; null implique pas de données IA pour la projection
- * sur le formulaire UI. NOTE : non projeté actuellement côté backend (cf.
- * commentaire sur le champ `pdvRccDetail` ci-dessus).
+ * sur le formulaire UI. Désormais projeté côté backend par F-256 (refactor
+ * TravailExtractedData en sous-records — slot libéré).
  */
 export interface PdvRccDetail {
   /** Type de dispositif — RCC | PDV. */
@@ -1051,6 +1060,38 @@ export interface PdvRccDetail {
   pdvRccValidationDREETS?: boolean | null;
   /** Indemnités ≥ légales — L. 1237-19-1 al. 5 CT. */
   pdvRccIndemnitesLegales?: boolean | null;
+}
+
+/**
+ * F-256 SF-212-17 — sous-objet IA pour l'outil F-DT-43 (rupture anticipée du
+ * CDD, FRANCE — L. 1243-1 à L. 1243-4 CT ; L. 1243-8 CT ; L. 1226-4-2 CT).
+ * Tous champs nullables. Réactivé par F-256.
+ */
+export interface RuptureAnticipeeCddDetail {
+  /** Auteur de la rupture anticipée — EMPLOYEUR | SALARIE. */
+  ruptureAnticipeeCddAuteur?: string | null;
+  /** Motif invoqué — ACCORD_PARTIES | FAUTE_GRAVE | FORCE_MAJEURE | INAPTITUDE | CDI_EMBAUCHE | AUTRE. */
+  ruptureAnticipeeCddMotif?: string | null;
+  /** Date du terme normal du CDD (ISO YYYY-MM-DD) — distincte de la date de rupture effective. */
+  ruptureAnticipeeCddDateTerme?: string | null;
+}
+
+/**
+ * F-256 SF-212-21 — sous-objet IA pour l'outil F-DT-41 (démission validité
+ * équivoque, FRANCE — Cass. soc. 09/05/2007 ; volonté claire et non équivoque).
+ * Tous champs nullables. Réactivé par F-256.
+ */
+export interface DemissionEquivoqueDetail {
+  /** Mode d'expression de la démission (texte libre court — ex. "SMS", "mail", "courrier"). */
+  demissionModeExpression?: string | null;
+  /** Altercation ou conflit ouvert au moment de la démission. */
+  demissionContexteAltercation?: boolean | null;
+  /** Pression directe ou indirecte exercée par l'employeur. */
+  demissionPression?: boolean | null;
+  /** Rétractation rapide produite par le salarié. */
+  demissionRetractation?: boolean | null;
+  /** Manquements graves de l'employeur contemporains de la démission. */
+  demissionManquementsEmployeur?: boolean | null;
 }
 
 
