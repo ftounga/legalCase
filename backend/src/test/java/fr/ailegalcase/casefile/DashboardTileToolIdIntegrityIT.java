@@ -282,7 +282,14 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-46-pdv-rcc-conformite"
+            "F-DT-46-pdv-rcc-conformite",
+            // SF-212-29 (2026-05-25) : F-DT-77 congé maternité / paternité FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-77-conge-paternite-maternite"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

@@ -1,0 +1,203 @@
+/**
+ * SF-212-30 : styles outil "Congé maternité / paternité — protection et
+ * indemnités" (F-DT-77). Aligné sur le template canonique
+ * `pdv-rcc-conformite-section`.
+ *
+ * Deux alertes visuelles distinctes :
+ *   - cmp-alert--licenciement (rouge — nullité L. 1225-4)
+ *   - cmp-alert--retour (or — manquement L. 1225-25)
+ */
+
+.cmp-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.cmp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.cmp-icon { color: var(--ds-accent-navy, #1d3557); }
+.cmp-title { flex: 1; font-weight: 600; letter-spacing: 0.04em; }
+.cmp-toggle { color: var(--ds-text-muted, #8a8475); }
+
+.cmp-chip-summary {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(29, 53, 87, 0.08);
+  color: #1d3557;
+}
+
+.cmp-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cmp-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.1);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  color: #5a4a1a;
+  font-size: 14px;
+}
+
+.cmp-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.cmp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cmp-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.cmp-full { width: 100%; }
+
+.cmp-block-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.cmp-inline-field { width: 100%; }
+
+.cmp-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cmp-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ds-accent-gold, #c9a54b);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.cmp-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cmp-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cmp-figures-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.cmp-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: var(--ds-surface-elevated, #fafaf6);
+}
+
+.cmp-figure-label { font-size: 11px; text-transform: uppercase; color: var(--ds-text-muted, #8a8475); }
+.cmp-figure-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+/* Alertes visuelles — deux variantes distinctes. */
+.cmp-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  border-left: 4px solid;
+
+  mat-icon { flex-shrink: 0; }
+
+  &--licenciement {
+    background: rgba(211, 47, 47, 0.08);
+    border-left-color: #c62828;
+    color: #8a1a1a;
+    mat-icon { color: #c62828; }
+  }
+
+  &--retour {
+    background: rgba(201, 165, 75, 0.15);
+    border-left-color: #c9a54b;
+    color: #6a4f0a;
+    mat-icon { color: #c9a54b; }
+  }
+}
+
+.cmp-bases-block { display: flex; flex-direction: column; gap: 8px; }
+
+.cmp-bases-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #8a8475);
+}
+
+.cmp-bases-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cmp-base-chip {
+  padding: 4px 10px;
+  background: rgba(29, 53, 87, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cmp-meta { display: flex; justify-content: flex-end; }
+
+.cmp-messages {
+  list-style: disc inside;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ds-text, #1f1f1f);
+  font-size: 13px;
+}

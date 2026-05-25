@@ -935,6 +935,15 @@ export interface TravailExtractedData {
   /** F-256 SF-212-35 — flag F-205 déclenchant F-DT-46 PDV/RCC conformité (FRANCE only). */
   pdvRccEnvisage?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-29 — sous-objet `conge_maternite_paternite_detail` (FRANCE only)
+  // Pré-fill F-DT-77 (congé maternité / paternité — L. 1225-1 à L. 1225-40
+  // CT ; L. 331-3 CSS ; loi du 16/03/2021 sur le congé paternité 25 jours).
+  // -------------------------------------------------------------------------
+  /** Sous-objet IA pour pré-fill F-DT-77 (FRANCE only). */
+  congeMaternitePaterniteDetail?: CongeMaternitePaterniteDetail | null;
+  /** SF-212-29 — flag F-205 déclenchant F-DT-77 congé maternité / paternité (FRANCE only). */
+  congeMaternitePaterniteDetecte?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation
@@ -1060,6 +1069,25 @@ export interface PdvRccDetail {
   pdvRccValidationDREETS?: boolean | null;
   /** Indemnités ≥ légales — L. 1237-19-1 al. 5 CT. */
   pdvRccIndemnitesLegales?: boolean | null;
+}
+
+/**
+ * SF-212-29 — sous-objet IA pour l'outil F-DT-77 (congé maternité /
+ * paternité, FRANCE — L. 1225-1 à L. 1225-40 CT ; L. 331-3 CSS ; loi du
+ * 16/03/2021). Tous champs nullables ; null implique pas de données IA
+ * pour la projection sur le formulaire UI.
+ */
+export interface CongeMaternitePaterniteDetail {
+  /** Type de congé — MATERNITE | PATERNITE. */
+  congeMaternitePaterniteType?: string | null;
+  /** Rang de l'enfant (1=premier, 2=deuxième, 3=troisième+) — L. 1225-17 CT. */
+  congeMaterniteRangEnfant?: number | null;
+  /** Naissance multiple (jumeaux, triplés+) — surcharge la durée. */
+  congeMaterniteNaissanceMultiple?: boolean | null;
+  /** Date de début effective du congé (ISO YYYY-MM-DD). */
+  congeMaterniteDateDebut?: string | null;
+  /** Salaire mensuel brut en euros — base IJ CPAM L. 331-3 CSS. */
+  congeMaterniteSalaireMensuelBrut?: number | null;
 }
 
 /**

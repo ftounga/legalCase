@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200029-seed" author="legalcase">
+        <comment>
+            SF-212-30 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Congé maternité / paternité — protection et
+            indemnités" (F-DT-77-conge-paternite-maternite, FRANCE), table
+            créée par SF-212-29 (migration 343).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une situation de congé maternité
+            ou paternité à analyser — trigger `conge_maternite_paternite_detecte`
+            (nouveau flag F-205 introduit par SF-212-29, ajouté à
+            CaseAnalysisResponse + LegalDomainPromptBuilder PART14 +
+            DecisionToolVisibilityService.addBooleanFlagIfTrue dans la même PR).
+
+            priority 73 — distinct des autres outils famille-travail
+            (F-DT-75 congés payés acquis pendant arrêt maladie ;
+            F-DT-46 PDV/RCC) car la protection maternité/paternité est un
+            mécanisme propre (L. 1225-1 à L. 1225-40 CT — durées dépendant
+            du rang de l'enfant et du caractère multiple de la naissance,
+            indemnités CPAM L. 331-3 CSS, protection licenciement L. 1225-4
+            étendue à 10 semaines post-retour).
+
+            Fondement : L. 1225-1 à L. 1225-40 CT (maternité + paternité) ;
+            L. 331-3 CSS (IJ) ; loi du 16/03/2021 portant le congé paternité
+            à 25 jours.
+
+            Mécanisme franco-français — le régime BE (INAMI / mutualité,
+            loi 16/03/1971 et AR 25/11/1991) est juridiquement distinct
+            et relève d'un outil jumeau hors scope.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200029', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-77-conge-paternite-maternite', 'CONTEXTUAL', 'conge_maternite_paternite_detecte', 'true', 73);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200029';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
