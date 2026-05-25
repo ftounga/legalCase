@@ -150,6 +150,7 @@ import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-s
 import { ReferesAdminSectionComponent } from '../referes-admin-section/referes-admin-section.component';
 import { ContestationAreSectionComponent } from '../contestation-are-section/contestation-are-section.component';
 import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
+import { ClauseNonConcurrenceBeSectionComponent } from '../clause-non-concurrence-be-section/clause-non-concurrence-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1869,6 +1870,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         standaloneMode: ctx.standaloneMode ?? false,
 }),
       }],
+      // SF-213-01b : clause de non-concurrence BE (Loi 03/07/1978 art. 65 +
+      // CCT n°13). BE-only, CONTEXTUAL `clause_non_concurrence_presente=true`.
+      // 3 champs IA pré-remplis depuis TravailExtractedData
+      // (salaireBrutAnnuel, clauseNonConcurrenceDureeMois, clauseNonConcurrenceZone).
+      ['clause-non-concurrence-be', {
+        displayLabel: 'Clause de non-concurrence (Belgique)',
+        component: ClauseNonConcurrenceBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -2965,6 +2982,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-23-requalification-interim-cdi', 'VALIDITE'],
     ['F-DT-24-non-concurrence', 'VALIDITE'],
     ['F-DT-27-motif-grave-be', 'VALIDITE'],
+    // SF-213-01b : clause de non-concurrence BE — analyseur 3 verdicts
+    // (VALIDE / NULLE / PARTIELLEMENT_NULLE), BE-only.
+    ['clause-non-concurrence-be', 'VALIDITE'],
     ['F-DT-30-protection-rp', 'VALIDITE'],
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR) — analyseur d'éligibilité.
     // Thème VALIDITE (analyse d'éligibilité protection médicale, CONTEXTUAL FR).

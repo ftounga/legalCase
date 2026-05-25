@@ -1,0 +1,185 @@
+<div class="clause-nc-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">block</mat-icon>
+    <span class="section-title">Clause de non-concurrence (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictClass(result()!.verdict)">
+        {{ humanizeVerdict(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="clause-nc-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge.
+            En France, voir F-DT-24 (clause de non-concurrence — régime libre).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse la validité d'une clause de non-concurrence selon la Loi du
+            3 juillet 1978 (art. 65) et la CCT n°13. Calcule l'indemnité légale
+            obligatoire (= ½ rémunération brute × durée). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Rémunération annuelle brute -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération annuelle brute (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationAnnuelleBrute()"
+                       (ngModelChange)="onRemunerationChange($event)"
+                       name="remunerationAnnuelleBrute" />
+                <mat-hint>Seuil légal 2024 : 73 571 € (indexé annuellement).</mat-hint>
+              </mat-form-field>
+              @if (provenanceRemuneration() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 2. Durée de la clause -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée de la clause (mois) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       max="12"
+                       step="1"
+                       required
+                       [ngModel]="dureeMois()"
+                       (ngModelChange)="onDureeMoisChange($event)"
+                       name="dureeMois" />
+                <mat-hint>1 à 12 — durée maximale légale CCT n°13.</mat-hint>
+              </mat-form-field>
+              @if (provenanceDureeMois() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 3. Zone géographique -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Zone géographique *</mat-label>
+                <mat-select required
+                            [ngModel]="zoneGeographique()"
+                            (ngModelChange)="onZoneChange($event)"
+                            name="zoneGeographique">
+                  @for (z of zonesGeographiques; track z) {
+                    <mat-option [value]="z">{{ humanizeZoneGeographique(z) }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceZone() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 4. Activité internationale prouvée -->
+            <div class="field-checkbox">
+              <mat-checkbox [ngModel]="activiteInternationaleProuvee()"
+                            (ngModelChange)="onActiviteInternationaleChange($event)"
+                            name="activiteInternationaleProuvee">
+                Activité internationale prouvée (atténue la nullité de la zone étrangère)
+              </mat-checkbox>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la clause</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="clause-nc-be-result">
+          <div class="result-banner" [class]="verdictClass(result()!.verdict)" role="status">
+            <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">{{ humanizeVerdict(result()!.verdict) }}</div>
+              @if (result()!.raisonNullite) {
+                <div class="result-banner-sub">
+                  {{ humanizeRaisonNullite(result()!.raisonNullite) }}
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (result()!.verdict !== 'NULLE') {
+            <ul class="result-breakdown">
+              <li>
+                <span class="bd-label">Indemnité légale</span>
+                <span class="bd-value">{{ formatEuro(result()!.indemniteLegale) }}</span>
+              </li>
+              @if (result()!.indemniteLegaleFormule) {
+                <li>
+                  <span class="bd-label">Formule</span>
+                  <span class="bd-value bd-value--mono">{{ result()!.indemniteLegaleFormule }}</span>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (result()!.avertissement) {
+            <div class="result-avertissement" role="note">
+              <mat-icon>info_outline</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
