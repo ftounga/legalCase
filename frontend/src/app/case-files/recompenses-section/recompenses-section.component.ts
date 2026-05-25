@@ -45,6 +45,7 @@ import {
   RecompensesPrefillRules,
   VALID_REGIMES,
 } from './recompenses-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-15-02 : champs F-IA-03 audités par l'outil récompenses.
@@ -83,12 +84,16 @@ export type RecompensesCoherenceAlert = CoherenceAlert<RecompensesAlertField>;
     MatSelectModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './recompenses-section.component.html',
   styleUrl: './recompenses-section.component.scss',
 })
 export class RecompensesSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v3 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-15-recompenses';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉCOMPENSES (ART. 1437/1469 CCIV)';
   static readonly TOOL_ICON = 'account_balance';

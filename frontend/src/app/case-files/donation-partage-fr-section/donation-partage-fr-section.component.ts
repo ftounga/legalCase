@@ -27,6 +27,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { DonationPartageFrPrefillRules } from './donation-partage-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-30 : composant Angular standalone pour l'outil décisionnel
@@ -59,11 +60,16 @@ import { DonationPartageFrPrefillRules } from './donation-partage-fr-section-pre
     MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './donation-partage-fr-section.component.html',
   styleUrl: './donation-partage-fr-section.component.scss',
 })
 export class DonationPartageFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v3 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-DONATION-PARTAGE';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'DONATION-PARTAGE';
   static readonly TOOL_ICON = 'group';
