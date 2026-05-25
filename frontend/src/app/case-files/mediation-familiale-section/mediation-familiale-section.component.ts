@@ -39,6 +39,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { MediationFamilialePrefillRules } from './mediation-familiale-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 export type MediationAlertField = 'MOTIF_SAISINE';
 export type MediationCoherenceAlert = CoherenceAlert<MediationAlertField>;
@@ -65,11 +66,16 @@ export type MediationCoherenceAlert = CoherenceAlert<MediationAlertField>;
     MatSlideToggleModule, MatProgressSpinnerModule,
     MatTooltipModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './mediation-familiale-section.component.html',
   styleUrl: './mediation-familiale-section.component.scss',
 })
 export class MediationFamilialeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'mediation-familiale-pre-saisine';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'MÉDIATION FAMILIALE PRÉ-SAISINE (FR)';
   static readonly TOOL_ICON = 'group';
 

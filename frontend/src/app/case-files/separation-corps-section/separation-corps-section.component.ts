@@ -43,6 +43,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SeparationCorpsPrefillRules } from './separation-corps-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-21-02 : champs F-IA-03 audités par l'outil "Séparation de corps +
@@ -90,12 +91,17 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './separation-corps-section.component.html',
   styleUrl: './separation-corps-section.component.scss',
 })
 export class SeparationCorpsSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-21-separation-corps';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'SÉPARATION DE CORPS + CONVERSION DIVORCE — ART. 296+306 CCIV';
   static readonly TOOL_ICON = 'family_restroom';

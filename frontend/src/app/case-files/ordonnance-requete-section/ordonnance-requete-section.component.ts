@@ -41,6 +41,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { OrdonnanceRequetePrefillRules } from './ordonnance-requete-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-23-02 : champs d'alerte F-IA-03 exposés par "Ordonnance sur requête".
@@ -82,12 +83,17 @@ export type OrdonnanceRequeteCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './ordonnance-requete-section.component.html',
   styleUrl: './ordonnance-requete-section.component.scss',
 })
 export class OrdonnanceRequeteSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-23-ordonnance-requete';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ORDONNANCE SUR REQUÊTE (FR/BE)';
   static readonly TOOL_ICON = 'gavel';

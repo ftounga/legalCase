@@ -42,6 +42,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RevisionsPostDivorcePrefillRules } from './revisions-post-divorce-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-13-02 : champs audités par F-IA-03 pour cet outil.
@@ -91,12 +92,17 @@ const MIN_CHANGEMENT_LEN = 20;
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatProgressSpinnerModule, MatChipsModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './revisions-post-divorce-section.component.html',
   styleUrl: './revisions-post-divorce-section.component.scss',
 })
 export class RevisionsPostDivorceSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-13-revisions-post-divorce';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉVISIONS POST-DIVORCE (FR)';
   static readonly TOOL_ICON = 'history';

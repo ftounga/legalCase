@@ -44,6 +44,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { IndivisionPrefillRules } from './indivision-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -106,12 +107,16 @@ export type IndivisionCoherenceAlert = CoherenceAlert<IndivisionAlertField>;
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './indivision-section.component.html',
   styleUrl: './indivision-section.component.scss',
 })
 export class IndivisionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-22-indivision';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDIVISION POST-COMMUNAUTAIRE (ART. 815 CCIV)';
   static readonly TOOL_ICON = 'apartment';

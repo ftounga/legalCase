@@ -50,6 +50,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { PacsDissolutionPrefillRules } from './pacs-dissolution-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-20-02 : champs F-IA-03 audités par l'outil "Dissolution PACS"
@@ -121,12 +122,17 @@ const VALID_CREANCES: ReadonlySet<string> = new Set<CreanceAlleguee>([
     MatSlideToggleModule, MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './pacs-dissolution-section.component.html',
   styleUrl: './pacs-dissolution-section.component.scss',
 })
 export class PacsDissolutionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e v4 — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-20-pacs-dissolution';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DISSOLUTION PACS (FR) — ART. 515-7 CCIV';
   static readonly TOOL_ICON = 'link_off';
