@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200033-seed" author="legalcase">
+        <comment>
+            SF-212-34 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Temps partiel — requalification en temps plein"
+            (F-DT-49-temps-partiel-requalification, FRANCE), table créée
+            par SF-212-33 (migration 347).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une situation de temps partiel
+            susceptible d'être requalifié en temps complet — trigger
+            `temps_partiel_requalification_envisagee` (nouveau flag F-205
+            introduit par SF-212-33, ajouté à CaseAnalysisResponse +
+            LegalDomainPromptBuilder PART2 + PART16 +
+            DecisionToolVisibilityService dans la même PR).
+
+            priority 69 — séquence F-212 vague 8 (outils du régime du temps
+            partiel et requalification de contrats atypiques).
+
+            Fondement : L. 3123-1 à L. 3123-20 CT — régime du temps partiel ;
+            L. 3123-6 CT — mentions obligatoires (durée, répartition,
+            modification, limites HC) ; L. 3123-9 CT — plafond heures
+            complémentaires 1/10 ou 1/3 ; L. 3123-12 CT — modification
+            répartition (clause + motif + délai 7 jours ouvrés) ; L. 3245-1
+            CT — prescription triennale rappel salaire ; Cass. soc. 22/01/1992
+            n°88-44.196 — présomption de temps complet réfragable en
+            l'absence des mentions obligatoires ; Cass. soc. 06/04/2011
+            n°09-72.165 et 12/12/2018 n°17-15.587 — requalification en cas
+            de dépassement du plafond 1/3.
+
+            Mécanisme strictement français — le régime BE du temps partiel
+            (Loi 03/07/1978, CCT n°35) est juridiquement distinct (concepts
+            non transposables : pas de présomption de temps complet
+            symétrique, plafond des prestations complémentaires distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200033', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-49-temps-partiel-requalification', 'CONTEXTUAL', 'temps_partiel_requalification_envisagee', 'true', 69);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200033';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

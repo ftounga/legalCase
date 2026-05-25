@@ -1,0 +1,240 @@
+<section class="tpr-section">
+  <header class="tpr-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="tpr-body">
+    <mat-icon class="tpr-icon">schedule</mat-icon>
+    <span class="tpr-title">TEMPS PARTIEL — REQUALIFICATION</span>
+    @if (result()) {
+      <span class="tpr-chip-summary"
+            [class.tpr-chip-summary--probable]="result()!.analyseRequalification === 'REQUALIFICATION_PROBABLE'"
+            [class.tpr-chip-summary--possible]="result()!.analyseRequalification === 'REQUALIFICATION_POSSIBLE'"
+            [class.tpr-chip-summary--pas-de]="result()!.analyseRequalification === 'PAS_DE_REQUALIFICATION'">
+        {{ verdictBannerLabel(result()!.analyseRequalification) }} — score {{ result()!.scoreRequalification }} / 100
+      </span>
+    }
+    <mat-icon class="tpr-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="tpr-body" class="tpr-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="tpr-country-banner" data-testid="tpr-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (régime du temps partiel L. 3123-1 à L. 3123-20 CT). Le régime BE (Loi 03/07/1978, CCT n°35) est juridiquement distinct.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="tpr-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="tpr-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Durée contractuelle & mentions L. 3123-6 -->
+            <div class="tpr-block tpr-full">
+              <span class="tpr-block-label">Contrat à temps partiel (L. 3123-6 CT — mentions obligatoires)</span>
+
+              <mat-form-field appearance="outline" class="tpr-inline-field">
+                <mat-label>Durée hebdomadaire contractuelle (h)</mat-label>
+                <input matInput type="number" min="0" max="34.99" step="0.5"
+                       [ngModel]="dureeContractuelleHeures()"
+                       (ngModelChange)="onDureeChange($event)"
+                       name="duree"
+                       data-testid="tpr-input-duree">
+                <mat-hint>Doit être &lt; 35 h (temps partiel)</mat-hint>
+              </mat-form-field>
+              @if (provenanceDuree() === 'IA') {
+                <span class="tpr-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="tpr-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="mentionsDureePresentes()"
+                    (ngModelChange)="onMentionsDureeChange($event)"
+                    name="mentionsDuree"
+                    data-testid="tpr-toggle-mentions-duree">
+                  Mention de la durée présente dans le contrat
+                </mat-slide-toggle>
+                @if (provenanceMentionsDuree() === 'IA') {
+                  <span class="tpr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="tpr-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="mentionsRepartitionPresentes()"
+                    (ngModelChange)="onMentionsRepartitionChange($event)"
+                    name="mentionsRepartition"
+                    data-testid="tpr-toggle-mentions-repartition">
+                  Mention de la répartition (jours / semaines) présente
+                </mat-slide-toggle>
+                @if (provenanceMentionsRepartition() === 'IA') {
+                  <span class="tpr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="tpr-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="mentionsHCPresentes()"
+                    (ngModelChange)="onMentionsHCChange($event)"
+                    name="mentionsHC"
+                    data-testid="tpr-toggle-mentions-hc">
+                  Mention des limites d'heures complémentaires présente
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 2 — Heures complémentaires & modification -->
+            <div class="tpr-block tpr-full">
+              <span class="tpr-block-label">Heures complémentaires & répartition (L. 3123-9 / L. 3123-12 CT)</span>
+
+              <mat-form-field appearance="outline" class="tpr-inline-field">
+                <mat-label>Heures complémentaires moyennes (h / sem)</mat-label>
+                <input matInput type="number" min="0" max="20" step="0.5"
+                       [ngModel]="heuresComplementairesReelleMoyenneHeures()"
+                       (ngModelChange)="onHCMoyenneChange($event)"
+                       name="hcMoyenne"
+                       data-testid="tpr-input-hc-moyenne">
+                <mat-hint>Plafond légal : 1/10 (sans accord) ou 1/3 (avec accord)</mat-hint>
+              </mat-form-field>
+              @if (provenanceHCMoyenne() === 'IA') {
+                <span class="tpr-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <div class="tpr-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="modificationRepartitionUnilaterale()"
+                    (ngModelChange)="onModificationUnilateraleChange($event)"
+                    name="modifUnilaterale"
+                    data-testid="tpr-toggle-modif-unilaterale">
+                  Modification unilatérale de la répartition par l'employeur (hors procédure L. 3123-12)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <!-- Bloc 3 — Ancienneté & salaire (base rappel salaire) -->
+            <div class="tpr-block tpr-full">
+              <span class="tpr-block-label">Base de calcul du rappel de salaire (L. 3245-1 CT)</span>
+
+              <mat-form-field appearance="outline" class="tpr-inline-field">
+                <mat-label>Ancienneté (mois)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteMois()"
+                       (ngModelChange)="onAncienneteChange($event)"
+                       name="anciennete"
+                       data-testid="tpr-input-anciennete">
+                <mat-hint>Plafond 36 mois (prescription triennale)</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="tpr-inline-field">
+                <mat-label>Salaire mensuel contractuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="50"
+                       [ngModel]="salaireMensuelContractuelEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaire"
+                       data-testid="tpr-input-salaire">
+              </mat-form-field>
+            </div>
+
+            <div class="tpr-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="tpr-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="tpr-result">
+            <!-- Bannière verdict — 3 niveaux -->
+            <div [class]="verdictBannerClass(result()!.analyseRequalification)"
+                 data-testid="tpr-verdict-banner">
+              <mat-icon>{{ verdictBannerIcon(result()!.analyseRequalification) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.analyseRequalification) }}</span>
+            </div>
+
+            <!-- Rappel de salaire estimé -->
+            @if (formatRappelSalaire(); as rappel) {
+              <div class="tpr-rappel-block" data-testid="tpr-rappel-block">
+                <mat-icon>payments</mat-icon>
+                <div>
+                  <span class="tpr-rappel-label">Rappel de salaire estimé sur 3 ans (L. 3245-1 CT)</span>
+                  <span class="tpr-rappel-value">{{ rappel }}</span>
+                </div>
+              </div>
+            }
+
+            <!-- Score -->
+            <div class="tpr-figures-block">
+              <div class="tpr-figure">
+                <span class="tpr-figure-label">Score requalification</span>
+                <span class="tpr-figure-value">{{ result()!.scoreRequalification }} / 100</span>
+              </div>
+            </div>
+
+            <!-- Facteurs F-IA-03 -->
+            @if (result()!.facteursRequalification?.length) {
+              <div class="tpr-points-block">
+                <span class="tpr-points-label">Facteurs du dossier ({{ result()!.facteursRequalification.length }})</span>
+                <ul class="tpr-points-list">
+                  @for (f of result()!.facteursRequalification; track facteurTrackKey($index, f)) {
+                    <li class="tpr-point-item" data-testid="tpr-point-item">
+                      <div class="tpr-point-header">
+                        <span class="tpr-point-libelle">{{ f.libelle }}</span>
+                        <span class="tpr-point-code">{{ f.code }} — poids {{ f.poids }}</span>
+                      </div>
+                      <span class="tpr-point-fondement" [innerHTML]="f.fondement | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="tpr-bases-block">
+                <span class="tpr-bases-label">Bases juridiques</span>
+                <div class="tpr-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="tpr-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="tpr-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="tpr-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

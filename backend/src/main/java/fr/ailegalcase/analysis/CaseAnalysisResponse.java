@@ -609,7 +609,19 @@ public record CaseAnalysisResponse(
             // SF-212-27 : sous-objet IA pour pré-fill F-DT-64 burn-out reconnaissance MP (FR).
             // 4 champs (diagnostic, taux IPP, surcharge documentée, arrêts maladie).
             // Sub-flag de burnoutDetecte. @JsonUnwrapped — JSON HTTP plat préservé.
-            @JsonUnwrapped BurnoutDetail burnoutDetail) {
+            @JsonUnwrapped BurnoutDetail burnoutDetail,
+            // SF-212-33 : flag F-205 — déclenche F-DT-49 temps partiel — requalification en
+            // temps plein (FR). Pertinent quand un dossier évoque une situation de temps
+            // partiel susceptible d'être requalifié en temps complet : absence des mentions
+            // obligatoires L. 3123-6 (durée, répartition), heures complémentaires
+            // structurellement > 1/3 (L. 3123-9), modification unilatérale de la
+            // répartition (L. 3123-12). Mécanisme strictement français.
+            boolean tempsPartielRequalificationEnvisagee,
+            // SF-212-33 : sous-objet IA pour pré-fill F-DT-49 temps partiel —
+            // requalification en temps plein (FR). 4 champs (durée contractuelle,
+            // mentions durée, mentions répartition, HC moyenne). Sub-flag de
+            // tempsPartielRequalificationEnvisagee. @JsonUnwrapped — JSON HTTP plat préservé.
+            @JsonUnwrapped TempsPartielRequalificationDetail tempsPartielRequalificationDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -796,6 +808,32 @@ public record CaseAnalysisResponse(
                 Integer burnoutTauxIpp,
                 Boolean burnoutSurchargeDocumentee,
                 Boolean burnoutArretsMaladie
+        ) {}
+
+        /**
+         * SF-212-33 — sous-record IA pour F-DT-49 temps partiel —
+         * requalification en temps plein (FRANCE only — L. 3123-1 à
+         * L. 3123-20 CT ; L. 3123-6 mentions obligatoires ; L. 3123-9
+         * plafond heures complémentaires 1/10 ou 1/3 ; L. 3245-1
+         * prescription triennale rappel salaire ; Cass. soc. 22/01/1992
+         * présomption de temps complet réfragable). 4 champs alignés
+         * sur le prompt PART16 :
+         * {@code temps_partiel_duree_contractuelle} (durée hebdomadaire
+         * contractuelle en heures — sert de base au calcul du ratio HC),
+         * {@code temps_partiel_mentions_duree} (true si le contrat
+         * mentionne la durée — L. 3123-6),
+         * {@code temps_partiel_mentions_repartition} (true si le contrat
+         * mentionne la répartition jours/semaines — L. 3123-6),
+         * {@code temps_partiel_hc_moyenne} (heures complémentaires
+         * réellement effectuées en moyenne par semaine).
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         * @JsonUnwrapped — JSON HTTP plat préservé (parité contrat externe stricte).
+         */
+        public record TempsPartielRequalificationDetail(
+                Double tempsPartielDureeContractuelle,
+                Boolean tempsPartielMentionsDuree,
+                Boolean tempsPartielMentionsRepartition,
+                Double tempsPartielHCMoyenne
         ) {}
 
 
@@ -1076,7 +1114,10 @@ public record CaseAnalysisResponse(
                     .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail)
                     // SF-212-27 — burn-out reconnaissance MP (FR)
                     .burnoutDetecte(burnoutDetecte)
-                    .burnoutDetail(burnoutDetail);
+                    .burnoutDetail(burnoutDetail)
+                    // SF-212-33 — temps partiel — requalification (FR)
+                    .tempsPartielRequalificationEnvisagee(tempsPartielRequalificationEnvisagee)
+                    .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail);
         }
 
         public static final class Builder {
@@ -1346,6 +1387,9 @@ public record CaseAnalysisResponse(
             // SF-212-27 — flag F-205 + sous-record burn-out reconnaissance MP (FR uniquement)
             private boolean burnoutDetecte;
             private BurnoutDetail burnoutDetail;
+            // SF-212-33 — flag F-205 + sous-record temps partiel — requalification (FR uniquement)
+            private boolean tempsPartielRequalificationEnvisagee;
+            private TempsPartielRequalificationDetail tempsPartielRequalificationDetail;
 
             private Builder() {}
 
@@ -1611,6 +1655,10 @@ public record CaseAnalysisResponse(
             public Builder burnoutDetecte(boolean v) { this.burnoutDetecte = v; return this; }
             // SF-212-27 — burnout_detail (FRANCE uniquement) — sous-record IA.
             public Builder burnoutDetail(BurnoutDetail v) { this.burnoutDetail = v; return this; }
+            // SF-212-33 — F-205 flag (FRANCE only) — déclenche F-DT-49 temps partiel — requalification.
+            public Builder tempsPartielRequalificationEnvisagee(boolean v) { this.tempsPartielRequalificationEnvisagee = v; return this; }
+            // SF-212-33 — temps_partiel_requalification_detail (FRANCE uniquement) — sous-record IA.
+            public Builder tempsPartielRequalificationDetail(TempsPartielRequalificationDetail v) { this.tempsPartielRequalificationDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1773,7 +1821,10 @@ public record CaseAnalysisResponse(
                         congeMaternitePaterniteDetail,
                         // SF-212-27 — burn-out reconnaissance MP (FR)
                         burnoutDetecte,
-                        burnoutDetail);
+                        burnoutDetail,
+                        // SF-212-33 — temps partiel — requalification en temps plein (FR)
+                        tempsPartielRequalificationEnvisagee,
+                        tempsPartielRequalificationDetail);
             }
         }
     }
@@ -4505,6 +4556,18 @@ public record CaseAnalysisResponse(
                             booleanOrNull(burnoutNode, "burnout_surcharge_documentee"),
                             booleanOrNull(burnoutNode, "burnout_arrets_maladie"))
                     : null;
+            // SF-212-33 : sous-objet pour pré-fill F-DT-49 (temps partiel — requalification FR).
+            // 4 champs : durée contractuelle (h/sem), mentions durée, mentions répartition,
+            // HC moyenne (h/sem). Tous nullables ; FRANCE uniquement (régime BE distinct).
+            JsonNode tempsPartielNode = node.get("temps_partiel_requalification_detail");
+            boolean hasTempsPartiel = tempsPartielNode != null && tempsPartielNode.isObject();
+            TravailExtractedData.TempsPartielRequalificationDetail tempsPartielRequalificationDetail = hasTempsPartiel
+                    ? new TravailExtractedData.TempsPartielRequalificationDetail(
+                            positiveDoubleOrNull(tempsPartielNode, "temps_partiel_duree_contractuelle"),
+                            booleanOrNull(tempsPartielNode, "temps_partiel_mentions_duree"),
+                            booleanOrNull(tempsPartielNode, "temps_partiel_mentions_repartition"),
+                            positiveDoubleOrNull(tempsPartielNode, "temps_partiel_hc_moyenne"))
+                    : null;
             // F-234 SF-234-01 : construction via Builder — propage automatiquement null/false
             // sur les champs absents au lieu de propager des arguments positionnels.
             return TravailExtractedData.builder()
@@ -4576,6 +4639,8 @@ public record CaseAnalysisResponse(
                     .congeMaternitePaterniteDetecte(booleanOrFalse(node, "conge_maternite_paternite_detecte"))
                     // SF-212-27 : flag F-205 — déclenche F-DT-64 burn-out reconnaissance MP.
                     .burnoutDetecte(booleanOrFalse(node, "burnout_detecte"))
+                    // SF-212-33 : flag F-205 — déclenche F-DT-49 temps partiel — requalification.
+                    .tempsPartielRequalificationEnvisagee(booleanOrFalse(node, "temps_partiel_requalification_envisagee"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -4861,6 +4926,8 @@ public record CaseAnalysisResponse(
                     .congeMaternitePaterniteDetail(congeMaternitePaterniteDetail)
                     // SF-212-27 — burn-out reconnaissance MP (FR)
                     .burnoutDetail(burnoutDetail)
+                    // SF-212-33 — temps partiel — requalification en temps plein (FR)
+                    .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail)
                     .build();
         } catch (Exception ignored) { return null; }
     }
