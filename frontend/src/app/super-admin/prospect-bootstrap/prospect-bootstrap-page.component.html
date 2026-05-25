@@ -1,0 +1,261 @@
+<div class="prospect-bootstrap-page">
+  <div class="page-header">
+    <h1 class="page-title">Bootstrap prospect</h1>
+    <p class="page-subtitle">
+      Provisionner un compte prospect en 1 clic (user + workspace + période
+      d'évaluation). À utiliser en plein milieu d'une démo — chaque seconde
+      compte. Le mot de passe est volontairement visible pour qu'il puisse
+      être dicté au téléphone.
+    </p>
+  </div>
+
+  <!-- Bloc 1 — Formulaire de bootstrap -->
+  <mat-card class="section-card section-card--form">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>person_add</mat-icon>
+        Nouveau compte prospect
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="bootstrap-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="field-first-name" subscriptSizing="dynamic">
+            <mat-label>Prénom</mat-label>
+            <input
+              matInput
+              formControlName="firstName"
+              placeholder="ex: Marjolaine"
+              maxlength="100"
+              autocomplete="off"
+              data-testid="first-name-input"
+            />
+            @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+              <mat-error>
+                @if (form.get('firstName')?.errors?.['backend']) {
+                  {{ form.get('firstName')?.errors?.['backend'] }}
+                } @else {
+                  Prénom requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="field-last-name" subscriptSizing="dynamic">
+            <mat-label>Nom</mat-label>
+            <input
+              matInput
+              formControlName="lastName"
+              placeholder="ex: RENVERSEZ"
+              maxlength="100"
+              autocomplete="off"
+              data-testid="last-name-input"
+            />
+            @if (form.get('lastName')?.invalid && form.get('lastName')?.touched) {
+              <mat-error>
+                @if (form.get('lastName')?.errors?.['backend']) {
+                  {{ form.get('lastName')?.errors?.['backend'] }}
+                } @else {
+                  Nom requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="field-email" subscriptSizing="dynamic">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              formControlName="email"
+              type="email"
+              placeholder="ex: avocat@renversez.com"
+              maxlength="320"
+              autocomplete="off"
+              data-testid="email-input"
+            />
+            @if (form.get('email')?.invalid && form.get('email')?.touched) {
+              <mat-error>
+                @if (form.get('email')?.errors?.['backend']) {
+                  {{ form.get('email')?.errors?.['backend'] }}
+                } @else if (form.get('email')?.errors?.['email']) {
+                  Format email invalide
+                } @else {
+                  Email requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="field-password" subscriptSizing="dynamic">
+            <mat-label>Mot de passe (visible — à dicter)</mat-label>
+            <input
+              matInput
+              formControlName="password"
+              type="text"
+              placeholder="ex: printemps2026"
+              maxlength="100"
+              autocomplete="off"
+              data-testid="password-input"
+            />
+            <mat-hint>Minimum 8 caractères. Visible volontairement — l'opérateur le dicte au téléphone.</mat-hint>
+            @if (form.get('password')?.invalid && form.get('password')?.touched) {
+              <mat-error>
+                @if (form.get('password')?.errors?.['backend']) {
+                  {{ form.get('password')?.errors?.['backend'] }}
+                } @else if (form.get('password')?.errors?.['minlength']) {
+                  Minimum 8 caractères
+                } @else {
+                  Mot de passe requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="field-country" subscriptSizing="dynamic">
+            <mat-label>Pays</mat-label>
+            <mat-select formControlName="country" data-testid="country-select">
+              @for (c of countries; track c.value) {
+                <mat-option [value]="c.value">{{ c.label }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('country')?.invalid && form.get('country')?.touched) {
+              <mat-error>
+                @if (form.get('country')?.errors?.['backend']) {
+                  {{ form.get('country')?.errors?.['backend'] }}
+                } @else {
+                  Pays requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="field-legal-domain" subscriptSizing="dynamic">
+            <mat-label>Domaine juridique</mat-label>
+            <mat-select formControlName="legalDomain" data-testid="legal-domain-select">
+              @for (d of legalDomains; track d.value) {
+                <mat-option [value]="d.value">{{ d.label }}</mat-option>
+              }
+            </mat-select>
+            @if (form.get('legalDomain')?.invalid && form.get('legalDomain')?.touched) {
+              <mat-error>
+                @if (form.get('legalDomain')?.errors?.['backend']) {
+                  {{ form.get('legalDomain')?.errors?.['backend'] }}
+                } @else {
+                  Domaine requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="field-workspace-name" subscriptSizing="dynamic">
+            <mat-label>Nom du workspace</mat-label>
+            <input
+              matInput
+              formControlName="workspaceName"
+              placeholder="ex: RENVERSEZ-MARJOLAINE"
+              maxlength="100"
+              autocomplete="off"
+              data-testid="workspace-name-input"
+            />
+            <mat-hint>Le backend normalise en MAJUSCULES — saisir tel quel.</mat-hint>
+            @if (form.get('workspaceName')?.invalid && form.get('workspaceName')?.touched) {
+              <mat-error>
+                @if (form.get('workspaceName')?.errors?.['backend']) {
+                  {{ form.get('workspaceName')?.errors?.['backend'] }}
+                } @else {
+                  Nom de workspace requis
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            class="cta-primary"
+            [disabled]="form.invalid || submitting()"
+            data-testid="submit-button"
+          >
+            @if (submitting()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon>flash_on</mat-icon>
+            }
+            <span>Bootstrap le compte</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Bloc 2 — Panneau résumé post-succès -->
+  @if (lastSuccess(); as success) {
+    <mat-card class="section-card section-card--success" data-testid="success-panel">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>check_circle</mat-icon>
+          Compte bootstrappé
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="success-intro">
+          Le compte prospect est prêt. Copier les informations ci-dessous dans
+          votre mail de bienvenue avant de quitter cette page.
+        </p>
+
+        <dl class="success-grid">
+          <div class="success-row">
+            <dt>Workspace</dt>
+            <dd class="success-mono" data-testid="success-workspace-name">{{ success.workspaceName }}</dd>
+          </div>
+          <div class="success-row">
+            <dt>User ID</dt>
+            <dd class="success-mono" data-testid="success-user-id">{{ success.userId }}</dd>
+          </div>
+          <div class="success-row">
+            <dt>Workspace ID</dt>
+            <dd class="success-mono" data-testid="success-workspace-id">{{ success.workspaceId }}</dd>
+          </div>
+          <div class="success-row">
+            <dt>Expire le</dt>
+            <dd class="success-mono" data-testid="success-expires-at">
+              {{ success.expiresAt | date:'dd/MM/yyyy' }}
+            </dd>
+          </div>
+        </dl>
+
+        <div class="success-actions">
+          <a
+            mat-stroked-button
+            color="primary"
+            [href]="workspacesUrlForEmail(lastSuccessEmail())"
+            data-testid="view-workspace-link"
+          >
+            <mat-icon>open_in_new</mat-icon>
+            <span>Voir le workspace</span>
+          </a>
+          <button
+            mat-flat-button
+            color="accent"
+            type="button"
+            class="cta-secondary"
+            (click)="resetForm()"
+            data-testid="reset-button"
+          >
+            <mat-icon>refresh</mat-icon>
+            <span>Bootstrap un autre prospect</span>
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
