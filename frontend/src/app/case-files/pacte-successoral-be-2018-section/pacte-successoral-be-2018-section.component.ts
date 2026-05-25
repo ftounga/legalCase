@@ -18,7 +18,7 @@ import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprud
 @Component({
   selector: 'app-pacte-successoral-be-2018-section',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, ToolJurisprudenceCitationsComponent],
   templateUrl: './pacte-successoral-be-2018-section.component.html',
   styleUrl: './pacte-successoral-be-2018-section.component.scss',
 })
