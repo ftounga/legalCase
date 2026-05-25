@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a04003-0000-0000-0000-eeee21200037-seed" author="legalcase">
+        <comment>
+            SF-212-38 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Conciliation CPH — Bureau de Conciliation et
+            d'Orientation (BCO)" (F-DT-84-conciliation-cph-bca, FRANCE),
+            table créée par SF-212-37 (migration 349).
+
+            Couplée à l'entrée TOOL_REGISTRY livrée dans le même lot
+            (decisional-tools-panel.component.ts). Sans ce couplage, le
+            garde-fou CI DecisionToolVisibilityIntegrityIT échoue (seed en DB
+            sans entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26).
+
+            Mode CONTEXTUAL, DROIT_DU_TRAVAIL / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une procédure prud'homale dont la
+            phase de conciliation au BCO est envisagée (saisine du CPH,
+            convocation BCO, mention "conciliation", "Bureau de Conciliation",
+            "BCO", "transaction prud'homale", "PV conciliation",
+            "L. 1235-1 al. 3", "barème BCA") — trigger `conciliation_cph_envisagee`
+            (nouveau flag F-205 introduit par SF-212-37, ajouté à
+            CaseAnalysisResponse + LegalDomainPromptBuilder PART17 +
+            DecisionToolVisibilityService dans la même PR).
+
+            priority 71 — juste après F-DT-49 (temps partiel requalification,
+            priority 70) pour clore la séquence F-212 P2 P3 (outils de
+            préparation procédurale prud'homale).
+
+            Fondement : R. 1454-7 à R. 1454-12 CT — composition et procédure
+            du Bureau de Conciliation et d'Orientation ; L. 1235-1 al. 3 CT
+            — barème de transactions BCA, seuils minimaux 2 / 3 / 4 / 8 / 14
+            mois selon ancienneté ; L. 1411-1 CT — compétence du Conseil de
+            Prud'hommes ; R. 1452-1 à R. 1452-4 CT — saisine et convocation ;
+            R. 1453-3 CT — communication des pièces ; R. 1454-12 CT —
+            homologation du PV de conciliation, force exécutoire.
+
+            Mécanisme strictement français — la BE dispose d'un régime
+            distinct (tribunal du travail + chambre de conciliation, Code
+            judiciaire belge art. 734 et s.), qui justifie un outil BE
+            séparé hors périmètre de la SF-212-37/38.
+
+            F-212 19/19 — dernier outil livré, clôture du bundle F-212.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04003-0000-0000-0000-eeee21200037', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-84-conciliation-cph-bca', 'CONTEXTUAL', 'conciliation_cph_envisagee', 'true', 71);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04003-0000-0000-0000-eeee21200037';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

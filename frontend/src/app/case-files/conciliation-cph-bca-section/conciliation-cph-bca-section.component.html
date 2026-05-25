@@ -1,0 +1,177 @@
+<section class="cph-section">
+  <header class="cph-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cph-body">
+    <mat-icon class="cph-icon">gavel</mat-icon>
+    <span class="cph-title">CONCILIATION CPH — BCO</span>
+    @if (result()) {
+      <span class="cph-chip-summary" data-testid="cph-chip-summary">
+        BCA min. {{ formatEuros(result()!.montantMinimumBcaEuros) }} — {{ result()!.palierBcaApplicable }}
+      </span>
+    }
+    <mat-icon class="cph-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cph-body" class="cph-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="cph-country-banner" data-testid="cph-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (procédure prud'homale — R. 1454-7 à R. 1454-12 CT, L. 1235-1 al. 3 CT barème transactions BCA). La Belgique dispose d'un régime distinct (tribunal du travail + chambre de conciliation, art. 734 et s. du Code judiciaire belge).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cph-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="cph-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Données salarié -->
+            <div class="cph-block cph-full">
+              <span class="cph-block-label">Données salarié (calcul du palier BCA — L. 1235-1 al. 3 CT)</span>
+
+              <mat-form-field appearance="outline" class="cph-inline-field">
+                <mat-label>Ancienneté (en mois)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteMois()"
+                       (ngModelChange)="onAncienneteChange($event)"
+                       name="ancienneteMois"
+                       data-testid="cph-input-anciennete">
+                <mat-hint>Paliers BCA : &lt; 2 ans (2 mois) | 2-8 ans (3 mois) | 8-15 ans (4 mois) | 15-25 ans (8 mois) | ≥ 25 ans (14 mois)</mat-hint>
+              </mat-form-field>
+              @if (provenanceAnciennete() === 'IA') {
+                <span class="cph-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="cph-inline-field">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="salaireMensuelBrutEuros()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEuros"
+                       data-testid="cph-input-salaire">
+                <mat-hint>Base du montant minimum BCA (palier × salaire)</mat-hint>
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="cph-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- Bloc 2 — Demandes & opportunité -->
+            <div class="cph-block cph-full">
+              <span class="cph-block-label">Demandes & opportunité (comparaison BCA vs barème Macron L. 1235-3 CT)</span>
+
+              <mat-form-field appearance="outline" class="cph-inline-field">
+                <mat-label>Montant total des demandes (€)</mat-label>
+                <input matInput type="number" min="0" step="0.01"
+                       [ngModel]="montantDemandesEuros()"
+                       (ngModelChange)="onMontantDemandesChange($event)"
+                       name="montantDemandesEuros"
+                       data-testid="cph-input-demandes">
+                <mat-hint>Cumul des prétentions (ICR + indemnités + DI + rappels)</mat-hint>
+              </mat-form-field>
+              @if (provenanceMontantDemandes() === 'IA') {
+                <span class="cph-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="cph-inline-field">
+                <mat-label>Opportunité de la conciliation</mat-label>
+                <mat-select [ngModel]="opportuniteConciliation()"
+                            (ngModelChange)="onOpportuniteChange($event)"
+                            name="opportuniteConciliation"
+                            data-testid="cph-select-opportunite">
+                  @for (opt of opportuniteOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="cph-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="cph-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cph-result">
+            <!-- Encadré BCA — palier + montant minimum -->
+            <div class="cph-bca-banner" data-testid="cph-bca-banner">
+              <mat-icon>account_balance</mat-icon>
+              <div class="cph-bca-content">
+                <span class="cph-bca-label">Palier BCA applicable (L. 1235-1 al. 3 CT)</span>
+                <span class="cph-bca-palier" data-testid="cph-bca-palier">{{ result()!.palierBcaApplicable }}</span>
+                <span class="cph-bca-montant" data-testid="cph-bca-montant">Montant minimum BCA : {{ formatEuros(result()!.montantMinimumBcaEuros) }}</span>
+              </div>
+            </div>
+
+            <!-- Comparaison BCA vs Macron -->
+            <div class="cph-comparaison" data-testid="cph-comparaison">
+              <mat-icon>balance</mat-icon>
+              <span [innerHTML]="result()!.comparaisonBcaVsMacron | legalCitations"></span>
+            </div>
+
+            <!-- Checklist BCO -->
+            @if (result()!.checklistBco?.length) {
+              <div class="cph-checklist-block">
+                <span class="cph-checklist-label">Checklist BCO — pièces à produire ({{ result()!.checklistBco.length }})</span>
+                <ul class="cph-checklist-list" data-testid="cph-checklist-list">
+                  @for (item of result()!.checklistBco; track checklistTrackKey($index, item)) {
+                    <li class="cph-checklist-item" data-testid="cph-checklist-item">
+                      <mat-icon class="cph-check-icon">check_circle_outline</mat-icon>
+                      <span [innerHTML]="item | legalCitations"></span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Bases juridiques -->
+            @if (result()!.basesJuridiques?.length) {
+              <div class="cph-bases-block">
+                <span class="cph-bases-label">Bases juridiques</span>
+                <div class="cph-bases-grid">
+                  @for (base of result()!.basesJuridiques; track base) {
+                    <span class="cph-base-chip">{{ base }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="cph-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="cph-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 SF-JU-03-99b — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

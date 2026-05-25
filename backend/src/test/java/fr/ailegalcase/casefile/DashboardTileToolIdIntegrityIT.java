@@ -310,7 +310,15 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-49-temps-partiel-requalification"
+            "F-DT-49-temps-partiel-requalification",
+            // SF-212-37 (2026-05-25) : F-DT-84 conciliation CPH BCA FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            // F-212 19/19 — dernier outil livré du bundle F-212.
+            "F-DT-84-conciliation-cph-bca"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

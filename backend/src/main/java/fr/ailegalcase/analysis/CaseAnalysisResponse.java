@@ -631,7 +631,18 @@ public record CaseAnalysisResponse(
             // requalification en temps plein (FR). 4 champs (durée contractuelle,
             // mentions durée, mentions répartition, HC moyenne). Sub-flag de
             // tempsPartielRequalificationEnvisagee. @JsonUnwrapped — JSON HTTP plat préservé.
-            @JsonUnwrapped TempsPartielRequalificationDetail tempsPartielRequalificationDetail) {
+            @JsonUnwrapped TempsPartielRequalificationDetail tempsPartielRequalificationDetail,
+            // SF-212-37 : flag F-205 — déclenche F-DT-84 conciliation CPH BCA (FR).
+            // Pertinent quand un dossier évoque une procédure prud'homale dont la
+            // phase de conciliation au Bureau de Conciliation et d'Orientation (BCO)
+            // est envisagée : saisine CPH, convocation BCO, mention "conciliation",
+            // "transaction prud'homale", "barème BCA". R. 1454-7 à R. 1454-12 CT ;
+            // L. 1235-1 al. 3 CT — barème transactions BCA. Mécanisme franco-français.
+            boolean conciliationCphEnvisagee,
+            // SF-212-37 : sous-objet IA pour pré-fill F-DT-84 conciliation CPH BCA (FR).
+            // 3 champs (ancienneté mois, salaire mensuel brut, montant demandes).
+            // Sub-flag de conciliationCphEnvisagee. @JsonUnwrapped — JSON HTTP plat préservé.
+            @JsonUnwrapped ConciliationCphDetail conciliationCphDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -866,6 +877,25 @@ public record CaseAnalysisResponse(
                 Boolean tempsPartielMentionsDuree,
                 Boolean tempsPartielMentionsRepartition,
                 Double tempsPartielHCMoyenne
+        ) {}
+
+        /**
+         * SF-212-37 — sous-record IA pour F-DT-84 conciliation CPH BCA
+         * (FRANCE only — R. 1454-7 à R. 1454-12 CT ; L. 1235-1 al. 3 CT
+         * — barème transactions BCA). 3 champs alignés sur le prompt PART17 :
+         * {@code conciliation_cph_anciennete_mois} (ancienneté en mois —
+         * base du palier BCA),
+         * {@code conciliation_cph_salaire} (salaire mensuel brut en € —
+         * base de calcul du montant minimum BCA),
+         * {@code conciliation_cph_montant_demandes} (montant total des
+         * demandes du salarié en € — base de comparaison BCA vs Macron).
+         * Tous nullables — null hors FRANCE ou si non documenté.
+         * @JsonUnwrapped — JSON HTTP plat préservé (parité contrat externe stricte).
+         */
+        public record ConciliationCphDetail(
+                Integer conciliationCphAncienneteMois,
+                Double conciliationCphSalaire,
+                Double conciliationCphMontantDemandes
         ) {}
 
 
@@ -1152,7 +1182,10 @@ public record CaseAnalysisResponse(
                     .electionsCseDetail(electionsCseDetail)
                     // SF-212-33 — temps partiel — requalification (FR)
                     .tempsPartielRequalificationEnvisagee(tempsPartielRequalificationEnvisagee)
-                    .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail);
+                    .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail)
+                    // SF-212-37 — conciliation CPH BCA (FR)
+                    .conciliationCphEnvisagee(conciliationCphEnvisagee)
+                    .conciliationCphDetail(conciliationCphDetail);
         }
 
         public static final class Builder {
@@ -1428,6 +1461,9 @@ public record CaseAnalysisResponse(
             // SF-212-33 — flag F-205 + sous-record temps partiel — requalification (FR uniquement)
             private boolean tempsPartielRequalificationEnvisagee;
             private TempsPartielRequalificationDetail tempsPartielRequalificationDetail;
+            // SF-212-37 — flag F-205 + sous-record conciliation CPH BCA (FR uniquement)
+            private boolean conciliationCphEnvisagee;
+            private ConciliationCphDetail conciliationCphDetail;
 
             private Builder() {}
 
@@ -1701,6 +1737,10 @@ public record CaseAnalysisResponse(
             public Builder tempsPartielRequalificationEnvisagee(boolean v) { this.tempsPartielRequalificationEnvisagee = v; return this; }
             // SF-212-33 — temps_partiel_requalification_detail (FRANCE uniquement) — sous-record IA.
             public Builder tempsPartielRequalificationDetail(TempsPartielRequalificationDetail v) { this.tempsPartielRequalificationDetail = v; return this; }
+            // SF-212-37 — F-205 flag (FRANCE only) — déclenche F-DT-84 conciliation CPH BCA.
+            public Builder conciliationCphEnvisagee(boolean v) { this.conciliationCphEnvisagee = v; return this; }
+            // SF-212-37 — conciliation_cph_detail (FRANCE uniquement) — sous-record IA.
+            public Builder conciliationCphDetail(ConciliationCphDetail v) { this.conciliationCphDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1869,7 +1909,10 @@ public record CaseAnalysisResponse(
                         electionsCseDetail,
                         // SF-212-33 — temps partiel — requalification en temps plein (FR)
                         tempsPartielRequalificationEnvisagee,
-                        tempsPartielRequalificationDetail);
+                        tempsPartielRequalificationDetail,
+                        // SF-212-37 — conciliation CPH BCA (FR)
+                        conciliationCphEnvisagee,
+                        conciliationCphDetail);
             }
         }
     }

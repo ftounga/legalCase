@@ -125,6 +125,8 @@ import { BurnoutReconnaissanceMpSectionComponent } from '../burnout-reconnaissan
 import { ElectionsCseConformiteSectionComponent } from '../elections-cse-conformite-section/elections-cse-conformite-section.component';
 // SF-212-34 : outil F-DT-49 temps partiel — requalification en temps plein (FR uniquement).
 import { TempsPartielRequalificationSectionComponent } from '../temps-partiel-requalification-section/temps-partiel-requalification-section.component';
+// SF-212-38 : outil F-DT-84 conciliation CPH — Bureau de Conciliation et d'Orientation (BCO) (FR uniquement). F-212 19/19.
+import { ConciliationCphBcaSectionComponent } from '../conciliation-cph-bca-section/conciliation-cph-bca-section.component';
 // SF-212-18 : outil F-DT-43 rupture anticipée du CDD (FR uniquement).
 import { RuptureAnticipeeCddSectionComponent } from '../rupture-anticipee-cdd-section/rupture-anticipee-cdd-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
@@ -1012,6 +1014,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-49-temps-partiel-requalification', {
         displayLabel: 'Temps partiel — requalification (FR)',
         component: TempsPartielRequalificationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-212-38 : F-DT-84 conciliation CPH BCA — préparation phase BCO (FR). F-212 19/19.
+      ['F-DT-84-conciliation-cph-bca', {
+        displayLabel: 'Conciliation CPH — BCO (FR)',
+        component: ConciliationCphBcaSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3110,6 +3123,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-65-elections-cse-conformite', 'DIAGNOSTIC'],
     // SF-212-34 : F-DT-49 — temps partiel requalification en temps plein.
     ['F-DT-49-temps-partiel-requalification', 'DIAGNOSTIC'],
+    // SF-212-38 : F-DT-84 — conciliation CPH BCA (Bureau de Conciliation et d'Orientation). F-212 19/19.
+    ['F-DT-84-conciliation-cph-bca', 'DIAGNOSTIC'],
     // SF-212-18 : F-DT-43 — rupture anticipée du CDD.
     ['F-DT-43-rupture-anticipee-cdd', 'DIAGNOSTIC'],
     // SF-212-22 : F-DT-41 — démission validité équivoque.

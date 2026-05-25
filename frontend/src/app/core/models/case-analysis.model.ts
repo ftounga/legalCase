@@ -999,6 +999,25 @@ export interface TravailExtractedData {
   /** SF-212-33 — flag F-205 déclenchant F-DT-49 temps partiel — requalification (FRANCE only). */
   tempsPartielRequalificationEnvisagee?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-37 — sous-objet `conciliation_cph_detail` (FRANCE only)
+  // Pré-fill F-DT-84 (conciliation CPH — Bureau de Conciliation et
+  // d'Orientation, R. 1454-7 à R. 1454-12 CT ; L. 1235-1 al. 3 CT — barème
+  // transactions BCA ; L. 1411-1 CT compétence CPH ; R. 1454-12 CT
+  // homologation PV exécutoire). F-212 19/19 — dernier outil livré.
+  // @JsonUnwrapped côté backend — JSON HTTP plat. Tous nullables — restent
+  // `null` pour un dossier Travail BE (régime tribunal du travail + chambre
+  // de conciliation, Code judiciaire belge art. 734 et s. — juridiquement
+  // distinct, hors périmètre).
+  // -------------------------------------------------------------------------
+  /** Ancienneté du salarié en mois — sert au calcul du palier BCA (L. 1235-1 al. 3 CT). */
+  conciliationCphAncienneteMois?: number | null;
+  /** Salaire mensuel brut de référence en € — base du montant minimum BCA. */
+  conciliationCphSalaire?: number | null;
+  /** Montant total des demandes du salarié en € — base de comparaison BCA vs Macron. */
+  conciliationCphMontantDemandes?: number | null;
+  /** SF-212-37 — flag F-205 déclenchant F-DT-84 conciliation CPH BCA (FRANCE only). F-212 19/19. */
+  conciliationCphEnvisagee?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

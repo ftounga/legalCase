@@ -1013,7 +1013,29 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 16 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-37 : 17e part du prompt TRAVAIL — flag F-205 et sous-objet
+     * `conciliation_cph_detail` (FRANCE UNIQUEMENT — R. 1454-7 à R. 1454-12
+     * CT ; L. 1235-1 al. 3 CT — barème transactions BCA ; L. 1411-1 CT —
+     * compétence du Conseil de Prud'hommes ; R. 1452-1 à R. 1452-4 CT —
+     * saisine et convocation BCO ; R. 1454-12 CT — homologation PV de
+     * conciliation, force exécutoire).
+     *
+     * <p>F-212 19/19 — dernier outil du bundle F-212.</p>
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART17 = """
+              SF-212-37 — Flag F-205 et sous-objet `conciliation_cph_detail` (FRANCE UNIQUEMENT).
+              "conciliation_cph_envisagee" : booléen — true uniquement si les pièces évoquent une procédure prud'homale dont la phase de conciliation au Bureau de Conciliation et d'Orientation (BCO) est envisagée ou en cours : saisine du Conseil de Prud'hommes (formulaire CERFA n°15586*10 ou requête équivalente — R. 1452-1 CT), convocation BCO réceptionnée (R. 1452-4 CT), mention « conciliation », « Bureau de Conciliation et d'Orientation », « BCO », « transaction prud'homale », « PV conciliation », « R. 1454-7 », « R. 1454-12 », « L. 1235-1 al. 3 », « barème BCA », « Bureau de Conciliation et d'Accord », projet de protocole transactionnel chiffré, échanges sur le montant indemnitaire global. False par défaut. Pertinent pour F-DT-84.
+              Sous-objet `conciliation_cph_detail` — laisser null intégralement pour un dossier BELGIQUE (régime distinct : tribunal du travail + chambre de conciliation, art. 734 et s. du Code judiciaire belge — juridiquement distinct, hors périmètre).
+              Émettre UNIQUEMENT si les pièces évoquent la préparation ou la tenue d'une audience BCO (requête introductive, convocation BCO, projet transactionnel, bordereau de pièces, chiffrage des demandes). Laisser null si aucun indice n'est documenté. Sub-flag de `conciliation_cph_envisagee` : émettre uniquement si la procédure est documentée ou explicitement référencée.
+              "conciliation_cph_detail" : objet OU null. Si émis, contient EXACTEMENT les 3 clés suivantes :
+                "conciliation_cph_anciennete_mois" : entier — ancienneté du salarié en mois à la date de rupture (ou à défaut à la date d'engagement de la procédure). Sert au calcul du palier BCA applicable (L. 1235-1 al. 3 CT : 2 / 3 / 4 / 8 / 14 mois selon ancienneté). Strictement positif, attendu entre 1 et 600 ; hors plage → null. Null si l'ancienneté n'est pas chiffrable de façon fiable dans les pièces.
+                "conciliation_cph_salaire" : nombre décimal (€) — salaire mensuel brut de référence du salarié (moyenne des 12 derniers bulletins de paie, ou 3 derniers mois si plus favorable au salarié — L. 1234-9 CT, applicable mutatis mutandis). Sert au calcul du montant minimum BCA (palier × salaire). Strictement positif, attendu entre 1 200 et 50 000 ; hors plage → null. Null si le salaire ne ressort pas des pièces.
+                "conciliation_cph_montant_demandes" : nombre décimal (€) — montant total des demandes pécuniaires du salarié telles qu'elles figurent dans la requête introductive ou le tableau récapitulatif des demandes (indemnité de licenciement sans cause réelle et sérieuse + indemnités spécifiques + dommages-intérêts + rappels de salaire + heures sup, etc.). Sert à la comparaison BCA minimum vs Macron complet (arbitrage conciliation vs Bureau de Jugement). Strictement positif, attendu entre 500 et 1 000 000 ; hors plage → null. Null si non chiffré.
+              Règle NO-OP conciliation_cph_detail : si aucune pièce n'évoque une procédure prud'homale en phase BCO (requête introductive, convocation BCO, projet transactionnel chiffré), émettre "conciliation_cph_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -1034,7 +1056,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART13)
                     .concat(TRAVAIL_INSTRUCTION_PART14)
                     .concat(TRAVAIL_INSTRUCTION_PART15)
-                    .concat(TRAVAIL_INSTRUCTION_PART16);
+                    .concat(TRAVAIL_INSTRUCTION_PART16)
+                    .concat(TRAVAIL_INSTRUCTION_PART17);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 
