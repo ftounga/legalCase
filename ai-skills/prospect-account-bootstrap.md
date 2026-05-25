@@ -73,6 +73,8 @@ rm /tmp/admin-cookies.txt
 - `403` → opérateur pas super-admin
 - `401` → cookie expiré, refaire le login
 
+> **Aucun mail automatique** : l'endpoint bootstrap ne déclenche **pas** le mail "bienvenue onboarding" F-73 (volontaire, pour éviter le doublon avec le mail personnalisé de l'étape 6). Le prospect ne reçoit donc aucun message tant que l'opérateur n'a pas envoyé le mail de l'étape 6.
+
 ### Étape 5 — Vérifier le login bout-en-bout
 
 ```bash
