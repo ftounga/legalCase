@@ -503,6 +503,21 @@ export interface TravailExtractedData {
   ancienneteSalarie?: number | null;
   motifLicenciementDetecte?: string | null;
   offreOutplacementMentionnee?: boolean | null;
+  /**
+   * SF-213-01 / SF-213-01b : 3 champs IA Travail BE pour pré-fill F-213
+   * (clause de non-concurrence BE — Loi 03/07/1978 art. 65 + CCT n°13).
+   * BE-only — restent null pour FR (régime distinct, F-DT-24 FR est à montant libre).
+   * `salaireBrutAnnuel` : rémunération annuelle brute (€ > 0). Base seuil
+   *   légal CCT n°13 (73 571 € en 2024, indexé annuellement).
+   * `clauseNonConcurrenceDureeMois` : durée de la clause en mois (entier 1-12).
+   *   Borne maximale légale CCT n°13.
+   * `clauseNonConcurrenceZone` : zone géographique de la clause
+   *   {BELGIQUE_UNIQUEMENT | BELGIQUE_ET_ETRANGER | NON_SPECIFIEE}. Toute
+   *   autre valeur → null (l'avocat tranche).
+   */
+  salaireBrutAnnuel?: number | null;
+  clauseNonConcurrenceDureeMois?: number | null;
+  clauseNonConcurrenceZone?: string | null;
   // -------------------------------------------------------------------------
   // SF-246-21 — sous-objet `requalification_detection` (CDD + intérim)
   // FR uniquement — null pour dossier Travail BE.
