@@ -43,6 +43,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { DonationPrefillRules } from './donation-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-06 : champs d'alerte F-IA-03 exposés par l'outil "Validité donation".
@@ -83,12 +84,17 @@ export type DonationCoherenceAlert = CoherenceAlert<DonationAlertField>;
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './donation-section.component.html',
   styleUrl: './donation-section.component.scss',
 })
 export class DonationSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-donation';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'VALIDITÉ DONATION ENTRE VIFS (FR)';
   static readonly TOOL_ICON = 'redeem';

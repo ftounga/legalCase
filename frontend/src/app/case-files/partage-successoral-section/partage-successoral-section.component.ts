@@ -40,6 +40,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PartageSuccessoralPrefillRules } from './partage-successoral-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-10 : champs d'alerte F-IA-03 exposés par l'outil "Partage
@@ -81,12 +82,17 @@ export type PartageSuccessoralCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './partage-successoral-section.component.html',
   styleUrl: './partage-successoral-section.component.scss',
 })
 export class PartageSuccessoralSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-partage-successoral';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'PARTAGE SUCCESSORAL (FR)';
   static readonly TOOL_ICON = 'handshake';

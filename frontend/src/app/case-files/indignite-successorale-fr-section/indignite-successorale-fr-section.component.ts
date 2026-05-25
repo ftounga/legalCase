@@ -29,6 +29,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { IndigniteSuccessoraleFrPrefillRules } from './indignite-successorale-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-20 : composant Angular standalone pour l'outil décisionnel
@@ -61,11 +62,16 @@ import { IndigniteSuccessoraleFrPrefillRules } from './indignite-successorale-fr
     MatSelectModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './indignite-successorale-fr-section.component.html',
   styleUrl: './indignite-successorale-fr-section.component.scss',
 })
 export class IndigniteSuccessoraleFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-INDIGNITE-SUCCESSORALE';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'INDIGNITE SUCCESSORALE';
   static readonly TOOL_ICON = 'gavel';

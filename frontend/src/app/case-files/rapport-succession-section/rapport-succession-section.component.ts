@@ -42,6 +42,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RapportSuccessionPrefillRules } from './rapport-succession-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-14 : champs F-IA-03 audités par l'outil "Rapport à succession".
@@ -88,12 +89,17 @@ export type RapportSuccessionCoherenceAlert =
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './rapport-succession-section.component.html',
   styleUrl: './rapport-succession-section.component.scss',
 })
 export class RapportSuccessionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-rapport-succession';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RAPPORT À SUCCESSION (FR)';
   static readonly TOOL_ICON = 'account_balance';

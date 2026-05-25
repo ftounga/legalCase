@@ -37,6 +37,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { AcceptationRenonciationPrefillRules } from './acceptation-renonciation-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 export type AcceptationRenonciationAlertField = 'DATE_OUVERTURE' | 'ACTIF_BRUT';
 export type AcceptationRenonciationCoherenceAlert =
@@ -69,11 +70,16 @@ const ACTIF_DIVERGENCE_RATIO = 0.10;
     MatSlideToggleModule, MatProgressSpinnerModule,
     MatTooltipModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './acceptation-renonciation-section.component.html',
   styleUrl: './acceptation-renonciation-section.component.scss',
 })
 export class AcceptationRenonciationSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'acceptation-renonciation-succession';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'ACCEPTATION / RENONCIATION SUCCESSION (FR)';
   static readonly TOOL_ICON = 'how_to_reg';
 

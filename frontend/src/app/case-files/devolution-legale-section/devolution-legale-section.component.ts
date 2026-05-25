@@ -44,6 +44,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { DevolutionLegalePrefillRules } from './devolution-legale-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-02 : champs d'alerte F-IA-03 exposés par l'outil "Dévolution
@@ -83,12 +84,17 @@ export type DevolutionLegaleCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './devolution-legale-section.component.html',
   styleUrl: './devolution-legale-section.component.scss',
 })
 export class DevolutionLegaleSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-devolution-legale';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DÉVOLUTION LÉGALE SUCCESSORALE (FR)';
   static readonly TOOL_ICON = 'family_restroom';
