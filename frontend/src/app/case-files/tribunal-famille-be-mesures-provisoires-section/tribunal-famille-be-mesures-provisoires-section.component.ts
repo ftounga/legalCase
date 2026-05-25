@@ -18,7 +18,7 @@ import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprud
 @Component({
   selector: 'app-tribunal-famille-be-mesures-provisoires-section',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, ToolJurisprudenceCitationsComponent],
   templateUrl: './tribunal-famille-be-mesures-provisoires-section.component.html',
   styleUrl: './tribunal-famille-be-mesures-provisoires-section.component.scss',
 })
