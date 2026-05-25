@@ -97,15 +97,34 @@ public class WorkspaceService {
         boolean isFirstWorkspace = !workspaceMemberRepository.existsByUser(user);
 
         if (isFirstWorkspace) {
-            return createFirstWorkspace(user, name, legalDomain, country);
+            return createWorkspaceForBootstrappedUser(user, name, legalDomain, country);
         }
 
         // Workspace supplémentaire (SF-156-01) — gate plan + PENDING_PAYMENT.
         return createAdditionalPendingPaymentWorkspace(user, name, legalDomain, country, plan);
     }
 
-    private WorkspaceCreatedResponse createFirstWorkspace(User user, String name,
-                                                          String legalDomain, String country) {
+    /**
+     * F-251 SF-251-03 — provisionnement du premier workspace d'un utilisateur.
+     *
+     * <p>Crée workspace {@code ACTIVE} / {@code FREE}, membership {@code OWNER}
+     * primary, subscription {@code FREE} active sur 14 jours (le hook
+     * {@code @PrePersist} SF-251-02 garantit {@code expiresAt} même si oublié),
+     * et tente la création d'un customer Stripe en best-effort.
+     *
+     * <p>Méthode publique pour être appelable par le chemin onboarding nominal
+     * ({@link #createWorkspace}) ET par le bootstrap super-admin
+     * ({@code SuperAdminProspectBootstrapService}) — la SF-251-03 a remplacé
+     * la chaîne d'{@code INSERT} SQL de la skill {@code prospect-account-bootstrap}
+     * par cet appel JPA, éliminant le risque de Subscription FREE sans
+     * {@code expires_at}.
+     *
+     * <p>Comportement strictement identique à l'ancienne méthode privée
+     * {@code createFirstWorkspace} (refactor minimaliste, aucun changement
+     * fonctionnel).
+     */
+    public WorkspaceCreatedResponse createWorkspaceForBootstrappedUser(User user, String name,
+                                                                       String legalDomain, String country) {
         Workspace workspace = persistWorkspace(user, name, legalDomain, country, "FREE", WorkspaceStatus.ACTIVE);
         persistOwnerMembership(user, workspace, true);
 

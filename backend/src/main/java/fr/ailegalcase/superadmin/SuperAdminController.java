@@ -1,6 +1,7 @@
 package fr.ailegalcase.superadmin;
 
 import fr.ailegalcase.shared.OAuthProviderResolver;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,11 +28,14 @@ public class SuperAdminController {
 
     private final SuperAdminService superAdminService;
     private final PipelineHealthService pipelineHealthService;
+    private final SuperAdminProspectBootstrapService prospectBootstrapService;
 
     public SuperAdminController(SuperAdminService superAdminService,
-                                PipelineHealthService pipelineHealthService) {
+                                PipelineHealthService pipelineHealthService,
+                                SuperAdminProspectBootstrapService prospectBootstrapService) {
         this.superAdminService = superAdminService;
         this.pipelineHealthService = pipelineHealthService;
+        this.prospectBootstrapService = prospectBootstrapService;
     }
 
     @GetMapping("/workspaces")
@@ -106,4 +111,24 @@ public class SuperAdminController {
     }
 
     public record ResetPipelineResponse(UUID caseFileId, int jobsForcedFailed) {}
+
+    /**
+     * F-251 SF-251-03 : provisionnement super-admin d'un compte prospect
+     * (user + AuthAccount LOCAL + workspace + membership + subscription).
+     *
+     * <p>Remplace la chaîne d'{@code INSERT} SQL de la skill
+     * {@code prospect-account-bootstrap} (étape 4) — passe par JPA donc
+     * bénéficie du {@code @PrePersist} SF-251-02 sur
+     * {@code Subscription.expiresAt} → impossible de recréer le bug
+     * Renversez 13/05 via ce chemin.
+     */
+    @PostMapping("/prospect-bootstrap")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProspectBootstrapResponse bootstrapProspect(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal,
+            @Valid @RequestBody ProspectBootstrapRequest req) {
+        superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
+        return prospectBootstrapService.bootstrapProspect(req);
+    }
 }
