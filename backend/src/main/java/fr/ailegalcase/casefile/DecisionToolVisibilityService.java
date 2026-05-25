@@ -251,6 +251,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "election_cse_detectee");
         // SF-212-33 : nouveau flag F-205 — déclenche F-DT-49 temps partiel — requalification.
         addBooleanFlagIfTrue(detected, travailNode, "temps_partiel_requalification_envisagee");
+        // SF-212-37 : nouveau flag F-205 — déclenche F-DT-84 conciliation CPH BCA.
+        addBooleanFlagIfTrue(detected, travailNode, "conciliation_cph_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");
