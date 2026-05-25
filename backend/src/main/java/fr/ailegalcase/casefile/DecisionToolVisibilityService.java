@@ -247,6 +247,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "conge_maternite_paternite_detecte");
         // SF-212-27 : nouveau flag F-205 — déclenche F-DT-64 burn-out reconnaissance MP.
         addBooleanFlagIfTrue(detected, travailNode, "burnout_detecte");
+        // SF-212-33 : nouveau flag F-205 — déclenche F-DT-49 temps partiel — requalification.
+        addBooleanFlagIfTrue(detected, travailNode, "temps_partiel_requalification_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");

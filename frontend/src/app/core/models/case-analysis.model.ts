@@ -962,6 +962,25 @@ export interface TravailExtractedData {
   /** SF-212-27 — flag F-205 déclenchant F-DT-64 burn-out reconnaissance MP (FRANCE only). */
   burnoutDetecte?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-212-33 — sous-objet `temps_partiel_requalification_detail` (FRANCE only)
+  // Pré-fill F-DT-49 (temps partiel — requalification en temps plein —
+  // L. 3123-1 à L. 3123-20 CT ; L. 3123-6 mentions obligatoires ; L. 3123-9
+  // plafond heures complémentaires ; L. 3245-1 prescription rappel salaire ;
+  // Cass. soc. 22/01/1992 présomption de temps complet réfragable).
+  // @JsonUnwrapped côté backend — JSON HTTP plat. Tous nullables — restent
+  // `null` pour un dossier Travail BE (régime Loi 03/07/1978 + CCT n°35 distinct).
+  // -------------------------------------------------------------------------
+  /** Durée hebdomadaire contractuelle en heures (ex. 24, 28). */
+  tempsPartielDureeContractuelle?: number | null;
+  /** True si le contrat écrit mentionne la durée (L. 3123-6 CT). */
+  tempsPartielMentionsDuree?: boolean | null;
+  /** True si le contrat écrit mentionne la répartition jours/semaines (L. 3123-6 CT). */
+  tempsPartielMentionsRepartition?: boolean | null;
+  /** Heures complémentaires effectuées en moyenne par semaine. */
+  tempsPartielHCMoyenne?: number | null;
+  /** SF-212-33 — flag F-205 déclenchant F-DT-49 temps partiel — requalification (FRANCE only). */
+  tempsPartielRequalificationEnvisagee?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

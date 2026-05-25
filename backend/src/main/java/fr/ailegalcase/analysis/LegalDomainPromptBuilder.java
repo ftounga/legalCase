@@ -967,7 +967,32 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * Concaténation des 14 parts du prompt TRAVAIL — voir commentaire au-dessus
+     * SF-212-33 : 16e part du prompt TRAVAIL — flag F-205 et sous-objet
+     * `temps_partiel_requalification_detail` (FRANCE UNIQUEMENT — L. 3123-1
+     * à L. 3123-20 CT ; L. 3123-6 mentions obligatoires ; L. 3123-9 plafond
+     * heures complémentaires 1/10 ou 1/3 ; L. 3123-12 modification
+     * répartition ; L. 3245-1 prescription triennale rappel salaire ;
+     * Cass. soc. 22/01/1992 n°88-44.196 présomption de temps complet
+     * réfragable).
+     *
+     * <p>Note : numérotation PART16 (PART15 réservée à l'agent A de la
+     * vague parallèle F-212 vague 8 — outil élections CSE).</p>
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART16 = """
+              SF-212-33 — Flag F-205 et sous-objet `temps_partiel_requalification_detail` (FRANCE UNIQUEMENT).
+              "temps_partiel_requalification_envisagee" : booléen — true uniquement si les pièces évoquent une situation de temps partiel susceptible de donner lieu à requalification en temps complet au sens des art. L. 3123-1 à L. 3123-20 CT : contrat de travail à temps partiel produit aux pièces (durée hebdomadaire / mensuelle inférieure à 35h), absence des mentions obligatoires L. 3123-6 (durée, répartition des horaires entre jours de la semaine ou semaines du mois, conditions de modification de la répartition, limites des heures complémentaires), dépassement structurel du plafond légal des heures complémentaires (1/10 sans accord collectif ou 1/3 avec accord collectif — L. 3123-9), modification unilatérale de la répartition par l'employeur sans clause contractuelle ni délai de prévenance 7 jours ouvrés (L. 3123-12), demande de rappel de salaire pour requalification, mention "temps partiel" / "présomption de temps complet" / "Cass. soc. 22/01/1992". Pertinent pour F-DT-49. False par défaut.
+              Sous-objet `temps_partiel_requalification_detail` — laisser null intégralement pour un dossier BELGIQUE (le régime BE du temps partiel — Loi 03/07/1978 et CCT n°35 — est juridiquement distinct, hors périmètre de cet outil).
+              Émettre UNIQUEMENT si les pièces évoquent un contrat à temps partiel susceptible de requalification (contrat écrit produit, durée < 35h, mentions L. 3123-6 absentes ou litigieuses, heures complémentaires structurellement au-delà de 1/10 ou 1/3, modification unilatérale documentée). Laisser null si aucun indice n'est documenté. Sub-flag de `temps_partiel_requalification_envisagee` : émettre uniquement si un dispositif est documenté ou explicitement référencé.
+              "temps_partiel_requalification_detail" : objet OU null. Si émis, contient EXACTEMENT les 4 clés suivantes :
+                "temps_partiel_duree_contractuelle" : nombre décimal (heures par semaine) — durée contractuelle stipulée dans le contrat à temps partiel (ex. 24h, 28h, 30h). Cette valeur sert de base au calcul du ratio des heures complémentaires (HC / durée contractuelle vs seuil L. 3123-9 — 1/10 ou 1/3). Strictement positive, attendue < 35h ; valeur ≥ 35 ou ≤ 0 → null. Null si la durée hebdomadaire n'est pas chiffrée dans les pièces ou si le contrat exprime la durée en mensuel sans conversion possible.
+                "temps_partiel_mentions_duree" : booléen — true uniquement si le contrat écrit (produit aux pièces) mentionne EXPRESSÉMENT la durée hebdomadaire ou mensuelle au sens de l'art. L. 3123-6 CT. False si le contrat est silencieux sur la durée (présomption de temps complet réfragable — Cass. soc. 22/01/1992 n°88-44.196). Null si le contrat n'est pas produit ou si sa rédaction ne permet pas de trancher.
+                "temps_partiel_mentions_repartition" : booléen — true uniquement si le contrat écrit mentionne EXPRESSÉMENT la répartition des horaires entre les jours de la semaine ou les semaines du mois (art. L. 3123-6 CT). False si le contrat est silencieux sur la répartition — le salarié se trouve alors dans l'impossibilité de prévoir son rythme de travail (Cass. soc. 22/01/1992). Null si non factualisable.
+                "temps_partiel_hc_moyenne" : nombre décimal (heures par semaine) — heures complémentaires effectuées en moyenne par semaine sur la période de référence (cumul annuel des HC effectuées / 52, OU moyenne mensuelle des bulletins divisée par 4,33). Reprendre les bulletins de paie ou le décompte annuel. Strictement positif, attendu entre 0 et 20 ; hors plage → null. Null si les heures complémentaires effectives ne sont pas chiffrables de façon fiable dans les pièces.
+              Règle NO-OP temps_partiel_requalification_detail : si aucune pièce n'évoque un contrat à temps partiel susceptible de requalification (contrat écrit, durée < 35h, HC documentées, mentions L. 3123-6 litigieuses), émettre "temps_partiel_requalification_detail": null — ne jamais inventer.
+            """;
+
+    /**
+     * Concaténation des 15 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
      * String literal dépassant la limite UTF-8 de 65535 octets du constant pool.
@@ -986,7 +1011,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART11)
                     .concat(TRAVAIL_INSTRUCTION_PART12)
                     .concat(TRAVAIL_INSTRUCTION_PART13)
-                    .concat(TRAVAIL_INSTRUCTION_PART14);
+                    .concat(TRAVAIL_INSTRUCTION_PART14)
+                    .concat(TRAVAIL_INSTRUCTION_PART16);
 
     private static final String IMMIGRATION_INSTRUCTION = """
 

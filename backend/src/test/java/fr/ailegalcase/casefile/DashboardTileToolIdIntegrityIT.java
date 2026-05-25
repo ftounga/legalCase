@@ -296,7 +296,14 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
-            "F-DT-64-burnout-reconnaissance-mp"
+            "F-DT-64-burnout-reconnaissance-mp",
+            // SF-212-33 (2026-05-25) : F-DT-49 temps partiel — requalification en temps plein FR
+            // livré sans mapper DashboardTile côté backend — exclusion transitoire
+            // alignée sur le pattern Vague F-212 P2 (composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat). À résorber par la session F-212
+            // propriétaire qui consolidera les outils P2 en lot.
+            "F-DT-49-temps-partiel-requalification"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
