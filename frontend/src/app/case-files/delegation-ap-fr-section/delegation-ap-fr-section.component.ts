@@ -32,6 +32,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { DelegationApFrPrefillRules } from './delegation-ap-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-10 : composant Angular standalone pour l'outil décisionnel
@@ -72,11 +73,16 @@ import { DelegationApFrPrefillRules } from './delegation-ap-fr-section-prefill-r
     MatSelectModule, MatCheckboxModule,
     MatProgressSpinnerModule, MatTooltipModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './delegation-ap-fr-section.component.html',
   styleUrl: './delegation-ap-fr-section.component.scss',
 })
 export class DelegationApFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-XX-delegation-ap';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'DELEGATION AUTORITE PARENTALE';
   static readonly TOOL_ICON = 'family_restroom';

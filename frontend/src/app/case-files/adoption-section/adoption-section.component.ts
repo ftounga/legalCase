@@ -39,6 +39,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { AdoptionPrefillRules } from './adoption-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-18-10 : champs d'alerte F-IA-03 exposés par l'outil "Adoption"
@@ -81,12 +82,17 @@ export type AdoptionCoherenceAlert = CoherenceAlert<AdoptionAlertField>;
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './adoption-section.component.html',
   styleUrl: './adoption-section.component.scss',
 })
 export class AdoptionSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-18-adoption';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'ADOPTION (FR)';
   static readonly TOOL_ICON = 'family_restroom';

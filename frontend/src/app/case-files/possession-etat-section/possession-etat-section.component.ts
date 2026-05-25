@@ -39,6 +39,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { PossessionEtatPrefillRules } from './possession-etat-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-18-08 : champs d'alerte F-IA-03 exposés par l'outil
@@ -85,12 +86,17 @@ export type PossessionEtatCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './possession-etat-section.component.html',
   styleUrl: './possession-etat-section.component.scss',
 })
 export class PossessionEtatSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-18-possession-etat';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'POSSESSION D\'ÉTAT (FR)';
   static readonly TOOL_ICON = 'family_restroom';

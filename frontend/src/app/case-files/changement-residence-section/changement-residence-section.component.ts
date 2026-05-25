@@ -46,6 +46,7 @@ import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-
 import { ChangementResidencePrefillRules } from './changement-residence-section-prefill-rules';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-19-04 : fields F-IA-03 audités par l'outil F-FA-19 (changement de
@@ -112,12 +113,17 @@ const VALID_MODES: ReadonlySet<string> = new Set<ModeResidenceCh>([
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './changement-residence-section.component.html',
   styleUrl: './changement-residence-section.component.scss',
 })
 export class ChangementResidenceSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-19-changement-residence';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CHANGEMENT DE RÉSIDENCE (FR) — ART. 373-2 CCIV';
   static readonly TOOL_ICON = 'home_work';

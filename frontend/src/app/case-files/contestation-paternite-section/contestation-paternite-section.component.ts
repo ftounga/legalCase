@@ -39,6 +39,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { ContestationPaternitePrefillRules } from './contestation-paternite-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-18-04 : champs d'alerte F-IA-03 exposés par l'outil
@@ -82,12 +83,17 @@ export type ContestationPaterniteCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './contestation-paternite-section.component.html',
   styleUrl: './contestation-paternite-section.component.scss',
 })
 export class ContestationPaterniteSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-18-contestation-paternite';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CONTESTATION DE PATERNITÉ (FR)';
   static readonly TOOL_ICON = 'gavel';

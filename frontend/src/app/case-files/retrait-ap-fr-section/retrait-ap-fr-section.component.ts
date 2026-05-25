@@ -33,6 +33,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { RetraitApFrPrefillRules } from './retrait-ap-fr-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-216-12 : composant Angular standalone pour l'outil décisionnel
@@ -74,11 +75,16 @@ import { RetraitApFrPrefillRules } from './retrait-ap-fr-section-prefill-rules';
     MatSelectModule, MatCheckboxModule,
     MatProgressSpinnerModule, MatTooltipModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './retrait-ap-fr-section.component.html',
   styleUrl: './retrait-ap-fr-section.component.scss',
 })
 export class RetraitApFrSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99e — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-RETRAIT-AP';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour la card.
   static readonly TOOL_LABEL = 'RETRAIT AUTORITE PARENTALE';
   static readonly TOOL_ICON = 'gpp_bad';
