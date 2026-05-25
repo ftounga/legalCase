@@ -34,6 +34,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { DivorceDesunionBePrefillRules } from './divorce-desunion-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-11-02 : champs audités par F-IA-03 pour la désunion irrémédiable BE.
@@ -80,11 +81,16 @@ const FIELD_CRITERE_CODES: Readonly<Record<DesUBeAlertField, readonly string[]>>
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './divorce-desunion-be-section.component.html',
   styleUrl: './divorce-desunion-be-section.component.scss',
 })
 export class DivorceDesunionBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99g — citations jurisprudentielles F-JU-01 (BE hotfix).
+  protected readonly toolIdForJurisprudence = 'F-FA-11-desunion-irremediable-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DIVORCE BE — DÉSUNION IRRÉMÉDIABLE (ART. 229 CC)';
   static readonly TOOL_ICON = 'balance';

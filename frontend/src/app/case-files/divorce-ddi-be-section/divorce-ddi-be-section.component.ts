@@ -27,7 +27,7 @@ import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprud
 })
 export class DivorceDdiBeSectionComponent implements OnInit, OnChanges {
   // F-JU-03 — citations jurisprudentielles F-JU-01.
-  protected readonly toolIdForJurisprudence = 'F-FA-11-desunion-irremediable-be';
+  protected readonly toolIdForJurisprudence = 'divorce-ddi-3voies-be';
   protected readonly brancheActiveForJurisprudence = 'default';
 
   static readonly TOOL_LABEL = 'DIVORCE DDI 3 VOIES (BE)';
