@@ -41,6 +41,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { IndivisionSuccessoralePrefillRules } from './indivision-successorale-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-12 : champs d'alerte F-IA-03 exposés par l'outil "Indivision
@@ -81,12 +82,17 @@ export type IndivisionSuccessoraleCoherenceAlert =
     MatRadioModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './indivision-successorale-section.component.html',
   styleUrl: './indivision-successorale-section.component.scss',
 })
 export class IndivisionSuccessoraleSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-indivision-successorale';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'INDIVISION SUCCESSORALE (FR)';
   static readonly TOOL_ICON = 'groups';

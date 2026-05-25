@@ -40,6 +40,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { ReserveHeriditairePrefillRules } from './reserve-heriditaire-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-08 : champs d'alerte F-IA-03 audités par l'outil
@@ -83,12 +84,17 @@ export type ReserveHereditaireCoherenceAlert =
     MatRadioModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './reserve-heriditaire-section.component.html',
   styleUrl: './reserve-heriditaire-section.component.scss',
 })
 export class ReserveHeriditaireSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-reserve-heriditaire';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉSERVE HÉRÉDITAIRE & ACTION EN RÉDUCTION (FR)';
   static readonly TOOL_ICON = 'balance';

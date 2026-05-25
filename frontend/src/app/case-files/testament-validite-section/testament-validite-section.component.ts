@@ -43,6 +43,7 @@ import {
 } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { TestamentValiditePrefillRules } from './testament-validite-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-FA-24-04 : champs d'alerte F-IA-03 exposés par l'outil "Validité testament".
@@ -84,12 +85,17 @@ export type TestamentValiditeCoherenceAlert =
     MatRadioModule, MatCheckboxModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './testament-validite-section.component.html',
   styleUrl: './testament-validite-section.component.scss',
 })
 export class TestamentValiditeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99d — citations jurisprudentielles F-JU-01.
+  protected readonly toolIdForJurisprudence = 'F-FA-24-testament-validite';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'VALIDITÉ TESTAMENT (FR)';
   static readonly TOOL_ICON = 'history_edu';

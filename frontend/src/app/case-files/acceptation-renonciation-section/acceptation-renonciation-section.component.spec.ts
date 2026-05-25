@@ -60,7 +60,10 @@ describe('AcceptationRenonciationSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('mount FRANCE → GET initial 404 → showForm reste true', () => {
     component.ngOnInit();
