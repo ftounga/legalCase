@@ -104,8 +104,28 @@ public class WorkspaceService {
         return createAdditionalPendingPaymentWorkspace(user, name, legalDomain, country, plan);
     }
 
-    private WorkspaceCreatedResponse createFirstWorkspace(User user, String name,
-                                                          String legalDomain, String country) {
+    /**
+     * F-251 SF-251-03 — provisionnement du workspace d'un utilisateur via le
+     * chemin JPA, sans envoyer le mail "bienvenue onboarding" F-73.
+     *
+     * <p>Crée workspace {@code ACTIVE} / {@code FREE}, membership {@code OWNER}
+     * primary, subscription {@code FREE} active sur 14 jours (le hook
+     * {@code @PrePersist} SF-251-02 garantit {@code expiresAt} même si oublié),
+     * et tente la création d'un customer Stripe en best-effort.
+     *
+     * <p>Méthode publique pour le bootstrap super-admin
+     * ({@code SuperAdminProspectBootstrapService}) — la SF-251-03 a remplacé
+     * la chaîne d'{@code INSERT} SQL de la skill {@code prospect-account-bootstrap}
+     * par cet appel JPA, éliminant le risque de Subscription FREE sans
+     * {@code expires_at}.
+     *
+     * <p>Le mail "bienvenue onboarding" est volontairement absent : l'opérateur
+     * super-admin envoie ensuite son propre mail personnalisé (skill étape 6,
+     * avec identifiants + créneaux RDV). Le chemin nominal
+     * ({@link #createFirstWorkspace}) ajoute ce mail au-dessus de cette méthode.
+     */
+    public WorkspaceCreatedResponse createWorkspaceForBootstrappedUser(User user, String name,
+                                                                       String legalDomain, String country) {
         Workspace workspace = persistWorkspace(user, name, legalDomain, country, "FREE", WorkspaceStatus.ACTIVE);
         persistOwnerMembership(user, workspace, true);
 
@@ -124,18 +144,32 @@ public class WorkspaceService {
                     subscriptionRepository.save(subscription);
                 });
 
-        // F-154 : email "bienvenue onboarding" uniquement à la création du
-        // 1er workspace ; les workspaces additionnels ne déclenchent pas de
-        // mail pour éviter le spam.
+        return new WorkspaceCreatedResponse(workspace.getId(), workspace.getName(),
+                workspace.getStatus(), workspace.getPlanCode(),
+                workspace.getLegalDomain(), workspace.getCountry(), null);
+    }
+
+    /**
+     * Chemin nominal d'onboarding (1er workspace via {@link #createWorkspace}) :
+     * délègue à {@link #createWorkspaceForBootstrappedUser} puis envoie le mail
+     * "bienvenue onboarding" F-73.
+     *
+     * <p>F-154 : email "bienvenue onboarding" uniquement à la création du 1er
+     * workspace ; les workspaces additionnels ne déclenchent pas de mail pour
+     * éviter le spam. Le bootstrap super-admin (SF-251-03) n'envoie pas non
+     * plus ce mail — l'opérateur envoie son propre mail personnalisé.
+     */
+    private WorkspaceCreatedResponse createFirstWorkspace(User user, String name,
+                                                          String legalDomain, String country) {
+        WorkspaceCreatedResponse response = createWorkspaceForBootstrappedUser(user, name, legalDomain, country);
+
         try {
             emailService.sendOnboardingWelcome(user);
         } catch (Exception e) {
             log.warn("Failed to send onboarding welcome to {} — {}", user.getEmail(), e.getMessage());
         }
 
-        return new WorkspaceCreatedResponse(workspace.getId(), workspace.getName(),
-                workspace.getStatus(), workspace.getPlanCode(),
-                workspace.getLegalDomain(), workspace.getCountry(), null);
+        return response;
     }
 
     private WorkspaceCreatedResponse createAdditionalPendingPaymentWorkspace(User user, String name,

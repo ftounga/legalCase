@@ -17,10 +17,12 @@ Triggers utilisateur typiques :
 
 | # | Item | Comment vérifier |
 |---|------|------------------|
-| 1 | Accès `kubectl` au cluster prod (`arn:aws:eks:eu-west-3:504895205419:cluster/legalcase-shared`) | `kubectl config current-context` |
-| 2 | Endpoints d'auth locale déployés en prod | `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/forgot-password` (déployés depuis migration 022 `infra-auth-locale.xml`) |
+| 1 | Compte super-admin opérationnel (Google OAuth ou LOCAL) pour l'opérateur | `users.is_super_admin = true` |
+| 2 | Endpoints super-admin + auth locale déployés en prod | `/api/v1/super-admin/prospect-bootstrap` (F-251 SF-251-03), `/api/v1/auth/login` |
 | 3 | Accès Gmail MCP pour envoi mail | tool `mcp__gmail__send_email` disponible |
 | 4 | Consentement explicite du prospect (verbal en démo) à la création du compte par l'opérateur | Toujours demander oralement avant — éviter surprise |
+
+**Mode préféré depuis SF-251-04** : utiliser la page UI `/super-admin/prospect-bootstrap` qui formulaire-ise les champs de l'étape 1 et appelle l'endpoint pour vous. Le bloc curl de l'étape 4 reste en backup pour cas exceptionnel (UI down, scripting batch).
 
 ## Procédure
 
@@ -33,50 +35,45 @@ Triggers utilisateur typiques :
 - Domaine principal (DROIT_DU_TRAVAIL / DROIT_IMMIGRATION / DROIT_FAMILLE)
 - Nom souhaité pour le cabinet/workspace (souvent `NOM-PRENOM` ou nom de la structure)
 
-### Étape 2 — Vérifier l'existant en DB prod
+### Étape 2 — Choisir le mot de passe initial
+
+Mot de passe initial : **un mot français de 8-12 caractères**, facile à prononcer/épeler au téléphone (ex: `printemps2026`, `automne2025`, `bonjour123`). Le prospect le changera au 1er login. **Pas besoin de BCrypt à la main** : l'endpoint backend hash via BCrypt en interne (SF-251-03).
+
+### Étape 3 — (réservée — étape de vérification DB facultative)
+
+Si vous avez besoin de pré-vérifier l'existant (ex. avant un événement qui a généré du double-onboarding), interrogez l'API super-admin existante (`/api/v1/super-admin/users`) plutôt que d'ouvrir un psql. L'endpoint bootstrap (étape 4) refuse de toute façon les comptes déjà actifs (HTTP 409) — vous serez alerté si conflit.
+
+### Étape 4 — Appel endpoint super-admin `prospect-bootstrap` (F-251 SF-251-03)
+
+> **Pourquoi cet endpoint et plus de SQL direct ?** SF-251-03 expose `POST /api/v1/super-admin/prospect-bootstrap` qui orchestre user + AuthAccount LOCAL + workspace + membership + subscription via JPA. Bénéficie automatiquement du `@PrePersist` SF-251-02 sur `Subscription.expiresAt` → **ferme définitivement le risque NULL** qui avait piégé le compte Renversez (workspace `5d07e421-3e3c-4076-91a1-9ff8e8aaf7b8`, corrigé en migration 058 puis garde-fou backend).
 
 ```bash
-PGPASSWORD=$(kubectl exec -n production <backend-pod> -- printenv SPRING_DATASOURCE_PASSWORD)
-kubectl run psql-tmp -n production --image=postgres:16 --rm -i --restart=Never \
-  --env="PGPASSWORD=$PGPASSWORD" --quiet -- \
-  psql -h <RDS_HOST> -U legalcase_admin -d legalcase \
-  -c "SELECT id, email, first_name, last_name FROM users WHERE email='<email>';"
+# 1) Login super-admin (LOCAL ou OAuth) → cookie SESSION dans /tmp/admin-cookies.txt
+curl -sS -X POST https://legalcase.fr/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -c /tmp/admin-cookies.txt \
+  -d '{"email":"<SUPER_ADMIN_EMAIL>","password":"<SUPER_ADMIN_MDP>"}'
+
+# 2) POST bootstrap (le backend hash le mdp + crée tout dans une transaction JPA)
+curl -sS -X POST https://legalcase.fr/api/v1/super-admin/prospect-bootstrap \
+  -H 'Content-Type: application/json' \
+  -b /tmp/admin-cookies.txt \
+  -d '{"firstName":"<PRENOM>","lastName":"<NOM>","email":"<EMAIL>","password":"<MDP>","country":"FRANCE","legalDomain":"DROIT_DU_TRAVAIL","workspaceName":"<NOM_CABINET>"}'
+
+# Réponse 201 :
+# {"userId":"...","workspaceId":"...","workspaceName":"<NOM_CABINET>","expiresAt":"2026-06-08T..."}
+
+rm /tmp/admin-cookies.txt
 ```
 
-Si le compte existe :
-- **Cas A — compte vierge sans workspace** (cas Renversez 13/05) : **NE PAS supprimer**. Faire reset password (UPDATE `password_hash`) + créer workspace + membership.
-- **Cas B — compte avec activité métier** : ne rien toucher, recontacter le prospect, demander ce qui bloque côté UX.
+**Codes de retour** :
+- `201` → succès, parser `userId` / `workspaceId` / `expiresAt` pour la mémoire (étape 7)
+- `409` → compte productif déjà existant (cas B) → recontacter le prospect, ne rien forcer
+- `400` → payload invalide (email mal formé, password < 8, country/domaine inconnu)
+- `403` → opérateur pas super-admin
+- `401` → cookie expiré, refaire le login
 
-### Étape 3 — Générer un mot de passe initial simple ET BCrypt
-
-Mot de passe initial : **un mot français de 8-12 caractères**, facile à prononcer/épeler au téléphone (ex: `printemps`, `automne2025`, `bonjour123`). Le prospect le changera au 1er login.
-
-Hash BCrypt rounds=10 via pod éphémère Python :
-
-```bash
-kubectl run bcrypt-gen -n production --image=python:3.12-slim --rm -i --restart=Never --quiet -- \
-  sh -c "pip install -q bcrypt && python -c \"import bcrypt; print(bcrypt.hashpw(b'<MDP>', bcrypt.gensalt(rounds=10)).decode())\""
-```
-
-### Étape 4 — Transaction SQL : compte + workspace + membership
-
-```sql
-BEGIN;
-
--- Si compte n'existe pas : INSERT INTO users + auth_accounts (provider='LOCAL', email_verified=true)
--- Si compte existe : UPDATE auth_accounts SET password_hash='<HASH>' WHERE user_id='<UID>' AND provider='LOCAL';
-
-INSERT INTO workspaces (id, name, slug, owner_user_id, billing_email, plan_code, status, created_at, legal_domain, country)
-VALUES (gen_random_uuid(), '<WORKSPACE_NAME>', gen_random_uuid()::text, '<UID>', '<email>',
-        'FREE', 'ACTIVE', NOW(), '<LEGAL_DOMAIN>', '<COUNTRY>')
-RETURNING id;
-
-INSERT INTO workspace_members (workspace_id, user_id, member_role, created_at, is_primary)
-SELECT id, '<UID>', 'OWNER', NOW(), true
-FROM workspaces WHERE owner_user_id='<UID>' AND name='<WORKSPACE_NAME>';
-
-COMMIT;
-```
+> **Aucun mail automatique** : l'endpoint bootstrap ne déclenche **pas** le mail "bienvenue onboarding" F-73 (volontaire, pour éviter le doublon avec le mail personnalisé de l'étape 6). Le prospect ne reçoit donc aucun message tant que l'opérateur n'a pas envoyé le mail de l'étape 6.
 
 ### Étape 5 — Vérifier le login bout-en-bout
 
@@ -90,7 +87,7 @@ curl -sS -b /tmp/cookies.txt https://legalcase.fr/api/v1/workspaces
 rm /tmp/cookies.txt
 ```
 
-Le 1er retour doit être 200 + objet user. Le 2ᵉ doit lister le workspace créé.
+Le 1er retour doit être 200 + objet user. Le 2ᵉ doit lister le workspace créé avec `expiresAt` ≈ now + 14 jours (preuve que SF-251-03 a bien posé la trial).
 
 ### Étape 6 — Envoyer le mail de bienvenue
 
@@ -141,7 +138,7 @@ Ajouter ligne dans `MEMORY.md`.
 ## Variantes
 
 ### V1 — Compte existant à reset (cas Renversez)
-Sauter l'INSERT users / auth_accounts. Garder UPDATE password_hash + INSERT workspace + membership.
+Depuis SF-251-03, l'endpoint détecte automatiquement le cas A (user existant sans WorkspaceMember) et fait le reset password + création workspace dans la même transaction. Aucune procédure manuelle distincte — utiliser le même curl que ci-dessus.
 
 ### V2 — Prospect avec dossier réel apporté
 Au lieu de joindre les 7 PDFs Dupont, suggérer dans le mail d'uploader son propre dossier directement. Donne un meilleur signal d'engagement (cf. memory `feedback_marketing_prospection`).
