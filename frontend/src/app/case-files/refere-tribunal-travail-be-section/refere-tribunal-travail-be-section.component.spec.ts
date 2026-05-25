@@ -90,7 +90,10 @@ describe('RefereTribunalTravailBeSectionComponent', () => {
     component.workspaceCountry = 'BELGIQUE';
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   function initWithNoExistingResult(): void {
     fixture.detectChanges();

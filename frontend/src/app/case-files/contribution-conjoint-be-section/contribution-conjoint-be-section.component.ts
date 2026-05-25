@@ -29,6 +29,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { ContributionConjointBeSectionPrefillRules } from './contribution-conjoint-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /** Option de type de divorce (alignée sur l'enum backend `TypeDivorceBe`). */
 interface TypeDivorceOption {
@@ -63,11 +64,16 @@ interface TypeDivorceOption {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './contribution-conjoint-be-section.component.html',
   styleUrl: './contribution-conjoint-be-section.component.scss',
 })
 export class ContributionConjointBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'contribution-conjoint-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'PENSION ALIMENTAIRE ENTRE EX-ÉPOUX — CC ART. 301 BE';
   static readonly TOOL_ICON = 'volunteer_activism';
 

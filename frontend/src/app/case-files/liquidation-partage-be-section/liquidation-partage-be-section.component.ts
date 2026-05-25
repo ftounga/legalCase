@@ -36,6 +36,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { LiquidationPartageBeSectionPrefillRules } from './liquidation-partage-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * F-217 SF-217-03 : champ F-IA-03 audité par l'outil liquidation-partage BE —
@@ -83,12 +84,17 @@ const F96_CODE_NOTIFICATION_PROJET = 'F217_DATE_NOTIFICATION_PROJET';
     MatFormFieldModule, MatInputModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './liquidation-partage-be-section.component.html',
   styleUrl: './liquidation-partage-be-section.component.scss',
 })
 export class LiquidationPartageBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'liquidation-partage-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'LIQUIDATION-PARTAGE POST-DIVORCE — CJ ART. 1207+ BE';
   static readonly TOOL_ICON = 'gavel';
 

@@ -30,6 +30,7 @@ import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { AutoriteParentaleBeSectionPrefillRules } from './autorite-parentale-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /** Option de mode d'hébergement (alignée sur l'enum backend `ModeHebergementBe`). */
 interface ModeHebergementOption {
@@ -65,11 +66,16 @@ interface ModeHebergementOption {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './autorite-parentale-be-section.component.html',
   styleUrl: './autorite-parentale-be-section.component.scss',
 })
 export class AutoriteParentaleBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'autorite-parentale-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'AUTORITÉ PARENTALE — CC ART. 374-375 BE';
   static readonly TOOL_ICON = 'family_restroom';
 

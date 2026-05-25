@@ -38,6 +38,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RegimeCommunauteLegaleBeSectionPrefillRules } from './regime-communaute-legale-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * F-217 SF-217-03 : champ F-IA-03 audité par l'outil régime de communauté
@@ -88,12 +89,17 @@ interface BienCategorieOption {
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    ToolJurisprudenceCitationsComponent,
     CoherencePopoverTriggerDirective,
   ],
   templateUrl: './regime-communaute-legale-be-section.component.html',
   styleUrl: './regime-communaute-legale-be-section.component.scss',
 })
 export class RegimeCommunauteLegaleBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'regime-mat-be-communaute-legale';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   static readonly TOOL_LABEL = 'RÉGIME DE COMMUNAUTÉ LÉGALE — CC LIVRE 3 BE';
   static readonly TOOL_ICON = 'account_balance';
 

@@ -43,6 +43,7 @@ import {
 } from '../../core/models/at-fedris-declaration.model';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { AtFedrisDeclarationPrefillRules } from './at-fedris-declaration-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-207-04b — Champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -86,12 +87,16 @@ const DATE_DIVERGENCE_DAYS = 15;
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatCheckboxModule,
     MatProgressSpinnerModule,
-    CoherencePopoverTriggerDirective,
+    CoherencePopoverTriggerDirective,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './at-fedris-declaration-section.component.html',
   styleUrl: './at-fedris-declaration-section.component.scss',
 })
 export class AtFedrisDeclarationSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'at-fedris-declaration';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'DÉCLARATION AT FEDRIS (BE)';
   static readonly TOOL_ICON = 'event_busy';

@@ -19,7 +19,10 @@ describe('TribunalFamilleBeMesuresProvisoiresSectionComponent', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.match(r => r.url.includes('/jurisprudence-citations')).forEach(r => r.flush({ items: [] }));
+    httpMock.verify();
+  });
 
   it('rendu nominal : cadre juridique CJ 1280 et notes visibles', () => {
     const html = fixture.nativeElement as HTMLElement;

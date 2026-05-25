@@ -44,6 +44,7 @@ import {
 import { RefereTribunalTravailBeService } from '../../core/services/refere-tribunal-travail-be.service';
 import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
 import { RefereTribunalTravailBePrefillRules } from './refere-tribunal-travail-be-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-207-05b : outil décisionnel "Référé tribunal du travail BE" (F-207).
@@ -66,12 +67,16 @@ import { RefereTribunalTravailBePrefillRules } from './refere-tribunal-travail-b
     CommonModule, FormsModule,
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatCheckboxModule, MatSelectModule,
-    MatProgressSpinnerModule, MatProgressBarModule,
+    MatProgressSpinnerModule, MatProgressBarModule,    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './refere-tribunal-travail-be-section.component.html',
   styleUrl: './refere-tribunal-travail-be-section.component.scss',
 })
 export class RefereTribunalTravailBeSectionComponent implements OnInit, OnChanges {
+  // F-JU-03 SF-JU-03-99f — citations jurisprudentielles F-JU-01 (BE).
+  protected readonly toolIdForJurisprudence = 'refere-tribunal-travail-be';
+  protected readonly brancheActiveForJurisprudence = 'default';
+
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'RÉFÉRÉ TRIBUNAL DU TRAVAIL (BE)';
   static readonly TOOL_ICON = 'gavel';
