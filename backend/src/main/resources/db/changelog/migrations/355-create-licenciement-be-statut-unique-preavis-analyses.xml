@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="4d76a8f5-02cd-4f65-8639-4f566c2be47b-create" author="legalcase">
+        <comment>
+            SF-213-03 : table dédiée à l'outil décisionnel "Licenciement BE —
+            préavis statut unique (post-2014)" (licenciement-be-statut-unique-preavis,
+            BELGIQUE — fondement : Loi du 26 décembre 2013 introduisant le
+            statut unique entre ouvriers et employés — barème art. 37/1 et seq.
+            applicable aux contrats signés ou aux périodes d'ancienneté à
+            compter du 01/01/2014).
+
+            L'outil calcule, côté employeur :
+            - la durée du préavis en semaines selon le barème officiel
+              (ex : 9 ans → 27 semaines ; ≥ 20 ans → 62 semaines plafond) ;
+            - la date de fin de préavis (date de notification + N × 7 jours) ;
+            - l'indemnité compensatoire de préavis (salaire hebdomadaire brut
+              × nombre de semaines — adaptation statut unique de la
+              Loi 03/07/1978 art. 39).
+
+            Outil single-country BELGIQUE — l'équivalent FR (Code du travail
+            ou convention collective française) suit un régime juridiquement
+            distinct.
+
+            La part pré-2014 d'un contrat antérieur au statut unique relève
+            de la Formule Claeys, qui fera l'objet d'un outil séparé en
+            SF-213-04 (clause d'ancienneté double). Cet outil couvre
+            uniquement la partie post-2014 ou les contrats 100 % post-2014 —
+            un avertissement est émis si le paramètre
+            partieStatutUniqueSeulement = false.
+
+            Le préavis salarié (démission, plafonné à 13 semaines) est hors
+            périmètre — outil distinct demission-be-validite (P2+, hors F-213).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules) est
+            volontairement portée par la migration de SF-213-03b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou DecisionToolVisibilityIntegrityIT
+            (cas réel F-164 staging 2026-04-26 — 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="licenciement_be_statut_unique_preavis_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_licenciement_be_su_preavis_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_statut_unique_preavis_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_licenciement_be_su_preavis_case_file"/>
+
+        <createIndex tableName="licenciement_be_statut_unique_preavis_analyses"
+                     indexName="idx_licenciement_be_su_preavis_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_statut_unique_preavis_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
