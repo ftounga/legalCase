@@ -376,6 +376,27 @@ export interface TravailExtractedData {
   dateRuptureContrat?: string | null;
   motifRupture?: string | null;
   /**
+   * SF-213-02b : 3 champs IA Travail BE pour pré-fill `rappel-salaire-be`
+   * (calculateur d'arriérés de salaire BE — Loi 12/04/1965 art. 10 +
+   * Loi 03/07/1978 art. 15). Tous trois nullables, branche BE uniquement.
+   *
+   * - `montantArrieresSalaireBrut` : montant brut total des arriérés réclamés
+   *   en euros (number > 0). Inclut salaire de base, primes dues,
+   *   ancienneté oubliée, indexation manquante, sursalaire conventionnel.
+   * - `dateDebutArrieresSalaire` : date ISO YYYY-MM-DD du début de la
+   *   période d'arriéré (= date de la 1ère échéance non payée).
+   * - `dateFinArrieresSalaire` : date ISO YYYY-MM-DD de la fin de la
+   *   période d'arriéré (= date d'exigibilité principale, pivot du calcul
+   *   des intérêts moratoires et du délai de prescription).
+   *
+   * Restent `null` pour un dossier Travail FR (régime distinct :
+   * intérêts légaux variables semestriels art. 1153 C.civ. + prescription
+   * 3 ans C. trav. L. 3245-1) — l'outil n'a pas d'équivalent FR direct.
+   */
+  montantArrieresSalaireBrut?: number | null;
+  dateDebutArrieresSalaire?: string | null;
+  dateFinArrieresSalaire?: string | null;
+  /**
    * SF-246-22 : type de procédure travail identifié par le pipeline IA pour pré-fill
    * F-136 `travail-procedure` (calendrier procédural FR + BE).
    * Codes admis (6 exacts — 3 FR + 3 BE) :

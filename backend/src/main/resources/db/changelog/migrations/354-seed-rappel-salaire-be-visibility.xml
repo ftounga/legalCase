@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a2b3c4d5-e6f7-4890-1234-567890abcdef-seed-rappel-salaire-be" author="legalcase">
+        <comment>
+            SF-213-02b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Rappel de salaire BE" (rappel-salaire-be, BELGIQUE,
+            DROIT_DU_TRAVAIL), table créée par SF-213-02 (migration 353).
+
+            Visibility ALWAYS_ON : la créance de rappel de salaire est un
+            réflexe transversal en droit du travail belge (préavis non payé,
+            primes de fin d'année dues, heures supplémentaires, ancienneté
+            mal calculée, indexation oubliée, sursalaires conventionnels…).
+            L'avocat doit pouvoir lancer le simulateur sur tout dossier BE
+            DROIT_DU_TRAVAIL sans pré-requis de détection IA.
+
+            Couplée à l'entrée TOOL_REGISTRY `rappel-salaire-be` déjà livrée
+            dans decisional-tools-panel.component.ts (lignes 1896-1907, PR
+            #1328 commit `8d5b16e2`). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans entrée
+            TOOL_REGISTRY frontend = outil silencieusement masqué — cas réel
+            F-164 staging 2026-04-26, mémoire `feedback_pre_merge_visibility_seed_check`).
+
+            Priority 110 — au-dessus des seeds historiques BE Travail (la plus
+            haute existante est `prescription-be-litige-travail` à 100). Slot
+            réservé pour les outils F-213 vague 2 (rappel-salaire-be = 110,
+            licenciement-be-statut-unique-preavis sera 111, etc.).
+
+            Fondement juridique :
+            - Loi du 12 avril 1965 sur la protection de la rémunération des
+              travailleurs, art. 10 — intérêts moratoires de plein droit au
+              taux légal de 10 % l'an, dus dès la date d'exigibilité de la
+              rémunération sans mise en demeure préalable.
+            - Loi du 3 juillet 1978 sur les contrats de travail, art. 15
+              al. 1 — prescription des actions naissant du contrat :
+              * 1 an post-rupture (créances exigibles après la fin du
+                contrat) ;
+              * 5 ans pendant l'exécution du contrat sans pouvoir excéder
+                1 an après la cessation de celui-ci (art. 15 al. 2).
+
+            Régime distinct du FR (rappel-salaire FR : intérêts légaux
+            variables semestriels art. 1153 C.civ. + prescription 3 ans
+            C. trav. L. 3245-1) — l'outil n'a pas d'équivalent direct côté
+            France et ne doit donc pas être affiché pour un workspace FR.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('a2b3c4d5-e6f7-4890-1234-567890abcdef', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'rappel-salaire-be', 'ALWAYS_ON', NULL, NULL, 110);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'a2b3c4d5-e6f7-4890-1234-567890abcdef';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
