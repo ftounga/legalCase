@@ -81,8 +81,7 @@
                          [ngModel]="revenusMensuelsNetsRegroupant()"
                          (ngModelChange)="onRevenusChange($event)"
                          name="revenusMensuelsNetsRegroupant"
-                         appCoherencePopoverTrigger
-                         [coherenceAlert]="coherenceAlerts().REVENUS_MENSUELS || null" />
+                         />
                 </mat-form-field>
                 @if (provenanceRevenus() === 'IA') {
                   <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
@@ -113,8 +112,7 @@
                          [ngModel]="dateFinCarteA()"
                          (ngModelChange)="onDateFinCarteAChange($event)"
                          name="dateFinCarteA"
-                         appCoherencePopoverTrigger
-                         [coherenceAlert]="coherenceAlerts().DATE_FIN_CARTE_A || null" />
+                         />
                 </mat-form-field>
                 @if (provenanceDateFinCarte() === 'IA') {
                   <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
