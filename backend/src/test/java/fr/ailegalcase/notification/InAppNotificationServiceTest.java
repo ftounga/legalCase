@@ -115,6 +115,84 @@ class InAppNotificationServiceTest {
                 .hasMessageContaining("403");
     }
 
+    // --- SF-113-04 — truncation défensive title/message/link ---
+
+    @Test
+    void create_titleExactly255_unchanged() {
+        when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        String title255 = "a".repeat(255);
+
+        service.create(userId, workspaceId, NotificationType.ANALYSIS_DONE, title255, "msg", "/link");
+
+        ArgumentCaptor<InAppNotification> captor = ArgumentCaptor.forClass(InAppNotification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getTitle()).hasSize(255).isEqualTo(title255);
+    }
+
+    @Test
+    void create_titleLongerThan255_truncatedWithEllipsis() {
+        when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        String title300 = "a".repeat(300);
+
+        service.create(userId, workspaceId, NotificationType.DEADLINE_APPROACHING, title300, "msg", "/link");
+
+        ArgumentCaptor<InAppNotification> captor = ArgumentCaptor.forClass(InAppNotification.class);
+        verify(notificationRepository).save(captor.capture());
+        String saved = captor.getValue().getTitle();
+        assertThat(saved).hasSize(255).endsWith("…");
+        assertThat(saved.substring(0, 254)).isEqualTo("a".repeat(254));
+    }
+
+    @Test
+    void create_messageLongerThan1000_truncated() {
+        when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        String msg1500 = "b".repeat(1500);
+
+        service.create(userId, workspaceId, NotificationType.ANALYSIS_DONE, "t", msg1500, "/link");
+
+        ArgumentCaptor<InAppNotification> captor = ArgumentCaptor.forClass(InAppNotification.class);
+        verify(notificationRepository).save(captor.capture());
+        String saved = captor.getValue().getMessage();
+        assertThat(saved).hasSize(1000).endsWith("…");
+    }
+
+    @Test
+    void create_linkLongerThan500_truncated() {
+        when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        String link600 = "/c/" + "x".repeat(600);
+
+        service.create(userId, workspaceId, NotificationType.ANALYSIS_DONE, "t", "m", link600);
+
+        ArgumentCaptor<InAppNotification> captor = ArgumentCaptor.forClass(InAppNotification.class);
+        verify(notificationRepository).save(captor.capture());
+        String saved = captor.getValue().getLink();
+        assertThat(saved).hasSize(500).endsWith("…");
+    }
+
+    @Test
+    void create_messageNull_persistedAsNull() {
+        when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.create(userId, workspaceId, NotificationType.ANALYSIS_DONE, "t", null, null);
+
+        ArgumentCaptor<InAppNotification> captor = ArgumentCaptor.forClass(InAppNotification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getMessage()).isNull();
+        assertThat(captor.getValue().getLink()).isNull();
+    }
+
+    @Test
+    void create_titleAt254_unchanged_below_threshold() {
+        when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        String title254 = "c".repeat(254);
+
+        service.create(userId, workspaceId, NotificationType.ANALYSIS_DONE, title254, "m", "/l");
+
+        ArgumentCaptor<InAppNotification> captor = ArgumentCaptor.forClass(InAppNotification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getTitle()).hasSize(254).isEqualTo(title254);
+    }
+
     @Test
     void getUnreadCount_retourne_le_bon_nombre() {
         User user = mock(User.class);
