@@ -330,7 +330,15 @@ class DashboardTileToolIdIntegrityIT {
             // propriétaire qui consolidera les outils P2 BE en lot.
             "rappel-salaire-be",
             "licenciement-be-statut-unique-preavis",
-            "licenciement-be-formule-claeys"
+            "licenciement-be-formule-claeys",
+            // SF-213-05b (2026-05-27) : licenciement-be-protection-grossesse
+            // livré sans mapper DashboardTile côté backend — exclusion
+            // transitoire alignée sur le pattern F-213 P2 Travail BE
+            // (composant frontend standalone auto-suffisant, restitution via
+            // GET du snapshot, pas de besoin métier tuile dashboard immédiat).
+            // À résorber par la session F-213 propriétaire qui consolidera les
+            // outils P2 BE en lot.
+            "licenciement-be-protection-grossesse"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

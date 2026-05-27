@@ -1,0 +1,282 @@
+<div class="licenciement-be-protection-grossesse-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">pregnant_woman</mat-icon>
+    <span class="section-title">Protection grossesse (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge {{ verdictClass(result()!.verdict) }}">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-protection-grossesse-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 16/03/1971 art. 40 — protection contre le licenciement
+            pendant la grossesse / maternité). Le régime français
+            (L.1225-4 C. trav.) est distinct et fera l'objet d'un outil dédié.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse la validité d'un licenciement intervenu pendant la
+            grossesse ou la maternité (<b>Loi du 16/03/1971 art. 40</b>).
+            La période protégée commence au début de la grossesse et se
+            termine 1 mois après la fin du congé maternité (ou 3 mois
+            après l'accouchement si congé non documenté). Champs marqués *
+            requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date début grossesse * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de début de grossesse *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutGrossesse()"
+                       (ngModelChange)="onDateDebutGrossesseChange($event)"
+                       name="dateDebutGrossesse" />
+                <mat-hint>Point de départ de la fenêtre protégée.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Date accouchement (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'accouchement</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateAccouchement()"
+                       (ngModelChange)="onDateAccouchementChange($event)"
+                       name="dateAccouchement" />
+                <mat-hint>Si congé maternité absent, fin protection = accouchement + 3 mois.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date début congé maternité (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date début congé maternité</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateCongeMaterniteDebut()"
+                       (ngModelChange)="onDateCongeMaterniteDebutChange($event)"
+                       name="dateCongeMaterniteDebut" />
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date fin congé maternité (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date fin congé maternité</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateCongeMaterniteFinale()"
+                       (ngModelChange)="onDateCongeMaterniteFinaleChange($event)"
+                       name="dateCongeMaterniteFinale" />
+                <mat-hint>Si renseignée, fin protection = congé fin + 1 mois.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Date licenciement * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de notification du licenciement *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateLicenciement()"
+                       (ngModelChange)="onDateLicenciementChange($event)"
+                       name="dateLicenciement" />
+                <mat-hint>Date à laquelle le licenciement a été notifié.</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateLicenciement() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 6. Rémunération mensuelle brute * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération mensuelle brute (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationMensuelleBrute()"
+                       (ngModelChange)="onRemunerationChange($event)"
+                       name="remunerationMensuelleBrute" />
+                <mat-hint>Base de l'indemnité forfaitaire (×6 mois).</mat-hint>
+              </mat-form-field>
+              @if (provenanceRemuneration() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Dérivé du salaire mensuel/annuel
+                </span>
+              }
+            </div>
+
+            <!-- 7. Notification écrite (checkbox) -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="grossesseNotifieeParEcrit()"
+                (change)="onGrossesseNotifieeChange($event.checked)"
+                name="grossesseNotifieeParEcrit">
+                Grossesse notifiée par écrit à l'employeur
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si la salariée a notifié sa grossesse par écrit
+                (lettre RAR, courrier RH, document médical transmis…).
+                Si oui, et si le licenciement intervient ≤ 10 semaines
+                après le début de la grossesse, la charge de la preuve
+                est renversée — l'employeur doit prouver le motif
+                étranger à la grossesse.
+              </span>
+            </div>
+
+            <!-- 8. Motif allégué par l'employeur (optionnel) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif invoqué par l'employeur (optionnel)</mat-label>
+                <textarea matInput
+                          rows="3"
+                          [ngModel]="motifInvoqueParEmployeur()"
+                          (ngModelChange)="onMotifChange($event)"
+                          name="motifInvoqueParEmployeur"></textarea>
+                <mat-hint>Motif tel qu'il figure dans la lettre de licenciement.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la protection</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-protection-grossesse-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner {{ verdictClass(result()!.verdict) }}" role="status">
+            <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel(result()!.verdict) }}
+              </div>
+              <div class="result-banner-sub">
+                @if (result()!.licenciementDansLaPeriodeProtegee) {
+                  Licenciement intervenu dans la période protégée
+                  ({{ formatDate(result()!.dateDebutProtection) }} →
+                  {{ formatDate(result()!.dateFinProtection) }}).
+                } @else {
+                  Licenciement hors période protégée — pas d'indemnité forfaitaire art. 40.
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Bannière avertissement éventuelle (date fin protection indéterminée…) -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <!-- Alerte spéciale charge de preuve inversée -->
+          @if (result()!.chargePreuveEmployeur) {
+            <div class="result-alert result-alert--severe" role="alert">
+              <mat-icon>gavel</mat-icon>
+              <span>
+                <b>Charge de la preuve inversée</b> —
+                l'employeur doit prouver le motif étranger à la grossesse
+                (présomption irréfragable, notification écrite + licenciement
+                ≤ 10 sem post début grossesse).
+              </span>
+            </div>
+          }
+
+          <!-- Détail breakdown -->
+          <ul class="result-breakdown">
+            <li>
+              <span class="bd-label">Période protégée</span>
+              <span class="bd-value bd-value--mono">
+                [{{ formatDate(result()!.dateDebutProtection) }} ;
+                {{ formatDate(result()!.dateFinProtection) }}]
+              </span>
+            </li>
+            <li>
+              <span class="bd-label">Date du licenciement</span>
+              <span class="bd-value">{{ formatDate(result()!.dateLicenciement) }}</span>
+            </li>
+            <li>
+              <span class="bd-label">Notification écrite</span>
+              <span class="bd-value">
+                {{ result()!.grossesseNotifieeParEcrit ? 'Oui' : 'Non' }}
+              </span>
+            </li>
+            <li>
+              <span class="bd-label">Rémunération mensuelle brute</span>
+              <span class="bd-value">{{ formatEuro(result()!.remunerationMensuelleBrute) }}</span>
+            </li>
+            @if (result()!.verdict !== 'HORS_PERIODE_PROTECTION') {
+              <li class="result-breakdown-total">
+                <span class="bd-label">Indemnité forfaitaire (6 × rémunération)</span>
+                <span class="bd-value">{{ formatEuro(result()!.indemniteForfaitaire) }}</span>
+              </li>
+            }
+            <li>
+              <span class="bd-label">Formule</span>
+              <span class="bd-value bd-value--mono">{{ result()!.formuleCalcul }}</span>
+            </li>
+          </ul>
+
+          <div class="result-meta">
+            <span class="result-meta-base">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
