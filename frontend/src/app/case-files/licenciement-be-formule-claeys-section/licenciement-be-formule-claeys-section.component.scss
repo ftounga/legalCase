@@ -1,0 +1,298 @@
+// SF-213-04b — Section Préavis Formule Claeys BE. Charte F-IA-04 alignée
+// pattern statut-unique-preavis (palette navy/or, info bleue, ambre alert
+// jurisprudentiel).
+//
+// Design system :
+// - Inter (UI), Merriweather (titres long), JetBrains Mono (formules / base juridique)
+// - Espacements multiples de 4px
+// - Bordures arrondies 8px
+// - Couleurs : navy #1A3A5C / or #C9973A / ambre #92400E / rouge #9B1B1B
+
+.licenciement-be-formule-claeys-section {}
+
+.section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #1A3A5C;
+
+  &:hover { opacity: 0.8; }
+
+  .section-icon { color: #C9973A; }
+  .section-title {
+    flex: 1; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .section-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 2px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+
+    &.verdict-info     { background: #E6F0FA; color: #1A3A5C; }
+    &.verdict-warn     { background: #FEF7E6; color: #92400E; }
+    &.verdict-critical { background: #FCE9E9; color: #9B1B1B; }
+  }
+  .section-chevron { color: #6B7A8D; font-size: 20px; }
+}
+
+.licenciement-be-formule-claeys-body {
+  padding: 0 4px;
+}
+
+.empty-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  background: #F7F9FC;
+  border-radius: 8px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+
+  mat-icon { color: #C9973A; flex-shrink: 0; }
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.questionnaire {
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.form-help {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-full-width {
+  grid-column: 1 / -1;
+}
+
+.clause-sauvegarde-row {
+  padding: 12px 0;
+  border-top: 1px dashed #E0E4EA;
+  border-bottom: 1px dashed #E0E4EA;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #1A2330;
+  }
+}
+
+.form-field {
+  width: 100%;
+}
+
+.checkbox-help {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #6B7A8D;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.licenciement-be-formule-claeys-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+}
+
+.result-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #1A3A5C;
+  background: rgba(26, 58, 92, 0.06);
+
+  mat-icon { flex-shrink: 0; color: #1A3A5C; }
+
+  &.verdict-info {
+    border-left-color: #1A3A5C;
+    background: #E6F0FA;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.result-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.result-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1A2330;
+}
+
+.result-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+}
+
+.result-banner-mono {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: #1A2330;
+}
+
+// Bannière avertissement jurisprudentiel (TOUJOURS présente)
+.result-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #FEF7E6;
+  border-left: 4px solid #C9973A;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.5;
+
+  mat-icon { color: #92400E; flex-shrink: 0; }
+}
+
+.result-breakdown {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: rgba(26, 35, 48, 0.03);
+
+    &.result-breakdown-total {
+      background: rgba(201, 151, 58, 0.10);
+      border-left: 3px solid #C9973A;
+
+      .bd-value { font-weight: 700; color: #1A2330; }
+    }
+  }
+}
+
+.bd-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+}
+
+.bd-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A2330;
+
+  &--mono {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 12px;
+    text-align: right;
+    word-break: break-all;
+  }
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #E0E4EA;
+}
+
+.result-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: #6B7A8D;
+  font-style: italic;
+}

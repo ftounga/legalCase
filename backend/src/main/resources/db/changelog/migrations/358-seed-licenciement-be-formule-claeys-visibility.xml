@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="e6f78901-2345-4678-9012-3456abcdef01-seed-formule-claeys" author="legalcase">
+        <comment>
+            SF-213-04b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Préavis Formule Claeys BE" (licenciement-be-formule-claeys,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses créée par SF-213-04
+            (migration 357).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            La mini-spec SF-213-04b envisageait CONTEXTUAL avec
+            `trigger_field = 'date_contrat_pre_2014'`. Aucun flag boolean
+            dédié n'existe en DB (`travail_extracted_data` ne contient que
+            les flags F-204 : harcelement_be_detecte,
+            discrimination_be_detectee, inaptitude_medicale_be_detectee,
+            heures_sup_mentionnees_be, motif_grave_be_envisage). Créer un
+            flag dédié juste pour cet outil ajouterait une migration data
+            + adaptation pipeline IA sans valeur ajoutée — l'outil reste
+            pertinent même sans détection IA pré-2014 (l'avocat peut
+            l'activer préventivement sur tout dossier où la fraction
+            Claeys est à chiffrer).
+
+            Pattern aligné `licenciement-be-statut-unique-preavis`
+            (SF-213-03b, ALWAYS_ON priority 111, migration 356) et
+            `rappel-salaire-be` (SF-213-02b, ALWAYS_ON priority 110,
+            migration 354). Le filtrage par pertinence est porté côté UI
+            via le toggle `appliquerClauseSauvegarde` (pré-coché true si
+            `dateEntree &lt; 2014-01-01` détectée par le pipeline IA, sinon
+            laissé à défaut true) et le pré-fill IA gracieux (4 champs
+            BE-only : ancienneté pré-2014, rémunération annuelle K€,
+            ancienneté post-2014, salaire hebdo brut).
+
+            Priority 112 — juste au-dessus de `licenciement-be-statut-unique-preavis`
+            (111). Vague F-213 : 110 rappel-salaire-be → 111 statut-unique-preavis
+            → 112 formule-claeys. Slot 113+ réservé aux outils suivants F-213.
+
+            Couplée à l'entrée TOOL_REGISTRY `licenciement-be-formule-claeys`
+            livrée dans decisional-tools-panel.component.ts (cf. SF-213-04b).
+            Sans ce couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            échoue (seed en DB sans entrée TOOL_REGISTRY frontend = outil
+            silencieusement masqué — cas réel F-164 staging 2026-04-26,
+            mémoire `feedback_pre_merge_visibility_seed_check`).
+
+            Fondement juridique :
+            - Ancien art. 82 §3 Loi 03/07/1978 sur les contrats de travail
+              (régime applicable aux employés "supérieurs" pour les contrats
+              antérieurs au 01/01/2014).
+            - Cass. 28/02/2011 RG S.10.0073.F — consécration jurisprudentielle
+              de la "Formule Claeys" comme formule de référence.
+            - Cass. 14/12/2015 RG S.15.0024.F — rappel du caractère
+              jurisprudentiel (pas d'ancrage légal stricto sensu — d'où la
+              bannière `avertissement` systématiquement présente côté UI).
+            - Loi 26/12/2013 portant statut unique, art. 67 — clause de
+              sauvegarde permettant de cumuler la fraction Claeys (pré-2014)
+              avec la fraction statut unique (post-2014) pour les contrats
+              enjambant le 01/01/2014.
+
+            Régime distinct du FR — pas d'équivalent direct. La France ne
+            connaît pas la dichotomie pré-/post-statut unique (le préavis FR
+            repose sur les conventions collectives + L. 1234-1 C. trav.).
+            L'outil ne doit donc pas être affiché pour un workspace FR
+            (gate `country = 'BELGIQUE'` strict).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('e6f78901-2345-4678-9012-3456abcdef01', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-formule-claeys', 'ALWAYS_ON', NULL, NULL, 112);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'e6f78901-2345-4678-9012-3456abcdef01';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
