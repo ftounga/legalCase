@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="eb1d13b3-277b-4ee6-9386-d73f1af427ae" author="claude">
+        <comment>
+            SF-213-08 : table dédiée à l'outil décisionnel "Licenciement BE —
+            protection délégué syndical" (licenciement-be-protection-deleguee,
+            BELGIQUE — fondement : Loi du 19/03/1991 (protection des
+            représentants des travailleurs au CE et CPPT) + CCT n° 5 du
+            24/05/1971 (statut des délégations syndicales)).
+
+            L'outil analyse la validité du licenciement d'un délégué
+            syndical / candidat non élu et calcule l'indemnité forfaitaire :
+            - 4 statuts : DELEGUE_SYNDICAL_ELU, CANDIDAT_NON_ELU,
+              DELEGUE_CCT5, CONSEILLER_CPPT ;
+            - Fenêtre de protection 4 ans (élus, cycle élections sociales)
+              ou 2 ans (candidats non élus + CCT n° 5) à compter de
+              dateElectionOuMandat ;
+            - Verdict binaire : LICENCIEMENT_INTERDIT_SANS_PROCEDURE
+              (dans la fenêtre) | HORS_PERIODE_PROTECTION ;
+            - Indemnité forfaitaire = remunerationAnnuelleBrute × 2
+              (4 si circonstances aggravantes / récidive) ;
+            - Délai de demande de réintégration 30 jours
+              (Loi 19/03/1991 art. 14) avec avertissement explicite si
+              expiré (recours direct tribunal du travail, CJ art. 578).
+
+            Outil single-country BELGIQUE — la France a un dispositif
+            distinct (statut protégé délégué / CSE / conseiller prud'homme,
+            L. 2411-1 et s. C. trav.) avec d'autres procédures et indemnités.
+
+            Snapshot JSON complet (inputs + outputs : verdict, indemnité,
+            délai réintégration) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213-01 à SF-213-07).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-213-08b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="licenciement_be_protection_deleguee_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_licenciement_be_protection_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_protection_deleguee_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_licenciement_be_protection_case_file"/>
+
+        <createIndex tableName="licenciement_be_protection_deleguee_analyses"
+                     indexName="idx_licenciement_be_protection_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_protection_deleguee_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
