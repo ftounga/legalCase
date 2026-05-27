@@ -50,6 +50,41 @@ public class ClaudeJurisprudenceEvaluator {
             }
             """;
 
+    /**
+     * Prompt distinct utilisé en mode bootstrap initial — il n'existe encore aucun
+     * mapping pour ce couple (outil × branche), donc CONFIRM / REPLACE / ARCHIVE
+     * n'ont pas de sens. Claude doit choisir l'arrêt le plus structurant parmi
+     * les candidats, et n'a le droit de renvoyer NONE que si aucun candidat
+     * n'est pertinent (SF-JU-01-08).
+     */
+    private static final String SYSTEM_PROMPT_BOOTSTRAP = """
+            Tu es un juriste senior spécialisé en jurisprudence française.
+            On démarre le bootstrap initial des mappings de jurisprudence : pour un
+            couple (outil décisionnel × branche de calcul), AUCUN arrêt n'est encore
+            cité. On te présente 1 à N arrêts entrants candidats issus de JUDILIBRE.
+            Tu dois choisir l'arrêt le plus structurant pour fonder ce mapping.
+
+            Actions autorisées : ADD ou NONE uniquement.
+
+            Règles :
+            - ADD : sélectionne l'arrêt le plus structurant parmi les candidats
+              (priorité aux arrêts de la Cour de cassation, formations plénières
+              ou de section, publiés au Bulletin, qui posent un principe applicable
+              à la branche de calcul). Renseigne arret_choisi_id avec son id JUDILIBRE.
+            - NONE : à n'utiliser QUE si aucun candidat ne traite la branche de calcul
+              concernée. Tu dois préférer ADD chaque fois qu'un candidat raisonnable
+              existe — le but du bootstrap est d'amorcer le mapping, pas de viser
+              l'arrêt parfait.
+
+            Réponds UNIQUEMENT par un JSON :
+            {
+              "action": "ADD" | "NONE",
+              "arret_choisi_id": "<id JUDILIBRE ou null>",
+              "confidence_score": 0.0 à 1.0,
+              "raison": "<une phrase>"
+            }
+            """;
+
     private final AnthropicService anthropic;
     private final ObjectMapper objectMapper;
 
@@ -62,10 +97,11 @@ public class ClaudeJurisprudenceEvaluator {
         if (candidates == null || candidates.isEmpty()) {
             return ClaudeEvaluation.none("Pas de candidat à évaluer");
         }
+        String systemPrompt = pickSystemPrompt(mapping);
         String userMessage = buildUserMessage(mapping, candidates);
         AnthropicResult result;
         try {
-            result = anthropic.analyze(SYSTEM_PROMPT, userMessage, MAX_TOKENS);
+            result = anthropic.analyze(systemPrompt, userMessage, MAX_TOKENS);
         } catch (Exception e) {
             log.warn("F-JU-01 — ClaudeJurisprudenceEvaluator anthropic call failed: {}", e.getMessage());
             return ClaudeEvaluation.none("Claude indisponible: " + e.getMessage());
@@ -105,6 +141,14 @@ public class ClaudeJurisprudenceEvaluator {
             log.warn("F-JU-01 — ClaudeJurisprudenceEvaluator parse fail: {}", e.getMessage());
             return ClaudeEvaluation.none("Parsing JSON invalide");
         }
+    }
+
+    private String pickSystemPrompt(ToolJurisprudenceMapping mapping) {
+        String ref = mapping == null ? null : mapping.getArretRef();
+        if (ref != null && ref.startsWith(JurisprudenceBootstrapService.BOOTSTRAP_MAPPING_REF_PREFIX)) {
+            return SYSTEM_PROMPT_BOOTSTRAP;
+        }
+        return SYSTEM_PROMPT;
     }
 
     private String buildUserMessage(ToolJurisprudenceMapping mapping, List<JudilibreArret> candidates) {

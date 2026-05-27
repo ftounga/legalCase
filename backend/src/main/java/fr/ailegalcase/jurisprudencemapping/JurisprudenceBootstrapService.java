@@ -26,6 +26,17 @@ public class JurisprudenceBootstrapService {
 
     private static final Logger log = LoggerFactory.getLogger(JurisprudenceBootstrapService.class);
 
+    /**
+     * Sentinelle inscrite dans {@code arretRef} du {@code pseudoMapping} construit par
+     * {@link #pseudoMappingFromEntry(JurisprudenceBootstrapEntry)} pour distinguer
+     * le mode bootstrap initial (sans mapping pré-existant) du mode dérive
+     * (cron veille mensuelle / dérive quotidienne sur un mapping réel).
+     *
+     * <p>Visibilité package : importée par {@link ClaudeJurisprudenceEvaluator} pour
+     * basculer sur {@code SYSTEM_PROMPT_BOOTSTRAP} (SF-JU-01-08).</p>
+     */
+    static final String BOOTSTRAP_MAPPING_REF_PREFIX = "(bootstrap initial";
+
     private final JudilibreApiClient judilibreClient;
     private final ClaudeJurisprudenceEvaluator evaluator;
     private final ToolJurisprudenceMappingRepository mappingRepository;
@@ -137,7 +148,7 @@ public class JurisprudenceBootstrapService {
         ToolJurisprudenceMapping m = new ToolJurisprudenceMapping();
         m.setToolId(entry.toolId());
         m.setBrancheCalculId(entry.brancheCalculId());
-        m.setArretRef("(bootstrap initial — pas de mapping actuel)");
+        m.setArretRef(BOOTSTRAP_MAPPING_REF_PREFIX + " — pas de mapping actuel)");
         m.setJuridiction(entry.juridictionFiltre() == null ? "" : entry.juridictionFiltre());
         m.setDateArret(LocalDate.now());
         m.setNumeroPourvoi("");

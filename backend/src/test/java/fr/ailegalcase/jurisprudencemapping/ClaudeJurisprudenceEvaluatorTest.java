@@ -10,10 +10,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.mockito.ArgumentCaptor;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ClaudeJurisprudenceEvaluatorTest {
@@ -106,6 +110,75 @@ class ClaudeJurisprudenceEvaluatorTest {
         assertThat(result.confidenceScore()).isEqualByComparingTo(new BigDecimal("0.95"));
     }
 
+    // --- SF-JU-01-08 — bascule mode bootstrap vs mode dérive ---
+
+    @Test
+    void evaluate_realMapping_usesDerivePrompt() {
+        when(anthropic.analyze(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult(
+                        "{\"action\":\"CONFIRM\",\"confidence_score\":0.9,\"raison\":\"ok\"}",
+                        "claude-sonnet", 100, 50));
+
+        evaluator.evaluate(buildMapping(), List.of(buildArret("AAA")));
+
+        ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
+        verify(anthropic).analyze(systemCaptor.capture(), any(), eq(600));
+        String systemPrompt = systemCaptor.getValue();
+        assertThat(systemPrompt).contains("CONFIRM, ADD, REPLACE, ARCHIVE, NONE");
+        assertThat(systemPrompt).doesNotContain("bootstrap initial");
+    }
+
+    @Test
+    void evaluate_bootstrapMapping_usesBootstrapPrompt() {
+        when(anthropic.analyze(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult(
+                        "{\"action\":\"ADD\",\"arret_choisi_id\":\"AAA\",\"confidence_score\":0.85,\"raison\":\"structurant\"}",
+                        "claude-sonnet", 100, 50));
+
+        evaluator.evaluate(buildBootstrapMapping(), List.of(buildArret("AAA")));
+
+        ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
+        verify(anthropic).analyze(systemCaptor.capture(), any(), eq(600));
+        String systemPrompt = systemCaptor.getValue();
+        assertThat(systemPrompt).contains("bootstrap initial");
+        assertThat(systemPrompt).contains("Actions autorisées : ADD ou NONE uniquement");
+        assertThat(systemPrompt).doesNotContain("REPLACE");
+        assertThat(systemPrompt).doesNotContain("ARCHIVE");
+        assertThat(systemPrompt).doesNotContain("CONFIRM");
+    }
+
+    @Test
+    void evaluate_bootstrapMapping_addReply_returnsArret() {
+        JudilibreArret picked = buildArret("BBB");
+        when(anthropic.analyze(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult(
+                        "{\"action\":\"ADD\",\"arret_choisi_id\":\"BBB\",\"confidence_score\":0.9,\"raison\":\"structurant\"}",
+                        "claude-sonnet", 100, 50));
+
+        ClaudeEvaluation result = evaluator.evaluate(
+                buildBootstrapMapping(),
+                List.of(buildArret("AAA"), picked));
+
+        assertThat(result.action()).isEqualTo(EvaluationAction.ADD);
+        assertThat(result.arretChoisi()).isSameAs(picked);
+        assertThat(result.confidenceScore()).isEqualByComparingTo(new BigDecimal("0.90"));
+    }
+
+    @Test
+    void evaluate_bootstrapMapping_noneReply_returnsNone() {
+        when(anthropic.analyze(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult(
+                        "{\"action\":\"NONE\",\"arret_choisi_id\":null,\"confidence_score\":0.4,\"raison\":\"aucun candidat pertinent\"}",
+                        "claude-sonnet", 100, 50));
+
+        ClaudeEvaluation result = evaluator.evaluate(
+                buildBootstrapMapping(),
+                List.of(buildArret("AAA")));
+
+        assertThat(result.action()).isEqualTo(EvaluationAction.NONE);
+        assertThat(result.arretChoisi()).isNull();
+    }
+
     private ToolJurisprudenceMapping buildMapping() {
         ToolJurisprudenceMapping m = new ToolJurisprudenceMapping();
         m.setToolId("f-dt-30");
@@ -117,6 +190,20 @@ class ClaudeJurisprudenceEvaluatorTest {
         m.setLienLegifrance("https://www.legifrance.gouv.fr/juri/id/X");
         m.setChapeauOfficiel("Test chapeau.");
         m.setConfidenceScore(new BigDecimal("0.90"));
+        return m;
+    }
+
+    private ToolJurisprudenceMapping buildBootstrapMapping() {
+        ToolJurisprudenceMapping m = new ToolJurisprudenceMapping();
+        m.setToolId("f-dt-99-test");
+        m.setBrancheCalculId("branche-bootstrap-test");
+        m.setArretRef(JurisprudenceBootstrapService.BOOTSTRAP_MAPPING_REF_PREFIX + " — pas de mapping actuel)");
+        m.setJuridiction("");
+        m.setDateArret(LocalDate.of(2026, 5, 27));
+        m.setNumeroPourvoi("");
+        m.setLienLegifrance("");
+        m.setChapeauOfficiel("Recherche : mot-clé test");
+        m.setConfidenceScore(new BigDecimal("0.00"));
         return m;
     }
 
