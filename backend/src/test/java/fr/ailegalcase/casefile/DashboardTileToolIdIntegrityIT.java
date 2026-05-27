@@ -338,7 +338,11 @@ class DashboardTileToolIdIntegrityIT {
             // GET du snapshot, pas de besoin métier tuile dashboard immédiat).
             // À résorber par la session F-213 propriétaire qui consolidera les
             // outils P2 BE en lot.
-            "licenciement-be-protection-grossesse"
+            "licenciement-be-protection-grossesse",
+            // SF-213-06 (2026-05-27) : transaction-be-travail backend livré
+            // sans tuile DashboardTile (frontend SF-213-06b à venir). Même
+            // pattern que les 4 outils ci-dessus.
+            "transaction-be-travail"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
