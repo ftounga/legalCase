@@ -1,0 +1,255 @@
+<div class="transaction-be-travail-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">handshake</mat-icon>
+    <span class="section-title">Transaction fin de contrat (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge {{ verdictClass(result()!.verdict) }}">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="transaction-be-travail-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (art. 2044 Code civil belge + Loi du 03/07/1978 art. 6 —
+            validité d'une transaction de fin de contrat). Le régime
+            français (art. 2044 Cciv FR) est distinct et fait l'objet
+            d'un outil dédié.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse la validité d'une transaction de fin de contrat de
+            travail belge (<b>art. 2044 Code civil + Loi 03/07/1978
+            art. 6</b>). La transaction suppose des concessions
+            réciproques, une mention de litige né ou à naître, et
+            n'autorise <b>pas</b> la renonciation à un droit d'ordre
+            public. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Montant transaction brut * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Montant total brut proposé (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="montantTransactionBrut()"
+                       (ngModelChange)="onMontantChange($event)"
+                       name="montantTransactionBrut" />
+                <mat-hint>Montant total brut figurant dans le protocole transactionnel.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Indemnité légale estimée (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Indemnité légale estimée (€)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="indemniteLegaleEtimee()"
+                       (ngModelChange)="onIndemniteChange($event)"
+                       name="indemniteLegaleEtimee" />
+                <mat-hint>ICP + CCT 109 etc. — si renseigné, déclenche le ratio + avertissement &lt; 50 %.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Concessions employeur décrites -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="concessionsEmployeurDescrites()"
+                (change)="onConcessionsChange($event.checked)"
+                name="concessionsEmployeurDescrites">
+                Concessions de l'employeur décrites
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si l'employeur consent quelque chose au-delà du
+                strict dû légal (montant additionnel, libération
+                anticipée, abandon de procédure…). Sans concession,
+                il s'agit d'une quittance, pas d'une transaction
+                (art. 2044 Cciv BE).
+              </span>
+            </div>
+
+            <!-- 4. Renonciations expresses listées -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Renonciations expresses du salarié (une par ligne)</mat-label>
+                <textarea matInput
+                          rows="4"
+                          [ngModel]="renonciationsRaw()"
+                          (ngModelChange)="onRenonciationsRawChange($event)"
+                          name="renonciationsRaw"
+                          placeholder="Ex : Renonciation à l'indemnité de rupture&#10;Renonciation à l'action en réintégration&#10;…"></textarea>
+                <mat-hint>
+                  Chaque ligne non vide = une renonciation. La liste vide
+                  bascule le verdict en À COMPLÉTER (Loi 03/07/1978 :
+                  renonciations expresses et spécifiques requises).
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Renonciation à un droit d'ordre public détectée -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="renonciationOrdrePublicDetectee()"
+                (change)="onOrdrePublicChange($event.checked)"
+                name="renonciationOrdrePublicDetectee">
+                Renonciation à un droit d'ordre public détectée
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si la transaction inclut une renonciation à une
+                disposition impérative ou d'ordre public (créances
+                salariales futures, dispositions impératives CCT…).
+                Si oui → verdict <b>partiellement invalide</b>
+                (Loi 03/07/1978 art. 6).
+              </span>
+            </div>
+
+            <!-- 6. Mention contestation -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="mentionContestation()"
+                (change)="onMentionContestationChange($event.checked)"
+                name="mentionContestation">
+                Mention d'un litige né ou à naître
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si le protocole vise expressément un litige
+                (existant ou potentiel : licenciement contesté,
+                créance salariale disputée…). Sans cette mention,
+                la transaction n'entre pas dans l'art. 2044 Cciv
+                BE (verdict <b>À COMPLÉTER</b>).
+              </span>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la transaction</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="transaction-be-travail-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner {{ verdictClass(result()!.verdict) }}" role="status">
+            <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel(result()!.verdict) }}
+              </div>
+              @if (result()!.raisonInvalidite) {
+                <div class="result-banner-sub">
+                  {{ raisonLabel(result()!.raisonInvalidite) }}
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Bannière avertissement ratio < 50 % -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <!-- Détail breakdown -->
+          <ul class="result-breakdown">
+            <li>
+              <span class="bd-label">Montant transaction brut</span>
+              <span class="bd-value">{{ formatEuro(result()!.montantTransactionBrut) }}</span>
+            </li>
+            @if (result()!.indemniteLegaleEtimee !== null) {
+              <li>
+                <span class="bd-label">Indemnité légale estimée</span>
+                <span class="bd-value">{{ formatEuro(result()!.indemniteLegaleEtimee) }}</span>
+              </li>
+            }
+            @if (result()!.ratioPourcentage !== null) {
+              <li>
+                <span class="bd-label">Ratio (transaction / indemnité)</span>
+                <span class="bd-value bd-value--mono">{{ formatRatio(result()!.ratioPourcentage) }}</span>
+              </li>
+            }
+            <li>
+              <span class="bd-label">Concessions employeur décrites</span>
+              <span class="bd-value">{{ result()!.concessionsEmployeurDescrites ? 'Oui' : 'Non' }}</span>
+            </li>
+            <li>
+              <span class="bd-label">Mention de litige</span>
+              <span class="bd-value">{{ result()!.mentionContestation ? 'Oui' : 'Non' }}</span>
+            </li>
+            <li>
+              <span class="bd-label">Renonciation à un droit d'ordre public</span>
+              <span class="bd-value">{{ result()!.renonciationOrdrePublicDetectee ? 'Oui' : 'Non' }}</span>
+            </li>
+          </ul>
+
+          <!-- Checklist des renonciations -->
+          @if (result()!.checklistRenonciations && result()!.checklistRenonciations.length > 0) {
+            <div class="checklist-section">
+              <h4 class="checklist-title">Checklist des renonciations</h4>
+              <ul class="checklist-list" role="list">
+                @for (item of result()!.checklistRenonciations; track $index) {
+                  <li class="checklist-item" [class.checklist-item--invalid]="!item.valide">
+                    <mat-icon class="checklist-icon">
+                      {{ item.valide ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                    <span class="checklist-label">{{ item.item }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
