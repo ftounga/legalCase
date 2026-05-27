@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c4d5e6f7-8901-4234-5678-90abcdef0123-seed-statut-unique-preavis" author="legalcase">
+        <comment>
+            SF-213-03b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Préavis statut unique BE" (licenciement-be-statut-unique-preavis,
+            BELGIQUE, DROIT_DU_TRAVAIL), table créée par SF-213-03 (migration 355).
+
+            Visibility ALWAYS_ON : le calculateur de préavis est un réflexe
+            transversal sur tout dossier de licenciement BE. Depuis l'entrée
+            en vigueur du statut unique (Loi 26/12/2013, effective 01/01/2014),
+            la quasi-totalité des contrats de travail actifs en Belgique
+            sont soumis au barème art. 37/2 §1er Loi 03/07/1978 — l'outil
+            est utilisable dès qu'un licenciement est notifié. Le distinguo
+            avec la fraction Claeys (pré-01/01/2014) est porté côté UI via
+            le checkbox `partieStatutUniqueSeulement` (pré-coché par défaut,
+            dérivé de la date d'entrée IA si disponible).
+
+            Choix ALWAYS_ON plutôt que CONTEXTUAL : la mini-spec SF-213-03b
+            envisageait initialement un flag `date_contrat_post_2014` côté
+            CONTEXTUAL. Aucun flag boolean dédié n'existe en DB
+            (`travail_extracted_data` ne contient que les flags F-204 :
+            harcelement_be_detecte, discrimination_be_detectee,
+            inaptitude_medicale_be_detectee, heures_sup_mentionnees_be,
+            motif_grave_be_envisage). Créer un flag dédié juste pour cet
+            outil ajouterait une migration data + adaptation pipeline IA
+            sans valeur ajoutée — l'outil reste pertinent même sans
+            détection IA de licenciement, l'avocat peut le lancer
+            préventivement. Pattern aligné `rappel-salaire-be` (SF-213-02b,
+            ALWAYS_ON, migration 354).
+
+            Couplée à l'entrée TOOL_REGISTRY `licenciement-be-statut-unique-preavis`
+            livrée dans decisional-tools-panel.component.ts (cf. SF-213-03b).
+            Sans ce couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            échoue (seed en DB sans entrée TOOL_REGISTRY frontend = outil
+            silencieusement masqué — cas réel F-164 staging 2026-04-26,
+            mémoire `feedback_pre_merge_visibility_seed_check`).
+
+            Priority 111 — au-dessus de `rappel-salaire-be` (110) qui prend
+            le slot ouvert pour la vague F-213. Slot 112+ réservé aux outils
+            suivants F-213 (SF-213-04 Formule Claeys notamment).
+
+            Fondement juridique :
+            - Loi du 26 décembre 2013 portant introduction d'un statut unique
+              entre ouvriers et employés (entrée en vigueur 01/01/2014).
+            - Loi du 3 juillet 1978 sur les contrats de travail, art. 37/2,
+              §1er, al. 1 — barème statut unique : 1 sem (0-3 mois),
+              3 sem (3-6 mois), 4 sem (6-9 mois), 5 sem (9-12 mois),
+              6 sem (12-15 mois), …, puis croissance par paliers.
+            - CCT du Conseil National du Travail n° 109 du 12 février 2014 —
+              motivation du licenciement (corolaire procédural).
+
+            Régime distinct du FR (préavis FR : barème conventions
+            collectives + L. 1234-1 C. trav. — 1 à 2 mois selon ancienneté,
+            sans paliers en semaines) — l'outil n'a pas d'équivalent direct
+            côté France et ne doit donc pas être affiché pour un workspace FR.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('c4d5e6f7-8901-4234-5678-90abcdef0123', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-statut-unique-preavis', 'ALWAYS_ON', NULL, NULL, 111);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'c4d5e6f7-8901-4234-5678-90abcdef0123';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
