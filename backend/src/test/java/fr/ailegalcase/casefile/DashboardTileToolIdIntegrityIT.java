@@ -401,7 +401,13 @@ class DashboardTileToolIdIntegrityIT {
             // Frontend SF-219-03b à venir. Pattern uniforme F-213 / F-217
             // / F-219 vagues — préventif pour éviter master-red dès le seed
             // visibility frontend.
-            "rcc-be-entreprise-difficulte"
+            "rcc-be-entreprise-difficulte",
+            // SF-215-04 (2026-05-27) : F-IM-26-regroupement-10ter-be — seed visibility
+            // mergé par PR #1365 sans ajout à KNOWN_NO_DASHBOARD_TILE_IDS, ce qui
+            // a déclenché un master-red persistant. Hotfix tardif pour rétablir
+            // CI master vert (pattern uniforme F-213 / F-215 / F-217 / F-219).
+            // Frontend SF-215-04b si applicable, sinon outil backend-only.
+            "F-IM-26-regroupement-10ter-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
