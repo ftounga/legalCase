@@ -65,6 +65,8 @@ import { SinglePermitBeSectionComponent } from '../single-permit-be-section/sing
 import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-section/regroupement-10ter-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
+// SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
+import { Naturalisation12bisBeSectionComponent } from '../naturalisation-12bis-be-section/naturalisation-12bis-be-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1486,6 +1488,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-27-regroupement-10bis-be', {
         displayLabel: 'Regroupement familial 10bis (BE)',
         component: Regroupement10bisBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be —
+      // naturalisation art. 12bis (BE). BELGIQUE uniquement, CONTEXTUAL via flag
+      // `naturalisation_be_envisagee`. Pré-fill IA RÉEL 3 champs (dureeSejour,
+      // typeSejour, niveauLangue) via static getPrefillCount +
+      // Naturalisation12bisBePrefillRules. Les 4 checkboxes restantes
+      // (preuveIntegration, preuveEmploi, menaceOrdrePublic, condamnationPenale)
+      // sont aspirationnelles — `PREFILL_COUNT_ALWAYS_ZERO`.
+      // Verdict : VOIE_5_ANS / VOIE_10_ANS (vert) ou AUCUNE (rouge) +
+      // dureeManquante (mois) si > 0.
+      ['F-IM-28-naturalisation-12bis-be', {
+        displayLabel: 'Naturalisation 12bis (BE)',
+        component: Naturalisation12bisBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3422,6 +3443,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Symétrie avec F-IM-26 / F-IM-14 (visibility CONTEXTUAL via flag
     // `regroupement_10bis_detecte`).
     ['F-IM-27-regroupement-10bis-be', 'VALIDITE'],
+    // SF-215-08 : F-IM-28-naturalisation-12bis-be naturalisation 12bis (BE).
+    // Thème VALIDITE — analyseur d'éligibilité 2 voies (5 ans / 10 ans) +
+    // verdict AUCUNE. Symétrie avec F-IM-13-naturalisation FR (visibility
+    // CONTEXTUAL via flag `naturalisation_be_envisagee`).
+    ['F-IM-28-naturalisation-12bis-be', 'VALIDITE'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],

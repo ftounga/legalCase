@@ -1,0 +1,252 @@
+<section class="nat12bis-section">
+  <header class="nat12bis-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="nat12bis-body">
+    <mat-icon class="nat12bis-icon">flag</mat-icon>
+    <span class="nat12bis-title">NATURALISATION 12BIS (BE)</span>
+    @if (result()) {
+      <span [class]="voieChipClass(result()!.voieEligible)">
+        {{ voieLabel(result()!.voieEligible) }}
+      </span>
+    }
+    <mat-icon class="nat12bis-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="nat12bis-body" class="nat12bis-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="nat12bis-banner nat12bis-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="nat12bis-banner-content">
+            <div class="nat12bis-banner-title">Outil Belgique uniquement</div>
+            <div class="nat12bis-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. La déclaration
+              de nationalité art. 12bis (Code de la nationalité belge) ne
+              s'applique pas. Pour la France, voir l'outil
+              <strong>Naturalisation (FR)</strong> (F-IM-13).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="nat12bis-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="nat12bis-form" (ngSubmit)="analyze()">
+              <div class="nat12bis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée du séjour légal (mois)</mat-label>
+                  <input matInput type="number" required min="0" max="600" step="1"
+                         data-testid="duree-sejour-input"
+                         [ngModel]="dureeSejour()"
+                         (ngModelChange)="onDureeSejourChange($event)"
+                         name="dureeSejour"
+                         appCoherencePopoverTrigger
+                         [coherenceAlert]="coherenceAlerts().DUREE_SEJOUR || null" />
+                </mat-form-field>
+                @if (provenanceDureeSejour() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                <div class="nat12bis-hint">
+                  Voie 5 ans : ≥ {{ dureeVoie5Ans }} mois — Voie 10 ans : ≥ {{ dureeVoie10Ans }} mois.
+                </div>
+              </div>
+
+              <div class="nat12bis-field-wrap nat12bis-field-wrap--full">
+                <span class="nat12bis-radio-label">Type de séjour actuel</span>
+                <mat-radio-group
+                    [ngModel]="typeSejour()"
+                    (ngModelChange)="onTypeSejourChange($event)"
+                    name="typeSejour"
+                    required
+                    class="nat12bis-radio-group">
+                  @for (opt of typesSejour; track opt.code) {
+                    <mat-radio-button [value]="opt.code" [attr.data-testid]="'type-sejour-' + opt.code">
+                      {{ opt.label }}
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+                @if (provenanceTypeSejour() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                <div class="nat12bis-hint">
+                  Seul un séjour <strong>illimité</strong> (carte B / C / D / F+ / K / L) ouvre l'une des deux voies 12bis.
+                </div>
+              </div>
+
+              <div class="nat12bis-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Niveau de langue (FR / NL / DE)</mat-label>
+                  <mat-select required
+                              [ngModel]="niveauLangue()"
+                              (ngModelChange)="onNiveauLangueChange($event)"
+                              name="niveauLangue">
+                    @for (opt of niveauxLangue; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceNiveauLangue() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="nat12bis-field-wrap nat12bis-field-wrap--full">
+                <mat-checkbox
+                    data-testid="preuve-integration-checkbox"
+                    [ngModel]="preuveIntegration()"
+                    (ngModelChange)="onPreuveIntegrationChange($event)"
+                    name="preuveIntegration">
+                  Preuve d'intégration sociale (cours régional validé : Parcours d'intégration Wallonie / Inburgering Flandre / Bruxelles-Inburgering)
+                </mat-checkbox>
+              </div>
+              <div class="nat12bis-field-wrap nat12bis-field-wrap--full">
+                <mat-checkbox
+                    data-testid="preuve-emploi-checkbox"
+                    [ngModel]="preuveEmploi()"
+                    (ngModelChange)="onPreuveEmploiChange($event)"
+                    name="preuveEmploi">
+                  Preuve d'intégration économique (emploi : 468 jours travaillés sur 5 ans — fiches de paie / attestations Onem)
+                </mat-checkbox>
+              </div>
+              <div class="nat12bis-field-wrap nat12bis-field-wrap--full">
+                <mat-checkbox
+                    data-testid="menace-ordre-public-checkbox"
+                    [ngModel]="menaceOrdrePublic()"
+                    (ngModelChange)="onMenaceOrdrePublicChange($event)"
+                    name="menaceOrdrePublic">
+                  Menace pour l'ordre public ou la sécurité nationale
+                </mat-checkbox>
+              </div>
+              <div class="nat12bis-field-wrap nat12bis-field-wrap--full">
+                <mat-checkbox
+                    data-testid="condamnation-penale-checkbox"
+                    [ngModel]="condamnationPenale()"
+                    (ngModelChange)="onCondamnationPenaleChange($event)"
+                    name="condamnationPenale">
+                  Condamnation pénale (peine d'emprisonnement effective)
+                </mat-checkbox>
+              </div>
+
+              <div class="nat12bis-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="nat12bis-result">
+              <div [class]="voieBannerClass(result()!.voieEligible)" role="status">
+                <mat-icon>{{ voieIcon(result()!.voieEligible) }}</mat-icon>
+                <div class="nat12bis-banner-content">
+                  <div class="nat12bis-banner-title">{{ voieLabel(result()!.voieEligible) }}</div>
+                  <div class="nat12bis-banner-sub">
+                    Voie 5 ans : {{ result()!.voie5Ans ? 'oui' : 'non' }} —
+                    Voie 10 ans : {{ result()!.voie10Ans ? 'oui' : 'non' }}
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.dureeManquante > 0) {
+                <div class="nat12bis-duree-manquante" data-testid="duree-manquante-block">
+                  <span class="nat12bis-duree-label">Délai restant</span>
+                  <span class="nat12bis-duree-value">{{ result()!.dureeManquante }} mois à attendre</span>
+                </div>
+              }
+
+              @if (result()!.voie5Ans) {
+                <div class="nat12bis-info-bloc" data-testid="info-voie-5-ans">
+                  <mat-icon>school</mat-icon>
+                  <span>
+                    <strong>Intégration sociale (voie 5 ans)</strong> — cours régional
+                    validé : Parcours d'intégration Wallonie / Inburgering Flandre /
+                    Bruxelles-Inburgering.
+                  </span>
+                </div>
+              }
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="nat12bis-criteres-block">
+                  <div class="nat12bis-criteres-label">Critères non remplis</div>
+                  <mat-list class="nat12bis-criteres-list">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-list-item class="nat12bis-criteres-item">
+                        <mat-icon matListItemIcon class="nat12bis-criteres-icon">cancel</mat-icon>
+                        <span matListItemTitle>{{ c }}</span>
+                      </mat-list-item>
+                    }
+                  </mat-list>
+                </div>
+              }
+
+              <ul class="nat12bis-breakdown">
+                <li>
+                  <span class="nat12bis-bd-label">Durée du séjour</span>
+                  <span class="nat12bis-bd-value nat12bis-bd-value--mono">{{ result()!.dureeSejour }} mois</span>
+                </li>
+                <li>
+                  <span class="nat12bis-bd-label">Type de séjour</span>
+                  <span class="nat12bis-bd-value">{{ typeSejourLabel(result()!.typeSejour) }}</span>
+                </li>
+                <li>
+                  <span class="nat12bis-bd-label">Niveau de langue</span>
+                  <span class="nat12bis-bd-value">{{ niveauLangueLabel(result()!.niveauLangue) }}</span>
+                </li>
+                <li>
+                  <span class="nat12bis-bd-label">Preuve d'intégration sociale</span>
+                  <span class="nat12bis-bd-value">{{ result()!.preuveIntegration ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="nat12bis-bd-label">Preuve d'intégration économique</span>
+                  <span class="nat12bis-bd-value">{{ result()!.preuveEmploi ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="nat12bis-bd-label">Menace ordre public</span>
+                  <span class="nat12bis-bd-value">{{ result()!.menaceOrdrePublic ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="nat12bis-bd-label">Condamnation pénale</span>
+                  <span class="nat12bis-bd-value">{{ result()!.condamnationPenale ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              <div class="nat12bis-procedure">
+                <mat-icon>account_balance</mat-icon>
+                <span><strong>Procédure :</strong> {{ result()!.procedureReference }}</span>
+              </div>
+
+              <div class="nat12bis-meta">
+                <span class="nat12bis-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

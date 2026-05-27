@@ -1442,6 +1442,34 @@ export interface ImmigrationExtractedData {
    * Synonyme métier de `regroupement_10bis_detecte` côté backend.
    */
   regroupementTiersLimiteDetecte?: boolean | null;
+  /**
+   * SF-215-07 / SF-215-08 — Pré-fill outil F-IM-28-naturalisation-12bis-be
+   * « Naturalisation art. 12bis (BE) » — Code de la nationalité belge
+   * (Loi 28/06/1984, mod. Loi 04/12/2012). BELGIQUE uniquement —
+   * dossier FR : null. Tous nullables.
+   *
+   * `naturalisationBeDureeSejour` : durée du séjour légal en mois (entier 0–600).
+   * `naturalisationBeTypeSejour`  : statut du titre — `LIMITE` (carte A)
+   *   ou `ILLIMITE` (carte B / C / D / F+ / K / L). Seul `ILLIMITE` ouvre
+   *   l'une des deux voies 12bis.
+   * `naturalisationBeNiveauLangue`: niveau atteint dans une des 3 langues
+   *   officielles — `INFERIEUR_A2` / `A2` / `SUPERIEUR_A2` (CECRL).
+   *
+   * NB : les 4 critères restants (preuveIntegration, preuveEmploi,
+   * menaceOrdrePublic, condamnationPenale) sont aspirationnels —
+   * `PREFILL_COUNT_ALWAYS_ZERO` côté UI car le LLM ne peut pas les
+   * inférer de manière fiable depuis les pièces du dossier.
+   */
+  naturalisationBeDureeSejour?: number | null;
+  naturalisationBeTypeSejour?: 'LIMITE' | 'ILLIMITE' | null;
+  naturalisationBeNiveauLangue?: 'INFERIEUR_A2' | 'A2' | 'SUPERIEUR_A2' | null;
+  /**
+   * SF-215-07 / SF-215-08 — Flag de visibilité CONTEXTUAL pour l'outil
+   * F-IM-28-naturalisation-12bis-be. True si le pipeline IA détecte une
+   * démarche de naturalisation 12bis envisagée. Synonyme métier de
+   * `naturalisation_be_envisagee` côté backend.
+   */
+  naturalisationBeEnvisagee?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

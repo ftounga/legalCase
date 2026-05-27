@@ -271,6 +271,16 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   // (`mise-a-pied-disciplinaire-section`), alors que la dérivation
   // kebab-case standard collerait `APied` → `apied`.
   ['MiseAPiedDisciplinaireSectionComponent', 'mise-a-pied-disciplinaire-section'],
+  // SF-215-04 — le dossier réel insère un tiret entre `regroupement` et `10ter`
+  // (`regroupement-10ter-be-section`), alors que la dérivation kebab-case
+  // standard collerait `Regroupement10ter` → `regroupement10ter`. Même cas
+  // de figure que Belgian9bis / Belgian40ter ci-dessus.
+  ['Regroupement10terBeSectionComponent', 'regroupement-10ter-be-section'],
+  // SF-215-06 — idem pour `regroupement-10bis-be-section`.
+  ['Regroupement10bisBeSectionComponent', 'regroupement-10bis-be-section'],
+  // SF-215-08 — idem pour `naturalisation-12bis-be-section` :
+  // `Naturalisation12bis` collerait `naturalisation12bis`.
+  ['Naturalisation12bisBeSectionComponent', 'naturalisation-12bis-be-section'],
 ]);
 
 function deriveFolderFromClassName(className: string): string {
