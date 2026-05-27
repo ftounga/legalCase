@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="d4e5f6a7-b8c9-4012-3456-789abcdef012-create-single-permit" author="legalcase">
+        <comment>
+            SF-215-01 : table dédiée à l'outil décisionnel "Permit unique BE"
+            (F-IM-25-single-permit-be, BELGIQUE — fondement : Loi du 30 avril 1999
+            relative à l'emploi des travailleurs étrangers + AR du 02 septembre 2018
+            portant exécution de la Loi du 30/04/1999, notamment art. 23 (délai 60j
+            avant expiration pour le dépôt du renouvellement).
+
+            L'outil calcule :
+            - la date limite de dépôt du renouvellement (dateFinPermit − 60 j) ;
+            - les jours avant expiration ;
+            - le statut renouvellement (DEPOSE_EN_TEMPS &gt; 60j, DANS_DELAI ≤ 60j,
+              URGENT ≤ 30j, EXPIRE après dateFin) ;
+            - la région compétente pour la part "autorisation de travail"
+              (ACTIRIS Bruxelles / VDAB Flandre / FOREM Wallonie) couplée à l'Office
+              des Étrangers pour la part séjour ;
+            - les étapes procédurales selon NOUVEAU vs RENOUVELLEMENT.
+
+            Outil single-country BELGIQUE — les titres salariés FR (CESEDA L.421-1
+            et seq.) relèvent d'une procédure juridiquement distincte couverte par
+            d'autres outils Immigration FR (notamment F-IM-21 changement de statut).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI
+            sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules) est
+            volontairement portée par la migration de SF-215-02 (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou DecisionToolVisibilityIntegrityIT
+            (cas réel F-164 staging 2026-04-26 — 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="single_permit_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_single_permit_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_debut_permit" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_permit" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="region_instruction" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_activite" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_demande" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="single_permit_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_single_permit_be_case_file"/>
+
+        <createIndex tableName="single_permit_be_analyses"
+                     indexName="idx_single_permit_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="single_permit_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
