@@ -1,0 +1,121 @@
+/* SF-215-10 — Outil naturalisation conjoint Belge art. 16 BE. Pattern miroir naturalisation-12bis (SF-215-08). */
+@import '../../simulators/standalone-banner';
+
+.natcjbe-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.natcjbe-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.natcjbe-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.natcjbe-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.natcjbe-chip {
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  &--success { background: rgba(32, 128, 64, 0.14); color: #156135; }
+  &--danger  { background: rgba(192, 36, 36, 0.14); color: #9a1c1c; }
+}
+
+.natcjbe-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.natcjbe-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.natcjbe-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.natcjbe-form {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  mat-form-field { width: 100%; }
+}
+.natcjbe-field-wrap { display: flex; flex-direction: column; gap: 4px; mat-form-field { width: 100%; } }
+.natcjbe-field-wrap--full { grid-column: 1 / -1; }
+
+.natcjbe-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+
+.natcjbe-hint {
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  margin-top: 2px;
+}
+
+.natcjbe-result { display: flex; flex-direction: column; gap: 12px; }
+
+.natcjbe-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info    { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--success { border-left-color: #208040; background: rgba(32, 128, 64, 0.10); mat-icon { color: #156135; } }
+  &--danger  { border-left-color: #c02424; background: rgba(192, 36, 36, 0.10); mat-icon { color: #9a1c1c; } .natcjbe-banner-title { color: #9a1c1c; } }
+}
+
+.natcjbe-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.natcjbe-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.natcjbe-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+
+.natcjbe-duree-manquante {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-radius: 4px;
+  background: rgba(201, 165, 75, 0.10);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+}
+.natcjbe-duree-label {
+  font-size: 12px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.natcjbe-duree-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 16px; font-weight: 700; color: var(--ds-accent-gold-dark, #8a6a16);
+}
+
+.natcjbe-criteres-block {
+  padding: 12px 16px; background: rgba(192, 36, 36, 0.06);
+  border-left: 3px solid #c02424; border-radius: 4px;
+}
+.natcjbe-criteres-label {
+  font-size: 11px; font-weight: 600; color: #9a1c1c;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+}
+.natcjbe-criteres-list { background: transparent; padding: 0; }
+.natcjbe-criteres-icon { color: #c02424; }
+.natcjbe-criteres-item { color: var(--ds-text-primary, #1a2330); }
+
+.natcjbe-breakdown {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  li { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 4px; background: rgba(26, 35, 48, 0.03); }
+}
+.natcjbe-bd-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.natcjbe-bd-value { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); text-align: right; }
+.natcjbe-bd-value--mono { font-family: 'JetBrains Mono', 'Menlo', monospace; }
+
+.natcjbe-procedure {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  border-radius: 4px; background: rgba(26, 35, 48, 0.04);
+  font-size: 13px; color: var(--ds-text-primary, #1a2330);
+  mat-icon { color: var(--ds-navy, #1a375f); font-size: 18px; width: 18px; height: 18px; }
+}
+
+.natcjbe-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.natcjbe-meta-base {
+  font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--ds-accent-gold, #c9a54b); }
+}

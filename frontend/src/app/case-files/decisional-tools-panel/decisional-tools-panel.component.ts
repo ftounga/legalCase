@@ -67,6 +67,8 @@ import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-se
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
 import { Naturalisation12bisBeSectionComponent } from '../naturalisation-12bis-be-section/naturalisation-12bis-be-section.component';
+// SF-215-10 : composant complet F-IM-29-naturalisation-conjoint-belge-be (Immigration BE, naturalisation conjoint Belge art. 16).
+import { NaturalisationConjointBelgeBeSectionComponent } from '../naturalisation-conjoint-belge-be-section/naturalisation-conjoint-belge-be-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1507,6 +1509,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-28-naturalisation-12bis-be', {
         displayLabel: 'Naturalisation 12bis (BE)',
         component: Naturalisation12bisBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-10 : composant complet F-IM-29-naturalisation-conjoint-belge-be —
+      // naturalisation conjoint Belge art. 16 (Code de la nationalité belge).
+      // BELGIQUE uniquement, CONTEXTUAL via flag `naturalisation_be_envisagee`
+      // (partagé avec F-IM-28 art. 12bis SF-215-08). Pré-fill IA RÉEL 3 champs
+      // (dateMarriage, dureeCohabitationMois, niveauLangue) via static
+      // getPrefillCount + NaturalisationConjointBelgeBePrefillRules. Les 4
+      // checkboxes restantes (cohabitationLegale, preuveIntegration,
+      // menaceOrdrePublic, condamnationPenale) sont aspirationnelles —
+      // `PREFILL_COUNT_ALWAYS_ZERO`. Verdict : ELIGIBLE (vert) / INELIGIBLE
+      // (rouge) + dureeManquante (mois) si > 0.
+      ['F-IM-29-naturalisation-conjoint-belge-be', {
+        displayLabel: 'Naturalisation conjoint Belge (art. 16)',
+        component: NaturalisationConjointBelgeBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3448,6 +3470,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // verdict AUCUNE. Symétrie avec F-IM-13-naturalisation FR (visibility
     // CONTEXTUAL via flag `naturalisation_be_envisagee`).
     ['F-IM-28-naturalisation-12bis-be', 'VALIDITE'],
+    // SF-215-10 : F-IM-29-naturalisation-conjoint-belge-be naturalisation
+    // conjoint Belge art. 16 (Code de la nationalité belge). Thème VALIDITE
+    // — analyseur d'éligibilité avec verdict ELIGIBLE/INELIGIBLE + délai
+    // manquant. Visibility CONTEXTUAL via flag `naturalisation_be_envisagee`
+    // (partagé avec F-IM-28 — la voie 12bis 5 ans et la voie conjoint Belge
+    // sont les deux voies « courtes » qui co-existent — l'avocat compare).
+    ['F-IM-29-naturalisation-conjoint-belge-be', 'VALIDITE'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
