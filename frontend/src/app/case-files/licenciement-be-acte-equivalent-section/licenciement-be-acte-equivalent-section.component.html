@@ -1,0 +1,283 @@
+<div class="licenciement-be-acte-equivalent-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">compare_arrows</mat-icon>
+    <span class="section-title">Acte équipollent à rupture (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-acte-equivalent-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 03/07/1978 art. 20 + Cass. BE 23/12/1957). Le régime
+            français (prise d'acte L. 1237-19 C. trav. + résiliation
+            judiciaire) est distinct.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Détermine si une <b>modification unilatérale</b> imposée par
+            l'employeur peut être qualifiée d'<b>acte équipollent à
+            rupture</b> (rupture imputable à l'employeur). Loi du 03/07/1978
+            art. 20 + jurisprudence Cass. BE 23/12/1957 (Ius Variandi vs
+            modification substantielle d'un élément essentiel). Vigilance
+            sur le délai de protestation (~30 j) — silence prolongé =
+            risque d'acceptation tacite. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type modification * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de modification *</mat-label>
+                <mat-select
+                    [value]="typeModification()"
+                    (selectionChange)="onTypeModificationChange($event.value)"
+                    name="typeModification"
+                    required>
+                  <mat-option value="SALAIRE">Salaire (taux, structure, primes)</mat-option>
+                  <mat-option value="LIEU_TRAVAIL">Lieu de travail (hors clause mobilité)</mat-option>
+                  <mat-option value="FONCTION">Fonction (responsabilités, qualification)</mat-option>
+                  <mat-option value="HORAIRE">Horaire de travail</mat-option>
+                  <mat-option value="AUTRE">Autre élément du contrat</mat-option>
+                </mat-select>
+                <mat-hint>Nature de l'élément modifié unilatéralement par l'employeur.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Ampleur * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ampleur de la modification *</mat-label>
+                <mat-select
+                    [value]="ampleurModification()"
+                    (selectionChange)="onAmpleurModificationChange($event.value)"
+                    name="ampleurModification"
+                    required>
+                  <mat-option value="MINEURE">Mineure (Ius Variandi)</mat-option>
+                  <mat-option value="SUBSTANTIELLE">Substantielle</mat-option>
+                  <mat-option value="INDETERMINEES">Indéterminée (analyse requise)</mat-option>
+                </mat-select>
+                <mat-hint>Pilote le verdict. SUBSTANTIELLE + essentiel = acte équipollent probable.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date modification * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de la modification *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateModification()"
+                       (ngModelChange)="onDateModificationChange($event)"
+                       name="dateModification" />
+                <mat-hint>Date à laquelle la modification a été notifiée / imposée — ancre le délai d'acceptation tacite.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Délai depuis modification (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Délai écoulé depuis (jours)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       [ngModel]="delaiDepuisModificationJours()"
+                       (ngModelChange)="onDelaiDepuisModificationJoursChange($event)"
+                       name="delaiDepuisModificationJours" />
+                <mat-hint>Optionnel — calculé serveur si non renseigné.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Élément essentiel -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="elementEssentielDuContrat()"
+                (change)="onElementEssentielDuContratChange($event.checked)"
+                name="elementEssentielDuContrat">
+                L'élément modifié est essentiel du contrat
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si l'élément modifié est un <b>élément essentiel</b>
+                du contrat (salaire, fonction, lieu hors mobilité…) — combiné
+                à SUBSTANTIELLE, déclenche le verdict ACTE_EQUIPOLLENT_PROBABLE.
+              </span>
+            </div>
+
+            <!-- 6. Salarié a protesté -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="salarieAProteste()"
+                (change)="onSalarieAProtesteChange($event.checked)"
+                name="salarieAProteste">
+                Le salarié a protesté formellement
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si le salarié a formulé une protestation écrite
+                (mise en demeure, courrier de protestation) — protège contre
+                le risque d'acceptation tacite (silence > 30 j).
+              </span>
+            </div>
+
+            <!-- 7. Rémunération hebdo brute (optionnel — ICP) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération hebdomadaire brute (€)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="remunerationHebdomadaireBrute()"
+                       (ngModelChange)="onRemunerationHebdomadaireBruteChange($event)"
+                       name="remunerationHebdomadaireBrute" />
+                <mat-hint>Optionnel — base de l'ICP indicatif si verdict probable.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Durée préavis (semaines) optionnel — ICP -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée de préavis (semaines)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       [ngModel]="dureePreavisCalculeeSemaines()"
+                       (ngModelChange)="onDureePreavisCalculeeSemainesChange($event)"
+                       name="dureePreavisCalculeeSemaines" />
+                <mat-hint>Optionnel — calculée via SF-213-03 (statut unique) ou SF-213-04 (formule Claeys).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'acte équipollent</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-acte-equivalent-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                {{ typeModificationLabel(result()!.typeModification) }} —
+                {{ ampleurModificationLabel(result()!.ampleurModification) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Fondement juridique -->
+          @if (result()!.fondementJuridique) {
+            <div class="result-fondement" role="region">
+              <mat-icon>menu_book</mat-icon>
+              <span>{{ result()!.fondementJuridique }}</span>
+            </div>
+          }
+
+          <!-- Bannière avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <!-- Bloc ICP indicatif (rendu si verdict probable + montant dispo) -->
+          @if (result()!.verdict === 'ACTE_EQUIPOLLENT_PROBABLE' && result()!.icpIndicatif !== null) {
+            <div class="icp-block" role="region">
+              <div class="icp-header">
+                <mat-icon>euro</mat-icon>
+                <span class="icp-title">ICP indicatif</span>
+              </div>
+              <div class="icp-amount mono">
+                {{ result()!.icpIndicatif | number:'1.2-2' }} €
+              </div>
+              <div class="icp-detail">
+                Indemnité compensatoire de préavis estimative sur la base
+                des éléments saisis
+                (rémunération hebdomadaire ×
+                durée de préavis). Valeur <b>indicative</b> — l'ICP exacte
+                doit être calculée via l'outil dédié (SF-213-03 statut unique
+                ou SF-213-04 formule Claeys).
+              </div>
+            </div>
+          }
+
+          <!-- Délai protestation 30 j -->
+          @if (result()!.risqueAcceptationTacite || result()!.delaiRecommandeProtestationJours > 0) {
+            <div class="delai-protestation" role="status"
+                 [class.delai-critical]="result()!.risqueAcceptationTacite">
+              @if (result()!.risqueAcceptationTacite) {
+                <mat-icon>warning</mat-icon>
+              } @else {
+                <mat-icon>schedule</mat-icon>
+              }
+              <div class="delai-protestation-content">
+                <span class="delai-protestation-label">
+                  @if (result()!.risqueAcceptationTacite) {
+                    Risque d'acceptation tacite — protestation au-delà du délai recommandé
+                  } @else {
+                    Délai de protestation recommandé
+                  }
+                </span>
+                <span class="delai-protestation-value mono">
+                  {{ result()!.delaiRecommandeProtestationJours }} jour{{ result()!.delaiRecommandeProtestationJours === 1 ? '' : 's' }}
+                </span>
+              </div>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -158,6 +158,7 @@ import { LicenciementBeProtectionGrossesseSectionComponent } from '../licencieme
 import { TransactionBeTravailSectionComponent } from '../transaction-be-travail-section/transaction-be-travail-section.component';
 import { HarcelementBeProcedureFormelleSectionComponent } from '../harcelement-be-procedure-formelle-section/harcelement-be-procedure-formelle-section.component';
 import { LicenciementBeProtectionDelegueeSectionComponent } from '../licenciement-be-protection-deleguee-section/licenciement-be-protection-deleguee-section.component';
+import { LicenciementBeActeEquivalentSectionComponent } from '../licenciement-be-acte-equivalent-section/licenciement-be-acte-equivalent-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2045,6 +2046,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-09b : acte équipollent à rupture BE (Loi 03/07/1978 art. 20
+      // + Cass. BE 23/12/1957). Analyseur 4 verdicts (ACTE_EQUIPOLLENT_PROBABLE
+      // / PAS_ACTE_EQUIPOLLENT / RISQUE_ACCEPTATION_TACITE / A_ANALYSER) +
+      // ICP indicatif (rémunération hebdo × préavis semaines) si verdict
+      // probable + délai 30 j de protestation. BE-only, ALWAYS_ON priority
+      // 117 (juste au-dessus de licenciement-be-protection-deleguee = 116).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme vagues
+      // 6b/7b/8b — qualification juridique fine non extractible). Distinct
+      // du dispositif FR (prise d'acte L. 1237-19 C. trav. + résiliation
+      // judiciaire) — gating par workspaceCountry.
+      ['licenciement-be-acte-equivalent', {
+        displayLabel: 'Acte équipollent à rupture (Belgique)',
+        component: LicenciementBeActeEquivalentSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3168,6 +3191,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // de la fenêtre de protection (pattern miroir protection-grossesse).
     // BE-only, ALWAYS_ON priority 116.
     ['licenciement-be-protection-deleguee', 'VALIDITE'],
+    // SF-213-09b — analyseur de validité acte équipollent à rupture BE
+    // (4 verdicts ACTE_EQUIPOLLENT_PROBABLE / PAS / RISQUE_ACCEPTATION_TACITE
+    // / A_ANALYSER). Thème VALIDITE (parité vagues précédentes F-213 BE).
+    ['licenciement-be-acte-equivalent', 'VALIDITE'],
     // SF-213-06b : transaction de fin de contrat BE (art. 2044 Cciv +
     // Loi 03/07/1978 art. 6). Analyseur de validité 4 états + checklist
     // renonciations + ratio. Thème VALIDITE — analyseur de validité du

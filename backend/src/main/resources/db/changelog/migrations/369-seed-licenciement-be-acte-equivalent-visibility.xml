@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="8166c792-0a0c-494f-804a-e1470be021b8" author="claude">
+        <comment>
+            SF-213-09b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Acte équipollent à rupture (Belgique) »
+            (licenciement-be-acte-equivalent, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses créée par SF-213-09 (migration 367).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel ne détecte pas mécaniquement
+            une modification unilatérale du contrat — qualification
+            juridique fine (nature, ampleur, caractère essentiel) qui
+            relève de l'avocat sur la base du dossier (avenant refusé,
+            courrier de l'employeur, lettre de protestation).
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible pour détecter
+               une modification unilatérale ; l'introduire pour un seul
+               outil ajouterait une exception isolée et nécessiterait
+               son extraction par le pipeline IA Travail BE (non couvert
+               V1).
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque une modification unilatérale, sans avoir attendu
+               de détection préalable.
+            3. Cohérence avec les autres outils F-213 V1 (tous ALWAYS_ON
+               priority 110-116) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 cette migration (acte-equivalent)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY `licenciement-be-acte-equivalent`
+            livrée dans decisional-tools-panel.component.ts (cf. SF-213-09b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué —
+            cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            Fondement juridique :
+            - Loi du 03/07/1978 relative aux contrats de travail (art. 20 —
+              fixation des conditions essentielles du travail).
+            - Cass. BE 23/12/1957 (consécration jurisprudentielle de l'acte
+              équipollent à rupture).
+            - Doctrine du Ius Variandi (pouvoir limité d'aménagement de
+              l'employeur).
+
+            Régime BE uniquement — la France a un dispositif distinct
+            (prise d'acte L. 1237-19 C. trav. + résiliation judiciaire) ;
+            outil dédié hors scope V1.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('8166c792-0a0c-494f-804a-e1470be021b8', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-acte-equivalent', 'ALWAYS_ON', NULL, NULL, 117);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '8166c792-0a0c-494f-804a-e1470be021b8';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
