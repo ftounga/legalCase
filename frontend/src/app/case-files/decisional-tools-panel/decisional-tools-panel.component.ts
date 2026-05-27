@@ -155,6 +155,7 @@ import { RappelSalaireBeSectionComponent } from '../rappel-salaire-be-section/ra
 import { LicenciementBeStatutUniquePreavisSectionComponent } from '../licenciement-be-statut-unique-preavis-section/licenciement-be-statut-unique-preavis-section.component';
 import { LicenciementBeFormuleClaeysSectionComponent } from '../licenciement-be-formule-claeys-section/licenciement-be-formule-claeys-section.component';
 import { LicenciementBeProtectionGrossesseSectionComponent } from '../licenciement-be-protection-grossesse-section/licenciement-be-protection-grossesse-section.component';
+import { TransactionBeTravailSectionComponent } from '../transaction-be-travail-section/transaction-be-travail-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1976,6 +1977,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-06b : transaction de fin de contrat BE (art. 2044 Cciv +
+      // Loi 03/07/1978 art. 6). Analyseur de validité 4 états (VALIDE,
+      // INVALIDE, INVALIDE_PARTIELLE, A_COMPLETER) + checklist des
+      // renonciations + ratio transaction/indemnité légale + avertissement
+      // de lésion < 50 %. BE-only, ALWAYS_ON priority 114 (juste au-dessus
+      // de protection-grossesse = 113). Pré-fill IA V1 : aucun champ
+      // (analyse sémantique du document de transaction hors scope V1).
+      // Distinct de F-DT-31-transaction (régime FR art. 2044 Cciv FR
+      // moins exigeant — les deux coexistent gated par country).
+      ['transaction-be-travail', {
+        displayLabel: 'Transaction fin de contrat (Belgique)',
+        component: TransactionBeTravailSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3092,6 +3114,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // motif-grave-be, F-DT-27 : analyseur de validité de la rupture,
     // pas chiffrage pur). BE-only, ALWAYS_ON priority 113.
     ['licenciement-be-protection-grossesse', 'VALIDITE'],
+    // SF-213-06b : transaction de fin de contrat BE (art. 2044 Cciv +
+    // Loi 03/07/1978 art. 6). Analyseur de validité 4 états + checklist
+    // renonciations + ratio. Thème VALIDITE — analyseur de validité du
+    // protocole transactionnel (pattern motif-grave-be / protection-grossesse).
+    // BE-only, ALWAYS_ON priority 114. Distinct de F-DT-31-transaction (FR).
+    ['transaction-be-travail', 'VALIDITE'],
     ['F-DT-30-protection-rp', 'VALIDITE'],
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR) — analyseur d'éligibilité.
     // Thème VALIDITE (analyse d'éligibilité protection médicale, CONTEXTUAL FR).
