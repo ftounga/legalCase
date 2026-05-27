@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b8c9d0e1-f2a3-4456-7890-1bcdef234567-seed-naturalisation-conjoint-belge" author="legalcase">
+        <comment>
+            SF-215-09 : seed visibility pour l'outil décisionnel "Naturalisation conjoint
+            Belge BE" (F-IM-29-naturalisation-conjoint-belge-be). Pattern F-215 CORRIGÉ —
+            cette migration de seed est livrée DANS LA MÊME PR que la table.
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte un indice de démarche de
+            naturalisation belge via le flag PARTAGÉ `naturalisation_be_envisagee` (introduit
+            par SF-215-07 et étendu ici pour couvrir aussi les indices art. 16 CNB :
+            mentions "conjoint belge", "épouse/époux belge", "5 ans cohabitation",
+            "cohabitation légale enregistrée", "commune de résidence", "art. 16 CNB").
+
+            Priority 204 — juste après naturalisation 12bis BE (priority 203). Les deux
+            voies de naturalisation BE sont donc proposées ensemble dans le panel F-IA-04
+            quand le flag est levé, l'avocat choisit la voie pertinente selon le profil
+            (résidence longue durée → 12bis ; conjoint belge → art. 16).
+
+            ATTENTION : colonne `layer` (pas `visibility`) — leçon vague 1
+            SF-215-02 hotfix migration 372.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) + le
+            composant Angular wrapper seront ajoutés par SF-215-10 (frontend, en parallèle
+            de cette PR via agent U). Coordination de merge : merger SF-215-10 APRÈS cette
+            PR pour limiter la fenêtre transitoire pendant laquelle le test d'intégrité
+            DecisionToolVisibilityIntegrityIT verrait un orphelin DB.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'b8c9d0e1-0000-0000-0000-000000000384',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-29-naturalisation-conjoint-belge-be',
+                'CONTEXTUAL',
+                'naturalisation_be_envisagee',
+                'true',
+                204
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'b8c9d0e1-0000-0000-0000-000000000384';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
