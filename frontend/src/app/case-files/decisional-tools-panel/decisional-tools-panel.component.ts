@@ -153,6 +153,7 @@ import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-gr
 import { ClauseNonConcurrenceBeSectionComponent } from '../clause-non-concurrence-be-section/clause-non-concurrence-be-section.component';
 import { RappelSalaireBeSectionComponent } from '../rappel-salaire-be-section/rappel-salaire-be-section.component';
 import { LicenciementBeStatutUniquePreavisSectionComponent } from '../licenciement-be-statut-unique-preavis-section/licenciement-be-statut-unique-preavis-section.component';
+import { LicenciementBeFormuleClaeysSectionComponent } from '../licenciement-be-formule-claeys-section/licenciement-be-formule-claeys-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1927,6 +1928,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-04b : préavis Formule Claeys BE (ancien art. 82 §3 Loi
+      // 03/07/1978 + Cass. 28/02/2011 RG S.10.0073.F + Loi 26/12/2013
+      // art. 67 clause de sauvegarde). BE-only, ALWAYS_ON priority 112
+      // (juste au-dessus de statut-unique-preavis = 111). 4 champs IA
+      // pré-remplis depuis TravailExtractedData : ancienneté pré-2014
+      // (couple années/mois dérivé dateEntree→2014-01-01), rémunération
+      // annuelle K€ (salaireBrutAnnuel/1000 ou mensuel×12/1000), ancienneté
+      // post-2014 (de 2014-01-01 à dateLicenciement), salaire hebdo brut.
+      // Flag UX `appliquerClauseSauvegarde` dérivé de dateEntree pré-2014
+      // (non compté badge — paramètre de calcul). Champs post-2014
+      // conditionnels masqués + reset si toggle off.
+      ['licenciement-be-formule-claeys', {
+        displayLabel: 'Préavis Formule Claeys (Belgique)',
+        component: LicenciementBeFormuleClaeysSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -2987,6 +3011,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-213-03b : préavis statut unique BE — chiffrage durée préavis + ICP
     // (Loi 26/12/2013 + Loi 03/07/1978 art. 37/2 §1er). BE-only ALWAYS_ON.
     ['licenciement-be-statut-unique-preavis', 'INDEMNITES'],
+    // SF-213-04b : préavis Formule Claeys BE — fraction Claeys pré-2014 +
+    // cumul statut unique post-2014 via clause de sauvegarde (Loi 26/12/2013
+    // art. 67 + ancien art. 82 §3 Loi 03/07/1978 + Cass. 28/02/2011).
+    // BE-only ALWAYS_ON priority 112.
+    ['licenciement-be-formule-claeys', 'INDEMNITES'],
     ['F-DT-21-travail-dissimule', 'INDEMNITES'],
     ['F-DT-25-indemnite-preavis', 'INDEMNITES'],
     ['F-DT-26-conges-payes-indemnite', 'INDEMNITES'],

@@ -1,0 +1,275 @@
+<div class="licenciement-be-formule-claeys-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">history_edu</mat-icon>
+    <span class="section-title">Préavis Formule Claeys (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge verdict-info">
+        {{ result()!.preavisClaeysSemaines }} sem Claeys
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-formule-claeys-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (formule Claeys — ancien art. 82 §3 Loi 03/07/1978, contrat
+            antérieur au 01/01/2014).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calcule le préavis selon la <b>Formule Claeys</b> (ancien art. 82 §3
+            Loi 03/07/1978 — Cass. 28/02/2011) pour la fraction d'ancienneté
+            antérieure au 01/01/2014. Activez la clause de sauvegarde
+            (Loi 26/12/2013 art. 67) pour cumuler avec le préavis statut
+            unique post-2014. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Ancienneté pré-statut unique : années -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté pré-2014 — années *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="80"
+                       step="1"
+                       required
+                       [ngModel]="ancienneteAnneesPreStatutUnique()"
+                       (ngModelChange)="onAncienneteAnneesPreChange($event)"
+                       name="ancienneteAnneesPreStatutUnique" />
+                <mat-hint>Années complètes accumulées avant le 01/01/2014.</mat-hint>
+              </mat-form-field>
+              @if (provenanceAncienneteEPre() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 2. Mois supplémentaires pré-2014 -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Mois supplémentaires (0-11)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="11"
+                       step="1"
+                       [ngModel]="ancienneteMoisPreStatutUnique()"
+                       (ngModelChange)="onAncienneteMoisPreChange($event)"
+                       name="ancienneteMoisPreStatutUnique" />
+                <mat-hint>Reliquat de mois au-delà des années entières pré-2014.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Rémunération annuelle brute au 31/12/2013 (K€) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération annuelle brute au 31/12/2013 (K€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationAnnuelleBruteEnMilliers()"
+                       (ngModelChange)="onRemunerationAnnuelleChange($event)"
+                       name="remunerationAnnuelleBruteEnMilliers" />
+                <mat-hint>Ex : 52 pour un salaire annuel de 52 000 €.</mat-hint>
+              </mat-form-field>
+              @if (provenanceRemunerationAnnuelle() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Dérivé du salaire annuel/mensuel
+                </span>
+              }
+            </div>
+
+            <!-- 4. Toggle clause de sauvegarde -->
+            <div class="field-with-alert field-full-width clause-sauvegarde-row">
+              <mat-slide-toggle
+                [checked]="appliquerClauseSauvegarde()"
+                (change)="onAppliquerClauseSauvegardeChange($event.checked)"
+                name="appliquerClauseSauvegarde">
+                Appliquer la clause de sauvegarde (cumul Claeys + statut unique
+                post-2014 — Loi 26/12/2013 art. 67)
+              </mat-slide-toggle>
+              <span class="checkbox-help">
+                Activez pour cumuler le préavis Claeys (pré-2014) et le préavis
+                statut unique (post-2014). Désactivez pour ne calculer que la
+                fraction Claeys seule.
+              </span>
+              @if (provenanceClauseSauvegarde() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Dérivé de la date d'entrée (pré-2014 → activé)
+                </span>
+              }
+            </div>
+
+            <!-- 5. Ancienneté post-statut unique : années (conditionnel) -->
+            @if (appliquerClauseSauvegarde()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Ancienneté post-2014 — années *</mat-label>
+                  <input matInput
+                         type="number"
+                         min="0"
+                         max="80"
+                         step="1"
+                         required
+                         [ngModel]="ancienneteAnneesPostStatutUnique()"
+                         (ngModelChange)="onAncienneteAnneesPostChange($event)"
+                         name="ancienneteAnneesPostStatutUnique" />
+                  <mat-hint>Années complètes post-01/01/2014.</mat-hint>
+                </mat-form-field>
+                @if (provenanceAncienneteEPost() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon>
+                    Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- 6. Salaire hebdomadaire brut (conditionnel) -->
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Salaire hebdomadaire brut (€) *</mat-label>
+                  <input matInput
+                         type="number"
+                         min="0.01"
+                         step="0.01"
+                         required
+                         [ngModel]="salaireHebdomadaireBrut()"
+                         (ngModelChange)="onSalaireHebdoChange($event)"
+                         name="salaireHebdomadaireBrut" />
+                  <mat-hint>Pour calculer l'indemnité compensatoire statut unique.</mat-hint>
+                </mat-form-field>
+                @if (provenanceSalaireHebdo() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon>
+                    Dérivé du salaire annuel/mensuel
+                  </span>
+                }
+              </div>
+            }
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer le préavis Claeys</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-formule-claeys-result">
+
+          <!-- Bannière avertissement jurisprudentiel — TOUJOURS présente -->
+          <div class="result-alert" role="alert">
+            <mat-icon>warning_amber</mat-icon>
+            <span>{{ result()!.avertissement }}</span>
+          </div>
+
+          <!-- Récap principal préavis -->
+          <div class="result-banner verdict-info" role="status">
+            <mat-icon>history_edu</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                Préavis Formule Claeys :
+                {{ formatDecimal(result()!.preavisClaeysMois) }} mois
+                ({{ result()!.preavisClaeysSemaines }} sem)
+              </div>
+              <div class="result-banner-sub">
+                @if (result()!.preavisStatutUniquesSemaines > 0) {
+                  Cumul clause de sauvegarde :
+                  <span class="result-banner-mono">
+                    Claeys ({{ result()!.preavisClaeysSemaines }} sem)
+                    + Statut unique ({{ result()!.preavisStatutUniquesSemaines }} sem)
+                    = {{ result()!.preavisTotalSemaines }} sem total
+                  </span>
+                } @else {
+                  Claeys seule (clause de sauvegarde non appliquée).
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Détail breakdown -->
+          <ul class="result-breakdown">
+            <li>
+              <span class="bd-label">Préavis Claeys</span>
+              <span class="bd-value">
+                {{ formatDecimal(result()!.preavisClaeysMois) }} mois
+                ({{ result()!.preavisClaeysSemaines }} sem)
+              </span>
+            </li>
+            @if (result()!.preavisStatutUniquesSemaines > 0) {
+              <li>
+                <span class="bd-label">Préavis statut unique post-2014</span>
+                <span class="bd-value">{{ result()!.preavisStatutUniquesSemaines }} sem</span>
+              </li>
+              <li class="result-breakdown-total">
+                <span class="bd-label">Préavis total (clause de sauvegarde)</span>
+                <span class="bd-value">{{ result()!.preavisTotalSemaines }} sem</span>
+              </li>
+            }
+            <li>
+              <span class="bd-label">Indemnité Claeys (€)</span>
+              <span class="bd-value">{{ formatEuro(result()!.indemniteClaeysBrute) }}</span>
+            </li>
+            @if (result()!.indemniteTotaleBrute !== null) {
+              <li class="result-breakdown-total">
+                <span class="bd-label">Indemnité totale (€)</span>
+                <span class="bd-value">{{ formatEuro(result()!.indemniteTotaleBrute) }}</span>
+              </li>
+            }
+            <li>
+              <span class="bd-label">Formule</span>
+              <span class="bd-value bd-value--mono">{{ result()!.formuleClaeys }}</span>
+            </li>
+          </ul>
+
+          <div class="result-meta">
+            <span class="result-meta-base">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
