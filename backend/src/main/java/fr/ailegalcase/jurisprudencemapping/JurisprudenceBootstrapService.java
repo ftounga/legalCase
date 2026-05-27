@@ -44,6 +44,7 @@ public class JurisprudenceBootstrapService {
     static final String BOOTSTRAP_MAPPING_REF_PREFIX = "(bootstrap initial";
 
     private final JudilibreApiClient judilibreClient;
+    private final JurisprudenceBeWebSearchClient beWebSearchClient;
     private final ClaudeJurisprudenceEvaluator evaluator;
     private final ToolJurisprudenceMappingRepository mappingRepository;
     private final JurisprudenceAuditLogRepository auditLogRepository;
@@ -52,6 +53,7 @@ public class JurisprudenceBootstrapService {
     private final TaskExecutor taskExecutor;
 
     public JurisprudenceBootstrapService(JudilibreApiClient judilibreClient,
+                                         JurisprudenceBeWebSearchClient beWebSearchClient,
                                          ClaudeJurisprudenceEvaluator evaluator,
                                          ToolJurisprudenceMappingRepository mappingRepository,
                                          JurisprudenceAuditLogRepository auditLogRepository,
@@ -59,12 +61,37 @@ public class JurisprudenceBootstrapService {
                                          PlatformTransactionManager txManager,
                                          @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
         this.judilibreClient = judilibreClient;
+        this.beWebSearchClient = beWebSearchClient;
         this.evaluator = evaluator;
         this.mappingRepository = mappingRepository;
         this.auditLogRepository = auditLogRepository;
         this.jobRepository = jobRepository;
         this.txTemplate = new TransactionTemplate(txManager);
         this.taskExecutor = taskExecutor;
+    }
+
+    /**
+     * F-JU-04 SF-JU-04-02 — heuristique de détection des entrées belges.
+     *
+     * <p>Une entrée est considérée comme BE si son {@code toolId} ou
+     * {@code brancheCalculId} contient un marqueur belge connu :
+     * {@code -be-} (ex. {@code clause-non-concurrence-be}), {@code onem}
+     * (Office national de l'emploi), {@code fedris} (Fonds des accidents
+     * du travail BE), ou {@code juridat}.</p>
+     */
+    static boolean isBelgianEntry(JurisprudenceBootstrapEntry entry) {
+        String t = entry.toolId() == null ? "" : entry.toolId().toLowerCase();
+        String b = entry.brancheCalculId() == null ? "" : entry.brancheCalculId().toLowerCase();
+        return isBeMarker(t) || isBeMarker(b);
+    }
+
+    private static boolean isBeMarker(String s) {
+        if (s == null || s.isEmpty()) return false;
+        // -be- au milieu (ex. rappel-salaire-be-prescription) OU -be à la fin (ex. clause-non-concurrence-be)
+        if (s.contains("-be-") || s.endsWith("-be")) return true;
+        // Acronymes BE-only sans suffixe -be (ONEM, FEDRIS, Juridat, Juportal).
+        return s.contains("onem") || s.contains("fedris")
+                || s.contains("juridat") || s.contains("juportal");
     }
 
     /**
@@ -165,8 +192,16 @@ public class JurisprudenceBootstrapService {
             LocalDate from = entry.dateMin() != null ? entry.dateMin() : now.minusYears(10);
             List<JudilibreArret> candidates;
             try {
-                // SF-JU-01-13 — recherche full-text JUDILIBRE par mot-clé (pas un bulk export par date).
-                candidates = judilibreClient.fetchArretsByKeyword(entry.motCleRecherche(), from, now, 20);
+                // SF-JU-01-13 / SF-JU-04-02 — routage selon pays :
+                //   FR (et défaut) → JudilibreApiClient /search PISTE.
+                //   BE             → JurisprudenceBeWebSearchClient (Claude+web_search sur JUPORTAL).
+                if (isBelgianEntry(entry)) {
+                    candidates = beWebSearchClient.fetchArretsByKeyword(
+                            entry.motCleRecherche(), from, now, 5);
+                } else {
+                    candidates = judilibreClient.fetchArretsByKeyword(
+                            entry.motCleRecherche(), from, now, 20);
+                }
             } catch (Exception e) {
                 log.warn("F-JU-01 — Bootstrap fetchArretsByKeyword failed for {}:{}: {}",
                         entry.toolId(), entry.brancheCalculId(), e.getMessage());
