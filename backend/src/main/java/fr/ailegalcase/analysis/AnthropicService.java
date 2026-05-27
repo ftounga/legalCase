@@ -317,6 +317,97 @@ public class AnthropicService {
         return doAnalyze(modelId, systemPrompt, userMessage, maxTokens, false);
     }
 
+    /**
+     * F-JU-04 SF-JU-04-02 — appel Anthropic avec le tool natif {@code web_search}
+     * (server tool exécuté côté Anthropic, multi-turn géré automatiquement).
+     *
+     * <p>Utilisé pour la recherche de jurisprudence belge dans le bootstrap
+     * F-JU-01 (pas d'équivalent PISTE en BE — cf. mémoire {@code reference_be_jurisprudence_sources}).
+     * Claude recherche sur JUPORTAL / Cassation BE et retourne un contenu
+     * structuré.</p>
+     *
+     * <p>La réponse Anthropic contient potentiellement plusieurs blocs
+     * dans {@code content[]} ({@code server_tool_use}, {@code web_search_tool_result},
+     * {@code text}). On ne retourne que la concaténation des blocs {@code text} —
+     * c'est là que Claude met son résultat final.</p>
+     *
+     * @param systemPrompt    instructions système (rôle juriste BE, format JSON, etc.)
+     * @param userMessage     message utilisateur (mot-clé recherché)
+     * @param maxTokens       limite output Claude
+     * @param maxWebSearches  nombre max d'appels web_search Claude peut faire
+     *                        (recommandé : 3-5 pour éviter coût excessif)
+     */
+    public AnthropicResult analyzeWithWebSearch(String systemPrompt, String userMessage,
+                                                int maxTokens, int maxWebSearches) {
+        if (userMessage == null || userMessage.isBlank()) {
+            throw new IllegalArgumentException("userMessage must not be empty");
+        }
+        Map<String, Object> body = Map.of(
+                "model", model,
+                "max_tokens", maxTokens,
+                "temperature", 0,
+                "system", systemPrompt,
+                "tools", List.of(Map.of(
+                        "type", "web_search_20250305",
+                        "name", "web_search",
+                        "max_uses", Math.max(1, Math.min(maxWebSearches, 10))
+                )),
+                "messages", List.of(Map.of("role", "user", "content", userMessage))
+        );
+
+        int[] backoffSeconds = {5, 15, 30, 60};
+        for (int attempt = 0; attempt <= backoffSeconds.length; attempt++) {
+            try {
+                AnthropicResponse response = restClient.post()
+                        .uri("/v1/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(body)
+                        .retrieve()
+                        .body(AnthropicResponse.class);
+
+                // web_search → content[] contient typiquement plusieurs blocs :
+                //   server_tool_use, web_search_tool_result, text.
+                // On concatène uniquement les blocs text (résultat final Claude).
+                StringBuilder textContent = new StringBuilder();
+                if (response.content() != null) {
+                    for (AnthropicResponse.ContentBlock block : response.content()) {
+                        if ("text".equals(block.type()) && block.text() != null) {
+                            textContent.append(block.text());
+                        }
+                    }
+                }
+                String content = textContent.toString();
+                String stopReason = response.stopReason();
+                log.debug("Anthropic web_search response received ({} chars text, stop_reason={})",
+                        content.length(), stopReason);
+
+                if ("max_tokens".equals(stopReason)) {
+                    log.warn("Anthropic web_search response TRUNCATED — model={}, max_tokens={}, output tokens={}",
+                            model, maxTokens, response.usage().outputTokens());
+                }
+                return new AnthropicResult(content, response.model(),
+                        response.usage().inputTokens(), response.usage().outputTokens(), stopReason);
+
+            } catch (HttpServerErrorException e) {
+                boolean retryable = e.getStatusCode().value() == 529
+                        || e.getStatusCode().value() == 503
+                        || e.getStatusCode().value() == 500;
+                if (retryable && attempt < backoffSeconds.length) {
+                    int wait = backoffSeconds[attempt];
+                    log.warn("Anthropic web_search {} — tentative {}/{}, retry dans {}s",
+                            e.getStatusCode().value(), attempt + 1, backoffSeconds.length, wait);
+                    try { Thread.sleep(wait * 1000L); } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw e;
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        }
+        throw new IllegalStateException("Unreachable");
+    }
+
     private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage,
                                       int maxTokens, boolean cacheSystem) {
         if (userMessage == null || userMessage.isBlank()) {

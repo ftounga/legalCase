@@ -41,6 +41,7 @@ class JurisprudenceBootstrapServiceTest {
     private JurisprudenceAuditLogRepository auditRepo;
     private JurisprudenceBootstrapJobRepository jobRepo;
     private PlatformTransactionManager txManager;
+    private JurisprudenceBeWebSearchClient beWebSearchClient;
     private JurisprudenceBootstrapService service;
 
     @BeforeEach
@@ -50,12 +51,77 @@ class JurisprudenceBootstrapServiceTest {
         mappingRepo = mock(ToolJurisprudenceMappingRepository.class);
         auditRepo = mock(JurisprudenceAuditLogRepository.class);
         jobRepo = mock(JurisprudenceBootstrapJobRepository.class);
+        beWebSearchClient = mock(JurisprudenceBeWebSearchClient.class);
         txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
         // SyncTaskExecutor : exécute le Runnable immédiatement sur le thread courant —
         // simplifie l'assertion sur l'état du job après startBootstrap.
-        service = new JurisprudenceBootstrapService(judilibre, evaluator, mappingRepo, auditRepo,
-                jobRepo, txManager, new SyncTaskExecutor());
+        service = new JurisprudenceBootstrapService(judilibre, beWebSearchClient, evaluator,
+                mappingRepo, auditRepo, jobRepo, txManager, new SyncTaskExecutor());
+    }
+
+    // --- SF-JU-04-02 — routage FR vs BE ---
+
+    @org.junit.jupiter.api.Test
+    void isBelgianEntry_detectsByToolId() {
+        org.assertj.core.api.Assertions.assertThat(
+                JurisprudenceBootstrapService.isBelgianEntry(
+                        new JurisprudenceBootstrapEntry("clause-non-concurrence-be", "default", "test", null, null)))
+                .isTrue();
+        org.assertj.core.api.Assertions.assertThat(
+                JurisprudenceBootstrapService.isBelgianEntry(
+                        new JurisprudenceBootstrapEntry("c4-onem-checklist", "default", "test", null, null)))
+                .isTrue();
+        org.assertj.core.api.Assertions.assertThat(
+                JurisprudenceBootstrapService.isBelgianEntry(
+                        new JurisprudenceBootstrapEntry("at-fedris-declaration", "default", "test", null, null)))
+                .isTrue();
+        org.assertj.core.api.Assertions.assertThat(
+                JurisprudenceBootstrapService.isBelgianEntry(
+                        new JurisprudenceBootstrapEntry("F-DT-07-anciennete", "default", "test", null, null)))
+                .isFalse();
+    }
+
+    @org.junit.jupiter.api.Test
+    void runBootstrap_belgianEntry_routesToBeWebSearchClient() {
+        JudilibreArret beArret = new JudilibreArret("be-1",
+                "Cass. BE 12 mars 2024, n° X.YY.0123.F",
+                "Cour de cassation belge", LocalDate.of(2024, 3, 12),
+                "X.YY.0123.F", "Chapeau BE",
+                "https://juportal.be/content/ECLI:BE:CASS:XYZ");
+        when(beWebSearchClient.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                .thenReturn(List.of(beArret));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, beArret,
+                        new BigDecimal("0.85"), "BE structurant"));
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("outplacement-be-obligatoire-45", "default")
+        ));
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(req, triggerUser());
+
+        // BE web search a été appelé, JUDILIBRE pas
+        verify(beWebSearchClient).fetchArretsByKeyword(any(), any(), any(), anyInt());
+        verify(judilibre, never()).fetchArretsByKeyword(any(), any(), any(), anyInt());
+        org.assertj.core.api.Assertions.assertThat(resp.mappingsCreated()).isEqualTo(1);
+    }
+
+    @org.junit.jupiter.api.Test
+    void runBootstrap_frenchEntry_routesToJudilibre() {
+        JudilibreArret arret = arret("AAA");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                .thenReturn(List.of(arret));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret,
+                        new BigDecimal("0.9"), "ok"));
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("F-DT-07-anciennete", "default")
+        ));
+        service.runBootstrap(req, triggerUser());
+
+        verify(judilibre).fetchArretsByKeyword(any(), any(), any(), anyInt());
+        verify(beWebSearchClient, never()).fetchArretsByKeyword(any(), any(), any(), anyInt());
     }
 
     @Test
