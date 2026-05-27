@@ -418,6 +418,11 @@ class DashboardTileToolIdIntegrityIT {
             // Outil BE frontend autosuffisant sans tile DashboardTile —
             // pattern uniforme F-215 P2 Immigration BE.
             "F-IM-28-naturalisation-12bis-be",
+            // SF-215-09/10 (2026-05-28) : F-IM-29-naturalisation-conjoint-belge-be
+            // — seed visibility livrée dans la PR backend SF-215-09 (PR #1389).
+            // Outil BE frontend autosuffisant sans tile DashboardTile —
+            // pattern uniforme F-215 P2 Immigration BE.
+            "F-IM-29-naturalisation-conjoint-belge-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
             // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs
