@@ -342,7 +342,11 @@ class DashboardTileToolIdIntegrityIT {
             // SF-213-06 (2026-05-27) : transaction-be-travail backend livré
             // sans tuile DashboardTile (frontend SF-213-06b à venir). Même
             // pattern que les 4 outils ci-dessus.
-            "transaction-be-travail"
+            "transaction-be-travail",
+            // SF-213-07 (2026-05-27) : harcelement-be-procedure-formelle backend
+            // livré (Loi 04/08/1996 art. 32bis-32sexies). Frontend SF-213-07b
+            // à venir. Même pattern que les outils ci-dessus.
+            "harcelement-be-procedure-formelle"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
