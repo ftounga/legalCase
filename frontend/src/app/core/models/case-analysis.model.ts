@@ -1396,6 +1396,23 @@ export interface ImmigrationExtractedData {
   singlePermitRegion?: 'WALLONIE' | 'FLANDRE' | 'BRUXELLES' | null;
   singlePermitTypeActivite?: 'SALARIE' | 'STAGIAIRE' | 'DETACHE' | 'CHERCHEUR' | 'ETUDIANT' | null;
   singlePermitMotif?: 'NOUVEAU' | 'RENOUVELLEMENT' | null;
+  /**
+   * SF-215-03 / SF-215-04 — Pré-fill outil F-IM-26-regroupement-10ter-be
+   * « Regroupement familial art. 10ter (BE) » — Loi 15/12/1980 art. 10ter,
+   * AR 17/05/2007 (seuil ressources 120 % RIS), Arrêté Royal d'exécution.
+   * BELGIQUE uniquement — dossier FR : null. Tous nullables.
+   *
+   * `be10terLienFamilial` : lien familial — whitelist
+   *   CONJOINT / PARTENAIRE_ENREGISTRE / ENFANT_MOINS_21 /
+   *   ENFANT_21_PLUS_CHARGE / ASCENDANT_CHARGE.
+   * `be10terTypeCarte` : type de carte du regroupant — whitelist CARTE_B / CARTE_C.
+   * `be10terRevenusMensuels` : revenus mensuels nets du regroupant en € (entier 0–100 000).
+   * `be10terDureeSejour` : durée du séjour régulier du regroupant en mois (entier 0–600).
+   */
+  be10terLienFamilial?: 'CONJOINT' | 'PARTENAIRE_ENREGISTRE' | 'ENFANT_MOINS_21' | 'ENFANT_21_PLUS_CHARGE' | 'ASCENDANT_CHARGE' | null;
+  be10terTypeCarte?: 'CARTE_B' | 'CARTE_C' | null;
+  be10terRevenusMensuels?: number | null;
+  be10terDureeSejour?: number | null;
 }
 
 export interface CaseAnalysisVersionSummary {
