@@ -4,7 +4,8 @@ import fr.ailegalcase.auth.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -41,18 +42,26 @@ public class JurisprudenceBootstrapService {
     private final ClaudeJurisprudenceEvaluator evaluator;
     private final ToolJurisprudenceMappingRepository mappingRepository;
     private final JurisprudenceAuditLogRepository auditLogRepository;
+    private final TransactionTemplate txTemplate;
 
     public JurisprudenceBootstrapService(JudilibreApiClient judilibreClient,
                                          ClaudeJurisprudenceEvaluator evaluator,
                                          ToolJurisprudenceMappingRepository mappingRepository,
-                                         JurisprudenceAuditLogRepository auditLogRepository) {
+                                         JurisprudenceAuditLogRepository auditLogRepository,
+                                         PlatformTransactionManager txManager) {
         this.judilibreClient = judilibreClient;
         this.evaluator = evaluator;
         this.mappingRepository = mappingRepository;
         this.auditLogRepository = auditLogRepository;
+        this.txTemplate = new TransactionTemplate(txManager);
     }
 
-    @Transactional
+    /**
+     * Orchestration sans transaction globale (SF-JU-01-09) : chaque entrée
+     * persistable est commitée dans sa propre transaction via {@link #txTemplate}.
+     * Un échec sur une entrée (DB ou autre) est logué et compté en {@code skipped},
+     * la boucle continue sur l'entrée suivante sans rollback des précédentes.
+     */
     public JurisprudenceBootstrapResponse runBootstrap(JurisprudenceBootstrapRequest request, User triggerUser) {
         long start = System.currentTimeMillis();
         int processed = 0, created = 0, skipped = 0;
@@ -87,8 +96,18 @@ public class JurisprudenceBootstrapService {
                 skipped++;
                 continue;
             }
-            int inserted = persistTopCandidates(entry, candidates, evaluation, triggerUser);
-            created += inserted;
+            try {
+                final JurisprudenceBootstrapEntry entryRef = entry;
+                final ClaudeEvaluation evaluationRef = evaluation;
+                final List<JudilibreArret> candidatesRef = candidates;
+                txTemplate.executeWithoutResult(status ->
+                        persistTopCandidates(entryRef, candidatesRef, evaluationRef, triggerUser));
+                created++;
+            } catch (RuntimeException e) {
+                log.warn("F-JU-01 — Bootstrap persist failed for {}:{}: {}",
+                        entry.toolId(), entry.brancheCalculId(), e.getMessage());
+                skipped++;
+            }
         }
 
         long duration = System.currentTimeMillis() - start;
