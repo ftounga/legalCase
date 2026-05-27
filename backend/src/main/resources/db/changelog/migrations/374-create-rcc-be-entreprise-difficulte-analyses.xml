@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="250c50d0-8ba0-4181-8f76-a55d90a9306c" author="claude">
+        <comment>
+            SF-219-03 : table dédiée à l'outil décisionnel "RCC BE
+            entreprise en difficulté/restructuration"
+            (rcc-be-entreprise-difficulte, BELGIQUE — fondement :
+            Loi du 26/12/2013 sur le pacte de solidarité entre les
+            générations + CCT n° 17 du 19/12/1974 (CNT) + AR du 03/05/2007
+            (RCC) + AR de reconnaissance entreprise en difficulté /
+            restructuration + CCT sectorielle ad hoc).
+
+            L'outil analyse l'éligibilité au régime de chômage avec
+            complément d'entreprise (RCC, ex-prépension) au titre du
+            régime "entreprise en difficulté ou en restructuration" :
+
+            - Conditions cumulatives :
+              * Reconnaissance officielle de l'entreprise comme étant
+                en difficulté (procédure ministre Emploi) OU comme étant
+                en restructuration (plan agréé) — sans cette reconnaissance
+                aucun RCC variant entreprise difficulté n'est ouvert.
+              * Âge réduit selon le plan reconnu (55 ans par défaut,
+                paramétrable selon la décision ministérielle) à la
+                fin du contrat.
+              * Carrière professionnelle totale ≥ 10 ans (jours
+                équivalents temps plein).
+              * Ancienneté ≥ 5 ans dans le secteur / l'entreprise
+                concernée.
+              * Licenciement effectif (la démission est exclue,
+                CCT 17 art. 3).
+
+            - Verdict : ELIGIBLE_RCC_ENTREPRISE_DIFFICULTE
+              | INELIGIBLE_DEMISSION
+              | INELIGIBLE_RECONNAISSANCE_ABSENTE
+              | INELIGIBLE_AGE_INSUFFISANT
+              | INELIGIBLE_CARRIERE_INSUFFISANTE
+              | INELIGIBLE_ANCIENNETE_INSUFFISANTE.
+
+            - Type d'entreprise : EN_DIFFICULTE | EN_RESTRUCTURATION
+              (cf. AR + CCT sectorielle).
+
+            - Calcul indicatif de l'indemnité complémentaire mensuelle =
+              0,5 × (rémunération nette mensuelle de référence - allocation
+              de chômage estimée), à charge de l'employeur — l'ONEM gère la
+              composante chômage. Plancher à zéro si allocation ≥ référence.
+
+            - Avertissement systématique : montants à confirmer par calcul
+              ONSS / ONEM réel + reconnaissance ministérielle à vérifier au
+              cas par cas (la date d'agrément et l'âge réduit dépendent de
+              chaque décision).
+
+            Outil single-country BELGIQUE — aucun équivalent strict en
+            droit français (le RCC est un dispositif belge spécifique
+            résultant du compromis CCT n° 17 / AR 2007 / Loi 2013).
+
+            Outil distinct des autres variantes RCC déjà couvertes :
+            - F-207 SF-207-06 : RCC général (60+/40)
+            - SF-219-01 : RCC métiers lourds (58+/35 + métier lourd)
+            - SF-219-02 : RCC longue carrière (59+/40, sans critère
+              de métier lourd)
+            - Présente SF : RCC entreprise en difficulté/restructuration
+              (âge réduit conditionné à une reconnaissance ministre,
+              ancienneté secteur).
+
+            Snapshot JSON complet (inputs + outputs : verdict, conditions
+            cumulatives, indemnité complémentaire indicative) pour permettre
+            la restitution UI sans recalcul (pattern F-DT-42 / SF-213-01
+            à SF-213-09 / SF-219-01 à SF-219-02).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-219-03b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="rcc_be_entreprise_difficulte_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rcc_be_entreprise_difficulte_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rcc_be_entreprise_difficulte_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rcc_be_entreprise_difficulte_case_file"/>
+
+        <createIndex tableName="rcc_be_entreprise_difficulte_analyses"
+                     indexName="idx_rcc_be_entreprise_difficulte_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rcc_be_entreprise_difficulte_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
