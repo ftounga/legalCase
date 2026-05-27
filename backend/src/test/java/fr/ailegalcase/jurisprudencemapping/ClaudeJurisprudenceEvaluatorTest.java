@@ -144,7 +144,13 @@ class ClaudeJurisprudenceEvaluatorTest {
         assertThat(systemPrompt).contains("Actions autorisées : ADD ou NONE uniquement");
         assertThat(systemPrompt).doesNotContain("REPLACE");
         assertThat(systemPrompt).doesNotContain("ARCHIVE");
-        assertThat(systemPrompt).doesNotContain("CONFIRM");
+        // SF-JU-01-11 — durcissement format JSON-only
+        assertThat(systemPrompt).contains("RÈGLE DE FORMAT ABSOLUE");
+        assertThat(systemPrompt).contains("PAS de préambule");
+        assertThat(systemPrompt).contains("PAS de balises markdown");
+        // Au moins un exemple JSON inline (sert de few-shot)
+        assertThat(systemPrompt).contains("{\"action\":\"ADD\"");
+        assertThat(systemPrompt).contains("{\"action\":\"NONE\"");
     }
 
     @Test

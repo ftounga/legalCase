@@ -76,7 +76,21 @@ public class ClaudeJurisprudenceEvaluator {
               existe — le but du bootstrap est d'amorcer le mapping, pas de viser
               l'arrêt parfait.
 
-            Réponds UNIQUEMENT par un JSON :
+            RÈGLE DE FORMAT ABSOLUE — non négociable (SF-JU-01-11) :
+            Ta réponse DOIT être un objet JSON unique commençant par « { » et
+            finissant par « } ». AUCUN texte avant l'accolade ouvrante. AUCUN
+            texte après l'accolade fermante. PAS de balises markdown (```json),
+            PAS de préambule (« Voici… », « Je propose… »), PAS d'explication
+            externe au champ "raison". Si tu hésites, mets l'analyse dans
+            "raison" — mais le JSON reste la SEULE chose à produire.
+
+            Exemple de réponse valide (à reproduire littéralement comme format) :
+            {"action":"ADD","arret_choisi_id":"abc123def456","confidence_score":0.82,"raison":"Cass. soc. plénière qui pose le principe applicable à cette branche."}
+
+            Exemple si aucun candidat ne convient :
+            {"action":"NONE","arret_choisi_id":null,"confidence_score":0.20,"raison":"Aucun candidat ne traite directement la branche de calcul."}
+
+            Schéma attendu :
             {
               "action": "ADD" | "NONE",
               "arret_choisi_id": "<id JUDILIBRE ou null>",
