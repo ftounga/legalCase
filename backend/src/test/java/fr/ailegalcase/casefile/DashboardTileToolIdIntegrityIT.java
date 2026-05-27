@@ -350,7 +350,16 @@ class DashboardTileToolIdIntegrityIT {
             // SF-213-08 (2026-05-27) : licenciement-be-protection-deleguee backend
             // livré (Loi 19/03/1991 délégué syndical + CCT n°5, indemnité forfaitaire
             // 2-4 ans). Frontend SF-213-08b à venir. Même pattern.
-            "licenciement-be-protection-deleguee"
+            "licenciement-be-protection-deleguee",
+            // SF-213-09b (2026-05-27) : licenciement-be-acte-equivalent — outil
+            // BE analyseur de l'acte équipollent à rupture (Loi 03/07/1978 art.
+            // 20 + Cass. BE 23/12/1957). 4 verdicts (ACTE_EQUIPOLLENT_PROBABLE
+            // / PAS_ACTE_EQUIPOLLENT / RISQUE_ACCEPTATION_TACITE / A_ANALYSER)
+            // + ICP indicatif. Outil ALWAYS_ON priority 117, BE / DROIT_DU_TRAVAIL ;
+            // pas de tuile DashboardTile par conception (analyseur invoqué par
+            // l'avocat depuis le panel F-IA-04). Pattern uniforme F-213 vagues
+            // 2-8.
+            "licenciement-be-acte-equivalent"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
