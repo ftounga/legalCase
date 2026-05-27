@@ -2427,7 +2427,17 @@ public record CaseAnalysisResponse(
             /** SF-215-07 : type de séjour — whitelist LIMITE/ILLIMITE. Null si non extractible ou dossier FR. */
             String naturalisationBeTypeSejour,
             /** SF-215-07 : niveau de langue — whitelist INFERIEUR_A2/A2/SUPERIEUR_A2. Null si non extractible ou dossier FR. */
-            String naturalisationBeNiveauLangue) {
+            String naturalisationBeNiveauLangue,
+            // === SF-215-09 — F-IM-29 Naturalisation conjoint Belge BE art. 16 CNB (BELGIQUE UNIQUEMENT, null pour FR) ===
+            // Pas de nouveau flag pivot — `naturalisationBeEnvisagee` (SF-215-07) est partagé entre les deux
+            // voies de naturalisation BE (12bis et conjoint Belge art. 16). Le panel F-IA-04 propose les deux
+            // outils dès que le flag est levé, l'avocat choisit la voie pertinente selon le profil.
+            /** SF-215-09 : date du mariage avec un(e) Belge au format YYYY-MM-DD (non future) — art. 16 §1 CNB. Null si non extractible ou dossier FR. */
+            String naturalisationBeArt16DateMarriage,
+            /** SF-215-09 : durée de cohabitation ininterrompue en mois (≥ 0, ≤ 600) — art. 16 §1 2° CNB. Null si non extractible ou dossier FR. */
+            Integer naturalisationBeArt16DureeCohabitation,
+            /** SF-215-09 : niveau de langue — whitelist INFERIEUR_A2/A2/SUPERIEUR_A2. Null si non extractible ou dossier FR. */
+            String naturalisationBeArt16NiveauLangue) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2525,7 +2535,11 @@ public record CaseAnalysisResponse(
                     .naturalisationBeEnvisagee(naturalisationBeEnvisagee)
                     .naturalisationBeDureeSejour(naturalisationBeDureeSejour)
                     .naturalisationBeTypeSejour(naturalisationBeTypeSejour)
-                    .naturalisationBeNiveauLangue(naturalisationBeNiveauLangue);
+                    .naturalisationBeNiveauLangue(naturalisationBeNiveauLangue)
+                    // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE (art. 16 CNB)
+                    .naturalisationBeArt16DateMarriage(naturalisationBeArt16DateMarriage)
+                    .naturalisationBeArt16DureeCohabitation(naturalisationBeArt16DureeCohabitation)
+                    .naturalisationBeArt16NiveauLangue(naturalisationBeArt16NiveauLangue);
         }
 
         public static final class Builder {
@@ -2617,6 +2631,10 @@ public record CaseAnalysisResponse(
             private Integer naturalisationBeDureeSejour;
             private String naturalisationBeTypeSejour;
             private String naturalisationBeNiveauLangue;
+            // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE (art. 16 CNB)
+            private String naturalisationBeArt16DateMarriage;
+            private Integer naturalisationBeArt16DureeCohabitation;
+            private String naturalisationBeArt16NiveauLangue;
 
             private Builder() {}
 
@@ -2707,6 +2725,10 @@ public record CaseAnalysisResponse(
             public Builder naturalisationBeDureeSejour(Integer v) { this.naturalisationBeDureeSejour = v; return this; }
             public Builder naturalisationBeTypeSejour(String v) { this.naturalisationBeTypeSejour = v; return this; }
             public Builder naturalisationBeNiveauLangue(String v) { this.naturalisationBeNiveauLangue = v; return this; }
+            // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE (art. 16 CNB)
+            public Builder naturalisationBeArt16DateMarriage(String v) { this.naturalisationBeArt16DateMarriage = v; return this; }
+            public Builder naturalisationBeArt16DureeCohabitation(Integer v) { this.naturalisationBeArt16DureeCohabitation = v; return this; }
+            public Builder naturalisationBeArt16NiveauLangue(String v) { this.naturalisationBeArt16NiveauLangue = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2747,7 +2769,11 @@ public record CaseAnalysisResponse(
                         be10bisDateFinCarteA,
                         // SF-215-07 : F-IM-28 Naturalisation 12bis BE
                         naturalisationBeEnvisagee, naturalisationBeDureeSejour,
-                        naturalisationBeTypeSejour, naturalisationBeNiveauLangue);
+                        naturalisationBeTypeSejour, naturalisationBeNiveauLangue,
+                        // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE (art. 16 CNB)
+                        naturalisationBeArt16DateMarriage,
+                        naturalisationBeArt16DureeCohabitation,
+                        naturalisationBeArt16NiveauLangue);
             }
         }
     }
@@ -5741,6 +5767,21 @@ public record CaseAnalysisResponse(
         String naturalisationBeNiveauLangue = normalizeEnumCode(
                 textOrNull(root, "naturalisation_be_niveau_langue"),
                 NATURALISATION_BE_NIVEAU_LANGUE_CODES);
+        // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE art. 16 CNB —
+        // 3 champs IA réels (date mariage + durée cohabitation + niveau langue).
+        // Le flag pivot `naturalisationBeEnvisagee` (SF-215-07) est partagé entre les deux
+        // voies de naturalisation BE (12bis + conjoint Belge art. 16) — pas de nouveau flag.
+        // 2 champs aspirationnels (cohabitationLegale / preuveIntegration) NON extraits :
+        // évaluations juridiques saisies manuellement par l'avocat (PREFILL_COUNT_ALWAYS_ZERO).
+        String naturalisationBeArt16DateMarriageRaw = textOrNull(root, "naturalisation_be_art16_date_marriage");
+        String naturalisationBeArt16DateMarriage = (naturalisationBeArt16DateMarriageRaw != null
+                && naturalisationBeArt16DateMarriageRaw.matches(ISO_DATE_SF214))
+                ? naturalisationBeArt16DateMarriageRaw : null;
+        Integer naturalisationBeArt16DureeCohabitation = boundedIntOrNull(
+                root, "naturalisation_be_art16_duree_cohabitation", 0, 600);
+        String naturalisationBeArt16NiveauLangue = normalizeEnumCode(
+                textOrNull(root, "naturalisation_be_art16_niveau_langue"),
+                NATURALISATION_BE_NIVEAU_LANGUE_CODES);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5782,7 +5823,11 @@ public record CaseAnalysisResponse(
                 && !naturalisationBeEnvisagee
                 && naturalisationBeDureeSejour == null
                 && naturalisationBeTypeSejour == null
-                && naturalisationBeNiveauLangue == null) return null;
+                && naturalisationBeNiveauLangue == null
+                // SF-215-09 : 3 champs IA art. 16 CNB (nullables)
+                && naturalisationBeArt16DateMarriage == null
+                && naturalisationBeArt16DureeCohabitation == null
+                && naturalisationBeArt16NiveauLangue == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -5879,6 +5924,10 @@ public record CaseAnalysisResponse(
                 .naturalisationBeDureeSejour(naturalisationBeDureeSejour)
                 .naturalisationBeTypeSejour(naturalisationBeTypeSejour)
                 .naturalisationBeNiveauLangue(naturalisationBeNiveauLangue)
+                // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE — 3 champs pré-fill réels (art. 16 CNB)
+                .naturalisationBeArt16DateMarriage(naturalisationBeArt16DateMarriage)
+                .naturalisationBeArt16DureeCohabitation(naturalisationBeArt16DureeCohabitation)
+                .naturalisationBeArt16NiveauLangue(naturalisationBeArt16NiveauLangue)
                 .build();
     }
 

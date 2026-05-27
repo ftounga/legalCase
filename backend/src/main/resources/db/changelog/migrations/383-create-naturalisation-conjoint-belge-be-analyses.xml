@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b8c9d0e1-f2a3-4456-7890-1bcdef234567-create-naturalisation-conjoint-belge" author="legalcase">
+        <comment>
+            SF-215-09 : table dédiée à l'outil décisionnel "Naturalisation conjoint Belge BE"
+            (F-IM-29-naturalisation-conjoint-belge-be, BELGIQUE — fondement : Code de la
+            nationalité belge (loi du 28/06/1984 consolidée) art. 16 + AR du 14/01/2013
+            (preuve langue) + loi modificative 04/12/2012.
+
+            L'art. 16 CNB ouvre une voie unique de déclaration de nationalité par mariage
+            avec un(e) Belge :
+              - dureeCohabitationMois ≥ 60 mois (5 ans — art. 16 §1 2°)
+              - niveau langue ≥ A2 (français, néerlandais ou allemand — AR 14/01/2013)
+              - preuve d'intégration (cours d'intégration régional ou diplôme BE)
+              - pas de menace à l'ordre public
+              - pas de condamnation pénale ≥ 3 mois ferme dans les 5 ans
+
+            Outil BELGIQUE UNIQUEMENT. Voie distincte de :
+              - SF-215-07 (F-IM-28 naturalisation 12bis BE — voie résidence 5/10 ans)
+              - F-IM-13 (naturalisation FR — Cciv art. 21-2 par mariage, art. 21-15 par décret)
+              - F-221 (naturalisation par décret art. 19-21 CNB — très rare, P3)
+
+            Un outil = une situation (CLAUDE.md feedback_decision_tools_one_per_situation).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01 / SF-215-05 / SF-215-07).
+
+            Pattern F-215 CORRIGÉ : la migration de seed visibility CONTEXTUAL
+            (384-seed-naturalisation-conjoint-belge-be-visibility.xml) est livrée dans
+            la MÊME PR que cette table.
+        </comment>
+
+        <createTable tableName="naturalisation_conjoint_belge_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_naturalisation_conjoint_belge_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_marriage" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cohabitation_legale" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_cohabitation_mois" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="niveau_langue" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuve_integration" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condamnation_penale" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eligible" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="naturalisation_conjoint_belge_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_naturalisation_conjoint_belge_be_case_file"/>
+
+        <createIndex tableName="naturalisation_conjoint_belge_be_analyses"
+                     indexName="idx_naturalisation_conjoint_belge_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="naturalisation_conjoint_belge_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
