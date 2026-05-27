@@ -152,6 +152,7 @@ import { ContestationAreSectionComponent } from '../contestation-are-section/con
 import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
 import { ClauseNonConcurrenceBeSectionComponent } from '../clause-non-concurrence-be-section/clause-non-concurrence-be-section.component';
 import { RappelSalaireBeSectionComponent } from '../rappel-salaire-be-section/rappel-salaire-be-section.component';
+import { LicenciementBeStatutUniquePreavisSectionComponent } from '../licenciement-be-statut-unique-preavis-section/licenciement-be-statut-unique-preavis-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1905,6 +1906,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-03b : préavis "statut unique" BE (Loi 26/12/2013 + art. 37/2
+      // §1er Loi 03/07/1978 — barème par paliers d'ancienneté en semaines).
+      // BE-only, ALWAYS_ON (réflexe transversal sur tout licenciement BE
+      // post-2014, soit la quasi-totalité des contrats actifs en 2026).
+      // 3 champs IA pré-remplis depuis TravailExtractedData : ancienneté
+      // (couple années/mois dérivé dateEntree→dateLicenciement), salaire
+      // hebdo (annuel/52 ou mensuel×12/52), date notification (= dateLicenciement).
+      // Flag UX `partieStatutUniqueSeulement` dérivé de dateEntree >= 2014-01-01
+      // (non compté dans le badge — paramètre de calcul, pas champ IA factuel).
+      ['licenciement-be-statut-unique-preavis', {
+        displayLabel: 'Préavis statut unique (Belgique)',
+        component: LicenciementBeStatutUniquePreavisSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -2962,6 +2984,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).
     ['rappel-salaire-be', 'INDEMNITES'],
+    // SF-213-03b : préavis statut unique BE — chiffrage durée préavis + ICP
+    // (Loi 26/12/2013 + Loi 03/07/1978 art. 37/2 §1er). BE-only ALWAYS_ON.
+    ['licenciement-be-statut-unique-preavis', 'INDEMNITES'],
     ['F-DT-21-travail-dissimule', 'INDEMNITES'],
     ['F-DT-25-indemnite-preavis', 'INDEMNITES'],
     ['F-DT-26-conges-payes-indemnite', 'INDEMNITES'],

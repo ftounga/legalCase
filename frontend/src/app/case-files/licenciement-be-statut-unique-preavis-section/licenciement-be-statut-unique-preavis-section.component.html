@@ -1,0 +1,224 @@
+<div class="licenciement-be-statut-unique-preavis-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">event_busy</mat-icon>
+    <span class="section-title">Préavis statut unique (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="badgeClass(badgeFromResponse(result()!))">
+        {{ humanizeStatutUniqueBadge(badgeFromResponse(result()!)) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-statut-unique-preavis-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi 26/12/2013 statut unique — art. 37/2 §1er Loi 03/07/1978).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calcule la durée du préavis et l'indemnité compensatoire selon le
+            barème "statut unique" BE (Loi 26/12/2013 — paliers d'ancienneté
+            en semaines). Pour les contrats antérieurs au 01/01/2014, décocher
+            "statut unique uniquement" affichera un avertissement pour
+            calculer séparément la fraction Claeys. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Ancienneté années -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté en années *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="80"
+                       step="1"
+                       required
+                       [ngModel]="ancienneteAnnees()"
+                       (ngModelChange)="onAncienneteAnneesChange($event)"
+                       name="ancienneteAnnees" />
+                <mat-hint>Années complètes à la date de notification.</mat-hint>
+              </mat-form-field>
+              @if (provenanceAnciennete() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 2. Mois supplémentaires -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Mois supplémentaires (0-11)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="11"
+                       step="1"
+                       [ngModel]="ancienneteMoisSupplementaires()"
+                       (ngModelChange)="onAncienneteMoisChange($event)"
+                       name="ancienneteMoisSupplementaires" />
+                <mat-hint>Reliquat de mois au-delà des années entières.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Salaire hebdomadaire brut -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire hebdomadaire brut (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="salaireHebdomadaireBrut()"
+                       (ngModelChange)="onSalaireHebdoChange($event)"
+                       name="salaireHebdomadaireBrut" />
+                <mat-hint>Salaire brut hebdomadaire de référence (rémunération en cours).</mat-hint>
+              </mat-form-field>
+              @if (provenanceSalaireHebdo() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Dérivé du salaire annuel/mensuel
+                </span>
+              }
+            </div>
+
+            <!-- 4. Date de notification du licenciement -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de notification *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateNotificationLicenciement()"
+                       (ngModelChange)="onDateNotificationChange($event)"
+                       name="dateNotificationLicenciement" />
+                <mat-hint>Point de départ du préavis.</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateNotification() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Pré-rempli depuis l'analyse
+                </span>
+              }
+            </div>
+
+            <!-- 5. Partie statut unique seulement (checkbox) -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [ngModel]="partieStatutUniqueSeulement()"
+                (ngModelChange)="onPartieStatutUniqueChange($event)"
+                name="partieStatutUniqueSeulement">
+                L'ancienneté est intégralement postérieure au 01/01/2014
+                (statut unique pur)
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Décochez si le contrat est antérieur au 01/01/2014 : un
+                avertissement signalera que la fraction Claeys (préavis
+                pré-2014) doit être calculée séparément.
+              </span>
+              @if (provenancePartieStatutUnique() === 'IA') {
+                <span class="provenance-note">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Dérivé de la date d'entrée
+                </span>
+              }
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer le préavis</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-statut-unique-preavis-result">
+          <div class="result-banner"
+               [class]="badgeClass(badgeFromResponse(result()!))"
+               role="status">
+            <mat-icon>{{ badgeIcon(badgeFromResponse(result()!)) }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ humanizeStatutUniqueBadge(badgeFromResponse(result()!)) }}
+              </div>
+              <div class="result-banner-sub">
+                {{ result()!.dureePreavisEnSemaines }} semaine(s) de préavis —
+                <span class="result-banner-mono">fin {{ result()!.dateFinPreavis }}</span>
+              </div>
+            </div>
+          </div>
+
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <ul class="result-breakdown">
+            <li>
+              <span class="bd-label">Durée du préavis</span>
+              <span class="bd-value">{{ result()!.dureePreavisEnSemaines }} semaine(s)</span>
+            </li>
+            <li>
+              <span class="bd-label">Date de fin de préavis</span>
+              <span class="bd-value bd-value--mono">{{ result()!.dateFinPreavis }}</span>
+            </li>
+            <li class="result-breakdown-total">
+              <span class="bd-label">Indemnité compensatoire</span>
+              <span class="bd-value">{{ formatEuro(result()!.indemniteCompensatoire) }}</span>
+            </li>
+            @if (result()!.formuleCalcul) {
+              <li>
+                <span class="bd-label">Formule</span>
+                <span class="bd-value bd-value--mono">{{ result()!.formuleCalcul }}</span>
+              </li>
+            }
+          </ul>
+
+          <div class="result-meta">
+            <span class="result-meta-base">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
