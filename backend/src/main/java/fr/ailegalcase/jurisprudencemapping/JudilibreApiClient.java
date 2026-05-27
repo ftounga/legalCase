@@ -39,7 +39,10 @@ public class JudilibreApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(JudilibreApiClient.class);
     private static final String TOKEN_URL = "https://oauth.piste.gouv.fr/api/oauth/token";
-    private static final String SEARCH_URL = "https://api.piste.gouv.fr/cassation/judilibre/v1.0/export";
+    /** Endpoint bulk export par date — utilisé par les crons SF-02/03 sur une fenêtre courte. */
+    private static final String EXPORT_URL = "https://api.piste.gouv.fr/cassation/judilibre/v1.0/export";
+    /** Endpoint search full-text avec relevance scoring — utilisé par le bootstrap SF-JU-01-13. */
+    private static final String SEARCH_URL_FULLTEXT = "https://api.piste.gouv.fr/cassation/judilibre/v1.0/search";
     private static final int MAX_RETRIES = 3;
     private static final Duration[] BACKOFFS = {Duration.ofSeconds(2), Duration.ofSeconds(8), Duration.ofSeconds(30)};
 
@@ -107,6 +110,55 @@ public class JudilibreApiClient {
         }
 
         return all;
+    }
+
+    /**
+     * SF-JU-01-13 — recherche full-text JUDILIBRE avec relevance scoring.
+     *
+     * <p>Utilise l'endpoint {@code /v1.0/search} (à ne pas confondre avec
+     * {@code /export} qui ne filtre que par date). Retourne les {@code limit}
+     * arrêts les plus pertinents pour {@code query} sur la période demandée.</p>
+     *
+     * <p>Cas usage primaire : bootstrap initial (SF-JU-01-05) où on cherche
+     * les arrêts structurants par mot-clé thématique du CSV — sans cette
+     * recherche full-text, le bulk export retournait des arrêts aléatoires
+     * et Claude répondait NONE à juste titre.</p>
+     */
+    public List<JudilibreArret> fetchArretsByKeyword(String query, LocalDate startInclusive, LocalDate endExclusive, int limit) {
+        if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
+            log.warn("F-JU-01 — JudilibreApiClient sans credentials configurés, fetchArretsByKeyword no-op");
+            return List.of();
+        }
+        if (query == null || query.isBlank()) {
+            log.warn("F-JU-01 — JudilibreApiClient fetchArretsByKeyword: query vide, no-op");
+            return List.of();
+        }
+        int pageSize = Math.max(1, Math.min(limit, 50));
+
+        String token = currentToken();
+        String body = doFullTextSearchWithRetry(token, query, startInclusive, endExclusive, pageSize);
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode results = root.path("results");
+            if (!results.isArray() || results.isEmpty()) {
+                return List.of();
+            }
+            List<JudilibreArret> out = new ArrayList<>();
+            for (JsonNode node : results) {
+                JudilibreArret arret = parseArret(node);
+                if (arret != null) {
+                    out.add(arret);
+                }
+                if (out.size() >= limit) {
+                    break;
+                }
+            }
+            return out;
+        } catch (Exception e) {
+            log.warn("F-JU-01 — JudilibreApiClient fetchArretsByKeyword parsing fail for query='{}': {}",
+                    query, e.getMessage());
+            return List.of();
+        }
     }
 
     String currentToken() {
@@ -181,6 +233,50 @@ public class JudilibreApiClient {
             }
         }
         throw new IllegalStateException("F-JU-01 — JudilibreApiClient retries exhausted", last);
+    }
+
+    /**
+     * SF-JU-01-13 — appel HTTP vers JUDILIBRE {@code /v1.0/search} (full-text + relevance).
+     */
+    private String doFullTextSearchWithRetry(String token, String query, LocalDate startInclusive,
+                                             LocalDate endExclusive, int pageSize) {
+        int attempt = 0;
+        Exception last = null;
+        while (attempt < MAX_RETRIES) {
+            try {
+                String body = restClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .scheme("https")
+                                .host("api.piste.gouv.fr")
+                                .path("/cassation/judilibre/v1.0/search")
+                                .queryParam("query", query)
+                                .queryParam("date_start", startInclusive.toString())
+                                .queryParam("date_end", endExclusive.toString())
+                                .queryParam("page_size", pageSize)
+                                .queryParam("page", 0)
+                                .queryParam("sort", "score")
+                                .queryParam("order", "desc")
+                                .build())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .retrieve()
+                        .body(String.class);
+                return body == null ? "{}" : body;
+            } catch (HttpServerErrorException e) {
+                last = e;
+                sleep(BACKOFFS[Math.min(attempt, BACKOFFS.length - 1)]);
+                attempt++;
+            } catch (HttpStatusCodeException e) {
+                if (e.getStatusCode().is4xxClientError()) {
+                    log.warn("F-JU-01 — JudilibreApiClient /search 4xx for query='{}': {} {}",
+                            query, e.getStatusCode(), e.getStatusText());
+                    return "{}";
+                }
+                last = e;
+                sleep(BACKOFFS[Math.min(attempt, BACKOFFS.length - 1)]);
+                attempt++;
+            }
+        }
+        throw new IllegalStateException("F-JU-01 — JudilibreApiClient /search retries exhausted", last);
     }
 
     private JudilibreArret parseArret(JsonNode node) {

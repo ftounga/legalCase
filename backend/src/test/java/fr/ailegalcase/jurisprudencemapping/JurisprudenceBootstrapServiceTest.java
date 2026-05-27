@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -61,7 +62,7 @@ class JurisprudenceBootstrapServiceTest {
     void runBootstrap_twoAddEntries_runsOneTransactionPerEntry() {
         JudilibreArret arret1 = arret("AAA");
         JudilibreArret arret2 = arret("BBB");
-        when(judilibre.fetchArretsForPeriod(any(), any()))
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
                 .thenReturn(List.of(arret1, arret2));
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret1, new BigDecimal("0.92"), "ok"))
@@ -85,7 +86,7 @@ class JurisprudenceBootstrapServiceTest {
 
     @Test
     void runBootstrap_noneAction_doesNotOpenTransaction() {
-        when(judilibre.fetchArretsForPeriod(any(), any()))
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
                 .thenReturn(List.of(arret("AAA")));
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(ClaudeEvaluation.none("Pas pertinent"));
@@ -106,7 +107,7 @@ class JurisprudenceBootstrapServiceTest {
         JudilibreArret arret1 = arret("AAA");
         JudilibreArret arret2 = arret("BBB");
         JudilibreArret arret3 = arret("CCC");
-        when(judilibre.fetchArretsForPeriod(any(), any()))
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
                 .thenReturn(List.of(arret1, arret2, arret3));
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret1, new BigDecimal("0.9"), "ok"))
@@ -135,7 +136,7 @@ class JurisprudenceBootstrapServiceTest {
 
     @Test
     void runBootstrap_fetchJudilibreFails_skipsEntryWithoutTransaction() {
-        when(judilibre.fetchArretsForPeriod(any(), any()))
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
                 .thenThrow(new RuntimeException("JUDILIBRE down"));
 
         JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
@@ -167,7 +168,7 @@ class JurisprudenceBootstrapServiceTest {
                     j.setEntriesTotal(1);
                     return Optional.of(j);
                 });
-        when(judilibre.fetchArretsForPeriod(any(), any())).thenReturn(List.of(arret("AAA")));
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret("AAA")));
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret("AAA"),
                         new BigDecimal("0.9"), "ok"));
@@ -200,7 +201,7 @@ class JurisprudenceBootstrapServiceTest {
             return j;
         });
         when(jobRepo.findById(assignedId)).thenReturn(Optional.of(persistedJob));
-        when(judilibre.fetchArretsForPeriod(any(), any())).thenReturn(List.of(arret("AAA")));
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret("AAA")));
         when(evaluator.evaluate(any(), any()))
                 .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret("AAA"),
                         new BigDecimal("0.9"), "ok"));
@@ -237,7 +238,7 @@ class JurisprudenceBootstrapServiceTest {
         // L'exception fatale est levée AVANT la boucle (ex : NPE sur txTemplate)
         // via la confirmation que onProgress relève — on simule via evaluator qui
         // lève une RuntimeException non capturée dans la boucle.
-        when(judilibre.fetchArretsForPeriod(any(), any())).thenReturn(List.of(arret("AAA")));
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret("AAA")));
         when(evaluator.evaluate(any(), any())).thenThrow(new RuntimeException("evaluator boom"));
 
         JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(

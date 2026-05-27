@@ -165,17 +165,18 @@ public class JurisprudenceBootstrapService {
             LocalDate from = entry.dateMin() != null ? entry.dateMin() : now.minusYears(10);
             List<JudilibreArret> candidates;
             try {
-                candidates = judilibreClient.fetchArretsForPeriod(from, now);
+                // SF-JU-01-13 — recherche full-text JUDILIBRE par mot-clé (pas un bulk export par date).
+                candidates = judilibreClient.fetchArretsByKeyword(entry.motCleRecherche(), from, now, 20);
             } catch (Exception e) {
-                log.warn("F-JU-01 — Bootstrap fetchArrets failed for {}:{}: {}",
+                log.warn("F-JU-01 — Bootstrap fetchArretsByKeyword failed for {}:{}: {}",
                         entry.toolId(), entry.brancheCalculId(), e.getMessage());
                 skipped++;
                 notifyProgress(onProgress, processed, created, skipped);
                 continue;
             }
             if (candidates.isEmpty()) {
-                log.info("F-JU-01 — Bootstrap 0 candidats JUDILIBRE pour {}:{}",
-                        entry.toolId(), entry.brancheCalculId());
+                log.info("F-JU-01 — Bootstrap 0 candidats JUDILIBRE pour {}:{} (query='{}')",
+                        entry.toolId(), entry.brancheCalculId(), entry.motCleRecherche());
                 skipped++;
                 notifyProgress(onProgress, processed, created, skipped);
                 continue;
