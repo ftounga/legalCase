@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a7b8c9d0-e1f2-4345-6789-0abcdef12345-seed-naturalisation-12bis" author="legalcase">
+        <comment>
+            SF-215-07 : seed visibility pour l'outil décisionnel "Naturalisation 12bis BE"
+            (F-IM-28-naturalisation-12bis-be). Pattern F-215 CORRIGÉ — cette migration de
+            seed est livrée DANS LA MÊME PR que la table (à différence de SF-215-01 où le
+            seed était déféré à SF-215-02 frontend, ayant produit une régression silencieuse
+            hotfix migration 372).
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte un indice de démarche de
+            naturalisation belge via le flag `naturalisation_be_envisagee` extrait depuis
+            le prompt IMMIGRATION_INSTRUCTION (mots-clés "art. 12bis CNB",
+            "Code Nationalité Belge", "déclaration nationalité", "5 ans séjour",
+            "10 ans séjour", "cours d'intégration Wallonie/Flandre/Bruxelles",
+            "DELF A2", "NT2", "inburgering").
+
+            Priority 203 — juste après le regroupement 10bis BE (priority 202) pour
+            cohérence d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            ATTENTION : ligne `layer` (colonne) — pas `visibility` — leçon vague 1
+            SF-215-02 hotfix migration 372.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) +
+            le composant Angular wrapper seront ajoutés par SF-215-08 (frontend, en
+            parallèle de cette PR via agent S). Coordination de merge : merger SF-215-08
+            APRÈS cette PR pour limiter la fenêtre transitoire pendant laquelle le test
+            d'intégrité DecisionToolVisibilityIntegrityIT verrait un orphelin DB.
+
+            Le flag `naturalisation_be_envisagee` est introduit par cette SF (SF-215-07)
+            — il sera partagé avec SF-215-09 (naturalisation conjoint Belge art. 16 CNB).
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'a7b8c9d0-0000-0000-0000-000000000380',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-28-naturalisation-12bis-be',
+                'CONTEXTUAL',
+                'naturalisation_be_envisagee',
+                'true',
+                203
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'a7b8c9d0-0000-0000-0000-000000000380';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

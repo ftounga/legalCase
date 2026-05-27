@@ -2412,7 +2412,22 @@ public record CaseAnalysisResponse(
             /** SF-215-05 : durée de séjour ininterrompu en mois (≥ 0, ≤ 600). */
             Integer be10bisDureeSejour,
             /** SF-215-05 : date d'expiration de la carte A au format YYYY-MM-DD (la date peut être future ou passée). */
-            String be10bisDateFinCarteA) {
+            String be10bisDateFinCarteA,
+            // === SF-215-07 — F-IM-28 Naturalisation 12bis BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-215-07 : true si les pièces évoquent une démarche de déclaration de
+             * nationalité belge art. 12bis CNB (loi 28/06/1984), false sinon. Pivot
+             * pour la visibility rule CONTEXTUAL (trigger {@code naturalisation_be_envisagee}).
+             * Partageable avec SF-215-09 (naturalisation conjoint Belge art. 16 CNB).
+             * Dossiers FR : toujours false.
+             */
+            boolean naturalisationBeEnvisagee,
+            /** SF-215-07 : durée de séjour ininterrompu en mois (≥ 0, ≤ 600). Null si non extractible ou dossier FR. */
+            Integer naturalisationBeDureeSejour,
+            /** SF-215-07 : type de séjour — whitelist LIMITE/ILLIMITE. Null si non extractible ou dossier FR. */
+            String naturalisationBeTypeSejour,
+            /** SF-215-07 : niveau de langue — whitelist INFERIEUR_A2/A2/SUPERIEUR_A2. Null si non extractible ou dossier FR. */
+            String naturalisationBeNiveauLangue) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2505,7 +2520,12 @@ public record CaseAnalysisResponse(
                     .be10bisLienFamilial(be10bisLienFamilial)
                     .be10bisRevenusMensuels(be10bisRevenusMensuels)
                     .be10bisDureeSejour(be10bisDureeSejour)
-                    .be10bisDateFinCarteA(be10bisDateFinCarteA);
+                    .be10bisDateFinCarteA(be10bisDateFinCarteA)
+                    // SF-215-07 : F-IM-28 Naturalisation 12bis BE
+                    .naturalisationBeEnvisagee(naturalisationBeEnvisagee)
+                    .naturalisationBeDureeSejour(naturalisationBeDureeSejour)
+                    .naturalisationBeTypeSejour(naturalisationBeTypeSejour)
+                    .naturalisationBeNiveauLangue(naturalisationBeNiveauLangue);
         }
 
         public static final class Builder {
@@ -2592,6 +2612,11 @@ public record CaseAnalysisResponse(
             private Integer be10bisRevenusMensuels;
             private Integer be10bisDureeSejour;
             private String be10bisDateFinCarteA;
+            // SF-215-07 : F-IM-28 Naturalisation 12bis BE
+            private boolean naturalisationBeEnvisagee;
+            private Integer naturalisationBeDureeSejour;
+            private String naturalisationBeTypeSejour;
+            private String naturalisationBeNiveauLangue;
 
             private Builder() {}
 
@@ -2677,6 +2702,11 @@ public record CaseAnalysisResponse(
             public Builder be10bisRevenusMensuels(Integer v) { this.be10bisRevenusMensuels = v; return this; }
             public Builder be10bisDureeSejour(Integer v) { this.be10bisDureeSejour = v; return this; }
             public Builder be10bisDateFinCarteA(String v) { this.be10bisDateFinCarteA = v; return this; }
+            // SF-215-07 : F-IM-28 Naturalisation 12bis BE
+            public Builder naturalisationBeEnvisagee(boolean v) { this.naturalisationBeEnvisagee = v; return this; }
+            public Builder naturalisationBeDureeSejour(Integer v) { this.naturalisationBeDureeSejour = v; return this; }
+            public Builder naturalisationBeTypeSejour(String v) { this.naturalisationBeTypeSejour = v; return this; }
+            public Builder naturalisationBeNiveauLangue(String v) { this.naturalisationBeNiveauLangue = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2714,7 +2744,10 @@ public record CaseAnalysisResponse(
                         // SF-215-05 : F-IM-27 Regroupement 10bis BE
                         regroupementTiersLimiteDetecte, be10bisLienFamilial,
                         be10bisRevenusMensuels, be10bisDureeSejour,
-                        be10bisDateFinCarteA);
+                        be10bisDateFinCarteA,
+                        // SF-215-07 : F-IM-28 Naturalisation 12bis BE
+                        naturalisationBeEnvisagee, naturalisationBeDureeSejour,
+                        naturalisationBeTypeSejour, naturalisationBeNiveauLangue);
             }
         }
     }
@@ -2826,6 +2859,22 @@ public record CaseAnalysisResponse(
     static final Set<String> LIENS_FAMILIAUX_10BIS_CODES = Set.of(
             "CONJOINT", "PARTENAIRE_ENREGISTRE",
             "ENFANT_MOINS_21", "ENFANT_21_PLUS_CHARGE", "ASCENDANT_CHARGE"
+    );
+
+    /**
+     * SF-215-07 : type de séjour du demandeur naturalisation 12bis BE — 2 codes alignés
+     * sur l'enum Java {@code NaturalisationBeTypeSejourEnum}.
+     */
+    static final Set<String> NATURALISATION_BE_TYPE_SEJOUR_CODES = Set.of(
+            "LIMITE", "ILLIMITE"
+    );
+
+    /**
+     * SF-215-07 : niveau de langue du demandeur naturalisation 12bis BE — 3 codes alignés
+     * sur l'enum Java {@code NaturalisationBeNiveauLangueEnum}.
+     */
+    static final Set<String> NATURALISATION_BE_NIVEAU_LANGUE_CODES = Set.of(
+            "INFERIEUR_A2", "A2", "SUPERIEUR_A2"
     );
 
     /** SF-246-20 : borne max revenus mensuels nets regroupant belge (plausibilité). */
@@ -5679,6 +5728,19 @@ public record CaseAnalysisResponse(
         String be10bisDateFinCarteA = (be10bisDateFinCarteARaw != null
                 && be10bisDateFinCarteARaw.matches(ISO_DATE_SF214))
                 ? be10bisDateFinCarteARaw : null;
+        // SF-215-07 : F-IM-28 Naturalisation 12bis BE — flag pivot + 3 champs IA réels.
+        // 2 champs aspirationnels (preuveIntegration / preuveEmploi) NON extraits : ce
+        // sont des évaluations juridiques que l'avocat saisit manuellement (PREFILL_COUNT
+        // toujours zéro pour ces deux booléens — documenté F-246).
+        boolean naturalisationBeEnvisagee = booleanOrFalse(root, "naturalisation_be_envisagee");
+        Integer naturalisationBeDureeSejour = boundedIntOrNull(
+                root, "naturalisation_be_duree_sejour", 0, 600);
+        String naturalisationBeTypeSejour = normalizeEnumCode(
+                textOrNull(root, "naturalisation_be_type_sejour"),
+                NATURALISATION_BE_TYPE_SEJOUR_CODES);
+        String naturalisationBeNiveauLangue = normalizeEnumCode(
+                textOrNull(root, "naturalisation_be_niveau_langue"),
+                NATURALISATION_BE_NIVEAU_LANGUE_CODES);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5715,7 +5777,12 @@ public record CaseAnalysisResponse(
                 // SF-215-05 : champs nullables seulement (le boolean primitif n'est jamais null)
                 && !regroupementTiersLimiteDetecte
                 && be10bisLienFamilial == null && be10bisRevenusMensuels == null
-                && be10bisDureeSejour == null && be10bisDateFinCarteA == null) return null;
+                && be10bisDureeSejour == null && be10bisDateFinCarteA == null
+                // SF-215-07 : champs nullables seulement (le boolean primitif n'est jamais null)
+                && !naturalisationBeEnvisagee
+                && naturalisationBeDureeSejour == null
+                && naturalisationBeTypeSejour == null
+                && naturalisationBeNiveauLangue == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -5807,6 +5874,11 @@ public record CaseAnalysisResponse(
                 .be10bisRevenusMensuels(be10bisRevenusMensuels)
                 .be10bisDureeSejour(be10bisDureeSejour)
                 .be10bisDateFinCarteA(be10bisDateFinCarteA)
+                // SF-215-07 : F-IM-28 Naturalisation 12bis BE — flag + 3 champs pré-fill réels
+                .naturalisationBeEnvisagee(naturalisationBeEnvisagee)
+                .naturalisationBeDureeSejour(naturalisationBeDureeSejour)
+                .naturalisationBeTypeSejour(naturalisationBeTypeSejour)
+                .naturalisationBeNiveauLangue(naturalisationBeNiveauLangue)
                 .build();
     }
 
