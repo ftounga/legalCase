@@ -18,4 +18,13 @@ public interface ToolJurisprudenceMappingRepository extends JpaRepository<ToolJu
      */
     List<ToolJurisprudenceMapping> findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
             String toolId, String brancheCalculId);
+
+    /**
+     * SF-JU-01-14 — vérifie si un mapping existe déjà pour le triplet couvert par
+     * la contrainte unique {@code uq_tool_jurisprudence_mappings_active}. Utilisé
+     * par {@code JurisprudenceBootstrapService} pour rendre le bootstrap idempotent :
+     * un re-bootstrap sur des entrées déjà mappées n'émet plus de
+     * {@code DataIntegrityViolationException}.
+     */
+    boolean existsByToolIdAndBrancheCalculIdAndArretRef(String toolId, String brancheCalculId, String arretRef);
 }

@@ -263,6 +263,60 @@ class JurisprudenceBootstrapServiceTest {
         verify(jobRepo).findById(eq(unknown));
     }
 
+    // --- SF-JU-01-14 — bootstrap idempotent : skip si mapping déjà présent ---
+
+    @Test
+    void runBootstrap_whenMappingAlreadyExists_skipsWithoutOpeningTransaction() {
+        JudilibreArret arret = arret("AAA");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt())).thenReturn(List.of(arret));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret, new BigDecimal("0.9"), "ok"));
+        when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+                eq("f-dt-30"), eq("branche-1"), eq(arret.ref())))
+                .thenReturn(true);
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("f-dt-30", "branche-1")
+        ));
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(req, triggerUser());
+
+        verify(txManager, never()).getTransaction(any());
+        verify(mappingRepo, never()).save(any());
+        verify(auditRepo, never()).save(any());
+        assertThat(resp.entriesProcessed()).isEqualTo(1);
+        assertThat(resp.mappingsCreated()).isZero();
+        assertThat(resp.entriesSkipped()).isEqualTo(1);
+    }
+
+    @Test
+    void runBootstrap_mixedNewAndExistingEntries_persistsOnlyNew() {
+        JudilibreArret arretA = arret("AAA");
+        JudilibreArret arretB = arret("BBB");
+        when(judilibre.fetchArretsByKeyword(any(), any(), any(), anyInt()))
+                .thenReturn(List.of(arretA))
+                .thenReturn(List.of(arretB));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arretA, new BigDecimal("0.9"), "ok"))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arretB, new BigDecimal("0.9"), "ok"));
+        when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+                eq("f-dt-30"), eq("branche-1"), eq(arretA.ref())))
+                .thenReturn(true);
+        when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+                eq("f-dt-31"), eq("branche-2"), eq(arretB.ref())))
+                .thenReturn(false);
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("f-dt-30", "branche-1"),
+                entry("f-dt-31", "branche-2")
+        ));
+        JurisprudenceBootstrapResponse resp = service.runBootstrap(req, triggerUser());
+
+        verify(txManager, times(1)).getTransaction(any());
+        verify(mappingRepo, times(1)).save(any());
+        assertThat(resp.mappingsCreated()).isEqualTo(1);
+        assertThat(resp.entriesSkipped()).isEqualTo(1);
+    }
+
     private JurisprudenceBootstrapEntry entry(String toolId, String brancheCalculId) {
         return new JurisprudenceBootstrapEntry(toolId, brancheCalculId, "mot-clé test",
                 "Cour de cassation", null);
