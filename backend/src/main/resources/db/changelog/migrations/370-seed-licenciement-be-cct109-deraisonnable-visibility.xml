@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="44a86874-d2cc-4cea-824d-9b1726a4714c" author="claude">
+        <comment>
+            SF-213-10b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Score CCT n° 109 BE — licenciement manifestement
+            déraisonnable » (licenciement-be-cct109-deraisonnable, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses créée par SF-213-10
+            (migration 368).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            La mini-spec SF-213-10b envisageait CONTEXTUAL avec
+            `trigger_field = 'type_rupture'` et
+            `trigger_value = 'LICENCIEMENT_ORDINAIRE'`. Décision retenue
+            dans la vague 9 : pattern ALWAYS_ON aligné sur les autres
+            outils F-213 V1 (110 rappel-salaire-be → 111
+            statut-unique-preavis → 112 formule-claeys → 113
+            protection-grossesse → 114 transaction-be-travail → 115
+            harcelement-be-procedure-formelle → 116
+            licenciement-be-protection-deleguee → 117
+            licenciement-be-acte-equivalent (SF-213-09b) → 118 cette
+            migration).
+
+            Motifs :
+            1. Pas de flag DB `type_rupture` existant dans les règles
+               CONTEXTUAL — l'introduire pour un seul outil ajouterait
+               une exception isolée et nécessiterait son extraction par
+               le pipeline IA Travail BE (non couvert V1).
+            2. Pertinence en dehors d'une détection IA — l'avocat peut
+               activer l'outil dès la première rencontre client si le
+               dossier mentionne un licenciement ordinaire (ouvrier ou
+               employé statut unique), sans avoir attendu d'extraction
+               préalable.
+            3. Cohérence avec les autres outils F-213 V1 (tous ALWAYS_ON
+               priority 110-117). Évite une exception isolée qui
+               compliquerait la lisibilité du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié
+               par défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque
+               le contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY
+            `licenciement-be-cct109-deraisonnable` livrée dans
+            decisional-tools-panel.component.ts (cf. SF-213-10b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement
+            masqué — cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            Fondement juridique :
+            - CCT n° 109 du 12 février 2014 (rendue obligatoire par AR
+              du 09/03/2014) — motivation du licenciement + indemnité
+              3/8/12/17 semaines pour licenciement manifestement
+              déraisonnable (art. 8-9).
+            - Loi du 26 décembre 2013 sur l'unification des statuts
+              (statut unique ouvrier/employé) — champ d'application.
+            - Loi du 10 mai 2007 (discrimination) — aggravant porte
+              l'échelon à 12 sem. minimum.
+
+            Cumul ICP : l'indemnité CCT 109 se cumule systématiquement
+            avec l'indemnité compensatoire de préavis (Loi 03/07/1978,
+            statut unique / Claeys). Bannière info systématique côté UI
+            invite l'avocat à calculer l'ICP via les outils dédiés
+            (licenciement-be-statut-unique-preavis ou
+            licenciement-be-formule-claeys).
+
+            Régime BE uniquement — la France a un dispositif distinct
+            (barème Macron L. 1235-3 C. trav. — licenciement sans cause
+            réelle et sérieuse) avec d'autres règles d'indemnisation ;
+            outil dédié hors scope V1.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('44a86874-d2cc-4cea-824d-9b1726a4714c', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-cct109-deraisonnable', 'ALWAYS_ON', NULL, NULL, 118);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '44a86874-d2cc-4cea-824d-9b1726a4714c';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

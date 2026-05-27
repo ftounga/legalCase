@@ -359,7 +359,13 @@ class DashboardTileToolIdIntegrityIT {
             // pas de tuile DashboardTile par conception (analyseur invoqué par
             // l'avocat depuis le panel F-IA-04). Pattern uniforme F-213 vagues
             // 2-8.
-            "licenciement-be-acte-equivalent"
+            "licenciement-be-acte-equivalent",
+            // SF-213-10b (2026-05-27) : licenciement-be-cct109-deraisonnable —
+            // backend mergé (PR #1350, CCT 109 du 12/02/2014 art. 8-9, score
+            // 3/8/12/17 sem.) sans DashboardTile (frontend rend l'échelon dans
+            // le panel F-IA-04, pas dans le dashboard global). Même pattern
+            // uniforme F-213 vagues 1-9b (mémoire `feedback_f213_backend_pattern`).
+            "licenciement-be-cct109-deraisonnable"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

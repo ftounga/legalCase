@@ -1,0 +1,269 @@
+<div class="licenciement-be-cct109-deraisonnable-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">rule</mat-icon>
+    <span class="section-title">Score CCT 109 — licenciement déraisonnable (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="echelonBadgeShortClass(result()!.echelonCct109)">
+        {{ echelonBadgeShort(result()!.echelonCct109) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-cct109-deraisonnable-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (CCT n° 109 du 12/02/2014 — motivation du licenciement +
+            indemnité 3/8/12/17 semaines pour licenciement manifestement
+            déraisonnable). Le régime français (barème Macron L. 1235-3
+            C. trav. — licenciement sans cause réelle et sérieuse) est
+            distinct.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Évalue le score CCT n° 109 (art. 9) — indemnité due en cas
+            de <b>licenciement manifestement déraisonnable</b> d'un
+            ouvrier ou employé sous statut unique. Échelle à 5 niveaux :
+            <b>non déraisonnable</b> (0 sem.), <b>3</b>, <b>8</b>,
+            <b>12</b> ou <b>17 semaines</b> de rémunération hebdomadaire
+            brute. Cumul systématique avec l'indemnité compensatoire de
+            préavis (ICP). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Motif communiqué * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif communiqué par écrit ? *</mat-label>
+                <mat-select
+                    [value]="motifCommunique()"
+                    (selectionChange)="onMotifCommuniqueChange($event.value)"
+                    name="motifCommunique"
+                    required>
+                  <mat-option [value]="true">Oui — motif communiqué par écrit</mat-option>
+                  <mat-option [value]="false">Non — pas de motif écrit fourni</mat-option>
+                </mat-select>
+                <mat-hint>CCT 109 art. 5-8 — communication écrite dans les 2 mois.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Qualification du motif * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Qualification du motif *</mat-label>
+                <mat-select
+                    [value]="motifLieAPersonne()"
+                    (selectionChange)="onMotifLieAPersonneChange($event.value)"
+                    name="motifLieAPersonne"
+                    required>
+                  <mat-option value="SANS_MOTIF">Aucun motif</mat-option>
+                  <mat-option value="MOTIF_VAGUE">Motif vague / imprécis</mat-option>
+                  <mat-option value="MOTIF_PRECIS_DISPUTE">Motif précis contesté</mat-option>
+                  <mat-option value="MOTIF_PROUVE_VALIDE">Motif prouvé / valide</mat-option>
+                </mat-select>
+                <mat-hint>Pilote l'échelon de base (3 / 8 sem.) avant aggravants.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Rémunération hebdomadaire brute * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération hebdomadaire brute (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationHebdomadaireBrute()"
+                       (ngModelChange)="onRemunerationHebdomadaireBruteChange($event)"
+                       name="remunerationHebdomadaireBrute" />
+                <mat-hint>Base × nombre de semaines = indemnité CCT 109.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Procédures respectées -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="proceduresRespectees()"
+                (change)="onProceduresRespecteesChange($event.checked)"
+                name="proceduresRespectees">
+                Procédures d'audition et de notification respectées
+              </mat-checkbox>
+              <span class="checkbox-help">
+                CCT 109 art. 5 — audition préalable, lettre de
+                notification, motif écrit dans les 2 mois. Décochez si
+                la procédure interne n'a pas été respectée.
+              </span>
+            </div>
+
+            <!-- 5. Discrimination suspectée -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="discriminationSuspectee()"
+                (change)="onDiscriminationSuspecteeChange($event.checked)"
+                name="discriminationSuspectee">
+                Discrimination suspectée
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Loi 10/05/2007 — faisceau d'indices sur un critère
+                protégé (âge, genre, état de santé, convictions…).
+                Aggravant — porte l'échelon à 12 sem. minimum.
+              </span>
+            </div>
+
+            <!-- 6. Représailles suspectées -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="represaillesSuspectees()"
+                (change)="onRepresaillesSuspecteesChange($event.checked)"
+                name="represaillesSuspectees">
+                Représailles suspectées (post-plainte / témoignage)
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Licenciement consécutif à une plainte, témoignage ou
+                action en justice. Aggravant — porte l'échelon à 12 sem.
+                minimum. Cumulé avec discrimination → 17 sem. maximum
+                légal.
+              </span>
+            </div>
+
+            <!-- 7. Arguments patronal (optionnel) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Arguments patronal (optionnel)</mat-label>
+                <textarea matInput
+                          rows="3"
+                          [ngModel]="argumentsPatronal()"
+                          (ngModelChange)="onArgumentsPatronalChange($event)"
+                          name="argumentsPatronal"
+                          placeholder="Contexte employeur (libre — n'influence pas le calcul)"></textarea>
+                <mat-hint>Texte libre, conservé pour la défense contradictoire.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le score CCT 109</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-cct109-deraisonnable-result">
+
+          <!-- Bannière échelon gradué -->
+          <div class="result-banner" role="status" [class]="echelonClass()">
+            <mat-icon>{{ echelonIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ echelonLabel(result()!.echelonCct109) }}
+              </div>
+              <div class="result-banner-sub">
+                {{ motifLieAPersonneLabel(result()!.motifLieAPersonne) }}
+                @if (!result()!.motifCommunique) {
+                  — motif <b>non communiqué</b> par écrit
+                }
+                @if (!result()!.proceduresRespectees) {
+                  — procédures CCT 109 art. 5 <b>non respectées</b>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Bannière avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <!-- Bloc indemnité CCT 109 (rendu si > 0 sem.) -->
+          @if (result()!.nombreSemaines > 0) {
+            <div class="indemnite-block" role="region">
+              <div class="indemnite-header">
+                <mat-icon>euro</mat-icon>
+                <span class="indemnite-title">Indemnité CCT 109 due</span>
+              </div>
+              <div class="indemnite-amount mono">
+                {{ result()!.indemniteCct109 | number:'1.2-2' }} €
+              </div>
+              <div class="indemnite-detail">
+                <span class="mono">{{ result()!.remunerationHebdomadaireBrute | number:'1.2-2' }} €</span>
+                /semaine × <b>{{ result()!.nombreSemaines }}</b>
+                semaine{{ result()!.nombreSemaines === 1 ? '' : 's' }}
+                — CCT 109 art. 9.
+              </div>
+            </div>
+          }
+
+          <!-- Bannière info cumul ICP systématique -->
+          @if (result()!.cumulAvecIcp) {
+            <div class="result-info-icp" role="note">
+              <mat-icon>info</mat-icon>
+              <div class="result-info-icp-content">
+                <div class="result-info-icp-title">Cumul avec l'indemnité compensatoire de préavis (ICP)</div>
+                <div class="result-info-icp-detail">
+                  L'indemnité CCT 109 se cumule systématiquement avec
+                  l'ICP (Loi 03/07/1978). Pensez à calculer l'ICP via
+                  les outils dédiés (<b>statut unique</b> pour les
+                  travailleurs sous régime post-2014 ou <b>formule
+                  Claeys</b> pour les employés sous ancien régime).
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Justification de l'échelon (police monospace) -->
+          @if (result()!.justificationEchelon) {
+            <div class="justification-block" role="region">
+              <div class="justification-header">
+                <mat-icon>fact_check</mat-icon>
+                <span class="justification-title">Justification de l'échelon</span>
+              </div>
+              <pre class="justification-text mono">{{ result()!.justificationEchelon }}</pre>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
