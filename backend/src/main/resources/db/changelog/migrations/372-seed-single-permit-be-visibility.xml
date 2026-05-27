@@ -24,7 +24,7 @@
         </comment>
         <sql>
             INSERT INTO decision_tool_visibility_rules
-                (id, legal_domain, country, tool_id, visibility, trigger_field, trigger_value, priority)
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
             VALUES (
                 'd4e5f6a7-0000-0000-0000-000000000372',
                 'DROIT_IMMIGRATION',
