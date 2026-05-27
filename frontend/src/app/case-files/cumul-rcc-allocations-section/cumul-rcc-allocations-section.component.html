@@ -1,0 +1,288 @@
+<div class="cumul-rcc-allocations-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">account_balance_wallet</mat-icon>
+    <span class="section-title">Cumul RCC + allocations (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="cumul-rcc-allocations-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (CCT n° 17 du 19/12/1974 + AR du 25/11/1991 ONEM + AR du
+            03/05/2007 art. 22 et suiv. — disponibilité ajustée selon
+            l'âge). La France n'a pas d'équivalent direct (pré-retraite
+            supprimée 2010).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse le <b>cumul mensuel</b> entre les allocations chômage
+            ONEM et l'indemnité complémentaire CCT 17 d'un bénéficiaire
+            RCC : respect du <b>plafond de la rémunération nette de
+            référence</b>, régime de disponibilité applicable selon l'âge,
+            détection d'une bascule pension légale, compatibilité d'une
+            activité complémentaire éventuelle. Fondement : <b>CCT n° 17</b>
+            + <b>AR 25/11/1991</b> (ONEM) + <b>AR 03/05/2007 art. 22+</b>.
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date naissance * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateNaissance()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissance" />
+                <mat-hint>Détermine l'âge à la date d'entrée RCC + bascule pension.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Date début RCC * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de prise d'effet du RCC *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutRcc()"
+                       (ngModelChange)="onDateDebutRccChange($event)"
+                       name="dateDebutRcc" />
+                <mat-hint>Date à laquelle le RCC commence (≠ date du licenciement).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Allocation chômage mensuelle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Allocation chômage ONEM mensuelle (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="allocationChomageMensuelle()"
+                       (ngModelChange)="onAllocationChomageMensuelleChange($event)"
+                       name="allocationChomageMensuelle" />
+                <mat-hint>Montant net mensuel ONEM (cf. attestation C4 / organisme paiement).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Indemnité complémentaire mensuelle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Indemnité complémentaire CCT 17 mensuelle (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="indemniteComplementaireMensuelle()"
+                       (ngModelChange)="onIndemniteComplementaireMensuelleChange($event)"
+                       name="indemniteComplementaireMensuelle" />
+                <mat-hint>Montant mensuel à charge employeur (ou ex-employeur).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Rémunération nette de référence * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération nette de référence (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="remunerationNetteReference()"
+                       (ngModelChange)="onRemunerationNetteReferenceChange($event)"
+                       name="remunerationNetteReference" />
+                <mat-hint>Plafond du cumul — dernière rémunération nette mensuelle.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Années carrière totale * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Carrière professionnelle totale (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="60"
+                       step="1"
+                       required
+                       [ngModel]="anneesCarriereTotale()"
+                       (ngModelChange)="onAnneesCarriereTotaleChange($event)"
+                       name="anneesCarriereTotale" />
+                <mat-hint>Conditionne la disponibilité passive longue carrière (≥ 42 ans).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Activité complémentaire * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Activité complémentaire éventuelle *</mat-label>
+                <mat-select
+                    [value]="activiteComplementaire()"
+                    (selectionChange)="onActiviteComplementaireChange($event.value)"
+                    name="activiteComplementaire"
+                    required>
+                  <mat-option value="AUCUNE">
+                    Aucune activité complémentaire
+                  </mat-option>
+                  <mat-option value="ACTIVITE_INDEPENDANT_ACCESSOIRE">
+                    Indépendant accessoire (déclaration ONEM)
+                  </mat-option>
+                  <mat-option value="ACTIVITE_BENEVOLE_DECLAREE">
+                    Bénévolat / mandat communal déclaré ONEM
+                  </mat-option>
+                  <mat-option value="ACTIVITE_NON_DECLAREE">
+                    Activité non déclarée
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Toute activité non déclarée entraîne la sortie du régime
+                  + restitution des allocations indûment perçues.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Âge légal pension (optionnel) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Âge légal pension (optionnel)</mat-label>
+                <input matInput
+                       type="number"
+                       min="60"
+                       max="70"
+                       step="1"
+                       [ngModel]="ageLegalPension()"
+                       (ngModelChange)="onAgeLegalPensionChange($event)"
+                       name="ageLegalPension" />
+                <mat-hint>Par défaut 65 ans — passe à 66 en 2027, 67 en 2030.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le cumul</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="cumul-rcc-allocations-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Âge à la date RCC : {{ result()!.ageADateDebutRcc }} ans —
+                cumul mensuel total : <span class="mono">{{ result()!.cumulMensuelTotal }} €</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Réduction indemnité si plafond dépassé -->
+          @if (result()!.verdict === 'CUMUL_PLAFOND_DEPASSE'
+               && result()!.montantReductionIndemnite > 0) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>
+                L'indemnité complémentaire doit être réduite de
+                <span class="mono">{{ result()!.montantReductionIndemnite }} €</span>
+                pour respecter le plafond CCT 17 (la rémunération nette
+                cumulée ne peut excéder la dernière rémunération nette de
+                référence).
+              </span>
+            </div>
+          }
+
+          <!-- Régime disponibilité -->
+          <div class="result-fondement" role="region">
+            <mat-icon>schedule</mat-icon>
+            <span>
+              Régime applicable :
+              <b>{{ regimeDisponibiliteLabel(result()!.regimeDisponibilite) }}</b>
+            </span>
+          </div>
+
+          <!-- Bascule pension -->
+          @if (result()!.ageLegalPensionAtteint) {
+            <div class="result-alert" role="alert">
+              <mat-icon>elderly</mat-icon>
+              <span>
+                Âge légal pension atteint — bascule sur la pension légale,
+                le RCC s'éteint automatiquement (cumul sans objet).
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
