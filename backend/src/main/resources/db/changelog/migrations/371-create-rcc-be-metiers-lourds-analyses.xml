@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="550d2ef3-e355-4ed3-a114-a7a44db75b68" author="claude">
+        <comment>
+            SF-219-01 : table dédiée à l'outil décisionnel "RCC métiers
+            lourds BE" (rcc-be-metiers-lourds, BELGIQUE — fondement : CCT
+            n° 17 du 19/12/1974 (Conseil National du Travail — régime
+            d'indemnité complémentaire aux travailleurs âgés en cas de
+            licenciement) + AR du 03/05/2007 fixant le RCC, art. 3
+            (régime spécifique métiers lourds 58+/35 ans de carrière).
+
+            L'outil analyse l'éligibilité au RCC métiers lourds selon les
+            conditions cumulatives :
+            - Licenciement effectif (démission exclue) ;
+            - Âge ≥ 58 ans à la fin du contrat ;
+            - Carrière professionnelle totale ≥ 35 ans ;
+            - Au moins 5 ans en métier lourd dans les 10 dernières années
+              OU 7 ans dans les 15 dernières.
+
+            Verdict binaire ELIGIBLE | INELIGIBLE + raison détaillée
+            (DEMISSION_NON_ELIGIBLE | AGE_INSUFFISANT |
+             CARRIERE_INSUFFISANTE | DUREE_METIER_LOURD_INSUFFISANTE).
+
+            Outil single-country BELGIQUE — aucun équivalent FR direct
+            (pré-retraite supprimée en France en 2010, dispositifs
+            spécifiques amiante / pénibilité C2P distincts). Distinct du
+            RCC général 60+/40 ans (F-207 SF-207-06) et de l'indemnité
+            complémentaire (F-207 SF-207-07) qui s'applique
+            transversalement à tous les régimes RCC une fois l'éligibilité
+            acquise.
+
+            Snapshot JSON complet (inputs + outputs : verdict, raison,
+            synthèse, base juridique, avertissement) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-08).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-219-01b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="rcc_be_metiers_lourds_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rcc_be_metiers_lourds_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rcc_be_metiers_lourds_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rcc_be_metiers_lourds_case_file"/>
+
+        <createIndex tableName="rcc_be_metiers_lourds_analyses"
+                     indexName="idx_rcc_be_metiers_lourds_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rcc_be_metiers_lourds_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
