@@ -193,6 +193,19 @@ public class JurisprudenceBootstrapService {
                 notifyProgress(onProgress, processed, created, skipped);
                 continue;
             }
+            // SF-JU-01-14 — bootstrap idempotent : si l'arrêt choisi par Claude est déjà
+            // mappé pour cette (toolId, brancheCalculId), on n'ouvre pas de transaction
+            // et on compte l'entrée comme skipped. Évite les DataIntegrityViolationException
+            // sur la contrainte uq_tool_jurisprudence_mappings_active (cf. HF-2026-05-27-03).
+            String chosenRef = evaluation.arretChoisi().ref();
+            if (mappingRepository.existsByToolIdAndBrancheCalculIdAndArretRef(
+                    entry.toolId(), entry.brancheCalculId(), chosenRef)) {
+                log.info("F-JU-01 — Bootstrap mapping déjà présent pour {}:{} (ref={}), skipped",
+                        entry.toolId(), entry.brancheCalculId(), chosenRef);
+                skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
+                continue;
+            }
             try {
                 final JurisprudenceBootstrapEntry entryRef = entry;
                 final ClaudeEvaluation evaluationRef = evaluation;
