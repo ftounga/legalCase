@@ -172,6 +172,8 @@ import { RccBeLongueCarriereSectionComponent } from '../rcc-be-longue-carriere-s
 import { RccBeMetiersLourdsSectionComponent } from '../rcc-be-metiers-lourds-section/rcc-be-metiers-lourds-section.component';
 // SF-219-03b : section décisionnelle RCC BE entreprise en difficulté / restructuration (BE-only, ALWAYS_ON).
 import { RccBeEntrepriseDifficulteSectionComponent } from '../rcc-be-entreprise-difficulte-section/rcc-be-entreprise-difficulte-section.component';
+// SF-219-04b : section décisionnelle Cumul RCC + allocations (BE-only, ALWAYS_ON).
+import { CumulRccAllocationsSectionComponent } from '../cumul-rcc-allocations-section/cumul-rcc-allocations-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2231,6 +2233,30 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-04b : Cumul RCC + allocations chômage / pension (BE) —
+      // CCT 17 + AR 25/11/1991 ONEM + AR 03/05/2007 art. 22+.
+      // Analyseur transversal 4 verdicts (CUMUL_CONFORME / CUMUL_PLAFOND_DEPASSE
+      // / BASCULE_PENSION_LEGALE / INCOMPATIBLE_ACTIVITE_NON_AUTORISEE).
+      // Intervient APRÈS l'éligibilité acquise par rcc-be-conditions /
+      // rcc-be-metiers-lourds / rcc-be-longue-carriere / rcc-be-entreprise-difficulte :
+      // vérifie le plafond de cumul (allocations ONEM + indemnité CCT 17
+      // ≤ dernière rémunération nette) + détecte bascule pension légale +
+      // compatibilité activité complémentaire. BE-only, ALWAYS_ON priority 122
+      // (au-dessus de rcc-be-entreprise-difficulte = 121). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213/F-219 — montants nets
+      // ONEM, accord CCT 17 employeur, carrière ETP non extractibles).
+      ['cumul-rcc-allocations', {
+        displayLabel: 'Cumul RCC + allocations (Belgique)',
+        component: CumulRccAllocationsSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3410,6 +3436,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // metiers-lourds / rcc-be-longue-carriere). 6 verdicts (1 éligible +
     // 5 motifs d'inéligibilité) + indemnité complémentaire indicative.
     ['rcc-be-entreprise-difficulte', 'VALIDITE'],
+    // SF-219-04b : Cumul RCC + allocations / pension (BE) — analyseur
+    // transversal de conformité (CCT 17 + AR 25/11/1991 ONEM +
+    // AR 03/05/2007 art. 22+). Thème VALIDITE — analyseur de validité du
+    // cumul mensuel (plafond + régime de disponibilité + bascule pension +
+    // compatibilité activité). 4 verdicts. Parité rcc-be-conditions.
+    ['cumul-rcc-allocations', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
