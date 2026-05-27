@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c2d3e4f5-a6b7-4c89-0d12-3456ef0123ab-seed-harcelement-procedure" author="claude">
+        <comment>
+            SF-213-07b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Harcèlement BE — procédure formelle »
+            (harcelement-be-procedure-formelle, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses créée par SF-213-07 (migration 363).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            La mini-spec SF-213-07b envisageait CONTEXTUAL avec
+            `trigger_field = 'harcelement_detecte'` (flag F-204
+            `harcelement_be_detecte`). Décision retenue dans la vague 7 :
+            pattern ALWAYS_ON aligné sur les autres outils F-213 V1
+            (110 rappel-salaire-be → 111 statut-unique-preavis → 112
+            formule-claeys → 113 protection-grossesse → 114
+            transaction-be-travail → 115 cette migration).
+
+            Motifs :
+            1. Pertinence en dehors du flag IA — l'avocat peut activer
+               l'outil pour piloter une procédure interne dès la
+               première rencontre client, sans avoir attendu l'extraction
+               IA des marqueurs harcèlement (typiquement précoce dans
+               le dossier).
+            2. Cohérence avec les autres outils F-213 V1 (tous ALWAYS_ON
+               priority 110-114). Évite une exception isolée qui
+               compliquerait la lisibilité du panel.
+            3. Pas de coût pour l'utilisateur — l'outil reste replié
+               par défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque
+               le contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY
+            `harcelement-be-procedure-formelle` livrée dans
+            decisional-tools-panel.component.ts (cf. SF-213-07b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement
+            masqué — cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            Fondement juridique :
+            - Loi du 4 août 1996 art. 32bis–32sexies — définition du
+              harcèlement moral / sexuel + procédure interne + protection
+              12 mois représailles.
+            - AR du 10 avril 2014 relatif à la prévention des risques
+              psychosociaux au travail — délai 90 j d'enquête CPAP.
+
+            Régime BE uniquement — la France a un dispositif distinct
+            (référent harcèlement L.1153-5-1 Ctrav, médecin du travail)
+            avec des procédures différentes ; outil dédié hors scope V1.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('c2d3e4f5-a6b7-4c89-0d12-3456ef0123ab', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'harcelement-be-procedure-formelle', 'ALWAYS_ON', NULL, NULL, 115);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'c2d3e4f5-a6b7-4c89-0d12-3456ef0123ab';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

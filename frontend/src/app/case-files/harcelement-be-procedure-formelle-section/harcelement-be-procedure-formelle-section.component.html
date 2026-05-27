@@ -1,0 +1,268 @@
+<div class="harcelement-be-procedure-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">gavel</mat-icon>
+    <span class="section-title">Harcèlement procédure formelle (Belgique)</span>
+    @if (result() && !showForm() && result()!.representaillesPossibles) {
+      <span class="section-badge badge-critical">REPRÉSAILLES PROBABLES</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="harcelement-be-procedure-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 04/08/1996 art. 32bis–32sexies + AR du 10/04/2014 —
+            prévention des risques psychosociaux). Le régime français
+            (référent harcèlement, médecin du travail) est distinct.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Pilote la procédure interne de plainte pour harcèlement moral /
+            sexuel en droit belge (<b>Loi 04/08/1996 art. 32bis–32sexies +
+            AR 10/04/2014</b>). Produit une checklist contextuelle selon
+            l'étape procédurale (avant dépôt, demande informelle, demande
+            formelle, enquête CPAP 90 j, mesure défavorable post-plainte)
+            et la fenêtre de protection 12 mois contre les représailles.
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type de harcèlement * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de harcèlement *</mat-label>
+                <mat-select
+                    [value]="typeHarcelement()"
+                    (selectionChange)="onTypeHarcelementChange($event.value)"
+                    name="typeHarcelement"
+                    required>
+                  <mat-option value="MORAL">Moral</mat-option>
+                  <mat-option value="SEXUEL">Sexuel</mat-option>
+                  <mat-option value="LES_DEUX">Moral + sexuel</mat-option>
+                </mat-select>
+                <mat-hint>Définition Loi 04/08/1996 art. 32ter.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Étape procédurale * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Étape procédurale *</mat-label>
+                <mat-select
+                    [value]="etapeProcedure()"
+                    (selectionChange)="onEtapeProcedureChange($event.value)"
+                    name="etapeProcedure"
+                    required>
+                  <mat-option value="AVANT_DEPOT">Avant dépôt — orientation</mat-option>
+                  <mat-option value="DEMANDE_INFORMELLE_EN_COURS">Demande informelle en cours</mat-option>
+                  <mat-option value="DEMANDE_FORMELLE_EN_COURS">Demande formelle — enquête CPAP</mat-option>
+                  <mat-option value="ENQUETE_TERMINEE">Enquête terminée</mat-option>
+                  <mat-option value="MESURE_DEFAVORABLE_APRES_PLAINTE">Mesure défavorable post-plainte</mat-option>
+                </mat-select>
+                <mat-hint>Cycle Loi 04/08/1996 + AR 10/04/2014.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date de dépôt de plainte (conditionnel) -->
+            @if (dateDepotRequired()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de dépôt de plainte *</mat-label>
+                  <input matInput
+                         type="date"
+                         required
+                         [ngModel]="dateDepotPlainte()"
+                         (ngModelChange)="onDateDepotPlainteChange($event)"
+                         name="dateDepotPlainte" />
+                  <mat-hint>Pivot du délai 90 j d'enquête et de la fenêtre 12 mois de protection.</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- 4. Taille d'entreprise * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Taille d'entreprise *</mat-label>
+                <mat-select
+                    [value]="entrepriseTaille()"
+                    (selectionChange)="onEntrepriseTailleChange($event.value)"
+                    name="entrepriseTaille"
+                    required>
+                  <mat-option value="MOINS_DE_50">&lt; 50 travailleurs</mat-option>
+                  <mat-option value="CINQUANTE_ET_PLUS">≥ 50 travailleurs</mat-option>
+                </mat-select>
+                <mat-hint>Seuil pivot CPP + CPAP obligatoire.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. CPAP présent -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="entreprisePossedeCPAP()"
+                (change)="onEntreprisePossedeCPAPChange($event.checked)"
+                name="entreprisePossedeCPAP">
+                L'entreprise dispose d'un CPAP (Conseiller en Prévention Aspects Psychosociaux)
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si l'entreprise dispose d'un CPAP (interne ou via
+                SEPP). Une entreprise ≥ 50 sans CPAP est en manquement
+                — un avertissement spécifique sera affiché.
+              </span>
+            </div>
+
+            <!-- 6. Mesure défavorable post-plainte -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="mesureDefavorableApres()"
+                (change)="onMesureDefavorableApresChange($event.checked)"
+                name="mesureDefavorableApres">
+                Mesure défavorable observée après le dépôt de plainte
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si l'employeur a pris une mesure défavorable
+                (rétrogradation, sanction, modification substantielle…)
+                après le dépôt. Combiné à une date de dépôt, déclenche
+                la présomption de représailles (art. 32sexies).
+              </span>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la procédure</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="harcelement-be-procedure-result">
+
+          <!-- Bannière résumé -->
+          <div class="result-banner" role="status"
+               [class.result-banner--critical]="result()!.representaillesPossibles">
+            <mat-icon>{{ result()!.representaillesPossibles ? 'gpp_bad' : 'gavel' }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ etapeProcedureLabel(result()!.etapeProcedure) }}
+              </div>
+              <div class="result-banner-sub">
+                Harcèlement {{ typeHarcelementLabel(result()!.typeHarcelement) }} —
+                Entreprise {{ entrepriseTailleLabel(result()!.entrepriseTaille) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Bannière avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <!-- Bloc protection représailles -->
+          @if (result()!.representaillesPossibles) {
+            <div class="representailles-block" role="region">
+              <div class="representailles-header">
+                <mat-icon>gpp_bad</mat-icon>
+                <span class="representailles-title">REPRÉSAILLES PROBABLES</span>
+              </div>
+              <p class="representailles-help">
+                Présomption de représailles (art. 32sexies Loi 04/08/1996).
+                Protection légale 12 mois à compter du dépôt de plainte.
+                Voir aussi l'outil <b>F-DT-11 — Nullité licenciement
+                représailles BE</b> pour qualifier une rupture éventuelle.
+              </p>
+              @if (result()!.dateDebutProtectionRepresailles && result()!.dateFinProtectionRepresailles) {
+                <div class="representailles-period">
+                  <span class="rp-label">Période de protection</span>
+                  <span class="rp-value mono">
+                    {{ result()!.dateDebutProtectionRepresailles }} → {{ result()!.dateFinProtectionRepresailles }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Délai fatal -->
+          @if (result()!.prochainDelaiFatal) {
+            <div class="delai-fatal" [class]="delaiFatalClass()" role="status">
+              @if (joursRestantsDelaiFatal() !== null && joursRestantsDelaiFatal()! <= 30) {
+                <mat-icon>warning</mat-icon>
+              } @else {
+                <mat-icon>schedule</mat-icon>
+              }
+              <div class="delai-fatal-content">
+                <span class="delai-fatal-label">Prochain délai fatal</span>
+                <span class="delai-fatal-value mono">{{ result()!.prochainDelaiFatal }}</span>
+                @if (joursRestantsDelaiFatal() !== null) {
+                  <span class="delai-fatal-restant">
+                    ({{ joursRestantsDelaiFatal() }} jour{{ joursRestantsDelaiFatal() === 1 || joursRestantsDelaiFatal() === -1 ? '' : 's' }})
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Checklist procédurale -->
+          @if (hasChecklist()) {
+            <div class="checklist-section">
+              <h4 class="checklist-title">Checklist procédurale</h4>
+              <ul class="checklist-list" role="list">
+                @for (item of checklistItems(); track $index) {
+                  <li class="checklist-item {{ statutClass(item.statut) }}">
+                    <mat-icon class="checklist-icon">{{ statutIcon(item.statut) }}</mat-icon>
+                    <span class="checklist-label">{{ item.item }}</span>
+                    <span class="checklist-statut">{{ statutLabel(item.statut) }}</span>
+                    @if (item.dateEcheance) {
+                      <span class="checklist-echeance mono">
+                        Échéance : {{ item.dateEcheance }}
+                      </span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
