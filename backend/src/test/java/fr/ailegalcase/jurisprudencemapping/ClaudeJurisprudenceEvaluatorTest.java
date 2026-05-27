@@ -151,6 +151,10 @@ class ClaudeJurisprudenceEvaluatorTest {
         // Au moins un exemple JSON inline (sert de few-shot)
         assertThat(systemPrompt).contains("{\"action\":\"ADD\"");
         assertThat(systemPrompt).contains("{\"action\":\"NONE\"");
+        // SF-JU-01-12 — assouplissement : préférer ADD même si arrêt marginal
+        assertThat(systemPrompt).contains("MÊME s'il n'est pas idéal");
+        assertThat(systemPrompt).contains("Aucune exigence de formation plénière");
+        assertThat(systemPrompt).contains("TRÈS exceptionnelle");
     }
 
     @Test
