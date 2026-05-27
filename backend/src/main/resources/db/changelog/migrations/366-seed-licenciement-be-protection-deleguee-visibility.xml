@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="7f2e826a-e866-4e6a-a475-e260845e0809" author="claude">
+        <comment>
+            SF-213-08b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Licenciement BE — protection délégué syndical »
+            (licenciement-be-protection-deleguee, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses créée par SF-213-08 (migration 364).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            La mini-spec SF-213-08b envisageait CONTEXTUAL avec
+            `trigger_field = 'position_protegee'` et `trigger_value = 'DELEGUE'`.
+            Décision retenue dans la vague 7 : pattern ALWAYS_ON aligné sur
+            les autres outils F-213 V1 (110 rappel-salaire-be → 111
+            statut-unique-preavis → 112 formule-claeys → 113
+            protection-grossesse → 114 transaction-be-travail → 115
+            harcelement-be-procedure-formelle → 116 cette migration).
+
+            Motifs :
+            1. Pas de flag DB `position_protegee` existant dans les
+               règles CONTEXTUAL — l'introduire pour un seul outil
+               ajouterait une exception isolée et nécessiterait son
+               extraction par le pipeline IA Travail BE (non couvert V1).
+            2. Pertinence en dehors d'une détection IA — l'avocat peut
+               activer l'outil dès la première rencontre client si le
+               dossier mentionne une représentativité (CCT, PV élections
+               sociales), sans avoir attendu d'extraction préalable.
+            3. Cohérence avec les autres outils F-213 V1 (tous ALWAYS_ON
+               priority 110-115). Évite une exception isolée qui
+               compliquerait la lisibilité du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié
+               par défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque
+               le contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY
+            `licenciement-be-protection-deleguee` livrée dans
+            decisional-tools-panel.component.ts (cf. SF-213-08b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement
+            masqué — cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            Fondement juridique :
+            - Loi du 19 mars 1991 relative à la protection des
+              représentants des travailleurs au CE et CPPT (cycle
+              élections sociales 4 ans + 2 ans résiduels, indemnité
+              forfaitaire art. 16-17, délai 30 j art. 14).
+            - CCT n° 5 du 24 mai 1971 — statut des délégations
+              syndicales (protection 2 ans des délégués CCT n° 5).
+            - CJ art. 578 — compétence du tribunal du travail si
+              recours direct après délai 30 jours dépassé.
+
+            Régime BE uniquement — la France a un dispositif distinct
+            (statut protégé délégué / CSE / conseiller prud'homme,
+            L. 2411-1 et s. C. trav.) avec d'autres procédures et
+            indemnités ; outil dédié hors scope V1.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('7f2e826a-e866-4e6a-a475-e260845e0809', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-protection-deleguee', 'ALWAYS_ON', NULL, NULL, 116);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '7f2e826a-e866-4e6a-a475-e260845e0809';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

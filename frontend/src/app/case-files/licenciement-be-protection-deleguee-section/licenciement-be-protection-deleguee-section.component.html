@@ -1,0 +1,284 @@
+<div class="licenciement-be-protection-deleguee-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">verified_user</mat-icon>
+    <span class="section-title">Licenciement — protection délégué (Belgique)</span>
+    @if (result() && !showForm() && result()!.verdict === 'LICENCIEMENT_INTERDIT_SANS_PROCEDURE') {
+      <span class="section-badge badge-critical">LICENCIEMENT INTERDIT</span>
+    }
+    @if (result() && !showForm() && result()!.verdict === 'HORS_PERIODE_PROTECTION') {
+      <span class="section-badge badge-ok">HORS PROTECTION</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-protection-deleguee-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 19/03/1991 sur la protection des représentants des
+            travailleurs au CE/CPPT + CCT n° 5 du 24/05/1971). Le régime
+            français (statut protégé délégué / CSE / conseiller prud'homme,
+            L. 2411-1 et s. C. trav.) est distinct.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Détermine si le licenciement d'un représentant des travailleurs
+            tombe dans la <b>fenêtre de protection légale</b> (4 ans pour
+            les élus CE/CPPT, 2 ans pour les candidats non élus et délégués
+            CCT n° 5) à compter de la date d'élection ou du mandat. En cas
+            d'interdiction, calcule l'<b>indemnité forfaitaire</b>
+            (rémunération annuelle × 2 ou × 4) et le <b>délai 30 jours</b>
+            (Loi 19/03/1991 art. 14) pour demander la réintégration.
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Statut protégé * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut protégé *</mat-label>
+                <mat-select
+                    [value]="statutProtege()"
+                    (selectionChange)="onStatutProtegeChange($event.value)"
+                    name="statutProtege"
+                    required>
+                  <mat-option value="DELEGUE_SYNDICAL_ELU">Délégué syndical élu (CE / CPPT)</mat-option>
+                  <mat-option value="CANDIDAT_NON_ELU">Candidat non élu</mat-option>
+                  <mat-option value="DELEGUE_CCT5">Délégué syndical (CCT n° 5)</mat-option>
+                  <mat-option value="CONSEILLER_CPPT">Conseiller CPPT élu</mat-option>
+                </mat-select>
+                <mat-hint>Pilote la durée de la fenêtre (4 ans élus / 2 ans candidats + CCT n° 5).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Ancienneté années * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="ancienneteAnnees()"
+                       (ngModelChange)="onAncienneteAnneesChange($event)"
+                       name="ancienneteAnnees" />
+                <mat-hint>Ancienneté totale dans l'entreprise (années pleines).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Rémunération annuelle brute * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération annuelle brute (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationAnnuelleBrute()"
+                       (ngModelChange)="onRemunerationAnnuelleBruteChange($event)"
+                       name="remunerationAnnuelleBrute" />
+                <mat-hint>Base du calcul de l'indemnité forfaitaire (× 2 ou × 4).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date licenciement * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de licenciement *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateLicenciement()"
+                       (ngModelChange)="onDateLicenciementChange($event)"
+                       name="dateLicenciement" />
+                <mat-hint>Notification du licenciement — pivot du délai 30 j.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Date élection / début mandat * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date élection ou début mandat *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateElectionOuMandat()"
+                       (ngModelChange)="onDateElectionOuMandatChange($event)"
+                       name="dateElectionOuMandat" />
+                <mat-hint>Pivot de la fenêtre de protection (2 ans candidats / 4 ans élus).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Demande réintégration dans 30 j -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="demandeReintegrationDansTrente()"
+                (change)="onDemandeReintegrationDansTrenteChange($event.checked)"
+                name="demandeReintegrationDansTrente">
+                Demande de réintégration formulée dans les 30 jours
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si le délégué a déjà demandé sa réintégration dans
+                le délai légal (Loi 19/03/1991 art. 14). Décoche
+                automatiquement le refus employeur ci-dessous si non
+                cochée.
+              </span>
+            </div>
+
+            <!-- 7. Employeur refuse (conditionnel à la demande) -->
+            @if (employeurRefuseEditable()) {
+              <div class="field-with-alert field-full-width">
+                <mat-checkbox
+                  [checked]="employeurRefuseReintegration()"
+                  (change)="onEmployeurRefuseReintegrationChange($event.checked)"
+                  name="employeurRefuseReintegration">
+                  L'employeur refuse la réintégration
+                </mat-checkbox>
+                <span class="checkbox-help">
+                  Cochez si l'employeur a explicitement refusé la
+                  réintégration demandée. Déclenche un avertissement
+                  spécifique sur l'indemnité forfaitaire due.
+                </span>
+              </div>
+            }
+
+            <!-- 8. Circonstances aggravantes -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="circonstancesAggravantes()"
+                (change)="onCirconstancesAggravantesChange($event.checked)"
+                name="circonstancesAggravantes">
+                Circonstances aggravantes / récidive
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez en cas de récidive de l'employeur ou licenciement
+                collectif de représentants — porte l'indemnité forfaitaire
+                de 2 ans à <b>4 ans</b> de rémunération.
+              </span>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la protection</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-protection-deleguee-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                {{ statutProtegeLabel(result()!.statutProtege) }}
+                @if (result()!.dateFinProtection) {
+                  — fin de protection : <span class="mono">{{ result()!.dateFinProtection }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Bannière avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <!-- Bloc indemnité forfaitaire (rendu si interdit + valeur dispo) -->
+          @if (result()!.licenciementDansProtection && result()!.indemniteForfaitaire !== null) {
+            <div class="indemnite-block" role="region">
+              <div class="indemnite-header">
+                <mat-icon>euro</mat-icon>
+                <span class="indemnite-title">Indemnité forfaitaire due</span>
+              </div>
+              <div class="indemnite-amount mono">
+                {{ result()!.indemniteForfaitaire | number:'1.2-2' }} €
+              </div>
+              <div class="indemnite-detail">
+                Calculée sur <b>{{ result()!.anneesForfait }}</b>
+                année{{ result()!.anneesForfait === 1 ? '' : 's' }} de
+                rémunération annuelle brute
+                (<span class="mono">{{ result()!.remunerationAnnuelleBrute | number:'1.2-2' }} €</span>).
+                Loi 19/03/1991 art. 16-17.
+              </div>
+            </div>
+          }
+
+          <!-- Délai réintégration 30 j -->
+          @if (result()!.licenciementDansProtection && result()!.dateLimiteDemandeReintegration) {
+            <div class="delai-reintegration" [class]="delaiReintegrationClass()" role="status">
+              @if (result()!.delaiReintegrationDepasse || (result()!.joursRestantsReintegration !== null && result()!.joursRestantsReintegration! <= 7)) {
+                <mat-icon>warning</mat-icon>
+              } @else {
+                <mat-icon>schedule</mat-icon>
+              }
+              <div class="delai-reintegration-content">
+                <span class="delai-reintegration-label">
+                  @if (result()!.delaiReintegrationDepasse) {
+                    Délai 30 j de demande de réintégration <b>DÉPASSÉ</b>
+                  } @else {
+                    Délai 30 j pour demander la réintégration
+                  }
+                </span>
+                <span class="delai-reintegration-value mono">
+                  {{ result()!.dateLimiteDemandeReintegration }}
+                </span>
+                @if (result()!.joursRestantsReintegration !== null) {
+                  <span class="delai-reintegration-restant">
+                    ({{ result()!.joursRestantsReintegration }} jour{{ result()!.joursRestantsReintegration === 1 || result()!.joursRestantsReintegration === -1 ? '' : 's' }})
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
