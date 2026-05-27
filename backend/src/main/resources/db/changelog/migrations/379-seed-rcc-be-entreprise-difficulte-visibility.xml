@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="585f8749-9787-4302-b708-f12a390c40e4" author="claude">
+        <comment>
+            SF-219-03b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « RCC BE — entreprise en difficulté / restructuration »
+            (rcc-be-entreprise-difficulte, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses créée par SF-219-03 (migration 374).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            la reconnaissance ministérielle de l'entreprise — décision
+            administrative externe (arrêté du ministre de l'Emploi,
+            publication au Moniteur belge) jamais portée par le contrat
+            de travail ni la lettre de licenciement individuels. Sans
+            flag IA fiable disponible pour la condition principale du
+            régime, l'option CONTEXTUAL nécessiterait un signal qui
+            n'existe pas en V1.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible pour détecter
+               la reconnaissance ministérielle (acte externe) ; l'introduire
+               pour un seul outil ajouterait une exception isolée et
+               nécessiterait une extraction IA Travail BE enrichie (lecture
+               d'AR / Moniteur belge non couverte V1).
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque un travailleur 55+ licencié dans une entreprise
+               potentiellement reconnue en difficulté ou en restructuration.
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-121) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 cette migration (rcc-be-entreprise-difficulte)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY `rcc-be-entreprise-difficulte`
+            livrée dans decisional-tools-panel.component.ts (cf. SF-219-03b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué —
+            cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            Le tool_id est déjà présent dans
+            DashboardTileToolIdIntegrityIT.KNOWN_NO_DASHBOARD_TILE_IDS
+            (ajouté préventivement par SF-219-03 backend) — pas de tile
+            dashboard dédié, restitution via panel F-IA-04 + GET du
+            snapshot. Mémoire `feedback_f213_backend_pattern`.
+
+            Fondement juridique :
+            - Loi du 26/12/2013 (pacte de solidarité entre les générations)
+              — fixe le cadre des régimes RCC dérogatoires.
+            - CCT n° 17 du 19/12/1974 (Conseil National du Travail —
+              régime d'indemnité complémentaire aux travailleurs âgés en
+              cas de licenciement).
+            - Arrêté Royal du 03/05/2007 fixant le RCC (régime général).
+            - Arrêté Royal de reconnaissance ministérielle de l'entreprise
+              en difficulté ou en restructuration (acte administratif
+              externe, condition sine qua non du régime dérogatoire).
+            - CCT sectorielle ad hoc (fixe les paramètres opérationnels
+              du régime entreprise-spécifique).
+
+            Régime BE uniquement — la France a un dispositif distinct
+            (pré-retraite supprimée 2010 ; PSE / accompagnement Pôle
+            Emploi distincts) ; outil dédié hors scope V1 FR.
+
+            Distinct de :
+            - `rcc-be-conditions` (F-207 SF-207-06b) — analyseur 4 régimes
+              parallèles (vue d'orientation).
+            - `rcc-be-indemnite-complementaire` (F-207 SF-207-07b) —
+              calculateur d'indemnité applicable une fois l'éligibilité
+              acquise (CCT 17 art. 5).
+            - `rcc-be-metiers-lourds` (SF-219-01b) — régime spécifique
+              métiers lourds 58+/35.
+            - `rcc-be-longue-carriere` (SF-219-02b) — régime spécifique
+              longue carrière 59+/40.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('585f8749-9787-4302-b708-f12a390c40e4', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'rcc-be-entreprise-difficulte', 'ALWAYS_ON', NULL, NULL, 121);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '585f8749-9787-4302-b708-f12a390c40e4';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

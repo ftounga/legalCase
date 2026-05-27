@@ -170,6 +170,8 @@ import { LicenciementBeCct109DeraisonnableSectionComponent } from '../licencieme
 import { RccBeLongueCarriereSectionComponent } from '../rcc-be-longue-carriere-section/rcc-be-longue-carriere-section.component';
 // SF-219-01b : section décisionnelle RCC métiers lourds BE (BE-only, ALWAYS_ON).
 import { RccBeMetiersLourdsSectionComponent } from '../rcc-be-metiers-lourds-section/rcc-be-metiers-lourds-section.component';
+// SF-219-03b : section décisionnelle RCC BE entreprise en difficulté / restructuration (BE-only, ALWAYS_ON).
+import { RccBeEntrepriseDifficulteSectionComponent } from '../rcc-be-entreprise-difficulte-section/rcc-be-entreprise-difficulte-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2199,6 +2201,36 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-03b : RCC BE — entreprise en difficulté / restructuration
+      // (Loi 26/12/2013 + CCT n° 17 du 19/12/1974 + AR 03/05/2007 + AR de
+      // reconnaissance ministérielle de l'entreprise + CCT sectorielle ad
+      // hoc). Analyseur 6 verdicts (ELIGIBLE_RCC_ENTREPRISE_DIFFICULTE /
+      // INELIGIBLE_DEMISSION / INELIGIBLE_RECONNAISSANCE_ABSENTE /
+      // INELIGIBLE_AGE_INSUFFISANT / INELIGIBLE_CARRIERE_INSUFFISANTE /
+      // INELIGIBLE_ANCIENNETE_INSUFFISANTE) + indemnité complémentaire
+      // mensuelle indicative (0,5 × diff. rém. nette / allocation chômage)
+      // si éligible et couple financier fourni. BE-only, ALWAYS_ON priority
+      // 121 (au-dessus de rcc-be-longue-carriere = 120). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme vagues 7b-10b/SF-219-01b/
+      // SF-219-02b — reconnaissance ministérielle = acte administratif
+      // externe, carrière ETP ONSS + ancienneté secteur + rémunération
+      // nette non extractibles). Distinct de rcc-be-conditions (SF-207-06b
+      // — analyseur 4 régimes parallèles), rcc-be-indemnite-complementaire
+      // (SF-207-07b — calculateur générique), rcc-be-metiers-lourds
+      // (SF-219-01b — régime 58+/35 + métier lourd) et rcc-be-longue-
+      // carriere (SF-219-02b — régime 59+/40).
+      ['rcc-be-entreprise-difficulte', {
+        displayLabel: 'RCC BE — entreprise en difficulté',
+        component: RccBeEntrepriseDifficulteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3371,6 +3403,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Thème VALIDITE — analyseur d'éligibilité dédié au régime longue
     // carrière (parité rcc-be-conditions). 4 verdicts + indemnité indicative.
     ['rcc-be-longue-carriere', 'VALIDITE'],
+    // SF-219-03b : RCC BE — entreprise en difficulté / restructuration
+    // (Loi 26/12/2013 + CCT n° 17 + AR 03/05/2007 + AR de reconnaissance
+    // ministérielle). Thème VALIDITE — analyseur d'éligibilité dédié au
+    // régime entreprise reconnue (parité rcc-be-conditions / rcc-be-
+    // metiers-lourds / rcc-be-longue-carriere). 6 verdicts (1 éligible +
+    // 5 motifs d'inéligibilité) + indemnité complémentaire indicative.
+    ['rcc-be-entreprise-difficulte', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

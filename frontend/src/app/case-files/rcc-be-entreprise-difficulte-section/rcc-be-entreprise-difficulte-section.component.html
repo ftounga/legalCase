@@ -1,0 +1,324 @@
+<div class="rcc-be-entreprise-difficulte-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">business</mat-icon>
+    <span class="section-title">RCC entreprise en difficulté (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass()">{{ verdictBadgeLabel() }}</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="rcc-be-entreprise-difficulte-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 26/12/2013 sur le pacte de solidarité entre les
+            générations + CCT n° 17 du 19/12/1974 + AR du 03/05/2007 +
+            AR de reconnaissance ministérielle de l'entreprise en
+            difficulté ou en restructuration). Aucun équivalent strict en
+            droit français.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Détermine si le travailleur est éligible au <b>RCC entreprise
+            en difficulté ou en restructuration</b> (Régime de Chômage
+            avec Complément d'entreprise — ex-prépension). Vérifie les
+            <b>5 conditions cumulatives</b> : reconnaissance ministérielle
+            de l'entreprise (pierre angulaire), âge ≥ âge réduit fixé par
+            le plan agréé (typiquement 55 ans), carrière ≥ 10 ans (jours
+            équivalents temps plein), ancienneté secteur / entreprise
+            reconnue ≥ 5 ans, et licenciement effectif (la démission est
+            exclue). Si éligible et si les 2 montants financiers sont
+            fournis, calcul indicatif de l'indemnité complémentaire
+            mensuelle (50 % de la différence rémunération nette /
+            allocation chômage). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type reconnaissance * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Reconnaissance ministérielle de l'entreprise *</mat-label>
+                <mat-select
+                    [value]="typeReconnaissance()"
+                    (selectionChange)="onTypeReconnaissanceChange($event.value)"
+                    name="typeReconnaissance"
+                    required>
+                  <mat-option value="EN_DIFFICULTE">
+                    Entreprise reconnue en difficulté
+                  </mat-option>
+                  <mat-option value="EN_RESTRUCTURATION">
+                    Entreprise reconnue en restructuration
+                  </mat-option>
+                  <mat-option value="NON_RECONNUE">
+                    Aucune reconnaissance ministérielle
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Pierre angulaire du régime — sans reconnaissance, pas
+                  d'âge réduit. À vérifier dans l'AR de reconnaissance
+                  ou l'attestation employeur.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Âge réduit du plan * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Âge réduit fixé par le plan (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="65"
+                       step="1"
+                       required
+                       [ngModel]="ageReduitPlan()"
+                       (ngModelChange)="onAgeReduitPlanChange($event)"
+                       name="ageReduitPlan" />
+                <mat-hint>Typiquement 55 ans — lire le plan agréé par le ministre.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Âge fin contrat * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Âge à la fin du contrat (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="ageFinContrat()"
+                       (ngModelChange)="onAgeFinContratChange($event)"
+                       name="ageFinContrat" />
+                <mat-hint>Comparé à l'âge réduit du plan ci-dessus.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Années carrière totale * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Carrière totale (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="anneesCarriereTotale()"
+                       (ngModelChange)="onAnneesCarriereTotaleChange($event)"
+                       name="anneesCarriereTotale" />
+                <mat-hint>Carrière professionnelle ETP ; seuil ≥ 10 ans (relevé ONSS).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Ancienneté secteur * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté secteur / entreprise reconnue (années) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="anneesAncienneteSecteur()"
+                       (ngModelChange)="onAnneesAncienneteSecteurChange($event)"
+                       name="anneesAncienneteSecteur" />
+                <mat-hint>Seuil ≥ 5 ans — distinct de la carrière totale.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date fin contrat * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date prévue de fin de contrat *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFinContrat()"
+                       (ngModelChange)="onDateFinContratChange($event)"
+                       name="dateFinContrat" />
+                <mat-hint>Ancre la projection RCC.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Licenciement effectif * -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="licenciementEffectif()"
+                (change)="onLicenciementEffectifChange($event.checked)"
+                name="licenciementEffectif">
+                Licenciement effectif par l'employeur
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Cochez si l'employeur licencie (préavis presté ou
+                indemnité compensatoire). Décochez en cas de démission :
+                le RCC est réservé au licenciement par l'employeur
+                (CCT n° 17 art. 3) — l'analyse renverra alors un verdict
+                d'inéligibilité.
+              </span>
+            </div>
+
+            <!-- 8. Rémunération nette mensuelle référence (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération nette mensuelle réf. (€)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="remunerationNetteMensuelleReference()"
+                       (ngModelChange)="onRemunerationNetteMensuelleReferenceChange($event)"
+                       name="remunerationNetteMensuelleReference" />
+                <mat-hint>Optionnel — couple avec allocation chômage pour calcul indemnité.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9. Allocation chômage mensuelle (optionnel) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Allocation chômage mensuelle ONEM (€)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="allocationChomageMensuelleEstimee()"
+                       (ngModelChange)="onAllocationChomageMensuelleEstimeeChange($event)"
+                       name="allocationChomageMensuelleEstimee" />
+                <mat-hint>Estimation ONEM — couplée à la rémunération nette.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'éligibilité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="rcc-be-entreprise-difficulte-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                {{ result()!.synthese }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Conditions cumulatives (toujours visible) -->
+          <div class="conditions-block" role="region">
+            <div class="conditions-title">Conditions cumulatives</div>
+            <ul class="conditions-list">
+              <li [class]="conditionClass(result()!.conditionReconnaissanceRemplie)">
+                <mat-icon>{{ conditionIcon(result()!.conditionReconnaissanceRemplie) }}</mat-icon>
+                <span>
+                  Reconnaissance ministérielle —
+                  <span class="mono">{{ typeReconnaissanceLabel(result()!.typeReconnaissance) }}</span>
+                </span>
+              </li>
+              <li [class]="conditionClass(result()!.conditionAgeRemplie)">
+                <mat-icon>{{ conditionIcon(result()!.conditionAgeRemplie) }}</mat-icon>
+                <span>
+                  Âge ≥ {{ result()!.ageReduitPlan }} ans (plan agréé) —
+                  <span class="mono">{{ result()!.ageFinContrat }} ans</span>
+                </span>
+              </li>
+              <li [class]="conditionClass(result()!.conditionCarriereRemplie)">
+                <mat-icon>{{ conditionIcon(result()!.conditionCarriereRemplie) }}</mat-icon>
+                <span>
+                  Carrière professionnelle ≥ 10 ans —
+                  <span class="mono">{{ result()!.anneesCarriereTotale }} ans</span>
+                </span>
+              </li>
+              <li [class]="conditionClass(result()!.conditionAncienneteRemplie)">
+                <mat-icon>{{ conditionIcon(result()!.conditionAncienneteRemplie) }}</mat-icon>
+                <span>
+                  Ancienneté secteur ≥ 5 ans —
+                  <span class="mono">{{ result()!.anneesAncienneteSecteur }} ans</span>
+                </span>
+              </li>
+              <li [class]="conditionClass(result()!.conditionLicenciementRemplie)">
+                <mat-icon>{{ conditionIcon(result()!.conditionLicenciementRemplie) }}</mat-icon>
+                <span>
+                  Licenciement effectif (pas démission) —
+                  <span class="mono">{{ result()!.conditionLicenciementRemplie ? 'oui' : 'non' }}</span>
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Bloc indemnité complémentaire (uniquement si éligible et calculée) -->
+          @if (result()!.eligible && result()!.indemniteComplementaireMensuelle !== null) {
+            <div class="indemnite-block" role="region">
+              <div class="indemnite-header">
+                <mat-icon>euro</mat-icon>
+                <span class="indemnite-title">Indemnité complémentaire mensuelle indicative</span>
+              </div>
+              <div class="indemnite-amount mono">
+                {{ result()!.indemniteComplementaireMensuelle | number:'1.2-2' }} € / mois
+              </div>
+              <div class="indemnite-detail">
+                Calcul = 0,5 × (rémunération nette de référence
+                <span class="mono">{{ result()!.remunerationNetteMensuelleReference | number:'1.2-2' }} €</span>
+                − allocation chômage
+                <span class="mono">{{ result()!.allocationChomageMensuelleEstimee | number:'1.2-2' }} €</span>).
+                CCT n° 17 art. 5. Composante chômage gérée par l'ONEM.
+              </div>
+            </div>
+          }
+
+          <!-- Bannière avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
