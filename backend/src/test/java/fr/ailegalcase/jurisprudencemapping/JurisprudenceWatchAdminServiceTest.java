@@ -106,6 +106,52 @@ class JurisprudenceWatchAdminServiceTest {
         verify(mappingRepo, never()).save(any());
     }
 
+    // --- SF-JU-01-15 — création manuelle ---
+
+    @org.junit.jupiter.api.Test
+    void createManualMapping_persistsMappingAndAuditLog() {
+        org.mockito.Mockito.when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(false);
+        ManualMappingCreateRequest req = new ManualMappingCreateRequest(
+                "F-DT-75-conges-payes-arret-maladie", "default",
+                "Cass. soc. 12 mars 2024, n° 22-XXX",
+                "Cour de cassation, chambre sociale",
+                LocalDate.of(2024, 3, 12),
+                "22-XXX",
+                "https://www.legifrance.gouv.fr/juri/id/X",
+                "L'arrêt de travail pour maladie suspend l'acquisition des congés payés...");
+        fr.ailegalcase.auth.User actor = new fr.ailegalcase.auth.User();
+        actor.setEmail("admin@legalcase.fr");
+
+        ToolJurisprudenceMapping result = service.createManualMapping(req, actor);
+
+        org.assertj.core.api.Assertions.assertThat(result.getToolId()).isEqualTo("F-DT-75-conges-payes-arret-maladie");
+        org.assertj.core.api.Assertions.assertThat(result.getConfidenceScore())
+                .isEqualByComparingTo(BigDecimal.ONE);
+        org.assertj.core.api.Assertions.assertThat(result.isArchived()).isFalse();
+        verify(mappingRepo).save(any(ToolJurisprudenceMapping.class));
+        verify(auditRepo).save(any(JurisprudenceAuditLog.class));
+    }
+
+    @org.junit.jupiter.api.Test
+    void createManualMapping_duplicate_throws409() {
+        org.mockito.Mockito.when(mappingRepo.existsByToolIdAndBrancheCalculIdAndArretRef(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(true);
+        ManualMappingCreateRequest req = new ManualMappingCreateRequest(
+                "f-dt-30", "default", "Cass. soc. 12 mars 2024, n° 22-XXX",
+                "Cour de cassation", LocalDate.now(), "22-XXX",
+                "https://example.com", "Chapeau");
+        fr.ailegalcase.auth.User actor = new fr.ailegalcase.auth.User();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.createManualMapping(req, actor))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("409");
+        verify(mappingRepo, never()).save(any(ToolJurisprudenceMapping.class));
+        verify(auditRepo, never()).save(any(JurisprudenceAuditLog.class));
+    }
+
     private JurisprudenceWatchFlag buildFlag() {
         ToolJurisprudenceMapping mapping = new ToolJurisprudenceMapping();
         mapping.setId(UUID.randomUUID());

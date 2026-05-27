@@ -15,6 +15,7 @@ import {
   JurisprudenceBootstrapJobStatusResponse,
   JurisprudenceWatchAdminClientService,
   JurisprudenceWatchFlag,
+  ManualMappingCreateRequest,
 } from './jurisprudence-watch-admin.service';
 
 export interface BootstrapParseResult {
@@ -115,6 +116,10 @@ export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
   /** SF-JU-01-10 — état courant du job async, mis à jour par polling. */
   bootstrapJob: JurisprudenceBootstrapJobStatusResponse | null = null;
   private pollSubscription: Subscription | null = null;
+
+  /** SF-JU-01-15 — formulaire de création manuelle. */
+  manualMapping: ManualMappingCreateRequest = this.emptyManualMapping();
+  loadingManualMapping = false;
 
   @ViewChild('fileInput', { static: false })
   protected fileInput?: ElementRef<HTMLInputElement>;
@@ -329,5 +334,50 @@ export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
       const reason = status.errorMessage || 'erreur inconnue';
       this.snackBar.open(`Échec du bootstrap : ${reason}`, 'OK', { duration: 6000 });
     }
+  }
+
+  /** SF-JU-01-15 — formulaire création manuelle d'un mapping ad hoc. */
+  protected canSubmitManualMapping(): boolean {
+    const m = this.manualMapping;
+    return !this.loadingManualMapping
+        && !!m.toolId && !!m.brancheCalculId && !!m.arretRef
+        && !!m.juridiction && !!m.dateArret && !!m.numeroPourvoi
+        && !!m.lienLegifrance && !!m.chapeauOfficiel;
+  }
+
+  protected submitManualMapping(): void {
+    if (!this.canSubmitManualMapping()) {
+      this.snackBar.open('Tous les champs sont obligatoires', 'OK', { duration: 4000 });
+      return;
+    }
+    this.loadingManualMapping = true;
+    this.client.createManualMapping(this.manualMapping).subscribe({
+      next: created => {
+        this.loadingManualMapping = false;
+        this.snackBar.open(
+          `Mapping créé : ${created.toolId}:${created.brancheCalculId} → ${created.arretRef}`,
+          'OK', { duration: 5000 });
+        this.manualMapping = this.emptyManualMapping();
+        this.loadAudit();
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.loadingManualMapping = false;
+        const status = err?.status;
+        const msg = status === 409
+          ? 'Mapping déjà existant pour ce triplet (tool_id, branche, arret_ref)'
+          : (err?.error?.message || err?.message || 'erreur inconnue');
+        this.snackBar.open(`Échec création : ${msg}`, 'OK', { duration: 5000 });
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private emptyManualMapping(): ManualMappingCreateRequest {
+    return {
+      toolId: '', brancheCalculId: '', arretRef: '',
+      juridiction: '', dateArret: '', numeroPourvoi: '',
+      lienLegifrance: '', chapeauOfficiel: '',
+    };
   }
 }

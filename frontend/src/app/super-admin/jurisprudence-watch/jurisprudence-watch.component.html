@@ -194,5 +194,38 @@
         }
       </section>
     </mat-tab>
+
+    <mat-tab label="Ajouter mapping" data-test="tab-manual-mapping">
+      <section class="jurisprudence-watch__section">
+        <h2>Création manuelle d'un mapping (SF-JU-01-15)</h2>
+        <p class="manual-mapping__hint">
+          À utiliser quand le bootstrap Claude n'a pas trouvé d'arrêt structurant
+          (ex. F-DT-75-conges-payes-arret-maladie) ou pour les outils belges
+          non couverts par JUDILIBRE (F-JU-04 en attente).
+        </p>
+        <div class="manual-mapping__form">
+          <label>tool_id<input type="text" [(ngModel)]="manualMapping.toolId"
+                              placeholder="F-DT-75-conges-payes-arret-maladie" maxlength="100"></label>
+          <label>branche_calcul_id<input type="text" [(ngModel)]="manualMapping.brancheCalculId"
+                                         placeholder="default" maxlength="100"></label>
+          <label>arret_ref<input type="text" [(ngModel)]="manualMapping.arretRef"
+                                  placeholder="Cass. soc. 12 mars 2024, n° 22-XXX" maxlength="200"></label>
+          <label>juridiction<input type="text" [(ngModel)]="manualMapping.juridiction"
+                                    placeholder="Cour de cassation, chambre sociale" maxlength="50"></label>
+          <label>date_arret<input type="date" [(ngModel)]="manualMapping.dateArret"></label>
+          <label>numero_pourvoi<input type="text" [(ngModel)]="manualMapping.numeroPourvoi"
+                                       placeholder="22-XXX" maxlength="50"></label>
+          <label>lien_legifrance<input type="url" [(ngModel)]="manualMapping.lienLegifrance"
+                                        placeholder="https://www.legifrance.gouv.fr/juri/id/X" maxlength="500"></label>
+          <label>chapeau_officiel<textarea [(ngModel)]="manualMapping.chapeauOfficiel"
+                                            rows="4" maxlength="2000"></textarea></label>
+          <button mat-raised-button color="primary" type="button"
+                  (click)="submitManualMapping()" [disabled]="!canSubmitManualMapping()"
+                  data-test="submit-manual-mapping">
+            @if (loadingManualMapping) { Création… } @else { Créer le mapping }
+          </button>
+        </div>
+      </section>
+    </mat-tab>
   </mat-tab-group>
 </div>

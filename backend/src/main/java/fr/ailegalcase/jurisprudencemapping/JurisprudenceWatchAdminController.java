@@ -94,4 +94,20 @@ public class JurisprudenceWatchAdminController {
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+    /**
+     * SF-JU-01-15 — création manuelle d'un mapping ad hoc (SUPER_ADMIN).
+     * Cas usage : combler les outils pour lesquels Claude n'a pas trouvé de
+     * candidat dans le bootstrap (FR mots-clés génériques, outils BE non
+     * couverts par JUDILIBRE en attendant F-JU-04).
+     */
+    @PostMapping("/mappings")
+    public ResponseEntity<ManualMappingCreatedResponse> createManualMapping(
+            @Valid @RequestBody ManualMappingCreateRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        User user = superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
+        ToolJurisprudenceMapping mapping = adminService.createManualMapping(request, user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ManualMappingCreatedResponse.from(mapping));
+    }
 }

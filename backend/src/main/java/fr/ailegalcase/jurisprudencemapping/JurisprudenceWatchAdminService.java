@@ -79,6 +79,49 @@ public class JurisprudenceWatchAdminService {
         return JurisprudenceWatchFlagResponse.from(flag);
     }
 
+    /**
+     * SF-JU-01-15 — création manuelle d'un mapping par un SUPER_ADMIN, pour
+     * combler les cas où le bootstrap auto-pilot Claude n'a pas trouvé de
+     * candidat (mots-clés trop génériques, outils BE non couverts par JUDILIBRE
+     * FR en attendant F-JU-04).
+     *
+     * <p>Lève {@link ResponseStatusException} 409 si la contrainte unique
+     * {@code (tool_id, branche_calcul_id, arret_ref)} est déjà occupée.</p>
+     */
+    @Transactional
+    public ToolJurisprudenceMapping createManualMapping(ManualMappingCreateRequest request, User actorUser) {
+        if (mappingRepository.existsByToolIdAndBrancheCalculIdAndArretRef(
+                request.toolId(), request.brancheCalculId(), request.arretRef())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Mapping déjà existant pour ce triplet (tool_id, branche_calcul_id, arret_ref)");
+        }
+        ToolJurisprudenceMapping mapping = new ToolJurisprudenceMapping();
+        mapping.setToolId(request.toolId());
+        mapping.setBrancheCalculId(request.brancheCalculId());
+        mapping.setArretRef(request.arretRef());
+        mapping.setJuridiction(request.juridiction());
+        mapping.setDateArret(request.dateArret());
+        mapping.setNumeroPourvoi(request.numeroPourvoi());
+        mapping.setLienLegifrance(request.lienLegifrance());
+        mapping.setChapeauOfficiel(request.chapeauOfficiel());
+        mapping.setLastVerifiedAt(Instant.now());
+        // Saisie manuelle = confiance 1.00 (l'admin a vérifié).
+        mapping.setConfidenceScore(BigDecimal.ONE);
+        mapping.setArchived(false);
+        mappingRepository.save(mapping);
+
+        JurisprudenceAuditLog entry = new JurisprudenceAuditLog();
+        entry.setMapping(mapping);
+        entry.setAction(JurisprudenceAuditAction.MANUAL_ADD);
+        entry.setActor(JurisprudenceAuditActor.SUPER_ADMIN);
+        entry.setActorUser(actorUser);
+        entry.setClaudeConfidence(BigDecimal.ONE);
+        entry.setClaudeReason("Création manuelle SUPER_ADMIN (SF-JU-01-15)");
+        auditLogRepository.save(entry);
+
+        return mapping;
+    }
+
     private void applyReplaceDecision(JurisprudenceWatchFlag flag) {
         ToolJurisprudenceMapping current = flag.getMappingActuel();
         if (current != null) {
