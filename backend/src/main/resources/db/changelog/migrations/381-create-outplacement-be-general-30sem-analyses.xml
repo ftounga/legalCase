@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c2f8fc74-00ea-416d-9136-bdcd3e5eebf0" author="claude">
+        <comment>
+            SF-219-05 : table dédiée à l'outil décisionnel "outplacement BE
+            général régime préavis ≥ 30 semaines" (outplacement-be-general-30sem,
+            BELGIQUE — fondement : Loi du 05/09/2001 art. 11 (relance de la
+            politique de l'emploi) + AR du 21/10/2007 (procédure outplacement
+            régime général)).
+
+            L'outil vérifie la conformité de l'offre d'outplacement obligatoire
+            pour tout travailleur licencié dont le préavis (presté ou couvert
+            par une indemnité de rupture équivalente) est d'au moins 30 semaines :
+
+            - Conditions cumulatives ouverture droit :
+              * Licenciement à l'initiative de l'employeur (la démission ferme
+                le régime).
+              * Motif non grave (le licenciement pour motif grave exclut le
+                droit à l'outplacement, art. 11/3 § 1er Loi 05/09/2001).
+              * Durée du préavis notifié OU indemnité compensatoire couvrant
+                au moins 30 semaines.
+
+            - Conformité de l'offre employeur :
+              * Offre écrite et formelle dans les 15 jours civils après la
+                fin du contrat (notification congé / fin préavis).
+              * Programme d'au moins 60 heures sur une période de 12 mois
+                maximum (AR 21/10/2007 — art. 1er § 1er).
+              * Forme conforme : offre individuelle écrite, contenu minimum
+                (bilan personnel, accompagnement projet professionnel,
+                support psychologique, coaching, formation).
+
+            - Verdict :
+              * CONFORME — toutes les conditions remplies.
+              * NON_DU_DEMISSION — démission, pas d'obligation.
+              * NON_DU_MOTIF_GRAVE — licenciement pour motif grave.
+              * NON_DU_PREAVIS_INSUFFISANT — préavis &lt; 30 semaines.
+              * NON_CONFORME_OFFRE_TARDIVE — offre &gt; 15 jours après fin
+                du contrat (ou non offerte).
+              * NON_CONFORME_DUREE_INSUFFISANTE — programme &lt; 60h ou
+                période &gt; 12 mois.
+              * NON_CONFORME_FORME — offre non écrite / non individuelle /
+                contenu minimum absent.
+
+            - Sanctions calculées si non-conforme :
+              * Indemnité forfaitaire travailleur = 1 800 € (à confirmer
+                CCT n° 82 / 82bis) si l'employeur n'a pas respecté son
+                obligation d'offre, à charge de l'employeur.
+              * Risque ONEM côté travailleur : sanction d'exclusion 4 à
+                52 semaines des allocations chômage si refus injustifié
+                d'un outplacement régulièrement offert (art. 51 AR 25/11/1991).
+
+            - Avertissement systématique : montants à confirmer par CCT
+              sectorielle / barème ONEM en vigueur + délais à recalculer
+              au cas par cas.
+
+            Outil single-country BELGIQUE — aucun équivalent strict en
+            droit français (l'outplacement français est un dispositif distinct
+            sans seuil de préavis ≥ 30 semaines). Distinct également de
+            l'outplacement BE 45+ ans obligatoire (F-207 SF-207-08 — autre
+            régime, qui s'applique quelle que soit la durée du préavis).
+
+            Snapshot JSON complet (inputs + outputs : verdict, conformité,
+            indemnité forfaitaire indicative) pour permettre la restitution
+            UI sans recalcul (pattern F-DT-42 / SF-213-01 à SF-213-09 /
+            SF-219-01 à SF-219-04).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-219-05b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="outplacement_be_general_30sem_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_outplacement_be_general_30sem_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="outplacement_be_general_30sem_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_outplacement_be_general_30sem_case_file"/>
+
+        <createIndex tableName="outplacement_be_general_30sem_analyses"
+                     indexName="idx_outplacement_be_general_30sem_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="outplacement_be_general_30sem_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
