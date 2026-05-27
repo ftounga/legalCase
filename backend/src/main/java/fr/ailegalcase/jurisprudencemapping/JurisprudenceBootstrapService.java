@@ -3,6 +3,8 @@ package fr.ailegalcase.jurisprudencemapping;
 import fr.ailegalcase.auth.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -12,6 +14,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * F-JU-01 / SF-JU-01-05 — orchestrateur du bootstrap manuel des mappings
@@ -42,27 +47,115 @@ public class JurisprudenceBootstrapService {
     private final ClaudeJurisprudenceEvaluator evaluator;
     private final ToolJurisprudenceMappingRepository mappingRepository;
     private final JurisprudenceAuditLogRepository auditLogRepository;
+    private final JurisprudenceBootstrapJobRepository jobRepository;
     private final TransactionTemplate txTemplate;
+    private final TaskExecutor taskExecutor;
 
     public JurisprudenceBootstrapService(JudilibreApiClient judilibreClient,
                                          ClaudeJurisprudenceEvaluator evaluator,
                                          ToolJurisprudenceMappingRepository mappingRepository,
                                          JurisprudenceAuditLogRepository auditLogRepository,
-                                         PlatformTransactionManager txManager) {
+                                         JurisprudenceBootstrapJobRepository jobRepository,
+                                         PlatformTransactionManager txManager,
+                                         @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
         this.judilibreClient = judilibreClient;
         this.evaluator = evaluator;
         this.mappingRepository = mappingRepository;
         this.auditLogRepository = auditLogRepository;
+        this.jobRepository = jobRepository;
         this.txTemplate = new TransactionTemplate(txManager);
+        this.taskExecutor = taskExecutor;
     }
 
     /**
-     * Orchestration sans transaction globale (SF-JU-01-09) : chaque entrée
-     * persistable est commitée dans sa propre transaction via {@link #txTemplate}.
-     * Un échec sur une entrée (DB ou autre) est logué et compté en {@code skipped},
-     * la boucle continue sur l'entrée suivante sans rollback des précédentes.
+     * SF-JU-01-10 — lance un bootstrap en arrière-plan et retourne immédiatement
+     * son identifiant. Le client doit poller {@code GET /bootstrap/jobs/{jobId}}
+     * pour suivre la progression jusqu'à un terminal state.
+     */
+    public JurisprudenceBootstrapJobStarted startBootstrap(JurisprudenceBootstrapRequest request, User triggerUser) {
+        int total = request.entries().size();
+        UUID userId = triggerUser != null ? triggerUser.getId() : null;
+        Instant startedAt = Instant.now();
+
+        UUID jobId = txTemplate.execute(status -> {
+            JurisprudenceBootstrapJob job = new JurisprudenceBootstrapJob();
+            job.setStatus(JurisprudenceBootstrapJobStatus.RUNNING);
+            job.setEntriesTotal(total);
+            job.setStartedAt(startedAt);
+            job.setTriggeredByUserId(userId);
+            jobRepository.save(job);
+            return job.getId();
+        });
+
+        taskExecutor.execute(() -> runBootstrapJob(jobId, request, triggerUser));
+
+        return new JurisprudenceBootstrapJobStarted(jobId, total, startedAt);
+    }
+
+    /**
+     * SF-JU-01-10 — récupère l'état courant d'un job (lu via le repository).
+     * Pas de transaction explicite : le repository ouvre une read-only.
+     */
+    public Optional<JurisprudenceBootstrapJob> findJob(UUID jobId) {
+        return jobRepository.findById(jobId);
+    }
+
+    private void runBootstrapJob(UUID jobId, JurisprudenceBootstrapRequest request, User triggerUser) {
+        try {
+            JurisprudenceBootstrapResponse resp = runBootstrap(request, triggerUser,
+                    progress -> updateJobProgress(jobId, progress));
+            updateJobDone(jobId, resp);
+        } catch (RuntimeException e) {
+            log.error("F-JU-01 — Bootstrap async fatal for jobId={}: {}", jobId, e.getMessage(), e);
+            updateJobFailed(jobId, e.getMessage());
+        }
+    }
+
+    private void updateJobProgress(UUID jobId, BootstrapProgress progress) {
+        txTemplate.executeWithoutResult(status -> jobRepository.findById(jobId).ifPresent(job -> {
+            job.setEntriesProcessed(progress.processed());
+            job.setMappingsCreated(progress.created());
+            job.setEntriesSkipped(progress.skipped());
+            jobRepository.save(job);
+        }));
+    }
+
+    private void updateJobDone(UUID jobId, JurisprudenceBootstrapResponse resp) {
+        txTemplate.executeWithoutResult(status -> jobRepository.findById(jobId).ifPresent(job -> {
+            job.setStatus(JurisprudenceBootstrapJobStatus.DONE);
+            job.setEntriesProcessed(resp.entriesProcessed());
+            job.setMappingsCreated(resp.mappingsCreated());
+            job.setEntriesSkipped(resp.entriesSkipped());
+            job.setDurationMs(resp.durationMs());
+            job.setCompletedAt(Instant.now());
+            jobRepository.save(job);
+        }));
+    }
+
+    private void updateJobFailed(UUID jobId, String errorMessage) {
+        txTemplate.executeWithoutResult(status -> jobRepository.findById(jobId).ifPresent(job -> {
+            job.setStatus(JurisprudenceBootstrapJobStatus.FAILED);
+            job.setErrorMessage(errorMessage);
+            job.setCompletedAt(Instant.now());
+            jobRepository.save(job);
+        }));
+    }
+
+    /**
+     * Version synchrone — utilisée directement par les tests (SF-JU-01-09) et
+     * indirectement par {@link #startBootstrap} via le runner async (SF-JU-01-10).
      */
     public JurisprudenceBootstrapResponse runBootstrap(JurisprudenceBootstrapRequest request, User triggerUser) {
+        return runBootstrap(request, triggerUser, null);
+    }
+
+    /**
+     * Variante avec callback de progression invoqué après chaque entrée traitée
+     * (SF-JU-01-10). Le callback peut faire un UPDATE de la table jobs ; chaque
+     * appel doit être stateless côté caller (on ne porte ni mapping ni audit).
+     */
+    public JurisprudenceBootstrapResponse runBootstrap(JurisprudenceBootstrapRequest request, User triggerUser,
+                                                       Consumer<BootstrapProgress> onProgress) {
         long start = System.currentTimeMillis();
         int processed = 0, created = 0, skipped = 0;
         LocalDate now = LocalDate.now();
@@ -77,12 +170,14 @@ public class JurisprudenceBootstrapService {
                 log.warn("F-JU-01 — Bootstrap fetchArrets failed for {}:{}: {}",
                         entry.toolId(), entry.brancheCalculId(), e.getMessage());
                 skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
                 continue;
             }
             if (candidates.isEmpty()) {
                 log.info("F-JU-01 — Bootstrap 0 candidats JUDILIBRE pour {}:{}",
                         entry.toolId(), entry.brancheCalculId());
                 skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
                 continue;
             }
             candidates = filterByJuridiction(candidates, entry.juridictionFiltre());
@@ -94,6 +189,7 @@ public class JurisprudenceBootstrapService {
             ClaudeEvaluation evaluation = evaluator.evaluate(pseudoMapping, candidates);
             if (evaluation.action() == EvaluationAction.NONE || evaluation.arretChoisi() == null) {
                 skipped++;
+                notifyProgress(onProgress, processed, created, skipped);
                 continue;
             }
             try {
@@ -108,12 +204,23 @@ public class JurisprudenceBootstrapService {
                         entry.toolId(), entry.brancheCalculId(), e.getMessage());
                 skipped++;
             }
+            notifyProgress(onProgress, processed, created, skipped);
         }
 
         long duration = System.currentTimeMillis() - start;
         log.info("F-JU-01 — Bootstrap done: {} processed, {} created, {} skipped, {} ms",
                 processed, created, skipped, duration);
         return new JurisprudenceBootstrapResponse(processed, created, skipped, duration);
+    }
+
+    private void notifyProgress(Consumer<BootstrapProgress> onProgress, int processed, int created, int skipped) {
+        if (onProgress != null) {
+            try {
+                onProgress.accept(new BootstrapProgress(processed, created, skipped));
+            } catch (RuntimeException e) {
+                log.warn("F-JU-01 — Bootstrap progress callback failed: {}", e.getMessage());
+            }
+        }
     }
 
     private int persistTopCandidates(JurisprudenceBootstrapEntry entry,
@@ -175,5 +282,13 @@ public class JurisprudenceBootstrapService {
         m.setChapeauOfficiel("Recherche : " + entry.motCleRecherche());
         m.setConfidenceScore(BigDecimal.ZERO);
         return m;
+    }
+
+    /**
+     * Snapshot intermédiaire transmis au callback {@code onProgress} après
+     * chaque entrée. Permet à {@code startBootstrap} d'UPDATE la table
+     * {@code jurisprudence_bootstrap_jobs} pour le polling frontend.
+     */
+    public record BootstrapProgress(int processed, int created, int skipped) {
     }
 }

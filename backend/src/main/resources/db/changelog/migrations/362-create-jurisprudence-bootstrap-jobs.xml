@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="362-create-jurisprudence-bootstrap-jobs" author="legalcase">
+        <comment>
+            F-JU-01 SF-JU-01-10 : table des jobs de bootstrap manuel du super-admin.
+
+            Le POST /api/admin/jurisprudence/bootstrap était synchrone et dépassait le
+            timeout NGINX 120s côté client (toast 5xx trompeur alors que le backend
+            continuait). Cette table porte l'état d'un bootstrap lancé en @Async,
+            consultable via GET /api/admin/jurisprudence/bootstrap/jobs/{id}.
+
+            Statuts : RUNNING (en cours), DONE (terminé OK), FAILED (exception fatale
+            dans le runner — error_message rempli).
+
+            Table globale (pas d'isolation workspace, F-JU-01 = données communes
+            cross-workspace gérées par SUPER_ADMIN).
+
+            Pas de FK stricte sur triggered_by_user_id pour survivre à un user
+            supprimé (audit historique).
+        </comment>
+
+        <createTable tableName="jurisprudence_bootstrap_jobs">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="status" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entries_total" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entries_processed" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mappings_created" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entries_skipped" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duration_ms" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+            <column name="error_message" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="started_at" type="timestamp with time zone" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_at" type="timestamp with time zone">
+                <constraints nullable="true"/>
+            </column>
+            <column name="triggered_by_user_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE jurisprudence_bootstrap_jobs
+            ADD CONSTRAINT ck_jurisprudence_bootstrap_jobs_status
+            CHECK (status IN ('RUNNING', 'DONE', 'FAILED'));
+        </sql>
+
+        <createIndex tableName="jurisprudence_bootstrap_jobs"
+                     indexName="ix_jurisprudence_bootstrap_jobs_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="jurisprudence_bootstrap_jobs"
+                     indexName="ix_jurisprudence_bootstrap_jobs_started_at">
+            <column name="started_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
@@ -6,6 +6,7 @@ import { of, throwError } from 'rxjs';
 import { JurisprudenceWatchComponent, parseBootstrapCsv } from './jurisprudence-watch.component';
 import {
   JurisprudenceBootstrapEntry,
+  JurisprudenceBootstrapJobStatusResponse,
   JurisprudenceWatchAdminClientService,
   JurisprudenceWatchFlag,
   Page,
@@ -31,8 +32,9 @@ describe('JurisprudenceWatchComponent', () => {
       listAuditLog: jest.fn().mockReturnValue(of(emptyPage())),
       arbitrate: jest.fn().mockReturnValue(of({})),
       triggerBootstrap: jest.fn().mockReturnValue(of({
-        entriesProcessed: 0, mappingsCreated: 0, entriesSkipped: 0, durationMs: 0,
+        jobId: 'job-default', entriesTotal: 0, startedAt: '2026-05-27T00:00:00Z',
       })),
+      getBootstrapJobStatus: jest.fn().mockReturnValue(of(jobStatus('job-default', 'DONE'))),
     } as any;
     snackBar = { open: jest.fn() } as any;
 
@@ -102,18 +104,35 @@ describe('JurisprudenceWatchComponent', () => {
     expect(component.parseResult.errors).toHaveLength(0);
   });
 
-  it('T-06 — runBootstrap success calls triggerBootstrap, reloads audit, shows snackbar', () => {
+  it('T-06 — runBootstrap success: 202 then polling RUNNING → DONE updates bootstrapJob and reloads audit', fakeAsync(() => {
     fixture.detectChanges();
     client.triggerBootstrap.mockReturnValue(of({
-      entriesProcessed: 3, mappingsCreated: 2, entriesSkipped: 1, durationMs: 1500,
+      jobId: 'job-1', entriesTotal: 3, startedAt: '2026-05-27T01:00:00Z',
     }));
+    client.getBootstrapJobStatus
+      .mockReturnValueOnce(of(jobStatus('job-1', 'RUNNING', { entriesTotal: 3, entriesProcessed: 1 })))
+      .mockReturnValueOnce(of(jobStatus('job-1', 'RUNNING', { entriesTotal: 3, entriesProcessed: 2, mappingsCreated: 1 })))
+      .mockReturnValueOnce(of(jobStatus('job-1', 'DONE', {
+        entriesTotal: 3, entriesProcessed: 3, mappingsCreated: 2, entriesSkipped: 1, durationMs: 1500,
+      })));
     component['loadExample']();
     const initialAuditCalls = client.listAuditLog.mock.calls.length;
 
     component['runBootstrap']();
-
+    // POST a déjà renseigné bootstrapJob (status synthétique RUNNING avec entriesTotal=3)
     expect(client.triggerBootstrap).toHaveBeenCalledWith(component.parseResult.entries);
-    expect(component.lastBootstrapResult?.mappingsCreated).toBe(2);
+    expect(component.bootstrapJob?.jobId).toBe('job-1');
+    expect(component.bootstrapJob?.status).toBe('RUNNING');
+    expect(component.loadingBootstrap).toBe(true);
+
+    tick(5000);
+    expect(component.bootstrapJob?.entriesProcessed).toBe(1);
+    tick(5000);
+    expect(component.bootstrapJob?.mappingsCreated).toBe(1);
+    tick(5000);
+
+    expect(component.bootstrapJob?.status).toBe('DONE');
+    expect(component.bootstrapJob?.mappingsCreated).toBe(2);
     expect(component.loadingBootstrap).toBe(false);
     expect(snackBar.open).toHaveBeenCalledWith(
       expect.stringContaining('Bootstrap terminé : 3 processed, 2 created, 1 skipped (1500ms)'),
@@ -121,9 +140,9 @@ describe('JurisprudenceWatchComponent', () => {
       expect.anything()
     );
     expect(client.listAuditLog.mock.calls.length).toBe(initialAuditCalls + 1);
-  });
+  }));
 
-  it('T-07 — runBootstrap HTTP error shows échec snackbar', () => {
+  it('T-07 — runBootstrap HTTP error on POST shows échec snackbar and no polling', () => {
     fixture.detectChanges();
     client.triggerBootstrap.mockReturnValue(throwError(() => ({ message: 'boom' })));
     component['loadExample']();
@@ -131,12 +150,40 @@ describe('JurisprudenceWatchComponent', () => {
     component['runBootstrap']();
 
     expect(component.loadingBootstrap).toBe(false);
+    expect(component.bootstrapJob).toBeNull();
+    expect(client.getBootstrapJobStatus).not.toHaveBeenCalled();
     expect(snackBar.open).toHaveBeenCalledWith(
-      expect.stringContaining('Échec du bootstrap'),
+      expect.stringContaining('Échec du lancement'),
       'OK',
       expect.anything()
     );
   });
+
+  it('T-07b — polling that returns FAILED shows échec snackbar and stops polling', fakeAsync(() => {
+    fixture.detectChanges();
+    client.triggerBootstrap.mockReturnValue(of({
+      jobId: 'job-fail', entriesTotal: 5, startedAt: '2026-05-27T01:00:00Z',
+    }));
+    client.getBootstrapJobStatus.mockReturnValue(of(jobStatus('job-fail', 'FAILED', {
+      entriesProcessed: 2, errorMessage: 'evaluator boom',
+    })));
+    component['loadExample']();
+
+    component['runBootstrap']();
+    tick(5000);
+
+    expect(component.bootstrapJob?.status).toBe('FAILED');
+    expect(component.loadingBootstrap).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Échec du bootstrap : evaluator boom'),
+      'OK',
+      expect.anything()
+    );
+    // 2nd tick shouldn't trigger another HTTP call (polling stopped)
+    const callsAfterFirst = client.getBootstrapJobStatus.mock.calls.length;
+    tick(5000);
+    expect(client.getBootstrapJobStatus.mock.calls.length).toBe(callsAfterFirst);
+  }));
 
   it('T-08 — canLaunchBootstrap false on empty/over-limit/errors', () => {
     fixture.detectChanges();
@@ -292,6 +339,24 @@ describe('JurisprudenceWatchComponent', () => {
     expect(component.csvInput).toBe('previous content');
     expect((event.target as HTMLInputElement).value).toBe('');
   });
+
+  function jobStatus(jobId: string,
+                     status: 'RUNNING' | 'DONE' | 'FAILED',
+                     overrides: Partial<JurisprudenceBootstrapJobStatusResponse> = {}):
+      JurisprudenceBootstrapJobStatusResponse {
+    return {
+      jobId,
+      status,
+      entriesTotal: overrides.entriesTotal ?? 3,
+      entriesProcessed: overrides.entriesProcessed ?? 0,
+      mappingsCreated: overrides.mappingsCreated ?? 0,
+      entriesSkipped: overrides.entriesSkipped ?? 0,
+      durationMs: overrides.durationMs ?? null,
+      errorMessage: overrides.errorMessage ?? null,
+      startedAt: overrides.startedAt ?? '2026-05-27T01:00:00Z',
+      completedAt: overrides.completedAt ?? null,
+    };
+  }
 
   function buildFileSelectedEvent(file: File): Event {
     const input = document.createElement('input');

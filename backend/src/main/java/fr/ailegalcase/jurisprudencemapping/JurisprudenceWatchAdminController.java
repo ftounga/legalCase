@@ -74,12 +74,24 @@ public class JurisprudenceWatchAdminController {
     }
 
     @PostMapping("/bootstrap")
-    public ResponseEntity<JurisprudenceBootstrapResponse> bootstrap(
+    public ResponseEntity<JurisprudenceBootstrapJobStarted> bootstrap(
             @Valid @RequestBody JurisprudenceBootstrapRequest request,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         User user = superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
-        JurisprudenceBootstrapResponse response = bootstrapService.runBootstrap(request, user);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        JurisprudenceBootstrapJobStarted started = bootstrapService.startBootstrap(request, user);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(started);
+    }
+
+    @GetMapping("/bootstrap/jobs/{jobId}")
+    public ResponseEntity<JurisprudenceBootstrapJobStatusResponse> getBootstrapJobStatus(
+            @PathVariable UUID jobId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
+        return bootstrapService.findJob(jobId)
+                .map(JurisprudenceBootstrapJobStatusResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

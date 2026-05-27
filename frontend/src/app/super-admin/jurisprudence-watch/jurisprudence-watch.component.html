@@ -76,13 +76,28 @@
           </button>
         </div>
 
-        @if (lastBootstrapResult) {
+        @if (bootstrapJob) {
           <div class="bootstrap__result" data-test="bootstrap-result">
-            <strong>Dernier batch :</strong>
-            {{ lastBootstrapResult.entriesProcessed }} processed,
-            {{ lastBootstrapResult.mappingsCreated }} created,
-            {{ lastBootstrapResult.entriesSkipped }} skipped
-            ({{ lastBootstrapResult.durationMs }}ms)
+            <strong>Job {{ bootstrapJob.jobId }} — {{ bootstrapJob.status }}</strong>
+            <div>
+              {{ bootstrapJob.entriesProcessed }} / {{ bootstrapJob.entriesTotal }} entrées traitées,
+              {{ bootstrapJob.mappingsCreated }} created,
+              {{ bootstrapJob.entriesSkipped }} skipped
+              @if (bootstrapJob.durationMs !== null) {
+                ({{ bootstrapJob.durationMs }}ms)
+              }
+            </div>
+            @if (bootstrapJob.status === 'RUNNING') {
+              <mat-progress-bar mode="determinate"
+                                [value]="(bootstrapJob.entriesProcessed / bootstrapJob.entriesTotal) * 100"
+                                data-test="bootstrap-progress">
+              </mat-progress-bar>
+            }
+            @if (bootstrapJob.errorMessage) {
+              <div class="bootstrap__error" data-test="bootstrap-error">
+                Erreur : {{ bootstrapJob.errorMessage }}
+              </div>
+            }
           </div>
         }
       </section>
