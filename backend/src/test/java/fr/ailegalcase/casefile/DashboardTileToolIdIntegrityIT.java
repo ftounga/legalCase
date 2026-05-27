@@ -412,7 +412,12 @@ class DashboardTileToolIdIntegrityIT {
             // visibility livrée dans la PR backend SF-215-05 (PR #1372). Outil
             // BE frontend autosuffisant sans tile DashboardTile dédié — pattern
             // uniforme F-215 P2 Immigration BE.
-            "F-IM-27-regroupement-10bis-be"
+            "F-IM-27-regroupement-10bis-be",
+            // SF-215-07/08 (2026-05-27) : F-IM-28-naturalisation-12bis-be —
+            // seed visibility livrée dans la PR backend SF-215-07 (PR #1383).
+            // Outil BE frontend autosuffisant sans tile DashboardTile —
+            // pattern uniforme F-215 P2 Immigration BE.
+            "F-IM-28-naturalisation-12bis-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
