@@ -1379,6 +1379,23 @@ export interface ImmigrationExtractedData {
   etrangerMaladeTraitementDisponible?: boolean | null;
   etrangerMaladeAvisOFII?: 'FAVORABLE' | 'DEFAVORABLE' | 'EN_ATTENTE' | null;
   etrangerMalaDateAvisOFII?: string | null;
+  /**
+   * SF-215-01 / SF-215-02 — Pré-fill outil F-IM-25-single-permit-be
+   * « Permis unique BE » (travail + séjour, art. 61/25-2 à 61/25-7 Loi 15/12/1980,
+   * Accord coopération 02/02/2018, Décret CRWAPE 16/05/2019, AGW 02/05/2019).
+   * BELGIQUE uniquement — dossier FR : null. Tous nullables.
+   *
+   * `singlePermitDateDebut` : date début validité permit (ISO YYYY-MM-DD).
+   * `singlePermitDateFin`   : date fin validité permit (ISO YYYY-MM-DD).
+   * `singlePermitRegion`    : région d'instruction (WALLONIE / FLANDRE / BRUXELLES).
+   * `singlePermitTypeActivite` : nature de l'activité (SALARIE/STAGIAIRE/DETACHE/CHERCHEUR/ETUDIANT).
+   * `singlePermitMotif`     : motif de la demande (NOUVEAU / RENOUVELLEMENT).
+   */
+  singlePermitDateDebut?: string | null;
+  singlePermitDateFin?: string | null;
+  singlePermitRegion?: 'WALLONIE' | 'FLANDRE' | 'BRUXELLES' | null;
+  singlePermitTypeActivite?: 'SALARIE' | 'STAGIAIRE' | 'DETACHE' | 'CHERCHEUR' | 'ETUDIANT' | null;
+  singlePermitMotif?: 'NOUVEAU' | 'RENOUVELLEMENT' | null;
 }
 
 export interface CaseAnalysisVersionSummary {

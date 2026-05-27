@@ -1,0 +1,215 @@
+<section class="sp-section">
+  <header class="sp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="sp-body">
+    <mat-icon class="sp-icon">badge</mat-icon>
+    <span class="sp-title">PERMIS UNIQUE BE (travail+séjour)</span>
+    @if (result()) {
+      <span class="sp-chip"
+            [class.sp-chip--success]="result()!.statutRenouvellement === 'DEPOSE_EN_TEMPS'"
+            [class.sp-chip--warning]="result()!.statutRenouvellement === 'DANS_DELAI'"
+            [class.sp-chip--danger]="result()!.statutRenouvellement === 'URGENT'"
+            [class.sp-chip--danger-strong]="result()!.statutRenouvellement === 'EXPIRE'">
+        {{ statutLabel(result()!.statutRenouvellement) }}
+      </span>
+    }
+    <mat-icon class="sp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="sp-body" class="sp-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="sp-banner sp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="sp-banner-content">
+            <div class="sp-banner-title">Outil Belgique uniquement</div>
+            <div class="sp-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. Le permis unique BE
+              (single permit, Loi 15/12/1980 art. 61/25) ne s'applique pas. Pour la
+              France, voir l'autorisation de travail R. 5221-1 CT.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="sp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="sp-form" (ngSubmit)="analyze()">
+              <div class="sp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date début validité permit</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateDebutPermit()"
+                         (ngModelChange)="onDateDebutChange($event)"
+                         name="dateDebutPermit" />
+                </mat-form-field>
+                @if (provenanceDateDebut() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date fin validité permit</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateFinPermit()"
+                         (ngModelChange)="onDateFinChange($event)"
+                         name="dateFinPermit" />
+                </mat-form-field>
+                @if (provenanceDateFin() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Région d'instruction</mat-label>
+                  <mat-select required
+                              [ngModel]="regionInstruction()"
+                              (ngModelChange)="onRegionChange($event)"
+                              name="regionInstruction">
+                    @for (opt of regionOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceRegion() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type d'activité</mat-label>
+                  <mat-select required
+                              [ngModel]="typeActivite()"
+                              (ngModelChange)="onTypeActiviteChange($event)"
+                              name="typeActivite">
+                    @for (opt of typeActiviteOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceTypeActivite() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sp-field-wrap sp-field-wrap--full">
+                <span class="sp-radio-label">Motif de la demande</span>
+                <mat-radio-group
+                    class="sp-radio-group"
+                    [ngModel]="motifDemande()"
+                    (ngModelChange)="onMotifChange($event)"
+                    name="motifDemande">
+                  @for (opt of motifOptions; track opt.code) {
+                    <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                  }
+                </mat-radio-group>
+                @if (provenanceMotif() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="sp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le renouvellement</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="sp-result">
+              <div [class]="bannerClass(result()!.statutRenouvellement)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statutRenouvellement) }}</mat-icon>
+                <div class="sp-banner-content">
+                  <div class="sp-banner-title">{{ statutLabel(result()!.statutRenouvellement) }}</div>
+                  <div class="sp-banner-sub">
+                    {{ result()!.joursAvantExpiration }} jours avant expiration du permit.
+                  </div>
+                </div>
+              </div>
+
+              <div class="sp-recours-block">
+                <div class="sp-recours-label">Date limite de dépôt de la demande</div>
+                <div class="sp-recours-date">{{ result()!.dateLimiteDemande | date:'dd/MM/yyyy' }}</div>
+                <div class="sp-recours-sub">
+                  Délai conventionnel : dépôt au plus tard 2 mois avant la fin du permit
+                  (Accord coopération 02/02/2018).
+                </div>
+              </div>
+
+              <div class="sp-region-block">
+                <div class="sp-region-label">Région compétente pour l'instruction</div>
+                <div class="sp-region-name">{{ result()!.regionCompetente }}</div>
+              </div>
+
+              @if (result()!.etapesProchaines?.length) {
+                <div class="sp-steps-block">
+                  <div class="sp-steps-label">Prochaines étapes</div>
+                  <ul class="sp-steps-list">
+                    @for (etape of result()!.etapesProchaines; track etape) {
+                      <li>{{ etape }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="sp-breakdown">
+                <li>
+                  <span class="sp-bd-label">Validité actuelle</span>
+                  <span class="sp-bd-value">
+                    {{ result()!.dateDebutPermit | date:'dd/MM/yyyy' }}
+                    →
+                    {{ result()!.dateFinPermit | date:'dd/MM/yyyy' }}
+                  </span>
+                </li>
+                <li>
+                  <span class="sp-bd-label">Région</span>
+                  <span class="sp-bd-value">{{ regionOptionLabel(result()!.regionInstruction) }}</span>
+                </li>
+                <li>
+                  <span class="sp-bd-label">Type d'activité</span>
+                  <span class="sp-bd-value">{{ typeActiviteOptionLabel(result()!.typeActivite) }}</span>
+                </li>
+                <li>
+                  <span class="sp-bd-label">Motif</span>
+                  <span class="sp-bd-value">{{ motifOptionLabel(result()!.motifDemande) }}</span>
+                </li>
+              </ul>
+
+              <div class="sp-meta">
+                <span class="sp-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
