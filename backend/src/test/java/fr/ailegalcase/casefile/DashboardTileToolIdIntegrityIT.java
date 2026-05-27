@@ -318,7 +318,19 @@ class DashboardTileToolIdIntegrityIT {
             // métier tuile dashboard immédiat). À résorber par la session F-212
             // propriétaire qui consolidera les outils P2 en lot.
             // F-212 19/19 — dernier outil livré du bundle F-212.
-            "F-DT-84-conciliation-cph-bca"
+            "F-DT-84-conciliation-cph-bca",
+            // F-213 vague 2/3/4 (2026-05-26 → 2026-05-27) : rappel-salaire-be,
+            // licenciement-be-statut-unique-preavis et licenciement-be-formule-claeys
+            // livrés par SF-213-02b (PR #1329), SF-213-03b (PR #1331) et SF-213-04b
+            // (PR #1334) sans mapper DashboardTile côté backend — exclusion
+            // transitoire alignée sur le pattern Vague F-212 P2 / F-217 Vague 3
+            // (composant frontend standalone auto-suffisant, restitution via GET
+            // du snapshot, pas de besoin métier tuile dashboard immédiat dans le
+            // bundle F-213 P2 Travail BE). À résorber par la session F-213
+            // propriétaire qui consolidera les outils P2 BE en lot.
+            "rappel-salaire-be",
+            "licenciement-be-statut-unique-preavis",
+            "licenciement-be-formule-claeys"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
