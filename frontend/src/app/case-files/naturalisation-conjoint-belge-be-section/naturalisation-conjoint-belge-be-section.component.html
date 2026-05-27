@@ -1,0 +1,235 @@
+<section class="natcjbe-section">
+  <header class="natcjbe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="natcjbe-body">
+    <mat-icon class="natcjbe-icon">family_restroom</mat-icon>
+    <span class="natcjbe-title">NATURALISATION CONJOINT BELGE (ART. 16)</span>
+    @if (result()) {
+      <span [class]="eligibleChipClass(result()!.eligible)">
+        {{ eligibleLabel(result()!.eligible) }}
+      </span>
+    }
+    <mat-icon class="natcjbe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="natcjbe-body" class="natcjbe-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="natcjbe-banner natcjbe-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="natcjbe-banner-content">
+            <div class="natcjbe-banner-title">Outil Belgique uniquement</div>
+            <div class="natcjbe-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. La déclaration
+              de nationalité par voie « conjoint Belge » (art. 16 du Code de la
+              nationalité belge) ne s'applique pas. Pour la France, voir l'outil
+              <strong>Naturalisation (FR)</strong> (F-IM-13).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="natcjbe-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="natcjbe-form" (ngSubmit)="analyze()">
+              <div class="natcjbe-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du mariage</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-marriage-input"
+                         [ngModel]="dateMarriage()"
+                         (ngModelChange)="onDateMarriageChange($event)"
+                         name="dateMarriage"
+                         />
+                </mat-form-field>
+                @if (provenanceDateMarriage() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="natcjbe-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée de cohabitation effective (mois)</mat-label>
+                  <input matInput type="number" required min="0" max="600" step="1"
+                         data-testid="duree-cohabitation-input"
+                         [ngModel]="dureeCohabitationMois()"
+                         (ngModelChange)="onDureeCohabitationChange($event)"
+                         name="dureeCohabitationMois"
+                         />
+                </mat-form-field>
+                @if (provenanceDureeCohabitation() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                <div class="natcjbe-hint">
+                  Cohabitation effective requise : ≥ {{ dureeRequise }} mois (5 ans).
+                </div>
+              </div>
+
+              <div class="natcjbe-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Niveau de langue (FR / NL / DE)</mat-label>
+                  <mat-select required
+                              [ngModel]="niveauLangue()"
+                              (ngModelChange)="onNiveauLangueChange($event)"
+                              name="niveauLangue"
+                              data-testid="niveau-langue-select">
+                    @for (opt of niveauxLangue; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceNiveauLangue() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="natcjbe-field-wrap natcjbe-field-wrap--full">
+                <mat-checkbox
+                    data-testid="cohabitation-legale-checkbox"
+                    [ngModel]="cohabitationLegale()"
+                    (ngModelChange)="onCohabitationLegaleChange($event)"
+                    name="cohabitationLegale">
+                  Cohabitation légale (déclaration commune en mairie, à défaut de mariage civil)
+                </mat-checkbox>
+              </div>
+              <div class="natcjbe-field-wrap natcjbe-field-wrap--full">
+                <mat-checkbox
+                    data-testid="preuve-integration-checkbox"
+                    [ngModel]="preuveIntegration()"
+                    (ngModelChange)="onPreuveIntegrationChange($event)"
+                    name="preuveIntegration">
+                  Preuve d'intégration sociale (cours régional validé : Parcours d'intégration Wallonie / Inburgering Flandre / Bruxelles-Inburgering)
+                </mat-checkbox>
+              </div>
+              <div class="natcjbe-field-wrap natcjbe-field-wrap--full">
+                <mat-checkbox
+                    data-testid="menace-ordre-public-checkbox"
+                    [ngModel]="menaceOrdrePublic()"
+                    (ngModelChange)="onMenaceOrdrePublicChange($event)"
+                    name="menaceOrdrePublic">
+                  Menace pour l'ordre public ou la sécurité nationale
+                </mat-checkbox>
+              </div>
+              <div class="natcjbe-field-wrap natcjbe-field-wrap--full">
+                <mat-checkbox
+                    data-testid="condamnation-penale-checkbox"
+                    [ngModel]="condamnationPenale()"
+                    (ngModelChange)="onCondamnationPenaleChange($event)"
+                    name="condamnationPenale">
+                  Condamnation pénale (peine d'emprisonnement effective)
+                </mat-checkbox>
+              </div>
+
+              <div class="natcjbe-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="natcjbe-result">
+              <div [class]="eligibleBannerClass(result()!.eligible)" role="status">
+                <mat-icon>{{ eligibleIcon(result()!.eligible) }}</mat-icon>
+                <div class="natcjbe-banner-content">
+                  <div class="natcjbe-banner-title">{{ eligibleLabel(result()!.eligible) }}</div>
+                  <div class="natcjbe-banner-sub">
+                    Voie « conjoint Belge » — article 16 du Code de la nationalité belge.
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.dureeManquante > 0) {
+                <div class="natcjbe-duree-manquante" data-testid="duree-manquante-block">
+                  <span class="natcjbe-duree-label">Délai restant</span>
+                  <span class="natcjbe-duree-value">
+                    {{ result()!.dureeManquante }} mois à attendre avant cohabitation 5 ans
+                  </span>
+                </div>
+              }
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="natcjbe-criteres-block" data-testid="criteres-non-remplis-block">
+                  <div class="natcjbe-criteres-label">Critères non remplis</div>
+                  <mat-list class="natcjbe-criteres-list">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-list-item class="natcjbe-criteres-item">
+                        <mat-icon matListItemIcon class="natcjbe-criteres-icon">cancel</mat-icon>
+                        <span matListItemTitle>{{ c }}</span>
+                      </mat-list-item>
+                    }
+                  </mat-list>
+                </div>
+              }
+
+              <ul class="natcjbe-breakdown">
+                <li>
+                  <span class="natcjbe-bd-label">Date du mariage</span>
+                  <span class="natcjbe-bd-value natcjbe-bd-value--mono">{{ result()!.dateMarriage }}</span>
+                </li>
+                <li>
+                  <span class="natcjbe-bd-label">Cohabitation légale</span>
+                  <span class="natcjbe-bd-value">{{ result()!.cohabitationLegale ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="natcjbe-bd-label">Durée de cohabitation</span>
+                  <span class="natcjbe-bd-value natcjbe-bd-value--mono">{{ result()!.dureeCohabitationMois }} mois</span>
+                </li>
+                <li>
+                  <span class="natcjbe-bd-label">Niveau de langue</span>
+                  <span class="natcjbe-bd-value">{{ niveauLangueLabel(result()!.niveauLangue) }}</span>
+                </li>
+                <li>
+                  <span class="natcjbe-bd-label">Preuve d'intégration sociale</span>
+                  <span class="natcjbe-bd-value">{{ result()!.preuveIntegration ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="natcjbe-bd-label">Menace ordre public</span>
+                  <span class="natcjbe-bd-value">{{ result()!.menaceOrdrePublic ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="natcjbe-bd-label">Condamnation pénale</span>
+                  <span class="natcjbe-bd-value">{{ result()!.condamnationPenale ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              <div class="natcjbe-procedure" data-testid="delai-declaration-block">
+                <mat-icon>account_balance</mat-icon>
+                <span><strong>Procédure :</strong> {{ result()!.delaiDeclaration }}</span>
+              </div>
+
+              <div class="natcjbe-meta">
+                <span class="natcjbe-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

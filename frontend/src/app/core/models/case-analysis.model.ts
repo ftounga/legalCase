@@ -1468,8 +1468,33 @@ export interface ImmigrationExtractedData {
    * F-IM-28-naturalisation-12bis-be. True si le pipeline IA détecte une
    * démarche de naturalisation 12bis envisagée. Synonyme métier de
    * `naturalisation_be_envisagee` côté backend.
+   *
+   * NB : ce même flag pilote AUSSI la visibilité CONTEXTUAL de l'outil
+   * F-IM-29-naturalisation-conjoint-belge-be (SF-215-09 / SF-215-10) —
+   * voie « conjoint Belge » art. 16 CNB.
    */
   naturalisationBeEnvisagee?: boolean | null;
+  /**
+   * SF-215-09 / SF-215-10 — Pré-fill outil
+   * F-IM-29-naturalisation-conjoint-belge-be — voie « conjoint Belge »
+   * article 16 du Code de la nationalité belge. BELGIQUE uniquement —
+   * dossier FR : null. Tous nullables.
+   *
+   * `naturalisationBeArt16DateMarriage` : date du mariage (ISO yyyy-MM-dd).
+   * `naturalisationBeArt16DureeCohabitation` : durée cohabitation
+   *   effective en mois (entier 0–600).
+   * `naturalisationBeArt16NiveauLangue` : niveau atteint dans une des 3
+   *   langues officielles — `INFERIEUR_A2` / `A2` / `SUPERIEUR_A2`
+   *   (CECRL). Whitelist alignée sur l'enum SF-215-07 partagée.
+   *
+   * NB : les 4 critères restants (cohabitationLegale, preuveIntegration,
+   * menaceOrdrePublic, condamnationPenale) sont aspirationnels —
+   * `PREFILL_COUNT_ALWAYS_ZERO` côté UI car le LLM ne peut pas les
+   * inférer de manière fiable depuis les pièces du dossier.
+   */
+  naturalisationBeArt16DateMarriage?: string | null;
+  naturalisationBeArt16DureeCohabitation?: number | null;
+  naturalisationBeArt16NiveauLangue?: 'INFERIEUR_A2' | 'A2' | 'SUPERIEUR_A2' | null;
 }
 
 export interface CaseAnalysisVersionSummary {
