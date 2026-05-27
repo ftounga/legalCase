@@ -346,7 +346,11 @@ class DashboardTileToolIdIntegrityIT {
             // SF-213-07 (2026-05-27) : harcelement-be-procedure-formelle backend
             // livré (Loi 04/08/1996 art. 32bis-32sexies). Frontend SF-213-07b
             // à venir. Même pattern que les outils ci-dessus.
-            "harcelement-be-procedure-formelle"
+            "harcelement-be-procedure-formelle",
+            // SF-213-08 (2026-05-27) : licenciement-be-protection-deleguee backend
+            // livré (Loi 19/03/1991 délégué syndical + CCT n°5, indemnité forfaitaire
+            // 2-4 ans). Frontend SF-213-08b à venir. Même pattern.
+            "licenciement-be-protection-deleguee"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
