@@ -186,11 +186,11 @@
                 </li>
                 <li>
                   <span class="sp-bd-label">Type d'activité</span>
-                  <span class="sp-bd-value">{{ typeActiviteOptionLabel(result()!.typeActivite) }}</span>
+                  <span class="sp-bd-value">{{ typeActiviteOptionLabel($any(result()!.typeActivite)) }}</span>
                 </li>
                 <li>
                   <span class="sp-bd-label">Motif</span>
-                  <span class="sp-bd-value">{{ motifOptionLabel(result()!.motifDemande) }}</span>
+                  <span class="sp-bd-value">{{ motifOptionLabel($any(result()!.motifDemande)) }}</span>
                 </li>
               </ul>
 
