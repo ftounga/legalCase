@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="708e379b-4581-40d8-9476-9ddd6289686f" author="claude">
+        <comment>
+            SF-213-10 : table dédiée à l'outil décisionnel "Licenciement BE —
+            CCT n° 109 déraisonnable" (licenciement-be-cct109-deraisonnable,
+            BELGIQUE — fondement : CCT n° 109 du 12/02/2014 art. 9
+            relative à la motivation du licenciement + arrêt Conseil d'État
+            n° 245.236 du 27/06/2019).
+
+            L'outil calcule le score d'indemnisation du licenciement
+            manifestement déraisonnable :
+            - 5 échelons : NON_DERAISONNABLE / 3 / 8 / 12 / 17 semaines de
+              rémunération hebdomadaire brute ;
+            - Logique d'attribution par priorité descendante (motif valable
+              prouvé + procédures → 0 ; discrimination + représailles → 17 ;
+              discrimination OU représailles → 12 ; motif précis disputé +
+              aggravant mineur → 8 ; sans motif / motif vague / procédures
+              non respectées → 3) ;
+            - Cumul systématique avec l'ICP (indemnité compensatoire de
+              préavis) — avertissement explicite renvoyant vers les outils
+              Préavis statut unique ou Formule Claeys.
+
+            Outil single-country BELGIQUE — la France a un dispositif
+            distinct (barème Macron L. 1235-3 C. trav. pour licenciement
+            sans cause réelle et sérieuse), non comparable au régime CCT
+            109. Gate strict 404 côté FR (pattern miroir SF-213-07/08).
+
+            Snapshot JSON complet (inputs + outputs : échelon, semaines,
+            indemnité, justification, cumul ICP, avertissement) pour
+            permettre la restitution UI sans recalcul (pattern F-DT-42 /
+            SF-213-01 à SF-213-08).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-213-10b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="licenciement_be_cct109_deraisonnable_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_licenciement_be_cct109_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_cct109_deraisonnable_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_licenciement_be_cct109_case_file"/>
+
+        <createIndex tableName="licenciement_be_cct109_deraisonnable_analyses"
+                     indexName="idx_licenciement_be_cct109_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_cct109_deraisonnable_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
