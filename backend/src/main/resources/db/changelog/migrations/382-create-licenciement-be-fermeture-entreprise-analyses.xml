@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="757ea41f-fe8d-416d-b5e8-a0dea8d7f8bb" author="claude">
+        <comment>
+            SF-219-06 : table dédiée à l'outil décisionnel "Licenciement BE
+            fermeture entreprise" (licenciement-be-fermeture-entreprise,
+            BELGIQUE — fondement : Loi du 26/06/2002 relative aux fermetures
+            d'entreprises + AR du 23/03/2007 (Fonds Fermeture Entreprises
+            FFE) + CCT n° 9bis du CNT (information / consultation) + Loi
+            du 13/02/1998 sur les licenciements collectifs (procédure
+            Renault).
+
+            L'outil détermine l'éligibilité d'une fermeture d'entreprise
+            au régime FFE et calcule à la fois l'indemnité de fermeture
+            (forfaitaire par année d'ancienneté + supplément ≥ 45 ans) et
+            les créances impayées reprises par le Fonds (salaires, pécule
+            de vacances, indemnité de rupture) en cas d'insolvabilité de
+            l'employeur :
+            - Qualification du type de fermeture (cessation définitive /
+              faillite vs cessation partielle / transfert CCT 32bis /
+              fusion / fermeture temporaire).
+            - Seuil d'effectif (≥ 20 ETP — régime général V1).
+            - Ancienneté minimale (≥ 1 an, Loi 26/06/2002 art. 4).
+            - Calcul indemnité forfaitaire indicatif (barème AR 23/03/2007
+              indexé annuellement) + supplément âge ≥ 45 ans.
+            - Reprise FFE des créances impayées si insolvabilité avérée /
+              faillite déclarée.
+
+            Verdict : ELIGIBLE_FFE_REPRISE_CREANCES |
+            ELIGIBLE_FFE_COMPLET | ELIGIBLE_INDEMNITE_SEULE |
+            INELIGIBLE_ANCIENNETE_INSUFFISANTE | INELIGIBLE_TYPE_FERMETURE |
+            INELIGIBLE_SEUIL_EFFECTIF.
+
+            Outil single-country BELGIQUE — aucun équivalent strict en
+            droit français (le FNGS français garantit les salaires en
+            redressement/liquidation mais ne porte pas l'indemnité de
+            fermeture forfaitaire indépendante).
+
+            Snapshot JSON complet (inputs + outputs : verdict, indemnité,
+            créances FFE, raison) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213-01 à SF-213-09 / SF-219-01
+            à SF-219-04).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-06b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "licenciement-be-fermeture-entreprise" est ajouté
+            dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès le
+            seed visibility par SF-219-06b, pattern uniforme F-213 vagues
+            1-10b / F-219 vagues 1-5).
+        </comment>
+
+        <createTable tableName="licenciement_be_fermeture_entreprise_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_lic_be_fermeture_entreprise_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_fermeture_entreprise_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_lic_be_fermeture_entreprise_case_file"/>
+
+        <createIndex tableName="licenciement_be_fermeture_entreprise_analyses"
+                     indexName="idx_lic_be_fermeture_entreprise_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_fermeture_entreprise_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
