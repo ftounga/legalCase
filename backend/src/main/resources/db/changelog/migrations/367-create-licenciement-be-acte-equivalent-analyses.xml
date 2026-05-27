@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="0cb2060e-36b8-4ca1-9483-f71dfe590e9c" author="claude">
+        <comment>
+            SF-213-09 : table dédiée à l'outil décisionnel "Acte équipollent
+            à rupture" BE (licenciement-be-acte-equivalent, BELGIQUE —
+            fondement : Loi du 03/07/1978 art. 20 + jurisprudence Cass. BE
+            23/12/1957).
+
+            L'outil analyse la qualification d'acte équipollent à rupture
+            (modification unilatérale substantielle d'un élément essentiel
+            du contrat par l'employeur — équivaut à un licenciement imputable
+            à l'employeur, ouvrant droit à l'indemnité compensatoire de
+            préavis) :
+            - typeModification : SALAIRE, LIEU_TRAVAIL, FONCTION, HORAIRE,
+              AUTRE ;
+            - ampleurModification : MINEURE (Ius Variandi), SUBSTANTIELLE
+              (acte équipollent possible), INDETERMINEES ;
+            - verdict : ACTE_EQUIPOLLENT_PROBABLE | PAS_ACTE_EQUIPOLLENT |
+              RISQUE_ACCEPTATION_TACITE | A_ANALYSER ;
+            - ICP indicatif = remunerationHebdomadaireBrute ×
+              dureePreavisCalculeeSemaines (à combiner avec SF-213-03
+              statut unique ou SF-213-04 formule Claeys) ;
+            - Avertissement RISQUE_ACCEPTATION_TACITE si le salarié n'a
+              pas protesté dans les 30 jours (jurisprudence belge — le
+              silence prolongé peut valoir acceptation tacite).
+
+            Outil single-country BELGIQUE — la France a un dispositif
+            distinct (prise d'acte L. 1237-19 C. trav. + résiliation
+            judiciaire) qui n'est pas modélisable par le même schéma.
+
+            Snapshot JSON complet (inputs + outputs : verdict, ICP indicatif,
+            risque acceptation tacite) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213-01 à SF-213-08).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-213-09b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="licenciement_be_acte_equivalent_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_licenciement_be_acte_equiv_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_acte_equivalent_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_licenciement_be_acte_equiv_case_file"/>
+
+        <createIndex tableName="licenciement_be_acte_equivalent_analyses"
+                     indexName="idx_licenciement_be_acte_equiv_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_acte_equivalent_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
