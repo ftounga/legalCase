@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f6a7b8c9-d0e1-4234-5678-9abcdef01234-create-regroupement-10bis" author="legalcase">
+        <comment>
+            SF-215-05 : table dédiée à l'outil décisionnel "Regroupement familial 10bis BE"
+            (F-IM-27-regroupement-10bis-be, BELGIQUE — fondement : Loi du 15 décembre 1980
+            sur l'accès au territoire, le séjour, l'établissement et l'éloignement des
+            étrangers, art. 10 et 10bis + AR du 17 mai 2007 fixant les conditions de
+            ressources/logement/assurance + AR du 11 juin 2018.
+
+            Distinguo 10bis vs 10ter (SF-215-03) :
+            - 10bis : regroupant ressortissant tiers en séjour LIMITÉ (carte A) — durée
+              additionnelle "carte A en cours de validité" testée via date_fin_carte_a.
+            - 10ter : regroupant ressortissant tiers en séjour ILLIMITÉ (carte B ou C) —
+              pas de condition de validité, le titre est permanent.
+
+            L'outil calcule :
+            - le seuil de ressources mensuelles nettes par défaut 1 500 € (paramétrable
+              application.properties — référence 120 % RIS × 1,5 ≈ 1 495 €, à vérifier
+              par avocat BE 2026 — révision annuelle indexation pivot) ;
+            - le différentiel signé (revenus − seuil) — utile pour contester le calcul OE ;
+            - le score d'éligibilité 0-100 pondéré (ressources 40, durée 20, logement 20,
+              assurance 10, ordre public 10) ;
+            - la condition titre en cours (date_fin_carte_a >= today) — RÈGLE DURE :
+              si false, verdict INELIGIBLE peu importe le score ;
+            - le verdict 3 états : ELIGIBLE (≥ 80 ET carte valide), SOUS_RESERVE (50-79 ET
+              carte valide), INELIGIBLE (&lt; 50 OU carte expirée) ;
+            - la liste des critères non remplis, prête à l'affichage frontend.
+
+            Outil single-country BELGIQUE — distinct du 40ter (regroupant Belge, F-IM-14)
+            et du 10ter (regroupant en séjour illimité, SF-215-03).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            Pattern F-215 (CORRIGÉ vs F-213) : la migration de seed visibility CONTEXTUAL
+            (377-seed-regroupement-10bis-be-visibility.xml) est livrée dans la MÊME PR
+            que cette table — la régression silencieuse de vague 1 (SF-215-01, hotfix 372)
+            ne se reproduit pas.
+
+            Constante partagée : SF-215-05 introduit RegroupementBeConstants pour partager
+            le seuil de ressources (1500 €) entre les calculateurs 10ter (SF-215-03) et
+            10bis (cette SF) — refactor DRY type F-256 mais limité à une classe de
+            constantes statiques.
+        </comment>
+
+        <createTable tableName="regroupement_10bis_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_regroupement_10bis_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="lien_familial" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_carte_regroupant" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revenus_mensuels_nets_regroupant" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_sejour" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_carte_a" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condition_titre_en_cours" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="logement_conforme" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assurance_maladie" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="regroupement_10bis_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_regroupement_10bis_be_case_file"/>
+
+        <createIndex tableName="regroupement_10bis_be_analyses"
+                     indexName="idx_regroupement_10bis_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="regroupement_10bis_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

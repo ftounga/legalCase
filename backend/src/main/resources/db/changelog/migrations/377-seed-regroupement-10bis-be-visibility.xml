@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f6a7b8c9-d0e1-4234-5678-9abcdef01234-seed-regroupement-10bis" author="legalcase">
+        <comment>
+            SF-215-05 : seed visibility pour l'outil décisionnel "Regroupement familial 10bis BE"
+            (F-IM-27-regroupement-10bis-be). Pattern F-215 CORRIGÉ vs F-213 — cette migration de
+            seed est livrée DANS LA MÊME PR que la table (à différence de SF-215-01 où le seed
+            était déféré à SF-215-02 frontend, ayant produit une régression silencieuse hotfix
+            migration 372).
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte un indice de regroupement 10bis
+            via le flag `regroupement_10bis_detecte` (alias `regroupementTiersLimiteDetecte`)
+            extrait depuis le prompt IMMIGRATION_INSTRUCTION (mots-clés "10bis", "carte A",
+            "séjour limité", "regroupement conjoint porteur carte A",
+            "art. 10bis Loi 15/12/1980").
+
+            Priority 202 — juste après le single-permit BE (priority 200) et le 10ter BE
+            (priority 201) pour cohérence d'ordre dans la liste de visibility CONTEXTUAL
+            Immigration BE.
+
+            ATTENTION : ligne `layer` (colonne) — pas `visibility` — leçon vague 1
+            SF-215-02 hotfix migration 372.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) +
+            le composant Angular wrapper seront ajoutés par SF-215-06 (frontend, en
+            parallèle de cette PR via agent Q). Coordination de merge : merger SF-215-06
+            APRÈS cette PR pour limiter la fenêtre transitoire pendant laquelle le test
+            d'intégrité DecisionToolVisibilityIntegrityIT verrait un orphelin DB.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'f6a7b8c9-0000-0000-0000-000000000377',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-27-regroupement-10bis-be',
+                'CONTEXTUAL',
+                'regroupement_10bis_detecte',
+                'true',
+                202
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f6a7b8c9-0000-0000-0000-000000000377';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

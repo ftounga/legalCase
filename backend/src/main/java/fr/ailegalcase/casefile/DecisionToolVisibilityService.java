@@ -285,6 +285,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40bis_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_40ter_detecte");
         addBooleanFlagIfTrue(detected, immigrationNode, "oqt_annexe13_detectee");
+        // SF-215-05 : F-IM-27 Regroupement 10bis BE — flag pivot CONTEXTUAL Immigration BE.
+        addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_10bis_detecte");
 
         // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
         // les règles CONTEXTUAL conditionnées à un régime national bilatéral
