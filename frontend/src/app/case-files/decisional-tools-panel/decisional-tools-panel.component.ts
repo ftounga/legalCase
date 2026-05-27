@@ -63,6 +63,8 @@ import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etran
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
 import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-section/regroupement-10ter-be-section.component';
+// SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
+import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1460,6 +1462,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-26-regroupement-10ter-be', {
         displayLabel: 'Regroupement familial 10ter (BE)',
         component: Regroupement10terBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be — regroupement
+      // familial art. 10bis (BE). BELGIQUE uniquement, CONTEXTUAL via flag
+      // `regroupement_10bis_detecte`. Pré-fill IA 4 champs (lienFamilial,
+      // revenusMensuelsNets, dureeSejour, dateFinCarteA) via static
+      // getPrefillCount + Regroupement10bisBePrefillRules. À la différence du
+      // 10ter, le type de carte est forcé à CARTE_A (séjour LIMITÉ) et le
+      // résultat expose `conditionTitreEnCours` (boolean) reflétant la
+      // validité du titre A à la date d'analyse.
+      ['F-IM-27-regroupement-10bis-be', {
+        displayLabel: 'Regroupement familial 10bis (BE)',
+        component: Regroupement10bisBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3308,6 +3328,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Aligné sur F-IM-14-40ter-familial-belge-be et les autres scoring BE
     // (visibility CONTEXTUAL via flag `regroupement_10ter_detecte`).
     ['F-IM-26-regroupement-10ter-be', 'VALIDITE'],
+    // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
+    // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
+    // condition supplémentaire `conditionTitreEnCours` sur validité carte A).
+    // Symétrie avec F-IM-26 / F-IM-14 (visibility CONTEXTUAL via flag
+    // `regroupement_10bis_detecte`).
+    ['F-IM-27-regroupement-10bis-be', 'VALIDITE'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
