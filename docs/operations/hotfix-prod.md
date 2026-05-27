@@ -39,8 +39,8 @@ _(aucun)_
   ```
 - **Commit suspect** : aucun (problème structurel : metric filter non scopé par namespace depuis SF-INFRA-XX d'origine)
 - **Hypothèse** : la métrique `BackendErrors` est alimentée par le filter pattern `"ERROR"` qui matche tous les events du log group `/aws/eks/legalcase-shared/applications`, incluant le namespace `staging`. Les 200+ erreurs staging F-JU-01 (cf. HF-2026-05-27-03) franchissent régulièrement le seuil 10/5min → fausse alarme prod. Aucune erreur réelle prod corrélée dans la fenêtre 17:15-17:25 UTC (vérifié par `filter-log-events` namespace=production).
-- **Status** : `À TRIER`
-- **Notes** : 2 fix possibles — (a) raffiner le filter pattern en JSON `{ $.kubernetes.namespace_name = "production" && $.log = "*ERROR*" }`, (b) créer une alarme staging séparée. À couper de HF-2026-05-27-03 pour ne pas bloquer.
+- **Status** : `IGNORÉ` (résolu indirectement par HF-2026-05-27-03 — la cause amont — Fixed by #1361)
+- **Notes** : cause amont neutralisée 2026-05-27 par PR #1361 (bootstrap idempotent). Si réapparition future avec une autre source de bruit cross-namespace, scope du metric filter à raffiner en JSON `{ $.kubernetes.namespace_name = "production" && $.log = "*ERROR*" }`. À ré-évaluer au prochain run prod-health-check.
 
 ### HF-2026-05-27-02 — `value too long for type character varying(255)` sur `in_app_notifications` (PROD)
 
@@ -61,7 +61,7 @@ _(aucun)_
 - **Status** : `À TRIER`
 - **Notes** : 2 fixes possibles — (a) élargir `title` à VARCHAR(500) (`ALTER COLUMN`), (b) tronquer le titre en code à 255 - ellipsis. La (b) est préférable (plus défensif). Identifier le scheduled task source via `[scheduling-1]` thread + grep `InAppNotification.*save` dans le backend.
 
-### HF-2026-05-27-03 — F-JU-01 bootstrap re-insère sans ON CONFLICT (STAGING, 200+/24h)
+### HF-2026-05-27-03 — F-JU-01 bootstrap re-insère sans ON CONFLICT (STAGING, 200+/24h) ✅ TERMINÉ
 
 - **Détecté** : 2026-05-27T17:50:00Z (filter logs ERROR 24h)
 - **Première occurrence** : ≥ 2026-05-26T17:50:00Z (déjà présent sur toute la fenêtre 24h)
@@ -74,10 +74,15 @@ _(aucun)_
   ERROR --- [task-1] o.h.engine.jdbc.spi.SqlExceptionHelper : ERROR: duplicate key value violates unique constraint "uq_tool_jurisprudence_mappi"
   WARN  --- [task-1] f.a.j.JurisprudenceBootstrapService : F-JU-01 — Bootstrap persist failed for rcc-be-indemnite-complementaire:default
   ```
-- **Commit suspect** : feature F-JU-01 (JurisprudenceBootstrapService) — chercher dernier merge touchant ce service
-- **Hypothèse** : le `JurisprudenceBootstrapService` insère les mappings tool→jurisprudence à chaque exécution sans gérer le cas où ils existent déjà (pas de `ON CONFLICT DO NOTHING` ni de `existsBy...()` pré-insert). Chaque outil mappe genère une UniqueConstraintViolation. Effet de bord : déclenche `HF-2026-05-27-01` (fausses alarmes prod).
-- **Status** : `À TRIER`
-- **Notes** : staging only — impact limité à du bruit logs + cause indirecte du flap alarme prod. Fix simple : `existsByToolIdAndKey()` avant `save()` OU passer en `INSERT ... ON CONFLICT DO NOTHING` (JPA `@SQLInsert` ou JDBC natif).
+- **Commit suspect (confirmé)** : `JurisprudenceBootstrapService.persistTopCandidates()` ligne 246 — `mappingRepository.save()` sans guard `existsBy…` en amont.
+- **Root cause** : la contrainte unique `uq_tool_jurisprudence_mappings_active` porte sur `(tool_id, branche_calcul_id, arret_ref)`. Re-bootstrap manuel → Claude renvoie le même top-1 → INSERT → `DataIntegrityViolationException`. Le catch `RuntimeException` du callsite avale l'erreur (skipped++) mais PostgreSQL log un ERROR avant le catch Spring.
+- **Fix** : SF-JU-01-14 — guard `existsByToolIdAndBrancheCalculIdAndArretRef` AVANT le `txTemplate`. Si exists → `log.info()` + `skipped++` + `continue`, zéro transaction ouverte. Fixed by **PR #1361** (commit `80afef2c`).
+- **Validation** :
+  - 10/10 UT verts (`JurisprudenceBootstrapServiceTest`) — 2 nouveaux scénarios T-1 (skip pur) + T-2 (mix new/existing)
+  - CI master verte post-merge
+  - À valider au prochain run `prod-health-check` : HF-2026-05-27-03 doit basculer auto-resolve si plus observé
+- **Status** : `✅ TERMINÉ` (Fixed by #1361)
+- **Leçon retenue** : 4e SF F-JU-01 en moins de 7 jours qui corrige le bootstrap (SF-JU-01-09 transactions, SF-JU-01-10 async polling, SF-JU-01-13 search vs export, SF-JU-01-14 idempotence). Pattern récurrent → la prochaine itération devrait inclure un IT bout-en-bout du bootstrap.
 
 ### HF-2026-05-21-02 — Spike CPU staging RDS éphémère 2026-05-20 08:31 (19s)
 
