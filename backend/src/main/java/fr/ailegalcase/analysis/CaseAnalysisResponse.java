@@ -2396,7 +2396,23 @@ public record CaseAnalysisResponse(
             /** Avis du collège médical OFII : FAVORABLE | DEFAVORABLE | EN_ATTENTE (null si non rendu). */
             String etrangerMaladeAvisOFII,
             /** Date de l'avis OFII au format YYYY-MM-DD (non future). Null si non rendu ou non lisible. */
-            String etrangerMalaDateAvisOFII) {
+            String etrangerMalaDateAvisOFII,
+            // === SF-215-05 — F-IM-27 Regroupement 10bis BE (BELGIQUE UNIQUEMENT, null pour FR) ===
+            /**
+             * SF-215-05 : true si les pièces évoquent un regroupement familial 10bis
+             * (regroupant tiers en séjour LIMITÉ — carte A), false sinon. Pivot pour la
+             * visibility rule CONTEXTUAL (trigger {@code regroupement_10bis_detecte}).
+             * Dossiers FR : toujours false.
+             */
+            boolean regroupementTiersLimiteDetecte,
+            /** SF-215-05 : lien familial 10bis — whitelist {@link #LIENS_FAMILIAUX_10BIS_CODES} (5 codes). */
+            String be10bisLienFamilial,
+            /** SF-215-05 : revenus mensuels nets du regroupant 10bis (> 0, ≤ MAX_BE_REVENUS_MENSUELS_NETS). */
+            Integer be10bisRevenusMensuels,
+            /** SF-215-05 : durée de séjour ininterrompu en mois (≥ 0, ≤ 600). */
+            Integer be10bisDureeSejour,
+            /** SF-215-05 : date d'expiration de la carte A au format YYYY-MM-DD (la date peut être future ou passée). */
+            String be10bisDateFinCarteA) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2483,7 +2499,13 @@ public record CaseAnalysisResponse(
                     .etrangerMaladePathologie(etrangerMaladePathologie)
                     .etrangerMaladeTraitementDisponible(etrangerMaladeTraitementDisponible)
                     .etrangerMaladeAvisOFII(etrangerMaladeAvisOFII)
-                    .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII);
+                    .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII)
+                    // SF-215-05 : F-IM-27 Regroupement 10bis BE
+                    .regroupementTiersLimiteDetecte(regroupementTiersLimiteDetecte)
+                    .be10bisLienFamilial(be10bisLienFamilial)
+                    .be10bisRevenusMensuels(be10bisRevenusMensuels)
+                    .be10bisDureeSejour(be10bisDureeSejour)
+                    .be10bisDateFinCarteA(be10bisDateFinCarteA);
         }
 
         public static final class Builder {
@@ -2564,6 +2586,12 @@ public record CaseAnalysisResponse(
             private Boolean etrangerMaladeTraitementDisponible;
             private String etrangerMaladeAvisOFII;
             private String etrangerMalaDateAvisOFII;
+            // SF-215-05 : F-IM-27 Regroupement 10bis BE
+            private boolean regroupementTiersLimiteDetecte;
+            private String be10bisLienFamilial;
+            private Integer be10bisRevenusMensuels;
+            private Integer be10bisDureeSejour;
+            private String be10bisDateFinCarteA;
 
             private Builder() {}
 
@@ -2643,6 +2671,12 @@ public record CaseAnalysisResponse(
             public Builder etrangerMaladeTraitementDisponible(Boolean v) { this.etrangerMaladeTraitementDisponible = v; return this; }
             public Builder etrangerMaladeAvisOFII(String v) { this.etrangerMaladeAvisOFII = v; return this; }
             public Builder etrangerMalaDateAvisOFII(String v) { this.etrangerMalaDateAvisOFII = v; return this; }
+            // SF-215-05 : F-IM-27 Regroupement 10bis BE
+            public Builder regroupementTiersLimiteDetecte(boolean v) { this.regroupementTiersLimiteDetecte = v; return this; }
+            public Builder be10bisLienFamilial(String v) { this.be10bisLienFamilial = v; return this; }
+            public Builder be10bisRevenusMensuels(Integer v) { this.be10bisRevenusMensuels = v; return this; }
+            public Builder be10bisDureeSejour(Integer v) { this.be10bisDureeSejour = v; return this; }
+            public Builder be10bisDateFinCarteA(String v) { this.be10bisDateFinCarteA = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2676,7 +2710,11 @@ public record CaseAnalysisResponse(
                         // SF-214-01 : F-IM-25 Étranger malade L.425-9
                         etrangerMaladeDetecte, etrangerMaladePathologie,
                         etrangerMaladeTraitementDisponible, etrangerMaladeAvisOFII,
-                        etrangerMalaDateAvisOFII);
+                        etrangerMalaDateAvisOFII,
+                        // SF-215-05 : F-IM-27 Regroupement 10bis BE
+                        regroupementTiersLimiteDetecte, be10bisLienFamilial,
+                        be10bisRevenusMensuels, be10bisDureeSejour,
+                        be10bisDateFinCarteA);
             }
         }
     }
@@ -2777,6 +2815,17 @@ public record CaseAnalysisResponse(
     static final Set<String> LIENS_FAMILIAUX_40TER_CODES = Set.of(
             "CONJOINT", "PARTENAIRE_LEGAL_ENREGISTRE",
             "DESCENDANT_MINEUR", "DESCENDANT_MAJEUR_CHARGE", "ASCENDANT_CHARGE_HANDICAP"
+    );
+
+    /**
+     * SF-215-05 : lien familial art. 10bis — 5 codes alignés sur l'enum Java
+     * {@code Regroupement10bisBeLienFamilialEnum}. Identiques au 10ter Java mais
+     * distincts des whitelists 40bis/40ter ci-dessus (qui utilisent
+     * DESCENDANT_MINEUR / DESCENDANT_MAJEUR_CHARGE).
+     */
+    static final Set<String> LIENS_FAMILIAUX_10BIS_CODES = Set.of(
+            "CONJOINT", "PARTENAIRE_ENREGISTRE",
+            "ENFANT_MOINS_21", "ENFANT_21_PLUS_CHARGE", "ASCENDANT_CHARGE"
     );
 
     /** SF-246-20 : borne max revenus mensuels nets regroupant belge (plausibilité). */
@@ -5615,6 +5664,21 @@ public record CaseAnalysisResponse(
                 && etrangerMalaDateAvisOFIIRaw.matches(ISO_DATE_SF214)
                 && etrangerMalaDateAvisOFIIRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
                 ? etrangerMalaDateAvisOFIIRaw : null;
+        // SF-215-05 : F-IM-27 Regroupement 10bis BE — 1 flag + 4 champs pré-fill (BE uniquement).
+        boolean regroupementTiersLimiteDetecte = booleanOrFalse(root, "regroupement_10bis_detecte");
+        String be10bisLienFamilial = normalizeEnumCode(
+                textOrNull(root, "be_10bis_lien_familial"), LIENS_FAMILIAUX_10BIS_CODES);
+        Integer be10bisRevenusMensuelsRaw = nonNegativeIntOrNull(root, "be_10bis_revenus_mensuels");
+        Integer be10bisRevenusMensuels = (be10bisRevenusMensuelsRaw != null
+                && be10bisRevenusMensuelsRaw > 0
+                && be10bisRevenusMensuelsRaw <= MAX_BE_REVENUS_MENSUELS_NETS)
+                ? be10bisRevenusMensuelsRaw : null;
+        Integer be10bisDureeSejour = boundedIntOrNull(root, "be_10bis_duree_sejour", 0, 600);
+        String be10bisDateFinCarteARaw = textOrNull(root, "be_10bis_date_fin_carte_a");
+        // Date d'expiration : peut être passée OU future — on garde le format ISO uniquement.
+        String be10bisDateFinCarteA = (be10bisDateFinCarteARaw != null
+                && be10bisDateFinCarteARaw.matches(ISO_DATE_SF214))
+                ? be10bisDateFinCarteARaw : null;
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5647,7 +5711,11 @@ public record CaseAnalysisResponse(
                 && be40terRevenusMensuelsNets == null
                 // SF-214-01 : champs nullables seulement (le boolean primitif n'est jamais null)
                 && etrangerMaladePathologie == null && etrangerMaladeTraitementDisponible == null
-                && etrangerMaladeAvisOFII == null && etrangerMalaDateAvisOFII == null) return null;
+                && etrangerMaladeAvisOFII == null && etrangerMalaDateAvisOFII == null
+                // SF-215-05 : champs nullables seulement (le boolean primitif n'est jamais null)
+                && !regroupementTiersLimiteDetecte
+                && be10bisLienFamilial == null && be10bisRevenusMensuels == null
+                && be10bisDureeSejour == null && be10bisDateFinCarteA == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -5733,6 +5801,12 @@ public record CaseAnalysisResponse(
                 .etrangerMaladeTraitementDisponible(etrangerMaladeTraitementDisponible)
                 .etrangerMaladeAvisOFII(etrangerMaladeAvisOFII)
                 .etrangerMalaDateAvisOFII(etrangerMalaDateAvisOFII)
+                // SF-215-05 : F-IM-27 Regroupement 10bis BE — flag + 4 champs pré-fill
+                .regroupementTiersLimiteDetecte(regroupementTiersLimiteDetecte)
+                .be10bisLienFamilial(be10bisLienFamilial)
+                .be10bisRevenusMensuels(be10bisRevenusMensuels)
+                .be10bisDureeSejour(be10bisDureeSejour)
+                .be10bisDateFinCarteA(be10bisDateFinCarteA)
                 .build();
     }
 
