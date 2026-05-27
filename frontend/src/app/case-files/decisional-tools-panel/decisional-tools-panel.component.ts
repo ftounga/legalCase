@@ -164,6 +164,8 @@ import { HarcelementBeProcedureFormelleSectionComponent } from '../harcelement-b
 import { LicenciementBeProtectionDelegueeSectionComponent } from '../licenciement-be-protection-deleguee-section/licenciement-be-protection-deleguee-section.component';
 import { LicenciementBeActeEquivalentSectionComponent } from '../licenciement-be-acte-equivalent-section/licenciement-be-acte-equivalent-section.component';
 import { LicenciementBeCct109DeraisonnableSectionComponent } from '../licenciement-be-cct109-deraisonnable-section/licenciement-be-cct109-deraisonnable-section.component';
+// SF-219-02b : section décisionnelle RCC BE longue carrière (BE-only, ALWAYS_ON).
+import { RccBeLongueCarriereSectionComponent } from '../rcc-be-longue-carriere-section/rcc-be-longue-carriere-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2127,6 +2129,31 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-02b : RCC BE — longue carrière (Loi 26/12/2013 + CCT n° 17
+      // du 19/12/1974 + AR 03/05/2007 art. 3). Analyseur 4 verdicts
+      // (ELIGIBLE_RCC_LONGUE_CARRIERE / INELIGIBLE_DEMISSION /
+      // INELIGIBLE_AGE_INSUFFISANT / INELIGIBLE_CARRIERE_INSUFFISANTE)
+      // + indemnité complémentaire mensuelle indicative (0,5 × diff. rém.
+      // nette / allocation chômage) si éligible et couple financier
+      // fourni. BE-only, ALWAYS_ON priority 120 (au-dessus de
+      // licenciement-be-cct109-deraisonnable = 118). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme vagues 7b-10b — carrière
+      // ETP ONSS + dérivation âge + rémunération nette non extractibles).
+      // Distinct de rcc-be-conditions (SF-207-06b — analyseur 4 régimes
+      // parallèles) et rcc-be-indemnite-complementaire (SF-207-07b —
+      // calculateur générique).
+      ['rcc-be-longue-carriere', {
+        displayLabel: 'RCC BE — longue carrière',
+        component: RccBeLongueCarriereSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3284,6 +3311,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
+    // SF-219-02b : RCC BE — longue carrière (AR 03/05/2007 art. 3 — 59+/40).
+    // Thème VALIDITE — analyseur d'éligibilité dédié au régime longue
+    // carrière (parité rcc-be-conditions). 4 verdicts + indemnité indicative.
+    ['rcc-be-longue-carriere', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
