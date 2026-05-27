@@ -24,7 +24,7 @@ _(aucun)_
 
 ## 🟡 P2 — Nuisance / bruit
 
-### HF-2026-05-27-01 — Fausses alarmes `legalcase-production-backend-error-rate` (metric filter trop large)
+### HF-2026-05-27-01 — Fausses alarmes `legalcase-production-backend-error-rate` (metric filter trop large) ✅ TERMINÉ
 
 - **Détecté** : 2026-05-27T17:50:00Z (alarme `legalcase-production-backend-error-rate`, 2 flap en 45 min)
 - **Première occurrence** : 2026-05-27T16:55:21Z (1er flap)
@@ -35,14 +35,19 @@ _(aucun)_
 - **Logs sample** :
   ```
   ALARM: Threshold Crossed: 1 datapoint [12.0 (27/05/26 17:20:00)] was greater than the threshold (10.0)
-  Metric filter "legalcase-shared-backend-errors" pattern: "ERROR"  ← matche TOUT le log group
+  Metric filter "legalcase-shared-backend-errors" pattern: "ERROR"  ← matchait TOUT le log group avant fix
   ```
-- **Commit suspect** : aucun (problème structurel : metric filter non scopé par namespace depuis SF-INFRA-XX d'origine)
-- **Hypothèse** : la métrique `BackendErrors` est alimentée par le filter pattern `"ERROR"` qui matche tous les events du log group `/aws/eks/legalcase-shared/applications`, incluant le namespace `staging`. Les 200+ erreurs staging F-JU-01 (cf. HF-2026-05-27-03) franchissent régulièrement le seuil 10/5min → fausse alarme prod. Aucune erreur réelle prod corrélée dans la fenêtre 17:15-17:25 UTC (vérifié par `filter-log-events` namespace=production).
-- **Status** : `IGNORÉ` (résolu indirectement par HF-2026-05-27-03 — la cause amont — Fixed by #1361)
-- **Notes** : cause amont neutralisée 2026-05-27 par PR #1361 (bootstrap idempotent). Si réapparition future avec une autre source de bruit cross-namespace, scope du metric filter à raffiner en JSON `{ $.kubernetes.namespace_name = "production" && $.log = "*ERROR*" }`. À ré-évaluer au prochain run prod-health-check.
+- **Commit suspect** : aucun (problème structurel : metric filter non scopé par namespace depuis création initiale)
+- **Hypothèse** : la métrique `BackendErrors` était alimentée par le filter pattern `"ERROR"` qui matchait tous les events du log group `/aws/eks/legalcase-shared/applications`, incluant le namespace `staging`. Les 200+ erreurs staging F-JU-01 (cf. HF-2026-05-27-03) franchissaient régulièrement le seuil 10/5min → fausse alarme prod.
+- **Fix** : `aws logs put-metric-filter --filter-pattern '{ $.kubernetes.namespace_name = "production" && $.log = "*ERROR*" }'` appliqué directement sur `legalcase-shared-backend-errors`. La métrique `BackendErrors` ne sera désormais incrémentée que pour les events du namespace `production`. Pas de Terraform à modifier (filter créé hors IaC).
+- **Validation** :
+  - Filter mis à jour : `aws logs describe-metric-filters` confirme le nouveau pattern JSON
+  - Cause amont aussi neutralisée par PR #1361 (HF-2026-05-27-03) — défense en profondeur
+  - À valider au prochain run `prod-health-check` : plus aucun flap sur l'alarme
+- **Status** : `✅ TERMINÉ` (2 fix complémentaires appliqués 2026-05-27 : cause amont + scope du filter)
+- **Leçon retenue** : à la création d'un metric filter sur un log group EKS shared, **TOUJOURS scoper par namespace** via filter pattern JSON. Pattern à privilégier : `{ $.kubernetes.namespace_name = "X" && $.log = "*PATTERN*" }`.
 
-### HF-2026-05-27-02 — `value too long for type character varying(255)` sur `in_app_notifications` (PROD)
+### HF-2026-05-27-02 — `value too long for type character varying(255)` sur `in_app_notifications` (PROD) ✅ TERMINÉ
 
 - **Détecté** : 2026-05-27T17:50:00Z (filter logs prod ERROR 24h)
 - **Première occurrence** : 2026-05-27T08:00:06Z (1er event indexé sur la fenêtre 24h)
@@ -54,12 +59,16 @@ _(aucun)_
   ```
   ERROR --- [scheduling-1] o.h.engine.jdbc.spi.SqlExceptionHelper : ERROR: value too long for type character varying(255)
   DataIntegrityViolationException: insert into in_app_notifications (created_at,is_read,link,message,read_at,title,type,user_id,workspace_id,id) values (...)
-  Caused by: org.postgresql.util.PSQLException: ERROR: value too long for type character varying(255)
   ```
-- **Commit suspect** : aucun récent à l'horizon 7 jours (migration `052-create-in-app-notifications.xml` historique)
-- **Hypothèse** : la colonne `title VARCHAR(255)` (migration 052) est saturée par un titre généré dynamiquement par le scheduled task de notification (probablement `AnalysisNotificationService` ou similaire). Hypothèse : nom de dossier client long → titre type `"Analyse de <NOM_LONG_DOSSIER> terminée"` > 255 chars. La notification est perdue côté utilisateur final (pas critique mais visible = absence de notif).
-- **Status** : `À TRIER`
-- **Notes** : 2 fixes possibles — (a) élargir `title` à VARCHAR(500) (`ALTER COLUMN`), (b) tronquer le titre en code à 255 - ellipsis. La (b) est préférable (plus défensif). Identifier le scheduled task source via `[scheduling-1]` thread + grep `InAppNotification.*save` dans le backend.
+- **Commit suspect (confirmé)** : `DeadlineAlertService.notifyMembers()` ligne 132 — `"Délai J-" + daysRemaining + " : " + deadline.getLabel()`. `deadline.getLabel()` provient de `case_deadlines.label` VARCHAR(255). Un avocat saisissant un label long fait déborder le titre concaténé > 255 chars.
+- **Root cause** : la colonne `title VARCHAR(255)` (migration 052-create-in-app-notifications.xml) saturée par concaténation prefix + label dans `DeadlineAlertService` (cron `@Scheduled("0 0 8 * * *")` — confirmé par timestamp prod 08:00:06 UTC). Le try-catch ligne 135 du caller avalait l'erreur en log.warn → notification silencieusement perdue côté utilisateur final.
+- **Fix** : SF-113-04 — truncation défensive centralisée dans `InAppNotificationService.create()` via `truncateWithEllipsis(value, maxLen)`. Couvre title (255) + message (1000) + link (500). Appliqué AVANT les setters. Centralisé pour couvrir les 5 callers + tout futur caller. Fixed by **PR #1367**.
+- **Validation** :
+  - 10/10 UT verts (`InAppNotificationServiceTest`) — 6 nouveaux scénarios (T-1 à T-6)
+  - CI master verte post-merge
+  - À valider au prochain run `prod-health-check` : plus aucune ligne ERROR `value too long for type character varying(255)` sur in_app_notifications
+- **Status** : `✅ TERMINÉ` (Fixed by #1367)
+- **Notes** : choix Option (b) tronquer en code (mini-spec section « Hors périmètre ») privilégié sur ALTER COLUMN — défense en profondeur applicable à tout futur caller, ne déplace pas le problème à VARCHAR(500).
 
 ### HF-2026-05-27-03 — F-JU-01 bootstrap re-insère sans ON CONFLICT (STAGING, 200+/24h) ✅ TERMINÉ
 
@@ -134,7 +143,7 @@ Les items terminés depuis plus de 30 jours sont déplacés dans `docs/operation
 
 Ces points ne sont pas des hotfix à corriger, mais utiles pour le contexte au prochain audit :
 
-- **RDS prod** : **`db.t4g.small`** (✅ upgrade SF-INFRA-01 confirmé via `describe-db-instances`), storage 50 GB, status `available`. Métriques `DatabaseConnections` / `CPUUtilization` / `FreeableMemory` affichent "no datapoints received" depuis le 2026-05-20T07:57 — à investiguer (probablement re-config CW à faire post-upgrade RDS).
+- **RDS prod** : **`db.t4g.small`** (✅ upgrade SF-INFRA-01 confirmé via `describe-db-instances`), storage 50 GB, status `available`. **Alarmes recréées 2026-05-27** : `legalcase-production-rds-cpu-high` / `connections-high` / `free-memory-low` avaient une dimension cassée `DBInstanceIdentifier=db-WAJ76MUNCEDJASMT4UNMBXYURU` (= ancien `DbiResourceId`) au lieu du nom canonical `legalcase-production-postgres` — d'où le "no datapoints received" persistant. Recréées via `aws cloudwatch put-metric-alarm` avec la bonne dimension. Métrique réelle confirmée vivante (72 datapoints/6h, CPU ~4%, 20 connections max). À valider au prochain run `prod-health-check` : alarmes doivent passer en `OK` avec un Reason citant une vraie valeur (plus "no datapoints").
 - **RDS staging** : `db.t3.micro`, storage 20 GB. Stable.
 - **Pods K8s** : 0 pod en non-Running, 0 restart sur tous (prod backend up depuis 12+ jours, prod frontend up depuis 2 jours). Backend prod ~640 Mi mémoire (calme).
 - **Cost Anomaly 7j** : RDS $1.40 au 2026-05-25 (corrélé au switch t3.micro→t4g.small, attendu) + Secrets Manager $0.04 (négligeable).
