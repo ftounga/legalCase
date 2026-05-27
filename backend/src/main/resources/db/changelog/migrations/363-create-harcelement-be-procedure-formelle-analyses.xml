@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="d5f9e140-6918-4417-9fd6-07ffe6f7c12d" author="claude">
+        <comment>
+            SF-213-07 : table dédiée à l'outil décisionnel "Harcèlement BE —
+            procédure interne formelle" (harcelement-be-procedure-formelle,
+            BELGIQUE — fondement : Loi du 04/08/1996 art. 32bis-32sexies
+            (bien-être au travail) + AR du 10/04/2014 (prévention risques
+            psychosociaux)).
+
+            L'outil produit une checklist contextuelle de la procédure
+            interne BE selon l'étape en cours :
+            - 5 étapes : AVANT_DEPOT, DEMANDE_INFORMELLE_EN_COURS,
+              DEMANDE_FORMELLE_EN_COURS, ENQUETE_TERMINEE,
+              MESURE_DEFAVORABLE_APRES_PLAINTE ;
+            - Délai 90 jours d'enquête CPAP (AR 10/04/2014) calculé depuis
+              dateDepotPlainte ;
+            - Fenêtre de protection contre représailles 12 mois
+              (art. 32sexies) ;
+            - Avertissements spécifiques selon taille entreprise (≥/&lt; 50)
+              et présence CPAP ;
+            - Avertissement de présomption affaiblie si mesure défavorable
+              au-delà de 365 jours.
+
+            Outil single-country BELGIQUE — la France a un dispositif
+            distinct (référent harcèlement, médecin du travail) avec
+            d'autres procédures. Cet outil est complémentaire de F-DT-11
+            (licenciement nul représailles BE) : SF-213-07 intervient
+            avant toute rupture pour guider la procédure interne.
+
+            Snapshot JSON complet (inputs + outputs + checklist
+            List&lt;Item&gt;) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213-01).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-213-07b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="harcelement_be_procedure_formelle_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_harcelement_be_procedure_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="harcelement_be_procedure_formelle_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_harcelement_be_procedure_case_file"/>
+
+        <createIndex tableName="harcelement_be_procedure_formelle_analyses"
+                     indexName="idx_harcelement_be_procedure_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="harcelement_be_procedure_formelle_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
