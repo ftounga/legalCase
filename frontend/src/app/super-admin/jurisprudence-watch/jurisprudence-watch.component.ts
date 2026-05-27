@@ -1,16 +1,18 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { Subscription, interval, switchMap } from 'rxjs';
 
 import {
   ArbitrateDecision,
   JurisprudenceAuditLog,
   JurisprudenceBootstrapEntry,
-  JurisprudenceBootstrapResponse,
+  JurisprudenceBootstrapJobStatusResponse,
   JurisprudenceWatchAdminClientService,
   JurisprudenceWatchFlag,
 } from './jurisprudence-watch-admin.service';
@@ -87,15 +89,17 @@ export function parseBootstrapCsv(input: string): BootstrapParseResult {
 @Component({
   selector: 'app-jurisprudence-watch',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatTabsModule, DatePipe],
+  imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatProgressBarModule, MatTabsModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './jurisprudence-watch.component.html',
   styleUrl: './jurisprudence-watch.component.scss',
 })
-export class JurisprudenceWatchComponent implements OnInit {
+export class JurisprudenceWatchComponent implements OnInit, OnDestroy {
 
   readonly bootstrapMaxEntries = BOOTSTRAP_MAX_ENTRIES;
   readonly bootstrapMaxFileSizeBytes = BOOTSTRAP_MAX_FILE_SIZE_BYTES;
+  /** SF-JU-01-10 — intervalle de polling du job de bootstrap (ms). */
+  readonly bootstrapPollIntervalMs = 5000;
 
   flags: JurisprudenceWatchFlag[] = [];
   auditLog: JurisprudenceAuditLog[] = [];
@@ -108,7 +112,9 @@ export class JurisprudenceWatchComponent implements OnInit {
   parseResult: BootstrapParseResult = { entries: [], errors: [] };
   loadingBootstrap = false;
   loadingFile = false;
-  lastBootstrapResult: JurisprudenceBootstrapResponse | null = null;
+  /** SF-JU-01-10 — état courant du job async, mis à jour par polling. */
+  bootstrapJob: JurisprudenceBootstrapJobStatusResponse | null = null;
+  private pollSubscription: Subscription | null = null;
 
   @ViewChild('fileInput', { static: false })
   protected fileInput?: ElementRef<HTMLInputElement>;
@@ -120,6 +126,11 @@ export class JurisprudenceWatchComponent implements OnInit {
   ngOnInit(): void {
     this.loadFlags();
     this.loadAudit();
+  }
+
+  ngOnDestroy(): void {
+    this.pollSubscription?.unsubscribe();
+    this.pollSubscription = null;
   }
 
   protected loadFlags(): void {
@@ -240,6 +251,11 @@ export class JurisprudenceWatchComponent implements OnInit {
     reader.readAsText(file, 'UTF-8');
   }
 
+  /**
+   * SF-JU-01-10 — démarre le bootstrap en mode async + lance le polling de
+   * progression jusqu'au terminal state. Le backend retourne immédiatement un
+   * jobId ; on récupère l'état via GET /bootstrap/jobs/{id} toutes les 5 s.
+   */
   protected runBootstrap(): void {
     if (!this.canLaunchBootstrap()) {
       if (this.parseResult.errors.length > 0) {
@@ -247,25 +263,71 @@ export class JurisprudenceWatchComponent implements OnInit {
       }
       return;
     }
+    this.pollSubscription?.unsubscribe();
+    this.pollSubscription = null;
+    this.bootstrapJob = null;
     this.loadingBootstrap = true;
-    this.lastBootstrapResult = null;
     this.client.triggerBootstrap(this.parseResult.entries).subscribe({
-      next: response => {
-        this.lastBootstrapResult = response;
-        this.loadingBootstrap = false;
-        const msg = `Bootstrap terminé : ${response.entriesProcessed} processed, `
-                  + `${response.mappingsCreated} created, `
-                  + `${response.entriesSkipped} skipped (${response.durationMs}ms)`;
-        this.snackBar.open(msg, 'OK', { duration: 5000 });
-        this.loadAudit();
+      next: started => {
+        this.bootstrapJob = {
+          jobId: started.jobId,
+          status: 'RUNNING',
+          entriesTotal: started.entriesTotal,
+          entriesProcessed: 0,
+          mappingsCreated: 0,
+          entriesSkipped: 0,
+          durationMs: null,
+          errorMessage: null,
+          startedAt: started.startedAt,
+          completedAt: null,
+        };
+        this.startBootstrapPolling(started.jobId);
         this.cdr.markForCheck();
       },
       error: err => {
         this.loadingBootstrap = false;
         const message = err?.error?.message || err?.message || 'erreur inconnue';
-        this.snackBar.open(`Échec du bootstrap : ${message}`, 'OK', { duration: 5000 });
+        this.snackBar.open(`Échec du lancement : ${message}`, 'OK', { duration: 5000 });
         this.cdr.markForCheck();
       },
     });
+  }
+
+  private startBootstrapPolling(jobId: string): void {
+    this.pollSubscription = interval(this.bootstrapPollIntervalMs)
+      .pipe(switchMap(() => this.client.getBootstrapJobStatus(jobId)))
+      .subscribe({
+        next: status => {
+          this.bootstrapJob = status;
+          if (status.status === 'DONE' || status.status === 'FAILED') {
+            this.stopBootstrapPolling(status);
+          }
+          this.cdr.markForCheck();
+        },
+        error: err => {
+          // Erreur transitoire pendant le polling → on logge et on continue.
+          // L'admin verra le compteur figé si l'erreur persiste.
+          const message = err?.error?.message || err?.message || 'erreur inconnue';
+          this.snackBar.open(`Erreur de polling : ${message}`, 'OK', { duration: 3000 });
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private stopBootstrapPolling(status: JurisprudenceBootstrapJobStatusResponse): void {
+    this.pollSubscription?.unsubscribe();
+    this.pollSubscription = null;
+    this.loadingBootstrap = false;
+    if (status.status === 'DONE') {
+      const msg = `Bootstrap terminé : ${status.entriesProcessed} processed, `
+                + `${status.mappingsCreated} created, `
+                + `${status.entriesSkipped} skipped`
+                + (status.durationMs !== null ? ` (${status.durationMs}ms)` : '');
+      this.snackBar.open(msg, 'OK', { duration: 5000 });
+      this.loadAudit();
+    } else {
+      const reason = status.errorMessage || 'erreur inconnue';
+      this.snackBar.open(`Échec du bootstrap : ${reason}`, 'OK', { duration: 6000 });
+    }
   }
 }

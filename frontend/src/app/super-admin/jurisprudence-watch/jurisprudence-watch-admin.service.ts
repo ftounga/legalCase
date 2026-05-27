@@ -59,6 +59,27 @@ export interface JurisprudenceBootstrapResponse {
   durationMs: number;
 }
 
+/** SF-JU-01-10 — payload 202 Accepted du POST /bootstrap (lancement async). */
+export interface JurisprudenceBootstrapJobStarted {
+  jobId: string;
+  entriesTotal: number;
+  startedAt: string;
+}
+
+/** SF-JU-01-10 — payload du GET /bootstrap/jobs/{id} pour polling. */
+export interface JurisprudenceBootstrapJobStatusResponse {
+  jobId: string;
+  status: 'RUNNING' | 'DONE' | 'FAILED';
+  entriesTotal: number;
+  entriesProcessed: number;
+  mappingsCreated: number;
+  entriesSkipped: number;
+  durationMs: number | null;
+  errorMessage: string | null;
+  startedAt: string;
+  completedAt: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class JurisprudenceWatchAdminClientService {
 
@@ -87,10 +108,21 @@ export class JurisprudenceWatchAdminClientService {
     return this.http.get<Page<JurisprudenceAuditLog>>(`${this.base}/audit-log`, { params });
   }
 
+  /**
+   * SF-JU-01-10 — démarre un bootstrap async. Retourne immédiatement le jobId
+   * à utiliser avec {@link getBootstrapJobStatus} pour le polling.
+   */
   triggerBootstrap(entries: JurisprudenceBootstrapEntry[]):
-      Observable<JurisprudenceBootstrapResponse> {
-    return this.http.post<JurisprudenceBootstrapResponse>(
+      Observable<JurisprudenceBootstrapJobStarted> {
+    return this.http.post<JurisprudenceBootstrapJobStarted>(
       `${this.base}/bootstrap`,
       { entries });
+  }
+
+  /** SF-JU-01-10 — récupère l'état courant d'un job de bootstrap async. */
+  getBootstrapJobStatus(jobId: string):
+      Observable<JurisprudenceBootstrapJobStatusResponse> {
+    return this.http.get<JurisprudenceBootstrapJobStatusResponse>(
+      `${this.base}/bootstrap/jobs/${jobId}`);
   }
 }

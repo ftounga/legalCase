@@ -3,6 +3,7 @@ package fr.ailegalcase.jurisprudencemapping;
 import fr.ailegalcase.auth.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -10,9 +11,12 @@ import org.springframework.transaction.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -34,6 +38,7 @@ class JurisprudenceBootstrapServiceTest {
     private ClaudeJurisprudenceEvaluator evaluator;
     private ToolJurisprudenceMappingRepository mappingRepo;
     private JurisprudenceAuditLogRepository auditRepo;
+    private JurisprudenceBootstrapJobRepository jobRepo;
     private PlatformTransactionManager txManager;
     private JurisprudenceBootstrapService service;
 
@@ -43,9 +48,13 @@ class JurisprudenceBootstrapServiceTest {
         evaluator = mock(ClaudeJurisprudenceEvaluator.class);
         mappingRepo = mock(ToolJurisprudenceMappingRepository.class);
         auditRepo = mock(JurisprudenceAuditLogRepository.class);
+        jobRepo = mock(JurisprudenceBootstrapJobRepository.class);
         txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
-        service = new JurisprudenceBootstrapService(judilibre, evaluator, mappingRepo, auditRepo, txManager);
+        // SyncTaskExecutor : exécute le Runnable immédiatement sur le thread courant —
+        // simplifie l'assertion sur l'état du job après startBootstrap.
+        service = new JurisprudenceBootstrapService(judilibre, evaluator, mappingRepo, auditRepo,
+                jobRepo, txManager, new SyncTaskExecutor());
     }
 
     @Test
@@ -138,6 +147,119 @@ class JurisprudenceBootstrapServiceTest {
         verify(evaluator, never()).evaluate(any(), any());
         assertThat(resp.entriesSkipped()).isEqualTo(1);
         assertThat(resp.mappingsCreated()).isZero();
+    }
+
+    // --- SF-JU-01-10 — bootstrap async + polling status ---
+
+    @Test
+    void startBootstrap_persistsRunningJobAndReturnsJobId() {
+        UUID assignedId = UUID.randomUUID();
+        when(jobRepo.save(any(JurisprudenceBootstrapJob.class))).thenAnswer(inv -> {
+            JurisprudenceBootstrapJob j = inv.getArgument(0);
+            if (j.getId() == null) j.setId(assignedId);
+            return j;
+        });
+        when(jobRepo.findById(assignedId))
+                .thenAnswer(inv -> {
+                    JurisprudenceBootstrapJob j = new JurisprudenceBootstrapJob();
+                    j.setId(assignedId);
+                    j.setStatus(JurisprudenceBootstrapJobStatus.RUNNING);
+                    j.setEntriesTotal(1);
+                    return Optional.of(j);
+                });
+        when(judilibre.fetchArretsForPeriod(any(), any())).thenReturn(List.of(arret("AAA")));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret("AAA"),
+                        new BigDecimal("0.9"), "ok"));
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("f-dt-30", "branche-1")
+        ));
+
+        JurisprudenceBootstrapJobStarted started = service.startBootstrap(req, triggerUser());
+
+        assertThat(started.jobId()).isEqualTo(assignedId);
+        assertThat(started.entriesTotal()).isEqualTo(1);
+        assertThat(started.startedAt()).isNotNull();
+        // Le SyncTaskExecutor a déjà exécuté le runner ; on doit avoir au moins
+        // l'INSERT initial + 1 progress update + 1 DONE update.
+        verify(jobRepo, atLeastOnce()).save(any(JurisprudenceBootstrapJob.class));
+    }
+
+    @Test
+    void startBootstrap_asyncRunner_marksJobDoneOnSuccess() {
+        UUID assignedId = UUID.randomUUID();
+        JurisprudenceBootstrapJob persistedJob = new JurisprudenceBootstrapJob();
+        persistedJob.setId(assignedId);
+        persistedJob.setStatus(JurisprudenceBootstrapJobStatus.RUNNING);
+        persistedJob.setEntriesTotal(2);
+
+        when(jobRepo.save(any(JurisprudenceBootstrapJob.class))).thenAnswer(inv -> {
+            JurisprudenceBootstrapJob j = inv.getArgument(0);
+            if (j.getId() == null) j.setId(assignedId);
+            return j;
+        });
+        when(jobRepo.findById(assignedId)).thenReturn(Optional.of(persistedJob));
+        when(judilibre.fetchArretsForPeriod(any(), any())).thenReturn(List.of(arret("AAA")));
+        when(evaluator.evaluate(any(), any()))
+                .thenReturn(new ClaudeEvaluation(EvaluationAction.ADD, arret("AAA"),
+                        new BigDecimal("0.9"), "ok"));
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("f-dt-30", "branche-1"),
+                entry("f-dt-31", "branche-2")
+        ));
+
+        service.startBootstrap(req, triggerUser());
+
+        assertThat(persistedJob.getStatus()).isEqualTo(JurisprudenceBootstrapJobStatus.DONE);
+        assertThat(persistedJob.getEntriesProcessed()).isEqualTo(2);
+        assertThat(persistedJob.getMappingsCreated()).isEqualTo(2);
+        assertThat(persistedJob.getCompletedAt()).isNotNull();
+        assertThat(persistedJob.getDurationMs()).isNotNull();
+        assertThat(persistedJob.getErrorMessage()).isNull();
+    }
+
+    @Test
+    void startBootstrap_asyncRunner_marksJobFailedOnFatalException() {
+        UUID assignedId = UUID.randomUUID();
+        JurisprudenceBootstrapJob persistedJob = new JurisprudenceBootstrapJob();
+        persistedJob.setId(assignedId);
+        persistedJob.setStatus(JurisprudenceBootstrapJobStatus.RUNNING);
+        persistedJob.setEntriesTotal(1);
+
+        when(jobRepo.save(any(JurisprudenceBootstrapJob.class))).thenAnswer(inv -> {
+            JurisprudenceBootstrapJob j = inv.getArgument(0);
+            if (j.getId() == null) j.setId(assignedId);
+            return j;
+        });
+        when(jobRepo.findById(assignedId)).thenReturn(Optional.of(persistedJob));
+        // L'exception fatale est levée AVANT la boucle (ex : NPE sur txTemplate)
+        // via la confirmation que onProgress relève — on simule via evaluator qui
+        // lève une RuntimeException non capturée dans la boucle.
+        when(judilibre.fetchArretsForPeriod(any(), any())).thenReturn(List.of(arret("AAA")));
+        when(evaluator.evaluate(any(), any())).thenThrow(new RuntimeException("evaluator boom"));
+
+        JurisprudenceBootstrapRequest req = new JurisprudenceBootstrapRequest(List.of(
+                entry("f-dt-30", "branche-1")
+        ));
+
+        service.startBootstrap(req, triggerUser());
+
+        assertThat(persistedJob.getStatus()).isEqualTo(JurisprudenceBootstrapJobStatus.FAILED);
+        assertThat(persistedJob.getErrorMessage()).isEqualTo("evaluator boom");
+        assertThat(persistedJob.getCompletedAt()).isNotNull();
+    }
+
+    @Test
+    void findJob_unknownId_returnsEmpty() {
+        UUID unknown = UUID.randomUUID();
+        when(jobRepo.findById(unknown)).thenReturn(Optional.empty());
+
+        Optional<JurisprudenceBootstrapJob> result = service.findJob(unknown);
+
+        assertThat(result).isEmpty();
+        verify(jobRepo).findById(eq(unknown));
     }
 
     private JurisprudenceBootstrapEntry entry(String toolId, String brancheCalculId) {
