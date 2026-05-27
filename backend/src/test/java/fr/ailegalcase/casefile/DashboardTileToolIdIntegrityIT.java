@@ -415,7 +415,12 @@ class DashboardTileToolIdIntegrityIT {
             // a déclenché un master-red persistant. Hotfix tardif pour rétablir
             // CI master vert (pattern uniforme F-213 / F-215 / F-217 / F-219).
             // Frontend SF-215-04b si applicable, sinon outil backend-only.
-            "F-IM-26-regroupement-10ter-be"
+            "F-IM-26-regroupement-10ter-be",
+            // SF-215-05/06 (2026-05-27) : F-IM-27-regroupement-10bis-be — seed
+            // visibility livrée dans la PR backend SF-215-05 (PR #1372). Outil
+            // BE frontend autosuffisant sans tile DashboardTile dédié — pattern
+            // uniforme F-215 P2 Immigration BE.
+            "F-IM-27-regroupement-10bis-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
