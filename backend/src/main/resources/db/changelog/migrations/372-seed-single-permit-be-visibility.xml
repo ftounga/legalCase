@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="d4e5f6a7-b8c9-4012-3456-789abcdef012-seed-single-permit" author="legalcase">
+        <comment>
+            SF-215-02 (hotfix post-merge 2026-05-27) : seed visibility pour l'outil
+            décisionnel "Permit unique BE" (F-IM-25-single-permit-be).
+
+            L'agent backend SF-215-01 (PR #1356) avait déféré ce seed à SF-215-02
+            (frontend, PR #1357) en suivant le pattern F-213. L'agent frontend ne l'a
+            pas créé non plus — d'où ce hotfix pour activer la visibility CONTEXTUAL
+            (trigger : flag IA `single_permit_envisage=true`) qui rend l'outil visible
+            dans le panel F-IA-04 sur workspace BELGIQUE × DROIT_IMMIGRATION dès que
+            l'IA détecte une mention de demande de permis unique.
+
+            Sans cette entrée, le tool_id existe dans TOOL_REGISTRY frontend mais le
+            mécanisme de visibility F-IA-04 ne l'affiche jamais (pas d'erreur côté
+            DecisionToolVisibilityIntegrityIT car le test vérifie DB → frontend, pas
+            l'inverse — d'où la régression silencieuse).
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, visibility, trigger_field, trigger_value, priority)
+            VALUES (
+                'd4e5f6a7-0000-0000-0000-000000000372',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-25-single-permit-be',
+                'CONTEXTUAL',
+                'single_permit_envisage',
+                'true',
+                200
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
