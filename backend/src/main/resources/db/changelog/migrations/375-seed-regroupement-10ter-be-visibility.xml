@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="e5f6a7b8-c9d0-4123-4567-89abcdef0123-seed-regroupement-10ter" author="legalcase">
+        <comment>
+            SF-215-03 : seed visibility pour l'outil décisionnel "Regroupement familial 10ter BE"
+            (F-IM-26-regroupement-10ter-be). Pattern F-215 CORRIGÉ vs F-213 — cette migration de
+            seed est livrée DANS LA MÊME PR que la table (à différence de SF-215-01 où le seed
+            était déféré à SF-215-02 frontend, ayant produit une régression silencieuse hotfix
+            migration 372).
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte un indice de regroupement 10ter
+            via le flag `regroupement_10ter_detecte` extrait depuis le prompt
+            IMMIGRATION_INSTRUCTION (mots-clés "10ter", "carte B", "carte C", "séjour illimité",
+            "regroupement avec ressortissant tiers établi", "art. 10 Loi 15/12/1980 §1 4°").
+
+            Priority 201 — juste après le single-permit BE (priority 200) pour cohérence
+            d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) +
+            KNOWN_FRONTEND_TOOL_IDS du test d'intégrité DecisionToolVisibilityIntegrityIT
+            sera ajoutée par SF-215-04 (frontend) — coordination de merge : merger SF-215-04
+            APRÈS cette PR pour éviter que le test d'intégrité passe en rouge transitoire.
+            Le test vérifie DB → frontend, donc la séquence "backend mergé en premier" laisse
+            apparaître transitoirement un orphelin DB tant que SF-215-04 n'est pas mergée.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'e5f6a7b8-0000-0000-0000-000000000374',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-26-regroupement-10ter-be',
+                'CONTEXTUAL',
+                'regroupement_10ter_detecte',
+                'true',
+                201
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'e5f6a7b8-0000-0000-0000-000000000374';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
