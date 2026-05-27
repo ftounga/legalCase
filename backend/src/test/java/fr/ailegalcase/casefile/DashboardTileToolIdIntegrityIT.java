@@ -417,7 +417,17 @@ class DashboardTileToolIdIntegrityIT {
             // seed visibility livrée dans la PR backend SF-215-07 (PR #1383).
             // Outil BE frontend autosuffisant sans tile DashboardTile —
             // pattern uniforme F-215 P2 Immigration BE.
-            "F-IM-28-naturalisation-12bis-be"
+            "F-IM-28-naturalisation-12bis-be",
+            // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
+            // (présente PR) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
+            // général de l'outplacement obligatoire pour les travailleurs
+            // licenciés dont le préavis (ou indemnité équivalente) est ≥ 30
+            // semaines. Verdict CONFORME / NON_DU_* / NON_CONFORME_* +
+            // sanction forfaitaire travailleur indicative. Frontend SF-219-05b
+            // à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
+            // pour éviter master-red dès le seed visibility frontend (pattern
+            // uniforme F-213 / F-217 / F-219 vagues 1-5).
+            "outplacement-be-general-30sem"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
