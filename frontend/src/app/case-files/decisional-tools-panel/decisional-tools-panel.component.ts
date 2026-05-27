@@ -159,6 +159,7 @@ import { TransactionBeTravailSectionComponent } from '../transaction-be-travail-
 import { HarcelementBeProcedureFormelleSectionComponent } from '../harcelement-be-procedure-formelle-section/harcelement-be-procedure-formelle-section.component';
 import { LicenciementBeProtectionDelegueeSectionComponent } from '../licenciement-be-protection-deleguee-section/licenciement-be-protection-deleguee-section.component';
 import { LicenciementBeActeEquivalentSectionComponent } from '../licenciement-be-acte-equivalent-section/licenciement-be-acte-equivalent-section.component';
+import { LicenciementBeCct109DeraisonnableSectionComponent } from '../licenciement-be-cct109-deraisonnable-section/licenciement-be-cct109-deraisonnable-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2068,6 +2069,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-10b : score CCT n° 109 BE — licenciement manifestement
+      // déraisonnable (CCT 12/02/2014 art. 8-9). Échelle 5 niveaux
+      // (NON_DERAISONNABLE 0 sem. / 3 sem. / 8 sem. / 12 sem. / 17 sem.)
+      // + indemnité = rémunération hebdomadaire × nombre de semaines +
+      // cumul ICP systématique (bannière info). BE-only, ALWAYS_ON
+      // priority 118 (au-dessus de licenciement-be-acte-equivalent =
+      // 117 livré par SF-213-09b). Pré-fill IA V1 : aucun champ
+      // (alignement pattern uniforme vagues 6b/7b/8b). Distinct du
+      // barème Macron FR (L. 1235-3 C. trav.) et de
+      // F-DT-27-motif-grave-be (analyseur de validité du motif grave,
+      // intervient en amont).
+      ['licenciement-be-cct109-deraisonnable', {
+        displayLabel: 'Score CCT 109 — licenciement déraisonnable (Belgique)',
+        component: LicenciementBeCct109DeraisonnableSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3133,6 +3157,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // art. 67 + ancien art. 82 §3 Loi 03/07/1978 + Cass. 28/02/2011).
     // BE-only ALWAYS_ON priority 112.
     ['licenciement-be-formule-claeys', 'INDEMNITES'],
+    // SF-213-10b : score CCT n° 109 BE — calculateur d'indemnité
+    // (3/8/12/17 semaines × rémunération hebdomadaire). Thème
+    // INDEMNITES : calculateur d'indemnité, pas analyseur de validité
+    // (le motif grave / la conformité procédurale sont des inputs, le
+    // résultat est un montant + nombre de semaines). BE-only,
+    // ALWAYS_ON priority 118.
+    ['licenciement-be-cct109-deraisonnable', 'INDEMNITES'],
     ['F-DT-21-travail-dissimule', 'INDEMNITES'],
     ['F-DT-25-indemnite-preavis', 'INDEMNITES'],
     ['F-DT-26-conges-payes-indemnite', 'INDEMNITES'],
