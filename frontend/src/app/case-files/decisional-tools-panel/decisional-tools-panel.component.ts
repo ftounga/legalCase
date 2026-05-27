@@ -61,6 +61,8 @@ import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l425
 import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
+// SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
+import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-section/regroupement-10ter-be-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1440,6 +1442,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-25-single-permit-be', {
         displayLabel: 'Permis unique BE (travail+séjour)',
         component: SinglePermitBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be — regroupement
+      // familial art. 10ter (BE). BELGIQUE uniquement, CONTEXTUAL via flag
+      // `regroupement_10ter_detecte`. Pré-fill IA 4 champs (lienFamilial,
+      // typeCarteRegroupant, revenusMensuelsNets, dureeSejour) via static
+      // getPrefillCount + Regroupement10terBePrefillRules. Scoring 0-100 +
+      // 3 verdicts (ELIGIBLE/SOUS_RESERVE/INELIGIBLE) + différentiel signé.
+      ['F-IM-26-regroupement-10ter-be', {
+        displayLabel: 'Regroupement familial 10ter (BE)',
+        component: Regroupement10terBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3258,6 +3276,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // de renouvellement). Aligné sur les autres outils Immigration BE-only
     // CONTEXTUAL (flag `single_permit_envisage`).
     ['F-IM-25-single-permit-be', 'DELAIS'],
+    // SF-215-04 : F-IM-26-regroupement-10ter-be regroupement familial 10ter (BE).
+    // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts).
+    // Aligné sur F-IM-14-40ter-familial-belge-be et les autres scoring BE
+    // (visibility CONTEXTUAL via flag `regroupement_10ter_detecte`).
+    ['F-IM-26-regroupement-10ter-be', 'VALIDITE'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
