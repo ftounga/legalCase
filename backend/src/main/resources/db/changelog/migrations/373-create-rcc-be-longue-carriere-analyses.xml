@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="924133f7-01a3-4326-891c-554aa8ba4a48" author="claude">
+        <comment>
+            SF-219-02 : table dédiée à l'outil décisionnel "RCC BE longue
+            carrière" (rcc-be-longue-carriere, BELGIQUE — fondement :
+            Loi du 26/12/2013 sur le pacte de solidarité entre les
+            générations + CCT n° 17 du 19/12/1974 (CNT) + AR du 03/05/2007
+            art. 3 (régime spécifique longue carrière)).
+
+            L'outil analyse l'éligibilité au régime de chômage avec
+            complément d'entreprise (RCC, ex-prépension) au titre du
+            régime "longue carrière" :
+            - Conditions cumulatives : âge ≥ 59 ans à la fin du contrat ;
+              carrière professionnelle ≥ 40 ans (jours équivalents temps
+              plein) ; licenciement effectif (la démission est exclue).
+            - Verdict : ELIGIBLE_RCC_LONGUE_CARRIERE | INELIGIBLE_DEMISSION
+              | INELIGIBLE_AGE_INSUFFISANT | INELIGIBLE_CARRIERE_INSUFFISANTE.
+            - Calcul indicatif de l'indemnité complémentaire mensuelle =
+              0,5 × (rémunération nette mensuelle de référence - allocation
+              de chômage estimée), à charge de l'employeur — l'ONEM gère la
+              composante chômage.
+            - Avertissement systématique sur les montants : à confirmer par
+              calcul ONSS / ONEM réel.
+
+            Outil single-country BELGIQUE — aucun équivalent strict en
+            droit français (le RCC est un dispositif belge spécifique
+            résultant du compromis CCT n° 17 / AR 2007 / Loi 2013).
+
+            Outil distinct des autres variantes RCC déjà couvertes :
+            - F-207 SF-207-06 : RCC général (60+/40)
+            - SF-219-01 : RCC métiers lourds (58+/35 + métier lourd)
+            - Présente SF : RCC longue carrière (59+/40, sans critère
+              de métier lourd).
+
+            Snapshot JSON complet (inputs + outputs : verdict, conditions
+            cumulatives, indemnité complémentaire indicative) pour permettre
+            la restitution UI sans recalcul (pattern F-DT-42 / SF-213-01
+            à SF-213-09).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est volontairement portée par la migration de SF-219-02b
+            (frontend), couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="rcc_be_longue_carriere_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rcc_be_longue_carriere_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rcc_be_longue_carriere_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rcc_be_longue_carriere_case_file"/>
+
+        <createIndex tableName="rcc_be_longue_carriere_analyses"
+                     indexName="idx_rcc_be_longue_carriere_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="rcc_be_longue_carriere_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

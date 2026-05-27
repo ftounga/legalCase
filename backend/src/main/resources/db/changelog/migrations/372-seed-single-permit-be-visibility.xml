@@ -21,10 +21,15 @@
             mécanisme de visibility F-IA-04 ne l'affiche jamais (pas d'erreur côté
             DecisionToolVisibilityIntegrityIT car le test vérifie DB → frontend, pas
             l'inverse — d'où la régression silencieuse).
+
+            Hotfix dans le scope de SF-219-02 (PR à venir) : la colonne réelle de
+            `decision_tool_visibility_rules` est `layer` et non `visibility`
+            (cf. migration 104 — checkconstraint `ck_dtvr_layer_trigger`). Sans ce
+            correctif, toutes les IT échouent au startup Liquibase (master-red).
         </comment>
         <sql>
             INSERT INTO decision_tool_visibility_rules
-                (id, legal_domain, country, tool_id, visibility, trigger_field, trigger_value, priority)
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
             VALUES (
                 'd4e5f6a7-0000-0000-0000-000000000372',
                 'DROIT_IMMIGRATION',

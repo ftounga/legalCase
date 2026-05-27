@@ -365,7 +365,26 @@ class DashboardTileToolIdIntegrityIT {
             // 3/8/12/17 sem.) sans DashboardTile (frontend rend l'échelon dans
             // le panel F-IA-04, pas dans le dashboard global). Même pattern
             // uniforme F-213 vagues 1-9b (mémoire `feedback_f213_backend_pattern`).
-            "licenciement-be-cct109-deraisonnable"
+            "licenciement-be-cct109-deraisonnable",
+            // SF-215-02 (2026-05-27) : F-IM-25-single-permit-be — seed visibility
+            // posé en hotfix post-merge (migration 372-seed-single-permit-be-
+            // visibility.xml) sans mapper DashboardTile côté backend. Restitution
+            // dans le panel F-IA-04 (composant frontend standalone), pas de tuile
+            // dashboard immédiate dans le bundle F-215. Exclusion transitoire
+            // alignée sur le pattern F-213 / F-217 vagues. À résorber par la
+            // session F-215 propriétaire si retour terrain prouve le besoin.
+            "F-IM-25-single-permit-be",
+            // SF-219-01 (2026-05-27) : rcc-be-metiers-lourds — backend mergé
+            // (PR #1358, Loi 26/12/2013 + AR 03/05/2007 art. 3 régime 58+/35 +
+            // métier lourd, sortie ONEM). Frontend SF-219-01b à venir. Même
+            // pattern uniforme F-213 / F-217 vagues — composant frontend
+            // standalone auto-suffisant, restitution via GET du snapshot.
+            "rcc-be-metiers-lourds",
+            // SF-219-02 (2026-05-27) : rcc-be-longue-carriere — backend (présente
+            // PR) Loi 26/12/2013 + CCT n° 17 + AR 03/05/2007 art. 3, régime
+            // longue carrière 59+/40 ans. Frontend SF-219-02b à venir. Même
+            // pattern uniforme F-213 / F-217 vagues.
+            "rcc-be-longue-carriere"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
