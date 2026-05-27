@@ -59,6 +59,8 @@ import { CrrvRefusVisaSectionComponent } from '../crrv-refus-visa-section/crrv-r
 import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l4256-section/victime-violences-l4256-section.component';
 // SF-214-02 : composant complet F-IM-25 étranger malade L.425-9 CESEDA (FR).
 import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
+// SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
+import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1423,6 +1425,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-25-etranger-malade-l4259-fr', {
         displayLabel: 'Étranger malade — L.425-9 (FR)',
         component: EtrangerMaladeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE
+      // (travail+séjour). BELGIQUE uniquement, CONTEXTUAL via flag
+      // `single_permit_envisage`. Pré-fill IA 5 champs (dates début/fin, région
+      // FOREM/VDAB/ACTIRIS, type activité, motif NOUVEAU/RENOUVELLEMENT) via
+      // static getPrefillCount + SinglePermitBePrefillRules.
+      ['F-IM-25-single-permit-be', {
+        displayLabel: 'Permis unique BE (travail+séjour)',
+        component: SinglePermitBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3236,6 +3253,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR) — analyseur d'éligibilité.
     // Thème VALIDITE (analyse d'éligibilité protection médicale, CONTEXTUAL FR).
     ['F-IM-25-etranger-malade-l4259-fr', 'VALIDITE'],
+    // SF-215-02 : F-IM-25-single-permit-be permis unique BE (travail+séjour).
+    // Thème DELAIS (calcul date limite dépôt = dateFinPermit - 60j + 4 statuts
+    // de renouvellement). Aligné sur les autres outils Immigration BE-only
+    // CONTEXTUAL (flag `single_permit_envisage`).
+    ['F-IM-25-single-permit-be', 'DELAIS'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
