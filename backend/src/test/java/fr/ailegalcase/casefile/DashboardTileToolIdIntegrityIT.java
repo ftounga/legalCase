@@ -384,7 +384,16 @@ class DashboardTileToolIdIntegrityIT {
             // PR) Loi 26/12/2013 + CCT n° 17 + AR 03/05/2007 art. 3, régime
             // longue carrière 59+/40 ans. Frontend SF-219-02b à venir. Même
             // pattern uniforme F-213 / F-217 vagues.
-            "rcc-be-longue-carriere"
+            "rcc-be-longue-carriere",
+            // SF-219-04 (2026-05-27) : cumul-rcc-allocations — analyseur du
+            // cumul allocations chômage ONEM + indemnité complémentaire CCT 17
+            // (plafond, disponibilité ajustée, bascule pension légale,
+            // compatibilité activité). CCT n° 17 + AR 25/11/1991 + AR
+            // 03/05/2007 art. 22 et suiv. Frontend SF-219-04b à venir.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (sera
+            // utile dès le seed visibility par SF-219-04b — pattern uniforme
+            // F-213 vagues 1-10b).
+            "cumul-rcc-allocations"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

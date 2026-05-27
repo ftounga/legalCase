@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f7d49ed8-88f0-4db9-85fb-5d75dd7d82f9" author="claude">
+        <comment>
+            SF-219-04 : table dédiée à l'outil décisionnel "Cumul RCC BE
+            + allocations" (cumul-rcc-allocations, BELGIQUE — fondement :
+            CCT n° 17 du 19/12/1974 (CNT) + AR du 25/11/1991 portant
+            réglementation du chômage + AR du 03/05/2007 art. 22 et suiv.
+            sur la disponibilité ajustée).
+
+            L'outil analyse le cumul {allocation de chômage ONEM +
+            indemnité complémentaire CCT 17} et les conditions de
+            disponibilité applicables au bénéficiaire RCC :
+            - Plafond du cumul : total mensuel ≤ dernière rémunération
+              nette de référence (sinon réduction obligatoire de
+              l'indemnité complémentaire à charge de l'employeur).
+            - Régime de disponibilité (DISPONIBILITE_ADAPTEE /
+              DISPONIBILITE_PASSIVE / DISPENSE_RECHERCHE_EMPLOI) selon
+              l'âge à la prise de cours et la carrière professionnelle.
+            - Bascule pension légale : si l'âge légal est atteint à la
+              date considérée, le RCC s'éteint automatiquement.
+            - Compatibilité activité complémentaire (indépendant
+              accessoire, bénévolat, mandat) : déclaration préalable
+              ONEM requise, sinon sortie automatique du régime.
+
+            Verdict : CUMUL_CONFORME | CUMUL_PLAFOND_DEPASSE |
+            BASCULE_PENSION_LEGALE | INCOMPATIBLE_ACTIVITE_NON_AUTORISEE.
+
+            Outil single-country BELGIQUE — analyseur transversal aux
+            régimes RCC (général F-207 SF-207-06, métiers lourds
+            SF-219-01, longue carrière SF-219-02). Aucun équivalent
+            strict en droit français.
+
+            Snapshot JSON complet (inputs + outputs : verdict, cumul
+            mensuel, plafond, réduction éventuelle, régime de
+            disponibilité, bascule pension) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01
+            à SF-213-09).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-04b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "cumul-rcc-allocations" est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-04b, pattern uniforme F-213
+            vagues 1-10b).
+        </comment>
+
+        <createTable tableName="cumul_rcc_allocations_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_cumul_rcc_allocations_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="cumul_rcc_allocations_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_cumul_rcc_allocations_case_file"/>
+
+        <createIndex tableName="cumul_rcc_allocations_analyses"
+                     indexName="idx_cumul_rcc_allocations_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="cumul_rcc_allocations_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
