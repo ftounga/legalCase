@@ -154,6 +154,7 @@ import { ClauseNonConcurrenceBeSectionComponent } from '../clause-non-concurrenc
 import { RappelSalaireBeSectionComponent } from '../rappel-salaire-be-section/rappel-salaire-be-section.component';
 import { LicenciementBeStatutUniquePreavisSectionComponent } from '../licenciement-be-statut-unique-preavis-section/licenciement-be-statut-unique-preavis-section.component';
 import { LicenciementBeFormuleClaeysSectionComponent } from '../licenciement-be-formule-claeys-section/licenciement-be-formule-claeys-section.component';
+import { LicenciementBeProtectionGrossesseSectionComponent } from '../licenciement-be-protection-grossesse-section/licenciement-be-protection-grossesse-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1951,6 +1952,30 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-05b : protection grossesse BE (Loi 16/03/1971 art. 40).
+      // Analyseur de la validité d'un licenciement intervenu pendant la
+      // grossesse / maternité. Verdict 4 états (HORS_PERIODE_PROTECTION,
+      // PROTECTION_APPLICABLE_NON_NOTIFIEE, PROTECTION_APPLICABLE,
+      // PROTECTION_PRESUMEE — charge de preuve renversée si notification
+      // écrite + licenciement ≤ 10 sem post début grossesse). BE-only,
+      // ALWAYS_ON priority 113 (juste au-dessus de formule-claeys = 112).
+      // Pré-fill IA gracieux 2 champs (dateLicenciement, rémunération
+      // mensuelle brute via salaireBrutMensuel ou salaireBrutAnnuel/12).
+      // Les autres champs (grossesse, accouchement, congé, notification,
+      // motif) restent en saisie avocat — pas d'extraction IA BE-only
+      // grossesse dans cette vague.
+      ['licenciement-be-protection-grossesse', {
+        displayLabel: 'Protection grossesse (Belgique)',
+        component: LicenciementBeProtectionGrossesseSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3061,6 +3086,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-213-01b : clause de non-concurrence BE — analyseur 3 verdicts
     // (VALIDE / NULLE / PARTIELLEMENT_NULLE), BE-only.
     ['clause-non-concurrence-be', 'VALIDITE'],
+    // SF-213-05b : protection grossesse BE — analyseur de validité du
+    // licenciement (verdict 4 états + indemnité forfaitaire 6 mois +
+    // charge preuve renversée si présomption). Thème VALIDITE (parité
+    // motif-grave-be, F-DT-27 : analyseur de validité de la rupture,
+    // pas chiffrage pur). BE-only, ALWAYS_ON priority 113.
+    ['licenciement-be-protection-grossesse', 'VALIDITE'],
     ['F-DT-30-protection-rp', 'VALIDITE'],
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR) — analyseur d'éligibilité.
     // Thème VALIDITE (analyse d'éligibilité protection médicale, CONTEXTUAL FR).
