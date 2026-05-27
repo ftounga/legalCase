@@ -70,13 +70,13 @@ Logique (`LicenciementBeFormuleClaeys Calculator`) :
 Output :
 ```json
 {
-  "preavisClaeysMois": 18.5,
-  "preavisClaeysSemaines": 80,
+  "preavisClaeysMois": 11.52,
+  "preavisClaeysSemaines": 50,
   "preavisStatutUniquesSemaines": 27,
-  "preavisTotalSemaines": 107,
-  "indemniteClaeysBrute": 40000.00,
-  "indemniteTotaleBrute": 53500.00,
-  "formuleClaeys": "0.8 × (12 ans + 0.04 × 60 K€) = 18.5 mois",
+  "preavisTotalSemaines": 77,
+  "indemniteClaeysBrute": 25000.00,
+  "indemniteTotaleBrute": 38500.00,
+  "formuleClaeys": "0.8 × (12 ans + 0.04 × 60 K€) = 11.52 mois ≈ 50 semaines",
   "baseJuridique": "Loi 03/07/1978 art. 82 (avant loi 26/12/2013) ; Loi 26/12/2013 art. 67",
   "avertissement": "Formule Claeys issue de la jurisprudence — à valider avec un avocat BE pour les seuils exacts applicables."
 }
@@ -156,8 +156,8 @@ Persistance : `licenciement_be_formule_claeys_analyses` — unique sur `case_fil
 
 ### Unitaires
 
-- [ ] `0.8 × (12 + 0.04 × 60) = 18.48` → arrondi 19 mois.
-- [ ] Clause sauvegarde : cumul Claeys 80 sem + statut unique 27 sem = 107 sem.
+- [ ] `0.8 × (12 + 0.04 × 60) = 11.52` mois → 50 semaines (arrondi entier supérieur sur `× 4.333`).
+- [ ] Clause sauvegarde : cumul Claeys 50 sem + statut unique 27 sem = 77 sem.
 - [ ] Rémunération en K€ : vérification conversion (100 000 € → 100 K€).
 - [ ] `avertissement` toujours non null dans la réponse.
 
