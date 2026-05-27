@@ -419,7 +419,7 @@ class DashboardTileToolIdIntegrityIT {
             // pattern uniforme F-215 P2 Immigration BE.
             "F-IM-28-naturalisation-12bis-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
-            // (présente PR) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
+            // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs
             // licenciés dont le préavis (ou indemnité équivalente) est ≥ 30
             // semaines. Verdict CONFORME / NON_DU_* / NON_CONFORME_* +
@@ -427,7 +427,16 @@ class DashboardTileToolIdIntegrityIT {
             // à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
             // pour éviter master-red dès le seed visibility frontend (pattern
             // uniforme F-213 / F-217 / F-219 vagues 1-5).
-            "outplacement-be-general-30sem"
+            "outplacement-be-general-30sem",
+            // SF-219-06 (2026-05-28) : licenciement-be-fermeture-entreprise —
+            // backend (présente PR) Loi 26/06/2002 + AR 23/03/2007 (Fonds
+            // Fermeture Entreprises FFE) + CCT n° 9bis. Calcule l'éligibilité
+            // d'une fermeture au régime FFE, l'indemnité de fermeture
+            // forfaitaire (+ supplément ≥ 45 ans) et la reprise des créances
+            // impayées par le FFE en cas d'insolvabilité. Frontend SF-219-06b
+            // à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
+            // (pattern uniforme F-213 / F-219 vagues).
+            "licenciement-be-fermeture-entreprise"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
