@@ -1,0 +1,157 @@
+/* SF-215-06 — Outil regroupement 10bis BE. Pattern miroir regroupement-10ter (SF-215-04). */
+@import '../../simulators/standalone-banner';
+
+.re10bis-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.re10bis-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.re10bis-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.re10bis-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.re10bis-chip {
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  &--success { background: rgba(32, 128, 64, 0.14); color: #156135; }
+  &--warning { background: rgba(201, 165, 75, 0.22); color: var(--ds-accent-gold-dark, #8a6a16); }
+  &--danger  { background: rgba(192, 36, 36, 0.14); color: #9a1c1c; }
+}
+
+.re10bis-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.re10bis-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.re10bis-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.re10bis-form {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  mat-form-field { width: 100%; }
+}
+.re10bis-field-wrap { display: flex; flex-direction: column; gap: 4px; mat-form-field { width: 100%; } }
+.re10bis-field-wrap--full { grid-column: 1 / -1; }
+
+.re10bis-static-label {
+  font-size: 13px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;
+}
+.re10bis-static-value {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 4px;
+  background: rgba(26, 55, 95, 0.06);
+  font-weight: 600; font-size: 14px; color: var(--ds-text-primary, #1a2330);
+  width: fit-content;
+}
+.re10bis-static-icon {
+  color: var(--ds-navy, #1a375f);
+  font-size: 18px; width: 18px; height: 18px;
+}
+
+.re10bis-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+
+.re10bis-seuil-hint {
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  margin-top: 2px;
+}
+
+.re10bis-result { display: flex; flex-direction: column; gap: 12px; }
+
+.re10bis-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info    { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--success { border-left-color: #208040; background: rgba(32, 128, 64, 0.10); mat-icon { color: #156135; } }
+  &--warning { border-left-color: var(--ds-accent-gold, #c9a54b); background: rgba(201, 165, 75, 0.14); mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); } }
+  &--danger  { border-left-color: #c02424; background: rgba(192, 36, 36, 0.10); mat-icon { color: #9a1c1c; } .re10bis-banner-title { color: #9a1c1c; } }
+}
+
+.re10bis-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.re10bis-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.re10bis-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+
+.re10bis-carte-expiree { margin-top: 4px; }
+
+.re10bis-score-block {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.03); border-radius: 4px;
+  border-left: 3px solid var(--ds-navy, #1a375f);
+}
+.re10bis-score-label {
+  font-size: 11px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.re10bis-score-value {
+  font-size: 20px; font-weight: 700; color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  align-self: flex-end;
+}
+
+.re10bis-diff-block {
+  padding: 12px 16px; background: rgba(201, 165, 75, 0.08);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b); border-radius: 4px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.re10bis-diff-label {
+  font-size: 11px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.re10bis-diff {
+  font-size: 18px; font-weight: 700;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  color: var(--ds-text-primary, #1a2330);
+  &--positive { color: #156135; }
+  &--negative { color: #9a1c1c; }
+}
+.re10bis-diff-sub {
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+}
+
+.re10bis-criteres-block {
+  padding: 12px 16px; background: rgba(192, 36, 36, 0.06);
+  border-left: 3px solid #c02424; border-radius: 4px;
+}
+.re10bis-criteres-label {
+  font-size: 11px; font-weight: 600; color: #9a1c1c;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+}
+.re10bis-criteres-list { background: transparent; padding: 0; }
+.re10bis-criteres-icon { color: #c02424; }
+.re10bis-criteres-item { color: var(--ds-text-primary, #1a2330); }
+
+.re10bis-breakdown {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  li { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 4px; background: rgba(26, 35, 48, 0.03); }
+}
+.re10bis-bd-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.re10bis-bd-value { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); text-align: right; }
+.re10bis-bd-value--mono { font-family: 'JetBrains Mono', 'Menlo', monospace; }
+
+.re10bis-cond-ok { color: #156135; }
+.re10bis-cond-ko { color: #9a1c1c; }
+
+.re10bis-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.re10bis-meta-base {
+  font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--ds-accent-gold, #c9a54b); }
+}

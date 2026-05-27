@@ -1413,6 +1413,35 @@ export interface ImmigrationExtractedData {
   be10terTypeCarte?: 'CARTE_B' | 'CARTE_C' | null;
   be10terRevenusMensuels?: number | null;
   be10terDureeSejour?: number | null;
+  /**
+   * SF-215-05 / SF-215-06 — Pré-fill outil F-IM-27-regroupement-10bis-be
+   * « Regroupement familial art. 10bis (BE) » — Loi 15/12/1980 art. 10bis,
+   * AR 17/05/2007 (seuil ressources 120 % RIS). À la différence de l'art.
+   * 10ter, le regroupant détient un séjour LIMITÉ (carte A) — d'où la
+   * condition supplémentaire `be10bisDateFinCarteA` (validité du titre à
+   * la date d'analyse). BELGIQUE uniquement — dossier FR : null. Tous nullables.
+   *
+   * `be10bisLienFamilial` : lien familial — whitelist
+   *   CONJOINT / PARTENAIRE_ENREGISTRE / ENFANT_MOINS_21 /
+   *   ENFANT_21_PLUS_CHARGE / ASCENDANT_CHARGE.
+   * `be10bisRevenusMensuels` : revenus mensuels nets du regroupant en € (entier 0–100 000).
+   * `be10bisDureeSejour` : durée du séjour régulier du regroupant en mois (entier 0–600).
+   * `be10bisDateFinCarteA` : date de fin de validité de la carte A (ISO YYYY-MM-DD).
+   *
+   * NB : `typeCarteRegroupant` n'a qu'une valeur possible (CARTE_A) pour
+   * l'art. 10bis, donc non pré-rempli — forcé côté composant.
+   */
+  be10bisLienFamilial?: 'CONJOINT' | 'PARTENAIRE_ENREGISTRE' | 'ENFANT_MOINS_21' | 'ENFANT_21_PLUS_CHARGE' | 'ASCENDANT_CHARGE' | null;
+  be10bisRevenusMensuels?: number | null;
+  be10bisDureeSejour?: number | null;
+  be10bisDateFinCarteA?: string | null;
+  /**
+   * SF-215-05 / SF-215-06 — Flag de visibilité CONTEXTUAL pour l'outil
+   * F-IM-27-regroupement-10bis-be. True si le pipeline IA détecte un
+   * regroupement familial vers un titulaire de séjour limité (carte A).
+   * Synonyme métier de `regroupement_10bis_detecte` côté backend.
+   */
+  regroupementTiersLimiteDetecte?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {
