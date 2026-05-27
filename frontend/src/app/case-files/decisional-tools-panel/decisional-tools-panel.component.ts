@@ -157,6 +157,7 @@ import { LicenciementBeFormuleClaeysSectionComponent } from '../licenciement-be-
 import { LicenciementBeProtectionGrossesseSectionComponent } from '../licenciement-be-protection-grossesse-section/licenciement-be-protection-grossesse-section.component';
 import { TransactionBeTravailSectionComponent } from '../transaction-be-travail-section/transaction-be-travail-section.component';
 import { HarcelementBeProcedureFormelleSectionComponent } from '../harcelement-be-procedure-formelle-section/harcelement-be-procedure-formelle-section.component';
+import { LicenciementBeProtectionDelegueeSectionComponent } from '../licenciement-be-protection-deleguee-section/licenciement-be-protection-deleguee-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2021,6 +2022,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-08b : licenciement BE — protection délégué syndical
+      // (Loi 19/03/1991 + CCT n° 5 du 24/05/1971). Analyseur de validité
+      // binaire (INTERDIT_SANS_PROCEDURE / HORS_PROTECTION) + calcul
+      // indemnité forfaitaire (rémunération annuelle × 2 ou × 4 selon
+      // circonstances aggravantes / récidive) + délai 30 j (art. 14) pour
+      // demander la réintégration. BE-only, ALWAYS_ON priority 116 (juste
+      // au-dessus de harcelement-be-procedure-formelle = 115). Pré-fill IA
+      // V1 : aucun champ (alignement pattern uniforme vagues 6b/7b).
+      // Distinct de licenciement-be-protection-grossesse (SF-213-05b —
+      // autre population protégée) et de F-DT-30-protection-rp (statut
+      // protégé FR L. 2411-1 et s. C. trav. — régime distinct).
+      ['licenciement-be-protection-deleguee', {
+        displayLabel: 'Licenciement — protection délégué (Belgique)',
+        component: LicenciementBeProtectionDelegueeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3137,6 +3161,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // motif-grave-be, F-DT-27 : analyseur de validité de la rupture,
     // pas chiffrage pur). BE-only, ALWAYS_ON priority 113.
     ['licenciement-be-protection-grossesse', 'VALIDITE'],
+    // SF-213-08b : licenciement BE — protection délégué syndical
+    // (Loi 19/03/1991 + CCT n° 5). Analyseur de validité binaire
+    // (LICENCIEMENT_INTERDIT_SANS_PROCEDURE / HORS_PERIODE_PROTECTION).
+    // Thème VALIDITE — analyseur de validité de la rupture vis-à-vis
+    // de la fenêtre de protection (pattern miroir protection-grossesse).
+    // BE-only, ALWAYS_ON priority 116.
+    ['licenciement-be-protection-deleguee', 'VALIDITE'],
     // SF-213-06b : transaction de fin de contrat BE (art. 2044 Cciv +
     // Loi 03/07/1978 art. 6). Analyseur de validité 4 états + checklist
     // renonciations + ratio. Thème VALIDITE — analyseur de validité du
