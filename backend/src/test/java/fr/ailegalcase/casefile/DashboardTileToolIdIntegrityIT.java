@@ -393,7 +393,15 @@ class DashboardTileToolIdIntegrityIT {
             // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (sera
             // utile dès le seed visibility par SF-219-04b — pattern uniforme
             // F-213 vagues 1-10b).
-            "cumul-rcc-allocations"
+            "cumul-rcc-allocations",
+            // SF-219-03 (2026-05-27) : rcc-be-entreprise-difficulte — backend
+            // (présente PR) Loi 26/12/2013 + CCT n° 17 + AR 03/05/2007 + AR
+            // reconnaissance ministre. Régime dérogatoire à âge réduit selon
+            // le plan agréé par le ministre de l'Emploi (typiquement 55 ans).
+            // Frontend SF-219-03b à venir. Pattern uniforme F-213 / F-217
+            // / F-219 vagues — préventif pour éviter master-red dès le seed
+            // visibility frontend.
+            "rcc-be-entreprise-difficulte"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
