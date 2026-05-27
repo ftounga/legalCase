@@ -156,6 +156,7 @@ import { LicenciementBeStatutUniquePreavisSectionComponent } from '../licencieme
 import { LicenciementBeFormuleClaeysSectionComponent } from '../licenciement-be-formule-claeys-section/licenciement-be-formule-claeys-section.component';
 import { LicenciementBeProtectionGrossesseSectionComponent } from '../licenciement-be-protection-grossesse-section/licenciement-be-protection-grossesse-section.component';
 import { TransactionBeTravailSectionComponent } from '../transaction-be-travail-section/transaction-be-travail-section.component';
+import { HarcelementBeProcedureFormelleSectionComponent } from '../harcelement-be-procedure-formelle-section/harcelement-be-procedure-formelle-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -1998,6 +1999,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-213-07b : harcèlement BE — procédure formelle (Loi 04/08/1996
+      // art. 32bis-32sexies + AR 10/04/2014). Checklist procédurale 5
+      // étapes (avant dépôt, demande informelle, demande formelle,
+      // enquête terminée, mesure défavorable post-plainte) + protection
+      // représailles 12 mois (art. 32sexies) + délai fatal 90 j d'enquête
+      // CPAP. BE-only, ALWAYS_ON priority 115 (juste au-dessus de
+      // transaction-be-travail = 114). Pré-fill IA V1 : aucun champ.
+      // Distinct de F-DT-11 (nullité licenciement représailles BE,
+      // intervient en aval) — cet outil pilote la procédure interne en
+      // amont de toute rupture.
+      ['harcelement-be-procedure-formelle', {
+        displayLabel: 'Harcèlement procédure formelle (Belgique)',
+        component: HarcelementBeProcedureFormelleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3172,6 +3195,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-207-04b : déclaration AT Fedris — délai 8 jours calendaires
     // employeur (Loi 10/04/1971 art. 62). Thème DELAIS.
     ['at-fedris-declaration', 'DELAIS'],
+    // SF-213-07b : harcèlement BE — procédure formelle (Loi 04/08/1996
+    // art. 32bis-32sexies + AR 10/04/2014). Outil de pilotage de
+    // procédure interne (checklist 5 étapes + délai fatal 90 j + fenêtre
+    // protection 12 mois). Thème DELAIS — outil de délais & procédure,
+    // pas un analyseur de validité (pas de verdict 4 états). BE-only,
+    // ALWAYS_ON priority 115.
+    ['harcelement-be-procedure-formelle', 'DELAIS'],
     // SF-207-05b : référé tribunal du travail BE (CJ art. 584). Thème DELAIS
     // (procédure d'urgence — pas de thème URGENCES dédié à ce stade, cohérence
     // avec les 4 outils BE Travail F-207 déjà classés DELAIS).
