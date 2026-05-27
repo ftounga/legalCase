@@ -35,6 +35,11 @@ describe('JurisprudenceWatchComponent', () => {
         jobId: 'job-default', entriesTotal: 0, startedAt: '2026-05-27T00:00:00Z',
       })),
       getBootstrapJobStatus: jest.fn().mockReturnValue(of(jobStatus('job-default', 'DONE'))),
+      createManualMapping: jest.fn().mockReturnValue(of({
+        id: 'm1', toolId: 'F-DT-75', brancheCalculId: 'default',
+        arretRef: 'Cass. soc. ref', juridiction: 'Cass.', dateArret: '2024-03-12',
+        numeroPourvoi: '22-X', lienLegifrance: 'https://x', chapeauOfficiel: 'Chap.',
+      })),
     } as any;
     snackBar = { open: jest.fn() } as any;
 
@@ -338,6 +343,61 @@ describe('JurisprudenceWatchComponent', () => {
     );
     expect(component.csvInput).toBe('previous content');
     expect((event.target as HTMLInputElement).value).toBe('');
+  });
+
+  // --- SF-JU-01-15 — création manuelle ---
+
+  it('T-14 — submitManualMapping success calls client.createManualMapping and reloads audit', () => {
+    fixture.detectChanges();
+    component.manualMapping = {
+      toolId: 'F-DT-75', brancheCalculId: 'default',
+      arretRef: 'Cass. soc. 12 mars 2024, n° 22-XXX',
+      juridiction: 'Cass.', dateArret: '2024-03-12',
+      numeroPourvoi: '22-X', lienLegifrance: 'https://x',
+      chapeauOfficiel: 'Chapeau.',
+    };
+    const initialAuditCalls = client.listAuditLog.mock.calls.length;
+
+    component['submitManualMapping']();
+
+    expect(client.createManualMapping).toHaveBeenCalledWith(expect.objectContaining({ toolId: 'F-DT-75' }));
+    expect(component.loadingManualMapping).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Mapping créé'), 'OK', expect.anything());
+    expect(client.listAuditLog.mock.calls.length).toBe(initialAuditCalls + 1);
+    // Form is reset after success
+    expect(component.manualMapping.toolId).toBe('');
+  });
+
+  it('T-15 — submitManualMapping 409 conflict shows "déjà existant" snackbar', () => {
+    fixture.detectChanges();
+    client.createManualMapping.mockReturnValue(throwError(() => ({ status: 409 })));
+    component.manualMapping = {
+      toolId: 'F-DT-30', brancheCalculId: 'default',
+      arretRef: 'Cass. soc. X', juridiction: 'Cass.', dateArret: '2024-01-01',
+      numeroPourvoi: '22-X', lienLegifrance: 'https://x', chapeauOfficiel: 'C.',
+    };
+
+    component['submitManualMapping']();
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('déjà existant'), 'OK', expect.anything());
+    expect(component.loadingManualMapping).toBe(false);
+  });
+
+  it('T-16 — submitManualMapping with empty field is rejected client-side', () => {
+    fixture.detectChanges();
+    component.manualMapping = {
+      toolId: '', brancheCalculId: 'default', arretRef: 'X',
+      juridiction: 'X', dateArret: '2024-01-01', numeroPourvoi: 'X',
+      lienLegifrance: 'X', chapeauOfficiel: 'X',
+    };
+
+    component['submitManualMapping']();
+
+    expect(client.createManualMapping).not.toHaveBeenCalled();
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('obligatoires'), 'OK', expect.anything());
   });
 
   function jobStatus(jobId: string,

@@ -66,6 +66,30 @@ export interface JurisprudenceBootstrapJobStarted {
   startedAt: string;
 }
 
+/** SF-JU-01-15 — payload de création manuelle d'un mapping (super-admin). */
+export interface ManualMappingCreateRequest {
+  toolId: string;
+  brancheCalculId: string;
+  arretRef: string;
+  juridiction: string;
+  dateArret: string;      // ISO yyyy-MM-dd
+  numeroPourvoi: string;
+  lienLegifrance: string;
+  chapeauOfficiel: string;
+}
+
+/** SF-JU-01-15 — réponse 201 Created du POST /mappings. */
+export interface ManualMappingCreatedResponse {
+  id: string;
+  toolId: string;
+  brancheCalculId: string;
+  arretRef: string;
+  juridiction: string;
+  dateArret: string;
+  numeroPourvoi: string;
+  lienLegifrance: string;
+}
+
 /** SF-JU-01-10 — payload du GET /bootstrap/jobs/{id} pour polling. */
 export interface JurisprudenceBootstrapJobStatusResponse {
   jobId: string;
@@ -124,5 +148,12 @@ export class JurisprudenceWatchAdminClientService {
       Observable<JurisprudenceBootstrapJobStatusResponse> {
     return this.http.get<JurisprudenceBootstrapJobStatusResponse>(
       `${this.base}/bootstrap/jobs/${jobId}`);
+  }
+
+  /** SF-JU-01-15 — création manuelle d'un mapping ad hoc par un SUPER_ADMIN. */
+  createManualMapping(payload: ManualMappingCreateRequest):
+      Observable<ManualMappingCreatedResponse> {
+    return this.http.post<ManualMappingCreatedResponse>(
+      `${this.base}/mappings`, payload);
   }
 }
