@@ -66,15 +66,23 @@ public class ClaudeJurisprudenceEvaluator {
 
             Actions autorisées : ADD ou NONE uniquement.
 
-            Règles :
-            - ADD : sélectionne l'arrêt le plus structurant parmi les candidats
-              (priorité aux arrêts de la Cour de cassation, formations plénières
-              ou de section, publiés au Bulletin, qui posent un principe applicable
-              à la branche de calcul). Renseigne arret_choisi_id avec son id JUDILIBRE.
-            - NONE : à n'utiliser QUE si aucun candidat ne traite la branche de calcul
-              concernée. Tu dois préférer ADD chaque fois qu'un candidat raisonnable
-              existe — le but du bootstrap est d'amorcer le mapping, pas de viser
-              l'arrêt parfait.
+            Règles (SF-JU-01-12 — assoupli vs SF-11 trop strict) :
+            - ADD : sélectionne l'arrêt LE MOINS ÉLOIGNÉ du sujet parmi les
+              candidats, MÊME s'il n'est pas idéal. Tout arrêt de la Cour de
+              cassation qui mentionne le sujet de la branche de calcul est
+              admissible. Aucune exigence de formation plénière, de publication
+              au Bulletin, ou de centralité parfaite. À niveau de pertinence
+              équivalent, préfère la chambre la plus adaptée (sociale pour
+              droit du travail, etc.) et la date la plus récente. Renseigne
+              arret_choisi_id avec son id JUDILIBRE.
+            - NONE : utilisation TRÈS exceptionnelle. À réserver aux cas où
+              AUCUN candidat ne porte la moindre proximité avec la branche
+              de calcul. Si même un seul candidat évoque vaguement le sujet,
+              choisis ADD. Le but du bootstrap est d'amorcer le mapping avec
+              ce qui est disponible — la veille mensuelle ultérieure se
+              chargera d'affiner avec de meilleurs arrêts au fil du temps.
+              **Confidence_score** doit refléter l'incertitude (0.3-0.5 pour
+              un arrêt marginal mais pertinent) — mais l'action reste ADD.
 
             RÈGLE DE FORMAT ABSOLUE — non négociable (SF-JU-01-11) :
             Ta réponse DOIT être un objet JSON unique commençant par « { » et
@@ -84,11 +92,14 @@ public class ClaudeJurisprudenceEvaluator {
             externe au champ "raison". Si tu hésites, mets l'analyse dans
             "raison" — mais le JSON reste la SEULE chose à produire.
 
-            Exemple de réponse valide (à reproduire littéralement comme format) :
-            {"action":"ADD","arret_choisi_id":"abc123def456","confidence_score":0.82,"raison":"Cass. soc. plénière qui pose le principe applicable à cette branche."}
+            Exemple de réponse valide (arrêt central, forte confiance) :
+            {"action":"ADD","arret_choisi_id":"abc123def456","confidence_score":0.85,"raison":"Cass. soc. qui pose le principe applicable à la branche."}
 
-            Exemple si aucun candidat ne convient :
-            {"action":"NONE","arret_choisi_id":null,"confidence_score":0.20,"raison":"Aucun candidat ne traite directement la branche de calcul."}
+            Exemple de réponse valide (arrêt marginal mais admissible — toujours ADD) :
+            {"action":"ADD","arret_choisi_id":"xyz789","confidence_score":0.40,"raison":"Arrêt secondaire mais mentionnant la branche — meilleur disponible."}
+
+            Exemple NONE (très rare — aucun candidat n'évoque même vaguement le sujet) :
+            {"action":"NONE","arret_choisi_id":null,"confidence_score":0.10,"raison":"Aucun candidat ne porte sur la branche (probable mismatch JUDILIBRE FR / branche BE)."}
 
             Schéma attendu :
             {
