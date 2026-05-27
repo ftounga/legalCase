@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="9a0b1c2d-3e4f-4567-8901-23456789abcd-create" author="legalcase">
+        <comment>
+            SF-213-06 : table dédiée à l'outil décisionnel "Transaction BE
+            travail — validité + checklist renonciations" (transaction-be-travail,
+            BELGIQUE — fondement : art. 2044 Code civil belge + Loi du 3 juillet
+            1978 art. 6).
+
+            L'outil analyse la validité d'une transaction de fin de contrat :
+            - 4 verdicts possibles : VALIDE, INVALIDE (ABSENCE_CONCESSIONS),
+              INVALIDE_PARTIELLE (RENONCIATION_ORDRE_PUBLIC), A_COMPLETER
+              (LITIGE_NON_VISE ou checklist vide) ;
+            - Calcul du ratio montant transaction / indemnité légale estimée
+              (HALF_UP 1 décimale) ;
+            - Avertissement de lésion si ratio &lt; 50 % ;
+            - Checklist renonciations expresses (List&lt;Item&gt; — V1
+              conservatrice : tous valides, ou tous invalides si
+              renonciationOrdrePublicDetectee).
+
+            Outil single-country BELGIQUE — la France a un outil distinct
+            (transaction-fin-contrat FR couvert par F-DT-31) avec un régime
+            juridique différent (renonciations doivent être expresses et
+            spécifiques en BE, certains droits sont indisponibles —
+            dispositions impératives art. 6 Loi 03/07/1978).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules) est
+            volontairement portée par la migration de SF-213-06b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT (cas réel F-164 staging
+            2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="transaction_be_travail_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_transaction_be_travail_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="transaction_be_travail_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_transaction_be_travail_case_file"/>
+
+        <createIndex tableName="transaction_be_travail_analyses"
+                     indexName="idx_transaction_be_travail_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="transaction_be_travail_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
