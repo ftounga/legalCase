@@ -374,14 +374,6 @@ class DashboardTileToolIdIntegrityIT {
             // alignée sur le pattern F-213 / F-217 vagues. À résorber par la
             // session F-215 propriétaire si retour terrain prouve le besoin.
             "F-IM-25-single-permit-be",
-            // SF-215-03/04 (2026-05-27) : F-IM-26-regroupement-10ter-be — backend
-            // + frontend mergés par session parallèle sans ajout à la liste
-            // KNOWN_NO_DASHBOARD_TILE_IDS (master-red bloquant la chaîne deploy
-            // 19:02-21:15 UTC, débloque PR #1361 HF-03 + PR #1367 HF-02 jamais
-            // déployées sur prod). Pattern identique à SF-215-02 single-permit :
-            // restitution panel F-IA-04 composant frontend standalone, pas de tuile
-            // dashboard immédiate. À résorber par la session F-215 propriétaire.
-            "F-IM-26-regroupement-10ter-be",
             // SF-219-01 (2026-05-27) : rcc-be-metiers-lourds — backend mergé
             // (PR #1358, Loi 26/12/2013 + AR 03/05/2007 art. 3 régime 58+/35 +
             // métier lourd, sortie ONEM). Frontend SF-219-01b à venir. Même
