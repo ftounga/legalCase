@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a7b8c9d0-e1f2-4345-6789-0abcdef12345-create-naturalisation-12bis" author="legalcase">
+        <comment>
+            SF-215-07 : table dédiée à l'outil décisionnel "Naturalisation 12bis BE"
+            (F-IM-28-naturalisation-12bis-be, BELGIQUE — fondement : Code de la
+            nationalité belge (loi du 28/06/1984 consolidée) art. 12bis +
+            AR du 14/01/2013 (preuve langue) + AR du 27/04/2018 (preuve intégration).
+
+            L'art. 12bis CNB ouvre deux voies de déclaration de nationalité :
+              - Voie 5 ans : dureeSejour ≥ 60 mois + séjour illimité (carte B/C/K)
+                + niveau langue ≥ A2 + (preuve intégration OU emploi) + pas de menace
+                à l'ordre public + pas de condamnation pénale ≥ 3 mois ferme dans les 5 ans.
+              - Voie 10 ans : dureeSejour ≥ 120 mois + séjour illimité + niveau langue
+                ≥ A2 + pas de menace + pas de condamnation. Pas de condition emploi/intégration.
+
+            Outil jumeau BE de F-IM-13-naturalisation (FR). Ne couvre PAS la naturalisation
+            par décret art. 19-21 CNB (très rare, déférée à F-221) ni la naturalisation
+            conjoint Belge art. 16 CNB (SF-215-09).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01 / SF-215-05).
+
+            Pattern F-215 CORRIGÉ : la migration de seed visibility CONTEXTUAL
+            (380-seed-naturalisation-12bis-be-visibility.xml) est livrée dans la MÊME PR
+            que cette table — la régression silencieuse de vague 1 (SF-215-01, hotfix 372)
+            ne se reproduit pas.
+        </comment>
+
+        <createTable tableName="naturalisation_12bis_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_naturalisation_12bis_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="duree_sejour" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_sejour" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="niveau_langue" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuve_integration" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuve_emploi" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condamnation_penale" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="voie_eligible" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="naturalisation_12bis_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_naturalisation_12bis_be_case_file"/>
+
+        <createIndex tableName="naturalisation_12bis_be_analyses"
+                     indexName="idx_naturalisation_12bis_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="naturalisation_12bis_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
