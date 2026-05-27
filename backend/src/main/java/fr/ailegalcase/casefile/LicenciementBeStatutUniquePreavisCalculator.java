@@ -58,43 +58,20 @@ public final class LicenciementBeStatutUniquePreavisCalculator {
     /**
      * Barème officiel statut unique (côté EMPLOYEUR) — Loi 26/12/2013.
      *
-     * <p>Indexé par années complètes d'ancienneté. La dernière tranche
-     * (≥ 20 ans) renvoie 62 semaines.</p>
+     * <p>Délégué à {@link LicenciementBeBaremeStatutUnique#BAREME_STATUT_UNIQUE}
+     * (refactor DRY SF-213-04 — table partagée avec
+     * {@link LicenciementBeFormuleClaeysCalculator} pour la clause de
+     * sauvegarde art. 67).</p>
      */
-    static final int[] BAREME_STATUT_UNIQUE = {
-            // 0 an = 2 semaines (couvre période sous les 3 premiers mois selon
-            // mini-spec, granularité année dans le barème simplifié)
-            // Note : le tarif officiel pour < 3 mois est 2 sem, à 3 mois → 4 sem.
-            // Granularité année post-mois supplémentaires couvre les cas
-            // courants ; les < 3 mois sont à traiter via les mois supplémentaires
-            // (ancienneteAnnees = 0, mois < 3 → 2 semaines).
-            4,   // 0-1 an (par défaut si années complètes ≥ 1)
-            6,   // 1-2 ans
-            7,   // 2-3 ans
-            9,   // 3-4 ans
-            12,  // 4-5 ans
-            15,  // 5-6 ans
-            18,  // 6-7 ans
-            21,  // 7-8 ans
-            24,  // 8-9 ans
-            27,  // 9-10 ans
-            30,  // 10-11 ans
-            33,  // 11-12 ans
-            36,  // 12-13 ans
-            39,  // 13-14 ans
-            42,  // 14-15 ans
-            45,  // 15-16 ans
-            48,  // 16-17 ans
-            51,  // 17-18 ans
-            54,  // 18-19 ans
-            57   // 19-20 ans
-    };
+    static final int[] BAREME_STATUT_UNIQUE = LicenciementBeBaremeStatutUnique.BAREME_STATUT_UNIQUE;
 
     /** Préavis pour ancienneté &lt; 3 mois (statut unique). */
-    static final int PREAVIS_SEMAINES_MOINS_3_MOIS = 2;
+    static final int PREAVIS_SEMAINES_MOINS_3_MOIS =
+            LicenciementBeBaremeStatutUnique.PREAVIS_SEMAINES_MOINS_3_MOIS;
 
     /** Préavis plafond pour ancienneté ≥ 20 ans (statut unique). */
-    static final int PREAVIS_SEMAINES_PLAFOND_20_ANS = 62;
+    static final int PREAVIS_SEMAINES_PLAFOND_20_ANS =
+            LicenciementBeBaremeStatutUnique.PREAVIS_SEMAINES_PLAFOND_20_ANS;
 
     private LicenciementBeStatutUniquePreavisCalculator() {
     }
@@ -146,13 +123,8 @@ public final class LicenciementBeStatutUniquePreavisCalculator {
      * </ul>
      */
     static int resolveDureePreavis(int anneesCompletes, int moisSupplementaires) {
-        if (anneesCompletes <= 0) {
-            return moisSupplementaires < 3 ? PREAVIS_SEMAINES_MOINS_3_MOIS : BAREME_STATUT_UNIQUE[0];
-        }
-        if (anneesCompletes >= BAREME_STATUT_UNIQUE.length) {
-            return PREAVIS_SEMAINES_PLAFOND_20_ANS;
-        }
-        return BAREME_STATUT_UNIQUE[anneesCompletes];
+        return LicenciementBeBaremeStatutUnique.resolveDureePreavis(
+                anneesCompletes, moisSupplementaires);
     }
 
     private static String buildFormule(int annees, int moisSupp, int semaines,

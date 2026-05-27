@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="d5e6f789-0123-4456-7890-abcdef012345-create" author="legalcase">
+        <comment>
+            SF-213-04 : table dédiée à l'outil décisionnel "Licenciement BE —
+            Formule Claeys (pré-2014 + clause sauvegarde)"
+            (licenciement-be-formule-claeys, BELGIQUE — fondement : ancien
+            art. 82 Loi du 3 juillet 1978 avant la loi du 26/12/2013, formule
+            jurisprudentielle Claeys appliquée aux employés au-dessus du seuil
+            de rémunération ; complétée par la clause de sauvegarde de l'art. 67
+            de la loi du 26/12/2013 pour cumuler la partie pré-2014 (Claeys)
+            avec la partie post-2014 (statut unique)).
+
+            L'outil calcule :
+            - le préavis selon la formule Claeys : 0.8 × (ancienneté + 0.04 × rém. K€)
+              en mois, converti en semaines (× 4.333) ;
+            - si appliquerClauseSauvegarde = true : le préavis statut unique
+              post-2014 (barème art. 37/1 partagé avec SF-213-03 via la classe
+              utilitaire LicenciementBeBaremeStatutUnique — refactor DRY) ;
+            - les indemnités correspondantes (salaire hebdo × semaines).
+
+            Outil single-country BELGIQUE — pas d'équivalent FR (le régime
+            français de préavis suit le Code du travail ou les conventions
+            collectives et n'utilise pas la formule Claeys).
+
+            La formule Claeys est issue de la jurisprudence (Cour du travail —
+            arrêt Claeys et constants), pas d'un texte écrit strict. Le champ
+            `avertissement` est donc TOUJOURS non null pour rappeler aux
+            avocats utilisateurs la nécessité de valider les seuils exacts
+            applicables au cas d'espèce.
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules) est
+            volontairement portée par la migration de SF-213-04b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou DecisionToolVisibilityIntegrityIT
+            (cas réel F-164 staging 2026-04-26 — 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+        </comment>
+
+        <createTable tableName="licenciement_be_formule_claeys_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_licenciement_be_claeys_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_formule_claeys_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_licenciement_be_claeys_case_file"/>
+
+        <createIndex tableName="licenciement_be_formule_claeys_analyses"
+                     indexName="idx_licenciement_be_claeys_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_formule_claeys_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
