@@ -168,6 +168,8 @@ import { LicenciementBeActeEquivalentSectionComponent } from '../licenciement-be
 import { LicenciementBeCct109DeraisonnableSectionComponent } from '../licenciement-be-cct109-deraisonnable-section/licenciement-be-cct109-deraisonnable-section.component';
 // SF-219-02b : section décisionnelle RCC BE longue carrière (BE-only, ALWAYS_ON).
 import { RccBeLongueCarriereSectionComponent } from '../rcc-be-longue-carriere-section/rcc-be-longue-carriere-section.component';
+// SF-219-01b : section décisionnelle RCC métiers lourds BE (BE-only, ALWAYS_ON).
+import { RccBeMetiersLourdsSectionComponent } from '../rcc-be-metiers-lourds-section/rcc-be-metiers-lourds-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2149,6 +2151,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-01b : RCC métiers lourds BE (CCT 17 + AR 03/05/2007 art. 3).
+      // Analyseur d'éligibilité 2 verdicts (ELIGIBLE / INELIGIBLE) avec
+      // raison précise (DEMISSION / AGE_INSUFFISANT / CARRIERE_INSUFFISANTE
+      // / DUREE_METIER_LOURD_INSUFFISANTE). Conditions cumulatives :
+      // licenciement effectif ; âge ≥ 58 ; carrière ≥ 35 ; 5/10 OU 7/15
+      // en métier lourd. BE-only, ALWAYS_ON priority 119 (juste au-dessus
+      // de licenciement-be-cct109-deraisonnable = 118). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213 vagues 6b-10b —
+      // qualification métier lourd / carrière non extractible V1). Distinct
+      // de rcc-be-conditions (F-207 SF-207-06b — RCC général 60+/40) et de
+      // rcc-be-indemnite-complementaire (F-207 SF-207-07b — calcul transverse).
+      ['rcc-be-metiers-lourds', {
+        displayLabel: 'RCC métiers lourds (Belgique)',
+        component: RccBeMetiersLourdsSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-02b : RCC BE — longue carrière (Loi 26/12/2013 + CCT n° 17
       // du 19/12/1974 + AR 03/05/2007 art. 3). Analyseur 4 verdicts
       // (ELIGIBLE_RCC_LONGUE_CARRIERE / INELIGIBLE_DEMISSION /
@@ -3308,6 +3333,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (4 verdicts ACTE_EQUIPOLLENT_PROBABLE / PAS / RISQUE_ACCEPTATION_TACITE
     // / A_ANALYSER). Thème VALIDITE (parité vagues précédentes F-213 BE).
     ['licenciement-be-acte-equivalent', 'VALIDITE'],
+    // SF-219-01b — analyseur d'éligibilité RCC métiers lourds BE
+    // (2 verdicts ELIGIBLE / INELIGIBLE + 4 raisons). Thème VALIDITE
+    // (analyse d'éligibilité, cohérent avec rcc-be-conditions /
+    // outplacement-be-obligatoire-45 / autres analyseurs F-207 / F-213).
+    ['rcc-be-metiers-lourds', 'VALIDITE'],
     // SF-213-06b : transaction de fin de contrat BE (art. 2044 Cciv +
     // Loi 03/07/1978 art. 6). Analyseur de validité 4 états + checklist
     // renonciations + ratio. Thème VALIDITE — analyseur de validité du

@@ -1,0 +1,237 @@
+<div class="rcc-be-metiers-lourds-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">construction</mat-icon>
+    <span class="section-title">RCC métiers lourds (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="rcc-be-metiers-lourds-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (CCT n° 17 + AR du 03/05/2007 art. 3 — régime de chômage avec
+            complément d'entreprise pour les travailleurs en métier lourd
+            58+/35 ans). La France n'a pas d'équivalent direct
+            (pré-retraite supprimée en 2010 ; dispositifs amiante / C2P
+            pénibilité distincts).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Détermine l'éligibilité au <b>RCC métiers lourds</b> (régime
+            BE de chômage avec complément d'entreprise pour les
+            travailleurs ayant exercé un métier lourd).
+            Conditions cumulatives : <b>licenciement effectif</b>, âge ≥ 58
+            ans, carrière ≥ 35 ans, et 5 ans en métier lourd dans les 10
+            dernières années <b>OU</b> 7 ans dans les 15 dernières années.
+            Fondement : <b>CCT n° 17</b> du 19/12/1974 + <b>AR du 03/05/2007
+            art. 3</b>. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Âge fin de contrat * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Âge à la fin du contrat *</mat-label>
+                <input matInput
+                       type="number"
+                       min="18"
+                       max="80"
+                       step="1"
+                       required
+                       [ngModel]="ageFinContrat()"
+                       (ngModelChange)="onAgeFinContratChange($event)"
+                       name="ageFinContrat" />
+                <mat-hint>Années. Seuil RCC métiers lourds : ≥ 58 ans.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Carrière totale * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Carrière professionnelle totale *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="60"
+                       step="1"
+                       required
+                       [ngModel]="anneesCarriereTotal()"
+                       (ngModelChange)="onAnneesCarriereTotalChange($event)"
+                       name="anneesCarriereTotal" />
+                <mat-hint>Années. Seuil : ≥ 35 ans (cumul de toutes périodes salariées).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Métier lourd 10 dernières années * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Métier lourd sur les 10 dernières années *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="10"
+                       step="1"
+                       required
+                       [ngModel]="anneesMetierLourdRecent10()"
+                       (ngModelChange)="onAnneesMetierLourdRecent10Change($event)"
+                       name="anneesMetierLourdRecent10" />
+                <mat-hint>Années. Seuil alternatif n° 1 : ≥ 5 ans.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Métier lourd 15 dernières années * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Métier lourd sur les 15 dernières années *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="15"
+                       step="1"
+                       required
+                       [ngModel]="anneesMetierLourdRecent15()"
+                       (ngModelChange)="onAnneesMetierLourdRecent15Change($event)"
+                       name="anneesMetierLourdRecent15" />
+                <mat-hint>Années. Seuil alternatif n° 2 : ≥ 7 ans.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Type métier lourd * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de métier lourd *</mat-label>
+                <mat-select
+                    [value]="typeMetierLourd()"
+                    (selectionChange)="onTypeMetierLourdChange($event.value)"
+                    name="typeMetierLourd"
+                    required>
+                  <mat-option value="EQUIPES_SUCCESSIVES_NUIT">
+                    Équipes successives avec prestations de nuit
+                  </mat-option>
+                  <mat-option value="INTERRUPTIONS_HORAIRES_VARIABLES">
+                    Interruptions à horaires variables (jour-nuit)
+                  </mat-option>
+                  <mat-option value="TRAVAIL_PENIBLE">
+                    Travail pénible (manutention, construction, mines)
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre métier lourd (à justifier)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Liste non exhaustive — les annexes AR et arrêtés
+                  ministériels en vigueur doivent être vérifiés.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Licenciement effectif -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                [checked]="licenciementEffectif()"
+                (change)="onLicenciementEffectifChange($event.checked)"
+                name="licenciementEffectif">
+                Le contrat a été rompu par licenciement de l'employeur
+              </mat-checkbox>
+              <span class="checkbox-help">
+                Le RCC est <b>strictement réservé au licenciement</b>.
+                Décochez si le travailleur a démissionné — l'éligibilité
+                sera refusée (motif {{ '\{' }}DEMISSION_NON_ELIGIBLE{{ '\}' }}).
+              </span>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'éligibilité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="rcc-be-metiers-lourds-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                {{ typeMetierLourdLabel(result()!.typeMetierLourd) }} —
+                {{ result()!.ageFinContrat }} ans,
+                {{ result()!.anneesCarriereTotal }} ans de carrière
+              </div>
+            </div>
+          </div>
+
+          <!-- Raison inéligibilité -->
+          @if (result()!.verdict === 'INELIGIBLE' && result()!.raisonIneligibilite) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ raisonIneligibiliteLabel() }}</span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
