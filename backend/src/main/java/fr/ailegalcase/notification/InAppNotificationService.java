@@ -21,6 +21,14 @@ import static fr.ailegalcase.shared.OAuthProviderResolver.resolve;
 @Service
 public class InAppNotificationService {
 
+    // SF-113-04 — limites alignées sur les colonnes de la migration 052-create-in-app-notifications.xml.
+    // Toute valeur dépassant est tronquée avec ellipsis avant persist (défense en profondeur appliquée
+    // dans create() pour couvrir les 5+ callers existants en un seul point — cf. HF-2026-05-27-02).
+    static final int TITLE_MAX = 255;
+    static final int MESSAGE_MAX = 1000;
+    static final int LINK_MAX = 500;
+    private static final String ELLIPSIS = "…";
+
     private final InAppNotificationRepository notificationRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
@@ -36,6 +44,8 @@ public class InAppNotificationService {
     /**
      * Creates a notification for a specific user in a workspace.
      * Called internally by event listeners — not exposed via REST.
+     * SF-113-04 : tronque title/message/link à la longueur max de la colonne DB
+     * pour éviter les DataIntegrityViolationException sur des labels longs.
      */
     @Transactional
     public InAppNotification create(UUID userId, UUID workspaceId, NotificationType type,
@@ -44,10 +54,20 @@ public class InAppNotificationService {
         notification.setUserId(userId);
         notification.setWorkspaceId(workspaceId);
         notification.setType(type);
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setLink(link);
+        notification.setTitle(truncateWithEllipsis(title, TITLE_MAX));
+        notification.setMessage(truncateWithEllipsis(message, MESSAGE_MAX));
+        notification.setLink(truncateWithEllipsis(link, LINK_MAX));
         return notificationRepository.save(notification);
+    }
+
+    /**
+     * Tronque la valeur à maxLen caractères en remplaçant le dernier caractère
+     * par une ellipsis si la chaîne dépasse — préserve la lisibilité et indique
+     * visuellement la troncation à l'utilisateur.
+     */
+    private static String truncateWithEllipsis(String value, int maxLen) {
+        if (value == null || value.length() <= maxLen) return value;
+        return value.substring(0, maxLen - 1) + ELLIPSIS;
     }
 
     @Transactional(readOnly = true)
