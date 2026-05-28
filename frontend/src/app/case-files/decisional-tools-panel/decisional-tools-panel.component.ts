@@ -219,8 +219,10 @@ import { EgaliteFemmesHommesBeSectionComponent } from '../egalite-femmes-hommes-
 import { DiscriminationBeHandicapAmenagementSectionComponent } from '../discrimination-be-handicap-amenagement-section/discrimination-be-handicap-amenagement-section.component';
 // SF-219-24b : section décisionnelle Code pénal social BE — Loi 06/06/2010 (BE-only, ALWAYS_ON, qualification d'infraction + niveau de sanction 1 à 4).
 import { CodePenalSocialBeSectionComponent } from '../code-penal-social-be-section/code-penal-social-be-section.component';
-// SF-219-25b : section décisionnelle Auditorat du travail BE — Code judiciaire art. 138bis + CIC art. 24 + Loi 03/08/1992 (BE-only, ALWAYS_ON, orientation et checklist de saisine).
+// SF-219-25b : section décisionnelle Auditorat du travail BE.
 import { AuditoratTravailBeSectionComponent } from '../auditorat-travail-be-section/auditorat-travail-be-section.component';
+// SF-219-26b : section décisionnelle Travail noir BE DIMONA.
+import { TravailNoirBeDimonaSectionComponent } from '../travail-noir-be-dimona-section/travail-noir-be-dimona-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3091,6 +3093,37 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-26b : Travail noir BE — DIMONA, requalification et
+      // sanctions (Loi-programme 24/12/2002 art. 167-184 + AR 05/11/2002
+      // + Code pénal social art. 181 niveau 4 + Loi 22/04/2003 art. 28
+      // amende ONSS forfaitaire 3 ×). Analyse 6 verdicts (DIMONA_CONFORME
+      // / TARDIVE_REGULARISABLE / ABSENCE_NIVEAU_4 / REQUALIFICATION_
+      // PRESUMEE / INDEPENDANT_REQUALIFIE / A_QUALIFIER) avec calcul
+      // cotisations ONSS rétroactives (employeur ~25 % + travailleur
+      // 13,07 %), amende ONSS forfaitaire 3 × cotisations dues, sanction
+      // pénale art. 181 niveau 4 (300/600 - 3000/6000 €, emprisonnement
+      // 6-36 mois) + présomption salariat art. 328, requalification faux
+      // indépendant Loi-programme I 27/12/2006 art. 333. ALWAYS_ON
+      // priority 144 (au-dessus de auditorat-travail-be = 143 SF-219-25b,
+      // code-penal-social-be = 142 SF-219-24b, discrimination-be-handicap-
+      // amenagement = 141 SF-219-23b). Pré-fill IA V1 : aucun champ
+      // (alignement pattern uniforme F-213 / F-219 — statut DIMONA,
+      // dates, salaire, nombre travailleurs, personne morale, récidive,
+      // éléments subordination non extractibles du dossier salarié —
+      // relèvent du procès-verbal d'inspection sociale / extrait ONSS /
+      // audition travailleur).
+      ['travail-noir-be-dimona', {
+        displayLabel: 'Travail noir DIMONA (Belgique)',
+        component: TravailNoirBeDimonaSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4459,15 +4492,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // restitution de la peine encourue — pas de chiffrage indemnitaire
     // (distinct des outils INDEMNITES rappel-salaire-be, formule-claeys).
     ['code-penal-social-be', 'VALIDITE'],
-    // SF-219-25b : Auditorat du travail BE (orientation et checklist
-    // de saisine du parquet spécialisé en droit social pénal).
-    // Thème VALIDITE — l'outil qualifie la pertinence procédurale
-    // d'une saisine de l'auditorat (compétence, mode adéquat,
-    // prescription, urgence) sans produire de chiffrage indemnitaire.
-    // Cohérent avec les autres outils d'orientation procédurale
-    // pénale-statutaire BE (code-penal-social-be VALIDITE,
-    // harcelement-be-procedure-formelle VALIDITE).
+    // SF-219-25b : Auditorat du travail BE
     ['auditorat-travail-be', 'VALIDITE'],
+    // SF-219-26b : Travail noir BE — DIMONA
+    ['travail-noir-be-dimona', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
