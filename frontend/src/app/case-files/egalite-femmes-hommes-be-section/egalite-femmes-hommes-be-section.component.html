@@ -1,0 +1,367 @@
+<div class="egalite-femmes-hommes-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">balance</mat-icon>
+    <span class="section-title">Égalité salariale F/H (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="egalite-femmes-hommes-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 22/04/2012 visant à lutter contre l'écart salarial
+            entre hommes et femmes + AR du 17/08/2013 + AR du 25/04/2014
+            + CCT n° 25 + C. pén. social art. 195/1). Le régime français
+            d'index égalité professionnelle (<b>Index égalité</b>,
+            C. trav. art. L. 1142-7 et suivants ; Décret n° 2019-15 du
+            08/01/2019) constitue un dispositif juridiquement distinct :
+            notation 100 points, plan de rattrapage si &lt; 75/100,
+            publication obligatoire. Aucune transposition mécanique
+            n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la <b>conformité de l'employeur BE à l'obligation
+            rapport biennal égalité salariale H/F</b> (art. 2 Loi du
+            22/04/2012 — employeurs ≥ 50 travailleurs ETP, dépôt au
+            CE / DS + EBES BNB), la <b>ventilation art. 4 AR
+            17/08/2013</b> (5 sections : niveau de fonction, ancienneté,
+            qualification, régime de travail, composants de
+            rémunération), le <b>plan d'action art. 5</b> en cas
+            d'écart non justifié, et identifie les manquements exposant
+            l'employeur à la sanction de niveau 2 (C. pén. social
+            art. 195/1) et à l'action en cessation par les organisations
+            syndicales / IEFH. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Effectif entreprise * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif moyen ETP de l'entreprise *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="1000000"
+                       step="1"
+                       required
+                       [ngModel]="effectifEntreprise()"
+                       (ngModelChange)="onEffectifEntrepriseChange($event)"
+                       name="effectifEntreprise" />
+                <mat-hint>Seuil 50 (art. 2 § 1er) — 100 (formulaire détaillé ann. I AR 25/04/2014).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Statut rapport * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut du rapport biennal *</mat-label>
+                <mat-select
+                    [value]="statutRapport()"
+                    (selectionChange)="onStatutRapportChange($event.value)"
+                    name="statutRapport"
+                    required>
+                  <mat-option value="DEPOSE_FORMULAIRE_COMPLET">
+                    Rapport déposé — formulaire complet
+                  </mat-option>
+                  <mat-option value="DEPOSE_FORMULAIRE_INCOMPLET">
+                    Rapport déposé — formulaire incomplet
+                  </mat-option>
+                  <mat-option value="EN_PREPARATION">
+                    Exercice biennal en cours — collecte engagée
+                  </mat-option>
+                  <mat-option value="NON_DEPOSE_DELAI_DEPASSE">
+                    Délai dépassé sans rapport — manquement frontal
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Statut indéterminé (analyse cas par cas)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Aiguille le verdict — art. 2 Loi 22/04/2012.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date dépôt rapport (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de dépôt du rapport (facultatif)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDepotRapport()"
+                       (ngModelChange)="onDateDepotRapportChange($event)"
+                       name="dateDepotRapport" />
+                <mat-hint>Dépôt CE / DS (à défaut) + EBES BNB.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Pourcentage écart constaté (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Pourcentage de l'écart constaté (% — facultatif)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="100"
+                       step="0.01"
+                       [ngModel]="pourcentageEcartConstate()"
+                       (ngModelChange)="onPourcentageEcartConstateChange($event)"
+                       name="pourcentageEcartConstate" />
+                <mat-hint>Magnitude indicative — informatif (le verdict dépend de l'existence + plan).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Ventilation niveau fonction * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ventilationNiveauFonctionFournie() === true"
+                  [indeterminate]="ventilationNiveauFonctionFournie() === null"
+                  (change)="onVentilationNiveauFonctionFournieChange($event.checked)"
+                  name="ventilationNiveauFonctionFournie">
+                <b>Ventilation par niveau de fonction</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Classification conventionnelle (art. 4 AR 17/08/2013).
+              </small>
+            </div>
+
+            <!-- 6. Ventilation ancienneté * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ventilationAncienneteFournie() === true"
+                  [indeterminate]="ventilationAncienneteFournie() === null"
+                  (change)="onVentilationAncienneteFournieChange($event.checked)"
+                  name="ventilationAncienneteFournie">
+                <b>Ventilation par ancienneté</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Tranches d'ancienneté (art. 4 AR 17/08/2013).
+              </small>
+            </div>
+
+            <!-- 7. Ventilation qualification * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ventilationQualificationFournie() === true"
+                  [indeterminate]="ventilationQualificationFournie() === null"
+                  (change)="onVentilationQualificationFournieChange($event.checked)"
+                  name="ventilationQualificationFournie">
+                <b>Ventilation par niveau de qualification</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Niveau de qualification requis du poste (art. 4 AR 17/08/2013).
+              </small>
+            </div>
+
+            <!-- 8. Ventilation régime travail * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ventilationRegimeTravailFournie() === true"
+                  [indeterminate]="ventilationRegimeTravailFournie() === null"
+                  (change)="onVentilationRegimeTravailFournieChange($event.checked)"
+                  name="ventilationRegimeTravailFournie">
+                <b>Ventilation par régime de travail</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Temps plein / temps partiel (art. 4 AR 17/08/2013).
+              </small>
+            </div>
+
+            <!-- 9. Ventilation composants rémunération * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ventilationComposantsRemunerationFournie() === true"
+                  [indeterminate]="ventilationComposantsRemunerationFournie() === null"
+                  (change)="onVentilationComposantsRemunerationFournieChange($event.checked)"
+                  name="ventilationComposantsRemunerationFournie">
+                <b>Ventilation par composants de la rémunération</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Salaire de base, primes, avantages complémentaires séparés (art. 4 AR 17/08/2013).
+              </small>
+            </div>
+
+            <!-- 10. Écart salarial non justifié constaté * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ecartSalarialNonJustifieConstate() === true"
+                  [indeterminate]="ecartSalarialNonJustifieConstate() === null"
+                  (change)="onEcartSalarialNonJustifieConstateChange($event.checked)"
+                  name="ecartSalarialNonJustifieConstate">
+                <b>Écart salarial non justifié constaté</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Résultat de l'analyse art. 5 Loi 22/04/2012 — déclenche l'obligation plan d'action.
+              </small>
+            </div>
+
+            <!-- 11. Plan d'action établi * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="planActionEtabli() === true"
+                  [indeterminate]="planActionEtabli() === null"
+                  (change)="onPlanActionEtabliChange($event.checked)"
+                  name="planActionEtabli">
+                <b>Plan d'action concret établi</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Objectifs chiffrés + calendrier — CCT sectorielle ou 6 mois (art. 5 Loi 22/04/2012).
+              </small>
+            </div>
+
+            <!-- 12. Médiateur désigné * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="mediateurDesigne() === true"
+                  [indeterminate]="mediateurDesigne() === null"
+                  (change)="onMediateurDesigneChange($event.checked)"
+                  name="mediateurDesigne">
+                <b>Médiateur égalité H/F désigné</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Faculté art. 14 Loi 22/04/2012 + CCT n° 25 — bonne pratique.
+              </small>
+            </div>
+
+            <!-- 13. Plainte IEFH / inspection en cours * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="plainteIefhOuInspectionEnCours() === true"
+                  [indeterminate]="plainteIefhOuInspectionEnCours() === null"
+                  (change)="onPlainteIefhOuInspectionEnCoursChange($event.checked)"
+                  name="plainteIefhOuInspectionEnCours">
+                <b>Plainte IEFH ou inspection SPF Emploi en cours</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Contentieux en cours — IEFH / SPF Emploi.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'égalité H/F</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="egalite-femmes-hommes-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutRapportLabel(result()!.statutRapport) }}</b> —
+                Formulaire : <b>{{ formulaireLabel(result()!.typeFormulaireRequis) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation conformités -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Détail des contrôles de conformité</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">groups</mat-icon>
+              <span class="ventilation-label">Seuil 50 travailleurs atteint</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.seuilAtteint) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">description</mat-icon>
+              <span class="ventilation-label">Rapport biennal déposé</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.rapportDepose) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">view_list</mat-icon>
+              <span class="ventilation-label">Ventilation 5 sections complète (art. 4 AR 17/08/2013)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.ventilationComplete) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">trending_up</mat-icon>
+              <span class="ventilation-label">Plan d'action requis (écart constaté)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.planActionRequis) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">checklist</mat-icon>
+              <span class="ventilation-label">Plan d'action conforme</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.planActionConforme) }}</span>
+            </div>
+
+            @if (result()!.pourcentageEcartConstate !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">percent</mat-icon>
+                <span class="ventilation-label">Pourcentage écart constaté</span>
+                <span class="ventilation-value mono">{{ formatPourcentage(result()!.pourcentageEcartConstate) }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
