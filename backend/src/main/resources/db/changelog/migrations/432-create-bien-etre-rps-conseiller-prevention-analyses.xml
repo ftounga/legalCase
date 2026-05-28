@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="81b7e071-1642-49f6-ac5d-d9fe06e2792a" author="claude">
+        <comment>
+            SF-219-30 : table dédiée à l'outil décisionnel
+            Saisine du Conseiller en Prévention Aspects Psychosociaux
+            CPAP procédure RPS interne BE
+            (bien-etre-rps-conseiller-prevention, BELGIQUE — fondement :
+            Loi du 04/08/1996 M.B. 18/09/1996 relative au bien-être des
+            travailleurs lors de l'exécution de leur travail
+            art. 32sexies organisation de la prévention des risques
+            psychosociaux désignation obligatoire du Conseiller en
+            Prévention Aspects Psychosociaux par l'employeur paragraphe
+            2 et protection contre les représailles douze mois
+            post-dépôt de la demande formelle ; Loi du 04/08/1996
+            art. 32 paragraphe 1 alinéa 2 introduit par la Loi du
+            28/02/2014 M.B. 28/04/2014 définition étendue des risques
+            psychosociaux harcèlement moral harcèlement sexuel violence
+            au travail autres risques stress burn-out conflits
+            interpersonnels qualifiés charge mentale ; AR du 10/04/2014
+            M.B. 28/04/2014 relatif à la prévention des risques
+            psychosociaux au travail art. 11 à 13 analyse des risques
+            psychosociaux par l'employeur et mesures de prévention
+            collective art. 14 à 16 demande d'intervention
+            psychosociale informelle médiation interne confidentielle
+            sans rapport adressé à l'employeur art. 16 paragraphe 1
+            entretien préalable obligatoire avec le CPAP avant tout
+            dépôt de demande formelle fixé dans les dix jours
+            calendrier du premier contact art. 16 paragraphes 2 et 3
+            formalisme demande formelle écrite signée datée avec
+            description des faits personnes impliquées et mesures
+            souhaitées art. 16 paragraphe 4 accusé de réception remis
+            au travailleur dans les dix jours art. 17 paragraphe 1
+            notification de la demande à l'employeur par le CPAP après
+            acceptation art. 22 paragraphe 1 délai de trois mois pour
+            rendre l'avis motivé prolongeable de trois mois sur demande
+            motivée six mois maximum art. 32 délai de deux mois pour
+            l'employeur pour notifier les mesures prises au CPAP et au
+            travailleur ; CCT n° 72 du 30/03/1999 rendue obligatoire
+            par AR du 21/06/1999 M.B. 09/07/1999 gestion du stress au
+            travail prévention collective ; Cass. BE 23/12/2014
+            S.14.0026.N interprétation stricte du formalisme de la
+            demande formelle écrit signature contenu pour la validité
+            de la saisine ; Cass. BE 20/01/2014 S.12.0064.F protection
+            douze mois art. 32sexies opposable même si la qualification
+            harcèlement n'est finalement pas retenue dès lors que la
+            demande formelle a été déposée de bonne foi.
+
+            L'outil analyse une situation de saisine du Conseiller en
+            Prévention Aspects Psychosociaux sous l'angle procédural
+            cumulatif :
+            - Type de risque psychosocial HARCELEMENT_MORAL ou
+              HARCELEMENT_SEXUEL ou VIOLENCE_AU_TRAVAIL ou AUTRES_RPS.
+            - Mode de demande INFORMELLE médiation interne
+              confidentielle ou FORMELLE_INDIVIDUELLE enquête écrite
+              individualisée ou FORMELLE_COLLECTIVE analyse
+              organisationnelle.
+            - Étape procédurale INTENTION_DEMANDE ou
+              ENTRETIEN_PREALABLE_REALISE ou
+              DEMANDE_INFORMELLE_EN_COURS ou
+              DEMANDE_FORMELLE_DEPOSEE ou AVIS_RENDU ou
+              MESURES_PRISES_PAR_EMPLOYEUR.
+            - Conseiller en Prévention Aspects Psychosociaux CPAP
+              identifié et désigné par l'employeur SIPP interne ou
+              SEPP externe paragraphe 2 art. 32sexies Loi 04/08/1996.
+            - Entretien préalable obligatoire art. 16 paragraphe 1
+              AR 10/04/2014 réalisé.
+            - Demande écrite signée datée art. 16 paragraphes 2 et 3
+              AR 10/04/2014 pour la voie formelle.
+            - Accusé de réception remis par le CPAP art. 16 paragraphe
+              4 AR 10/04/2014.
+            - Notification de la demande à l'employeur par le CPAP
+              après acceptation art. 17 paragraphe 1 AR 10/04/2014.
+            - Date de dépôt de la demande pour calcul du délai trois
+              mois enquête art. 22 paragraphe 1 AR 10/04/2014 et
+              fenêtre protection représailles douze mois art. 32sexies.
+            - Date de l'avis motivé rendu pour vérification du
+              respect du délai et calcul délai mesures employeur deux
+              mois art. 32 AR 10/04/2014.
+
+            Calcule :
+            - Drapeau formalités préalables complètes selon le mode
+              de demande informelle entretien suffit ou formelle
+              entretien plus écrit signé plus accusé de réception.
+            - Drapeau délai enquête respecté pour les étapes avis
+              rendu ou mesures employeur.
+            - Échéance enquête trois mois date dépôt plus trois mois.
+            - Échéance mesures employeur deux mois date avis plus
+              deux mois.
+            - Fin protection représailles date dépôt plus douze mois.
+            - Drapeau protection représailles active uniquement pour
+              les modes formels art. 32sexies Loi 04/08/1996.
+
+            Verdict : SAISINE_CONFORME si préparation conforme avant
+            dépôt formel ; SAISINE_INFORMELLE_EN_COURS si médiation
+            interne en cours ; SAISINE_FORMELLE_EN_COURS si enquête
+            CPAP dans les trois mois légaux ; AVIS_RENDU_DELAI_RESPECTE
+            si avis motivé rendu dans les délais légaux trois ou six
+            mois ; AVIS_RENDU_DELAI_DEPASSE si avis hors délai
+            irrégularité mais avis valide délai d'ordre ;
+            NON_CONFORME_FORMALITES_MANQUANTES si entretien préalable
+            non réalisé ou demande non écrite ou non signée ou accusé
+            de réception manquant pour une demande formelle ;
+            NON_CONFORME_PAS_DE_CONSEILLER si aucun CPAP désigné
+            manquement employeur paragraphe 2 art. 32sexies ;
+            A_QUALIFIER si inputs contradictoires nécessitant analyse
+            complémentaire avocat.
+
+            Outil single-country BELGIQUE — la France a un régime
+            distinct Code du travail FR art. L. 4121-1 et suivants
+            obligation employeur de sécurité et art. L. 1153-5-1
+            référent harcèlement art. R. 4121-1 document unique
+            d'évaluation des risques DUERP. Restitution séparée par
+            outil — pas de tentative d'harmonisation FR BE.
+
+            Articulation avec les outils harcèlement BE existants :
+            SF-213-07 harcelement-be-procedure-formelle couvre la
+            checklist détaillée d'une demande formelle déjà déposée
+            et la protection douze mois art. 32sexies une fois la
+            saisine acquise ; F-DT-30 harcelement-licenciement-nul-section
+            couvre la nullité du licenciement représailles ; SF-219-30
+            présente couvre la conformité procédurale de la saisine
+            elle-même entretien préalable formalisme écrit délais en
+            amont — étape distincte non recouvrante.
+
+            Snapshot JSON complet inputs plus outputs verdict, drapeau
+            formalités complètes, drapeau délai enquête respecté,
+            échéance enquête trois mois, échéance mesures employeur
+            deux mois, fin protection représailles douze mois, drapeau
+            protection active, raison code, synthèse texte, base
+            juridique, avertissement avocat — pour permettre la
+            restitution UI sans recalcul pattern uniforme F-DT-42 /
+            SF-213-01 à SF-213-10 / SF-219-01 à SF-219-29.
+
+            La règle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portée par la
+            migration de SF-219-30b frontend, couplée à l'entrée
+            TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 treize tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id bien-etre-rps-conseiller-prevention est ajouté
+            dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès le
+            seed visibility par SF-219-30b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-29b.
+        </comment>
+
+        <createTable tableName="bien_etre_rps_conseiller_prevention_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_bien_etre_rps_cp_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="bien_etre_rps_conseiller_prevention_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_bien_etre_rps_cp_case_file"/>
+
+        <createIndex tableName="bien_etre_rps_conseiller_prevention_analyses"
+                     indexName="idx_bien_etre_rps_cp_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="bien_etre_rps_conseiller_prevention_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

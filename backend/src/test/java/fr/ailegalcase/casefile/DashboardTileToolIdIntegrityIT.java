@@ -834,7 +834,30 @@ class DashboardTileToolIdIntegrityIT {
             // SF-219-29b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "at-mp-rente-capital-be"
+            "at-mp-rente-capital-be",
+            // SF-219-30 (2026-05-28) : bien-etre-rps-conseiller-prevention
+            // — backend Loi 04/08/1996 art. 32sexies + AR 10/04/2014
+            // (procédure interne RPS, saisine CPAP). Analyse la conformité
+            // procédurale de la saisine (entretien préalable obligatoire
+            // art. 16 § 1 AR 10/04/2014, formalisme écrit signé daté avec
+            // accusé de réception art. 16 § 2-4, notification employeur
+            // art. 17 § 1, délais 3 mois avis art. 22 § 1 et 2 mois mesures
+            // employeur art. 32, protection 12 mois représailles art.
+            // 32sexies déclenchée uniquement par la demande formelle Cass.
+            // BE 20/01/2014 S.12.0064.F, formalisme strict Cass. BE
+            // 23/12/2014 S.14.0026.N). Verdicts : SAISINE_CONFORME,
+            // SAISINE_INFORMELLE_EN_COURS, SAISINE_FORMELLE_EN_COURS,
+            // AVIS_RENDU_DELAI_RESPECTE, AVIS_RENDU_DELAI_DEPASSE,
+            // NON_CONFORME_FORMALITES_MANQUANTES,
+            // NON_CONFORME_PAS_DE_CONSEILLER, A_QUALIFIER. Distinct de
+            // SF-213-07 harcelement-be-procedure-formelle (procédure
+            // formelle déjà déposée + protection 12 mois) et F-DT-30
+            // harcelement-licenciement-nul-section (nullité représailles).
+            // Frontend SF-219-30b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "bien-etre-rps-conseiller-prevention"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
