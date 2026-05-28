@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b0a42121-ca13-49c8-8139-b2a415d489d9" author="claude">
+        <comment>
+            SF-219-14b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel statut intérim BE — CCT n° 322
+            (interim-be-cct-322, BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses
+            créée par SF-219-14 (migration 400).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            la date de début de la mission intérimaire chez l'utilisateur,
+            ni le motif limitativement énuméré (remplacement permanent /
+            surcroît temporaire / travail exceptionnel AR 11/10/1976 /
+            insertion en vue d'embauche durable CCT 108 / motif artistique
+            art. 1bis § 4 / flux de travaux exceptionnels trajet scolaire /
+            autre non autorisé), ni le flag remplacement de grève ou
+            lock-out art. 19 (interdiction absolue), ni la durée totale
+            cumulée des contrats successifs et le plafond légal applicable
+            au motif (paramétrable selon AR / CCT), ni les salaires
+            horaires intérimaire vs permanent de référence de même
+            qualification chez l'utilisateur (parité art. 10), ni le
+            formalisme cumulatif (contrat écrit ETI/intérimaire art. 8 § 1
+            + déclaration Dimona ETI DmfA ONSS). Aucun flag DB CONTEXTUAL
+            fiable n'est disponible ; l'introduire pour un seul outil
+            ajouterait une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (date mission ETI /
+               motif limitatif / drapeau grève/lock-out / durée cumulée
+               et plafond applicable / parité salariale utilisateur /
+               formalisme Dimona ETI) non couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque une mission intérimaire (contrat de travail
+               intérimaire, contrat de mise à disposition utilisateur,
+               attestation Dimona ETI, fiche de paie intérimaire) pour
+               vérifier la régularité par les 4 dimensions cumulatives
+               et apprécier le risque de requalification en CDI utilisateur.
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-131) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b parallèle)
+                 - 132 cette migration (interim-be-cct-322)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE côté composant masque le contenu en cas de
+               dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY interim-be-cct-322 livrée
+            dans decisional-tools-panel.component.ts (cf. SF-219-14b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26, mémoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id interim-be-cct-322 déjà ajouté à
+            KNOWN_NO_DASHBOARD_TILE_IDS côté backend par SF-219-14 (PR #1408,
+            préventif). Aucune tuile dashboard n'est associée — l'outil est
+            consulté uniquement depuis le panel décisionnel du case file.
+
+            Fondement juridique :
+            - Loi du 24/07/1987 relative au travail temporaire, au travail
+              intérimaire et à la mise de travailleurs à la disposition
+              d'utilisateurs (M.B. 20/08/1987) :
+                * art. 1er § 1 — motifs limitativement énumérés
+                  (remplacement permanent / surcroît temporaire / travail
+                  exceptionnel AR 11/10/1976) ;
+                * art. 1bis — motif insertion en vue d'embauche durable
+                  + motif artistique § 4 ;
+                * art. 8 § 1 — contrat de travail écrit ETI/intérimaire
+                  obligatoire à peine de requalification ;
+                * art. 9 — contrat de mise à disposition écrit ETI/utilisateur ;
+                * art. 10 — parité salariale stricte (intérimaire perçoit
+                  la même rémunération brute + primes + chèques-repas
+                  qu'un permanent de même qualification chez l'utilisateur) ;
+                * art. 19 — interdiction absolue de remplacement
+                  travailleur en grève ou lock-out (présomption irréfragable
+                  de fraude) ;
+                * art. 20 — sanction : requalification CDI utilisateur
+                  avec rétroactivité + responsabilité solidaire ETI/utilisateur
+                  pour cotisations ONSS éludées, salaires arriérés,
+                  indemnités de rupture et sanctions administratives ONSS.
+            - CCT n° 322 du 14/06/2010 conclue au Conseil National du
+              Travail (CNT) — responsabilité solidaire ETI/utilisateur,
+              parité salariale stricte (art. 3 CCT 322).
+            - CCT n° 108 du 16/07/2013 du CNT + Loi 26/06/2013 — motif
+              insertion en vue d'embauche durable (max 3 tentatives,
+              6 mois cumulés par tentative, 9 mois cumulés au total).
+            - AR du 11/10/1976 — liste limitative des cas de travail
+              exceptionnel (inventaires, déménagements d'établissement,
+              foires, expositions, événements culturels et sportifs)
+              avec durées énumérées par cas (ex. 3 mois pour les
+              inventaires).
+            - Loi-programme du 27/12/2012 — sanctions ONSS renforcées
+              en cas de fraude au régime intérimaire.
+
+            Régime BE-only — la France dispose d'un régime de travail
+            temporaire (C. trav. art. L. 1251-1 et s.) structurellement
+            différent : motifs limitatifs distincts (L. 1251-6), durée
+            maximale différente (18 mois en général, 24 mois sur
+            certains motifs L. 1251-12), parité salariale similaire
+            mais champ d'application différent (L. 1251-18), formalisme
+            DPAE (déclaration préalable à l'embauche) au lieu de Dimona
+            ETI. Aucune transposition mécanique possible.
+
+            Distinct de :
+            - rcc-be-metiers-lourds (SF-219-01b, prio 119) — régime
+              de chômage avec complément d'entreprise. Sans rapport
+              avec l'intérim (régime d'occupation atypique).
+            - outplacement-be-general-30sem (SF-219-05b, prio 123) —
+              accompagnement obligatoire à la sortie. Sans rapport avec
+              la qualification d'une mission intérimaire.
+            - transfert-entreprise-cct-32bis (SF-219-08b, prio 126) —
+              transfert d'entreprise CCT 32bis. Sans rapport avec la
+              mise à disposition intérimaire.
+            - flexi-job-be (SF-219-12b, prio 130) — régime flexi-job
+              HoReCa et extensions. Logique d'occupation atypique distincte
+              (statut personnel pensionné/4-5e ETP T-3 + secteur paritaire
+              + cotisations spéciales + plafond annuel exonéré).
+            - etudiant-jobiste-be (SF-219-13b, prio 131) — régime
+              étudiant jobiste cotisations de solidarité 5,42 % +
+              plafond 600 h. Distinct (statut étudiant, pas mission ETI).
+            Cet outil intervient à la qualification d'une mission
+            intérimaire — vérifie la régularité par 4 dimensions
+            cumulatives (motif / durée / parité / formalisme) + verdict
+            hiérarchisé 7 états + ventilation jours excédentaires et
+            écart parité salariale.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('b0a42121-ca13-49c8-8139-b2a415d489d9', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'interim-be-cct-322', 'ALWAYS_ON', NULL, NULL, 132);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'b0a42121-ca13-49c8-8139-b2a415d489d9';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

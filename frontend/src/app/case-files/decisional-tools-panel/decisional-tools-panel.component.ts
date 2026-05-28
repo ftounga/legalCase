@@ -195,6 +195,8 @@ import { DelegueSyndicalCct5SectionComponent } from '../delegue-syndical-cct-5-s
 import { CongeEducationPayeRegionSectionComponent } from '../conge-education-paye-region-section/conge-education-paye-region-section.component';
 // SF-219-12b : section décisionnelle Flexi-job BE (BE-only, ALWAYS_ON).
 import { FlexiJobBeSectionComponent } from '../flexi-job-be-section/flexi-job-be-section.component';
+// SF-219-14b : section décisionnelle statut intérim BE — CCT n° 322 (BE-only, ALWAYS_ON).
+import { InterimBeCct322SectionComponent } from '../interim-be-cct-322-section/interim-be-cct-322-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2548,6 +2550,41 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-14b : statut intérim BE — CCT n° 322 (Loi du 24/07/1987
+      // relative au travail temporaire / intérimaire / mise à disposition,
+      // M.B. 20/08/1987 + CCT n° 322 du 14/06/2010 conclue au CNT
+      // responsabilité solidaire ETI/utilisateur + parité salariale stricte
+      // + CCT n° 108 du 16/07/2013 motif insertion en vue d'embauche
+      // durable + AR 11/10/1976 liste limitative cas de travail
+      // exceptionnel + Loi-programme du 27/12/2012 sanctions ONSS
+      // renforcées). Outil BE-only — la France a un régime de travail
+      // temporaire structurellement différent (motifs limitatifs,
+      // plafonds, formalisme DPAE vs Dimona, parité salariale non
+      // mécanique). Verdict hiérarchisé 7 états (ELIGIBLE_MISSION_REGULIERE /
+      // FRAGILE_CONTRAT_OU_DIMONA_MANQUANT / INELIGIBLE_MOTIF_INTERDIT_
+      // GREVE_LOCKOUT / INELIGIBLE_MOTIF_NON_AUTORISE / INELIGIBLE_DUREE_
+      // MAX_DEPASSEE / INELIGIBLE_PARITE_SALARIALE_VIOLEE / A_ANALYSER)
+      // — priorité grève/lock-out → motif → zone grise → durée → parité
+      // → formalisme + ventilation 4 dimensions cumulatives + jours
+      // excédentaires + écart parité salariale. ALWAYS_ON priority 132
+      // (au-dessus de etudiant-jobiste-be = 131 SF-219-13b parallèle et
+      // flexi-job-be = 130 SF-219-12b). Pré-fill IA V1 : aucun champ
+      // (alignement pattern uniforme F-213/F-219 — date mission ETI /
+      // motif limitatif / durée cumulée / parité salariale utilisateur /
+      // formalisme Dimona ETI / paramètres légaux du plafond non
+      // extractibles du dossier salarié principal).
+      ['interim-be-cct-322', {
+        displayLabel: 'Intérim (Belgique — CCT 322)',
+        component: InterimBeCct322SectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3813,6 +3850,16 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // / 1 à analyser). Parité avec les autres analyseurs de validité statutaire
     // BE (delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
     ['flexi-job-be', 'VALIDITE'],
+    // SF-219-14b : Statut intérim BE — CCT n° 322 (Loi du 24/07/1987 +
+    // CCT n° 322 du 14/06/2010 + CCT n° 108 + AR 11/10/1976 +
+    // Loi-programme du 27/12/2012). Thème VALIDITE — l'outil qualifie
+    // la régularité d'une mission intérimaire sur 4 dimensions cumulatives
+    // (motif / durée / parité salariale / formalisme) avec verdict
+    // hiérarchisé 7 états (1 éligible / 1 fragile formalisme / 4 inéligibles
+    // / 1 à analyser zone grise artistique-flux). Parité avec les autres
+    // analyseurs de validité statutaire BE (flexi-job-be,
+    // delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
+    ['interim-be-cct-322', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
