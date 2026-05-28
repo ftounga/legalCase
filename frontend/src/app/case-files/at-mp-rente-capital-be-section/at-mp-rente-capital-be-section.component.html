@@ -1,0 +1,372 @@
+<div class="at-mp-rente-capital-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">account_balance</mat-icon>
+    <span class="section-title">Rente AT/MP vs capitalisation (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="at-mp-rente-capital-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est reserve aux dossiers de droit du travail belge
+            (Loi du 10/04/1971 sur les accidents du travail art. 24 + Lois
+            coordonnees du 03/06/1970 art. 35 + AR du 21/12/1971 +
+            AR du 10/12/1987 + AR du 24/02/2005 — bareme et coefficients
+            d'age). Le regime francais des rentes AT/MP CPAM (art. L.
+            434-1 et s. CSS, seuils 10 pour cent / 50 pour cent au lieu
+            de 19 pour cent BE, bareme indicatif art. R. 434-2
+            differemment construit, recours TASS / Pole social TJ)
+            constitue un dispositif juridiquement distinct. Aucune
+            transposition mecanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement...</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calcule l'indemnite forfaitaire d'incapacite permanente partielle
+            apres consolidation : <b>capital unique forfaitaire</b> si taux
+            IPP inferieur a 19 pour cent (capitalisation d'office art. 24
+            al. 2 Loi 10/04/1971) ou <b>rente annuelle viagere</b> si taux
+            IPP superieur ou egal a 19 pour cent (art. 24 al. 1), avec
+            possibilite de conversion partielle 1/3 max apres 3 ans
+            (art. 45ter Loi 10/04/1971 + AR 10/12/1987). Renseigner
+            l'<b>origine</b> (AT ou MP), le <b>statut de reconnaissance</b>
+            Fedris / assureur-loi, la <b>date de consolidation</b>, le
+            <b>taux IPP</b>, la <b>remuneration de base annuelle</b> (art.
+            34 plafonnee art. 39), la <b>date de naissance</b> et
+            l'eventuelle <b>demande de conversion partielle</b>. Champs
+            marques * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Origine * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Origine de l'incapacite *</mat-label>
+                <mat-select
+                    [value]="origine()"
+                    (selectionChange)="onOrigineChange($event.value)"
+                    name="origine"
+                    required>
+                  <mat-option value="ACCIDENT_TRAVAIL">
+                    Accident du travail (art. 7-8 Loi 10/04/1971)
+                  </mat-option>
+                  <mat-option value="MALADIE_PROFESSIONNELLE">
+                    Maladie professionnelle (Lois coordonnees 03/06/1970)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Aucun effet sur le calcul (renvoi MP au regime AT art. 35) — sert l'intitule du verdict et les voies de recours.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Statut reconnaissance * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut de reconnaissance *</mat-label>
+                <mat-select
+                    [value]="statutReconnaissance()"
+                    (selectionChange)="onStatutReconnaissanceChange($event.value)"
+                    name="statutReconnaissance"
+                    required>
+                  <mat-option value="RECONNU">
+                    Reconnu — decision Fedris / assureur-loi acquise
+                  </mat-option>
+                  <mat-option value="CONTESTE">
+                    Conteste — refus ou taux conteste
+                  </mat-option>
+                  <mat-option value="EN_COURS">
+                    En cours — dossier en instruction
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Le calcul effectif n'est possible qu'en cas de RECONNU avec taux IPP fixe.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date consolidation -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>
+                  Date de consolidation
+                  @if (statutReconnaissance() === 'RECONNU') { <span>*</span> }
+                </mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateConsolidation()"
+                       (ngModelChange)="onDateConsolidationChange($event)"
+                       name="dateConsolidation" />
+                <mat-hint>Date d'arret de l'incapacite temporaire et de fixation du taux IPP par l'expertise medicale (art. 24 paragr. 2 AR 03/07/1996).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Taux IPP -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>
+                  Taux IPP (pourcentage)
+                  @if (statutReconnaissance() === 'RECONNU') { <span>*</span> }
+                </mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="100"
+                       step="0.5"
+                       [ngModel]="tauxIpp()"
+                       (ngModelChange)="onTauxIppChange($event)"
+                       name="tauxIpp" />
+                <mat-hint>Seuil de basculement : moins de 19 pour cent capital unique, 19 pour cent et plus rente annuelle (art. 24 Loi 10/04/1971).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Remuneration de base annuelle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Remuneration de base annuelle (EUR) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationBaseAnnuelle()"
+                       (ngModelChange)="onRemunerationBaseAnnuelleChange($event)"
+                       name="remunerationBaseAnnuelle" />
+                <mat-hint>Art. 34 Loi 10/04/1971 (12 mois precedents) plafonnee art. 39 — 49 853,86 EUR au 01/01/2024, indexe.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date naissance * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance de la victime *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateNaissance()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissance" />
+                <mat-hint>Permet le calcul du coefficient d'age (Table I-bis AR 24/02/2005, decroissant de quasi-13 a 1 an au quasi-0 a 75 ans).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Override age (avance) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Override age a la consolidation (mode scenario)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="120"
+                       step="1"
+                       [ngModel]="ageConsolidationOverride()"
+                       (ngModelChange)="onAgeConsolidationOverrideChange($event)"
+                       name="ageConsolidationOverride" />
+                <mat-hint>Optionnel — laisser vide pour calcul automatique depuis date naissance + date consolidation.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Demande conversion partielle -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                  [ngModel]="demandeConversionPartielle()"
+                  (ngModelChange)="onDemandeConversionPartielleChange($event)"
+                  name="demandeConversionPartielle">
+                Demande de conversion partielle (1/3 max de la rente en capital)
+              </mat-checkbox>
+              <p class="field-hint">
+                Art. 45ter Loi 10/04/1971 + AR 10/12/1987 — possible uniquement
+                apres 3 ans depuis la consolidation (delai d'epreuve art. 24
+                paragr. 3 AR 03/07/1996) et si verdict = RENTE_ANNUELLE_GE_19.
+              </p>
+            </div>
+
+            <!-- 9. Date demande conversion (conditionnel) -->
+            @if (demandeConversionPartielle()) {
+              <div class="field-with-alert field-full-width">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date envisagee de la demande de conversion</mat-label>
+                  <input matInput
+                         type="date"
+                         [ngModel]="dateDemandeConversion()"
+                         (ngModelChange)="onDateDemandeConversionChange($event)"
+                         name="dateDemandeConversion" />
+                  <mat-hint>Mode prospectif. Si vide, prend la date du jour Europe/Brussels.</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la rente / capitalisation</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="at-mp-rente-capital-be-result">
+
+          <!-- Banniere verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Origine : <b>{{ origineLabel(result()!.origine) }}</b>
+                <span> / Statut : <b>{{ statutReconnaissanceLabel(result()!.statutReconnaissance) }}</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation analyse -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Detail du calcul</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">cake</mat-icon>
+              <span class="ventilation-label">Date naissance</span>
+              <span class="ventilation-value mono">{{ formatDate(result()!.dateNaissance) }}</span>
+            </div>
+
+            @if (result()!.dateConsolidation) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">event_available</mat-icon>
+                <span class="ventilation-label">Date consolidation</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateConsolidation) }}</span>
+              </div>
+            }
+
+            @if (result()!.ageConsolidationCalcule !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">hourglass_top</mat-icon>
+                <span class="ventilation-label">Age a la consolidation</span>
+                <span class="ventilation-value mono">{{ formatAge(result()!.ageConsolidationCalcule) }}</span>
+              </div>
+            }
+
+            @if (result()!.tauxIpp !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">percent</mat-icon>
+                <span class="ventilation-label">Taux IPP</span>
+                <span class="ventilation-value mono">{{ formatPourcentage(result()!.tauxIpp) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">euro</mat-icon>
+              <span class="ventilation-label">Remuneration de base annuelle</span>
+              <span class="ventilation-value mono">{{ formatMontant(result()!.remunerationBaseAnnuelle) }}</span>
+            </div>
+
+            @if (result()!.coefficientAge !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">trending_down</mat-icon>
+                <span class="ventilation-label">Coefficient d'age (Table I-bis AR 24/02/2005)</span>
+                <span class="ventilation-value mono">{{ formatCoefficient(result()!.coefficientAge) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">policy</mat-icon>
+              <span class="ventilation-label">Capitalisation d'office (IPP -19)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.capitalisationDoffice) }}</span>
+            </div>
+
+            @if (result()!.renteAnnuelle !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">payments</mat-icon>
+                <span class="ventilation-label">Rente annuelle viagere</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.renteAnnuelle) }}</span>
+              </div>
+            }
+
+            @if (result()!.capitalCapitalisation !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">savings</mat-icon>
+                <span class="ventilation-label">Capital de capitalisation</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.capitalCapitalisation) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">swap_horiz</mat-icon>
+              <span class="ventilation-label">Conversion partielle possible (apres 3 ans + IPP +19)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.conversionPartiellePossible) }}</span>
+            </div>
+
+            @if (result()!.capitalConversionPartielle !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">request_quote</mat-icon>
+                <span class="ventilation-label">Capital conversion partielle (1/3)</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.capitalConversionPartielle) }}</span>
+              </div>
+            }
+
+            @if (result()!.renteResiduelleApresConversion !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">subscriptions</mat-icon>
+                <span class="ventilation-label">Rente residuelle apres conversion (2/3)</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.renteResiduelleApresConversion) }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Synthese -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le resultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

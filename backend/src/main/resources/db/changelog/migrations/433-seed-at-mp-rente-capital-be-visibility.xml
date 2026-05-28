@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="4d639ad3-c3e1-4fa1-adcf-37db3a7c68a0" author="claude">
+        <comment>
+            SF-219-29b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel Rente AT/MP vs capitalisation BE (at-mp-rente-capital-be,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-29 (migration 431).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs medico-juridiques propres au regime de la
+            rente AT/MP BE : origine de l'incapacite (AT au sens art. 7
+            Loi 10/04/1971 vs MP Lois coordonnees 03/06/1970), statut de
+            reconnaissance Fedris / assureur-loi (decision administrative
+            RECONNU / CONTESTE / EN_COURS), date de consolidation
+            (art. 24 paragr. 2 AR 03/07/1996), taux IPP issu de
+            l'expertise medicale, remuneration de base annuelle art. 34
+            Loi 10/04/1971 plafonnee art. 39 (plafond ONSS — 49 853,86
+            EUR au 01/01/2024, indexe annuellement), date de naissance
+            de la victime (utilisee pour le coefficient d'age du bareme
+            Table I-bis AR 24/02/2005, decroissant du quasi-13 a 1 an
+            au quasi-0 a 75 ans), demande de conversion partielle 1/3
+            max apres 3 ans (art. 45ter Loi 10/04/1971 + AR 10/12/1987).
+            Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception
+            isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (qualification
+               medico-juridique AT/MP, statut decisionnel Fedris,
+               dates medicales, taux IPP expertise, remuneration de
+               base art. 34 plafonnee art. 39, coefficient d'age
+               Table I-bis) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une consolidation AT/MP imminente ou acquise
+               (decision Fedris de consolidation notifiee, expertise
+               medicale d'incapacite permanente, projet de rente
+               annuelle, projet de conversion partielle 1/3 art. 45ter,
+               refus de reconnaissance avec recours tribunal du travail
+               art. 580 1 C. jud., contestation du taux IPP attribue,
+               articulation avec l'outil SF-219-28b mp-fedris-reconnaissance
+               en amont pour la qualification MP avant chiffrage des
+               indemnites). L'outil restitue le verdict 5 etats
+               (CAPITAL_FORFAITAIRE_LT_19 capitalisation d'office /
+               RENTE_ANNUELLE_GE_19 rente annuelle viagere /
+               INELIGIBLE_NON_RECONNU non reconnu Fedris /
+               IPP_NON_DETERMINE consolidation non acquise /
+               A_QUALIFIER inputs ambigus) avec le calcul de la rente
+               annuelle ou du capital de capitalisation selon le bareme
+               AR 21/12/1971 actualise AR 24/02/2005, et la possibilite
+               de conversion partielle 1/3 max (apres 3 ans de
+               consolidation, delai d'epreuve art. 24 paragr. 3 AR
+               03/07/1996, et si verdict RENTE_ANNUELLE_GE_19).
+               Pertinent des l'ouverture du dossier pour eclairer la
+               strategie de chiffrage (anticipation de la consolidation,
+               arbitrage rente vs capital pour besoins de tresorerie,
+               recours sur le taux IPP attribue, expertise medicale
+               judiciaire art. 962-991 C. jud., action complementaire
+               responsabilite civile art. 1382 anc. C. civ. en cas de
+               faute lourde de l'employeur art. 46 Loi 10/04/1971).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-146) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 travail-noir-be-dimona (SF-219-26b)
+                 - 145 inastri-statut-travailleur-independant (SF-219-27b)
+                 - 146 mp-fedris-reconnaissance (SF-219-28b)
+                 - 147 cette migration (at-mp-rente-capital-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY at-mp-rente-capital-be
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-29b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id at-mp-rente-capital-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-29 (PR
+            #1442, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            THEME_BY_TOOL_ID = INDEMNITES (calculateur de montant
+            forfaitaire, coherent avec rappel-salaire-be,
+            licenciement-be-formule-claeys,
+            rcc-be-indemnite-complementaire). Distinct des outils
+            VALIDITE qui qualifient sans chiffrer (mp-fedris-reconnaissance
+            SF-219-28b qualifie la reconnaissance mais ne chiffre pas ;
+            cet outil chiffre la rente / capital apres consolidation).
+
+            Fondement juridique :
+            - Loi du 10/04/1971 sur les accidents du travail (M.B.
+              29/04/1971) :
+                * art. 7-8 — qualification de l'accident du travail
+                  (evenement soudain, anormal, exterieur, dans le
+                  cours et par le fait de l'execution du contrat ; ou
+                  accident sur le chemin du travail) ;
+                * art. 22 — incapacite temporaire indemnite journaliere
+                  90 pour cent remuneration moyenne ;
+                * art. 24 — incapacite permanente : capital forfaitaire
+                  capitalisation d'office IPP &lt; 19 pour cent
+                  (art. 24 al. 2) ; rente annuelle viagere IPP &gt;= 19
+                  pour cent (art. 24 al. 1) ; modalites art. 24
+                  paragr. 2-3 AR 03/07/1996 ;
+                * art. 34 — remuneration de base annuelle = remuneration
+                  des 12 mois precedant l'accident ;
+                * art. 39 — plafond de la remuneration de base
+                  (plafond ONSS, indexe — 49 853,86 EUR au 01/01/2024) ;
+                * art. 45ter — conversion partielle 1/3 maximum de la
+                  rente en capital apres 3 ans de consolidation
+                  (introduit par la Loi du 13/07/2006) ;
+                * art. 46 — action civile complementaire en cas de
+                  faute intentionnelle ou de faute lourde de
+                  l'employeur (responsabilite civile art. 1382 anc.
+                  C. civ. / 5.83 nouv. C. civ.) ;
+                * art. 64 — prescription triennale du droit a
+                  indemnites ;
+                * art. 81 — fonds AT (Fedris) garantit le paiement en
+                  cas de defaillance de l'assureur-loi.
+            - Lois coordonnees du 03/06/1970 relatives a la prevention
+              des maladies professionnelles et a la reparation des
+              dommages resultant de celles-ci (M.B. 27/08/1970) :
+                * art. 35 — renvoi pour les MP au regime AT (Loi du
+                  10/04/1971 art. 24) pour le mode de versement des
+                  indemnites d'incapacite permanente.
+            - AR du 21/12/1971 (M.B. 28/12/1971) portant execution de
+              certaines dispositions de la Loi du 10/04/1971 sur les
+              accidents du travail — bareme de capitalisation et
+              coefficients d'age. Table I-bis attachee a cet AR.
+            - AR du 10/12/1987 (M.B. 30/12/1987) fixant les regles de
+              conversion partielle de la rente en capital art. 45ter
+              Loi 10/04/1971 (1/3 max, delai 3 ans d'epreuve).
+            - AR du 24/02/2005 (M.B. 16/03/2005) actualisant le bareme
+              AR du 21/12/1971 — Table I-bis nouvelle (coefficients
+              decroissants de l'age de la victime, du quasi-13 a 1 an
+              au quasi-0 a 75 ans).
+            - AR du 03/07/1996 (M.B. 31/07/1996) — procedure
+              administrative Fedris / assureur-loi : declaration art.
+              22, expertise art. 24 paragr. 2, decision de
+              consolidation, recours.
+            - Loi du 02/04/1965 (M.B. 06/05/1965) art. 2 — indexation
+              annuelle des prestations sociales (1 erjanvier).
+            - Loi du 13/07/2006 (M.B. 01/09/2006) — introduction de la
+              conversion partielle art. 45ter Loi 10/04/1971.
+            - Loi du 11/01/2018 (M.B. 12/02/2018) — fusion FMP et FAT
+              en Fedris au 01/01/2017.
+
+            Regime BE-only — le regime francais des rentes AT/MP CPAM
+            (art. L. 434-1 et s. CSS, indemnite en capital art. L.
+            434-1 si IPP &lt; 10 pour cent, rente reduite si 10-50 pour
+            cent, rente pleine si &gt;= 50 pour cent, bareme indicatif
+            art. R. 434-2, taux IPP attribue par medecin conseil CPAM,
+            voies de recours TASS / Pole social TJ art. L. 142-1 CSS)
+            est juridiquement distinct :
+            - CPAM (URSSAF / CARSAT) et non Fedris — modalites
+              administratives differentes ;
+            - seuils differents (10 pour cent / 50 pour cent FR vs
+              19 pour cent BE) ;
+            - bareme R. 434-2 CSS indicatif et differemment construit
+              que la Table I-bis BE AR 24/02/2005 ;
+            - voie de recours FR : commission de recours amiable CPAM
+              puis tribunal judiciaire pole social art. L. 142-1 CSS
+              (anciennement TASS jusqu'au 31/12/2018), vs voie BE :
+              tribunal du travail art. 580 1 C. jud. delai 1 an art.
+              64 Loi 10/04/1971 / art. 23 lois coordonnees 03/06/1970 ;
+            - conversion partielle non transposable mecaniquement —
+              regime BE specifique art. 45ter Loi 10/04/1971 + AR
+              10/12/1987 (1/3 max, 3 ans), pas d'equivalent CSS direct.
+            Aucune transposition mecanique. L'outil BE expose les 5
+            verdicts propres au cadre Fedris / assureur-loi (capital
+            forfaitaire IPP -19 art. 24 al. 2 / rente annuelle IPP +19
+            art. 24 al. 1 / ineligible non reconnu / IPP non determine
+            / A_QUALIFIER).
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — chiffrage civil
+              d'arrieres de salaire avec interets moratoires 10 %.
+              Distincts (regime salaire vs regime AT/MP) mais
+              complementaires lorsque l'employeur retient indument le
+              salaire de la victime pendant la procedure de
+              reconnaissance AT/MP.
+            - statut-unique-preavis (prio 111) — calcul preavis
+              statut unique 2014. Distincts (rupture de contrat vs
+              AT/MP) mais complementaires lorsque la consolidation AT
+              ou MP conduit a un licenciement (force majeure medicale
+              art. 32 paragr. 1 Loi 03/07/1978 ou autre cause de
+              rupture distincte).
+            - mp-fedris-reconnaissance (prio 146, SF-219-28b) —
+              qualification de la reconnaissance MP Fedris (liste
+              fermee art. 32 presomption / systeme ouvert art. 30bis
+              causalite directe et determinante). Articulation directe
+              avec cet outil : SF-219-28b qualifie la reconnaissance
+              MP en amont, puis SF-219-29b chiffre la rente / capital
+              apres consolidation. Chaine logique de la procedure
+              Fedris (declaration art. 24 lois coordonnees -&gt;
+              instruction medicale -&gt; decision de reconnaissance -&gt;
+              expertise consolidation -&gt; calcul indemnites art. 35
+              renvoi AT).
+            - rcc-be-metiers-lourds, rcc-be-longue-carriere — regime
+              du chomage avec complement d'entreprise. Distincts.
+            - code-penal-social-be (prio 142, SF-219-24b) — qualifie
+              l'infraction sur l'echelle 1-4. Distincts (AT/MP est un
+              regime de reparation, pas une infraction).
+            - travail-noir-be-dimona (prio 144, SF-219-26b) — defaut
+              DIMONA. Distincts mais articulation possible lorsque la
+              victime AT/MP est un travailleur non declare (cumul
+              presomption art. 328 paragr. 1 Code penal social +
+              reconnaissance AT/MP malgre l'absence de declaration via
+              Fedris art. 81 paragr. 1).
+            - inastri-statut-travailleur-independant (prio 145,
+              SF-219-27b) — qualification du statut INASTI / faux
+              independant. Distincts (statut social vs reparation
+              AT/MP) mais complementaires : seul le salarie beneficie
+              du regime AT/MP de la Loi 10/04/1971 et des lois
+              coordonnees 03/06/1970 ; l'independant releve d'un
+              regime distinct INAMI (AR 20/12/1971), en general moins
+              avantageux que Fedris.
+
+            Cet outil intervient en aval de la decision de consolidation
+            Fedris ou de l'assureur-loi pour chiffrer l'indemnite
+            forfaitaire d'incapacite permanente partielle (capital
+            unique IPP -19 ou rente annuelle viagere IPP +19), avec
+            arbitrage possible sur la conversion partielle 1/3 art.
+            45ter Loi 10/04/1971.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('4d639ad3-c3e1-4fa1-adcf-37db3a7c68a0', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'at-mp-rente-capital-be', 'ALWAYS_ON', NULL, NULL, 147);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '4d639ad3-c3e1-4fa1-adcf-37db3a7c68a0';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
