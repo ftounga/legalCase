@@ -227,6 +227,8 @@ import { TravailNoirBeDimonaSectionComponent } from '../travail-noir-be-dimona-s
 import { InastriStatutTravailleurIndependantSectionComponent } from '../inastri-statut-travailleur-independant-section/inastri-statut-travailleur-independant-section.component';
 // SF-219-28b : section décisionnelle MP Fedris reconnaissance BE.
 import { MpFedrisReconnaissanceSectionComponent } from '../mp-fedris-reconnaissance-section/mp-fedris-reconnaissance-section.component';
+// SF-219-30b : section décisionnelle Saisine CPAP BE (RPS) — Loi 04/08/1996 art. 32sexies + AR 10/04/2014.
+import { BienEtreRpsConseillerPreventionSectionComponent } from '../bien-etre-rps-conseiller-prevention-section/bien-etre-rps-conseiller-prevention-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3190,6 +3192,35 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-30b : Saisine du Conseiller en Prevention Aspects
+      // Psychosociaux (CPAP) — procedure RPS interne BE. BE-only,
+      // ALWAYS_ON priority 148 (au-dessus de mp-fedris-reconnaissance
+      // = 146 SF-219-28b, inastri-statut-travailleur-independant = 145
+      // SF-219-27b). Verdict 8 etats (SAISINE_CONFORME info /
+      // SAISINE_INFORMELLE_EN_COURS neutral / SAISINE_FORMELLE_EN_COURS
+      // info / AVIS_RENDU_DELAI_RESPECTE info / AVIS_RENDU_DELAI_DEPASSE
+      // warn / NON_CONFORME_FORMALITES_MANQUANTES critical /
+      // NON_CONFORME_PAS_DE_CONSEILLER critical / A_QUALIFIER neutral)
+      // avec calcul des echeances 3 mois enquete art. 22 § 1 / 2 mois
+      // mesures employeur art. 32 / protection 12 mois art. 32sexies.
+      // Pre-fill IA V1 : aucun champ (alignement pattern uniforme
+      // F-213 / F-219 — typeRisque, modeDemande, etapeProcedure, 5
+      // formalites booleennes, dates depot et avis non extractibles
+      // du dossier salarie generique — relevent du dossier procedural
+      // specifique CPAP : compte-rendu entretien prealable, formulaire
+      // de demande, accuse de reception CPAP, notification employeur).
+      ['bien-etre-rps-conseiller-prevention', {
+        displayLabel: 'Saisine CPAP — Conseiller en Prevention RPS (Belgique)',
+        component: BienEtreRpsConseillerPreventionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4566,6 +4597,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['inastri-statut-travailleur-independant', 'VALIDITE'],
     // SF-219-28b : MP Fedris reconnaissance BE
     ['mp-fedris-reconnaissance', 'VALIDITE'],
+    // SF-219-30b : Saisine CPAP BE (RPS) — conformite procedurale
+    ['bien-etre-rps-conseiller-prevention', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
