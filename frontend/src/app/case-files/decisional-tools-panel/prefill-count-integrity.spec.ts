@@ -303,6 +303,11 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   // standard collerait `Cct85149` → `cct85149`. Même pattern que
   // InterimBeCct322 / Belgian9bis.
   ['TeletravailBeCct85149SectionComponent', 'teletravail-be-cct-85-149-section'],
+  // SF-219-18b — le dossier réel insère un tiret entre `semaine` et `4`
+  // (`semaine-4-jours-be-section`), alors que la dérivation kebab-case
+  // standard collerait `Semaine4Jours` → `semaine4-jours-be-section`.
+  // Même pattern que Belgian9bis / Naturalisation12bis.
+  ['Semaine4JoursBeSectionComponent', 'semaine-4-jours-be-section'],
 ]);
 
 function deriveFolderFromClassName(className: string): string {

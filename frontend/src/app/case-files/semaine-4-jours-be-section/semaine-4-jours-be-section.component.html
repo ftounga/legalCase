@@ -1,0 +1,403 @@
+<div class="semaine-4-jours-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">view_week</mat-icon>
+    <span class="section-title">Semaine de 4 jours (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="semaine-4-jours-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 03/10/2022 « Deal pour l'emploi », art. 5 et 6 +
+            Loi 16/03/1971 art. 19 + Loi 03/07/1978 art. 25 + Loi
+            08/04/1965 art. 12). Le régime français de la
+            <b>semaine de 4 jours</b> (C. trav. art. L. 3122-2 et s.,
+            Loi 13/06/1998 « Aubry I » + Loi 19/01/2000 « Aubry II »)
+            est juridiquement distinct : il s'agit d'un aménagement
+            <b>collectif</b> par accord d'entreprise et non d'une
+            demande <b>individuelle</b> du salarié à temps plein.
+            Aucune transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la <b>conformité d'une mise en place de la semaine
+            de 4 jours</b> au titre de l'art. 5 Loi 03/10/2022
+            « Deal pour l'emploi » sur 5 conditions cumulatives :
+            (1) <b>travailleur à temps plein</b> (art. 5 § 1),
+            (2) <b>demande écrite</b> du travailleur (art. 5 § 2),
+            (3) <b>journée ≤ 9 h 30</b> (ou 10 h si CCT — art. 5 § 3),
+            (4) <b>avenant écrit au contrat + règlement de travail
+            modifié</b> (art. 5 § 4 + art. 6),
+            (5) <b>durée avenant ≤ 6 mois</b> ou renouvelée (art. 5 § 4).
+            Court-circuits : refus non motivé (art. 5 § 5) et
+            licenciement présumé représailles (art. 5 § 6 — indemnité
+            6 mois rémunération). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Statut demande * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut de la demande *</mat-label>
+                <mat-select
+                    [value]="statutDemande()"
+                    (selectionChange)="onStatutDemandeChange($event.value)"
+                    name="statutDemande"
+                    required>
+                  <mat-option value="ACCORDE_AVENANT_SIGNE">
+                    Accord employeur + avenant signé
+                  </mat-option>
+                  <mat-option value="REFUSE_MOTIVE_PAR_ECRIT">
+                    Refus motivé par écrit dans le délai d'1 mois
+                  </mat-option>
+                  <mat-option value="REFUSE_SANS_MOTIVATION_ECRITE">
+                    Refus sans motivation écrite ou hors délai
+                  </mat-option>
+                  <mat-option value="EN_ATTENTE_REPONSE_EMPLOYEUR">
+                    En attente de réponse de l'employeur (délai 1 mois)
+                  </mat-option>
+                  <mat-option value="LICENCIE_APRES_DEMANDE">
+                    Licenciement intervenu après la demande
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Statut indéterminé (analyse cas par cas)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Aiguille le verdict (art. 5 § 4-§ 5-§ 6 Loi 03/10/2022).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Travailleur temps plein * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="travailleurTempsPlein() === true"
+                  [indeterminate]="travailleurTempsPlein() === null"
+                  (change)="onTravailleurTempsPleinChange($event.checked)"
+                  name="travailleurTempsPlein">
+                <b>Travailleur à temps plein</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 5 § 1 — régime fermé aux temps partiels (exclusion stricte).
+              </small>
+            </div>
+
+            <!-- 3. Demande écrite * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="demandeEcriteTravailleur() === true"
+                  [indeterminate]="demandeEcriteTravailleur() === null"
+                  (change)="onDemandeEcriteTravailleurChange($event.checked)"
+                  name="demandeEcriteTravailleur">
+                <b>Demande écrite du travailleur</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 5 § 2 — lettre recommandée ou remise en main propre contre accusé de réception.
+              </small>
+            </div>
+
+            <!-- 4. Date demande * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de la demande *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDemande()"
+                       (ngModelChange)="onDateDemandeChange($event)"
+                       name="dateDemande" />
+                <mat-hint>Point de départ du délai d'1 mois pour la réponse employeur (art. 5 § 5).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Durée hebdomadaire * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée hebdomadaire (heures) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.5"
+                       max="60"
+                       step="0.5"
+                       required
+                       [ngModel]="dureeHebdomadaireHeures()"
+                       (ngModelChange)="onDureeHebdomadaireHeuresChange($event)"
+                       name="dureeHebdomadaireHeures" />
+                <mat-hint>38 à 40 h selon CCT sectorielle (maintenue, simplement compressée).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Journée maximale * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Journée maximale (heures) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.5"
+                       max="16"
+                       step="0.5"
+                       required
+                       [ngModel]="journeeMaximaleHeures()"
+                       (ngModelChange)="onJourneeMaximaleHeuresChange($event)"
+                       name="journeeMaximaleHeures" />
+                <mat-hint>Doit être ≤ 9 h 30 (ou 10 h si CCT sectorielle — art. 5 § 3).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. CCT autorise 10h * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="cctAutorise10h() === true"
+                  [indeterminate]="cctAutorise10h() === null"
+                  (change)="onCctAutorise10hChange($event.checked)"
+                  name="cctAutorise10h">
+                <b>CCT sectorielle autorise journée jusqu'à 10 h</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Extension possible du plafond 9 h 30 → 10 h par CCT sectorielle (art. 5 § 3).
+              </small>
+            </div>
+
+            <!-- 8. Avenant écrit * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="avenantEcritSigne() === true"
+                  [indeterminate]="avenantEcritSigne() === null"
+                  (change)="onAvenantEcritSigneChange($event.checked)"
+                  name="avenantEcritSigne">
+                <b>Avenant écrit au contrat de travail signé</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 5 § 4 — annexe écrite au contrat formalisant l'horaire compressé (durée 6 mois max).
+              </small>
+            </div>
+
+            <!-- 9. Règlement de travail * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="reglementTravailModifie() === true"
+                  [indeterminate]="reglementTravailModifie() === null"
+                  (change)="onReglementTravailModifieChange($event.checked)"
+                  name="reglementTravailModifie">
+                <b>Règlement de travail modifié</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 6 — inscription de l'horaire compressé (procédure simplifiée, Loi 08/04/1965 art. 12).
+              </small>
+            </div>
+
+            <!-- 10. Durée avenant * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée de l'avenant (mois) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="120"
+                       step="1"
+                       required
+                       [ngModel]="dureeAvenantMois()"
+                       (ngModelChange)="onDureeAvenantMoisChange($event)"
+                       name="dureeAvenantMois" />
+                <mat-hint>6 mois maximum (renouvelable explicitement — art. 5 § 4).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 11. Avenant renouvelé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="avenantRenouvele() === true"
+                  [indeterminate]="avenantRenouvele() === null"
+                  (change)="onAvenantRenouveleChange($event.checked)"
+                  name="avenantRenouvele">
+                <b>Avenant explicitement renouvelé</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Autorise une durée totale &gt; 6 mois (renouvellement formel obligatoire avant échéance).
+              </small>
+            </div>
+
+            <!-- 12. Refus motivé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="refusMotiveParEcrit() === true"
+                  [indeterminate]="refusMotiveParEcrit() === null"
+                  (change)="onRefusMotiveParEcritChange($event.checked)"
+                  name="refusMotiveParEcrit">
+                <b>Refus motivé par écrit (si statut REFUSÉ)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 5 § 5 — applicable si statut REFUSÉ : la motivation écrite a-t-elle été formalisée dans le mois ?
+              </small>
+            </div>
+
+            <!-- 13. Date licenciement (conditionnel) -->
+            @if (isLicencieScenario()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date du licenciement *</mat-label>
+                  <input matInput
+                         type="date"
+                         required
+                         [ngModel]="dateLicenciement()"
+                         (ngModelChange)="onDateLicenciementChange($event)"
+                         name="dateLicenciement" />
+                  <mat-hint>Postérieure à la demande → présomption représailles (art. 5 § 6).</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- 14. Motif objectif établi * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="motifLicenciementObjectifEtabli() === true"
+                  [indeterminate]="motifLicenciementObjectifEtabli() === null"
+                  (change)="onMotifLicenciementObjectifEtabliChange($event.checked)"
+                  name="motifLicenciementObjectifEtabli">
+                <b>Motif licenciement objectif sans rapport avec la demande</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 5 § 6 — applicable si licenciement : l'employeur établit-il un motif objectif (renverse la présomption) ?
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la conformité du régime 4 jours</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="semaine-4-jours-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutDemandeLabel(result()!.statutDemande) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation 5 conformités -->
+          <div class="conformites-list">
+            <div class="conformites-title">Ventilation des conformités</div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.eligibiliteRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.eligibiliteRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Éligibilité — travailleur à temps plein</b> (art. 5 § 1)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.demandeRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.demandeRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Demande écrite du travailleur</b> (art. 5 § 2)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.journeeRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.journeeRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Journée ≤ plafond autorisé</b>
+                (<span class="mono">{{ formatHeures(result()!.journeeMaximaleHeures) }}</span> /
+                <span class="mono">{{ formatHeures(result()!.journeeMaximaleAutoriseeHeures) }}</span>
+                — art. 5 § 3)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.formalisationRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.formalisationRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Avenant signé + règlement de travail modifié</b>
+                (art. 5 § 4 + art. 6)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.dureeRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.dureeRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Durée avenant ≤ 6 mois ou renouvellement explicite</b>
+                (art. 5 § 4)
+              </span>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
