@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1335a301-d9dd-49ad-bb8f-263095be2118" author="claude">
+        <comment>
+            SF-219-08b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Transfert d'entreprise — CCT n° 32bis du
+            07/06/1985 » (transfert-entreprise-cct-32bis, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses créée par SF-219-08
+            (migration 388).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            la qualification juridique de l'opération (9 cas : vente
+            fonds, fusion, scission, apport, démembrement, faillite,
+            liquidation, cession actions, intra-groupe), la préservation
+            de l'identité économique (3 cas : préservée / non préservée /
+            à analyser ; jp Süzen, Abler), ni les déclarations
+            cessionnaire post-transfert (maintien automatique des
+            contrats, ancienneté, rémunération, CCT). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible pour détecter une situation
+            de transfert d'entreprise ; l'introduire pour un seul outil
+            ajouterait une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (type opération
+               juridique, identité économique, procédure info-consultation,
+               déclarations cessionnaire) non couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque une cession d'entreprise, fusion, scission ou
+               réorganisation.
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-126) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 cette migration (transfert-entreprise-cct-32bis)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY
+            `transfert-entreprise-cct-32bis` livrée dans
+            decisional-tools-panel.component.ts (cf. SF-219-08b). Sans
+            ce couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            échoue (seed en DB sans entrée TOOL_REGISTRY frontend = outil
+            silencieusement masqué — cas réel F-164 staging 2026-04-26,
+            mémoire `feedback_pre_merge_visibility_seed_check`).
+
+            tool_id `transfert-entreprise-cct-32bis` déjà ajouté à
+            `KNOWN_NO_DASHBOARD_TILE_IDS` côté backend par SF-219-08
+            PR #1396 (préventif, évite master-red à l'arrivée de cette SF
+            frontend). Aucune tuile dashboard n'est associée — l'outil est
+            consulté uniquement depuis le panel décisionnel du case file.
+
+            Fondement juridique :
+            - CCT n° 32bis du 07/06/1985 (Conseil National du Travail) :
+              maintien automatique des droits des travailleurs en cas de
+              transfert conventionnel d'entreprise — art. 7 (maintien
+              ancienneté + rémunération + avantages individuels +
+              CCT applicables jusqu'à échéance / nouvelle CCT).
+            - Loi du 17/03/1965 sur les transferts d'entreprises :
+              information-consultation préalable du CE / DS / CPPT
+              avant toute décision irréversible — sanction pénale
+              en cas de non-respect + dommages-intérêts individuels.
+            - Directive 2001/23/CE du 12/03/2001 : régime européen du
+              transfert d'entreprise — art. 1 (définition entité
+              économique), art. 3 (responsabilité solidaire cédant /
+              cessionnaire 1 an), art. 4 (interdiction de
+              licenciement motivé par le seul transfert), art. 7
+              (information préalable).
+            - Jurisprudence de référence : CJUE 11/03/1997 Süzen
+              (C-13/95), CJUE 20/11/2003 Abler (C-340/01), Cass. BE
+              17/05/1999, Cass. BE 14/02/2011.
+
+            Régime BE uniquement — l'art. L. 1224-1 CT FR pose un régime
+            parent (maintien automatique des contrats en cas de transfert
+            d'entité économique gardant son identité, jurisprudence
+            CJUE commune), mais sans les spécificités procédurales
+            CCT 32bis / Loi 17/03/1965 (info-consultation pénalement
+            sanctionnée, responsabilité solidaire 1 an cédant /
+            cessionnaire, maintien temporaire des CCT applicables).
+
+            Distinct de :
+            - `licenciement-be-fermeture-entreprise` (SF-219-06b, prio 124)
+              — fermeture définitive d'activité / faillite, indemnité
+              forfaitaire FFE. Le transfert CCT 32bis maintient au
+              contraire l'activité (continuité d'entité).
+            - `licenciement-be-collectif-renault` (SF-219-07b, prio 125)
+              — procédure de licenciement collectif (Loi 13/02/1998).
+              Le transfert CCT 32bis n'est pas un licenciement.
+            - `transfert-entreprise-l1224-1` (F-212, FR) — équivalent
+              français — régime parent sans spécificités BE.
+            Cet outil intervient *au moment* d'un transfert conventionnel
+            d'entreprise : qualifie l'éligibilité CCT 32bis + vérifie
+            la procédure info-consultation + valide le maintien des droits
+            individuels + calcule la fenêtre de responsabilité solidaire
+            1 an post-transfert.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('1335a301-d9dd-49ad-bb8f-263095be2118', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'transfert-entreprise-cct-32bis', 'ALWAYS_ON', NULL, NULL, 126);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '1335a301-d9dd-49ad-bb8f-263095be2118';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
