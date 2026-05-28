@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20dac4c1-1a5a-4df2-aef4-ee2ceb1ed748" author="claude">
+        <comment>
+            SF-219-07 : table dédiée à l'outil décisionnel "Licenciement
+            collectif BE Loi Renault" (licenciement-be-collectif-renault,
+            BELGIQUE — fondement : Loi du 13/02/1998 portant des
+            dispositions en faveur de l'emploi, chapitre VII : licenciements
+            collectifs dite "loi Renault" ; CCT n° 24 du 02/10/1975 du CNT
+            (information / consultation) ; CCT n° 39 du 13/12/1983 du CNT
+            (mesures sociales d'accompagnement) ; Directive 98/59/CE.
+
+            ⚠️ Numérotation : SF-219-06 a été utilisé par erreur dans une
+            vague précédente pour livrer licenciement-be-fermeture-entreprise
+            (PR #1388 mergée). Cette SF est donc nommée SF-219-07 (branche,
+            commit, PR) tout en restant pilotée par la mini-spec officielle
+            SF-219-06-backend-licenciement-be-collectif-renault.md.
+
+            L'outil est une checklist procédurale (pas un calculateur) qui
+            vérifie la conformité de la procédure de licenciement collectif
+            Renault en 3 phases strictement séquentielles :
+            - Phase 1 : information écrite préalable du CE / CPPT /
+              délégation syndicale (notification + documents légaux :
+              motifs économiques, catégories de travailleurs, critères
+              de sélection).
+            - Phase 2 : consultation effective (réunion(s) + réponses
+              motivées écrites de l'employeur aux questions /
+              contre-propositions des représentants).
+            - Phase 3 : décision + notification écrite à l'autorité
+              régionale de l'emploi (Forem / Actiris / VDAB selon la
+              région) — déclenche le délai d'attente de 30 jours pendant
+              lequel aucun préavis individuel ne peut être notifié.
+
+            Plus la vérification du respect du délai d'attente de 30 jours
+            si un préavis a déjà été notifié — un préavis notifié avant
+            l'expiration de ce délai est nul (Loi 13/02/1998 art. 66) et
+            ouvre droit à l'indemnité spéciale de protection art. 67.
+
+            Vérification également du seuil de déclenchement selon la
+            taille de l'entreprise :
+            - PME (20-99 ETP) : seuil = 10 licenciements / 60 jours.
+            - Grande (100-299 ETP) : seuil = 10 % de l'effectif sur 60 j.
+            - Très grande (≥ 300 ETP) : seuil = 30 licenciements / 60 j.
+            - Petite (&lt; 20 ETP) : loi Renault non applicable (CCT n° 9
+              générale subsiste, hors scope).
+
+            Verdict : NON_APPLICABLE_SEUIL | CONFORME |
+            NON_CONFORME_PHASE_INFORMATION_INCOMPLETE |
+            NON_CONFORME_CONSULTATION_INSUFFISANTE |
+            NON_CONFORME_NOTIFICATION_AUTORITE_MANQUANTE |
+            NON_CONFORME_DELAI_ATTENTE_NON_RESPECTE.
+
+            Outil single-country BELGIQUE — aucun équivalent strict en
+            droit français (le PSE français art. L. 1233-21 et s. est
+            procéduralement très différent : DIRECCTE / DDETS,
+            validation / homologation, expertise CSE — pas de mapping
+            possible).
+
+            Snapshot JSON complet (inputs + outputs : verdict,
+            conformité par phase, seuil légal, date de fin de délai
+            d'attente, raison) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213 / SF-219).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-07b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "licenciement-be-collectif-renault" est ajouté
+            dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès le
+            seed visibility par SF-219-07b, pattern uniforme F-213 vagues
+            1-10b / F-219 vagues 1-6).
+        </comment>
+
+        <createTable tableName="licenciement_be_collectif_renault_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_lic_be_collectif_renault_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_be_collectif_renault_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_lic_be_collectif_renault_case_file"/>
+
+        <createIndex tableName="licenciement_be_collectif_renault_analyses"
+                     indexName="idx_lic_be_collectif_renault_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="licenciement_be_collectif_renault_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -452,17 +452,21 @@ class DashboardTileToolIdIntegrityIT {
             // outil BE checklist conformité transfert conventionnel
             // d'entreprise (CCT n° 32bis du 07/06/1985 + Loi 17/03/1965 +
             // Directive 2001/23/CE). Vérifie la qualification de
-            // l'opération (vente, fusion, scission, apport, démembrement
-            // qualifient ; faillite, liquidation, cession d'actions
-            // n'qualifient pas), la préservation de l'identité économique
-            // (jp Süzen / Abler), le respect de la procédure
-            // d'information-consultation préalable, le maintien automatique
-            // des contrats individuels + CCT, et la responsabilité solidaire
-            // 1 an cédant/cessionnaire (art. 3 Directive 2001/23/CE).
-            // Frontend SF-219-08b à venir. Préventif
-            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
-            // F-213 / F-219 vagues).
-            "transfert-entreprise-cct-32bis"
+            // l'opération, la préservation de l'identité économique, le
+            // respect de la procédure d'information-consultation préalable,
+            // le maintien automatique des contrats individuels + CCT, et la
+            // responsabilité solidaire 1 an cédant/cessionnaire. Frontend
+            // SF-219-08b à venir.
+            "transfert-entreprise-cct-32bis",
+            // SF-219-07 (2026-05-28) : licenciement-be-collectif-renault —
+            // backend (présente PR) Loi 13/02/1998 « loi Renault » + CCT
+            // n° 24 + CCT n° 39 + Directive 98/59/CE. Checklist procédurale
+            // vérifiant le seuil de déclenchement (10/20/30 licenciements
+            // selon taille), les 3 phases info → consultation →
+            // décision/notification autorité régionale, et le délai
+            // d'attente de 30 jours après notification autorité.
+            // Frontend SF-219-07b à venir.
+            "licenciement-be-collectif-renault"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
