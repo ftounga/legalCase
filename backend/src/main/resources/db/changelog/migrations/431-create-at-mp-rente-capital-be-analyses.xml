@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6d394179-e15e-4322-aeb9-216884045113" author="claude">
+        <comment>
+            SF-219-29 : table dediee a l'outil decisionnel « Rente
+            AT/MP vs capitalisation BE » (at-mp-rente-capital-be,
+            BELGIQUE - fondement : Loi du 10/04/1971 sur les accidents
+            du travail M.B. 29/04/1971 art. 24 - mode de versement de
+            l'indemnite d'incapacite permanente partielle : rente
+            annuelle viagere si taux IPP superieur ou egal a 19 pour
+            cent, capital forfaitaire unique si taux IPP strictement
+            inferieur a 19 pour cent (capitalisation d'office) ; art.
+            34 remuneration de base derniere remuneration annuelle
+            brute de la victime ; art. 39 plafond annuel
+            d'indemnisation indexe environ 49853,86 EUR au 01/01/2024
+            verifier l'AR d'indexation a la date de consolidation ;
+            art. 45ter faculte de conversion partielle de la rente en
+            capital un tiers maximum apres delai d'epreuve de 3 ans
+            depuis la consolidation ; art. 64 contestation devant le
+            tribunal du travail art. 580 1° C. jud. delai 1 an ;
+            Lois coordonnees du 03/06/1970 relatives a la prevention
+            des maladies professionnelles et a la reparation des
+            dommages resultant de celles-ci M.B. 27/08/1970 art. 35 -
+            les maladies professionnelles renvoient au regime AT pour
+            le calcul du mode de versement et du montant de la rente
+            ou du capital ; AR du 21/12/1971 portant execution de
+            certaines dispositions de la Loi 10/04/1971 sur les
+            accidents du travail M.B. 28/12/1971 - bareme de
+            capitalisation Table I-bis et coefficients d'age
+            decroissants ; AR du 03/07/1996 art. 24 § 2 et § 3 - date
+            de consolidation et delai d'epreuve de 3 ans ; AR du
+            10/12/1987 - regles de conversion partielle de la rente en
+            capital un tiers maximum age limite ; AR du 24/02/2005
+            M.B. 03/03/2005 actualisant le bareme de capitalisation
+            Table I-bis coefficients d'age decroissant de quasi-13 a 16
+            ans jusqu'a quasi-0 a 90 ans utilises pour la conversion
+            rente vers capital et la capitalisation d'office ; Cass.
+            BE 06/11/2000 S.99.0119.F Pas. 2000 I 1660 - la
+            capitalisation d'office sous le seuil de 19 pour cent est
+            de plein droit non subordonnee a une demande de la victime ;
+            Cass. BE 26/05/2003 S.01.0079.F - la rente AT est viagere
+            elle continue jusqu'au deces de la victime la conversion
+            partielle ne modifie que la fraction convertie un tiers
+            maximum la fraction residuelle restant viagere ; Cass. BE
+            23/03/2009 S.08.0072.F - le delai d'epreuve de 3 ans court
+            a compter de la consolidation effective de l'incapacite et
+            conditionne la recevabilite de la demande de conversion
+            partielle.
+
+            L'outil analyse une situation d'incapacite permanente
+            partielle suite a un accident du travail ou maladie
+            professionnelle BE sous l'angle cumulatif :
+            - Origine ACCIDENT_TRAVAIL ou MALADIE_PROFESSIONNELLE.
+            - Statut de reconnaissance RECONNU / CONTESTE / EN_COURS
+              par l'assureur-loi (AT) ou Fedris (MP).
+            - Date de consolidation date d'arret de l'incapacite
+              temporaire et de fixation du taux IPP par l'expertise
+              medicale.
+            - Taux d'incapacite permanente partielle IPP en
+              pourcentage entre 0 et 100 - determine le mode de
+              versement (strictement inferieur a 19 pour cent =
+              capitalisation, superieur ou egal a 19 pour cent =
+              rente).
+            - Remuneration de base annuelle de reference art. 34 Loi
+              10/04/1971 plafonnee art. 39.
+            - Date de naissance pour le calcul de l'age a la
+              consolidation et du coefficient d'age bareme AR
+              24/02/2005.
+            - Demande de conversion partielle un tiers maximum apres
+              delai d'epreuve de 3 ans art. 45ter Loi 10/04/1971.
+            - Date de demande de conversion mode prospectif.
+            - Override age consolidation pour scenarios hypothetiques
+              avocat.
+
+            Calcule :
+            - Age a la consolidation revolu en annees entre
+              dateNaissance et dateConsolidation (ou override).
+            - Coefficient d'age Table I-bis AR 24/02/2005 par
+              interpolation lineaire entre paliers du bareme indicatif
+              simplifie integre.
+            - Rente annuelle indicative remuneration de base x taux
+              IPP / 100.
+            - Capital de capitalisation indicatif rente annuelle x
+              coefficient d'age (cas IPP strictement inferieur a 19
+              pour cent).
+            - Capital de conversion partielle indicatif un tiers de
+              la rente annuelle x coefficient d'age et rente
+              residuelle deux tiers viagere si conversion possible
+              (consolidation superieure ou egale a 3 ans).
+            - Drapeau capitalisationDoffice IPP strictement inferieur a
+              19 pour cent art. 24 al. 2.
+            - Drapeau conversionPartiellePossible IPP superieur ou egal
+              a 19 pour cent + delai d'epreuve de 3 ans ecoule depuis
+              consolidation.
+
+            Verdict : CAPITAL_FORFAITAIRE_LT_19 si IPP strictement
+            inferieur a 19 pour cent - capital unique de plein droit
+            Cass. BE 06/11/2000 ; RENTE_ANNUELLE_GE_19 si IPP superieur
+            ou egal a 19 pour cent - rente viagere art. 24 al. 1 Cass.
+            BE 26/05/2003 ; INELIGIBLE_NON_RECONNU si statut CONTESTE
+            par l'assureur-loi ou Fedris - voie tribunal du travail ;
+            IPP_NON_DETERMINE si tauxIpp null ou statut EN_COURS -
+            calcul premature attendre la decision de consolidation ;
+            A_QUALIFIER si age incoherent ou inputs ambigus - analyse
+            complementaire requise.
+
+            Outil single-country BELGIQUE - la France a un regime
+            distinct rente AT/MP CPAM art. L. 434-1 et s. CSS, seuils
+            10 pour cent capital art. L. 434-1 / 50 pour cent rente
+            pleine au lieu de 19 pour cent BE, bareme indicatif art.
+            R. 434-2 different, recours TASS / Pole social TJ et non
+            tribunal du travail. Restitution separee par outil - pas
+            de tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet inputs plus outputs verdict,
+            capitalisation d'office, conversion partielle possible,
+            age a la consolidation, coefficient d'age, rente annuelle,
+            capital de capitalisation, capital de conversion
+            partielle, rente residuelle apres conversion, raison
+            synthetique, synthese juridique detaillee, base juridique
+            et avertissement avocat BE pour permettre la restitution
+            UI sans recalcul - pattern uniforme F-DT-42 / SF-213-01 a
+            SF-213-10 / SF-219-01 a SF-219-28.
+
+            La regle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portee par la
+            migration de SF-219-29b frontend couplee a l'entree
+            TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT - cas reel F-164
+            staging 2026-04-26 13 tool_id orphelins
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id at-mp-rente-capital-be est ajoute des cette SF
+            backend a KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT preventif sera utile des le
+            seed visibility par SF-219-29b - pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-28b.
+        </comment>
+
+        <createTable tableName="at_mp_rente_capital_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_at_mp_rente_capital_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="at_mp_rente_capital_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_at_mp_rente_capital_be_case_file"/>
+
+        <createIndex tableName="at_mp_rente_capital_be_analyses"
+                     indexName="idx_at_mp_rente_capital_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="at_mp_rente_capital_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
