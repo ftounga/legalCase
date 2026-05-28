@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="9b899a32-8e5f-42fb-bfff-746eeb191995" author="claude">
+        <comment>
+            SF-219-17b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel clause d'ecolage BE — art. 22bis Loi du
+            03/07/1978 sur les contrats de travail, insere par la Loi du
+            27/12/2006 M.B. 28/12/2006 et modifie par la Loi du
+            22/12/2017 dite "Pacte de competitivite". tool_id
+            clause-ecolage-be / BELGIQUE / DROIT_DU_TRAVAIL, table
+            d'analyses creee par SF-219-17 (migration 407).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            la qualification du type de formation (SPECIFIQUE au sens du
+            paragraphe 2 vs OBLIGATOIRE_LEGALE imposee par norme legale
+            ou reglementaire vs INDETERMINE), ni le flag forme ecrite a
+            l'entree en formation (paragraphe 1er al. 1er), ni le cout
+            reel de la formation supporte par l'employeur (frais
+            d'inscription, salaire maintenu, deplacements, materiel
+            pedagogique), ni le RMMMG mensuel applicable a la date de
+            signature (CCT n° 43 du 02/05/1988 du CNT, indexe
+            annuellement — ex. 2 029,88 euros en 2025), ni la duree
+            d'efficacite contractuelle (limitee a 36 mois — paragraphe 4
+            al. 1er), ni la date de fin effective de la formation
+            (point de depart de la dureee d'efficacite), ni la
+            qualification du motif de depart sous l'angle paragraphe 3
+            (democratisation travailleur, licenciement motif grave
+            travailleur, licenciement sans motif grave employeur,
+            rupture motif grave employeur, fin CDD normale).
+            Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception
+            isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible —
+               l'introduire pour ce seul outil creerait une exception
+               isolee et necessiterait une extraction IA enrichie (type
+               formation specifique vs obligatoire legale, forme ecrite
+               annexe contrat, cout reel comptable, RMMMG date
+               signature, duree d'efficacite, dates fin formation et
+               depart, qualification motif paragraphe 3) non couverte
+               V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du
+               travail BE evoque une formation prise en charge par
+               l'employeur (clause d'ecolage en annexe au contrat de
+               travail, convention de formation autonome, justificatifs
+               comptables des frais reels, fiches de paie avec mention
+               formation) pour verifier la validite formelle de la
+               clause et calculer le montant degressif du
+               remboursement plafonne a 80 pourcent du cout reel
+               (paragraphe 4 al. 4).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-134) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 cette migration (clause-ecolage-be)
+                 - 136 reservee SF-219-18b semaine-4-jours-be
+               Evite une exception isolee qui compliquerait la
+               lisibilite du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie
+               par defaut (collapsed=true) et la gate workspaceCountry
+               === BELGIQUE cote composant masque le contenu en cas
+               de dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY clause-ecolage-be livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-17b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement
+            masque — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id clause-ecolage-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-17 (PR
+            #1416, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel
+            decisionnel du case file.
+
+            Fondement juridique :
+            - Loi du 03/07/1978 relative aux contrats de travail,
+              art. 22bis (insere par la Loi du 27/12/2006 portant des
+              dispositions diverses M.B. 28/12/2006, modifie par la Loi
+              du 22/12/2017 "Pacte de competitivite" art. 12) :
+                * paragraphe 1er al. 1er — clause d'ecolage redigee par
+                  ecrit au plus tard a l'entree en formation, reprenant
+                  description de la formation, duree, lieu, cout reel,
+                  duree d'efficacite et montant degressif du
+                  remboursement. Forme ecrite a peine de nullite ;
+                * paragraphe 2 al. 1er — formation specifique permettant
+                  l'acquisition de connaissances ou de competences
+                  nouvelles profitant en premier lieu au travailleur
+                  (monnayables sur le marche du travail) — exclusion
+                  des formations imposees par norme legale ou
+                  reglementaire (recyclage securite, KB/AR sectoriels) ;
+                * paragraphe 2 al. 3 2° — cout reel de la formation
+                  superieur a 1/2 du RMMMG mensuel au moment de la
+                  signature (CCT n° 43 du 02/05/1988 du CNT) ;
+                * paragraphe 3 — clause inopposable en cas de
+                  licenciement sans motif grave par l'employeur, de
+                  rupture pour motif grave dans le chef de l'employeur
+                  ou d'expiration normale d'un CDD. Seules la
+                  democratisation volontaire du travailleur et le
+                  licenciement pour motif grave imputable au
+                  travailleur permettent d'actionner la clause ;
+                * paragraphe 4 al. 1er — duree d'efficacite maximale
+                  36 mois (3 ans) ;
+                * paragraphe 4 al. 2 — degressivite par tiers de la
+                  duree d'efficacite : 100 pourcent la 1re periode,
+                  66 pourcent (2/3) la 2e periode, 33 pourcent (1/3)
+                  la 3e periode, plus rien au-dela ;
+                * paragraphe 4 al. 4 — plafond absolu 80 pourcent du
+                  cout reel de la formation, quelle que soit la
+                  formule degressive retenue.
+            - CCT n° 43 du 02/05/1988 du Conseil National du Travail
+              relative a la garantie d'un revenu minimum mensuel moyen
+              (RMMMG) — sert de reference pour le seuil cout minimum
+              legal du paragraphe 2 al. 3 2° art. 22bis. Indexe
+              annuellement.
+            - CCT n° 13 du 02/02/2013 du Conseil National du Travail
+              concernant les conventions sectorielles relatives a la
+              formation continue (cadre subsidiaire formations
+              qualifiantes sectorielles, peut prevoir des modalites
+              specifiques de remboursement).
+
+            Regime BE-only — la France dispose d'un regime distinct
+            dit "clause de dedit-formation" d'origine jurisprudentielle
+            (Cass. soc. 17/07/1991 n° 88-40.201 + jurisprudence
+            ulterieure) dont les conditions cumulatives sont fixees
+            par le juge et non par la loi : formation engendrant des
+            frais reels au-dela des depenses imposees par la loi ou la
+            convention collective ; engagement ecrit anterieur a la
+            formation ; duree d'efficacite proportionnee ;
+            remboursement non dissuasif vis-a-vis du droit de
+            democratiser. Pas de plafonds chiffres analogues au
+            paragraphe 4 art. 22bis BE (½ × RMMMG mensuel pour le
+            cout minimum, 36 mois pour la duree d'efficacite,
+            degressivite par tiers 100/66/33, plafond absolu 80
+            pourcent du cout reel). Aucune transposition mecanique
+            possible.
+
+            Distinct de :
+            - rcc-be-metiers-lourds (SF-219-01b, prio 119) — regime
+              de chomage avec complement d'entreprise. Sans rapport
+              avec la clause d'ecolage (engagement contractuel
+              formation).
+            - outplacement-be-general-30sem (SF-219-05b, prio 123) —
+              accompagnement obligatoire a la sortie. Sans rapport
+              avec le remboursement formation.
+            - transfert-entreprise-cct-32bis (SF-219-08b, prio 126) —
+              transfert d'entreprise CCT 32bis. Sans rapport avec
+              le remboursement formation.
+            - delegue-syndical-cct-5 (SF-219-10b, prio 128) — statut
+              de delegue syndical. Sans rapport avec la clause
+              d'ecolage.
+            - flexi-job-be (SF-219-12b, prio 130) — regime flexi-job
+              HoReCa. Statut atypique d'occupation distinct.
+            - etudiant-jobiste-be (SF-219-13b, prio 131) — regime
+              etudiant jobiste. Statut atypique d'occupation distinct.
+            - interim-be-cct-322 (SF-219-14b, prio 132) — regime du
+              travail interimaire. Sans rapport avec le remboursement
+              formation.
+            - interim-be-indemnite-fin-mission (SF-219-15b, prio 133) —
+              indemnite forfaitaire fin de mission interim. Sans
+              rapport avec la clause d'ecolage.
+            - teletravail-be-cct-85-149 (SF-219-16b, prio 134) —
+              conformite formule teletravail CCT n° 85 / CCT n° 149.
+              Sans rapport avec la formation prise en charge par
+              l'employeur.
+            Cet outil intervient sur l'engagement contractuel par
+            lequel le travailleur s'engage a rembourser tout ou partie
+            des frais de formation supportes par l'employeur en cas
+            de depart anticipe dans la duree d'efficacite — verifie 5
+            conditions cumulatives de validite (forme ecrite paragraphe
+            1er, formation specifique paragraphe 2 al. 1er, cout reel
+            superieur a ½ × RMMMG mensuel paragraphe 2 al. 3 2°, duree
+            d'efficacite inferieure ou egale a 36 mois paragraphe 4 al.
+            1er, motif de depart actionnable paragraphe 3) + verdict
+            hierarchise 8 etats + calculs degressifs (cout min legal,
+            tiers atteint, quotite due, montant brut, plafond 80
+            pourcent, montant final).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('9b899a32-8e5f-42fb-bfff-746eeb191995', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'clause-ecolage-be', 'ALWAYS_ON', NULL, NULL, 135);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '9b899a32-8e5f-42fb-bfff-746eeb191995';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
