@@ -1,0 +1,323 @@
+<div class="clause-ecolage-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">school</mat-icon>
+    <span class="section-title">Clause d'écolage (Belgique — art. 22bis)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="clause-ecolage-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (art. 22bis Loi du 03/07/1978 — clause d'écolage, inséré par
+            la Loi du 27/12/2006 M.B. 28/12/2006 + modifié par la Loi du
+            22/12/2017 « Pacte de compétitivité » ; CCT n° 43 du 02/05/1988
+            du CNT — RMMMG mensuel ; CCT n° 13 du 02/02/2013 du CNT — cadre
+            subsidiaire formations qualifiantes sectorielles). Le régime
+            français dit « clause de dédit-formation » est d'origine
+            jurisprudentielle (Cass. soc. 17/07/1991 n° 88-40.201) — sans
+            les plafonds chiffrés du § 4 art. 22bis BE. Aucune transposition
+            mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la <b>validité d'une clause d'écolage BE</b> et calcule le
+            <b>montant dégressif dû par le travailleur</b> en cas de départ anticipé.
+            Conditions cumulatives art. 22bis Loi 03/07/1978 : (1) <b>type</b> de
+            formation (spécifique, non imposée par norme — § 2), (2) <b>forme écrite</b>
+            à l'entrée en formation (§ 1er), (3) <b>coût réel</b> &gt; ½ × RMMMG
+            mensuel (§ 2 al. 3 2° — CCT n° 43 du CNT), (4) <b>durée d'efficacité</b>
+            ≤ 36 mois (§ 4 al. 1er), (5) <b>dégressivité</b> par tiers 100/66/33 %
+            (§ 4 al. 2), (6) <b>plafond absolu</b> 80 % du coût réel (§ 4 al. 4),
+            (7) <b>motif de départ</b> actionnable (§ 3 — démission travailleur ou
+            licenciement motif grave travailleur uniquement). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type formation * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de formation *</mat-label>
+                <mat-select
+                    [value]="typeFormation()"
+                    (selectionChange)="onTypeFormationChange($event.value)"
+                    name="typeFormation"
+                    required>
+                  <mat-option value="SPECIFIQUE">
+                    Spécifique — art. 22bis § 2 (clause valable possible)
+                  </mat-option>
+                  <mat-option value="OBLIGATOIRE_LEGALE">
+                    Obligatoire légale — KB/AR/CCT sectorielle (clause nulle de plein droit)
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Indéterminé — qualification à opérer
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Spécifique = profite au travailleur (monnayable sur le marché) ; obligatoire = imposée par norme (recyclage sécurité, KB/AR).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Clause écrite avant entrée formation * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="clauseEcriteAvantEntreeFormation() === true"
+                  [indeterminate]="clauseEcriteAvantEntreeFormation() === null"
+                  (change)="onClauseEcriteAvantEntreeFormationChange($event.checked)"
+                  name="clauseEcriteAvantEntreeFormation">
+                <b>Clause rédigée par écrit au plus tard à l'entrée en formation</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 22bis § 1er al. 1er — description formation, durée, lieu, coût réel,
+                durée d'efficacité, montant dégressif. À défaut : nullité.
+              </small>
+            </div>
+
+            <!-- 3. Coût réel formation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Coût réel de la formation (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="coutReelFormationEuros()"
+                       (ngModelChange)="onCoutReelFormationEurosChange($event)"
+                       name="coutReelFormationEuros" />
+                <mat-hint>Frais d'inscription + salaire maintenu + déplacements + matériel pédagogique.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. RMMMG mensuel * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>RMMMG mensuel à la signature (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="rmmmgMensuelEuros()"
+                       (ngModelChange)="onRmmmgMensuelEurosChange($event)"
+                       name="rmmmgMensuelEuros" />
+                <mat-hint>CCT n° 43 du CNT — révisé annuellement (ex. 2 029,88 € en 2025).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Durée efficacité * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée d'efficacité de la clause (mois) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       step="1"
+                       required
+                       [ngModel]="dureeEfficaciteMois()"
+                       (ngModelChange)="onDureeEfficaciteMoisChange($event)"
+                       name="dureeEfficaciteMois" />
+                <mat-hint>Plafond légal 36 mois — art. 22bis § 4 al. 1er.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date fin formation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de fin de formation *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFinFormation()"
+                       (ngModelChange)="onDateFinFormationChange($event)"
+                       name="dateFinFormation" />
+                <mat-hint>Point de départ de la durée d'efficacité.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Date départ travailleur * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de départ effectif du travailleur *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDepartTravailleur()"
+                       (ngModelChange)="onDateDepartTravailleurChange($event)"
+                       name="dateDepartTravailleur" />
+                <mat-hint>Détermine le tiers de la durée d'efficacité — dégressivité 100/66/33 %.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Motif départ * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif de départ *</mat-label>
+                <mat-select
+                    [value]="motifDepart()"
+                    (selectionChange)="onMotifDepartChange($event.value)"
+                    name="motifDepart"
+                    required>
+                  <mat-option value="DEMISSION_TRAVAILLEUR">
+                    Démission volontaire du travailleur — clause actionnable
+                  </mat-option>
+                  <mat-option value="LICENCIEMENT_MOTIF_GRAVE_TRAVAILLEUR">
+                    Licenciement motif grave imputable travailleur — clause actionnable
+                  </mat-option>
+                  <mat-option value="LICENCIEMENT_EMPLOYEUR_SANS_MOTIF_GRAVE">
+                    Licenciement sans motif grave (employeur) — clause inopposable
+                  </mat-option>
+                  <mat-option value="RUPTURE_MOTIF_GRAVE_EMPLOYEUR">
+                    Rupture motif grave imputable employeur — clause inopposable
+                  </mat-option>
+                  <mat-option value="FIN_CDD_NORMALE">
+                    Expiration normale d'un CDD — clause inopposable
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Art. 22bis § 3 — seule la démission travailleur ou le licenciement pour motif grave imputable au travailleur permet d'actionner la clause.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la validité de la clause</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="clause-ecolage-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Type de formation : <b>{{ typeFormationLabel(result()!.typeFormation) }}</b>
+              </div>
+              <div class="result-banner-sub">
+                Motif de départ : <b>{{ motifDepartLabel(result()!.motifDepart) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Montants chiffrés si verdict VALIDE_REMBOURSEMENT_DEGRESSIF -->
+          @if (result()!.verdict === 'VALIDE_REMBOURSEMENT_DEGRESSIF') {
+            <div class="dimensions-list">
+              <div class="dimensions-title">Calcul du remboursement dû — art. 22bis § 4</div>
+              <div class="dimension-row dim-info">
+                <mat-icon>schedule</mat-icon>
+                <span class="dimension-label">
+                  <b>Mois écoulés depuis fin formation</b> :
+                  <span class="mono">{{ result()!.moisEcoulesDepuisFinFormation }}</span>
+                  → <b>{{ tierDureeLabel(result()!.tierDureeAuDepart) }}</b>
+                </span>
+              </div>
+              <div class="dimension-row dim-info">
+                <mat-icon>percent</mat-icon>
+                <span class="dimension-label">
+                  <b>Quotité dégressive</b> :
+                  <span class="mono">{{ result()!.quotiteDueRatio }}</span>
+                  (1.00 / 0.66 / 0.33 / 0.00)
+                </span>
+              </div>
+              <div class="dimension-row dim-info">
+                <mat-icon>euro</mat-icon>
+                <span class="dimension-label">
+                  <b>Montant brut dû</b> (coût réel × quotité) :
+                  <span class="mono">{{ result()!.montantBrutDueEuros }} €</span>
+                </span>
+              </div>
+              <div class="dimension-row dim-info">
+                <mat-icon>vertical_align_top</mat-icon>
+                <span class="dimension-label">
+                  <b>Plafond absolu 80 % du coût réel</b> (§ 4 al. 4) :
+                  <span class="mono">{{ result()!.plafond80Euros }} €</span>
+                </span>
+              </div>
+              <div class="dimension-row dim-final">
+                <mat-icon>check_circle</mat-icon>
+                <span class="dimension-label">
+                  <b>Montant final dû par le travailleur</b> :
+                  <span class="mono">{{ result()!.montantDuFinalEuros }} €</span>
+                </span>
+              </div>
+            </div>
+          }
+
+          <!-- Pour les autres verdicts : repère coût min légal -->
+          @if (result()!.verdict !== 'VALIDE_REMBOURSEMENT_DEGRESSIF' && result()!.coutMinLegalEuros > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>
+                <b>Seuil légal coût formation</b> (½ × RMMMG mensuel — art. 22bis § 2 al. 3 2°) :
+                <span class="mono">{{ result()!.coutMinLegalEuros }} €</span>.
+                Coût réel saisi : <span class="mono">{{ result()!.coutReelFormationEuros }} €</span>.
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

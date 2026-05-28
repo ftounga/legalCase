@@ -203,6 +203,8 @@ import { InterimBeCct322SectionComponent } from '../interim-be-cct-322-section/i
 import { InterimBeIndemniteFinMissionSectionComponent } from '../interim-be-indemnite-fin-mission-section/interim-be-indemnite-fin-mission-section.component';
 // SF-219-16b : section décisionnelle Télétravail BE — CCT n° 85 / CCT n° 149 (BE-only, ALWAYS_ON).
 import { TeletravailBeCct85149SectionComponent } from '../teletravail-be-cct-85-149-section/teletravail-be-cct-85-149-section.component';
+// SF-219-17b : section décisionnelle clause d'écolage BE — art. 22bis Loi 03/07/1978 (BE-only, ALWAYS_ON).
+import { ClauseEcolageBeSectionComponent } from '../clause-ecolage-be-section/clause-ecolage-be-section.component';
 // SF-219-18b : section décisionnelle Semaine de 4 jours BE — Loi 03/10/2022 « Deal pour l'emploi » (BE-only, ALWAYS_ON).
 import { Semaine4JoursBeSectionComponent } from '../semaine-4-jours-be-section/semaine-4-jours-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
@@ -2698,6 +2700,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-17b : Clause d'écolage BE — art. 22bis Loi 03/07/1978 (BE-only,
+      // ALWAYS_ON priority 135 BE / DROIT_DU_TRAVAIL — au-dessus de
+      // teletravail-be-cct-85-149 (134, SF-219-16b) et
+      // interim-be-indemnite-fin-mission (133, SF-219-15b) ; priorité 136
+      // réservée à SF-219-18b semaine-4-jours-be parallèle).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme
+      // F-213/F-219 — type formation, forme écrite, coût réel, RMMMG mensuel
+      // CCT n° 43, durée d'efficacité, dates fin formation / départ,
+      // qualification motif art. 22bis § 3 non extractibles du dossier salarié
+      // principal).
+      ['clause-ecolage-be', {
+        displayLabel: 'Clause d\'écolage (Belgique — art. 22bis)',
+        component: ClauseEcolageBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-18b : semaine de 4 jours BE — Loi du 03/10/2022 « Deal
       // pour l'emploi » M.B. 10/11/2022, art. 5 (régime à la demande
       // du travailleur à temps plein — compression durée hebdomadaire
@@ -4047,6 +4071,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // autres analyseurs de conformité statutaire BE (interim-be-cct-322,
     // flexi-job-be, delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
     ['teletravail-be-cct-85-149', 'VALIDITE'],
+    // SF-219-17b : Clause d'écolage BE — analyseur de validité (8 verdicts
+    // hiérarchisés : INOPPOSABLE_MOTIF_DEPART / NULLE_FORME_ECRITE_MANQUANTE /
+    // NULLE_FORMATION_OBLIGATOIRE / NULLE_COUT_INSUFFISANT /
+    // NULLE_DUREE_EXCESSIVE / VALIDE_REMBOURSEMENT_DEGRESSIF /
+    // VALIDE_DUREE_EXPIREE / A_ANALYSER). Thème VALIDITE — cohérent avec les
+    // autres analyseurs de conformité statutaire BE (interim-be-cct-322,
+    // flexi-job-be, teletravail-be-cct-85-149, transfert-entreprise-cct-32bis,
+    // delegue-syndical-cct-5).
+    ['clause-ecolage-be', 'VALIDITE'],
     // SF-219-18b : Semaine de 4 jours BE — Loi du 03/10/2022 « Deal pour
     // l'emploi » M.B. 10/11/2022, art. 5 (régime à la demande du
     // travailleur à temps plein) + art. 6 (procédure simplifiée
