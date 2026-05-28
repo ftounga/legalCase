@@ -1,0 +1,241 @@
+<div class="conge-education-paye-region-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">school</mat-icon>
+    <span class="section-title">Congé-éducation payé — régionalisé (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="conge-education-paye-region-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 22/01/1985 contenant des dispositions sociales,
+            Section 6 « Congé-éducation payé », régionalisée 2014 — Décret
+            WBR 19/02/2014, Décret 12/12/2014 — Vlaams Opleidingsverlof
+            VOV, Ordonnance BXL 02/07/2015). Le régime français de
+            financement de la formation salariée (CPF / Pro-A / Plan de
+            développement des compétences, art. L. 6111-1 et s. C. trav.)
+            suit un régime distinct non mappable.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie le <b>droit au congé-éducation payé</b> régionalisé
+            (Loi 22/01/1985 — transfert aux Régions au 01/07/2014). La
+            région compétente est celle du <b>lieu de travail</b> du
+            travailleur (pas du domicile). Trois régimes distincts :
+            Wallonie (Décret WBR 19/02/2014 — 120 h générales / 180 h
+            qualifiantes), Flandre (VOV — 125 h / 250 h supérieur
+            alternance), Bruxelles-Capitale (Ordonnance 02/07/2015 —
+            80 h / 100 h). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Région * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Région du lieu de travail *</mat-label>
+                <mat-select
+                    [value]="region()"
+                    (selectionChange)="onRegionChange($event.value)"
+                    name="region"
+                    required>
+                  <mat-option value="WALLONIE">
+                    Wallonie (Décret 19/02/2014 + AGW 19/12/2014)
+                  </mat-option>
+                  <mat-option value="FLANDRE">
+                    Flandre (Décret 12/12/2014 — Vlaams Opleidingsverlof VOV)
+                  </mat-option>
+                  <mat-option value="BRUXELLES">
+                    Bruxelles-Capitale (Ordonnance 02/07/2015 + AGBR 14/04/2016)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Région du siège d'exploitation du lieu de travail (pas le domicile).
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Type formation * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de formation *</mat-label>
+                <mat-select
+                    [value]="typeFormation()"
+                    (selectionChange)="onTypeFormationChange($event.value)"
+                    name="typeFormation"
+                    required>
+                  <mat-option value="PROFESSIONNELLE_QUALIFIANTE">
+                    Formation professionnelle qualifiante
+                  </mat-option>
+                  <mat-option value="GENERALE">
+                    Formation générale (langues, informatique, sciences humaines)
+                  </mat-option>
+                  <mat-option value="ENSEIGNEMENT_SUPERIEUR_ALTERNANCE">
+                    Enseignement supérieur en alternance
+                  </mat-option>
+                  <mat-option value="RECONVERSION_PUBLIC_FRAGILISE">
+                    Reconversion public fragilisé
+                  </mat-option>
+                  <mat-option value="HORS_LISTE_AGREEE">
+                    Hors liste agréée régionale
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Typologie commune mappée au régime régional applicable.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Heures formation annuelles * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Heures de formation par an *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="heuresFormationAnnuelles()"
+                       (ngModelChange)="onHeuresFormationAnnuellesChange($event)"
+                       name="heuresFormationAnnuelles" />
+                <mat-hint>Cours présentiels + assimilés (programme pédagogique).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Taux d'occupation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Taux d'occupation *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="1"
+                       step="0.01"
+                       required
+                       [ngModel]="tauxOccupation()"
+                       (ngModelChange)="onTauxOccupationChange($event)"
+                       name="tauxOccupation" />
+                <mat-hint>1.0 = temps plein ; 0.5 = mi-temps. Plage [0.0 ; 1.0].</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5-6. Checklist contexte régional -->
+            <div class="field-full-width checklist-block">
+              <h4 class="checklist-title">
+                <mat-icon>checklist</mat-icon>
+                Contexte régional applicable
+              </h4>
+
+              <mat-checkbox
+                  [checked]="formationAgreeeRegion()"
+                  (change)="onFormationAgreeeRegionChange($event.checked)"
+                  name="formationAgreeeRegion">
+                Formation présente dans la <b>liste agréée régionale</b>
+                (à vérifier auprès du ministère régional de l'emploi /
+                formation pour l'année de référence)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="publicFragilise()"
+                  (change)="onPublicFragiliseChange($event.checked)"
+                  name="publicFragilise">
+                Travailleur <b>public fragilisé</b> au sens du décret VOV
+                (FLA — peu qualifié, sans CESS) — déclenche dérogation
+                occupation 1/5 temps en Flandre uniquement
+              </mat-checkbox>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'éligibilité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="conge-education-paye-region-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Régime :
+                <b>{{ result()!.regimeApplicable }}</b>
+                — plafond régional applicable
+                <span class="mono">{{ result()!.plafondRegionalHeures }} h</span>
+                ; heures allouées
+                <span class="mono">{{ result()!.heuresCongeAllouees }} h</span>
+                pour
+                <span class="mono">{{ result()!.heuresFormationAnnuelles }} h</span>
+                de formation demandées (taux d'occupation
+                <span class="mono">{{ result()!.tauxOccupation }}</span>)
+              </div>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

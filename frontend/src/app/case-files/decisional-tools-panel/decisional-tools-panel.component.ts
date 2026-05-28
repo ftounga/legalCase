@@ -191,6 +191,8 @@ import { TransfertEntrepriseCct32bisSectionComponent } from '../transfert-entrep
 import { ElectionsSocialesBeSectionComponent } from '../elections-sociales-be-section/elections-sociales-be-section.component';
 // SF-219-10b : section décisionnelle Statut délégué syndical CCT n° 5 (BE-only, ALWAYS_ON).
 import { DelegueSyndicalCct5SectionComponent } from '../delegue-syndical-cct-5-section/delegue-syndical-cct-5-section.component';
+// SF-219-11b : section décisionnelle Congé-éducation payé régionalisé (BE-only, ALWAYS_ON).
+import { CongeEducationPayeRegionSectionComponent } from '../conge-education-paye-region-section/conge-education-paye-region-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2486,6 +2488,30 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-11b : Congé-éducation payé régionalisé (Loi 22/01/1985 Section 6,
+      // régionalisée 2014 — WBR / FLA VOV / BXL). Outil BE-only de qualification
+      // d'éligibilité au congé : région du lieu de travail (gate régional),
+      // type de formation (5 cas dont HORS_LISTE_AGREEE), heures demandées,
+      // taux d'occupation et public fragilisé (dérogation FLA). L'outil branche
+      // en interne sur le régime régional applicable et calcule le plafond
+      // d'heures puis le prorata occupation. Verdict 5 états (ELIGIBLE_PLEIN_DROIT /
+      // ELIGIBLE_PRORATA / INELIGIBLE_HORS_FORMATION_AGREEE /
+      // INELIGIBLE_OCCUPATION_INSUFFISANTE / A_ANALYSER). ALWAYS_ON priority 129
+      // (au-dessus de delegue-syndical-cct-5 = 128 SF-219-10b). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213/F-219 — région lieu de
+      // travail, type formation, agrément régional non extractibles).
+      ['conge-education-paye-region', {
+        displayLabel: 'Congé-éducation payé — régionalisé (Belgique)',
+        component: CongeEducationPayeRegionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3735,6 +3761,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Parité avec les autres analyseurs de validité statutaire BE
     // (transfert-entreprise-cct-32bis, licenciement-be-protection-deleguee).
     ['delegue-syndical-cct-5', 'VALIDITE'],
+    // SF-219-11b : Congé-éducation payé régionalisé (Loi 22/01/1985 Section 6,
+    // régionalisée 2014 — WBR / FLA VOV / BXL). Thème VALIDITE — l'outil qualifie
+    // l'éligibilité au congé (5 verdicts : 2 éligibles plein droit/prorata,
+    // 2 inéligibles hors liste/occupation insuffisante, 1 à analyser) et
+    // calcule le plafond régional applicable. Parité avec les autres
+    // analyseurs de validité d'éligibilité BE (cumul-rcc-allocations,
+    // outplacement-be-general-30sem, rcc-be-conditions).
+    ['conge-education-paye-region', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
