@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="e10dcd28-5939-4577-b795-b2de35a6122b" author="claude">
+        <comment>
+            SF-219-22 : table dédiée à l'outil décisionnel
+            « Égalité salariale femmes / hommes BE »
+            (egalite-femmes-hommes-be, BELGIQUE — fondement :
+            Loi du 22/04/2012 visant à lutter contre l'écart salarial
+            entre hommes et femmes M.B. 28/08/2012, art. 2 obligation
+            pour les employeurs occupant en moyenne au moins 50
+            travailleurs d'établir tous les deux exercices comptables
+            un rapport d'analyse de la structure de rémunération H/F
+            et de le déposer au Conseil d'entreprise ou à défaut à la
+            délégation syndicale ; art. 5 plan d'action concret si
+            l'analyse révèle un écart de rémunération non justifié ;
+            art. 12 interdiction discrimination salariale ; art. 14
+            faculté de désigner un médiateur égalité H/F dans
+            l'entreprise ; AR du 17/08/2013 portant exécution de
+            l'art. 2 Loi 22/04/2012 — art. 4 contenu obligatoire de
+            l'analyse ventilation par niveau de fonction, ancienneté,
+            qualification, régime de travail, composants de la
+            rémunération ; AR du 25/04/2014 modifiant l'AR du
+            17/08/2013 — formulaires standardisés ann. I détaillé pour
+            les entreprises de 100 ETP et plus, ann. II simplifié pour
+            les entreprises de 50 à 99 ETP, dépôt CE / DS et dépôt
+            central électronique EBES auprès de la Banque nationale ;
+            CCT n° 25 du 15/10/1975 du CNT NAR sur l'égalité de
+            rémunération entre travailleurs masculins et féminins,
+            rendue obligatoire par AR du 09/12/1975 M.B. 09/01/1976,
+            modifiée par CCT n° 25bis du 19/12/2001 et n° 25ter du
+            09/07/2008 — socle conventionnel transposant la Directive
+            75/117/CEE puis la Directive 2006/54/CE ; Loi du
+            10/05/2007 tendant à lutter contre certaines formes de
+            discrimination M.B. 30/05/2007, art. 14 et suiv. cadre
+            général anti-discrimination genre ; Loi du 12/01/2007
+            visant au contrôle de l'application des résolutions de la
+            Conférence mondiale sur les femmes gender mainstreaming ;
+            C. pén. social du 06/06/2010, art. 195/1 inséré par Loi
+            22/04/2012 art. 16 sanction de niveau 2 amende
+            administrative 80 à 800 euros ou pénale 200 à 2 000 euros
+            par travailleur plafonnée en cas de manquement à
+            l'obligation rapport d'analyse ; Loi du 04/12/2007 sur
+            les élections sociales, art. 7 méthode de calcul de
+            l'effectif moyen équivalents temps plein applicable au
+            seuil de 50 travailleurs).
+
+            L'outil analyse la conformité de l'employeur sous l'angle
+            cumulatif :
+            - Effectif entreprise art. 2 paragraphe 1 seuil de 50
+              travailleurs en moyenne ETP déclenchant l'obligation
+              rapport biennal d'analyse.
+            - Statut rapport DEPOSE_FORMULAIRE_COMPLET,
+              DEPOSE_FORMULAIRE_INCOMPLET, EN_PREPARATION,
+              NON_DEPOSE_DELAI_DEPASSE, INDETERMINE — aiguille le
+              verdict.
+            - Date dépôt rapport au CE ou DS sur formulaire AR
+              25/04/2014 annexe I ou annexe II selon effectif.
+            - Ventilation niveau fonction classification
+              conventionnelle art. 4 AR 17/08/2013.
+            - Ventilation ancienneté art. 4 AR 17/08/2013.
+            - Ventilation qualification niveau de qualification requis
+              du poste art. 4 AR 17/08/2013.
+            - Ventilation régime travail temps plein versus temps
+              partiel art. 4 AR 17/08/2013.
+            - Ventilation composants rémunération salaire de base,
+              primes, avantages complémentaires séparés art. 4 AR
+              17/08/2013.
+            - Écart salarial non justifié constaté art. 5 Loi
+              22/04/2012 — résultat de l'analyse comparative.
+            - Pourcentage écart constaté magnitude indicative 0 à 100
+              uniquement informatif.
+            - Plan d'action établi objectifs chiffrés calendrier de
+              mise en oeuvre dans le délai CCT sectorielle ou défaut
+              6 mois art. 5 Loi 22/04/2012.
+            - Médiateur désigné faculté art. 14 Loi 22/04/2012 + CCT
+              n° 25 indicateur bonne pratique.
+            - Plainte IEFH ou inspection en cours indicateur
+              contentieux.
+
+            Verdict : HORS_CHAMP_SEUIL_NON_ATTEINT
+            | CONFORME_RAPPORT_PLAN_COMPLETS
+            | NON_CONFORME_RAPPORT_INCOMPLET
+            | NON_CONFORME_PLAN_ACTION_MANQUANT
+            | MANQUEMENT_GRAVE_RAPPORT_NON_DEPOSE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a un régime
+            d'index égalité professionnelle distinct Code du travail
+            art. L. 1142-7 et suiv. notation 100 points, plan de
+            rattrapage si note inférieure à 75 sur 100, publication
+            obligatoire, Décret n° 2019-15 du 08/01/2019. Les seuils,
+            méthodologies et sanctions diffèrent substantiellement.
+            Restitution séparée par outil — pas de tentative
+            d'harmonisation FR/BE.
+
+            Snapshot JSON complet inputs + outputs verdict, ventilation
+            par dimension seuil / rapport / contenu / plan d'action /
+            médiateur / type formulaire requis pour permettre la
+            restitution UI sans recalcul pattern uniforme F-DT-42 /
+            SF-213-01 à SF-213-10 / SF-219-01 à SF-219-20.
+
+            La règle d'affichage F-IA-04 decision_tool_visibility_rules
+            sera portée par la migration de SF-219-22b frontend,
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id "egalite-femmes-hommes-be" est ajouté dès cette
+            SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès le
+            seed visibility par SF-219-22b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-20b.
+        </comment>
+
+        <createTable tableName="egalite_femmes_hommes_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_egalite_fh_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="egalite_femmes_hommes_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_egalite_fh_be_case_file"/>
+
+        <createIndex tableName="egalite_femmes_hommes_be_analyses"
+                     indexName="idx_egalite_fh_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="egalite_femmes_hommes_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

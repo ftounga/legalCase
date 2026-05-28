@@ -737,15 +737,12 @@ class DashboardTileToolIdIntegrityIT {
             // Obligation employeur ≥ 20 travailleurs CCT/règlement travail.
             "droit-deconnexion-be",
             // SF-219-21 (2026-05-28) : eco-cheques-cheques-repas-be — backend
-            // CCT n°98 du CNT 20/02/2009 (éco-chèques, plafond 250 EUR/an)
-            // + Loi 25/04/2014 + AR 03/02/2010 art. 19bis AR 28/11/1969
-            // (chèques-repas, plafond 8 EUR facial, contribution
-            // travailleur min 1,09 EUR, paiement électronique post 2016).
-            // Frontend SF-219-21b à venir. Préventif
-            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
-            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
-            // feedback_pre_merge_visibility_seed_check).
-            "eco-cheques-cheques-repas-be"
+            // CCT n°98 + Loi 25/04/2014 + AR 03/02/2010.
+            "eco-cheques-cheques-repas-be",
+            // SF-219-22 (2026-05-28) : egalite-femmes-hommes-be — backend
+            // Loi 22/04/2012 + AR 17/08/2013 + CCT n°25. Rapport biennal
+            // employeurs ≥ 50 travailleurs.
+            "egalite-femmes-hommes-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
