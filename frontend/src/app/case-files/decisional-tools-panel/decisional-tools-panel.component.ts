@@ -211,6 +211,8 @@ import { Semaine4JoursBeSectionComponent } from '../semaine-4-jours-be-section/s
 import { DroitDeconnexionBeSectionComponent } from '../droit-deconnexion-be-section/droit-deconnexion-be-section.component';
 // SF-219-20b : section décisionnelle Pécule de vacances BE — Lois 28/06/1971 + AR 30/03/1967 (BE-only, ALWAYS_ON).
 import { PeculeVacancesBeSectionComponent } from '../pecule-vacances-be-section/pecule-vacances-be-section.component';
+// SF-219-21b : section décisionnelle Éco-chèques + chèques-repas BE — CCT n°98 + Loi 25/04/2014 + AR 03/02/2010 (BE-only, ALWAYS_ON).
+import { EcoChequesChequesRepasBeSectionComponent } from '../eco-cheques-cheques-repas-be-section/eco-cheques-cheques-repas-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2854,6 +2856,56 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-21b : éco-chèques + chèques-repas BE — CCT n°98 du CNT
+      // du 20/02/2009 (M.B. 06/05/2009 — AR 12/04/2009), art. 3 (CCT
+      // sectorielle ou d'entreprise ou convention individuelle écrite),
+      // art. 4 (interdiction substitution rémunération), art. 6
+      // (plafond 250 EUR/an), art. 13 (validité 24 mois) + Loi du
+      // 25/04/2014 portant des dispositions diverses (M.B. 07/05/2014)
+      // art. 51 (paiement électronique obligatoire chèques-repas depuis
+      // 01/01/2016) + AR du 03/02/2010 modifiant l'art. 19bis de l'AR
+      // du 28/11/1969 portant exécution de la loi du 27/06/1969 sur
+      // la sécurité sociale (M.B. 17/02/2010), conditions cumulatives
+      // d'exonération ONSS (1 chèque/jour effectivement presté,
+      // nominatif, usage repas/denrées alimentaires uniquement,
+      // intervention employeur max 6,91 EUR, contribution travailleur
+      // min 1,09 EUR, valeur faciale max 8 EUR, validité 12 mois, pas
+      // de cumul frais de bouche) + Cass. 16/10/2017 S.16.0042.F ONSS
+      // c/ SA (interdiction substitution à rémunération préexistante —
+      // requalification intégrale rétroactive). Outil BE-only — les
+      // titres-restaurant français (CGI art. 81 19° ter) reposent sur
+      // un mécanisme analogue mais avec plafond d'exonération distinct
+      // (7,18 EUR/jour en 2024, contribution employeur 50-60 %) et
+      // il n'existe pas d'équivalent direct des éco-chèques en droit
+      // français. Aucune transposition mécanique. Verdict hiérarchisé
+      // 6 états (CONFORME_EXONERATION_INTEGRALE /
+      // CONFORME_PARTIELLEMENT_EXONERE / NON_CONFORME_DEPASSEMENT_PLAFOND
+      // / NON_CONFORME_SUBSTITUTION_REMUNERATION /
+      // NON_CONFORME_CONDITION_MANQUANTE / A_ANALYSER) — court-circuits
+      // backend (type indéterminé → substitution → condition manquante
+      // → dépassement plafond / partiellement exonéré → conforme
+      // intégrale) + ventilation 4 montants (plafond légal, exonéré,
+      // requalifié, cotisations ONSS estimées 25 % indicatif).
+      // ALWAYS_ON priority 139 (au-dessus de pecule-vacances-be = 138
+      // SF-219-20b et droit-deconnexion-be = 137 SF-219-19b). Pré-fill
+      // IA V1 : aucun champ (alignement pattern uniforme F-213/F-219 —
+      // type d'avantage / montants / jours prestés / flags juridiques
+      // (CCT, convention individuelle, paiement électronique, cumul
+      // frais de bouche, substitution rémunération) / date attribution
+      // non extractibles du dossier salarié principal — déclaratifs
+      // RH / fiches de paie / avocat).
+      ['eco-cheques-cheques-repas-be', {
+        displayLabel: 'Éco-chèques + chèques-repas (Belgique)',
+        component: EcoChequesChequesRepasBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4188,6 +4240,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['droit-deconnexion-be', 'VALIDITE'],
     // SF-219-20b : Pécule de vacances BE
     ['pecule-vacances-be', 'INDEMNITES'],
+    // SF-219-21b : Éco-chèques + chèques-repas BE — analyseur de
+    // conformité statutaire (6 verdicts, ventilation montant exonéré /
+    // requalifié / cotisations ONSS). Thème VALIDITE — cohérent avec
+    // les autres analyseurs de conformité statutaire BE
+    // (semaine-4-jours-be, droit-deconnexion-be, interim-be-cct-322,
+    // flexi-job-be, teletravail-be-cct-85-149).
+    ['eco-cheques-cheques-repas-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

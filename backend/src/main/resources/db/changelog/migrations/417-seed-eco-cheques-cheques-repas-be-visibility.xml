@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6e9e8d95-5f1b-4c7b-965f-00479147c722" author="claude">
+        <comment>
+            SF-219-21b — seed decision_tool_visibility_rules pour
+            l'outil decisionnel eco cheques + cheques repas BE
+            (eco-cheques-cheques-repas-be, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses creee par SF-219-21
+            (migration 415).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs propres au regime des
+            eco-cheques + cheques-repas : type d'avantage analyse
+            (eco-cheques CCT n98 vs cheques-repas Loi 25/04/2014 vs
+            indetermine), montant annuel total cumule sur l'annee
+            civile, valeur faciale unitaire d'un cheque (max 8 EUR
+            cheques-repas art. 19bis 2 8 AR 28/11/1969), contribution
+            travailleur unitaire (min 1,09 EUR cheques-repas art.
+            19bis 2 7 AR 28/11/1969), jours effectivement prestes
+            (proratisation cheques-repas art. 19bis 2 2), flag
+            existence CCT sectorielle ou d'entreprise (art. 3 CCT n98
+            / art. 19bis 2 1 AR 28/11/1969), flag convention
+            individuelle ecrite (alternative a defaut de CCT), flag
+            paiement electronique (obligatoire cheques-repas depuis
+            01/01/2016 Loi 25/04/2014 art. 51), flag cumul avec
+            indemnite forfaitaire frais de bouche (interdit
+            cheques-repas art. 19bis 2 4 al. 4 AR 28/11/1969), flag
+            substitution a une remuneration preexistante (interdit
+            art. 4 CCT n98 + Cass. 16/10/2017 S.16.0042.F ONSS c/ SA),
+            date d'attribution (controle de validite 24 mois
+            eco-cheques art. 13 CCT n98 ; 12 mois cheques-repas art.
+            19bis 2 5 AR 28/11/1969). Aucun flag DB CONTEXTUAL fiable
+            n'est disponible ; l'introduire pour un seul outil
+            ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible —
+               l'introduire pour ce seul outil creerait une exception
+               isolee et necessiterait une extraction IA enrichie
+               (qualification type d'avantage / montants / flags
+               juridiques CCT-convention individuelle-paiement
+               electronique-cumul frais de bouche-substitution
+               remuneration / date attribution) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du
+               travail BE evoque une contestation de l'attribution
+               d'eco-cheques ou de cheques-repas (avantage incorrect
+               qualifie, plafond depasse, condition manquante,
+               substitution remuneration soupconnee, dossier
+               redressement ONSS) pour analyser la conformite (6
+               verdicts) ET pour quantifier l'enjeu (4 montants
+               calcules — plafond legal, exonere, requalifie,
+               cotisations ONSS estimees 25 pourcent indicatif).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-138) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 cette migration (eco-cheques-cheques-repas-be)
+               Evite une exception isolee qui compliquerait la
+               lisibilite du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie
+               par defaut (collapsed=true) et la gate workspaceCountry
+               === BELGIQUE cote composant masque le contenu en cas
+               de dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY eco-cheques-cheques-repas-be
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-21b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement
+            masque — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id eco-cheques-cheques-repas-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-21 (PR
+            #1425, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - CCT n98 du CNT (Conseil National du Travail) du
+              20/02/2009 concernant les eco-cheques (M.B. 06/05/2009
+              suite a l'AR du 12/04/2009 rendant la CCT obligatoire) :
+                * art. 3 — CCT sectorielle ou d'entreprise requise ou
+                  a defaut convention individuelle ecrite ;
+                * art. 4 — interdiction de substitution a une
+                  remuneration preexistante ;
+                * art. 6 — plafond 250 EUR par travailleur et par
+                  annee civile ;
+                * art. 13 — duree de validite 24 mois a dater de la
+                  mise a disposition.
+            - Loi du 25/04/2014 portant des dispositions diverses
+              (M.B. 07/05/2014), art. 51 — paiement electronique
+              obligatoire des cheques-repas depuis le 01/01/2016.
+            - AR du 03/02/2010 modifiant l'art. 19bis de l'AR du
+              28/11/1969 portant execution de la loi du 27/06/1969
+              revisant l'AL du 28/12/1944 sur la securite sociale
+              des travailleurs salaries (M.B. 17/02/2010) :
+                * art. 19bis 2 1 — convention sectorielle ou
+                  d'entreprise ou convention individuelle ecrite
+                  requise ;
+                * art. 19bis 2 2 — un cheque par jour effectivement
+                  preste ;
+                * art. 19bis 2 5 — duree de validite 12 mois ;
+                * art. 19bis 2 6 — intervention employeur maximale
+                  6,91 EUR par cheque ;
+                * art. 19bis 2 7 — contribution travailleur minimale
+                  1,09 EUR par cheque ;
+                * art. 19bis 2 8 — valeur faciale maximale 8 EUR ;
+                * art. 19bis 2 4 al. 4 — interdiction de cumul avec
+                  indemnite forfaitaire frais de bouche pour le meme
+                  jour ;
+                * art. 19 2 16 — exoneration ONSS cotisations
+                  eco-cheques (renvoie a la CCT n98).
+            - Code des impots sur les revenus 1992, art. 38 1 25 —
+              exoneration impot des eco-cheques (renvoie aux
+              conditions de la CCT n98).
+            - Cass. 16/10/2017 S.16.0042.F ONSS c/ SA — interdiction
+              de substitution a une remuneration preexistante,
+              requalification integrale retroactive en remuneration.
+            - Loi du 27/06/1969 revisant l'AL du 28/12/1944 sur la
+              securite sociale des travailleurs salaries (M.B.
+              25/07/1969), art. 42 al. 1 — prescription action ONSS
+              5 ans (7 ans en cas de fraude ou de dissimulation).
+
+            Regime BE-only — la France a les titres-restaurant CGI
+            art. 81 19 ter avec plafond d'exoneration distinct (7,18
+            EUR/jour en 2024) et contribution employeur 50-60
+            pourcent, pas de regime equivalent a la CCT n98 pour les
+            eco-cheques. Restitution separee par outil — pas de
+            tentative d'harmonisation FR/BE.
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 pourcent sur le salaire
+              principal. Sans rapport avec la qualification d'un
+              avantage extra-legal de type eco-cheques / cheques-repas
+              (regime specifique CCT n98 / AR 28/11/1969).
+            - pecule-vacances-be (SF-219-20b, prio 138) — pecule de
+              vacances annuelles Lois 28/06/1971 + AR 30/03/1967.
+              Indemnite specifique au regime des conges payes BE,
+              juridiquement distincte des avantages extra-legaux
+              eco-cheques / cheques-repas.
+            - transaction-be-travail (prio 114) — transaction
+              individuelle de rupture (art. 1184 C.civ., art. 91 Loi
+              03/07/1978). Sans rapport avec la qualification
+              statutaire d'un avantage extra-legal recurrent.
+            - flexi-job-be (SF-219-12b, prio 130) — regime fiscal
+              specifique d'emploi accessoire (Loi 16/11/2015). Le
+              flexi-job a son propre regime de pecule (3,82 pourcent
+              calcule directement sur la remuneration, art. 4 Loi
+              16/11/2015) — outil distinct, pas couvert ici.
+            - avantages-conventionnels-be (F-DT-28) — couvre les
+              avantages issus de conventions collectives sectorielles
+              (CP) avec un focus sur la grille salariale (sursalaire,
+              primes recurrentes). Sans recouvrement avec
+              l'eco-cheque / cheque-repas qui sont des avantages
+              extra-legaux exoneres specifiques regis par CCT n98 ou
+              Loi 25/04/2014.
+            Cet outil intervient sur la qualification statutaire de
+            l'avantage extra-legal eco-cheques / cheques-repas
+            (verdict conformite, ventilation montant exonere /
+            requalifie / cotisations ONSS estimees) et non sur le
+            calcul d'autres indemnites ou primes salariales.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('6e9e8d95-5f1b-4c7b-965f-00479147c722', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'eco-cheques-cheques-repas-be', 'ALWAYS_ON', NULL, NULL, 139);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '6e9e8d95-5f1b-4c7b-965f-00479147c722';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
