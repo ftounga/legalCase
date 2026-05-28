@@ -231,6 +231,8 @@ import { MpFedrisReconnaissanceSectionComponent } from '../mp-fedris-reconnaissa
 import { AtMpRenteCapitalBeSectionComponent } from '../at-mp-rente-capital-be-section/at-mp-rente-capital-be-section.component';
 // SF-219-30b : section décisionnelle Saisine CPAP BE (RPS) — Loi 04/08/1996 art. 32sexies + AR 10/04/2014.
 import { BienEtreRpsConseillerPreventionSectionComponent } from '../bien-etre-rps-conseiller-prevention-section/bien-etre-rps-conseiller-prevention-section.component';
+// SF-219-31b : section décisionnelle Conge paternite / naissance BE — Loi 03/07/1978 art. 30 paragr. 2 + Loi 07/04/2023.
+import { CongePaterniteNaissanceBeSectionComponent } from '../conge-paternite-naissance-be-section/conge-paternite-naissance-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3253,6 +3255,45 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-31b : Conge paternite / naissance BE — Loi du
+      // 03/07/1978 art. 30 paragr. 2 (10 / 15 / 20 jours ouvrables
+      // selon date de naissance, dans les 4 mois post-naissance) +
+      // Loi du 12/08/2000 + Loi du 07/04/2023 Deal pour l'emploi
+      // (extension a tous les co-parents, alignement 20 jours depuis
+      // 01/01/2023) + AR du 17/10/1994 (modalites d'information et
+      // de prise) + AR du 03/07/1996 (indemnisation INAMI : 3
+      // premiers jours employeur 100 pour cent, jours restants
+      // mutuelle 82 pour cent plafonnee) + protection 5 mois
+      // licenciement art. 30 paragr. 4. Verdict 8 etats
+      // (ELIGIBLE_CONGE_OUVERT info / CONGE_EN_COURS_PROTECTION_ACTIVE
+      // info / CONGE_PRIS_PROTECTION_RESIDUELLE info /
+      // INELIGIBLE_STATUT_NON_COUVERT critical /
+      // INELIGIBLE_FILIATION_NON_ETABLIE critical /
+      // DROIT_PERDU_DELAI_DEPASSE critical /
+      // INELIGIBLE_NAISSANCE_FUTURE warn / A_QUALIFIER neutral).
+      // ALWAYS_ON priority 149 (au-dessus de
+      // bien-etre-rps-conseiller-prevention 148 SF-219-30b,
+      // at-mp-rente-capital-be 147 SF-219-29b,
+      // mp-fedris-reconnaissance 146 SF-219-28b). Pre-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213 / F-219 —
+      // statut travailleur, lien filiation, etape RH, dates etat-civil
+      // et formalites RH non extractibles du dossier salarie
+      // generique). THEME VALIDITE (qualification de droit / verdict
+      // 8 etats, coherent avec les autres outils de qualification du
+      // panel BE : mp-fedris-reconnaissance,
+      // bien-etre-rps-conseiller-prevention, protection-grossesse).
+      ['conge-paternite-naissance-be', {
+        displayLabel: 'Conge paternite / naissance (Belgique)',
+        component: CongePaterniteNaissanceBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4637,6 +4678,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['at-mp-rente-capital-be', 'INDEMNITES'],
     // SF-219-30b : Saisine CPAP BE (RPS) — conformite procedurale
     ['bien-etre-rps-conseiller-prevention', 'VALIDITE'],
+    // SF-219-31b : Conge paternite / naissance BE (qualification de droit
+    // + protection 5 mois licenciement, verdict 8 etats, coherent avec
+    // les autres outils de qualification du panel BE :
+    // mp-fedris-reconnaissance, bien-etre-rps-conseiller-prevention,
+    // protection-grossesse).
+    ['conge-paternite-naissance-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
