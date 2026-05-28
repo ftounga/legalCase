@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="5d3cf59e-10e3-4453-8f73-ee9da785d97a" author="claude">
+        <comment>
+            SF-219-17 : table dédiée à l'outil décisionnel « Clause
+            d'écolage BE » (clause-ecolage-be, BELGIQUE — fondement :
+            art. 22bis de la Loi du 03/07/1978 sur les contrats de
+            travail, inséré par la Loi du 27/12/2006 portant des
+            dispositions diverses I, M.B. 28/12/2006, et modifié par la
+            Loi du 22/12/2017 — Pacte de compétitivité ; CCT n° 43 du
+            02/05/1988 du CNT relative à la garantie d'un revenu
+            minimum mensuel moyen — RMMMG indexé annuellement ; CCT
+            n° 13 du 02/02/2013 du CNT — cadre subsidiaire pour
+            formations qualifiantes sectorielles).
+
+            L'outil analyse la validité d'une clause d'écolage par
+            laquelle un travailleur s'engage à rembourser à son
+            employeur tout ou partie des frais d'une formation
+            spécifique si le travailleur quitte l'entreprise avant un
+            certain délai, sous l'angle cumulatif :
+            - Type de formation (SPECIFIQUE clause possible ;
+              OBLIGATOIRE_LEGALE imposée par norme légale ou
+              réglementaire clause nulle de plein droit ; INDETERMINE
+              analyse cas par cas requise).
+            - Forme écrite obligatoire au plus tard à l'entrée en
+              formation (art. 22bis § 1er al. 1er) reprenant
+              description, durée, lieu, coût réel, durée d'efficacité
+              et montant dégressif.
+            - Coût réel de la formation strictement supérieur à la
+              moitié du revenu minimum mensuel moyen garanti — RMMMG
+              (CCT n° 43 du CNT, art. 22bis § 2 al. 3 2°). Le RMMMG
+              mensuel est passé en input pour rester paramétrable selon
+              la date de signature.
+            - Durée d'efficacité maximale 36 mois soit 3 ans à compter
+              de la fin de la formation (art. 22bis § 4 al. 1er).
+            - Dégressivité du remboursement par tiers de la durée
+              d'efficacité (art. 22bis § 4 al. 2) : 100 pourcent la 1re
+              période, 2/3 environ 66,67 pourcent la 2e, 1/3 environ
+              33,33 pourcent la 3e, rien au-delà de la durée
+              d'efficacité.
+            - Plafond absolu du remboursement à 80 pourcent du coût
+              réel de la formation (art. 22bis § 4 al. 4) — quelle que
+              soit la formule de dégressivité retenue.
+            - Motif de départ actionnable (art. 22bis § 3) : seule la
+              démission volontaire du travailleur ou le licenciement
+              pour motif grave imputable au travailleur peut
+              déclencher le remboursement. La clause est inopposable
+              en cas de licenciement sans motif grave par l'employeur,
+              de rupture pour motif grave dans le chef de l'employeur,
+              ou d'expiration normale d'un CDD.
+
+            Sanction prévue :
+            - Forme écrite manquante (art. 22bis § 1er) : nullité de
+              plein droit de la clause ; l'employeur ne peut réclamer
+              aucune somme ;
+            - Formation obligatoire en vertu d'une norme (art. 22bis
+              § 2) : nullité de plein droit ;
+            - Coût inférieur à la moitié du RMMMG (art. 22bis § 2 al. 3
+              2°) : nullité de plein droit ;
+            - Durée d'efficacité supérieure à 3 ans (art. 22bis § 4
+              al. 1er) : nullité de plein droit ;
+            - Motif de départ exclu (art. 22bis § 3) : clause
+              inopposable, aucune somme exigible indépendamment de la
+              régularité formelle.
+
+            Verdict : VALIDE_REMBOURSEMENT_DEGRESSIF
+            | VALIDE_DUREE_EXPIREE
+            | INOPPOSABLE_MOTIF_DEPART
+            | NULLE_FORME_ECRITE_MANQUANTE
+            | NULLE_FORMATION_OBLIGATOIRE
+            | NULLE_COUT_INSUFFISANT
+            | NULLE_DUREE_EXCESSIVE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — le droit français connaît
+            la clause de dédit-formation (jurisprudence Cass. soc.
+            17/07/1991 Le Berre n° 88-40.201 ; C. trav. art. L. 6321-1
+            et L. 6321-12 issus Loi Cherpion 28/07/2011) avec un cadre
+            de validité différent : nécessité d'une cause réelle et
+            sérieuse, formation au-delà des obligations légales,
+            durée raisonnable proportionnée, montant proportionné aux
+            frais réellement exposés (prorata temporis libre — pas
+            de dégressivité par tiers ni de plafond légal 80 pourcent
+            comme en BE). Restitution séparée par outil — pas de
+            tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet (inputs + outputs : verdict, coût
+            minimum légal RMMMG/2, mois écoulés depuis fin formation,
+            tier de la durée d'efficacité 1/2/3/4, quotité due,
+            montant brut, plafond 80 pourcent et montant dû final
+            après plafonnement) pour permettre la restitution UI sans
+            recalcul (pattern uniforme F-DT-42 / SF-213-01 à SF-213-10
+            / SF-219-01 à SF-219-16).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-17b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel
+            F-164 staging 2026-04-26 — 13 tool_id orphelins, cf.
+            CLAUDE.md feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id clause-ecolage-be est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile
+            dès le seed visibility par SF-219-17b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-16b).
+        </comment>
+
+        <createTable tableName="clause_ecolage_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_clause_ecolage_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="clause_ecolage_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_clause_ecolage_be_case_file"/>
+
+        <createIndex tableName="clause_ecolage_be_analyses"
+                     indexName="idx_clause_ecolage_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="clause_ecolage_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
