@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="3150d787-c2f2-405d-98d1-607e92767dc3" author="claude">
+        <comment>
+            SF-219-31b — seed decision_tool_visibility_rules pour
+            l'outil decisionnel Conge paternite / naissance BE
+            (conge-paternite-naissance-be, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses creee par SF-219-31 (migration 435).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas
+            mecaniquement les declaratifs RH et d'etat-civil propres
+            au regime du conge de naissance BE : statut professionnel
+            du travailleur (SALARIE Loi 03/07/1978 art. 30 paragr. 2
+            vs INDEPENDANT regime distinct INASTI Loi 13/04/2019 + AR
+            23/05/2019 vs AGENT_PUBLIC_STATUTAIRE AR 19/11/1998), lien
+            de filiation ou parental etabli (pere biologique art. 315
+            ou 327 C. civ., co-parent par comaternite art. 325/2,
+            co-parent par reconnaissance art. 327/1, cohabitant legal
+            ou conjoint Loi 07/04/2023), etape procedurale d'avancement
+            (avant naissance, naissance survenue, notification
+            employeur faite AR 17/10/1994, conge en cours de prise,
+            conge totalement pris, delai 4 mois depasse), date de
+            naissance de l'enfant (cle pour determiner la duree
+            applicable — 20 jours ouvrables depuis le 01/01/2023 Loi
+            07/04/2023, 15 jours du 01/01/2021 au 31/12/2022, 10 jours
+            avant), date de notification a l'employeur (point de
+            depart de la fenetre de protection 5 mois art. 30
+            paragr. 4), jours deja pris et date de fin de prise
+            effective. Aucun flag DB CONTEXTUAL fiable n'est
+            disponible ; l'introduire pour un seul outil ajouterait
+            une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible —
+               l'introduire pour ce seul outil creerait une exception
+               isolee et necessiterait une extraction IA enrichie
+               (qualification du statut professionnel, etat-civil de
+               l'enfant et lien parental juridique, etape RH de prise,
+               formalites AR 17/10/1994) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du
+               travail BE evoque une naissance imminente ou survenue
+               (anticipation de la notification AR 17/10/1994,
+               qualification du statut professionnel et du lien
+               parental, suivi de prise dans la fenetre 4 mois,
+               protection contre le licenciement art. 30 paragr. 4 en
+               cours, contestation d'un refus d'octroi, articulation
+               avec protection-grossesse art. 40 Loi 16/03/1971 pour
+               la mere, indemnisation INAMI AR 03/07/1996). L'outil
+               restitue le verdict 8 etats (ELIGIBLE_CONGE_OUVERT
+               droit en attente ou prise partielle /
+               CONGE_EN_COURS_PROTECTION_ACTIVE prise et protection
+               active / CONGE_PRIS_PROTECTION_RESIDUELLE protection
+               residuelle / INELIGIBLE_STATUT_NON_COUVERT statut hors
+               champ / INELIGIBLE_FILIATION_NON_ETABLIE lien non
+               etabli / DROIT_PERDU_DELAI_DEPASSE delai 4 mois depasse
+               / INELIGIBLE_NAISSANCE_FUTURE droit en formation /
+               A_QUALIFIER inputs ambigus) avec le calcul de la duree
+               applicable (10 / 15 / 20 jours ouvrables), des jours
+               restants a prendre, des echeances 4 mois post-naissance
+               et 5 mois fin de protection licenciement, et de la
+               repartition indemnitaire employeur / mutuelle. Pertinent
+               des l'ouverture du dossier pour eclairer la strategie
+               (anticipation, defense du licenciement durant la
+               periode protegee art. 30 paragr. 4 — action en nullite
+               + indemnite complementaire 6 mois de remuneration,
+               contestation refus d'octroi tribunal du travail art.
+               578 1 C. jud., articulation avec protection-grossesse
+               pour la mere).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-148) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 travail-noir-be-dimona (SF-219-26b)
+                 - 145 inastri-statut-travailleur-independant (SF-219-27b)
+                 - 146 mp-fedris-reconnaissance (SF-219-28b)
+                 - 147 at-mp-rente-capital-be (SF-219-29b)
+                 - 148 bien-etre-rps-conseiller-prevention (SF-219-30b)
+                 - 149 cette migration (conge-paternite-naissance-be)
+               Evite une exception isolee qui compliquerait la
+               lisibilite du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie
+               par defaut (collapsed=true) et la gate workspaceCountry
+               === BELGIQUE cote composant masque le contenu en cas
+               de dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY conge-paternite-naissance-be
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-31b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement
+            masque — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id conge-paternite-naissance-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-31 (PR
+            #1446, preventif). Aucune tuile dashboard n'est associee
+            — l'outil est consulte uniquement depuis le panel
+            decisionnel du case file.
+
+            THEME_BY_TOOL_ID = VALIDITE (qualification de droit /
+            verdict 8 etats sans chiffrage monetaire central,
+            articulation avec la protection 5 mois licenciement art.
+            30 paragr. 4, coherent avec les autres outils de
+            qualification du panel BE : mp-fedris-reconnaissance
+            (qualification reconnaissance MP), bien-etre-rps-conseiller-prevention
+            (qualification procedure CPAP), protection-grossesse
+            (qualification protection mere)). Distinct des outils
+            INDEMNITES qui chiffrent un montant central (rappel-salaire-be,
+            licenciement-be-formule-claeys, at-mp-rente-capital-be).
+
+            Fondement juridique :
+            - Loi du 03/07/1978 relative aux contrats de travail
+              (M.B. 22/08/1978) :
+                * art. 30 paragr. 2 — conge de naissance / paternite
+                  pour le travailleur salarie, ouvert au pere ou
+                  co-parent etabli, duree de 20 jours ouvrables pour
+                  les naissances a partir du 01/01/2023 (Loi
+                  07/04/2023), 15 jours du 01/01/2021 au 31/12/2022,
+                  10 jours avant le 01/01/2021. A prendre dans les 4
+                  mois suivant la naissance, fractionnable. Cas de
+                  report exceptionnels : incapacite de la mere durant
+                  la prise, hospitalisation de l'enfant a la naissance
+                  (al. 4) ;
+                * art. 30 paragr. 4 — protection contre le licenciement
+                  5 mois (de la notification a 5 mois apres la prise
+                  complete) ; annulation et indemnite complementaire
+                  6 mois de remuneration en cas de licenciement non
+                  fonde sur motif etranger au conge (Cass. BE
+                  16/03/2015 S.13.0094.F).
+            - Loi du 12/08/2000 portant des dispositions sociales,
+              budgetaires et diverses (M.B. 31/08/2000) — instauration
+              et passage de 3 jours a 10 jours du conge de naissance.
+            - Loi du 07/04/2023 portant des dispositions en matiere de
+              Deal pour l'emploi 2022 (M.B. 19/04/2023) — extension a
+              tous les co-parents independamment du genre, alignement
+              de la duree a 20 jours pour les naissances a partir du
+              01/01/2023.
+            - AR du 17/10/1994 (M.B. 03/11/1994) — modalites
+              d'information de l'employeur et de prise du conge,
+              justificatifs requis (acte de naissance, attestation
+              hopital).
+            - AR du 03/07/1996 (M.B. 31/07/1996) — indemnisation
+              INAMI : employeur 100 pour cent les 3 premiers jours,
+              mutuelle 82 pour cent plafonnee (plafond ONSS indexe)
+              les jours suivants.
+            - C. civ. art. 315 (presomption de paternite dans le
+              mariage) ; art. 327 et 327/1 (reconnaissance d'enfant
+              et reconnaissance par le coparent) ; art. 325/2 et 325/4
+              (comaternite) ; art. 1475 et s. (cohabitation legale).
+            - Loi du 16/03/1971 sur le travail (M.B. 30/03/1971)
+              art. 40 — articulation avec la protection grossesse de
+              la mere (15 semaines, dont 7 obligatoires postnatales).
+
+            Regime BE-only — le regime francais du conge de paternite
+            et d'accueil de l'enfant (Code du travail FR art. L.
+            1225-35 et s., Loi de financement de la securite sociale
+            2021 portant la duree a 25 jours calendaires dont 7
+            obligatoires, indemnise par la CPAM via les IJSS Maternite
+            art. L. 331-8 CSS, periode de prise dans les 6 mois post-
+            naissance avec fractionnement en 2 periodes minimum,
+            voies de recours TJ pole social art. L. 142-1 CSS) est
+            juridiquement distinct :
+            - duree (20 jours ouvrables BE vs 25 jours calendaires
+              FR) ;
+            - fractionnement (libre BE / 2 periodes minimum FR) ;
+            - periode de prise (4 mois BE vs 6 mois FR) ;
+            - indemnisation (employeur 3 jours + mutuelle 82 pour cent
+              BE vs CPAM IJSS 100 pour cent du gain journalier
+              plafonne FR) ;
+            - protection licenciement (5 mois BE art. 30 paragr. 4 vs
+              10 semaines / 14 jours obligatoires FR art. L. 1225-4-1
+              CT) ;
+            - voies de recours (tribunal du travail art. 578 1 C. jud.
+              BE vs TJ pole social art. L. 142-1 CSS FR).
+            Aucune transposition mecanique. L'outil BE expose les 8
+            verdicts propres au cadre Loi 03/07/1978 art. 30 paragr. 2
+            modifie par Loi 07/04/2023.
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — chiffrage civil d'arrieres
+              de salaire avec interets moratoires 10 pour cent.
+              Distincts (regime salaire vs regime conge familial).
+            - protection-grossesse (prio 113) — protection de la mere
+              durant la grossesse art. 40 Loi 16/03/1971. Distincts
+              mais articules : pour le couple, le conge de paternite /
+              naissance se cumule avec le conge de maternite de la
+              mere ; cet outil traite uniquement le coparent.
+            - mp-fedris-reconnaissance (prio 146, SF-219-28b) —
+              qualification reconnaissance MP. Distincts.
+            - at-mp-rente-capital-be (prio 147, SF-219-29b) —
+              chiffrage rente / capital AT/MP post-consolidation.
+              Distincts.
+            - bien-etre-rps-conseiller-prevention (prio 148,
+              SF-219-30b) — saisine CPAP RPS. Distincts.
+            - F-DT-77-conge-paternite-maternite (existant) — outil
+              generaliste (FR + BE indistinct, pas de qualification
+              detaillee). Cet outil-ci est BE specifique avec verdict
+              8 etats et calcul protection 5 mois — restitution
+              distincte attendue selon l'invariant
+              feedback_decision_tools_one_per_situation
+              (situation metier BE distincte du F-DT-77 FR-priorise).
+
+            Cet outil intervient des qu'un dossier de droit du travail
+            BE evoque une naissance imminente ou survenue, et permet a
+            l'avocat de qualifier le droit (8 verdicts), de calculer
+            la duree applicable selon la date de naissance (10 / 15 /
+            20 jours ouvrables), les jours restants a prendre dans
+            la fenetre 4 mois, les echeances de protection 5 mois et
+            la repartition indemnitaire employeur / mutuelle.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('3150d787-c2f2-405d-98d1-607e92767dc3', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'conge-paternite-naissance-be', 'ALWAYS_ON', NULL, NULL, 149);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '3150d787-c2f2-405d-98d1-607e92767dc3';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

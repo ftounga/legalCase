@@ -1,0 +1,383 @@
+<div class="conge-paternite-naissance-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">child_care</mat-icon>
+    <span class="section-title">Conge paternite / naissance (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="conge-paternite-naissance-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est reserve aux dossiers de droit du travail belge
+            (Loi du 03/07/1978 art. 30 paragr. 2 + Loi du 12/08/2000 +
+            Loi du 07/04/2023 Deal pour l'emploi + AR du 17/10/1994 +
+            AR du 03/07/1996 indemnisation INAMI). Le regime francais
+            du conge de paternite et d'accueil de l'enfant (Code du
+            travail FR art. L. 1225-35 et s., LFSS 2021 — 25 jours
+            calendaires dont 7 obligatoires, IJSS CPAM art. L. 331-8
+            CSS) est juridiquement distinct dans sa duree, son
+            fractionnement et son indemnisation. Aucune transposition
+            mecanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement...</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Qualifie le droit au conge de naissance BE et calcule la
+            duree applicable (10 / 15 / 20 jours ouvrables selon date
+            de naissance), les jours restants a prendre dans la fenetre
+            de 4 mois post-naissance (art. 30 paragr. 2 al. 2 Loi
+            03/07/1978), la repartition indemnitaire (3 premiers jours
+            employeur 100 pour cent, jours restants mutuelle 82 pour
+            cent INAMI AR 03/07/1996) et la protection 5 mois contre
+            le licenciement art. 30 paragr. 4. Champs marques *
+            requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Statut travailleur * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut professionnel du travailleur *</mat-label>
+                <mat-select
+                    [value]="statutTravailleur()"
+                    (selectionChange)="onStatutTravailleurChange($event.value)"
+                    name="statutTravailleur"
+                    required>
+                  <mat-option value="SALARIE">
+                    Salarie (Loi 03/07/1978 art. 30 paragr. 2)
+                  </mat-option>
+                  <mat-option value="INDEPENDANT">
+                    Independant (regime INASTI AR 23/05/2019 — 20 jours forfaitaires)
+                  </mat-option>
+                  <mat-option value="AGENT_PUBLIC_STATUTAIRE">
+                    Agent public statutaire (AR 19/11/1998)
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre statut a qualifier
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Seul SALARIE entre dans le champ de la Loi 03/07/1978 art. 30 paragr. 2.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Lien filiation * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Lien de filiation ou parental *</mat-label>
+                <mat-select
+                    [value]="lienFiliation()"
+                    (selectionChange)="onLienFiliationChange($event.value)"
+                    name="lienFiliation"
+                    required>
+                  <mat-option value="PERE_BIOLOGIQUE">
+                    Pere biologique (art. 315 ou 327 C. civ.)
+                  </mat-option>
+                  <mat-option value="COPARENT_COMATERNITE">
+                    Co-parent par comaternite (art. 325/2 C. civ.)
+                  </mat-option>
+                  <mat-option value="COPARENT_RECONNAISSANCE">
+                    Co-parent par reconnaissance (art. 327/1 C. civ.)
+                  </mat-option>
+                  <mat-option value="COHABITANT_LEGAL_OU_MARIE">
+                    Cohabitant legal ou conjoint (Loi 07/04/2023)
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre situation a qualifier
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Depuis la Loi 07/04/2023, le droit est ouvert a tous les co-parents independamment du genre.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Etape procedurale * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Etape procedurale *</mat-label>
+                <mat-select
+                    [value]="etapeProcedure()"
+                    (selectionChange)="onEtapeProcedureChange($event.value)"
+                    name="etapeProcedure"
+                    required>
+                  <mat-option value="AVANT_NAISSANCE">
+                    Avant la naissance — droit en formation
+                  </mat-option>
+                  <mat-option value="NAISSANCE_SURVENUE">
+                    Naissance survenue — delai 4 mois ouvert
+                  </mat-option>
+                  <mat-option value="NOTIFICATION_EMPLOYEUR_FAITE">
+                    Notification a l'employeur effectuee
+                  </mat-option>
+                  <mat-option value="CONGE_EN_COURS_DE_PRISE">
+                    Conge en cours de prise (protection active)
+                  </mat-option>
+                  <mat-option value="CONGE_PRIS_ENTIEREMENT">
+                    Conge totalement pris (protection residuelle)
+                  </mat-option>
+                  <mat-option value="DELAI_QUATRE_MOIS_DEPASSE">
+                    Delai 4 mois depasse
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Pilote le verdict et le calcul de la protection 5 mois licenciement art. 30 paragr. 4.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Filiation etablie * -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                  [ngModel]="filiationEtablie()"
+                  (ngModelChange)="onFiliationEtablieChange($event)"
+                  name="filiationEtablie">
+                Filiation etablie (acte de naissance, reconnaissance, comaternite, mariage / cohabitation legale)
+              </mat-checkbox>
+            </div>
+
+            <!-- 5. Contrat de travail en cours * -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                  [ngModel]="contratTravailEnCours()"
+                  (ngModelChange)="onContratTravailEnCoursChange($event)"
+                  name="contratTravailEnCours">
+                Contrat de travail salarie en cours a la naissance
+              </mat-checkbox>
+            </div>
+
+            <!-- 6. Notification employeur faite * -->
+            <div class="field-with-alert field-full-width">
+              <mat-checkbox
+                  [ngModel]="notificationEmployeurFaite()"
+                  (ngModelChange)="onNotificationEmployeurFaiteChange($event)"
+                  name="notificationEmployeurFaite">
+                Notification a l'employeur faite (AR 17/10/1994, justificatif joint)
+              </mat-checkbox>
+            </div>
+
+            <!-- 7. Date naissance -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance de l'enfant</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNaissance()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissance" />
+                <mat-hint>Determine la duree applicable : 20 jours depuis le 01/01/2023, 15 jours 2021-2022, 10 jours avant.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Date notification employeur -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de notification a l'employeur</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNotificationEmployeur()"
+                       (ngModelChange)="onDateNotificationEmployeurChange($event)"
+                       name="dateNotificationEmployeur" />
+                <mat-hint>Point de depart de la fenetre de protection licenciement 5 mois art. 30 paragr. 4.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9. Jours deja pris -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Jours ouvrables deja pris</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       [ngModel]="joursDejaPrisOuvrables()"
+                       (ngModelChange)="onJoursDejaPrisOuvrablesChange($event)"
+                       name="joursDejaPrisOuvrables" />
+                <mat-hint>Entier &gt;= 0. Un demi-jour compte pour 0.5 (arrondi inferieur en V1).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Date fin prise effective -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du dernier jour pris (si termine)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateFinPriseEffective()"
+                       (ngModelChange)="onDateFinPriseEffectiveChange($event)"
+                       name="dateFinPriseEffective" />
+                <mat-hint>Point de depart de la protection 5 mois residuelle art. 30 paragr. 4.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le droit au conge</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="conge-paternite-naissance-be-result">
+
+          <!-- Banniere verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutTravailleurLabel(result()!.statutTravailleur) }}</b>
+                <span> / Filiation : <b>{{ lienFiliationLabel(result()!.lienFiliation) }}</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation analyse -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Detail du calcul</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">flag</mat-icon>
+              <span class="ventilation-label">Etape procedurale</span>
+              <span class="ventilation-value mono">{{ etapeProcedureLabel(result()!.etapeProcedure) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">family_restroom</mat-icon>
+              <span class="ventilation-label">Filiation etablie</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.filiationEtablie) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">work</mat-icon>
+              <span class="ventilation-label">Contrat de travail en cours</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.contratTravailEnCours) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">mark_email_read</mat-icon>
+              <span class="ventilation-label">Notification employeur</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.notificationEmployeurFaite) }}</span>
+            </div>
+
+            @if (result()!.dateNaissance) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">cake</mat-icon>
+                <span class="ventilation-label">Date naissance enfant</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateNaissance) }}</span>
+              </div>
+            }
+
+            @if (result()!.dateNotificationEmployeur) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">send</mat-icon>
+                <span class="ventilation-label">Date notification employeur</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateNotificationEmployeur) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">event_available</mat-icon>
+              <span class="ventilation-label">Duree applicable</span>
+              <span class="ventilation-value mono">{{ formatJours(result()!.dureeApplicableJoursOuvrables) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">pending_actions</mat-icon>
+              <span class="ventilation-label">Jours restants a prendre</span>
+              <span class="ventilation-value mono">{{ formatJours(result()!.joursRestantsAPrendre) }}</span>
+            </div>
+
+            @if (result()!.echeanceQuatreMoisPostNaissance) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">event_busy</mat-icon>
+                <span class="ventilation-label">Echeance 4 mois post-naissance</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.echeanceQuatreMoisPostNaissance) }}</span>
+              </div>
+            }
+
+            @if (result()!.finProtectionLicenciement) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">shield</mat-icon>
+                <span class="ventilation-label">Fin protection 5 mois</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.finProtectionLicenciement) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">policy</mat-icon>
+              <span class="ventilation-label">Protection licenciement active</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.protectionLicenciementActive) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">payments</mat-icon>
+              <span class="ventilation-label">Jours indemnises 100 pour cent employeur</span>
+              <span class="ventilation-value mono">{{ formatJours(result()!.indemniteEmployeurJoursCent) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">health_and_safety</mat-icon>
+              <span class="ventilation-label">Jours indemnises 82 pour cent mutuelle (INAMI)</span>
+              <span class="ventilation-value mono">{{ formatJours(result()!.indemniteMutuelleJoursQuatreVingtDeux) }}</span>
+            </div>
+          </div>
+
+          <!-- Synthese -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le resultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
