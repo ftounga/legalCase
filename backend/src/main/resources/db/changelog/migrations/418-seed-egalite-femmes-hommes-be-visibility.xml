@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="88d2f661-60f7-4a48-b9c8-967250850fa8" author="claude">
+        <comment>
+            SF-219-22b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel egalite salariale femmes / hommes BE
+            (egalite-femmes-hommes-be, BELGIQUE, DROIT_DU_TRAVAIL), table
+            d'analyses creee par SF-219-22 (migration 416).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs propres au regime du rapport
+            biennal egalite salariale H/F BE : effectif moyen ETP de
+            l'entreprise sur la periode de reference biennale (Loi
+            04/12/2007 art. 7 — equivalents temps plein, mois incomplets,
+            interimaires, societes liees), statut administratif du
+            rapport biennal (depose formulaire complet ann. I / depose
+            formulaire incomplet / en preparation / non depose delai
+            depasse / indetermine), date de depot au Conseil d'entreprise
+            (a defaut delegation syndicale) + depot central electronique
+            EBES aupres de la BNB, flags de contenu de la ventilation
+            art. 4 AR 17/08/2013 (5 sections obligatoires : niveau de
+            fonction art. 4 1°, anciennete art. 4 2°, qualification
+            art. 4 3°, regime de travail art. 4 4°, composants de la
+            remuneration art. 4 5°), resultat de l'analyse art. 5 Loi
+            22/04/2012 (ecart non justifie constate + magnitude
+            indicative), flag procedural plan d'action concret etabli
+            (objectifs chiffres + calendrier de mise en oeuvre dans
+            le delai CCT sectorielle ou 6 mois), faculte mediateur
+            egalite H/F (art. 14 Loi 22/04/2012 + CCT n° 25 du
+            15/10/1975 du CNT — NAR), indicateur contentieux en cours
+            (plainte IEFH ou inspection SPF Emploi). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (effectif moyen
+               ETP entreprise, statut rapport biennal, ventilations
+               art. 4, ecart salarial, plan d'action, mediateur, plainte
+               IEFH) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une question d'egalite salariale H/F (plainte
+               individuelle d'une travailleuse en discrimination
+               salariale, demande de communication du rapport biennal
+               via le CE, recours collectif organisations syndicales /
+               Institut pour l'egalite des femmes et des hommes IEFH,
+               controle SPF Emploi sur la conformite art. 195/1 C. pen.
+               social, courrier d'avocat employeur sollicitant un audit
+               preventif) pour qualifier la conformite a l'obligation
+               rapport biennal art. 2 Loi 22/04/2012 (conditions
+               cumulatives : seuil 50 ETP + rapport depose + ventilation
+               art. 4 complete + plan d'action si ecart) ET pour
+               identifier les manquements critiques (manquement grave
+               rapport non depose exposant aux sanctions C. pen. social
+               art. 195/1 + action en cessation syndicats / IEFH ;
+               manquement materiel rapport incomplet ouvrant
+               injonction de regularisation ; manquement substantiel
+               plan d'action manquant compromettant la conformite
+               globale).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-139) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b parallele)
+                 - 140 cette migration (egalite-femmes-hommes-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY egalite-femmes-hommes-be
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-22b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id egalite-femmes-hommes-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-22 (PR
+            #1426, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 22/04/2012 visant a lutter contre l'ecart salarial
+              entre hommes et femmes (M.B. 28/08/2012) :
+                * art. 2 — obligation pour les employeurs occupant en
+                  moyenne au moins 50 travailleurs (ETP, Loi 04/12/2007
+                  art. 7) d'etablir tous les deux exercices comptables
+                  une analyse detaillee de la structure de remuneration
+                  H/F sur le formulaire standardise (AR 25/04/2014 ann. I
+                  >= 100 ETP, ann. II 50-99 ETP) et de la deposer aupres
+                  du Conseil d'entreprise (a defaut DS) + depot central
+                  EBES BNB ;
+                * art. 5 — plan d'action concret avec objectifs chiffres
+                  et calendrier de mise en oeuvre dans le delai CCT
+                  sectorielle ou 6 mois si l'analyse revele un ecart non
+                  justifie ;
+                * art. 12 — interdiction generale de discrimination
+                  salariale ;
+                * art. 14 — faculte de designation d'un mediateur
+                  egalite H/F dans l'entreprise ;
+                * art. 16 — insertion C. pen. social art. 195/1
+                  (sanction niveau 2).
+            - AR du 17/08/2013 portant execution de l'art. 2 Loi
+              22/04/2012 :
+                * art. 4 — contenu obligatoire de l'analyse :
+                  ventilation par (1°) niveau de fonction —
+                  classification conventionnelle, (2°) anciennete,
+                  (3°) niveau de qualification requis du poste,
+                  (4°) regime de travail — temps plein vs temps
+                  partiel, (5°) composants de la remuneration —
+                  salaire de base, primes, avantages complementaires
+                  separes.
+            - AR du 25/04/2014 modifiant l'AR du 17/08/2013 — formulaires
+              standardises : ann. I detaille >= 100 ETP, ann. II
+              simplifie 50-99 ETP ; depot CE / DS + depot central
+              electronique EBES aupres de la BNB.
+            - CCT n° 25 du 15/10/1975 du CNT (NAR) concernant l'egalite
+              de remuneration entre travailleurs masculins et feminins
+              (rendue obligatoire par AR 09/12/1975 M.B. 09/01/1976),
+              modifiee par CCT n° 25bis du 19/12/2001 et n° 25ter du
+              09/07/2008 — socle conventionnel transposant Directive
+              75/117/CEE puis 2006/54/CE.
+            - Loi du 10/05/2007 tendant a lutter contre certaines formes
+              de discrimination (M.B. 30/05/2007), art. 14 et s. —
+              cadre general anti-discrimination genre.
+            - Loi du 12/01/2007 visant au controle de l'application des
+              resolutions de la Conference mondiale sur les femmes
+              (gender mainstreaming) — obligation transversale.
+            - C. pen. social du 06/06/2010, art. 195/1 (insere par Loi
+              22/04/2012 art. 16) — sanction de niveau 2 (amende
+              administrative 80 a 800 EUR ou penale 200 a 2 000 EUR par
+              travailleur, plafonnee) en cas de manquement a l'obligation
+              rapport.
+            - Loi du 04/12/2007 sur les elections sociales, art. 7 —
+              methode de calcul de l'effectif moyen (ETP, periode de
+              reference, societes liees) applicable au seuil 50.
+
+            Regime BE-only — le regime francais d'index egalite
+            professionnelle (C. trav. art. L. 1142-7 et s. ; Decret
+            n° 2019-15 du 08/01/2019) constitue un dispositif
+            juridiquement distinct : notation 100 points sur 5
+            indicateurs (ecart salaire, ecart augmentation, ecart
+            promotion, augmentations apres conge maternite, parite
+            top 10 hautes remunerations), plan de rattrapage si
+            score < 75/100, publication obligatoire sur le site
+            internet de l'entreprise et transmission CSE / DREETS,
+            sanctions financieres CSP jusqu'a 1 % de la masse
+            salariale. Aucune transposition mecanique. L'outil BE
+            expose les 6 verdicts hierarchises propres au cadre du
+            rapport biennal belge.
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 %. Sans rapport avec l'obligation
+              rapport biennal egalite H/F : la rectification salariale
+              individuelle d'une travailleuse fondee sur la discrimination
+              salariale art. 12 Loi 22/04/2012 + CCT n° 25 emprunte
+              effectivement le rappel-salaire-be pour la liquidation
+              des arrieres (1 an / 5 ans selon nature, Loi 03/07/1978
+              art. 15), mais constitue une action individuelle
+              distincte du contentieux collectif de l'obligation
+              rapport biennal (action en cessation organisations
+              syndicales / IEFH).
+            - harcelement-be-procedure-formelle (prio 115) — procedure
+              formelle CCT n° 72 + Loi du 04/08/1996 bien-etre au
+              travail. La discrimination salariale H/F n'est pas
+              consideree comme un harcelement moral, mais une plainte
+              individuelle d'une travailleuse peut combiner les deux
+              fondements (Loi 22/04/2012 art. 12 + Loi 10/05/2007
+              + Loi 04/08/1996) ; outils complementaires mais
+              juridiquement disjoints.
+            - elections-sociales-be (prio 127) — periode des elections
+              sociales 4 ans (Loi 04/12/2007). Le calcul de l'effectif
+              moyen ETP pour le seuil 50 du rapport biennal egalite
+              H/F emprunte la meme methode (Loi 04/12/2007 art. 7),
+              d'ou la coherence du renvoi croise dans l'avertissement
+              avocat ; outils complementaires en pratique (l'audit
+              effectif declenche les deux obligations) mais finalites
+              juridiques disjointes (institution representative vs
+              transparence salariale).
+            - protection-grossesse (prio 113) — protection de la
+              maternite (Loi 16/03/1971 art. 39 et s.). Une
+              travailleuse peut etre concernee par la fois par la
+              protection grossesse et par une discrimination salariale
+              constituant le motif reel du licenciement ; outils
+              complementaires.
+
+            Cet outil intervient en amont (qualification de la
+            conformite de l'employeur a l'obligation rapport biennal
+            egalite salariale H/F) et identifie les manquements
+            critiques (manquement grave rapport non depose ouvrant
+            l'action en cessation organisations syndicales / IEFH +
+            sanction C. pen. social art. 195/1 niveau 2 ; manquement
+            materiel rapport incomplet ouvrant injonction de
+            regularisation ; manquement substantiel plan d'action
+            manquant compromettant la conformite globale).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('88d2f661-60f7-4a48-b9c8-967250850fa8', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'egalite-femmes-hommes-be', 'ALWAYS_ON', NULL, NULL, 140);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '88d2f661-60f7-4a48-b9c8-967250850fa8';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

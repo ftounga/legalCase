@@ -213,6 +213,8 @@ import { DroitDeconnexionBeSectionComponent } from '../droit-deconnexion-be-sect
 import { PeculeVacancesBeSectionComponent } from '../pecule-vacances-be-section/pecule-vacances-be-section.component';
 // SF-219-21b : section décisionnelle Éco-chèques + chèques-repas BE — CCT n°98 + Loi 25/04/2014 + AR 03/02/2010 (BE-only, ALWAYS_ON).
 import { EcoChequesChequesRepasBeSectionComponent } from '../eco-cheques-cheques-repas-be-section/eco-cheques-cheques-repas-be-section.component';
+// SF-219-22b : section décisionnelle Égalité salariale F/H BE — Loi 22/04/2012 + AR 17/08/2013 + AR 25/04/2014 (BE-only, ALWAYS_ON).
+import { EgaliteFemmesHommesBeSectionComponent } from '../egalite-femmes-hommes-be-section/egalite-femmes-hommes-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2906,6 +2908,64 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-22b : égalité salariale femmes / hommes BE — Loi du
+      // 22/04/2012 visant à lutter contre l'écart salarial entre hommes
+      // et femmes (M.B. 28/08/2012), art. 2 (obligation rapport biennal
+      // d'analyse de la structure de rémunération H/F pour les
+      // employeurs occupant en moyenne ≥ 50 travailleurs ETP, calcul
+      // Loi 04/12/2007 art. 7), art. 5 (plan d'action concret avec
+      // objectifs chiffrés et calendrier si écart non justifié constaté),
+      // art. 12 (interdiction discrimination salariale), art. 14
+      // (faculté médiateur dans l'entreprise) ; AR du 17/08/2013 portant
+      // exécution de l'art. 2, art. 4 (ventilation art. 4 obligatoire :
+      // niveau de fonction, ancienneté, qualification, régime de travail,
+      // composants de la rémunération) ; AR du 25/04/2014 fixant les
+      // formulaires standardisés (ann. I détaillé ≥ 100 ETP, ann. II
+      // simplifié 50-99 ETP, dépôt CE / DS + dépôt central électronique
+      // EBES auprès de la BNB) ; CCT n° 25 du 15/10/1975 du CNT sur
+      // l'égalité de rémunération H/F (rendue obligatoire AR 09/12/1975,
+      // modifiée CCT n° 25bis du 19/12/2001 + 25ter du 09/07/2008 —
+      // transpose Directive 75/117/CEE puis 2006/54/CE) ; Loi du
+      // 10/05/2007 anti-discrimination + Loi du 12/01/2007 gender
+      // mainstreaming ; C. pén. social art. 195/1 (inséré par Loi
+      // 22/04/2012 art. 16 — sanction niveau 2 : amende administrative
+      // 80 à 800 € ou pénale 200 à 2 000 € par travailleur, plafonnée).
+      // Outil BE-only — le régime français d'index égalité
+      // professionnelle (C. trav. art. L. 1142-7 et s. ; Décret
+      // n° 2019-15 du 08/01/2019) constitue un dispositif juridiquement
+      // distinct (notation 100 points, plan de rattrapage si < 75/100,
+      // publication obligatoire). Aucune transposition mécanique.
+      // Verdict hiérarchisé 6 états (CONFORME_RAPPORT_PLAN_COMPLETS /
+      // HORS_CHAMP_SEUIL_NON_ATTEINT / NON_CONFORME_RAPPORT_INCOMPLET /
+      // NON_CONFORME_PLAN_ACTION_MANQUANT /
+      // MANQUEMENT_GRAVE_RAPPORT_NON_DEPOSE / A_ANALYSER) —
+      // court-circuits backend (statut indéterminé / en préparation →
+      // seuil non atteint → délai dépassé → ventilation incomplète →
+      // plan d'action manquant → conforme) + ventilation 5 conformités
+      // cumulatives (seuil, rapport déposé, ventilation 5 sections,
+      // plan d'action requis, plan d'action conforme) + indicateur
+      // formulaire applicable (ann. I / II / NON_APPLICABLE).
+      // ALWAYS_ON priority 140 (au-dessus de
+      // eco-cheques-cheques-repas-be = 139 SF-219-21b parallèle,
+      // pecule-vacances-be = 138 SF-219-20b et droit-deconnexion-be =
+      // 137 SF-219-19b). Pré-fill IA V1 : aucun champ (alignement
+      // pattern uniforme F-213 / F-219 — effectif moyen ETP entreprise,
+      // statut rapport biennal, dates de dépôt, ventilations art. 4,
+      // écart salarial constaté, plan d'action, médiateur, plainte
+      // IEFH non extractibles du dossier salarié individuel —
+      // déclaratifs RH employeur ou avocat post-instruction).
+      ['egalite-femmes-hommes-be', {
+        displayLabel: 'Égalité salariale F/H (Belgique)',
+        component: EgaliteFemmesHommesBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4247,6 +4307,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (semaine-4-jours-be, droit-deconnexion-be, interim-be-cct-322,
     // flexi-job-be, teletravail-be-cct-85-149).
     ['eco-cheques-cheques-repas-be', 'VALIDITE'],
+    // SF-219-22b : Égalité salariale F/H BE — analyseur de conformité
+    // à l'obligation rapport biennal (art. 2 Loi 22/04/2012) +
+    // ventilation art. 4 AR 17/08/2013 + plan d'action art. 5.
+    // Thème VALIDITE (parité avec les autres analyseurs de conformité
+    // statutaire BE : droit-deconnexion-be, semaine-4-jours-be,
+    // delegue-syndical-cct-5, teletravail-be-cct-85-149).
+    ['egalite-femmes-hommes-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
