@@ -1,0 +1,345 @@
+<div class="pecule-vacances-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">beach_access</mat-icon>
+    <span class="section-title">Pécule de vacances (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="pecule-vacances-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Lois coordonnées du 28/06/1971 relatives aux vacances
+            annuelles des travailleurs salariés + AR du 30/03/1967
+            déterminant les modalités générales d'exécution + Loi
+            03/07/1978 art. 15). L'indemnité compensatrice de congés
+            payés française (<b>ICCP</b>, C. trav. art. L. 3141-24 et
+            suivants) constitue un régime juridiquement distinct :
+            10 % de la rémunération brute totale ou maintien du
+            salaire, pas de double pécule, pas de débiteur tiers de
+            type ONVA / Caisse de vacances sectorielle. Aucune
+            transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calcule le <b>pécule de vacances dû au travailleur BE</b>
+            au titre des Lois coordonnées du 28/06/1971 + AR du
+            30/03/1967 selon 3 calculs disponibles :
+            (1) <b>pécule simple</b> (rémunération maintenue, art. 38
+            AR 30/03/1967 employés / art. 19 ouvriers via ONVA),
+            (2) <b>double pécule</b> (85 % du salaire mensuel brut,
+            art. 6 Lois 28/06/1971 + art. 38 AR 30/03/1967),
+            (3) <b>pécule de départ</b> (15,34 % de la rémunération
+            brute, art. 7 Lois 28/06/1971 + art. 46 AR 30/03/1967 —
+            employés uniquement). Court-circuits : ouvrier → ONVA
+            (art. 19), pécule déjà payé, créance prescrite (art. 15
+            Loi 03/07/1978 — 1 an post-contrat). Champs marqués *
+            requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Statut du travailleur * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut du travailleur *</mat-label>
+                <mat-select
+                    [value]="statut()"
+                    (selectionChange)="onStatutChange($event.value)"
+                    name="statut"
+                    required>
+                  <mat-option value="EMPLOYE">
+                    Employé(e) — pécule payé par l'employeur
+                  </mat-option>
+                  <mat-option value="OUVRIER">
+                    Ouvrier(ère) — pécule payé par l'ONVA
+                  </mat-option>
+                  <mat-option value="JEUNE_TRAVAILLEUR">
+                    Jeune travailleur 1re année (art. 9 AR 30/03/1967)
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Statut indéterminé (analyse cas par cas)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Détermine le débiteur (employeur vs ONVA — art. 19 vs 38 AR 30/03/1967).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Type de calcul * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de calcul *</mat-label>
+                <mat-select
+                    [value]="typeCalcul()"
+                    (selectionChange)="onTypeCalculChange($event.value)"
+                    name="typeCalcul"
+                    required>
+                  <mat-option value="PECULE_SIMPLE">
+                    Pécule simple — rémunération maintenue
+                  </mat-option>
+                  <mat-option value="DOUBLE_PECULE">
+                    Double pécule — supplément vacances principales
+                  </mat-option>
+                  <mat-option value="PECULE_DEPART">
+                    Pécule de départ — sortie de l'employé(e)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Aiguille la formule (art. 38 / art. 6 / art. 7).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Rémunération brute annuelle exercice * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération brute annuelle de l'exercice (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="10000000"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationBruteAnnuelleExerciceEur()"
+                       (ngModelChange)="onRemunerationBruteAnnuelleExerciceEurChange($event)"
+                       name="remunerationBruteAnnuelleExerciceEur" />
+                <mat-hint>Base double pécule employé (art. 38) et pécule de départ (art. 46).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Rémunération mensuelle brute * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération mensuelle brute (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="1000000"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationMensuelleBruteEur()"
+                       (ngModelChange)="onRemunerationMensuelleBruteEurChange($event)"
+                       name="remunerationMensuelleBruteEur" />
+                <mat-hint>Base pécule simple employé (rémunération maintenue) + double pécule mensuel.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Jours congés pris * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Jours de congé pris *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="30"
+                       step="0.5"
+                       required
+                       [ngModel]="joursCongesPris()"
+                       (ngModelChange)="onJoursCongesPrisChange($event)"
+                       name="joursCongesPris" />
+                <mat-hint>Référence régime 6 j : 24 jours / an (art. 3 Lois 28/06/1971).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Rémunération brute annuelle exercice précédent * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération brute exercice précédent (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="10000000"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationBruteAnnuelleExercicePrecedentEur()"
+                       (ngModelChange)="onRemunerationBruteAnnuelleExercicePrecedentEurChange($event)"
+                       name="remunerationBruteAnnuelleExercicePrecedentEur" />
+                <mat-hint>Fraction de l'année précédente non liquidée — pécule de départ (art. 46 al. 2).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Pécule déjà payé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="peculeDejaPaye() === true"
+                  [indeterminate]="peculeDejaPaye() === null"
+                  (change)="onPeculeDejaPayeChange($event.checked)"
+                  name="peculeDejaPaye">
+                <b>Pécule déjà payé</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Court-circuit du calcul — action en paiement sans objet (contrôle du montant versé recommandé).
+              </small>
+            </div>
+
+            <!-- 8. Date sortie (conditionnel) -->
+            @if (isDepartScenario()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de sortie *</mat-label>
+                  <input matInput
+                         type="date"
+                         required
+                         [ngModel]="dateSortie()"
+                         (ngModelChange)="onDateSortieChange($event)"
+                         name="dateSortie" />
+                  <mat-hint>Requise si pécule de départ — payable au plus tard à l'expiration du mois suivant.</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- 9. Date fin contrat (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de fin du contrat (facultatif)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateFinContrat()"
+                       (ngModelChange)="onDateFinContratChange($event)"
+                       name="dateFinContrat" />
+                <mat-hint>Sert au calcul de la prescription (1 an post-contrat — art. 15 Loi 03/07/1978).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Date réclamation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de la réclamation *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateReclamation()"
+                       (ngModelChange)="onDateReclamationChange($event)"
+                       name="dateReclamation" />
+                <mat-hint>Courrier de mise en demeure / requête au tribunal — comparée à dateFinContrat.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer le pécule de vacances</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="pecule-vacances-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutLabel(result()!.statut) }}</b> —
+                Type : <b>{{ typeCalculLabel(result()!.typeCalcul) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation montants -->
+          <div class="montants-list">
+            <div class="montants-title">Détail des montants calculés</div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">paid</mat-icon>
+              <span class="montant-label">Pécule simple</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.montantPeculeSimpleEur) }}</span>
+            </div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">savings</mat-icon>
+              <span class="montant-label">Double pécule</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.montantDoublePeculeEur) }}</span>
+            </div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">logout</mat-icon>
+              <span class="montant-label">Pécule de départ</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.montantPeculeDepartEur) }}</span>
+            </div>
+
+            <div class="montant-row montant-total">
+              <mat-icon class="montant-icon">request_quote</mat-icon>
+              <span class="montant-label"><b>Montant total dû</b></span>
+              <span class="montant-value mono"><b>{{ formatMontant(result()!.montantTotalDuEur) }}</b></span>
+            </div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">percent</mat-icon>
+              <span class="montant-label">Fraction légale appliquée</span>
+              <span class="montant-value mono">{{ formatPourcentage(result()!.fractionLegaleAppliquee) }}</span>
+            </div>
+          </div>
+
+          <!-- Indicateur prescription -->
+          <div class="prescription-row" [class.prescription-ko]="result()!.prescrit">
+            <mat-icon>{{ result()!.prescrit ? 'gavel' : 'schedule' }}</mat-icon>
+            <span>
+              <b>Prescription</b> — {{ result()!.prescrit ? 'créance prescrite' : 'créance non prescrite' }}
+              (<span class="mono">{{ result()!.joursDepuisFaitGenerateur }}</span> jours depuis le fait générateur,
+              seuil 365 jours — art. 15 Loi 03/07/1978)
+            </span>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
