@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="500416a2-dc81-4580-b838-3499b55f300b" author="claude">
+        <comment>
+            SF-219-16 : table dédiée à l'outil décisionnel
+            « Télétravail BE — CCT n° 85 (structurel) / CCT n° 149
+            (occasionnel) » (teletravail-be-cct-85-149, BELGIQUE —
+            fondement : CCT n° 85 du 09/11/2005 conclue au Conseil
+            National du Travail concernant le télétravail régulier
+            et structurel, rendue obligatoire par AR du 13/06/2006
+            (M.B. 05/09/2006) ; CCT n° 149 du 26/01/2021 du CNT
+            relative au télétravail recommandé ou obligatoire en
+            raison de la crise du coronavirus, devenue cadre de
+            référence du télétravail occasionnel ; Loi du 03/07/1978
+            sur les contrats de travail, art. 17 ; Loi du 04/08/1996
+            relative au bien-être des travailleurs + Code du bien-être
+            au travail Livre VIII Titre 1 ; Loi du 26/03/2018, art.
+            16-18 droit à la déconnexion par concertation collective ;
+            Loi du 03/10/2022 « Deal pour l'emploi » M.B. 10/11/2022
+            obligation modalités déconnexion pour entreprises de 20
+            travailleurs et plus, entrée en vigueur 01/04/2023).
+
+            L'outil analyse la conformité d'un accord de télétravail
+            sous l'angle cumulatif :
+            - Type de télétravail (STRUCTUREL_CCT_85 régulier, partie
+              du temps de travail ; OCCASIONNEL_CCT_149 force majeure
+              / raison personnelle / COVID ; INDETERMINE = analyse cas
+              par cas requise).
+            - Volontariat réciproque (art. 5 CCT n° 85, structurel
+              uniquement) : refus ou fin du télétravail sans préjudice
+              juridique pour le travailleur.
+            - Convention individuelle écrite (art. 6 CCT n° 85,
+              structurel uniquement) : écrit obligatoire reprenant
+              fréquence, jours, lieu d'exécution, équipement,
+              indemnité, période d'essai éventuelle, modalités de
+              réversibilité.
+            - Équipement fourni ou indemnisé (art. 9 CCT n° 85,
+              structurel uniquement) : l'employeur fournit, installe
+              et entretient l'équipement (ordinateur, accès, support)
+              ou prend en charge les coûts d'utilisation du matériel
+              personnel.
+            - Indemnité forfaitaire mensuelle (frais internet,
+              électricité, chauffage, ergonomie) : usage admis sous
+              plafond ONSS / SPF Finances révisé annuellement. Plafond
+              passé en input pour rester paramétrable selon la période.
+              Excédent au-delà du plafond = requalification en
+              rémunération imposable et soumise à cotisations.
+            - Droits sociaux maintenus (art. 4 CCT n° 85, transposable
+              au télétravail occasionnel CCT n° 149) : même accès à
+              la formation, à la carrière, aux droits collectifs, à
+              la protection sociale que les travailleurs présentiels.
+            - Modalités de déconnexion définies (Loi 03/10/2022,
+              entreprises de 20 travailleurs et plus) : CCT
+              d'entreprise ou règlement de travail fixant les
+              modalités concrètes.
+
+            Sanction prévue :
+            - Pas de convention écrite individuelle (art. 6) :
+              présomption d'irrégularité, le télétravailleur peut
+              exiger la régularisation et réclamer la prise en charge
+              intégrale des frais professionnels exposés ;
+            - Équipement non fourni (art. 9) : rappel intégral des
+              frais professionnels exposés (matériel, internet,
+              électricité, ergonomie) ;
+            - Droits réduits (art. 4) : action individuelle +
+              syndicale en égalité de traitement, dommages-intérêts ;
+            - Déconnexion non définie (Loi 03/10/2022) : sanction SPF
+              ETCS et exposition contentieuse heures supplémentaires
+              connectées hors temps de travail.
+
+            Verdict : CONFORME_CCT_85_STRUCTUREL
+            | CONFORME_CCT_149_OCCASIONNEL
+            | NON_CONFORME_CONVENTION_ECRITE_MANQUANTE
+            | NON_CONFORME_EQUIPEMENT_NON_FOURNI
+            | NON_CONFORME_DROITS_REDUITS
+            | FRAGILE_DECONNEXION_NON_DEFINIE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a un régime de
+            télétravail (C. trav. art. L. 1222-9 et suivants, ANI
+            19/07/2005 transposé, Loi 22/03/2012, Loi El Khomri
+            08/08/2016 droit à la déconnexion, ordonnances Macron
+            22/09/2017) qui ressemble fonctionnellement (volontariat,
+            réversibilité, prise en charge des coûts, déconnexion)
+            mais s'articule différemment : cadre par charte ou accord
+            d'entreprise (pas de CCT n° 85 / 149 équivalente),
+            indemnité forfaitaire régie par circulaire URSSAF, droit
+            à la déconnexion intégré au Code du travail (art.
+            L. 2242-17). Restitution séparée par outil — pas de
+            tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet (inputs + outputs : verdict,
+            ventilation par dimension convention/equipement/droits/
+            deconnexion, indemnité excédentaire éventuelle au-delà
+            du plafond admis, sanction applicable) pour permettre la
+            restitution UI sans recalcul (pattern uniforme F-DT-42 /
+            SF-213-01 à SF-213-10 / SF-219-01 à SF-219-14).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-16b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel
+            F-164 staging 2026-04-26 — 13 tool_id orphelins, cf.
+            CLAUDE.md feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "teletravail-be-cct-85-149" est ajouté dès
+            cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile
+            dès le seed visibility par SF-219-16b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-14b).
+        </comment>
+
+        <createTable tableName="teletravail_be_cct_85_149_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_teletravail_be_cct_85_149_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="teletravail_be_cct_85_149_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_teletravail_be_cct_85_149_case_file"/>
+
+        <createIndex tableName="teletravail_be_cct_85_149_analyses"
+                     indexName="idx_teletravail_be_cct_85_149_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="teletravail_be_cct_85_149_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
