@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="59b43731-d27c-4b61-a8ed-61bb1de045ed" author="claude">
+        <comment>
+            SF-219-26b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel Travail noir BE DIMONA (travail-noir-be-dimona,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-26 (migration 424).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs propres au regime du defaut
+            DIMONA : statut DIMONA au moment du controle (DECLAREE_AVANT_
+            DEBUT cas nominal art. 4 AR du 05/11/2002 / DECLAREE_TARDIVE
+            apres debut mais avant controle / ABSENTE infraction art. 181
+            C. pen. soc. niveau 4 / INDEPENDANT_FAUSSEMENT_QUALIFIE faux
+            independant a requalifier — Loi-programme I 27/12/2006
+            art. 328 et s. criteres Bart Buysse), dates (debut occupation
+            effective, DIMONA effective si applicable, controle SPF Emploi
+            / ONSS / auditorat), salaire brut mensuel base cotisations
+            ONSS retroactives (employeur ~25 % + travailleur 13,07 %),
+            nombre de travailleurs concernes (multiplicateur art. 103 § 2
+            plafonne a 100 × max unitaire art. 105 pour personne morale),
+            personne morale (multiplication × 5 art. 105 § 1 C. pen. soc.),
+            recidive dans l'annee (doublement plafond art. 110), elements
+            de subordination juridique (art. 328 § 1 — presomption simple
+            de salariat renversable Cass. BE 06/12/2010 S.10.0067.F).
+            Aucun flag DB CONTEXTUAL fiable n'est disponible ; l'introduire
+            pour un seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (statut DIMONA,
+               dates administratives, subordination juridique, declaratifs
+               employeur) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque un defaut DIMONA (proces-verbal d'inspection
+               sociale notifie a l'employeur, controle ONSS ouvrant le
+               dossier auditorat, citation devant le tribunal correctionnel,
+               action en cessation tribunal du travail, requete en
+               requalification, plainte au CTPE Comite professionnel
+               d'enquete et d'inspection sociale, transaction art. 216bis
+               CIC). L'outil chiffre le passif materiel (cotisations ONSS
+               retroactives employeur + travailleur, amende ONSS forfaitaire
+               3 × cotisations dues art. 28 L. 22/04/2003) et restitue la
+               sanction penale niveau 4 art. 181 C. pen. soc. (300 € a
+               3 000 € amende admin / 600 € a 6 000 € amende penale /
+               emprisonnement 6 a 36 mois) + majorations × travailleurs
+               (art. 103 § 2), × 5 personne morale (art. 105), × 2
+               recidive ≤ 1 an (art. 110). Pertinent des l'ouverture du
+               dossier pour eclairer la strategie de defense (transaction
+               ONSS, plaider coupable, contestation des elements de
+               subordination art. 328 § 1, nullite proces-verbal pour vice
+               de procedure inspection sociale Loi 16/11/1972).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-144) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 cette migration (travail-noir-be-dimona)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY travail-noir-be-dimona livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-26b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id travail-noir-be-dimona deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-26 (PR
+            #1435, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi-programme du 24/12/2002 (M.B. 31/12/2002) :
+                * art. 167-184 — Declaration Immediate de l'Emploi
+                  (DIMONA) instituee par integration dans le regime ONSS
+                  comme procedure d'identification preventive des
+                  travailleurs salaries, obligation de l'employeur
+                  d'effectuer la declaration avant le debut effectif de
+                  l'occupation ;
+                * art. 181 (par renvoi au C. pen. soc.) — sanction
+                  d'absence DIMONA niveau 4.
+            - AR du 05/11/2002 instituant la DIMONA (M.B. 20/11/2002) :
+                * art. 4 — moment de la declaration (avant le debut
+                  effectif de l'occupation) ;
+                * art. 5-7 — modalites de declaration (Easybox employeur,
+                  delais, identification travailleur, employeur, dates) ;
+                * art. 8 — declaration tardive et regularisation.
+            - Code penal social art. 181 (Loi 06/06/2010) — defaut DIMONA
+              niveau 4 : amende administrative 300 € a 3 000 € OU amende
+              penale 600 € a 6 000 € ET / OU emprisonnement 6 mois a
+              3 ans, par travailleur et par mois. Cass. ch. neerl.
+              21/11/2017 P.17.0532.N (qualification niveau 4 confirmee).
+            - C. pen. soc. art. 328 § 1 (Loi 06/06/2010) — presomption
+              simple de salariat applicable a toute personne pour
+              laquelle aucune DIMONA n'a ete effectuee. Presomption
+              renversable par tout moyen de preuve (Cass. BE 06/12/2010
+              S.10.0067.F).
+            - C. pen. soc. art. 103 § 2 — multiplication par le nombre
+              de travailleurs concernes. Art. 105 § 1 — multiplication
+              × 5 pour personne morale (plafond 100 × max unitaire).
+              Art. 109 — responsabilite penale prepose / mandataire.
+              Art. 110 — recidive ≤ 1 an doublement du plafond.
+            - Loi du 22/04/2003 art. 28 — amende ONSS forfaitaire egale
+              a 3 × les cotisations dues (employeur + travailleur), en
+              sus des cotisations retroactives, recouvree par contrainte
+              executoire de l'ONSS sans saisine prealable du juge.
+            - Loi-programme I du 27/12/2006 art. 328 et s. — regime des
+              faux independants. Criteres Bart Buysse (annexe loi) pour
+              les secteurs construction (CP 124), transport (CP 140),
+              nettoyage (CP 121), agriculture (CP 132), horeca (CP 302),
+              gardiennage (CP 317).
+            - Loi 16/11/1972 relative a l'inspection du travail —
+              regime procedural des constatations par les inspecteurs
+              sociaux (pouvoirs art. 6, audition art. 6 § 5, droits de
+              la defense art. 6 § 5 al. 3, nullites de procedure
+              Cass. P.16.0117.N 10/05/2016).
+            - L. 05/03/1952 art. 1 — decimes additionnels indexant les
+              amendes penales (+0,80 jusqu'au 31/12/2024 ; +0,90 depuis
+              01/01/2025 par AR 27/12/2024 M.B. 30/12/2024). L'outil
+              restitue les valeurs de base non indexees — l'avocat indexe
+              in concreto a la date des faits ou de la decision.
+
+            Regime BE-only — le regime francais du travail dissimule
+            (C. trav. art. L. 8221-1 a L. 8224-5 + L. 8231-1 a L. 8234-3
+            marchandage + L. 8241-1 a L. 8243-3 pret illicite + L. 8251-1
+            a L. 8256-5 emploi etranger sans titre + URSSAF redressement
+            majoration 25 % art. R. 243-18 + C. pen. art. 121-2 personne
+            morale × 5) constitue un dispositif juridiquement distinct :
+            - DPAE (Declaration Prealable A l'Embauche L. 1221-10) et non
+              DIMONA — modalites administratives differentes
+              (acoss.urssaf.fr et non Easybox ONSS) ;
+            - sanction art. L. 8224-1 — amende 45 000 € personne
+              physique / 225 000 € personne morale (art. 121-2 C. pen.
+              C. trav.) pour travail dissimule par dissimulation
+              d'activite ou d'emploi salarie. Pas de niveau 4 au sens du
+              C. pen. soc. BE.
+            - procedure parquet et non auditorat ; pas de regle "Una
+              Via" strictement comparable entre voie administrative et
+              voie penale — les recouvrements URSSAF / DREETS / OFII
+              sont distincts des poursuites penales.
+            - URSSAF redressement majoration 25 % art. R. 243-18 et non
+              ONSS amende forfaitaire 3 ×.
+            Aucune transposition mecanique. L'outil BE expose les 6
+            verdicts (CONFORME / TARDIVE / ABSENCE_NIVEAU_4 / PRESOMPTION_
+            SALARIAT / FAUX_INDEPENDANT / A_QUALIFIER) propres au cadre
+            DIMONA + Code pen. soc. BE.
+
+            Distinct de :
+            - code-penal-social-be (prio 142, SF-219-24b) — qualifie
+              l'infraction sur l'echelle 1-4 du C. pen. soc. (barreme
+              uniforme art. 101-103) et restitue les bornes d'amende
+              generiques. Distincts mais complementaires : SF-219-26
+              chiffre le passif ONSS et la sanction art. 181 specifique
+              au defaut DIMONA ; SF-219-24 qualifie l'infraction sur
+              l'echelle 1-4 et permet d'estimer la fourchette d'amende
+              administrative ou penale apres indexation par les decimes
+              additionnels. Articulation cas reel : l'avocat utilise
+              SF-219-26 lorsque l'inspecteur social constate un defaut
+              DIMONA et qu'il faut chiffrer le passif ONSS retroactif +
+              amende forfaitaire 3 × + sanction art. 181 ; il utilise
+              SF-219-24 lorsque la qualification penale est moins
+              evidente (qualification ambigue entre absence DIMONA et
+              absence DmfA, autre infraction sociale a qualifier).
+            - auditorat-travail-be (prio 143, SF-219-25b) — outil
+              procedural d'analyse du dossier auditorat (competence,
+              orientation, prescription). Distincts mais complementaires :
+              SF-219-26 chiffre les consequences materielles ; SF-219-25
+              eclaire la strategie procedurale (orientation correctionnelle,
+              politique, classement sans suite, transaction art. 216bis
+              CIC).
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 %. Distincts (chiffrage civil de la
+              creance salariale dans le cadre d'un licenciement ou d'une
+              fin de relation salariale) mais complementaires lorsque le
+              travailleur non declare reclame retroactivement le paiement
+              de sa remuneration apres requalification en salariat.
+
+            Cet outil intervient en amont ou en aval d'une qualification
+            penale (proces-verbal d'inspection sociale notifie a
+            l'employeur, controle ONSS, citation directe par l'auditorat,
+            comparution volontaire) et chiffre le passif materiel + la
+            sanction penale art. 181 pour eclairer la strategie de
+            defense (transaction ONSS, plaider coupable, contestation
+            elements subordination art. 328 § 1, nullite proces-verbal
+            Loi 16/11/1972, articulation avec procedure correctionnelle
+            / police selon orientation de l'affaire art. 81 C. pen. soc.).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('59b43731-d27c-4b61-a8ed-61bb1de045ed', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'travail-noir-be-dimona', 'ALWAYS_ON', NULL, NULL, 144);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '59b43731-d27c-4b61-a8ed-61bb1de045ed';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,356 @@
+<div class="travail-noir-be-dimona-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">work_off</mat-icon>
+    <span class="section-title">Travail noir DIMONA (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="travail-noir-be-dimona-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi-programme du 24/12/2002 art. 167-184 + AR du 05/11/2002 —
+            DIMONA + Code pénal social art. 181 niveau 4 + Loi 22/04/2003
+            art. 28 amende ONSS forfaitaire 3 × cotisations dues). Le régime
+            français du travail dissimulé (Code du travail art. L. 8221-1 et
+            s. + L. 8224-1 amende 45 000 EUR pp / 225 000 EUR pm + URSSAF
+            redressement majoration 25 % art. R. 243-18) constitue un
+            dispositif juridiquement distinct (DPAE et non DIMONA, parquet
+            et non auditorat, pas de barème uniforme 4 niveaux). Aucune
+            transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse le défaut de <b>déclaration immédiate à l'emploi
+            (DIMONA)</b>, qualifie le verdict et chiffre le passif ONSS
+            rétroactif + amende forfaitaire 3 × + sanction pénale art. 181
+            niveau 4 (Loi-programme du 24/12/2002 + AR du 05/11/2002 + Code
+            pénal social art. 181). Renseigner le <b>statut DIMONA au
+            contrôle</b>, les <b>dates</b> (début occupation, DIMONA
+            effective si applicable, contrôle), le <b>salaire brut
+            mensuel</b> (base cotisations rétroactives), le <b>nombre de
+            travailleurs concernés</b>, la <b>qualité personne morale</b>
+            (multiplication × 5 art. 105), la <b>récidive ≤ 1 an</b>
+            (art. 110) et les <b>éléments de subordination</b>
+            (art. 328 § 1 — présomption simple de salariat). Champs marqués
+            * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Statut DIMONA * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut DIMONA au moment du contrôle *</mat-label>
+                <mat-select
+                    [value]="statutDimona()"
+                    (selectionChange)="onStatutDimonaChange($event.value)"
+                    name="statutDimona"
+                    required>
+                  <mat-option value="DECLAREE_AVANT_DEBUT">
+                    Déclarée avant début occupation (cas nominal)
+                  </mat-option>
+                  <mat-option value="DECLAREE_TARDIVE">
+                    Déclarée tardivement (après début, avant contrôle)
+                  </mat-option>
+                  <mat-option value="ABSENTE">
+                    Absente au moment du contrôle
+                  </mat-option>
+                  <mat-option value="INDEPENDANT_FAUSSEMENT_QUALIFIE">
+                    Relation indépendante faussement qualifiée
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Détermine la branche du verdict (CONFORME / TARDIVE / ABSENTE / INDEPENDANT).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Date début occupation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date début occupation effective *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutOccupation()"
+                       (ngModelChange)="onDateDebutOccupationChange($event)"
+                       name="dateDebutOccupation" />
+                <mat-hint>Référence pour calculer la durée non déclarée et les cotisations rétroactives.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date DIMONA effective (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date DIMONA effective (facultatif)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDimonaEffective()"
+                       (ngModelChange)="onDateDimonaEffectiveChange($event)"
+                       name="dateDimonaEffective" />
+                <mat-hint>Date d'enregistrement à l'ONSS (si applicable, sinon laisser vide).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date du contrôle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du contrôle inspection sociale *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateControle()"
+                       (ngModelChange)="onDateControleChange($event)"
+                       name="dateControle" />
+                <mat-hint>Date du procès-verbal SPF Emploi / contrôle ONSS / auditorat.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Salaire brut mensuel * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire brut mensuel (EUR) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="salaireBrutMensuel()"
+                       (ngModelChange)="onSalaireBrutMensuelChange($event)"
+                       name="salaireBrutMensuel" />
+                <mat-hint>Rémunération moyenne — base cotisations ONSS rétroactives (employeur ~25 % + travailleur 13,07 %).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Nombre travailleurs * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Nombre de travailleurs concernés *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       max="1000000"
+                       step="1"
+                       required
+                       [ngModel]="nombreTravailleursConcernes()"
+                       (ngModelChange)="onNombreTravailleursConcernesChange($event)"
+                       name="nombreTravailleursConcernes" />
+                <mat-hint>Multiplicateur art. 103 § 2 — plafond 100 × max unitaire pour personne morale (art. 105).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Personne morale * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="personneMorale() === true"
+                  [indeterminate]="personneMorale() === null"
+                  (change)="onPersonneMoraleChange($event.checked)"
+                  name="personneMorale">
+                <b>Employeur personne morale</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Multiplication × 5 des amendes (art. 105 § 1 C. pén. soc.).
+              </small>
+            </div>
+
+            <!-- 8. Récidive * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="recidiveDansLAn() === true"
+                  [indeterminate]="recidiveDansLAn() === null"
+                  (change)="onRecidiveDansLAnChange($event.checked)"
+                  name="recidiveDansLAn">
+                <b>Récidive dans l'année (art. 110 C. pén. soc.)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Doublement du plafond si nouvelle infraction de même niveau dans l'année.
+              </small>
+            </div>
+
+            <!-- 9. Eléments subordination * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Éléments de subordination (art. 328 § 1 C. pén. soc.) *</mat-label>
+                <mat-select
+                    [value]="elementsSubordination()"
+                    (selectionChange)="onElementsSubordinationChange($event.value)"
+                    name="elementsSubordination"
+                    required>
+                  <mat-option value="OUI">
+                    Subordination caractérisée (horaires imposés, instructions, intégration)
+                  </mat-option>
+                  <mat-option value="NON">
+                    Aucun élément de subordination (relation indépendante)
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Indéterminé — analyse complémentaire avocat
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Active la présomption de salariat art. 328 § 1 lorsque OUI + absence DIMONA.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le défaut DIMONA</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="travail-noir-be-dimona-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutDimonaLabel(result()!.statutDimona) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation passif + sanctions + majorations -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Détail du passif et des sanctions</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">schedule</mat-icon>
+              <span class="ventilation-label">Durée non déclarée</span>
+              <span class="ventilation-value mono">{{ formatJours(result()!.dureeNonDeclareeJours) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">corporate_fare</mat-icon>
+              <span class="ventilation-label">Cotisations ONSS employeur (~25 %)</span>
+              <span class="ventilation-value mono">{{ formatEuros(result()!.cotisationsOnssEmployeur) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">person</mat-icon>
+              <span class="ventilation-label">Cotisations ONSS travailleur (13,07 %)</span>
+              <span class="ventilation-value mono">{{ formatEuros(result()!.cotisationsOnssTravailleur) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">functions</mat-icon>
+              <span class="ventilation-label">Cotisations ONSS total</span>
+              <span class="ventilation-value mono">{{ formatEuros(result()!.cotisationsOnssTotal) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">payments</mat-icon>
+              <span class="ventilation-label">Amende ONSS forfaitaire 3 × (art. 28 L. 22/04/2003)</span>
+              <span class="ventilation-value mono">{{ formatEuros(result()!.amendeOnssForfaitaire3x) }}</span>
+            </div>
+
+            @if (result()!.sanctionPenaleNiveau4Applicable) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">euro</mat-icon>
+                <span class="ventilation-label">Amende administrative niveau 4 (art. 101)</span>
+                <span class="ventilation-value mono">
+                  {{ formatEurosInt(result()!.amendePenaleAdminMin) }} — {{ formatEurosInt(result()!.amendePenaleAdminMax) }}
+                </span>
+              </div>
+
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">gavel</mat-icon>
+                <span class="ventilation-label">Amende pénale niveau 4 (art. 103)</span>
+                <span class="ventilation-value mono">
+                  {{ formatEurosInt(result()!.amendePenaleMin) }} — {{ formatEurosInt(result()!.amendePenaleMax) }}
+                </span>
+              </div>
+            }
+
+            @if (result()!.emprisonnementApplicable) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">lock</mat-icon>
+                <span class="ventilation-label">Emprisonnement (art. 103)</span>
+                <span class="ventilation-value mono">
+                  {{ formatMoisRange(result()!.emprisonnementMinMois, result()!.emprisonnementMaxMois) }}
+                </span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">groups</mat-icon>
+              <span class="ventilation-label">Multiplication × nb travailleurs (art. 103 § 2)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.multiplicationParTravailleur) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">apartment</mat-icon>
+              <span class="ventilation-label">Majoration × 5 personne morale (art. 105)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.majorationPersonneMorale) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">replay</mat-icon>
+              <span class="ventilation-label">Majoration × 2 récidive ≤ 1 an (art. 110)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.majorationRecidive) }}</span>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
