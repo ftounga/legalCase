@@ -209,6 +209,8 @@ import { ClauseEcolageBeSectionComponent } from '../clause-ecolage-be-section/cl
 import { Semaine4JoursBeSectionComponent } from '../semaine-4-jours-be-section/semaine-4-jours-be-section.component';
 // SF-219-19b : section décisionnelle Droit à la déconnexion BE — Loi 03/10/2022 art. 16 + AR 19/02/2023 + CCT 149 (BE-only, ALWAYS_ON).
 import { DroitDeconnexionBeSectionComponent } from '../droit-deconnexion-be-section/droit-deconnexion-be-section.component';
+// SF-219-20b : section décisionnelle Pécule de vacances BE — Lois 28/06/1971 + AR 30/03/1967 (BE-only, ALWAYS_ON).
+import { PeculeVacancesBeSectionComponent } from '../pecule-vacances-be-section/pecule-vacances-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2809,6 +2811,49 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-20b : pécule de vacances BE — Lois coordonnées du
+      // 28/06/1971 relatives aux vacances annuelles des travailleurs
+      // salariés (M.B. 30/09/1971), art. 3 (durée minimale 4 semaines
+      // temps plein), art. 6 (double pécule), art. 7 (pécule de sortie)
+      // + AR du 30/03/1967 (M.B. 06/04/1967), art. 9 (vacances jeunes),
+      // art. 19 (pécule ouvrier 15,38 % de la rémunération brute
+      // annuelle 108 % — liquidé par l'ONVA / Caisse de vacances
+      // sectorielle), art. 38 (pécule employé — rémunération maintenue
+      // + 85 % du salaire mensuel comme double pécule), art. 46 (pécule
+      // de départ employé — 15,34 %) + Loi du 03/07/1978 art. 15
+      // (prescription : 1 an post-contrat, 5 ans depuis le fait
+      // générateur). Outil BE-only — l'indemnité compensatrice de
+      // congés payés française (ICCP, C. trav. art. L. 3141-24 et s. —
+      // 10 % de la rémunération brute totale ou maintien du salaire)
+      // constitue un régime juridiquement distinct (pas de double
+      // pécule, pas de débiteur tiers ONVA). Aucune transposition
+      // mécanique. Verdict hiérarchisé 8 états
+      // (DU_PECULE_SIMPLE_CALCULE / DU_DOUBLE_PECULE_CALCULE /
+      // DU_PECULE_DEPART_CALCULE / NON_DU_OUVRIER_VIA_ONVA /
+      // NON_DU_DEJA_PAYE / NON_DU_JOURS_INSUFFISANTS / PRESCRIT /
+      // A_ANALYSER) — court-circuits backend (statut indéterminé →
+      // déjà payé → ouvrier renvoyé ONVA → prescrit → jours insuffisants
+      // → simple / double / départ liquidé) + ventilation des 3
+      // montants théoriques. ALWAYS_ON priority 138 (au-dessus de
+      // droit-deconnexion-be = 137 SF-219-19b parallèle et
+      // semaine-4-jours-be = 136 SF-219-18b). Pré-fill IA V1 : aucun
+      // champ (alignement pattern uniforme F-213/F-219 — statut
+      // employé/ouvrier/jeune travailleur / type calcul / montants
+      // rémunération exercice de vacances / jours conges pris / flag
+      // pécule déjà payé / dates contentieuses non extractibles du
+      // dossier salarié principal — déclaratifs RH ou avocat).
+      ['pecule-vacances-be', {
+        displayLabel: 'Pécule de vacances (Belgique)',
+        component: PeculeVacancesBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4139,19 +4184,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (interim-be-cct-322, flexi-job-be, delegue-syndical-cct-5,
     // transfert-entreprise-cct-32bis, teletravail-be-cct-85-149).
     ['semaine-4-jours-be', 'VALIDITE'],
-    // SF-219-19b : Droit à la déconnexion BE — Loi du 03/10/2022 « Deal pour
-    // l'emploi » M.B. 10/11/2022, art. 16 + AR du 19/02/2023 + CCT n° 149.
-    // Thème VALIDITE — l'outil qualifie la conformité de l'obligation
-    // déconnexion sur 5 conditions cumulatives (seuil 20 travailleurs /
-    // instrument formalisé CCT ou règlement / 3 thèmes art. 16 § 2 :
-    // modalités pratiques, sensibilisation, organisation du travail) avec
-    // verdict hiérarchisé 6 états (1 conforme / 1 manquement grave critique
-    // / 2 non-conformes / 1 hors champ seuil / 1 à analyser indéterminé)
-    // + ventilation 7 conformités. Parité avec les autres analyseurs de
-    // conformité statutaire BE (semaine-4-jours-be, clause-ecolage-be,
-    // teletravail-be-cct-85-149, transfert-entreprise-cct-32bis,
-    // delegue-syndical-cct-5).
+    // SF-219-19b : Droit à la déconnexion BE
     ['droit-deconnexion-be', 'VALIDITE'],
+    // SF-219-20b : Pécule de vacances BE
+    ['pecule-vacances-be', 'INDEMNITES'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

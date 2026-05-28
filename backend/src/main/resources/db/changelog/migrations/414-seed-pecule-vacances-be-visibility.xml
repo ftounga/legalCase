@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="0c600ede-a059-4ebc-8e07-95a613db4248" author="claude">
+        <comment>
+            SF-219-20b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel pecule de vacances BE (pecule-vacances-be,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-20 (migration 412).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs propres au regime des vacances
+            annuelles BE : statut effectif du travailleur (employe /
+            ouvrier / jeune travailleur — distinction art. 19 vs art. 38
+            AR 30/03/1967 qui determine le debiteur du pecule : employeur
+            direct pour l'employe, ONVA ou Caisse speciale de vacances
+            sectorielle pour l'ouvrier), type de calcul demande (simple /
+            double / depart art. 7 Lois 28/06/1971), remuneration brute
+            annuelle de l'exercice de vacances vs remuneration courante
+            (art. 1 Lois coordonnees 28/06/1971 — l'exercice est l'annee
+            civile precedant celle de la prise des vacances), remuneration
+            de l'exercice precedent pour le pecule de depart (art. 46
+            al. 2 AR 30/03/1967), jours de conges pris (compteur RH
+            employeur, 24 jours / an en regime 6 j — art. 3 Lois 28/06/1971),
+            flag pecule deja paye (fiche de paie / quitus employeur), date
+            de sortie pour le pecule de depart (art. 7), dates contentieuses
+            (fin contrat + reclamation) pour la prescription art. 15 Loi
+            03/07/1978. Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (statut employe /
+               ouvrier / jeune travailleur, type calcul, montants
+               remuneration exercice de vacances, jours conges pris, flag
+               pecule deja paye, dates contentieuses) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une reclamation de pecule de vacances (pecule
+               simple non liquide pour les jours pris, double pecule non
+               verse au moment des vacances principales, pecule de depart
+               non liquide a la sortie) pour calculer les 3 montants
+               theoriques (art. 38 / art. 6 / art. 46) ET pour identifier
+               les court-circuits (ouvrier renvoye vers l'ONVA art. 19,
+               pecule deja paye, creance prescrite art. 15 Loi 03/07/1978).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-137) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b parallele)
+                 - 138 cette migration (pecule-vacances-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY pecule-vacances-be livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-20b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id pecule-vacances-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-20 (PR
+            #1420, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Lois coordonnees du 28/06/1971 relatives aux vacances
+              annuelles des travailleurs salaries (M.B. 30/09/1971) :
+                * art. 1 — exercice de vacances = annee civile precedant
+                  celle de la prise des vacances ;
+                * art. 3 — duree minimale 4 semaines a temps plein
+                  (24 jours en regime 6 j) ;
+                * art. 6 — double pecule du au moment des vacances
+                  principales ;
+                * art. 7 — pecule de sortie (pecule de depart) du a la
+                  cessation du contrat.
+            - AR du 30/03/1967 determinant les modalites generales
+              d'execution (M.B. 06/04/1967) :
+                * art. 9 — vacances jeunes (1re annee d'occupation,
+                  calcul base allocation chomage / revenu integration de
+                  l'annee precedente) ;
+                * art. 9bis — pecule supplementaire vacances jeunes ;
+                * art. 9ter — vacances seniors ;
+                * art. 19 — pecule ouvrier (15,38 % de la remuneration
+                  brute annuelle 108 % de l'exercice de vacances —
+                  liquide par l'ONVA / Caisse de vacances sectorielle) ;
+                * art. 38 — pecule employe (remuneration normale
+                  maintenue pendant les jours de conge pris + 85 % du
+                  salaire mensuel brut comme double pecule au moment des
+                  vacances principales) ;
+                * art. 46 — pecule de depart employe (15,34 % de la
+                  remuneration brute de l'exercice en cours + 15,34 % de
+                  la fraction de l'exercice precedent non encore liquidee,
+                  payable au plus tard a l'expiration du mois qui suit
+                  la fin du contrat).
+            - Loi du 03/07/1978 sur les contrats de travail (M.B.
+              22/08/1978), art. 15 — prescription des actions naissant
+              du contrat (1 an apres la cessation, 5 ans depuis le fait
+              generateur).
+
+            Regime BE-only — la France connait l'indemnite compensatrice
+            de conges payes (ICCP, C. trav. art. L. 3141-24 et suivants
+            — 10 % de la remuneration brute totale ou maintien du
+            salaire) mais sous un regime juridiquement distinct : pas
+            de double pecule, pas de debiteur tiers de type ONVA /
+            Caisse de vacances sectorielle, calcul forfaitaire 10 %
+            applique sur la remuneration totale percue. Aucune
+            transposition mecanique. L'outil BE expose les 8 verdicts
+            hierarchises propres au cadre des Lois coordonnees 28/06/1971.
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 % sur le salaire principal. Sans
+              rapport avec le calcul du pecule de vacances (regime
+              specifique art. 19 ouvrier / art. 38-46 employe).
+            - statut-unique-preavis (prio 111) + formule-claeys (prio
+              112) — indemnite compensatoire de preavis Loi 03/07/1978 +
+              CCT 109. Distinct du pecule de vacances qui releve d'un
+              regime indemnitaire propre (vacances annuelles vs preavis
+              de licenciement).
+            - flexi-job-be (SF-219-12b, prio 130) — regime fiscal
+              specifique d'emploi accessoire (Loi 16/11/2015). Le
+              flexi-job a son propre regime de pecule (3,82 % calcule
+              directement sur la remuneration, art. 4 Loi 16/11/2015) —
+              outil distinct, pas couvert ici.
+            - etudiant-jobiste-be (SF-219-13b, prio 131) — etudiant
+              jobiste sous contrat d'occupation d'etudiant : le pecule
+              suit le regime ouvrier (art. 19 AR 30/03/1967) liquide par
+              l'ONVA — court-circuit du present outil par le verdict
+              NON_DU_OUVRIER_VIA_ONVA si statut=OUVRIER.
+            - interim-be-indemnite-fin-mission (SF-219-15b, prio 133) —
+              indemnite de fin de mission interim (CCT n° 36septies).
+              Distincte du pecule de vacances : pour les interimaires,
+              le pecule de vacances suit le regime ouvrier (art. 19) et
+              est liquide par la Caisse speciale de vacances sectorielle
+              competente (CP 322) — pas par l'agence d'interim.
+            Cet outil intervient sur le calcul intrinseque du pecule
+            (montants des, prescription, court-circuits debiteur) et
+            non sur les regimes connexes (preavis, fin de mission,
+            indemnite specifique).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('0c600ede-a059-4ebc-8e07-95a613db4248', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'pecule-vacances-be', 'ALWAYS_ON', NULL, NULL, 138);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '0c600ede-a059-4ebc-8e07-95a613db4248';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
