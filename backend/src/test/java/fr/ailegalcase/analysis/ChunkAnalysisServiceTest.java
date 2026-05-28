@@ -72,6 +72,7 @@ class ChunkAnalysisServiceTest {
         UUID chunkId = UUID.randomUUID();
         UUID extractionId = UUID.randomUUID();
         UUID caseFileId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
 
         DocumentExtraction extraction = new DocumentExtraction();
         extraction.setId(extractionId);
@@ -99,6 +100,8 @@ class ChunkAnalysisServiceTest {
         when(documentAnalysisRepository.existsByExtractionIdAndAnalysisStatusIn(eq(extractionId), any()))
                 .thenReturn(false);
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        // F-257 — pré-résolution AiCallContext user-level : workspaceId + userId requis
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(workspaceId));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
                 .thenReturn(Optional.of(job));
@@ -131,27 +134,42 @@ class ChunkAnalysisServiceTest {
         assertThat(jobCaptor.getValue().getProcessedItems()).isEqualTo(1);
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.DONE);
 
-        // Usage enregistré
-        verify(usageEventService).record(caseFileId, userId, JobType.CHUNK_ANALYSIS, 100, 50);
+        // F-257 — record automatique dans AnthropicService.doAnalyze, plus de record direct ici.
+        verifyNoInteractions(usageEventService);
     }
 
-    // U-03 : erreur Anthropic → analyse FAILED (pas de job update ni trigger)
+    // U-03 : erreur Anthropic → analyse FAILED (pas de trigger DocumentAnalysis)
     @Test
     void consumeChunkAnalysis_anthropicError_persistsFailedAnalysis() {
         UUID chunkId = UUID.randomUUID();
+        UUID extractionId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        DocumentExtraction extraction = new DocumentExtraction();
+        extraction.setId(extractionId);
+
         DocumentChunk chunk = new DocumentChunk();
         chunk.setChunkText("Texte juridique.");
+        chunk.setExtraction(extraction);
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        // F-257 — pré-résolution AiCallContext (caseFileId + workspaceId + userId)
+        // pour que l'on atteigne effectivement analyzeChunk (sinon SKIPPED early).
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(workspaceId));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(anthropicService.analyzeChunk(any(AiCallContext.class), any(), any(), any())).thenThrow(new RuntimeException("API error"));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
+                .thenReturn(Optional.empty());
 
         service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         ArgumentCaptor<ChunkAnalysis> captor = ArgumentCaptor.forClass(ChunkAnalysis.class);
         verify(analysisRepository, times(3)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
-        verifyNoInteractions(analysisJobRepository);
     }
 
     // U-04 : chunk introuvable → aucune analyse créée
@@ -341,8 +359,8 @@ class ChunkAnalysisServiceTest {
         // Analyse DONE avec le bon legalDomain
         verify(anthropicService).analyzeChunk(any(AiCallContext.class), any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"));
 
-        // Usage enregistré directement via userId du message
-        verify(usageEventService).record(caseFileId, userId, JobType.CHUNK_ANALYSIS, 80, 40);
+        // F-257 — record automatique dans AnthropicService.doAnalyze, plus de record direct ici.
+        verifyNoInteractions(usageEventService);
     }
 
     // U-10 : onChunkingDone avec contexte disponible → messages enrichis publiés

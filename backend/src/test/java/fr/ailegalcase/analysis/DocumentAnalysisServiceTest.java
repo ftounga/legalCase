@@ -86,12 +86,15 @@ class DocumentAnalysisServiceTest {
         job.setProcessedItems(0);
 
         UUID userId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
 
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca0, ca1));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(workspaceId));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
                 .thenReturn(Optional.of(job));
@@ -122,8 +125,7 @@ class DocumentAnalysisServiceTest {
         assertThat(finalJob.getProcessedItems()).isEqualTo(1);
         assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
 
-        // Usage enregistré
-        verify(usageEventService).record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS, 200, 100);
+        // F-257 — record automatique côté AnthropicService (mocké ici), plus de verify manuel.
     }
 
     // U-02 : erreur Anthropic → DocumentAnalysis FAILED + job FAILED (F-147-01)
@@ -213,6 +215,9 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(List.of(ca1, ca0)); // ordre inversé intentionnel
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        // F-257 — pré-résolution user-level pour AiCallContext
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
                 .thenReturn(Optional.empty());

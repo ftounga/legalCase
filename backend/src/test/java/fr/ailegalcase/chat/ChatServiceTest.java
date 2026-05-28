@@ -114,7 +114,7 @@ class ChatServiceTest {
 
         assertThat(response.answer()).isEqualTo("Réponse IA");
         assertThat(response.modelUsed()).isEqualTo("claude-haiku-4-5-20251001");
-        verify(usageEventService).record(eq(CASE_FILE_ID), eq(USER_ID), any(), eq(100), eq(50));
+        // F-257 — record automatique côté AnthropicService (mocké ici), plus de verify manuel.
     }
 
     // U-02 : limite atteinte → 402

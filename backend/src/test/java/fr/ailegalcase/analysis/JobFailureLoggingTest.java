@@ -238,6 +238,9 @@ class JobFailureLoggingTest {
         when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
+        // F-257 — pré-résolution user-level pour AiCallContext (sinon SKIP early → log ERROR + status FAILED)
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));

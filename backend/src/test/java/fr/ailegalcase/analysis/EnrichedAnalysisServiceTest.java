@@ -133,6 +133,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
@@ -152,8 +154,7 @@ class EnrichedAnalysisServiceTest {
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(jobCaptor.getValue().getProcessedItems()).isEqualTo(1);
 
-        // Usage enregistré
-        verify(usageEventService).record(caseFileId, userId, JobType.ENRICHED_ANALYSIS, 400, 200);
+        // F-257 — record automatique côté AnthropicService (mocké ici), plus de verify manuel.
 
         // F-192 SF-192-01 — la matérialisation est appelée à la fin du run
         verify(retainedPisteAlignmentService, times(1)).materializeForAnalysis(any());
@@ -176,6 +177,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -697,6 +700,9 @@ class EnrichedAnalysisServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        // F-257 — pré-résolution user-level pour AiCallContext
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
@@ -737,6 +743,9 @@ class EnrichedAnalysisServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        // F-257 — pré-résolution user-level pour AiCallContext
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
@@ -849,6 +858,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -876,6 +887,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -978,6 +991,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -1005,6 +1020,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -1041,6 +1058,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -1068,6 +1087,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
@@ -1165,6 +1186,8 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
