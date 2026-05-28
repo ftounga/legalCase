@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="ac1b9a69-9478-40ce-9399-6e8692f320a5" author="claude">
+        <comment>
+            SF-219-18b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel semaine de 4 jours BE (semaine-4-jours-be,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-18 (migration 408).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs et juridiques du regime semaine
+            de 4 jours BE : statut de la demande (accordee / refusee
+            motivee / refusee non motivee / en attente employeur / licencie
+            apres demande / indetermine), flag temps plein vs temps partiel
+            propre au regime art. 5 paragraphe 1, formalisme et date de la
+            demande ecrite art. 5 paragraphe 2 (lettre recommandee /
+            accuse de reception), parametres de l'horaire compresse
+            (duree hebdomadaire 38 a 40 h selon CCT sectorielle, journee
+            maximale 9 h 30 ou 10 h par CCT art. 5 paragraphe 3),
+            formalisation contractuelle art. 5 paragraphe 4 (avenant
+            ecrit, duree avenant ≤ 6 mois, flag renouvellement), flag
+            reglement de travail modifie via procedure simplifiee art. 6,
+            qualification du refus employeur art. 5 paragraphe 5
+            (motivation ecrite dans le delai d'1 mois), date eventuelle
+            du licenciement et qualification du motif objectif art. 5
+            paragraphe 6 (renvoi presomption representailles). Aucun flag
+            DB CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (statut demande,
+               temps plein, demande ecrite, parametres horaire compresse,
+               avenant, reglement de travail, qualification refus,
+               licenciement, motif objectif) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une mise en place ou un refus de la semaine de
+               4 jours (demande ecrite du travailleur, avenant au
+               contrat, modification du reglement de travail, refus ecrit
+               employeur, eventuel licenciement subsequent) pour qualifier
+               la regularite du regime (5 conditions cumulatives art. 5
+               paragraphes 1 a 4 + art. 6) ET pour identifier les
+               court-circuits critiques (refus non motive art. 5
+               paragraphe 5 ouvrant l'action en abus de droit ;
+               licenciement representailles art. 5 paragraphe 6 ouvrant
+               droit a une indemnite forfaitaire de 6 mois de
+               remuneration).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-135) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b parallele)
+                 - 136 cette migration (semaine-4-jours-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY semaine-4-jours-be livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-18b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id semaine-4-jours-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-18 (PR
+            #1417, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 03/10/2022 portant des dispositions diverses en
+              matiere de travail dite Deal pour l'emploi (M.B. 10/11/2022) :
+                * art. 5 — semaine de 4 jours a la demande du travailleur
+                  a temps plein : compression de la duree hebdomadaire
+                  38 a 40 h sur 4 jours sans reduction, journee plafonnee
+                  9 h 30 (10 h si CCT sectorielle), accord employeur
+                  formalise par annexe ecrite au contrat de travail
+                  (duree max 6 mois renouvelables), refus motive ecrit
+                  dans le mois, protection contre le licenciement motive
+                  par la demande (indemnite forfaitaire = 6 mois de
+                  remuneration) ;
+                * art. 6 — procedure simplifiee de modification du
+                  reglement de travail pour inscrire l'horaire compresse
+                  (pas de procedure standard requise Loi 08/04/1965 art. 12).
+            - Loi du 16/03/1971 sur le travail (M.B. 30/03/1971), art. 19 —
+              limites quotidienne (9 h) et hebdomadaire (40 h) de droit
+              commun ; l'art. 5 paragraphe 3 Loi 03/10/2022 constitue
+              une derogation conditionnelle.
+            - Loi du 03/07/1978 sur les contrats de travail (M.B.
+              22/08/1978), art. 25 — modification d'un element essentiel
+              du contrat (ici l'horaire) requiert l'accord du travailleur ;
+              l'avenant ecrit (art. 5 paragraphe 4 Loi 03/10/2022)
+              formalise cet accord.
+            - Loi du 08/04/1965 instituant les reglements de travail
+              (M.B. 05/05/1965), art. 12 — inscription des horaires
+              applicables ; procedure simplifiee par renvoi art. 6 Loi
+              03/10/2022.
+
+            Regime BE-only — la France connait la semaine de 4 jours
+            (C. trav. art. L. 3122-2 et suivants, Loi 13/06/1998 dite
+            Aubry I + Loi 19/01/2000 dite Aubry II) mais sous un regime
+            juridiquement distinct : amenagement collectif par accord
+            d'entreprise et non demande individuelle du salarie a temps
+            plein. Aucune transposition mecanique. L'outil BE expose
+            les 9 verdicts hierarchises propres au cadre du Deal pour
+            l'emploi belge.
+
+            Distinct de :
+            - flexi-job-be (SF-219-12b, prio 130) — regime fiscal
+              specifique d'emploi accessoire (Loi 16/11/2015), aucune
+              relation avec l'amenagement horaire individuel art. 5 Loi
+              03/10/2022.
+            - teletravail-be-cct-85-149 (SF-219-16b, prio 134) — CCT
+              n° 85 structurel + CCT n° 149 occasionnel + modalites
+              deconnexion Loi 03/10/2022. La semaine de 4 jours releve
+              d'un regime parallele et independant : un travailleur peut
+              cumuler la semaine de 4 jours (art. 5) avec une convention
+              de teletravail structurel (CCT 85), les deux outils sont
+              complementaires mais juridiquement disjoints.
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 %. Sans rapport avec l'amenagement
+              horaire individuel.
+            - statut-unique-preavis (prio 111) + formule-claeys (prio
+              112) — indemnite compensatoire de preavis Loi 03/07/1978 +
+              CCT 109 / formule Claeys. Outils de calcul indemnitaire
+              post-rupture, sans rapport avec la mise en place du regime
+              4 jours.
+            Cet outil intervient en amont (qualification de la regularite
+            d'une mise en place ou d'un refus) et identifie les
+            court-circuits critiques (refus non motive + licenciement
+            representailles) qui ouvrent eventuellement des actions
+            indemnitaires couvertes par d'autres outils (action en abus
+            de droit, indemnite de protection art. 5 paragraphe 6 = 6
+            mois de remuneration).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('ac1b9a69-9478-40ce-9399-6e8692f320a5', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'semaine-4-jours-be', 'ALWAYS_ON', NULL, NULL, 136);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'ac1b9a69-9478-40ce-9399-6e8692f320a5';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

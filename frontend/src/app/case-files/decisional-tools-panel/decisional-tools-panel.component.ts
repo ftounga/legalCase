@@ -203,6 +203,8 @@ import { InterimBeCct322SectionComponent } from '../interim-be-cct-322-section/i
 import { InterimBeIndemniteFinMissionSectionComponent } from '../interim-be-indemnite-fin-mission-section/interim-be-indemnite-fin-mission-section.component';
 // SF-219-16b : section décisionnelle Télétravail BE — CCT n° 85 / CCT n° 149 (BE-only, ALWAYS_ON).
 import { TeletravailBeCct85149SectionComponent } from '../teletravail-be-cct-85-149-section/teletravail-be-cct-85-149-section.component';
+// SF-219-18b : section décisionnelle Semaine de 4 jours BE — Loi 03/10/2022 « Deal pour l'emploi » (BE-only, ALWAYS_ON).
+import { Semaine4JoursBeSectionComponent } from '../semaine-4-jours-be-section/semaine-4-jours-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2696,6 +2698,49 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-18b : semaine de 4 jours BE — Loi du 03/10/2022 « Deal
+      // pour l'emploi » M.B. 10/11/2022, art. 5 (régime à la demande
+      // du travailleur à temps plein — compression durée hebdomadaire
+      // 38-40 h sur 4 jours, journée plafonnée 9 h 30 ou 10 h CCT,
+      // avenant écrit ≤ 6 mois renouvelable, refus motivé écrit dans
+      // le mois, protection licenciement = 6 mois rémunération) +
+      // art. 6 (procédure simplifiée règlement de travail) ; Loi du
+      // 16/03/1971 art. 19 (limites quotidienne 9 h et hebdomadaire
+      // 40 h droit commun) ; Loi du 03/07/1978 art. 25 (modification
+      // élément essentiel du contrat) ; Loi du 08/04/1965 art. 12
+      // (règlements de travail). Outil BE-only — la semaine de 4 jours
+      // française (C. trav. L. 3122-2 et s., Loi 13/06/1998 « Aubry I »
+      // + Loi 19/01/2000 « Aubry II ») est un aménagement collectif
+      // par accord d'entreprise et non une demande individuelle du
+      // salarié à temps plein. Aucune transposition mécanique.
+      // Verdict hiérarchisé 9 états (CONFORME_REGIME_4_JOURS_VALIDE /
+      // LICENCIEMENT_REPRESAILLES_PRESUME / REFUS_EMPLOYEUR_NON_MOTIVE
+      // / NON_ELIGIBLE_TEMPS_PARTIEL / NON_CONFORME_DEMANDE_ECRITE
+      // / NON_CONFORME_JOURNEE_DEPASSE_9H30 / NON_CONFORME_AVENANT
+      // _OU_REGLEMENT_MANQUANT / NON_CONFORME_DUREE_DEPASSE_6_MOIS
+      // / A_ANALYSER) — court-circuits backend (statut indéterminé →
+      // licenciement représailles → refus non motivé → temps partiel
+      // → demande écrite → journée → formalisation → durée → conforme)
+      // + ventilation 5 conformités cumulatives. ALWAYS_ON priority
+      // 136 (au-dessus de clause-ecolage-be = 135 SF-219-17b et
+      // teletravail-be-cct-85-149 = 134 SF-219-16b). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213/F-219 — statut
+      // demande / temps plein / demande écrite / horaire compressé /
+      // avenant / règlement de travail / licenciement / motif objectif
+      // non extractibles du dossier salarié principal — déclaratifs
+      // RH ou avocat).
+      ['semaine-4-jours-be', {
+        displayLabel: 'Semaine de 4 jours (Belgique)',
+        component: Semaine4JoursBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4002,6 +4047,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // autres analyseurs de conformité statutaire BE (interim-be-cct-322,
     // flexi-job-be, delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
     ['teletravail-be-cct-85-149', 'VALIDITE'],
+    // SF-219-18b : Semaine de 4 jours BE — Loi du 03/10/2022 « Deal pour
+    // l'emploi » M.B. 10/11/2022, art. 5 (régime à la demande du
+    // travailleur à temps plein) + art. 6 (procédure simplifiée
+    // règlement de travail). Thème VALIDITE — l'outil qualifie la
+    // conformité d'une mise en place de la semaine de 4 jours sur
+    // 5 conditions cumulatives (temps plein / demande écrite / journée
+    // ≤ 9 h 30 ou 10 h CCT / avenant signé + règlement de travail
+    // modifié / durée avenant ≤ 6 mois ou renouvellement) avec verdict
+    // hiérarchisé 9 états (1 conforme / 2 court-circuits critiques —
+    // licenciement représailles, refus non motivé / 4 non-conformes
+    // de fond / 1 non éligible / 1 à analyser indéterminé). Parité
+    // avec les autres analyseurs de conformité statutaire BE
+    // (interim-be-cct-322, flexi-job-be, delegue-syndical-cct-5,
+    // transfert-entreprise-cct-32bis, teletravail-be-cct-85-149).
+    ['semaine-4-jours-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
