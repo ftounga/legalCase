@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6bbe077d-c6da-495d-bed3-f01726c9ab98" author="claude">
+        <comment>
+            SF-219-15 : table dédiée à l'outil décisionnel « Indemnité
+            de fin de mission intérim BE » (interim-be-indemnite-fin-mission,
+            BELGIQUE — fondement : Loi du 24/07/1987 relative au travail
+            temporaire, au travail intérimaire et à la mise de travailleurs
+            à la disposition d'utilisateurs (M.B. 20/08/1987), notamment
+            art. 8 (contrat écrit ETI/intérimaire) et art. 10 (parité
+            salariale stricte avec le permanent de référence chez
+            l'utilisateur) ; AR du 30/03/1967 sur les vacances annuelles,
+            art. 19 (taux pécule de vacances = 15,38 % du brut, soit
+            7,67 % pécule simple + 7,71 % pécule double) ; CCT n° 322
+            du 14/06/2010 conclue au CNT (responsabilité solidaire
+            ETI/utilisateur, parité salariale) ; CCT n° 322bis du
+            16/12/2010 (responsabilité ETI pour le versement du pécule
+            de vacances via le Fonds Social pour les Intérimaires — FSI) ;
+            CCT sectorielles propres à la commission paritaire de
+            l'utilisateur pour la prime de fin d'année 13e mois (CP 124
+            construction CCT 12/06/2014 AR 11/02/2015 — 9,12 % ; CP 200
+            employés CCT 09/06/2016 AR 13/06/2017 — 1/12 = 8,33 % ;
+            CP 140 transport CCT 27/01/2011 AR 30/03/2011 — 8,33 % ;
+            CP 209 métaux ; CP 218 non-marchand ; CP 322 intérim renvoi
+            CP utilisateur ; etc.) ; Loi du 03/07/1978 sur les contrats
+            de travail, art. 39 et s. (indemnité compensatoire de
+            préavis applicable par renvoi de la Loi 24/07/1987 art. 8) ;
+            Loi du 16/03/1971 sur le travail, art. 29 (sursalaires
+            50 pourcent semaine, 100 pourcent dimanche/jour férié) ;
+            Cass. (BE) 04/02/1991, S.90.0024.F et 16/12/2002,
+            S.01.0124.F (rupture anticipée injustifiée d'une mission
+            intérim ouvre droit aux rémunérations restant à courir
+            jusqu'au terme) ; Cass. (BE) 03/05/2010, S.09.0086.F et
+            23/06/2003, S.02.0103.F (refus explicite d'une prime de
+            précarité forfaitaire 10 pourcent analogue à l'IFM française
+            art. L. 1251-32 en droit belge).
+
+            L'outil calcule les indemnités effectivement exigibles à
+            la fin d'une mission intérimaire belge :
+            - Pécule de vacances intérim : 15,38 pourcent du brut total
+              des prestations (sauf si déjà versé par le FSI auquel cas
+              0,00 EUR).
+            - Prime de fin d'année sectorielle (13e mois) : taux
+              variable selon la CP de l'utilisateur (CP_124_CONSTRUCTION
+              / CP_200_AUXILIAIRE_EMPLOYES / CP_218_NON_MARCHAND /
+              CP_322_INTERIM / CP_140_TRANSPORT_LOGISTIQUE /
+              CP_209_METAUX_FABRICATIONS_METALLIQUES / AUTRE_NON_RECENSE),
+              conditionnée à une ancienneté sectorielle minimale
+              (65 jours par défaut, à confirmer cas par cas selon CCT
+              sectorielle en vigueur).
+            - Indemnité compensatoire de rupture anticipée (Cass. BE
+              04/02/1991 + 16/12/2002) : salaire restant à courir
+              jusqu'au terme prévu si l'ETI a rompu sans motif grave.
+              Estimation : salaire horaire x 7,6 h/j x jours restants.
+            - Sursalaire heures supplémentaires (Loi 16/03/1971 art. 29) :
+              50 pourcent en semaine + 100 pourcent dimanche/férié.
+
+            Verdict : INDEMNITES_DUES
+            | RUPTURE_ANTICIPEE_INDEMNITE_RESTE_A_COURIR
+            | AUCUNE_INDEMNITE_DUE
+            | A_ANALYSER_SECTEUR_NON_RECONNU.
+
+            Avertissement principal : AUCUNE prime de précarité
+            forfaitaire 10 pourcent analogue à l'IFM française
+            (C. trav. fr. art. L. 1251-32) n'est due en droit belge
+            (Cass. BE 03/05/2010 et 23/06/2003). La confusion est
+            récurrente dans la jurisprudence du fond — l'outil rend
+            cet avertissement systématique pour éviter toute
+            transposition mécanique du droit FR.
+
+            Outil single-country BELGIQUE — la France a un régime
+            d'IFM forfaitaire 10 pourcent (C. trav. art. L. 1251-32)
+            que la jurisprudence Cass. BE refuse explicitement de
+            transposer. F-DT-18 (IFM FR) est l'outil français
+            correspondant. Restitution séparée par outil — pas
+            d'harmonisation FR/BE.
+
+            Snapshot JSON complet (inputs + ventilation détaillée par
+            composante d'indemnité + verdict + base juridique + taux
+            appliqué) pour permettre la restitution UI sans recalcul
+            (pattern uniforme F-DT-42 / SF-213-01 a SF-213-10 /
+            SF-219-01 a SF-219-14).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-15b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel
+            F-164 staging 2026-04-26 — 13 tool_id orphelins, cf.
+            CLAUDE.md feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "interim-be-indemnite-fin-mission" est ajouté
+            dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile
+            dès le seed visibility par SF-219-15b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-14b).
+        </comment>
+
+        <createTable tableName="interim_be_indemnite_fin_mission_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_interim_be_indem_fin_mission_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="interim_be_indemnite_fin_mission_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_interim_be_indem_fin_mission_case_file"/>
+
+        <createIndex tableName="interim_be_indemnite_fin_mission_analyses"
+                     indexName="idx_interim_be_indem_fin_mission_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="interim_be_indemnite_fin_mission_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

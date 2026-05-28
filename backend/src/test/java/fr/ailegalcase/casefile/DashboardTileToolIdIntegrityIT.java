@@ -588,7 +588,7 @@ class DashboardTileToolIdIntegrityIT {
             // feedback_pre_merge_visibility_seed_check).
             "etudiant-jobiste-be",
             // SF-219-16 (2026-05-28) : teletravail-be-cct-85-149 —
-            // backend (présente PR) CCT n° 85 du 09/11/2005 (CNT)
+            // backend (mergée PR #1412) CCT n° 85 du 09/11/2005 (CNT)
             // concernant le télétravail régulier et structurel
             // (rendue obligatoire par AR du 13/06/2006 M.B.
             // 05/09/2006) + CCT n° 149 du 26/01/2021 (CNT) relative
@@ -621,7 +621,46 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "teletravail-be-cct-85-149"
+            "teletravail-be-cct-85-149",
+            // SF-219-15 (2026-05-28) : interim-be-indemnite-fin-mission —
+            // backend (présente PR) Loi du 24/07/1987 sur le travail
+            // temporaire (M.B. 20/08/1987), art. 8 + art. 10 (parité
+            // salariale) ; AR du 30/03/1967 sur les vacances annuelles,
+            // art. 19 (pécule de vacances 15,38 % = 7,67 % simple +
+            // 7,71 % double) ; CCT n° 322 du 14/06/2010 conclue au CNT
+            // (responsabilité solidaire ETI/utilisateur) ; CCT n° 322bis
+            // du 16/12/2010 (versement pécule via Fonds Social
+            // Intérimaires – FSI) ; CCT sectorielles propres à la
+            // commission paritaire de l'utilisateur pour la prime de
+            // fin d'année 13e mois (CP 124 construction 9,12 % CCT
+            // 12/06/2014 AR 11/02/2015 ; CP 200 employés 8,33 % CCT
+            // 09/06/2016 AR 13/06/2017 ; CP 140 transport 8,33 % CCT
+            // 27/01/2011 AR 30/03/2011 ; etc.) ; Loi du 03/07/1978
+            // sur les contrats de travail art. 39 et s. (indemnité de
+            // préavis par renvoi) ; Loi du 16/03/1971 sur le travail
+            // art. 29 (sursalaires 50 % semaine, 100 %
+            // dimanche/férié) ; Cass. (BE) 04/02/1991 S.90.0024.F et
+            // 16/12/2002 S.01.0124.F (rupture anticipée injustifiée
+            // d'une mission intérim ouvre droit au salaire restant à
+            // courir jusqu'au terme) ; Cass. (BE) 03/05/2010
+            // S.09.0086.F et 23/06/2003 S.02.0103.F (refus explicite
+            // d'une prime de précarité forfaitaire 10 % analogue à
+            // l'IFM française art. L. 1251-32 en droit belge).
+            // Calcule les composantes effectivement dues : pécule de
+            // vacances intérim (15,38 % sauf FSI déjà versé), prime
+            // de fin d'année sectorielle (taux variable selon CP
+            // utilisateur, conditionnée ancienneté sectorielle ≥ 65 j),
+            // indemnité de rupture anticipée (salaire restant à courir
+            // si ETI rompt sans motif grave), sursalaire heures sup.
+            // Avertissement systématique : PAS de prime de précarité
+            // 10 % style FR en BE. Verdicts : INDEMNITES_DUES /
+            // RUPTURE_ANTICIPEE_INDEMNITE_RESTE_A_COURIR /
+            // AUCUNE_INDEMNITE_DUE / A_ANALYSER_SECTEUR_NON_RECONNU.
+            // Frontend SF-219-15b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "interim-be-indemnite-fin-mission"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
