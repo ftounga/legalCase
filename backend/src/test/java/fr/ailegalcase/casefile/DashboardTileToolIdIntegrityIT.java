@@ -660,7 +660,39 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "interim-be-indemnite-fin-mission"
+            "interim-be-indemnite-fin-mission",
+            // SF-219-17 (2026-05-28) : clause-ecolage-be — backend
+            // (présente PR) art. 22bis Loi du 03/07/1978 sur les
+            // contrats de travail (inséré par la Loi du 27/12/2006
+            // M.B. 28/12/2006, modifié par la Loi du 22/12/2017 —
+            // Pacte de compétitivité) : forme écrite obligatoire au
+            // plus tard à l'entrée en formation (§ 1er al. 1er) ;
+            // formation spécifique (non imposée par norme légale ou
+            // réglementaire) + coût réel > 1/2 × RMMMG mensuel
+            // (§ 2 al. 3 2°, CCT n° 43 du 02/05/1988 du CNT) ;
+            // clause inopposable en cas de licenciement sans motif
+            // grave par l'employeur, de rupture pour motif grave
+            // dans le chef de l'employeur ou d'expiration normale
+            // d'un CDD (§ 3) ; durée d'efficacité maximale 36 mois
+            // soit 3 ans à compter de la fin de la formation
+            // (§ 4 al. 1er) ; dégressivité par tiers de la durée
+            // d'efficacité — 100/66/33 pourcent (§ 4 al. 2) ;
+            // plafond absolu 80 pourcent du coût réel (§ 4 al. 4) ;
+            // CCT n° 13 du 02/02/2013 du CNT (cadre subsidiaire
+            // formations qualifiantes sectorielles). Calcule la
+            // validité formelle + le montant dégressif dû par le
+            // travailleur en cas de départ anticipé, plafonné à 80
+            // pourcent du coût réel de la formation. Verdicts :
+            // VALIDE_REMBOURSEMENT_DEGRESSIF /
+            // VALIDE_DUREE_EXPIREE / INOPPOSABLE_MOTIF_DEPART /
+            // NULLE_FORME_ECRITE_MANQUANTE /
+            // NULLE_FORMATION_OBLIGATOIRE /
+            // NULLE_COUT_INSUFFISANT / NULLE_DUREE_EXCESSIVE /
+            // A_ANALYSER. Frontend SF-219-17b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "clause-ecolage-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
