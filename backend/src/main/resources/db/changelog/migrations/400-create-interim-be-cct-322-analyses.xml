@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="bc2b774f-9dd8-4ca0-bec0-f34676cb7005" author="claude">
+        <comment>
+            SF-219-14 : table dédiée à l'outil décisionnel
+            « Statut intérim BE — CCT n° 322 » (interim-be-cct-322,
+            BELGIQUE — fondement : Loi du 24/07/1987 relative au
+            travail temporaire, au travail intérimaire et à la mise de
+            travailleurs à la disposition d'utilisateurs (M.B.
+            20/08/1987), structurellement applicable depuis 1976
+            (Loi 28/06/1976) et refondue en 1987, modifiée notamment
+            par la Loi du 26/06/1992 (insertion), la Loi du 12/08/2000
+            (grève), la Loi du 26/06/2013 (motif insertion durable —
+            « CDD intérimaire en vue d'embauche »), la Loi-programme
+            du 27/12/2012 (sanctions ONSS), la Loi du 15/01/2018 et
+            les CCT du CNT n° 36 du 27/11/1981 (sécurité sociale),
+            n° 38 (sélection), n° 58 (durée), n° 108 du 16/07/2013
+            (insertion en vue d'embauche durable) et surtout la
+            CCT n° 322 du 14/06/2010 conclue au CNT instituant
+            la responsabilité solidaire et la parité salariale stricte.
+
+            L'outil analyse la validité d'une mission intérimaire sous
+            l'angle cumulatif :
+            - 3 parties : entreprise utilisatrice, entreprise de
+              travail intérimaire (ETI agréée régionalement),
+              travailleur intérimaire. Le contrat de travail est
+              conclu entre ETI et intérimaire ; un contrat commercial
+              de mise à disposition lie l'ETI à l'utilisateur ; aucun
+              contrat de travail direct entre utilisateur et
+              intérimaire (interdiction art. 31 Loi 24/07/1987 sauf
+              cas limités).
+            - Motif autorisé (Loi 24/07/1987, art. 1er § 1 et art.
+              1bis) : REMPLACEMENT_TRAVAILLEUR_PERMANENT (suspension
+              exécution / rupture contrat — sauf grève ou lock-out,
+              interdiction absolue art. 19) ; SURCROIT_TEMPORAIRE_DE_TRAVAIL ;
+              EXECUTION_TRAVAIL_EXCEPTIONNEL (liste limitative AR
+              11/10/1976, ex. inventaire, déménagement, foires,
+              événements) ; INSERTION_EMBAUCHE_DURABLE (art. 1bis
+              introduit par Loi 26/06/2013 + CCT n° 108 — max 3
+              tentatives d'embauche, 6 mois cumulés par tentative et
+              9 mois cumulés au total) ; MOTIF_ARTISTIQUE (régime
+              art. 1bis § 4, spectacle / production audiovisuelle) ;
+              FLUX_TRAVAUX_EXCEPTIONNEL_TRAJET_SCOLAIRE (cas étroits
+              AR sectoriels) ; AUTRE_NON_AUTORISE (rejet immédiat).
+            - Durée maximale : remplacement = durée de la suspension
+              / rupture, plus 7 jours après reprise (art. 8) ;
+              surcroît temporaire = 6 mois renouvelables 1 fois pour
+              une durée totale max de 12 mois (avec autorisation
+              préalable délégation syndicale au-delà de 6 mois —
+              CCT n° 108 / accord d'entreprise) ; travail exceptionnel
+              = durée énumérée par l'AR 11/10/1976 (ex. 3 mois pour
+              inventaires) ; insertion durable = 9 mois cumulés au
+              total (art. 1bis Loi 24/07/1987 + CCT n° 108).
+            - Interdiction motif grève / lock-out (art. 19) : recours
+              interdit pour remplacer un travailleur dont le contrat
+              est suspendu pour grève ou lock-out collectif. Sanction
+              immédiate = présomption irréfragable de fraude +
+              requalification.
+            - Parité salariale (Loi 24/07/1987, art. 10) :
+              l'intérimaire doit percevoir la même rémunération brute,
+              les mêmes primes et avantages que percevrait un
+              travailleur permanent de même qualification engagé
+              directement par l'utilisateur pour exécuter le même
+              travail. Comprend salaire de base, primes récurrentes
+              (fin d'année, prime équipe, etc.), chèques-repas et
+              autres avantages extra-légaux.
+            - Contrat-cadre écrit entre ETI et intérimaire (art. 8 § 1)
+              + contrat de mise à disposition écrit entre ETI et
+              utilisateur (art. 9) + déclaration Dimona par l'ETI
+              (employeur formel) — cumul obligatoire à peine de
+              requalification immédiate.
+
+            Sanction prévue (art. 20 Loi 24/07/1987 + CCT n° 322) :
+            requalification du contrat en CDI ordinaire entre
+            l'utilisateur et le travailleur avec rétroactivité,
+            responsabilité solidaire de l'utilisateur et de l'ETI
+            pour le paiement de l'intégralité des cotisations ONSS
+            éludées + salaires + indemnités de rupture éventuelles
+            + sanctions administratives ONSS.
+
+            Verdict : ELIGIBLE_MISSION_REGULIERE
+            | INELIGIBLE_MOTIF_INTERDIT_GREVE_LOCKOUT
+            | INELIGIBLE_MOTIF_NON_AUTORISE
+            | INELIGIBLE_DUREE_MAX_DEPASSEE
+            | INELIGIBLE_PARITE_SALARIALE_VIOLEE
+            | FRAGILE_CONTRAT_OU_DIMONA_MANQUANT
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a un régime
+            d'intérim (C. trav. art. L. 1251-1 et suivants) qui partage
+            la structure tripartite mais avec des motifs (CDD
+            d'usage, accroissement d'activité, remplacement),
+            des durées (18 mois max en règle générale art. L. 1251-12),
+            des indemnités (IFM 10 %, ICCP 10 % art. L. 1251-32) et une
+            jurisprudence Cass. soc. radicalement distincte. Pas de
+            CCT n° 322 équivalente. La parité salariale FR
+            (art. L. 1251-18) ressemble fonctionnellement mais
+            s'articule différemment (entité utilisatrice unique en BE
+            via responsabilité solidaire CCT 322 ; en FR via principe
+            de l'entreprise de travail temporaire seule employeur).
+            Restitution séparée par outil — pas de tentative
+            d'harmonisation FR/BE.
+
+            Snapshot JSON complet (inputs + outputs : verdict,
+            ventilation par dimension motif/durée/parité/formalisme,
+            durée totale calculée, écart de parité salariale, sanction
+            applicable) pour permettre la restitution UI sans recalcul
+            (pattern uniforme F-DT-42 / SF-213-01 à SF-213-10 /
+            SF-219-01 à SF-219-12).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-14b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "interim-be-cct-322" est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-14b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-10b).
+        </comment>
+
+        <createTable tableName="interim_be_cct_322_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_interim_be_cct_322_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="interim_be_cct_322_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_interim_be_cct_322_case_file"/>
+
+        <createIndex tableName="interim_be_cct_322_analyses"
+                     indexName="idx_interim_be_cct_322_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="interim_be_cct_322_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
