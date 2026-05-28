@@ -227,6 +227,8 @@ import { TravailNoirBeDimonaSectionComponent } from '../travail-noir-be-dimona-s
 import { InastriStatutTravailleurIndependantSectionComponent } from '../inastri-statut-travailleur-independant-section/inastri-statut-travailleur-independant-section.component';
 // SF-219-28b : section décisionnelle MP Fedris reconnaissance BE.
 import { MpFedrisReconnaissanceSectionComponent } from '../mp-fedris-reconnaissance-section/mp-fedris-reconnaissance-section.component';
+// SF-219-29b : section décisionnelle Rente AT/MP vs capitalisation BE.
+import { AtMpRenteCapitalBeSectionComponent } from '../at-mp-rente-capital-be-section/at-mp-rente-capital-be-section.component';
 // SF-219-30b : section décisionnelle Saisine CPAP BE (RPS) — Loi 04/08/1996 art. 32sexies + AR 10/04/2014.
 import { BienEtreRpsConseillerPreventionSectionComponent } from '../bien-etre-rps-conseiller-prevention-section/bien-etre-rps-conseiller-prevention-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
@@ -3192,11 +3194,41 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-29b : Rente AT/MP vs capitalisation BE — Loi du
+      // 10/04/1971 art. 24 (capital forfaitaire IPP -19 / rente
+      // annuelle viagere IPP +19) + Lois coordonnees du 03/06/1970
+      // art. 35 (renvoi MP au regime AT) + AR du 21/12/1971 + AR du
+      // 10/12/1987 (conversion partielle 1/3 max apres 3 ans) + AR
+      // du 24/02/2005 (bareme et coefficients d'age Table I-bis).
+      // Calculateur d'indemnite forfaitaire d'incapacite permanente
+      // partielle post-consolidation avec 5 verdicts
+      // (CAPITAL_FORFAITAIRE_LT_19 / RENTE_ANNUELLE_GE_19 /
+      // INELIGIBLE_NON_RECONNU / IPP_NON_DETERMINE / A_QUALIFIER).
+      // ALWAYS_ON priority 147 (au-dessus de mp-fedris-reconnaissance
+      // = 146 SF-219-28b — chaine logique : reconnaissance MP en
+      // amont via SF-219-28b puis chiffrage des indemnites post-
+      // consolidation ici). Pre-fill IA V1 : aucun champ (alignement
+      // pattern uniforme F-213 / F-219 — origine AT/MP, statut Fedris,
+      // dates medicales, taux IPP, remuneration de base art. 34
+      // plafonnee art. 39, date de naissance, conversion partielle
+      // non extractibles du dossier salarie generique).
+      ['at-mp-rente-capital-be', {
+        displayLabel: 'Rente AT/MP vs capitalisation (Belgique)',
+        component: AtMpRenteCapitalBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-30b : Saisine du Conseiller en Prevention Aspects
       // Psychosociaux (CPAP) — procedure RPS interne BE. BE-only,
-      // ALWAYS_ON priority 148 (au-dessus de mp-fedris-reconnaissance
-      // = 146 SF-219-28b, inastri-statut-travailleur-independant = 145
-      // SF-219-27b). Verdict 8 etats (SAISINE_CONFORME info /
+      // ALWAYS_ON priority 148 (au-dessus de at-mp-rente-capital-be
+      // = 147 SF-219-29b, mp-fedris-reconnaissance = 146 SF-219-28b).
+      // Verdict 8 etats (SAISINE_CONFORME info /
       // SAISINE_INFORMELLE_EN_COURS neutral / SAISINE_FORMELLE_EN_COURS
       // info / AVIS_RENDU_DELAI_RESPECTE info / AVIS_RENDU_DELAI_DEPASSE
       // warn / NON_CONFORME_FORMALITES_MANQUANTES critical /
@@ -4597,6 +4629,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['inastri-statut-travailleur-independant', 'VALIDITE'],
     // SF-219-28b : MP Fedris reconnaissance BE
     ['mp-fedris-reconnaissance', 'VALIDITE'],
+    // SF-219-29b : Rente AT/MP vs capitalisation BE (calculateur
+    // d'indemnite forfaitaire post-consolidation — capital unique ou
+    // rente annuelle viagere selon seuil 19 % IPP). Theme INDEMNITES
+    // (calculateur de montant, coherent avec rappel-salaire-be,
+    // licenciement-be-formule-claeys, rcc-be-indemnite-complementaire).
+    ['at-mp-rente-capital-be', 'INDEMNITES'],
     // SF-219-30b : Saisine CPAP BE (RPS) — conformite procedurale
     ['bien-etre-rps-conseiller-prevention', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
