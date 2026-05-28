@@ -1,0 +1,357 @@
+<div class="bien-etre-rps-conseiller-prevention-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">psychology</mat-icon>
+    <span class="section-title">Saisine CPAP — Conseiller en Prevention RPS (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="bien-etre-rps-conseiller-prevention-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est reserve aux dossiers de droit du travail belge
+            (Loi du 04/08/1996 art. 32sexies relative au bien-etre des
+            travailleurs + AR du 10/04/2014 relatif a la prevention des
+            risques psychosociaux au travail). Le regime francais (Code
+            du travail FR art. L. 4121-1 et s. obligation employeur de
+            securite, referent harcelement art. L. 1153-5-1, CSE art.
+            L. 2312-9, document unique d'evaluation des risques art.
+            R. 4121-1, services de sante au travail SST AR 22/02/1989
+            et reforme 02/08/2021) constitue un dispositif juridiquement
+            distinct : pas de CPAP belge, pas de delais 10 j / 3 mois /
+            2 mois imposes par AR, mediation interne facultative non
+            encadree. Aucune transposition mecanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse la <b>conformite procedurale</b> de la saisine du
+            Conseiller en Prevention Aspects Psychosociaux (CPAP) selon
+            l'AR du 10/04/2014 (entretien prealable, choix mode de
+            demande, formalisme ecrit, delais 10 jours / 3 mois / 2 mois)
+            et la protection 12 mois contre les represailles art.
+            32sexies. <b>Ne se prononce pas sur le fond</b> du
+            harcelement (voir SF-213-07 harcelement-be-procedure-formelle
+            pour la checklist detaillee, F-DT-30 pour la nullite
+            licenciement represailles). Champs marques * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type risque * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de risque psychosocial *</mat-label>
+                <mat-select
+                    [value]="typeRisque()"
+                    (selectionChange)="onTypeRisqueChange($event.value)"
+                    name="typeRisque"
+                    required>
+                  <mat-option value="HARCELEMENT_MORAL">
+                    Harcelement moral (art. 32bis Loi 04/08/1996)
+                  </mat-option>
+                  <mat-option value="HARCELEMENT_SEXUEL">
+                    Harcelement sexuel (art. 32bis al. 3)
+                  </mat-option>
+                  <mat-option value="VIOLENCE_AU_TRAVAIL">
+                    Violence au travail (art. 32bis al. 1)
+                  </mat-option>
+                  <mat-option value="AUTRES_RPS">
+                    Autres RPS — stress, burn-out, conflits (art. 32/1 § 2)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Qualification provisoire ; le CPAP requalifie au cours de l'enquete.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Mode demande * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Mode de demande d'intervention psychosociale *</mat-label>
+                <mat-select
+                    [value]="modeDemande()"
+                    (selectionChange)="onModeDemandeChange($event.value)"
+                    name="modeDemande"
+                    required>
+                  <mat-option value="INFORMELLE">
+                    Informelle — mediation interne confidentielle (art. 14 a 16)
+                  </mat-option>
+                  <mat-option value="FORMELLE_INDIVIDUELLE">
+                    Formelle individuelle — enquete ecrite avec rapport (art. 16 a 22)
+                  </mat-option>
+                  <mat-option value="FORMELLE_COLLECTIVE">
+                    Formelle collective — analyse organisationnelle (art. 16 § 2)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Choix tactique avocat — l'informelle peut basculer en formelle a tout moment.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Etape procedure * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Etape de la procedure *</mat-label>
+                <mat-select
+                    [value]="etapeProcedure()"
+                    (selectionChange)="onEtapeProcedureChange($event.value)"
+                    name="etapeProcedure"
+                    required>
+                  <mat-option value="INTENTION_DEMANDE">
+                    Etape 1 — Intention (personne de confiance art. 31)
+                  </mat-option>
+                  <mat-option value="ENTRETIEN_PREALABLE_REALISE">
+                    Etape 2 — Entretien prealable realise (art. 16 § 1, 10 j)
+                  </mat-option>
+                  <mat-option value="DEMANDE_INFORMELLE_EN_COURS">
+                    Etape 3 — Demande informelle en cours
+                  </mat-option>
+                  <mat-option value="DEMANDE_FORMELLE_DEPOSEE">
+                    Etape 4 — Demande formelle deposee (3 mois enquete)
+                  </mat-option>
+                  <mat-option value="AVIS_RENDU">
+                    Etape 5 — Avis motive rendu (2 mois employeur art. 32)
+                  </mat-option>
+                  <mat-option value="MESURES_PRISES_PAR_EMPLOYEUR">
+                    Etape 6 — Mesures notifiees, procedure cloturee
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Sequence AR 10/04/2014 art. 11 a 32 ; conditionne le calcul des echeances.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4-8. Cinq cases a cocher formalites prealables -->
+            <div class="field-full-width formalites-block">
+              <p class="formalites-title">Formalites procedurales prealables</p>
+
+              <mat-checkbox
+                  [checked]="conseillerIdentifie()"
+                  (change)="onConseillerIdentifieChange($event.checked)"
+                  name="conseillerIdentifie">
+                CPAP interne ou SEPP externe designe par l'employeur (art. 32sexies § 2)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="entretienPrealableRealise()"
+                  (change)="onEntretienPrealableRealiseChange($event.checked)"
+                  name="entretienPrealableRealise">
+                Entretien prealable obligatoire realise (art. 16 § 1, delai 10 jours)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="demandeEcriteSignee()"
+                  (change)="onDemandeEcriteSigneeChange($event.checked)"
+                  name="demandeEcriteSignee">
+                Demande ecrite et signee par le travailleur (art. 16 § 2)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="accuseReceptionRecu()"
+                  (change)="onAccuseReceptionRecuChange($event.checked)"
+                  name="accuseReceptionRecu">
+                Accuse de reception remis au travailleur par le CPAP (art. 16 § 4)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="notificationEmployeurFaite()"
+                  (change)="onNotificationEmployeurFaiteChange($event.checked)"
+                  name="notificationEmployeurFaite">
+                Notification de la demande a l'employeur faite par le CPAP (art. 17 § 1)
+              </mat-checkbox>
+            </div>
+
+            <!-- 9. Date depot demande -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de depot de la demande</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDepotDemande()"
+                       (ngModelChange)="onDateDepotDemandeChange($event)"
+                       name="dateDepotDemande" />
+                <mat-hint>Point de depart du delai 3 mois enquete (art. 22 § 1) et de la protection 12 mois (art. 32sexies).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Date avis rendu -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>
+                  Date de l'avis motive rendu par le CPAP
+                  @if (etapeProcedure() === 'AVIS_RENDU' || etapeProcedure() === 'MESURES_PRISES_PAR_EMPLOYEUR') {
+                    <span>*</span>
+                  }
+                </mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateAvisRendu()"
+                       (ngModelChange)="onDateAvisRenduChange($event)"
+                       name="dateAvisRendu" />
+                <mat-hint>Requise pour les etapes AVIS_RENDU et MESURES_PRISES_PAR_EMPLOYEUR (calcul respect delai 3 mois).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la saisine CPAP</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="bien-etre-rps-conseiller-prevention-result">
+
+          <!-- Banniere verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                {{ typeRisqueLabel(result()!.typeRisque) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation analyse -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Detail de l'analyse</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">category</mat-icon>
+              <span class="ventilation-label">Mode de demande</span>
+              <span class="ventilation-value">{{ modeDemandeLabel(result()!.modeDemande) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">timeline</mat-icon>
+              <span class="ventilation-label">Etape procedurale</span>
+              <span class="ventilation-value">{{ etapeProcedureLabel(result()!.etapeProcedure) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">supervisor_account</mat-icon>
+              <span class="ventilation-label">CPAP identifie</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.conseillerIdentifie) }}</span>
+            </div>
+
+            <div class="ventilation-row" [class.row-critical]="!result()!.formalitesPrealablesCompletes">
+              <mat-icon class="ventilation-icon">fact_check</mat-icon>
+              <span class="ventilation-label">Formalites prealables completes</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.formalitesPrealablesCompletes) }}</span>
+            </div>
+
+            @if (result()!.dateDepotDemande) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">today</mat-icon>
+                <span class="ventilation-label">Date depot demande</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateDepotDemande) }}</span>
+              </div>
+            }
+
+            @if (result()!.joursDepuisDepot !== null && result()!.joursDepuisDepot !== undefined) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">hourglass_bottom</mat-icon>
+                <span class="ventilation-label">Jours depuis le depot</span>
+                <span class="ventilation-value mono">{{ formatJours(result()!.joursDepuisDepot) }}</span>
+              </div>
+            }
+
+            @if (result()!.echeanceEnqueteTroisMois) {
+              <div class="ventilation-row" [class.row-critical]="!result()!.delaiEnqueteRespecte">
+                <mat-icon class="ventilation-icon">event</mat-icon>
+                <span class="ventilation-label">Echeance enquete 3 mois (art. 22 § 1)</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.echeanceEnqueteTroisMois) }}</span>
+              </div>
+            }
+
+            @if (result()!.dateAvisRendu) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">description</mat-icon>
+                <span class="ventilation-label">Date avis motive rendu</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateAvisRendu) }}</span>
+              </div>
+            }
+
+            @if (result()!.echeanceMesuresEmployeurDeuxMois) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">event_available</mat-icon>
+                <span class="ventilation-label">Echeance mesures employeur 2 mois (art. 32)</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.echeanceMesuresEmployeurDeuxMois) }}</span>
+              </div>
+            }
+
+            @if (result()!.finProtectionRepresailles) {
+              <div class="ventilation-row" [class.row-info]="result()!.protectionRepresaillesActive">
+                <mat-icon class="ventilation-icon">shield</mat-icon>
+                <span class="ventilation-label">Fin protection represailles 12 mois (art. 32sexies)</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.finProtectionRepresailles) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row" [class.row-info]="result()!.protectionRepresaillesActive">
+              <mat-icon class="ventilation-icon">security</mat-icon>
+              <span class="ventilation-label">Protection 12 mois active</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.protectionRepresaillesActive) }}</span>
+            </div>
+          </div>
+
+          <!-- Synthese -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le resultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

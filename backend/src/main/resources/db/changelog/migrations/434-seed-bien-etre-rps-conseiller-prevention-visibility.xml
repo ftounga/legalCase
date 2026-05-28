@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1e48b274-a17d-4a49-9e65-d72b1aee4f92" author="claude">
+        <comment>
+            SF-219-30b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel Saisine du Conseiller en Prevention Aspects
+            Psychosociaux (CPAP) — procedure RPS interne BE
+            (bien-etre-rps-conseiller-prevention, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses creee par SF-219-30
+            (migration 432).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs propres a la procedure RPS interne CPAP
+            BE : qualification du risque (harcelement moral art. 32bis
+            Loi 04/08/1996, harcelement sexuel art. 32bis al. 3,
+            violence au travail art. 32bis al. 1, autres RPS stress /
+            burn-out / conflits art. 32/1 § 2), mode de demande
+            (informelle mediation interne / formelle individuelle /
+            formelle collective AR 10/04/2014 art. 14 a 22), etape
+            procedurale (intention / entretien prealable / demande
+            informelle / demande formelle / avis rendu / mesures
+            employeur), 5 formalites procedurales booleennes (CPAP
+            identifie art. 32sexies § 2, entretien prealable realise
+            delai 10 j art. 16 § 1, demande ecrite signee art. 16 § 2,
+            accuse de reception remis art. 16 § 4, notification
+            employeur art. 17 § 1), dates depot et avis. Releve du
+            dossier procedural specifique CPAP (compte-rendu entretien
+            prealable, formulaire de demande d'intervention
+            psychosociale, accuse de reception CPAP, notification CPAP
+            a l'employeur, registre d'analyses des risques
+            psychosociaux art. 6 AR 10/04/2014). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (qualification
+               RPS, mode de demande, etape procedurale, 5 formalites
+               booleennes, dates) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque un episode de souffrance au travail (suspicion
+               legitime art. 32sexies § 2, demande de mediation informelle
+               envisagee, demande formelle redigee, blocage CPAP /
+               absence de CPAP, avis CPAP rendu et a contester,
+               employeur n'ayant pas notifie les mesures dans le delai
+               2 mois art. 32, represailles redoutees apres saisine,
+               action introduite devant le tribunal du travail art. 578
+               C. jud. ou Inspection Controle du bien-etre au travail
+               art. 80 et s.). L'outil restitue le verdict 8 etats
+               (SAISINE_CONFORME formalites remplies / SAISINE_INFORMELLE_
+               EN_COURS mediation interne / SAISINE_FORMELLE_EN_COURS
+               enquete dans 3 mois / AVIS_RENDU_DELAI_RESPECTE / AVIS_
+               RENDU_DELAI_DEPASSE irregularite / NON_CONFORME_FORMALITES_
+               MANQUANTES entretien ou ecrit ou AR manquants / NON_
+               CONFORME_PAS_DE_CONSEILLER manquement art. 32sexies § 2
+               infraction code penal social niveau 3 / A_QUALIFIER
+               inputs ambigus) avec le calcul des echeances 3 mois
+               enquete art. 22 § 1, 2 mois mesures employeur art. 32,
+               protection 12 mois represailles art. 32sexies.
+               Pertinent des l'ouverture du dossier pour eclairer la
+               strategie de saisine (mediation informelle confidentielle
+               vs demande formelle ecrite avec rapport employeur,
+               bascule informelle vers formelle, denonciation des
+               irregularites a l'Inspection CBE, recours tribunal du
+               travail art. 578 C. jud., articulation avec SF-213-07
+               harcelement-be-procedure-formelle et F-DT-30 harcelement-
+               licenciement-nul-section).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-147) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 travail-noir-be-dimona (SF-219-26b)
+                 - 145 inastri-statut-travailleur-independant (SF-219-27b)
+                 - 146 mp-fedris-reconnaissance (SF-219-28b)
+                 - 148 cette migration (bien-etre-rps-conseiller-prevention)
+                       Saut a 148 pour laisser 147 a la SF-219-29b
+                       parallele (at-mp-rente-capital-be) en cours
+                       d'integration vague 30.
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY bien-etre-rps-conseiller-
+            prevention livree dans decisional-tools-panel.component.ts
+            (cf. SF-219-30b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id bien-etre-rps-conseiller-prevention deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-30 (PR
+            #1443, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 04/08/1996 relative au bien-etre des travailleurs
+              lors de l'execution de leur travail (M.B. 18/09/1996) :
+                * art. 32/1 § 2 — definition des risques psychosociaux
+                  (introduit par la Loi du 28/02/2014) : harcelement,
+                  violence, stress, burn-out, conflits qualifies ;
+                * art. 32bis — definitions harcelement moral, harcelement
+                  sexuel al. 3, violence au travail al. 1 ;
+                * art. 32sexies — obligation de l'employeur de designer
+                  un Conseiller en Prevention Aspects Psychosociaux
+                  (CPAP) interne ou externe (§ 2), protection 12 mois
+                  contre les represailles pour les travailleurs ayant
+                  depose une demande formelle (§ 1) ;
+                * art. 32sexiesdecies — competence de l'Inspection
+                  Controle du bien-etre au travail (CBE).
+            - AR du 10/04/2014 relatif a la prevention des risques
+              psychosociaux au travail (M.B. 28/04/2014) :
+                * art. 6 — registre d'analyses des risques psychosociaux ;
+                * art. 11 a 13 — definitions, mediation informelle ;
+                * art. 14 a 16 — demande d'intervention psychosociale
+                  informelle (confidentielle, sans rapport employeur) ;
+                * art. 16 § 1 — entretien prealable obligatoire avant
+                  demande formelle, delai 10 jours calendrier ;
+                * art. 16 § 2 — demande formelle ecrite et signee ;
+                * art. 16 § 4 — accuse de reception remis au travailleur ;
+                * art. 17 § 1 — notification de la demande a l'employeur
+                  apres acceptation par le CPAP ;
+                * art. 22 § 1 — delai 3 mois pour l'avis motive du CPAP
+                  a l'employeur (prolongation motivee 6 mois max § 2) ;
+                * art. 32 — delai 2 mois pour la notification des
+                  mesures employeur ;
+                * art. 31 — consultation prealable de la personne de
+                  confiance.
+            - Loi du 28/02/2014 modifiant la Loi du 04/08/1996 et
+              introduisant la notion de risques psychosociaux.
+            - AR du 28/05/2003 relatif a la surveillance de la sante des
+              travailleurs (M.B. 16/06/2003), art. 27 carnet de
+              surveillance medicale.
+            - AR du 22/02/1989 relatif aux services de sante au travail
+              SST (M.B. 16/03/1989).
+
+            Regime BE-only — le regime francais (Code du travail FR
+            art. L. 4121-1 et s. obligation employeur de securite,
+            referent harcelement art. L. 1153-5-1, CSE art. L. 2312-9,
+            document unique d'evaluation des risques DUER art. R. 4121-1,
+            SST AR 22/02/1989 reforme 02/08/2021) est juridiquement
+            distinct :
+            - pas de CPAP belge (designation referent harcelement
+              employeur + referent CSE — fonctions et formation
+              differentes) ;
+            - pas de procedure interne avec delais 10 j / 3 mois /
+              2 mois imposes par decret — la mediation interne FR est
+              facultative et non encadree ;
+            - pas de protection 12 mois art. 32sexies — la protection
+              FR contre la discrimination apres signalement repose sur
+              art. L. 1132-3-3 C. trav. (preuve contraire a la charge
+              employeur) et art. L. 1153-2 (harcelement sexuel) ;
+            - voie de recours FR : inspection du travail art. L. 8112-1
+              C. trav. puis CPH art. L. 1411-1 C. trav., et juge des
+              referes art. R. 1455-1, vs voie BE : Inspection CBE art.
+              80 Loi 04/08/1996 et tribunal du travail art. 578 C. jud. ;
+            - regime d'indemnisation FR : dommages-interets distincts
+              de la nullite du licenciement art. L. 1132-4 et L. 1235-3-1
+              C. trav., vs regime BE : indemnite forfaitaire 6 mois de
+              remuneration art. 32tredecies Loi 04/08/1996.
+            Aucune transposition mecanique. L'outil BE expose les 8
+            verdicts propres au cadre AR 10/04/2014.
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — chiffrage civil arrieres
+              salaire. Distinct (procedure RPS vs chiffrage indemnitaire).
+            - harcelement-be-procedure-formelle (prio 115, SF-213-07)
+              — checklist DETAILLEE d'une demande formelle deja
+              deposee et protection 12 mois art. 32sexies. Distinct et
+              complementaire : SF-219-30b qualifie la CONFORMITE
+              PROCEDURALE de la saisine (entretien prealable, choix
+              mode, formalisme, delais 10 j / 3 mois / 2 mois) en
+              AMONT ; SF-213-07 prend la suite quand la demande
+              formelle est deja conforme.
+            - F-DT-30 harcelement-licenciement-nul-section — nullite
+              licenciement en represailles art. 32sexies. Distinct et
+              complementaire : SF-219-30b qualifie la conformite
+              procedurale de la saisine (cause de la protection) ;
+              F-DT-30 qualifie la CONSEQUENCE de cette protection
+              (nullite du licenciement).
+            - code-penal-social-be (prio 142, SF-219-24b) — qualifie
+              l'infraction sur l'echelle 1-4. Articulation : NON_
+              CONFORME_PAS_DE_CONSEILLER constitue une infraction
+              niveau 3 art. 122 et s. Code penal social BE — l'avocat
+              peut chainer les deux outils.
+            - auditorat-travail-be (prio 143, SF-219-25b) — analyse
+              du dossier auditorat. Articulation : NON_CONFORME_PAS_
+              DE_CONSEILLER peut donner lieu a poursuite penale
+              auditorat (infraction code penal social niveau 3).
+
+            Cet outil intervient en amont d'une demande formelle CPAP
+            ou en aval d'un avis CPAP / blocage employeur pour
+            eclairer la strategie procedurale (mediation informelle
+            confidentielle vs demande formelle ecrite avec rapport
+            employeur, bascule informelle vers formelle, denonciation
+            des irregularites a l'Inspection CBE, recours tribunal du
+            travail art. 578 C. jud., articulation avec SF-213-07 et
+            F-DT-30).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('1e48b274-a17d-4a49-9e65-d72b1aee4f92', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'bien-etre-rps-conseiller-prevention', 'ALWAYS_ON', NULL, NULL, 148);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '1e48b274-a17d-4a49-9e65-d72b1aee4f92';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
