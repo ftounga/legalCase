@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="53f4955a-55fc-4ce3-b1f0-e4ea43809dff" author="claude">
+        <comment>
+            SF-219-24b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel Code penal social BE (code-penal-social-be,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-24 (migration 420).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs propres au regime du Code
+            penal social BE : type d'infraction qualifiee (14 cas dont
+            travail non declare art. 181, absence Dimona art. 181,
+            absence DmfA ONSS art. 223, non-paiement remuneration
+            art. 162-167, depassement temps travail art. 137-138,
+            manquement bien-etre art. 119-132, accident grave non
+            declare art. 124, discrimination emploi art. 145, entrave
+            inspection sociale art. 209-212, faux social art. 232-235,
+            absence registre personnel art. 185, infraction travail
+            interimaire art. 178, infraction detachement / LIMOSA
+            art. 182-184, ou AUTRE_QUALIFICATION), niveau propose
+            override 1 a 4 (art. 101 § 1 - 103), date des faits
+            (coefficients d'indexation amendes penales — art. 1er
+            L. 05/03/1952, +0,80 decimes additionnels jusqu'au
+            31/12/2024 et +0,90 decimes additionnels depuis le
+            01/01/2025 par AR 27/12/2024), nombre de travailleurs
+            concernes (multiplicateur art. 103 § 2 plafonne a 100 ×
+            max unitaire art. 105), personne morale (multiplication
+            × 5 art. 105 § 1er), recidive dans l'annee (doublement
+            plafond art. 110), prevenu prepose / mandataire (art. 109
+            qualite de l'auteur), element moral intentionnel (dol —
+            ABSENCE_DMFA niveau 4 si frauduleux art. 223 sinon niveau
+            2). Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception
+            isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (qualification
+               infraction sociale, niveau de sanction, multiplicateurs,
+               element moral) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une infraction sociale (proces-verbal
+               d'inspection sociale notifie a l'employeur, controle ONSS
+               ouvrant le dossier auditorat, citation devant le tribunal
+               correctionnel ou le tribunal de police, decision
+               administrative SPF Emploi infligeant une amende
+               administrative art. 73-78, plainte au CTPE Comite
+               professionnel d'enquete et d'inspection sociale, action
+               en cessation tribunal du travail). L'outil restitue le
+               niveau de sanction encourue (1 a 4) avec bornes d'amende
+               admin / penale (valeurs de base non indexees a confirmer
+               par l'avocat in concreto a la date des faits ou de la
+               decision), emprisonnement eventuel niveau 4 (6 mois a
+               3 ans art. 103), majorations × travailleurs (art. 103
+               § 2), × 5 personne morale (art. 105), × 2 recidive ≤ 1 an
+               (art. 110). Pertinent des l'ouverture du dossier pour
+               eclairer la strategie de defense (choix entre voie
+               administrative et voie penale art. 73-78 — regle "Una
+               Via", transaction art. 216bis CIC, plaider coupable,
+               nullite proces-verbal pour vice de procedure inspection
+               sociale Loi 16/11/1972).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-141) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 cette migration (code-penal-social-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY code-penal-social-be livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-24b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id code-penal-social-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-24 (PR
+            #1431, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 06/06/2010 introduisant le Code penal social
+              (M.B. 01/07/2010, e.e.v. 01/07/2011) :
+                * art. 101 § 1 — barreme uniforme a 4 niveaux croissants
+                  de gravite (10 € a 100 € niveau 1 non indexe / 50 € a
+                  500 € niveau 2 / 100 € a 1 000 € niveau 3 / 300 € a
+                  3 000 € niveau 4 amende administrative) ;
+                * art. 102 — amendes penales (50 € a 500 € niveau 2 /
+                  100 € a 1 000 € niveau 3 / 600 € a 6 000 € niveau 4)
+                  au choix de l'auditorat du travail entre voie
+                  administrative et voie penale (art. 73-78 — regle
+                  "Una Via") ;
+                * art. 103 — emprisonnement niveau 4 (6 mois a 3 ans) ;
+                * art. 103 § 2 — multiplication par le nombre de
+                  travailleurs concernes lorsque l'infraction est
+                  commise "a l'egard d'un travailleur" ;
+                * art. 105 § 1er — multiplication × 5 lorsque l'employeur
+                  est une personne morale, plafond 100 × max unitaire
+                  pour l'amende imposee a une personne morale ;
+                * art. 109 — responsabilite penale du prepose ou
+                  mandataire et regime de la personne morale
+                  (immunite penale supprimee depuis L. 11/07/2018) ;
+                * art. 110 — recidive legale (doublement du plafond
+                  d'amende si nouvelle infraction de meme niveau dans
+                  l'annee suivant condamnation ou decision administrative
+                  definitive) ;
+                * art. 119 a 235 (Livre 2 Titre 2 a 12) — definitions
+                  des infractions qualifiees et niveau par defaut :
+                    - art. 119-132 (bien-etre au travail — niveau 3) ;
+                    - art. 124 (accident grave non declare — niveau 4) ;
+                    - art. 137-138 (depassement temps travail — niveau 3) ;
+                    - art. 145 (discrimination a l'emploi — niveau 2) ;
+                    - art. 162-167 (non-paiement remuneration — niveau 2) ;
+                    - art. 178 (infraction interim CCT n° 322 — niveau 3) ;
+                    - art. 181 (travail non declare / absence Dimona —
+                      niveau 4 — Cass. ch. neerl. 21/11/2017
+                      P.17.0532.N) ;
+                    - art. 182-184 (infraction detachement / LIMOSA —
+                      niveau 3 ou 4) ;
+                    - art. 185 (absence registre personnel — niveau 3) ;
+                    - art. 209-212 (entrave inspection sociale —
+                      niveau 3) ;
+                    - art. 223 (absence DmfA ONSS — niveau 4 si
+                      frauduleux sinon niveau 2) ;
+                    - art. 232-235 (faux en ecritures sociales —
+                      niveau 4).
+            - L. 05/03/1952 relative aux decimes additionnels sur les
+              amendes penales, art. 1er — coefficient d'indexation
+              applique aux amendes penales (et par renvoi de l'art. 1er
+              ter aux amendes administratives correlatives) : +0,80
+              decimes additionnels jusqu'au 31/12/2024 ; +0,90 decimes
+              additionnels depuis le 01/01/2025 par AR 27/12/2024
+              (M.B. 30/12/2024). L'outil restitue les valeurs de base
+              non indexees — l'avocat indexe in concreto a la date des
+              faits ou de la decision.
+            - Loi 16/11/1972 relative a l'inspection du travail —
+              regime procedural des constatations par les inspecteurs
+              sociaux (pouvoirs art. 6, audition art. 6 § 5, droits de
+              la defense art. 6 § 5 al. 3, nullites de procedure
+              Cass. P.16.0117.N 10/05/2016).
+            - Code d'instruction criminelle art. 216bis (transaction
+              avec extinction de l'action publique en matiere
+              correctionnelle — applicable au volet penal des
+              infractions C. pen. soc. niveau 2-4).
+            - C. trav. FR art. L. 8221-1 et s. (FR — pour memoire) —
+              regime juridiquement distinct (pas de barreme uniforme
+              4 niveaux, procedure parquet et non auditorat, pas de
+              regle "Una Via" strictement comparable, amende personne
+              morale × 5 art. 121-2 C. pen. mais quanta differents).
+
+            Regime BE-only — le regime francais de repression du
+            travail illegal (C. trav. art. L. 8221-1 a L. 8224-5
+            travail dissimule + L. 8231-1 a L. 8234-3 marchandage +
+            L. 8241-1 a L. 8243-3 pret illicite + L. 8251-1 a L. 8256-5
+            emploi etranger sans titre + C. pen. art. 121-2 personne
+            morale × 5) constitue un dispositif juridiquement distinct
+            dans ses quanta (amendes fixees par infraction sans
+            barreme uniforme 4 niveaux), sa procedure (juges du parquet,
+            saisine du tribunal correctionnel directement, pas
+            d'auditorat du travail competent) et son architecture
+            (pas de regle "Una Via" strictement comparable entre voie
+            administrative et voie penale — les recouvrements URSSAF /
+            DREETS / OFII sont distincts des poursuites penales).
+            Aucune transposition mecanique. L'outil BE expose les 5
+            verdicts (4 niveaux de sanction + A_QUALIFIER) propres au
+            cadre Loi 06/06/2010.
+
+            Distinct de :
+            - harcelement-be-procedure-formelle (prio 115) — procedure
+              formelle CCT n° 72 + Loi du 04/08/1996. Distinct mais
+              complementaire : un harcelement au travail peut etre
+              egalement qualifie d'INFRACTION_BIEN_ETRE C. pen. soc.
+              art. 119-132 (niveau 3) et engager parallelement la
+              responsabilite penale de l'employeur outre la procedure
+              CCT 72.
+            - cct109-deraisonnable (prio 118) — licenciement
+              manifestement deraisonnable CCT 109 art. 8. Distinct
+              (l'outil cct109 chiffre l'indemnite civile de licenciement
+              deraisonnable 3 a 17 semaines ; le present outil
+              restitue la sanction penale encourue par l'employeur en
+              cas d'infraction sociale concomitante au licenciement).
+              Les deux outils sont complementaires lorsqu'un
+              licenciement intervient apres une demande non honoree
+              (DmfA absente, salaire non paye, declaration Dimona
+              omise...).
+            - discrimination-be-handicap-amenagement (prio 141) —
+              refus d'amenagement raisonnable handicap. Distinct mais
+              complementaire : une discrimination a l'emploi est
+              egalement qualifiee d'INFRACTION C. pen. soc. art. 145
+              niveau 2 (poursuites auditorat parallelement a l'action
+              civile devant le tribunal du travail).
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 %. Distinct (chiffrage civil de
+              la creance salariale) mais complementaire : un
+              non-paiement de la remuneration est egalement qualifie
+              d'INFRACTION C. pen. soc. art. 162-167 niveau 2
+              (poursuites auditorat parallelement a la condamnation
+              civile aux arrieres).
+
+            Cet outil intervient en aval d'une qualification penale
+            (proces-verbal d'inspection sociale notifie a l'employeur,
+            controle ONSS, citation directe par l'auditorat) et chiffre
+            les valeurs de base d'amende encourue + emprisonnement
+            eventuel pour eclairer la strategie de defense (choix entre
+            voie administrative et voie penale art. 73-78, transaction
+            penale art. 216bis CIC, plaider coupable, nullite de
+            procedure inspection sociale Loi 16/11/1972, articulation
+            avec procedure correctionnelle / police selon orientation
+            de l'affaire art. 81 C. pen. soc.).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('53f4955a-55fc-4ce3-b1f0-e4ea43809dff', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'code-penal-social-be', 'ALWAYS_ON', NULL, NULL, 142);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '53f4955a-55fc-4ce3-b1f0-e4ea43809dff';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

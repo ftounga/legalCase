@@ -217,6 +217,8 @@ import { EcoChequesChequesRepasBeSectionComponent } from '../eco-cheques-cheques
 import { EgaliteFemmesHommesBeSectionComponent } from '../egalite-femmes-hommes-be-section/egalite-femmes-hommes-be-section.component';
 // SF-219-23b : section décisionnelle refus d'aménagements raisonnables handicap BE — Loi 10/05/2007 + CCT n° 95 + Directive 2000/78/CE art. 5 (BE-only, ALWAYS_ON).
 import { DiscriminationBeHandicapAmenagementSectionComponent } from '../discrimination-be-handicap-amenagement-section/discrimination-be-handicap-amenagement-section.component';
+// SF-219-24b : section décisionnelle Code pénal social BE — Loi 06/06/2010 (BE-only, ALWAYS_ON, qualification d'infraction + niveau de sanction 1 à 4).
+import { CodePenalSocialBeSectionComponent } from '../code-penal-social-be-section/code-penal-social-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3024,6 +3026,35 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-24b : Code pénal social BE — qualification d'infraction
+      // sociale (13 types ou AUTRE_QUALIFICATION) + restitution du
+      // niveau de sanction (1 à 4 — art. 101-103 C. pén. soc., Loi du
+      // 06/06/2010). Restitue les bornes d'amende administrative et
+      // pénale (valeurs de base non indexées), emprisonnement niveau 4
+      // (6 mois à 3 ans), majorations × travailleurs (art. 103 § 2),
+      // × 5 personne morale (art. 105), × 2 récidive ≤ 1 an (art. 110).
+      // ALWAYS_ON priority 142 (au-dessus de
+      // discrimination-be-handicap-amenagement = 141 SF-219-23b,
+      // egalite-femmes-hommes-be = 140 SF-219-22b,
+      // eco-cheques-cheques-repas-be = 139 SF-219-21b). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213 / F-219 — type
+      // infraction, niveau, date faits, nombre travailleurs, personne
+      // morale, récidive, qualité auteur, élément moral non extractibles
+      // du dossier salarié individuel — relèvent du procès-verbal
+      // d'inspection sociale / dossier auditorat / analyse pénale
+      // avocat post-instruction).
+      ['code-penal-social-be', {
+        displayLabel: 'Code pénal social (Belgique)',
+        component: CodePenalSocialBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4381,6 +4412,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // egalite-femmes-hommes-be, droit-deconnexion-be, semaine-4-jours-be,
     // delegue-syndical-cct-5, teletravail-be-cct-85-149).
     ['discrimination-be-handicap-amenagement', 'VALIDITE'],
+    // SF-219-24b : Code pénal social BE — qualification d'infraction
+    // sociale + restitution du niveau de sanction 1 à 4 (art. 101-103
+    // C. pén. soc., Loi 06/06/2010). 5 verdicts couvrant les 4 niveaux
+    // de sanction + A_QUALIFIER. Thème VALIDITE (parité avec les autres
+    // analyseurs / qualifieurs de conformité pénale-statutaire BE :
+    // discrimination-be-handicap-amenagement, egalite-femmes-hommes-be,
+    // droit-deconnexion-be, semaine-4-jours-be, delegue-syndical-cct-5,
+    // teletravail-be-cct-85-149). Outil de qualification d'infraction et
+    // restitution de la peine encourue — pas de chiffrage indemnitaire
+    // (distinct des outils INDEMNITES rappel-salaire-be, formule-claeys).
+    ['code-penal-social-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
