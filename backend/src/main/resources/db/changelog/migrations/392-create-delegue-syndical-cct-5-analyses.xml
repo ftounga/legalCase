@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="5b492b01-07fc-403c-adcc-f4c9a04c1643" author="claude">
+        <comment>
+            SF-219-10 : table dédiée à l'outil décisionnel "Statut du
+            délégué syndical CCT n° 5" (delegue-syndical-cct-5,
+            BELGIQUE — fondement : CCT n° 5 du 24/05/1971 conclue au
+            Conseil National du Travail concernant le statut des
+            délégations syndicales du personnel des entreprises,
+            modifiée par CCT n° 5bis du 30/06/1971 et CCT n° 5ter du
+            21/12/1978, rendue obligatoire par AR du 26/01/1972 + CCT
+            sectorielles applicables en commission paritaire pour les
+            seuils, modalités de désignation, crédit d'heures et
+            facilités.
+
+            L'outil vérifie le statut de délégué syndical d'un
+            travailleur au sens CCT 5 :
+            - Champ d'application (effectif vs seuil sectoriel +
+              présence d'organisation syndicale représentative —
+              CSC / FGTB / CGSLB).
+            - Régularité de la désignation (art. 2 CCT 5 : par OS
+              représentative, pas d'élection).
+            - Notification écrite formelle à l'employeur (preuve du
+              mandat).
+            - Missions exerçables (art. 3 : négociation CCT
+              d'entreprise, traitement des plaintes individuelles et
+              collectives, information du personnel, intervention en
+              cas de conflit collectif).
+            - Missions supplétives (art. 24 : missions du CE / CPPT
+              s'ils n'existent pas dans l'entreprise).
+            - Durée indicative du mandat (4 ans référence sectorielle).
+
+            Verdict : STATUT_RECONNU | STATUT_FRAGILE_NOTIFICATION_MANQUANTE
+            | INELIGIBLE_ENTREPRISE_HORS_CHAMP | INELIGIBLE_PAS_DESIGNE_PAR_OS
+            | A_ANALYSER.
+
+            Outil distinct de SF-213-08 (licenciement-be-protection-
+            deleguee) qui couvre uniquement la protection contre le
+            licenciement (Loi 19/03/1991). Ici on couvre le statut
+            général (création, missions, désignation, durée du mandat).
+
+            Outil single-country BELGIQUE — la France a un régime de
+            délégué syndical (C. trav. art. L. 2143-1 et s.) mais avec
+            un régime de procédure radicalement distinct : élection au
+            CSE vs désignation par OS représentative ; seuil 50
+            travailleurs uniforme vs seuils sectoriels variables ;
+            missions différentes. Restitution séparée.
+
+            Snapshot JSON complet (inputs + outputs : verdict, missions
+            exerçables, date fin mandat indicative) pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01
+            à SF-213-10 / SF-219-01 à SF-219-08).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-10b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "delegue-syndical-cct-5" est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-10b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-8b).
+        </comment>
+
+        <createTable tableName="delegue_syndical_cct_5_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_delegue_synd_cct5_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="delegue_syndical_cct_5_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_delegue_synd_cct5_case_file"/>
+
+        <createIndex tableName="delegue_syndical_cct_5_analyses"
+                     indexName="idx_delegue_synd_cct5_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="delegue_syndical_cct_5_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
