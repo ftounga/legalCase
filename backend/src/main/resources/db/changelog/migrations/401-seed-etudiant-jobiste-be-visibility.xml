@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="e1a1c07b-07f4-4a58-8cd8-f58b26226e45" author="claude">
+        <comment>
+            SF-219-13b — seed decision_tool_visibility_rules pour l'outil
+            décisionnel « Étudiant jobiste (Belgique) »
+            (etudiant-jobiste-be, BELGIQUE, DROIT_DU_TRAVAIL), table
+            d'analyses créée par SF-219-13 (migration 399).
+
+            Choix layer = ALWAYS_ON plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            le statut étudiant du candidat (inscription régulière en
+            secondaire / supérieur / doctorat, interruption entre cycles,
+            vide pédagogique), ni le compteur Student@work consolidé
+            tous employeurs (donnée ONSS, non disponible dans un dossier
+            salarié principal), ni le volume horaire convenu du contrat
+            étudiant à venir, ni le formalisme (contrat écrit art. 123
+            Loi 03/07/1978 + Dimona STU AR 05/11/2002), ni le barème de
+            cotisations appliqué (AR 14/07/1995 — 5,42 % patronale +
+            2,71 % personnelle = 8,13 %). Aucun flag DB CONTEXTUAL fiable
+            n'est disponible ; l'introduire pour un seul outil ajouterait
+            une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (statut étudiant
+               / compteur Student@work / volume horaire contrat / formalisme
+               contrat-Dimona STU / barème cotisations DmfA) non couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque l'occupation d'un jeune travailleur en parallèle
+               d'études (été, week-end, stage rémunéré, alternance hors
+               CEFA / IFAPME / Syntra).
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-130) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 cette migration (etudiant-jobiste-be)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (collapsed=true) et la gate
+               workspaceCountry === 'BELGIQUE' côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY etudiant-jobiste-be livrée
+            dans decisional-tools-panel.component.ts (cf. SF-219-13b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26, mémoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id etudiant-jobiste-be déjà ajouté à
+            KNOWN_NO_DASHBOARD_TILE_IDS côté backend par SF-219-13
+            PR #1409 (préventif, évite master-red à l'arrivée de cette SF
+            frontend). Aucune tuile dashboard n'est associée — l'outil est
+            consulté uniquement depuis le panel décisionnel du case file.
+
+            Fondement juridique :
+            - Loi du 03/07/1978 sur les contrats de travail, Titre VII
+              (art. 120 à 130ter — contrat d'occupation d'étudiants) :
+              statut étudiant à titre principal, formalisme contrat écrit
+              au plus tard au début des prestations.
+            - Loi-programme du 24/12/2002 (M.B. 31/12/2002) : instauration
+              des cotisations de solidarité réduites étudiants
+              (modification art. 17bis de l'AR du 28/11/1969 en exécution
+              de la loi du 27/06/1969 sur la sécurité sociale).
+            - AR du 14/07/1995 (M.B. 01/09/1995) : modalités d'exécution
+              des cotisations réduites étudiants — 5,42 % patronale +
+              2,71 % personnelle = 8,13 % total.
+            - AR du 05/11/2002 (M.B. 20/11/2002) : déclaration immédiate
+              à l'ONSS, type Dimona STU spécifique aux étudiants.
+            - Loi du 18/12/2016 (M.B. 30/12/2016) : passage du quota de
+              50 jours à 475 heures/an (entrée en vigueur 01/01/2017).
+            - Loi-programme du 28/12/2022 + AR du 06/03/2023 : relèvement
+              transitoire à 600 heures/an pour 2023 et 2024.
+            - Loi-programme du 22/12/2023 (M.B. 29/12/2023) :
+              pérennisation du quota à 600 heures/an dès 2024.
+
+            Régime BE-only — la France n'a pas d'équivalent direct au
+            statut étudiant jobiste. Le « job étudiant » FR relève du
+            droit commun salarié avec abattements de cotisations limités
+            par l'art. L. 241-3-2 CSS (exonération partielle au pro rata
+            des heures, sous conditions d'âge et de situation scolaire)
+            mais sans quota horaire annuel ni régime spécifique unifié.
+            Aucune transposition mécanique n'est possible.
+
+            Distinct de :
+            - flexi-job-be (SF-219-12b, prio 130) — régime d'occupation
+              atypique réservé aux pensionnés et salariés 4/5 ETP T-3.
+              Sans rapport avec le statut étudiant.
+            - rcc-be-metiers-lourds (SF-219-01b, prio 119) — régime
+              de chômage avec complément d'entreprise pour fin de
+              carrière. Sans rapport avec l'entrée dans l'occupation
+              étudiante (jeunesse).
+            - conge-education-paye-region (SF-219-11b, prio 129) — congé
+              formation salarié principal. Sans rapport avec l'occupation
+              étudiant jobiste (qui est elle-même l'emploi).
+
+            Cet outil intervient à la qualification d'une occupation
+            étudiant jobiste — vérifie l'éligibilité par 4 dimensions
+            cumulatives (statut / quota / formalisme / cotisations) +
+            verdict hiérarchisé 6 états + heures restantes au quota +
+            heures hors quota + redressement estimé sur excédent.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('e1a1c07b-07f4-4a58-8cd8-f58b26226e45', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'etudiant-jobiste-be', 'ALWAYS_ON', NULL, NULL, 131);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'e1a1c07b-07f4-4a58-8cd8-f58b26226e45';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

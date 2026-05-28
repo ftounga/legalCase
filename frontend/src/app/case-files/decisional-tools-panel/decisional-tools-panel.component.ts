@@ -195,6 +195,8 @@ import { DelegueSyndicalCct5SectionComponent } from '../delegue-syndical-cct-5-s
 import { CongeEducationPayeRegionSectionComponent } from '../conge-education-paye-region-section/conge-education-paye-region-section.component';
 // SF-219-12b : section décisionnelle Flexi-job BE (BE-only, ALWAYS_ON).
 import { FlexiJobBeSectionComponent } from '../flexi-job-be-section/flexi-job-be-section.component';
+// SF-219-13b : section décisionnelle Étudiant jobiste BE (BE-only, ALWAYS_ON).
+import { EtudiantJobisteBeSectionComponent } from '../etudiant-jobiste-be-section/etudiant-jobiste-be-section.component';
 // SF-219-14b : section décisionnelle statut intérim BE — CCT n° 322 (BE-only, ALWAYS_ON).
 import { InterimBeCct322SectionComponent } from '../interim-be-cct-322-section/interim-be-cct-322-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
@@ -2550,6 +2552,39 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-13b : Étudiant jobiste BE (Loi du 03/07/1978 Titre VII art. 120
+      // à 130ter + Loi-programme du 24/12/2002 cotisations de solidarité
+      // réduites + AR du 14/07/1995 modalités 5,42 % patronale + 2,71 %
+      // personnelle = 8,13 % + AR du 05/11/2002 Dimona STU + Loi du
+      // 18/12/2016 passage 50 jours → 475 heures + Loi-programme du
+      // 28/12/2022 + AR du 06/03/2023 relèvement transitoire 600h/an +
+      // Loi-programme du 22/12/2023 pérennisant 600h/an). Outil BE-only —
+      // pas d'équivalent FR (le job étudiant FR relève du droit commun
+      // salarié avec abattements art. L. 241-3-2 CSS mais sans quota
+      // horaire annuel ni régime spécifique unifié — aucune transposition
+      // mécanique). Verdict hiérarchisé 6 états (ELIGIBLE /
+      // FRAGILE_CONTRAT_OU_DIMONA_MANQUANT / FRAGILE_COTISATIONS_NON_REDUITES /
+      // INELIGIBLE_STATUT_NON_ETUDIANT / INELIGIBLE_QUOTA_DEPASSE /
+      // A_ANALYSER) — priorité statut → vide pédagogique → quota →
+      // formalisme → cotisations + ventilation 4 dimensions cumulatives
+      // + heures restantes au quota + heures hors quota + redressement
+      // estimé (différentiel ~41,87 %). ALWAYS_ON priority 131 (au-dessus
+      // de flexi-job-be = 130 SF-219-12b). Pré-fill IA V1 : aucun champ
+      // (alignement pattern uniforme F-213/F-219 — statut étudiant,
+      // compteur Student@work, volume contrat, formalisme contrat/Dimona
+      // STU, barème cotisations non extractibles du pipeline Travail BE).
+      ['etudiant-jobiste-be', {
+        displayLabel: 'Étudiant jobiste (Belgique)',
+        component: EtudiantJobisteBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-14b : statut intérim BE — CCT n° 322 (Loi du 24/07/1987
       // relative au travail temporaire / intérimaire / mise à disposition,
       // M.B. 20/08/1987 + CCT n° 322 du 14/06/2010 conclue au CNT
@@ -2567,7 +2602,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // — priorité grève/lock-out → motif → zone grise → durée → parité
       // → formalisme + ventilation 4 dimensions cumulatives + jours
       // excédentaires + écart parité salariale. ALWAYS_ON priority 132
-      // (au-dessus de etudiant-jobiste-be = 131 SF-219-13b parallèle et
+      // (au-dessus de etudiant-jobiste-be = 131 SF-219-13b et
       // flexi-job-be = 130 SF-219-12b). Pré-fill IA V1 : aucun champ
       // (alignement pattern uniforme F-213/F-219 — date mission ETI /
       // motif limitatif / durée cumulée / parité salariale utilisateur /
@@ -3850,6 +3885,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // / 1 à analyser). Parité avec les autres analyseurs de validité statutaire
     // BE (delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
     ['flexi-job-be', 'VALIDITE'],
+    // SF-219-13b : Étudiant jobiste BE (Loi du 03/07/1978 Titre VII +
+    // Loi-programme du 24/12/2002 + AR du 14/07/1995 + Loi-programme du
+    // 22/12/2023 pérennisant 600h/an). Thème VALIDITE — l'outil qualifie
+    // l'éligibilité d'une occupation étudiant sur 4 dimensions cumulatives
+    // (statut / quota / formalisme / cotisations) avec verdict hiérarchisé
+    // 6 états (1 éligible / 2 fragiles / 2 inéligibles / 1 à analyser).
+    // Parité avec les autres analyseurs de validité statutaire BE
+    // (flexi-job-be, delegue-syndical-cct-5).
+    ['etudiant-jobiste-be', 'VALIDITE'],
     // SF-219-14b : Statut intérim BE — CCT n° 322 (Loi du 24/07/1987 +
     // CCT n° 322 du 14/06/2010 + CCT n° 108 + AR 11/10/1976 +
     // Loi-programme du 27/12/2012). Thème VALIDITE — l'outil qualifie

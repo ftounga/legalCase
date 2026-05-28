@@ -1,0 +1,320 @@
+<div class="etudiant-jobiste-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">school</mat-icon>
+    <span class="section-title">Étudiant jobiste (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="etudiant-jobiste-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 03/07/1978 Titre VII + Loi-programme du 24/12/2002
+            + AR du 14/07/1995 + Loi-programme du 22/12/2023). Le « job
+            étudiant » français relève du droit commun salarié avec
+            abattements de cotisations limités (art. L. 241-3-2 CSS)
+            mais sans quota horaire annuel ni régime spécifique unifié
+            — aucune transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie l'<b>éligibilité d'une occupation étudiant jobiste BE</b>
+            selon les <b>4 conditions cumulatives</b> de la Loi du
+            03/07/1978 (Titre VII) et de ses décrets d'exécution :
+            (1) <b>statut étudiant</b> à titre principal OU interruption
+            courte ≤ 12 mois entre cycles,
+            (2) <b>quota annuel 600h</b> (compteur Student&#64;work consolidé,
+            ONSS) à respecter sur l'année civile (475 h avant 2023),
+            (3) <b>formalisme</b> cumulatif (contrat d'occupation étudiant
+            écrit art. 123 + Dimona STU AR 05/11/2002),
+            (4) <b>cotisations de solidarité réduites</b> (5,42 % patronale
+            + 2,71 % personnelle = 8,13 %, AR 14/07/1995).
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date début occupation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de début d'occupation *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutOccupation()"
+                       (ngModelChange)="onDateDebutOccupationChange($event)"
+                       name="dateDebutOccupation" />
+                <mat-hint>Date de la 1<sup>re</sup> prestation chez cet employeur.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Statut étudiant * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut du candidat *</mat-label>
+                <mat-select
+                    [value]="statutEtudiant()"
+                    (selectionChange)="onStatutEtudiantChange($event.value)"
+                    name="statutEtudiant"
+                    required>
+                  <mat-option value="ETUDIANT_PRINCIPAL">
+                    Étudiant à titre principal (inscription régulière en cours)
+                  </mat-option>
+                  <mat-option value="INTERRUPTION_COURTE_MOINS_12_MOIS">
+                    Interruption courte ≤ 12 mois entre cycles (statut maintenu)
+                  </mat-option>
+                  <mat-option value="VIDE_PEDAGOGIQUE_PROLONGE">
+                    Vide pédagogique > 12 mois avec réinscription (zone grise)
+                  </mat-option>
+                  <mat-option value="NON_ETUDIANT">
+                    Non étudiant — pas d'inscription régulière
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Loi 03/07/1978 art. 120 — conditions d'accès.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Heures déjà prestées * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Heures déjà prestées dans l'année (h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="heuresDejaPresteesDansAnnee()"
+                       (ngModelChange)="onHeuresDejaPresteesDansAnneeChange($event)"
+                       name="heuresDejaPresteesDansAnnee" />
+                <mat-hint>Compteur Student&#64;work consolidé tous employeurs (ONSS).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Heures contrat en cours * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Heures du contrat en cours (h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       step="1"
+                       required
+                       [ngModel]="heuresContratEnCours()"
+                       (ngModelChange)="onHeuresContratEnCoursChange($event)"
+                       name="heuresContratEnCours" />
+                <mat-hint>Volume horaire convenu de ce contrat étudiant.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Quota annuel * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Quota annuel applicable (h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       step="1"
+                       required
+                       [ngModel]="quotaAnnuelHeures()"
+                       (ngModelChange)="onQuotaAnnuelHeuresChange($event)"
+                       name="quotaAnnuelHeures" />
+                <mat-hint>600 h depuis Loi 22/12/2023 ; 475 h antérieurement.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Rémunération horaire * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération brute horaire (€/h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="remunerationBruteHoraire()"
+                       (ngModelChange)="onRemunerationBruteHoraireChange($event)"
+                       name="remunerationBruteHoraire" />
+                <mat-hint>Base de calcul du redressement éventuel sur heures hors quota.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Contrat écrit signé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="contratEcritSigne() === true"
+                  [indeterminate]="contratEcritSigne() === null"
+                  (change)="onContratEcritSigneChange($event.checked)"
+                  name="contratEcritSigne">
+                <b>Contrat d'occupation étudiant écrit signé</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 123 Loi 03/07/1978 — formalisme obligatoire au plus tard au début des prestations.
+              </small>
+            </div>
+
+            <!-- 8. Dimona STU déclarée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="dimonaStuDeclaree() === true"
+                  [indeterminate]="dimonaStuDeclaree() === null"
+                  (change)="onDimonaStuDeclareeChange($event.checked)"
+                  name="dimonaStuDeclaree">
+                <b>Déclaration Dimona spécifique STU faite</b> (DmfA ONSS) *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                AR 05/11/2002 — type d'occupation STU, distinct de la Dimona classique.
+              </small>
+            </div>
+
+            <!-- 9. Cotisations réduites appliquées * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="cotisationsReduitesAppliquees() === true"
+                  [indeterminate]="cotisationsReduitesAppliquees() === null"
+                  (change)="onCotisationsReduitesAppliqueesChange($event.checked)"
+                  name="cotisationsReduitesAppliquees">
+                <b>Cotisations de solidarité réduites appliquées</b> (5,42 % + 2,71 % = 8,13 %) *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                AR 14/07/1995 — barème de solidarité au lieu du régime ordinaire (~50 %).
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'éligibilité étudiant</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="etudiant-jobiste-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutEtudiantLabel(result()!.statutEtudiant) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation 4 dimensions cumulatives -->
+          <div class="dimensions-list">
+            <div class="dimensions-title">Ventilation des 4 conditions cumulatives</div>
+            <div class="dimension-row" [class.dim-ok]="result()!.statutEligible" [class.dim-ko]="!result()!.statutEligible">
+              <mat-icon>{{ result()!.statutEligible ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>1. Statut</b> — étudiant à titre principal OU interruption ≤ 12 mois
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.quotaRespecte" [class.dim-ko]="!result()!.quotaRespecte">
+              <mat-icon>{{ result()!.quotaRespecte ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>2. Quota</b> — heures déjà + heures contrat ≤ quota annuel (600 h depuis 2023)
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.formalismeRespecte" [class.dim-ko]="!result()!.formalismeRespecte">
+              <mat-icon>{{ result()!.formalismeRespecte ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>3. Formalisme</b> — contrat écrit signé (art. 123) + Dimona STU (AR 05/11/2002)
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.cotisationsConformes" [class.dim-ko]="!result()!.cotisationsConformes">
+              <mat-icon>{{ result()!.cotisationsConformes ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>4. Cotisations</b> — barème réduit AR 14/07/1995 (5,42 % + 2,71 % = 8,13 %)
+              </span>
+            </div>
+          </div>
+
+          <!-- Heures restantes au quota -->
+          <div class="result-fondement" role="region">
+            <mat-icon>schedule</mat-icon>
+            <span>
+              <b>Heures restantes au quota avant ce contrat</b> :
+              <span class="mono">{{ result()!.heuresRestantesAvantContrat }} h</span>
+              (compteur Student&#64;work consolidé).
+            </span>
+          </div>
+
+          <!-- Heures hors quota + redressement (si applicable) -->
+          @if (result()!.heuresHorsQuota > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>euro</mat-icon>
+              <span>
+                <b>Heures hors quota</b> :
+                <span class="mono">{{ result()!.heuresHorsQuota }} h</span>
+                — basculent au régime ordinaire (~50 % au lieu de 8,13 %).
+                Redressement indicatif :
+                <span class="mono">{{ result()!.montantRedressementEstime }} €</span>
+                (différentiel ~41,87 % × heures × taux horaire).
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
