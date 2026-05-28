@@ -1,0 +1,329 @@
+<div class="droit-deconnexion-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">phonelink_erase</mat-icon>
+    <span class="section-title">Droit à la déconnexion (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="droit-deconnexion-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 03/10/2022 « Deal pour l'emploi », art. 16 + AR du
+            19/02/2023 + CCT n° 149). Le régime français du droit à la
+            déconnexion (C. trav. art. L. 2242-17, 7° issu de la Loi
+            n° 2016-1088 du 08/08/2016 dite « El Khomri ») est
+            juridiquement distinct : il s'agit d'une <b>obligation
+            annuelle de négociation</b> dans les entreprises ≥ 50
+            salariés, sans obligation de résultat — la non-conclusion
+            d'un accord n'expose pas l'employeur aux mêmes sanctions
+            (notamment l'art. 137 C. pén. social BE — niveau 2).
+            Aucune transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la <b>conformité du droit à la déconnexion</b> au
+            titre de l'art. 16 Loi 03/10/2022 « Deal pour l'emploi »
+            sur 5 conditions cumulatives :
+            (1) <b>seuil 20 travailleurs</b> atteint (art. 16 § 1),
+            (2) <b>instrument formalisé</b> — CCT d'entreprise déposée
+            ou règlement de travail modifié,
+            (3) <b>modalités pratiques de déconnexion</b> définies
+            (art. 16 § 2 1°),
+            (4) <b>sensibilisation / formation</b> à un usage raisonné
+            (art. 16 § 2 2°),
+            (5) <b>modalités d'organisation du travail</b> définies
+            (art. 16 § 2 3°).
+            Court-circuits : aucune initiative (art. 16 § 1 — sanction
+            C. pén. social art. 137 niveau 2) et manquement signalé
+            CBE/SPF Emploi. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Effectif entreprise * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif entreprise (travailleurs) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="1000000"
+                       step="1"
+                       required
+                       [ngModel]="effectifEntreprise()"
+                       (ngModelChange)="onEffectifEntrepriseChange($event)"
+                       name="effectifEntreprise" />
+                <mat-hint>Seuil 20 travailleurs déclenche l'obligation (art. 16 § 1).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Statut accord * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut de l'accord *</mat-label>
+                <mat-select
+                    [value]="statutAccord()"
+                    (selectionChange)="onStatutAccordChange($event.value)"
+                    name="statutAccord"
+                    required>
+                  <mat-option value="CCT_ENTREPRISE_DEPOSEE">
+                    CCT d'entreprise déposée au greffe du SPF Emploi
+                  </mat-option>
+                  <mat-option value="REGLEMENT_TRAVAIL_MODIFIE">
+                    Modification du règlement de travail (procédure ordinaire)
+                  </mat-option>
+                  <mat-option value="NEGOCIATION_EN_COURS">
+                    Concertation engagée, aucun instrument formalisé
+                  </mat-option>
+                  <mat-option value="AUCUNE_INITIATIVE">
+                    Aucun accord ni amorce de concertation
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Statut indéterminé (analyse cas par cas)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Aiguille le verdict (CCT vs règlement vs négociation vs aucune initiative).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date entrée en vigueur (conditionnel) -->
+            @if (isInstrumentFormalise()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date entrée en vigueur de l'instrument *</mat-label>
+                  <input matInput
+                         type="date"
+                         required
+                         [ngModel]="dateEntreeVigueurInstrument()"
+                         (ngModelChange)="onDateEntreeVigueurInstrumentChange($event)"
+                         name="dateEntreeVigueurInstrument" />
+                  <mat-hint>Date de dépôt CCT ou publication règlement (≥ 01/04/2023 — AR 19/02/2023).</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- 4. Modalités pratiques * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="modalitesPratiquesDeconnexionDefinies() === true"
+                  [indeterminate]="modalitesPratiquesDeconnexionDefinies() === null"
+                  (change)="onModalitesPratiquesDeconnexionDefiniesChange($event.checked)"
+                  name="modalitesPratiquesDeconnexionDefinies">
+                <b>Modalités pratiques de déconnexion définies</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 16 § 2 1° — règles pour e-mails / appels / messages hors heures, jours fériés, congés.
+              </small>
+            </div>
+
+            <!-- 5. Sensibilisation / formation * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="sensibilisationFormationPrevue() === true"
+                  [indeterminate]="sensibilisationFormationPrevue() === null"
+                  (change)="onSensibilisationFormationPrevueChange($event.checked)"
+                  name="sensibilisationFormationPrevue">
+                <b>Sensibilisation et formation prévues</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 16 § 2 2° — usage raisonné des outils numériques et risques de connexion permanente (burn-out).
+              </small>
+            </div>
+
+            <!-- 6. Modalités organisation travail * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="modalitesOrganisationTravailDefinies() === true"
+                  [indeterminate]="modalitesOrganisationTravailDefinies() === null"
+                  (change)="onModalitesOrganisationTravailDefiniesChange($event.checked)"
+                  name="modalitesOrganisationTravailDefinies">
+                <b>Modalités d'organisation du travail définies</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 16 § 2 3° — règles garantissant le respect du temps de repos (Loi 16/03/1971 art. 38 quinquies).
+              </small>
+            </div>
+
+            <!-- 7. Consultation organe concertation * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="consultationOrganeConcertationEffectuee() === true"
+                  [indeterminate]="consultationOrganeConcertationEffectuee() === null"
+                  (change)="onConsultationOrganeConcertationEffectueeChange($event.checked)"
+                  name="consultationOrganeConcertationEffectuee">
+                <b>Consultation CE / CPPT / DS effectuée avant adoption</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 16 § 1 + Loi 04/12/2007 sur les élections sociales art. 65 — PV de consultation organe concertation.
+              </small>
+            </div>
+
+            <!-- 8. Manquement signalé CBE / SPF * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="manquementSignaleCbeOuSpf() === true"
+                  [indeterminate]="manquementSignaleCbeOuSpf() === null"
+                  (change)="onManquementSignaleCbeOuSpfChange($event.checked)"
+                  name="manquementSignaleCbeOuSpf">
+                <b>Manquement signalé au CBE / SPF Emploi (contentieux en cours)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Indicateur d'une action en cessation ou d'un contrôle SPF Emploi déjà engagé.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la conformité déconnexion</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="droit-deconnexion-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutAccordLabel(result()!.statutAccord) }}</b>
+                — Effectif :
+                <span class="mono">{{ formatEffectif(result()!.effectifEntreprise) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation des conformités -->
+          <div class="conformites-list">
+            <div class="conformites-title">Ventilation des conformités</div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.seuilAtteint ? 'check-ok' : 'check-ko'">
+                {{ result()!.seuilAtteint ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Seuil 20 travailleurs atteint</b> (art. 16 § 1)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.instrumentFormalise ? 'check-ok' : 'check-ko'">
+                {{ result()!.instrumentFormalise ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Instrument formalisé</b> — CCT déposée ou règlement de travail modifié
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.modalitesPratiquesRespectees ? 'check-ok' : 'check-ko'">
+                {{ result()!.modalitesPratiquesRespectees ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Modalités pratiques de déconnexion</b> (art. 16 § 2 1°)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.sensibilisationRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.sensibilisationRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Sensibilisation et formation</b> (art. 16 § 2 2°)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.modalitesOrganisationRespectees ? 'check-ok' : 'check-ko'">
+                {{ result()!.modalitesOrganisationRespectees ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Modalités d'organisation du travail</b> (art. 16 § 2 3°)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.consultationRespectee ? 'check-ok' : 'check-ko'">
+                {{ result()!.consultationRespectee ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Consultation organe concertation</b> (CE / CPPT / DS)
+              </span>
+            </div>
+
+            <div class="conformite-row">
+              <mat-icon [class]="result()!.contenuComplet ? 'check-ok' : 'check-ko'">
+                {{ result()!.contenuComplet ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              <span class="conformite-label">
+                <b>Contenu complet</b> — 3 thèmes art. 16 § 2 traités
+              </span>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

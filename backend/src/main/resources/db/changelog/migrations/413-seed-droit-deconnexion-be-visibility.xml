@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="aa289ae4-33d8-4bd9-b0fc-4bb410b6918a" author="claude">
+        <comment>
+            SF-219-19b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel droit a la deconnexion BE (droit-deconnexion-be,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-19 (migration 411).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs et juridiques de l'obligation
+            deconnexion BE : effectif total de l'entreprise (seuil 20
+            travailleurs art. 16 paragraphe 1), statut administratif de
+            l'accord (CCT d'entreprise deposee au greffe du SPF Emploi /
+            modification du reglement de travail / negociation en cours /
+            aucune initiative / indetermine), date de depot CCT ou de
+            publication du reglement modifie (≥ 01/04/2023 par AR du
+            19/02/2023), flags de contenu de l'instrument art. 16
+            paragraphe 2 (modalites pratiques de deconnexion 1°,
+            sensibilisation et formation 2°, modalites d'organisation
+            du travail 3°), flag procedural de consultation organe
+            concertation CE / CPPT / DS (Loi 04/12/2007 art. 65),
+            indicateur de manquement signale CBE/SPF Emploi
+            (contentieux en cours, action en cessation, controle SPF).
+            Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception
+            isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (effectif
+               employeur, statut accord, date entree en vigueur
+               instrument, modalites de contenu, consultation organe
+               concertation, manquement signale) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque la deconnexion (CCT d'entreprise sur les
+               modalites de joignabilite hors heures, reglement de
+               travail integrant ces modalites, courrier syndical ou
+               PV CE/CPPT denoncant une absence d'accord, courrier
+               SPF Emploi pointant le manquement) pour qualifier la
+               conformite a l'art. 16 Loi 03/10/2022 (5 conditions
+               cumulatives : seuil 20 + instrument formalise + 3
+               themes art. 16 paragraphe 2) ET pour identifier les
+               manquements critiques (manquement grave aucune
+               initiative ouvrant l'action en cessation et exposant
+               aux sanctions C. pen. social art. 137 niveau 2).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-136) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 cette migration (droit-deconnexion-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY droit-deconnexion-be livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-19b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id droit-deconnexion-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-19 (PR
+            #1421, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 03/10/2022 portant des dispositions diverses en
+              matiere de travail dite Deal pour l'emploi (M.B.
+              10/11/2022) :
+                * art. 16 paragraphe 1 — obligation pour les employeurs
+                  occupant au moins 20 travailleurs de conclure une CCT
+                  d'entreprise deposee au greffe du SPF Emploi (instrument
+                  privilegie) ou, a defaut, de modifier le reglement de
+                  travail selon la procedure ordinaire (Loi 08/04/1965
+                  art. 11-12), apres consultation de l'organe de
+                  concertation competent (CE / CPPT / DS — Loi 04/12/2007
+                  sur les elections sociales art. 65) ;
+                * art. 16 paragraphe 2 — contenu de l'instrument :
+                  1° modalites pratiques d'application du droit du
+                     travailleur de ne pas etre joint en dehors de son
+                     horaire de travail (e-mails / appels / messages
+                     hors heures, jours feries, conges) ;
+                  2° actions de sensibilisation et de formation a un
+                     usage raisonne des outils numeriques et aux risques
+                     lies a la connexion permanente (epuisement
+                     professionnel / burn-out) ;
+                  3° modalites d'organisation du travail visant a
+                     garantir le respect du temps de repos (Loi
+                     16/03/1971 art. 38 quinquies).
+            - AR du 19/02/2023 fixant l'entree en vigueur de l'art. 16
+              au 01/04/2023.
+            - CCT n° 149 du 26/04/2022 du Conseil national du travail
+              concernant le droit a la deconnexion (cadre suppletif
+              applicable lorsque l'employeur n'a pas adopte son propre
+              instrument apres consultation).
+            - Loi du 08/04/1965 instituant les reglements de travail
+              (M.B. 05/05/1965), art. 11 et 12 — procedure ordinaire
+              de modification du reglement de travail.
+            - Loi du 04/12/2007 relative aux elections sociales
+              (M.B. 07/12/2007), art. 65 — competences CE / CPPT et
+              consultation prealable.
+            - Code penal social, art. 137 — sanction de niveau 2 en
+              cas de manquement (amende administrative 200 a 2000 EUR
+              ou amende penale 400 a 4000 EUR x nombre de travailleurs).
+
+            Regime BE-only — la France connait le droit a la deconnexion
+            (C. trav. art. L. 2242-17, 7° issu de la Loi n° 2016-1088
+            du 08/08/2016 dite El Khomri) mais sous un regime
+            juridiquement distinct : obligation annuelle de
+            negociation collective dans les entreprises ≥ 50 salaries
+            sans obligation de resultat (la non-conclusion d'un accord
+            n'expose pas l'employeur aux memes sanctions, l'employeur
+            doit simplement elaborer une charte unilaterale). Aucune
+            transposition mecanique. L'outil BE expose les 6 verdicts
+            hierarchises propres au cadre du Deal pour l'emploi belge.
+
+            Distinct de :
+            - teletravail-be-cct-85-149 (SF-219-16b, prio 134) — CCT
+              n° 85 structurel + CCT n° 149 occasionnel + modalites
+              deconnexion Loi 03/10/2022. La deconnexion (art. 16 Loi
+              03/10/2022) constitue un regime parallele et
+              independant : un travailleur peut etre concerne par la
+              CCT 85 (cadre du teletravail structurel) ET par
+              l'obligation art. 16 (droit a la deconnexion applicable
+              quel que soit le mode d'organisation), les deux outils
+              sont complementaires mais juridiquement disjoints
+              (art. 16 obligation generale tous travailleurs vs CCT 85
+              cadre teletravail volontaire).
+            - semaine-4-jours-be (SF-219-18b, prio 136) — amenagement
+              individuel art. 5 Loi 03/10/2022 (regime de la semaine
+              de 4 jours a la demande du travailleur a temps plein).
+              Sans rapport avec l'obligation collective de
+              deconnexion art. 16.
+            - flexi-job-be (SF-219-12b, prio 130) — regime fiscal
+              specifique d'emploi accessoire (Loi 16/11/2015), aucune
+              relation avec l'obligation deconnexion.
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 %. Sans rapport avec
+              l'obligation deconnexion.
+
+            Cet outil intervient en amont (qualification de la
+            conformite de l'employeur a l'obligation deconnexion) et
+            identifie les manquements critiques (manquement grave
+            aucune initiative art. 16 paragraphe 1 ouvrant l'action
+            en cessation par les organisations syndicales et exposant
+            aux sanctions C. pen. social art. 137 niveau 2).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('aa289ae4-33d8-4bd9-b0fc-4bb410b6918a', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'droit-deconnexion-be', 'ALWAYS_ON', NULL, NULL, 137);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'aa289ae4-33d8-4bd9-b0fc-4bb410b6918a';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
