@@ -1,0 +1,322 @@
+<div class="teletravail-be-cct-85-149-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">home_work</mat-icon>
+    <span class="section-title">Télétravail (Belgique — CCT 85 / 149)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="teletravail-be-cct-85-149-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (CCT n° 85 du 09/11/2005 — télétravail structurel ; CCT n° 149
+            du 26/01/2021 — télétravail occasionnel ; Loi du 03/10/2022
+            « Deal pour l'emploi » — droit à la déconnexion). Le cadre
+            français du télétravail (C. trav. art. L. 1222-9 et s. +
+            ANI 26/11/2020) est structurellement différent (pas de CCT
+            contraignante CNT, déconnexion encadrée par C. trav. L. 2242-17
+            via négociation annuelle) — aucune transposition mécanique
+            n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la <b>conformité d'une formule de télétravail BE</b> selon
+            la convention applicable : (1) <b>type</b> (structurel CCT n° 85
+            régulier ou occasionnel CCT n° 149 force majeure), (2)
+            <b>volontariat réciproque</b> (art. 5 CCT n° 85), (3) <b>convention
+            individuelle écrite</b> (art. 6 CCT n° 85 — structurel uniquement),
+            (4) <b>équipement fourni ou indemnisé</b> (art. 9 CCT n° 85),
+            (5) <b>indemnité forfaitaire</b> ≤ plafond ONSS/SPF Finances,
+            (6) <b>droits sociaux maintenus</b> (art. 4 CCT n° 85),
+            (7) <b>déconnexion définie</b> (Loi 03/10/2022 — entreprises
+            ≥ 20 travailleurs). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date début télétravail * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'entrée en vigueur du télétravail *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutTeletravail()"
+                       (ngModelChange)="onDateDebutTeletravailChange($event)"
+                       name="dateDebutTeletravail" />
+                <mat-hint>Date d'entrée en vigueur de la formule (avenant / annexe contrat).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Type télétravail * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de télétravail *</mat-label>
+                <mat-select
+                    [value]="typeTeletravail()"
+                    (selectionChange)="onTypeTeletravailChange($event.value)"
+                    name="typeTeletravail"
+                    required>
+                  <mat-option value="STRUCTUREL_CCT_85">
+                    Structurel — CCT n° 85 du 09/11/2005 (régulier)
+                  </mat-option>
+                  <mat-option value="OCCASIONNEL_CCT_149">
+                    Occasionnel — CCT n° 149 du 26/01/2021 (force majeure / personnel)
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Indéterminé — qualification à opérer
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Structurel = régulier (CCT n° 85, convention écrite obligatoire) ; occasionnel = ponctuel (CCT n° 149).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Volontariat réciproque * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="volontariatReciproque() === true"
+                  [indeterminate]="volontariatReciproque() === null"
+                  (change)="onVolontariatReciproqueChange($event.checked)"
+                  name="volontariatReciproque">
+                <b>Volontariat réciproque employeur / travailleur</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 5 CCT n° 85 — accord volontaire des deux parties (refus / fin sans préjudice).
+              </small>
+            </div>
+
+            <!-- 4. Convention écrite individuelle * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="conventionEcriteIndividuelle() === true"
+                  [indeterminate]="conventionEcriteIndividuelle() === null"
+                  (change)="onConventionEcriteIndividuelleChange($event.checked)"
+                  name="conventionEcriteIndividuelle">
+                <b>Convention individuelle écrite par télétravailleur</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 6 CCT n° 85 — formalisme obligatoire pour le télétravail structurel
+                (fréquence, jours, lieu, équipement, indemnité, période d'essai, réversibilité).
+              </small>
+            </div>
+
+            <!-- 5. Équipement fourni ou indemnisé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="equipementFourniOuIndemnise() === true"
+                  [indeterminate]="equipementFourniOuIndemnise() === null"
+                  (change)="onEquipementFourniOuIndemniseChange($event.checked)"
+                  name="equipementFourniOuIndemnise">
+                <b>Équipement fourni ou indemnisé par l'employeur</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 9 CCT n° 85 — ordinateur, accès, support technique fournis OU prise
+                en charge des coûts si BYOD.
+              </small>
+            </div>
+
+            <!-- 6. Indemnité forfaitaire mensuelle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Indemnité forfaitaire mensuelle (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="indemniteForfaitaireMensuelleEuros()"
+                       (ngModelChange)="onIndemniteForfaitaireMensuelleEurosChange($event)"
+                       name="indemniteForfaitaireMensuelleEuros" />
+                <mat-hint>Remboursement frais (internet, électricité, ergonomie) — usage admis.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Plafond ONSS / SPF Finances * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Plafond mensuel admis ONSS / SPF Finances (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="plafondIndemniteMensuelleEuros()"
+                       (ngModelChange)="onPlafondIndemniteMensuelleEurosChange($event)"
+                       name="plafondIndemniteMensuelleEuros" />
+                <mat-hint>Plafond annuellement révisé — saisir le montant applicable à la période.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Droits sociaux maintenus * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="droitsSociauxMaintenus() === true"
+                  [indeterminate]="droitsSociauxMaintenus() === null"
+                  (change)="onDroitsSociauxMaintenusChange($event.checked)"
+                  name="droitsSociauxMaintenus">
+                <b>Droits sociaux maintenus (formation, carrière, droits collectifs)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 4 CCT n° 85 — mêmes droits que les travailleurs exerçant dans les locaux de l'employeur.
+              </small>
+            </div>
+
+            <!-- 9. Déconnexion définie * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="deconnexionDefinie() === true"
+                  [indeterminate]="deconnexionDefinie() === null"
+                  (change)="onDeconnexionDefinieChange($event.checked)"
+                  name="deconnexionDefinie">
+                <b>Modalités de déconnexion définies (CCT entreprise / règlement de travail)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Loi du 03/10/2022 « Deal pour l'emploi » — obligatoire pour les entreprises
+                ≥ 20 travailleurs (e.e.v. 01/04/2023).
+              </small>
+            </div>
+
+            <!-- 10. Effectif entreprise * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif total entreprise *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="effectifEntreprise()"
+                       (ngModelChange)="onEffectifEntrepriseChange($event)"
+                       name="effectifEntreprise" />
+                <mat-hint>Gating Loi 03/10/2022 — déconnexion exigible ≥ 20 travailleurs.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la conformité télétravail</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="teletravail-be-cct-85-149-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Type : <b>{{ typeTeletravailLabel(result()!.typeTeletravail) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation conformités cumulatives -->
+          <div class="dimensions-list">
+            <div class="dimensions-title">Ventilation des conditions cumulatives</div>
+            <div class="dimension-row" [class.dim-ok]="result()!.conventionRespectee" [class.dim-ko]="!result()!.conventionRespectee">
+              <mat-icon>{{ result()!.conventionRespectee ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>Convention écrite individuelle</b> — art. 6 CCT n° 85 (structurel uniquement)
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.equipementRespecte" [class.dim-ko]="!result()!.equipementRespecte">
+              <mat-icon>{{ result()!.equipementRespecte ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>Équipement fourni / indemnisé</b> — art. 9 CCT n° 85
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.droitsRespectes" [class.dim-ko]="!result()!.droitsRespectes">
+              <mat-icon>{{ result()!.droitsRespectes ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>Droits sociaux maintenus</b> — art. 4 CCT n° 85
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.deconnexionRespectee" [class.dim-ko]="!result()!.deconnexionRespectee">
+              <mat-icon>{{ result()!.deconnexionRespectee ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>Modalités de déconnexion</b> — Loi 03/10/2022 (gating ≥ 20 travailleurs)
+              </span>
+            </div>
+          </div>
+
+          <!-- Indemnité excédentaire (si applicable) -->
+          @if (result()!.indemniteExcedentaire > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>euro</mat-icon>
+              <span>
+                <b>Indemnité excédentaire au plafond</b> :
+                <span class="mono">{{ result()!.indemniteExcedentaire }} €/mois</span>
+                au-delà du plafond ONSS/SPF Finances de
+                <span class="mono">{{ result()!.plafondIndemniteMensuelleEuros }} €/mois</span>
+                — risque de requalification de l'excédent en rémunération soumise
+                à cotisations ONSS et précompte professionnel.
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
