@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="ff3f8d7b-647d-4c4c-bc2d-0491cb85f2bd" author="claude">
+        <comment>
+            SF-219-19 : table dédiée à l'outil décisionnel « Droit à la
+            déconnexion BE » (droit-deconnexion-be, BELGIQUE — fondement :
+            Loi du 03/10/2022 portant des dispositions diverses en
+            matière de travail dite « Deal pour l'emploi » M.B.
+            10/11/2022, art. 16 — obligation pesant sur les employeurs
+            occupant au moins 20 travailleurs de conclure une CCT
+            d'entreprise ou de modifier le règlement de travail pour
+            définir les modalités du droit du travailleur de ne pas
+            être joint en dehors de son horaire de travail ; AR du
+            19/02/2023 portant exécution de l'art. 16 entrée en vigueur
+            01/04/2023 ; CCT n° 149 du Conseil national du travail
+            NAR/CNT du 26/01/2021 sur le télétravail recommandé ou
+            obligatoire couvrant la déconnexion pour les travailleurs
+            en télétravail ; Loi du 26/03/2018 art. 15 à 17 premier
+            dispositif national de concertation au sein du CPPT sur
+            l'usage des outils numériques socle utile pour les
+            employeurs sous le seuil ; C. pén. social du 06/06/2010
+            art. 137 sanction de niveau 2 en cas de manquement à
+            l'inscription au règlement de travail ; Loi du 16/03/1971
+            sur le travail art. 38 quinquies droit au repos quotidien
+            de 11 heures consécutives substrat fondamental garanti par
+            la déconnexion).
+
+            L'outil analyse la conformité de l'employeur sous l'angle
+            cumulatif :
+            - Effectif entreprise (art. 16 § 1) : seuil de 20
+              travailleurs déclenchant l'obligation, calcul au sens
+              Loi 04/12/2007 sur les élections sociales art. 7.
+            - Statut accord (CCT_ENTREPRISE_DEPOSEE,
+              REGLEMENT_TRAVAIL_MODIFIE, NEGOCIATION_EN_COURS,
+              AUCUNE_INITIATIVE, INDETERMINE) — aiguille le verdict.
+            - Date entrée en vigueur instrument : date de dépôt CCT
+              au greffe SPF Emploi ou de publication du règlement de
+              travail modifié (≥ 01/04/2023 pour les entreprises
+              atteignant le seuil à cette date).
+            - Modalités pratiques de déconnexion définies
+              (art. 16 § 2 1°) : règles pour les e-mails / appels /
+              messages hors heures, jours fériés, congés.
+            - Sensibilisation et formation prévue (art. 16 § 2 2°) :
+              actions de sensibilisation à l'usage raisonné des outils
+              numériques, prévention burn-out.
+            - Modalités d'organisation du travail définies
+              (art. 16 § 2 3°) : règles d'organisation visant à
+              garantir le respect du temps de repos
+              (Loi 16/03/1971 art. 38 quinquies).
+            - Consultation organe concertation effectuée
+              (CE / CPPT / DS) : prérequis procédural avant adoption
+              de l'instrument.
+            - Manquement signalé CBE ou SPF : indicateur de
+              contentieux en cours (action en cessation, contrôle SPF).
+
+            Verdict : HORS_CHAMP_SEUIL_NON_ATTEINT
+            | CONFORME_ACCORD_COMPLET
+            | NON_CONFORME_CONTENU_INCOMPLET
+            | NON_CONFORME_INSTRUMENT_MANQUANT
+            | MANQUEMENT_GRAVE_AUCUNE_INITIATIVE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a un droit à la
+            déconnexion (C. trav. art. L. 2242-17, 7° ; Loi
+            n° 2016-1088 du 08/08/2016 dite « El Khomri ») qui repose
+            sur une obligation de négociation annuelle dans les
+            entreprises ≥ 50 salariés (qualité de vie et conditions de
+            travail) et non sur une obligation de résultat pesant sur
+            les employeurs ≥ 20 travailleurs. Les seuils, instruments
+            et sanctions diffèrent substantiellement. Restitution
+            séparée par outil — pas de tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet (inputs + outputs : verdict,
+            ventilation par dimension seuil / instrument / contenu /
+            modalités pratiques / sensibilisation / organisation /
+            consultation) pour permettre la restitution UI sans
+            recalcul (pattern uniforme F-DT-42 / SF-213-01 à
+            SF-213-10 / SF-219-01 à SF-219-18).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-19b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel
+            F-164 staging 2026-04-26 — 13 tool_id orphelins, cf.
+            CLAUDE.md feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "droit-deconnexion-be" est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile
+            dès le seed visibility par SF-219-19b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-18b).
+        </comment>
+
+        <createTable tableName="droit_deconnexion_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_droit_deconnexion_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="droit_deconnexion_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_droit_deconnexion_be_case_file"/>
+
+        <createIndex tableName="droit_deconnexion_be_analyses"
+                     indexName="idx_droit_deconnexion_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="droit_deconnexion_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

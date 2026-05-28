@@ -729,35 +729,13 @@ class DashboardTileToolIdIntegrityIT {
             // feedback_pre_merge_visibility_seed_check).
             "semaine-4-jours-be",
             // SF-219-20 (2026-05-28) : pecule-vacances-be — backend
-            // (présente PR) Lois coordonnées du 28/06/1971 relatives
-            // aux vacances annuelles des travailleurs salariés (M.B.
-            // 30/09/1971), art. 3 (durée minimale 4 semaines à temps
-            // plein), art. 6 (double pécule), art. 7 (pécule de
-            // sortie) ; AR du 30/03/1967 (M.B. 06/04/1967), art. 9
-            // (vacances jeunes), art. 19 (pécule ouvrier 15,38 % de
-            // la rémunération brute annuelle 108 % de l'exercice de
-            // vacances liquidé par l'ONVA ou la Caisse spéciale de
-            // vacances sectorielle), art. 38 (pécule employé
-            // rémunération maintenue pendant les jours de congé pris
-            // + 85 % du salaire mensuel brut comme double pécule
-            // au moment des vacances principales), art. 46 (pécule
-            // de départ employé 15,34 % de la rémunération brute de
-            // l'exercice en cours + 15,34 % de la fraction de
-            // l'exercice précédent non encore liquidée) ; Loi du
-            // 03/07/1978 sur les contrats de travail, art. 15
-            // (prescription des actions naissant du contrat 1 an
-            // après la cessation). Calcule le pécule dû selon
-            // combinaison statut (EMPLOYE / OUVRIER / JEUNE_TRAVAILLEUR
-            // / INDETERMINE) et type de calcul (PECULE_SIMPLE /
-            // DOUBLE_PECULE / PECULE_DEPART). Verdicts :
-            // DU_PECULE_SIMPLE_CALCULE / DU_DOUBLE_PECULE_CALCULE /
-            // DU_PECULE_DEPART_CALCULE / NON_DU_OUVRIER_VIA_ONVA /
-            // NON_DU_DEJA_PAYE / NON_DU_JOURS_INSUFFISANTS / PRESCRIT
-            // / A_ANALYSER. Frontend SF-219-20b à venir. Préventif
-            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
-            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
-            // feedback_pre_merge_visibility_seed_check).
-            "pecule-vacances-be"
+            // Lois coordonnées 28/06/1971 + AR 30/03/1967. Calcul
+            // pécule simple/double/départ selon statut EMPLOYE/OUVRIER.
+            "pecule-vacances-be",
+            // SF-219-19 (2026-05-28) : droit-deconnexion-be — backend
+            // Loi 03/10/2022 Deal pour l'emploi art. 16 + AR 19/02/2023.
+            // Obligation employeur ≥ 20 travailleurs CCT/règlement travail.
+            "droit-deconnexion-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
