@@ -1,0 +1,409 @@
+<div class="interim-be-ifm-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">request_quote</mat-icon>
+    <span class="section-title">Indemnité fin de mission intérim (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="interim-be-ifm-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 24/07/1987 + CCT n° 322 + CCT n° 322bis du 16/12/2010
+            + AR 30/03/1967 art. 19 + CCT sectorielles + jurisprudence
+            Cass. BE). Le régime français impose une <b>IFM forfaitaire
+            10 %</b> (C. trav. art. L. 1251-32) que la jurisprudence
+            Cass. (BE) refuse explicitement de transposer (Cass.
+            03/05/2010 + 23/06/2003). Aucune transposition mécanique
+            n'est possible — l'outil FR
+            <code>F-DT-18-fin-mission-interim</code> reste utilisé
+            pour les dossiers FR.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Calcule les <b>indemnités effectivement dues à la fin d'une
+            mission intérimaire BE</b> sur 4 composantes :
+            (1) <b>pécule de vacances intérim</b> 15,38 % (CCT 322bis,
+            sauf si déjà versé par le FSI),
+            (2) <b>prime de fin d'année sectorielle</b> selon la CP de
+            l'utilisateur (parité art. 10),
+            (3) <b>indemnité de rupture anticipée</b> si l'ETI a rompu
+            avant terme sans motif grave (Cass. 04/02/1991),
+            (4) <b>sursalaire heures supplémentaires</b> 50 % semaine /
+            100 % dimanche-férié (Loi 16/03/1971 art. 29).
+            <b>Aucune prime de précarité 10 % style FR</b> (Cass. BE
+            refuse). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date début mission * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de début de la mission *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutMission()"
+                       (ngModelChange)="onDateDebutMissionChange($event)"
+                       name="dateDebutMission" />
+                <mat-hint>Date de début effective de la prestation intérimaire.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Date fin prévue * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de fin initialement prévue *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFinPrevue()"
+                       (ngModelChange)="onDateFinPrevueChange($event)"
+                       name="dateFinPrevue" />
+                <mat-hint>Terme contractuel de la mission (avant rupture éventuelle).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date fin réelle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de fin réelle *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFinReelle()"
+                       (ngModelChange)="onDateFinReelleChange($event)"
+                       name="dateFinReelle" />
+                <mat-hint>Antérieure à la date prévue si rupture anticipée par l'ETI.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Durée réelle prestée * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée réelle prestée (jours) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="dureeReellePrestationJours()"
+                       (ngModelChange)="onDureeReellePrestationJoursChange($event)"
+                       name="dureeReellePrestationJours" />
+                <mat-hint>Nombre de jours effectivement prestés sur la mission.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Durée prévue * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée initialement prévue (jours) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       step="1"
+                       required
+                       [ngModel]="dureePrevueJours()"
+                       (ngModelChange)="onDureePrevueJoursChange($event)"
+                       name="dureePrevueJours" />
+                <mat-hint>Durée contractuelle initiale de la mission.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Salaire horaire brut * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire horaire brut intérimaire (€/h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="salaireHoraireBrut()"
+                       (ngModelChange)="onSalaireHoraireBrutChange($event)"
+                       name="salaireHoraireBrut" />
+                <mat-hint>Taux horaire convenu (paritaire avec permanent de référence — art. 10).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Heures prestées * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Heures normales prestées *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.5"
+                       required
+                       [ngModel]="heuresPrestees()"
+                       (ngModelChange)="onHeuresPresteesChange($event)"
+                       name="heuresPrestees" />
+                <mat-hint>Total heures normales (hors heures supplémentaires).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Heures sup semaine -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Heures supplémentaires en semaine</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.5"
+                       [ngModel]="heuresSupplementairesSemaine()"
+                       (ngModelChange)="onHeuresSupplementairesSemaineChange($event)"
+                       name="heuresSupplementairesSemaine" />
+                <mat-hint>Sursalaire 50 % — Loi 16/03/1971 art. 29.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9. Heures sup dimanche/férié -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Heures supplémentaires dimanche / férié</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.5"
+                       [ngModel]="heuresSupplementairesDimancheFerie()"
+                       (ngModelChange)="onHeuresSupplementairesDimancheFerieChange($event)"
+                       name="heuresSupplementairesDimancheFerie" />
+                <mat-hint>Sursalaire 100 % — Loi 16/03/1971 art. 29.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Pécule FSI déjà versé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="peculeDejaVerseParFsi() === true"
+                  [indeterminate]="peculeDejaVerseParFsi() === null"
+                  (change)="onPeculeDejaVerseParFsiChange($event.checked)"
+                  name="peculeDejaVerseParFsi">
+                <b>Pécule de vacances intérim déjà versé par le FSI</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Fonds Social pour les Intérimaires — AR 30/03/1967 art. 19 + CCT n° 322bis du 16/12/2010 (15,38 %).
+              </small>
+            </div>
+
+            <!-- 11. Rupture anticipée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="ruptureAnticipeeParEtiSansMotifGrave() === true"
+                  [indeterminate]="ruptureAnticipeeParEtiSansMotifGrave() === null"
+                  (change)="onRuptureAnticipeeParEtiSansMotifGraveChange($event.checked)"
+                  name="ruptureAnticipeeParEtiSansMotifGrave">
+                <b>Mission rompue avant terme par l'ETI sans motif grave</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Si coché : indemnité = rémunérations restant à courir jusqu'au terme (Cass. BE 04/02/1991, S.90.0024.F).
+              </small>
+            </div>
+
+            <!-- 12. CP utilisateur * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Commission paritaire de l'utilisateur *</mat-label>
+                <mat-select
+                    [value]="commissionParitaireUtilisateur()"
+                    (selectionChange)="onCommissionParitaireUtilisateurChange($event.value)"
+                    name="commissionParitaireUtilisateur"
+                    required>
+                  <mat-option value="CP_124_CONSTRUCTION">
+                    CP 124 — Construction (prime 9,12 % via Constructiv)
+                  </mat-option>
+                  <mat-option value="CP_200_AUXILIAIRE_EMPLOYES">
+                    CP 200 — Auxiliaire pour employés (prime 1/12, ancienneté 6 mois)
+                  </mat-option>
+                  <mat-option value="CP_218_NON_MARCHAND">
+                    CP 218 — Employés du non-marchand (CCT sectorielle interne)
+                  </mat-option>
+                  <mat-option value="CP_322_INTERIM">
+                    CP 322 — Travail intérimaire (renvoi à la CP utilisateur)
+                  </mat-option>
+                  <mat-option value="CP_140_TRANSPORT_LOGISTIQUE">
+                    CP 140 — Transport et logistique (prime 8,33 %)
+                  </mat-option>
+                  <mat-option value="CP_209_METAUX_FABRICATIONS_METALLIQUES">
+                    CP 209 — Métaux et fabrications métalliques
+                  </mat-option>
+                  <mat-option value="AUTRE_NON_RECENSE">
+                    Autre CP — non recensée (analyse manuelle)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>C'est la CP de l'utilisateur (pas de l'ETI) qui détermine la prime fin d'année.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 13. Ancienneté sectorielle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté sectorielle cumulée (jours) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="ancienneteSectorielleJours()"
+                       (ngModelChange)="onAncienneteSectorielleJoursChange($event)"
+                       name="ancienneteSectorielleJours" />
+                <mat-hint>Jours prestés cumulés dans le même secteur (souvent ≥ 65 j pour ouvrir la prime).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer l'indemnité de fin de mission</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="interim-be-ifm-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                CP utilisateur : <b>{{ commissionParitaireLabel(result()!.commissionParitaireUtilisateur) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total indemnités -->
+          <div class="result-fondement result-total" role="region">
+            <mat-icon>summarize</mat-icon>
+            <span>
+              <b>Total brut indemnités dues</b> :
+              <span class="mono">{{ formatEuro(result()!.totalIndemnitesBrutes) }}</span>
+              — somme des composantes BE applicables.
+            </span>
+          </div>
+
+          <!-- Décomposition 4 composantes -->
+          <div class="composantes-list">
+            <div class="composantes-title">Décomposition des composantes</div>
+
+            <div class="composante-row">
+              <mat-icon>beach_access</mat-icon>
+              <span class="composante-label">
+                <b>Pécule de vacances intérim</b> (15,38 % brut prestations — CCT 322bis)
+                @if (result()!.peculeDejaVerseParFsi) {
+                  <small class="composante-note">— déjà versé par le FSI</small>
+                }
+              </span>
+              <span class="composante-value mono">{{ formatEuro(result()!.peculeVacancesInterim) }}</span>
+            </div>
+
+            <div class="composante-row">
+              <mat-icon>card_giftcard</mat-icon>
+              <span class="composante-label">
+                <b>Prime de fin d'année sectorielle</b>
+                (taux appliqué : <span class="mono">{{ formatPourcentage(result()!.tauxPrimeFinAnneeApplique) }}</span>)
+                @if (!result()!.ancienneteSectorielleSuffisante) {
+                  <small class="composante-note">— ancienneté sectorielle insuffisante</small>
+                }
+              </span>
+              <span class="composante-value mono">{{ formatEuro(result()!.primeFinAnneeSectorielle) }}</span>
+            </div>
+
+            <div class="composante-row">
+              <mat-icon>gavel</mat-icon>
+              <span class="composante-label">
+                <b>Indemnité de rupture anticipée</b>
+                @if (result()!.joursRestantsACourirJusquAuTerme > 0) {
+                  <small class="composante-note">— {{ result()!.joursRestantsACourirJusquAuTerme }} jour(s) restant(s) à courir</small>
+                }
+              </span>
+              <span class="composante-value mono">{{ formatEuro(result()!.indemniteRuptureAnticipee) }}</span>
+            </div>
+
+            <div class="composante-row">
+              <mat-icon>schedule</mat-icon>
+              <span class="composante-label">
+                <b>Sursalaire heures supplémentaires</b>
+                (semaine 50 % + dimanche-férié 100 % — Loi 16/03/1971 art. 29)
+              </span>
+              <span class="composante-value mono">{{ formatEuro(result()!.sursalaireHeuresSupplementaires) }}</span>
+            </div>
+          </div>
+
+          <!-- Contraste FR — prime de précarité présumée -->
+          <div class="result-contrast" role="region">
+            <mat-icon>compare_arrows</mat-icon>
+            <span>
+              <b>Contraste FR</b> — à titre informatif uniquement :
+              prime de précarité 10 % style art. L. 1251-32 C. trav. fr.
+              que vous appliqueriez à un dossier FR équivalent :
+              <span class="mono">{{ formatEuro(result()!.primePrecaritePresumee) }}</span>.
+              <b>Non due en droit belge</b> (Cass. BE 03/05/2010,
+              S.09.0086.F + Cass. BE 23/06/2003, S.02.0103.F).
+            </span>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

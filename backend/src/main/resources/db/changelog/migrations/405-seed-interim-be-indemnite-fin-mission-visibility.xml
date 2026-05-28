@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="bb5be4ce-2ae9-4697-b465-41f1fa43403a" author="claude">
+        <comment>
+            SF-219-15b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel indemnite de fin de mission interim BE
+            (interim-be-indemnite-fin-mission, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses creee par SF-219-15 (migration 403).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les dates de mission intermaire chez l'utilisateur (date debut
+            de mission, date fin prevue contractuelle, date fin reelle qui
+            peut etre anticipee), ni les durees prevue et reelle de
+            prestation, ni le salaire horaire brut convenu paritaire avec
+            le permanent de reference, ni les relevés d'heures normales
+            et heures supplementaires en semaine et dimanche-ferie, ni
+            le flag pecule de vacances deja verse par le Fonds Social
+            pour les Interimaires (FSI), ni la qualification juridique
+            de la rupture anticipee par l'ETI sans motif grave (Cass.
+            04/02/1991), ni le code commission paritaire sectorielle de
+            l'utilisateur qui determine la prime fin d'annee applicable
+            par parite art. 10 (CP 124 construction 9,12 pour cent via
+            Constructiv ; CP 200 auxiliaire employes 1/12 ancien. 6 mois ;
+            CP 218 non-marchand variable ; CP 322 interim renvoi
+            utilisateur ; CP 140 transport 8,33 pour cent ; CP 209 metaux
+            variable ; AUTRE non recense), ni l'anciennete sectorielle
+            cumulee chez le meme utilisateur (souvent superieur ou egal
+            a 65 jours pour ouvrir la prime sectorielle). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (dates mission ETI
+               et utilisateur, durees, salaire horaire interim, releves
+               d'heures, flag FSI, qualification rupture, CP utilisateur,
+               anciennete sectorielle) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une mission interimaire arrivant a son terme
+               ou rompue anticipativement (contrat de travail interimaire,
+               contrat de mise a disposition utilisateur, fiches de paie
+               interim, attestation FSI) pour quantifier les indemnites
+               effectivement dues (pecule de vacances 15,38 pour cent,
+               prime fin d'annee sectorielle, indemnite rupture anticipee
+               Cass. 04/02/1991, sursalaire heures supplementaires Loi
+               16/03/1971) ET pour avertir explicitement de l'absence
+               de prime de precarite 10 pour cent style FR (Cass. BE
+               03/05/2010, S.09.0086.F + Cass. BE 23/06/2003, S.02.0103.F
+               refusent cette transposition).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-132) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 cette migration (interim-be-indemnite-fin-mission)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY interim-be-indemnite-fin-mission
+            livree dans decisional-tools-panel.component.ts (cf. SF-219-15b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id interim-be-indemnite-fin-mission deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-15 (PR
+            #1413, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 24/07/1987 relative au travail temporaire, au travail
+              interimaire et a la mise de travailleurs a la disposition
+              d'utilisateurs (M.B. 20/08/1987) :
+                * art. 8 — formalisme contrat ecrit ETI/interimaire
+                  ouvrant droit aux remunerations contractuelles ;
+                * art. 10 — parite salariale stricte interimaire vs
+                  permanent de reference (determine la prime fin d'annee
+                  sectorielle via la CP de l'utilisateur).
+            - CCT n° 322 du 14/06/2010 conclue au Conseil National du
+              Travail (CNT) — statut interimaire, responsabilite
+              solidaire ETI/utilisateur.
+            - CCT n° 322bis du 16/12/2010 — pecule de vacances interim
+              15,38 pour cent du brut de l'exercice de vacances precedent
+              (pecule simple 7,67 + pecule double 7,71, arrondi 15,38),
+              paye par le Fonds Social pour les Interimaires (FSI).
+            - AR du 30/03/1967 sur les vacances annuelles, art. 19 —
+              regime general du pecule de vacances applicable aux
+              interimaires via la CCT 322bis.
+            - CCT sectorielles propres a la CP utilisateur (CP 124
+              construction CCT 12/06/2014 RA AR 11/02/2015 prime 9,12
+              pour cent ; CP 200 auxiliaire employes CCT 09/06/2016 RA
+              AR 13/06/2017 prime 1/12 anciennete 6 mois ; CP 140
+              transport CCT 27/01/2011 RA AR 30/03/2011 prime 8,33
+              pour cent via Fonds Social Transport ; etc.) — prime fin
+              d'annee 13e mois selon CP utilisateur, condition
+              d'anciennete sectorielle generalement superieur ou egal
+              a 65 jours.
+            - Jurisprudence Cass. BE 04/02/1991 S.90.0024.F et Cass.
+              BE 16/12/2002 S.01.0124.F — rupture anticipee injustifiee
+              par l'ETI ouvre droit aux remunerations restant a courir
+              jusqu'au terme prevu (substitue le calcul ordinaire).
+            - Jurisprudence Cass. BE 03/05/2010 S.09.0086.F et Cass.
+              BE 23/06/2003 S.02.0103.F — refus explicite de transposer
+              au regime interim BE la prime de precarite forfaitaire
+              10 pour cent du droit FR (art. L. 1251-32 C. trav. fr.).
+            - Loi du 16/03/1971 sur le travail, art. 29 — sursalaire
+              heures supplementaires 50 pour cent en semaine, 100
+              pour cent le dimanche / jour ferie.
+
+            Regime BE-only — la France impose une IFM forfaitaire
+            10 pour cent (C. trav. art. L. 1251-32, depuis la Loi
+            27/05/1989) que la jurisprudence Cass. BE refuse
+            explicitement de transposer. L'avocat FR continue d'utiliser
+            l'outil F-DT-18-fin-mission-interim pour les dossiers FR.
+            Aucune transposition mecanique possible. L'outil BE expose
+            une prime de precarite presumee a titre purement informatif
+            (contraste FR) toujours avec avertissement explicite Non
+            due en droit belge.
+
+            Distinct de :
+            - interim-be-cct-322 (SF-219-14b, prio 132) — analyseur de
+              VALIDITE de la mission (motif limitatif / duree / parite /
+              formalisme) verdict hierarchise 7 etats. Cet outil-ci
+              calcule les INDEMNITES exigibles a la fin de mission
+              independamment de la validite. Les deux outils sont
+              complementaires : l'avocat verifie d'abord la regularite
+              de la mission avec 14b, puis quantifie les sommes dues a
+              la fin de mission avec 15b.
+            - F-DT-18-fin-mission-interim (FR) — calculateur IFM
+              forfaitaire 10 pour cent (art. L. 1251-32). Logique
+              fondamentalement differente : forfait FR vs decomposition
+              BE par composantes (pecule + prime sectorielle + rupture
+              anticipee + heures sup), avec absence revendiquee de
+              forfait BE.
+            - rappel-salaire-be (prio 110) — rappel d'arrieres de
+              salaire avec interets moratoires 10 pour cent. Sans
+              rapport avec l'indemnite de fin de mission interim.
+            - licenciement-be-statut-unique-preavis (prio 111) —
+              indemnite compensatoire de preavis Loi 03/07/1978 +
+              CCT 109. Sans rapport avec le regime interim Loi
+              24/07/1987.
+            Cet outil intervient a la fin d'une mission interimaire
+            (au terme prevu OU avec rupture anticipee par l'ETI sans
+            motif grave) — quantifie les composantes effectivement
+            dues + averti explicitement de l'absence de prime de
+            precarite 10 pour cent style FR.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('bb5be4ce-2ae9-4697-b465-41f1fa43403a', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'interim-be-indemnite-fin-mission', 'ALWAYS_ON', NULL, NULL, 133);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'bb5be4ce-2ae9-4697-b465-41f1fa43403a';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

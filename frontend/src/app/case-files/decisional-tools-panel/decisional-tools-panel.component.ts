@@ -199,6 +199,8 @@ import { FlexiJobBeSectionComponent } from '../flexi-job-be-section/flexi-job-be
 import { EtudiantJobisteBeSectionComponent } from '../etudiant-jobiste-be-section/etudiant-jobiste-be-section.component';
 // SF-219-14b : section décisionnelle statut intérim BE — CCT n° 322 (BE-only, ALWAYS_ON).
 import { InterimBeCct322SectionComponent } from '../interim-be-cct-322-section/interim-be-cct-322-section.component';
+// SF-219-15b : section décisionnelle indemnité fin de mission intérim BE (BE-only, ALWAYS_ON).
+import { InterimBeIndemniteFinMissionSectionComponent } from '../interim-be-indemnite-fin-mission-section/interim-be-indemnite-fin-mission-section.component';
 // SF-219-16b : section décisionnelle Télétravail BE — CCT n° 85 / CCT n° 149 (BE-only, ALWAYS_ON).
 import { TeletravailBeCct85149SectionComponent } from '../teletravail-be-cct-85-149-section/teletravail-be-cct-85-149-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
@@ -2622,6 +2624,38 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-15b : Indemnité fin de mission intérim BE (Loi 24/07/1987
+      // + CCT n° 322 + CCT n° 322bis du 16/12/2010 pécule vacances 15,38 %
+      // FSI + AR 30/03/1967 art. 19 + CCT sectorielles propres à la CP
+      // utilisateur prime fin d'année 1/12 brut annuel + jurisprudence
+      // Cass. BE 04/02/1991 et 16/12/2002 rupture anticipée injustifiée =
+      // rémunérations restant à courir + Cass. BE 03/05/2010 et 23/06/2003
+      // refus prime de précarité 10 % style FR + Loi 16/03/1971 art. 29
+      // sursalaire heures supplémentaires). Outil BE-only — la France
+      // impose une IFM forfaitaire 10 % (art. L. 1251-32) que la
+      // jurisprudence Cass. BE refuse explicitement de transposer. Aucune
+      // équivalence mécanique. Verdict hiérarchisé 4 états (INDEMNITES_DUES /
+      // RUPTURE_ANTICIPEE_INDEMNITE_RESTE_A_COURIR / AUCUNE_INDEMNITE_DUE /
+      // A_ANALYSER_SECTEUR_NON_RECONNU) — priorité rupture anticipée →
+      // secteur non reconnu → indemnités dues → aucune indemnité. ALWAYS_ON
+      // priority 133 (au-dessus de interim-be-cct-322 = 132 SF-219-14b et
+      // etudiant-jobiste-be = 131 SF-219-13b). Pré-fill IA V1 : aucun
+      // champ (alignement pattern uniforme F-213/F-219 — dates mission ETI /
+      // durées / salaire horaire / relevés d'heures / flag FSI / qualification
+      // rupture / CP utilisateur / ancienneté sectorielle non extractibles
+      // du dossier salarié principal).
+      ['interim-be-indemnite-fin-mission', {
+        displayLabel: 'Indemnité fin de mission intérim (Belgique)',
+        component: InterimBeIndemniteFinMissionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-16b : télétravail BE — CCT n° 85 du 09/11/2005 (CNT,
       // structurel régulier, rendue obligatoire AR 13/06/2006 M.B.
       // 05/09/2006) + CCT n° 149 du 26/01/2021 (CNT, occasionnel /
@@ -3946,6 +3980,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // analyseurs de validité statutaire BE (flexi-job-be,
     // delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
     ['interim-be-cct-322', 'VALIDITE'],
+    // SF-219-15b : Indemnité fin de mission intérim BE — outil de CALCUL
+    // d'indemnité (pécule de vacances 15,38 % + prime fin d'année
+    // sectorielle + indemnité rupture anticipée Cass. 04/02/1991 +
+    // sursalaire heures sup Loi 16/03/1971). Thème INDEMNITES —
+    // calculateur de montant cohérent avec les autres calculateurs BE
+    // (rappel-salaire-be, licenciement-be-statut-unique-preavis,
+    // licenciement-be-formule-claeys, F-DT-28-avantages-conventionnels-be)
+    // et avec son homologue FR F-DT-18-fin-mission-interim (IFM 10 %).
+    // Pas un analyseur de validité (l'outil 14b interim-be-cct-322
+    // couvre déjà la qualification de la mission).
+    ['interim-be-indemnite-fin-mission', 'INDEMNITES'],
     // SF-219-16b : Télétravail BE — CCT n° 85 du 09/11/2005 + CCT n° 149
     // du 26/01/2021 + Loi du 03/10/2022 « Deal pour l'emploi ». Thème
     // VALIDITE — l'outil qualifie la conformité d'une formule de télétravail
