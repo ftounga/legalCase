@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="21a65158-7161-4e7c-8079-a90e4bad1a3e" author="claude">
+        <comment>
+            SF-219-09 : table dédiée à l'outil décisionnel "Élections
+            sociales BE" (elections-sociales-be, BELGIQUE — fondement :
+            Loi du 04/12/2007 relative aux élections sociales + AR du
+            25/05/2012 portant exécution + Loi du 19/03/1991 (protection
+            des candidats / délégués).
+
+            L'outil est un calculateur de chronologie + checklist
+            d'obligation procédurale qui :
+
+            1. Détermine si l'entreprise est OBLIGÉE d'organiser des
+               élections sociales selon les seuils d'effectif moyen :
+               - ≥ 50 travailleurs ETP → CPPT obligatoire (art. 49 Loi
+                 04/08/1996 bien-être) ;
+               - ≥ 100 travailleurs ETP → CE obligatoire + CPPT (Loi
+                 04/12/2007 art. 9 § 1er).
+
+            2. Calcule le calendrier complet sur la base du jour Y
+               (date du scrutin imposée par AR — 4-17 mai pour le cycle
+               2024, 11-24 mai pour le cycle 2028) :
+               - Jour X = Y - 90 (affichage avis d'élections)
+               - Jour X-60 : début procédure unité technique
+                 d'exploitation (UTE)
+               - Jour X-35 : transmission listes électeurs
+               - Jour X+35 : dépôt listes de candidats
+               - Jour X+40 : affichage candidats — début période
+                 protégée pour licenciement
+               - Jour Y : scrutin
+
+            3. Identifie la période de protection des candidats contre
+               le licenciement (Loi 19/03/1991) :
+               - Début : 30 jours avant l'affichage candidats (jour X+10
+                 environ — protection occulte rétroactive)
+               - Fin : installation des nouveaux élus (cycle suivant)
+                 pour les élus + 2 ans après la proclamation pour les
+                 non-élus présentés une 1re fois.
+
+            4. Valide le cycle électoral attendu : 2024 (4-17/05/2024)
+               ou 2028 (11-24/05/2028) — cycle 4 ans non négociable.
+
+            Verdict : OBLIGATION_CE_ET_CPPT | OBLIGATION_CPPT_SEUL |
+            NON_APPLICABLE_SEUIL | EFFECTIF_A_RECALCULER (effectif
+            limite, recalcul ETP requis sur 4 trimestres).
+
+            Outil single-country BELGIQUE — aucun équivalent strict en
+            droit français (les élections CSE FR — Code du travail
+            art. L. 2311-1 et s. — ont un calendrier libre, déclenché
+            par l'employeur à tout moment dans le cycle 4 ans, seuils
+            différents 11/50/300, pas de jour Y national imposé). Pas
+            de mapping possible.
+
+            Snapshot JSON complet (inputs + outputs : verdict,
+            obligation par instance, calendrier complet jour par
+            étape, fenêtre de protection candidats, cycle électoral
+            attendu, raison) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213 / SF-219).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-09b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "elections-sociales-be" est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-09b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-8).
+        </comment>
+
+        <createTable tableName="elections_sociales_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_elections_sociales_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="elections_sociales_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_elections_sociales_be_case_file"/>
+
+        <createIndex tableName="elections_sociales_be_analyses"
+                     indexName="idx_elections_sociales_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="elections_sociales_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -466,7 +466,20 @@ class DashboardTileToolIdIntegrityIT {
             // décision/notification autorité régionale, et le délai
             // d'attente de 30 jours après notification autorité.
             // Frontend SF-219-07b à venir.
-            "licenciement-be-collectif-renault"
+            "licenciement-be-collectif-renault",
+            // SF-219-09 (2026-05-28) : elections-sociales-be — backend
+            // (présente PR) Loi 04/12/2007 + AR 25/05/2012 + Loi
+            // 04/08/1996 art. 49 + Loi 19/03/1991. Calculateur de
+            // chronologie + checklist d'obligation (seuils CE ≥ 100 ETP,
+            // CPPT ≥ 50 ETP), calendrier complet (jour Y, jour X = Y-90,
+            // X-60 procédure UTE, X-35 listes électeurs, X+35 dépôt
+            // candidats, X+40 affichage candidats, Y+6 proclamation,
+            // Y+45 1re réunion) et fenêtre de protection candidats
+            // contre licenciement (Loi 19/03/1991, occulte rétroactive
+            // 30 j avant affichage, fin 2 ans non-élus). Frontend
+            // SF-219-09b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues).
+            "elections-sociales-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
