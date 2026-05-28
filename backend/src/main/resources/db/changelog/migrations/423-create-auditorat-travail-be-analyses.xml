@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b787e31e-864f-4e02-9728-6204a43040f9" author="claude">
+        <comment>
+            SF-219-25 : table dédiée à l'outil décisionnel
+            « Auditorat du travail BE — orientation et checklist de
+            saisine du parquet spécialisé en droit social pénal »
+            (auditorat-travail-be, BELGIQUE — fondement :
+            Code judiciaire art. 138bis l'auditorat du travail est le
+            parquet spécialisé du tribunal du travail compétent pour
+            la poursuite des infractions au Code pénal social
+            art. 73 à 78 et art. 119 à 235 et pour l'avis obligatoire
+            dans les matières art. 580 sécurité sociale travailleurs
+            salariés et art. 581 sécurité sociale travailleurs
+            indépendants du Code judiciaire ; Code d'instruction
+            criminelle art. 24 modes de saisine du parquet plainte
+            dénonciation transmission de PV par services d'inspection
+            art. 76 C. pén. soc., art. 28bis CIC déclenchement
+            obligatoire de l'information par plainte avec constitution
+            de partie civile art. 63 CIC, art. 28quater CIC opportunité
+            des poursuites du parquet pour la dénonciation simple
+            art. 29 CIC, art. 4 Titre prél. CIC autonomie voie
+            répressive vis-à-vis voie civile règle le criminel tient
+            le civil en l'état ; Loi du 03/08/1992 sur le Code
+            judiciaire organisation de l'auditorat du travail un par
+            ressort de tribunal du travail sous l'autorité d'un
+            auditeur général près la Cour du travail ; Loi du
+            06/06/2010 introduisant le Code pénal social M.B.
+            01/07/2010 e.e.v. 01/07/2011 art. 73 à 78 règle Una Via
+            choix exclusif de l'auditeur entre voie pénale citation
+            tribunal correctionnel art. 76 C. jud. et voie
+            administrative transmission SPF Emploi pour amende
+            administrative art. 84 exclusivité non bis in idem
+            Cour const. arrêt 61/2014 du 03/04/2014 et CEDH Grande
+            Stevens c. Italie 04/03/2014 ; art. 76 C. pén. soc.
+            transmission obligatoire des PV d'inspection à l'auditeur
+            du travail dans les 14 jours ; art. 81 C. pén. soc.
+            prescription pénale 5 ans à compter du jour de
+            l'infraction pour les niveaux 2 à 4 et 3 ans pour le
+            niveau 1 renvoi art. 21-22 Titre prél. CIC pour
+            l'interruption ; art. 100 et 100bis C. pén. soc. PV
+            d'inspection faisant foi jusqu'à preuve contraire force
+            probante particulière conditionnée par les mentions
+            obligatoires ; art. 209 à 212 C. pén. soc. entrave à
+            l'inspection sociale niveau 3 ; art. 124 C. pén. soc.
+            accident grave non déclaré niveau 4 ; art. 181 C. pén.
+            soc. travail non déclaré niveau 4 Cass. ch. néerl.
+            21/11/2017 P.17.0532.N ; Loi du 04/08/1996 relative au
+            bien-être des travailleurs art. 26 obligation de
+            notification de l'accident grave à l'inspection
+            bien-être ; Code pénal art. 442bis harcèlement moral et
+            sexuel infraction de droit commun art. 5 C. pén.
+            responsabilité pénale des personnes morales ; Loi du
+            10/05/2007 tendant à lutter contre certaines formes de
+            discrimination art. 22 à 24 qualifications pénales de la
+            discrimination intentionnelle art. 587bis C. jud. action
+            civile en cessation devant le tribunal du travail ;
+            Cass. ch. néerl. 20/03/2018 P.17.1175.N compétence
+            exclusive de l'auditeur du travail pour la poursuite des
+            infractions au Code pénal social exception au monopole
+            du procureur du Roi art. 22 C. jud.).
+
+            L'outil oriente la saisine de l'auditorat du travail BE
+            et restitue une checklist procédurale sous l'angle
+            cumulatif :
+            - Nature des faits au sens de l'enum
+              AuditoratTravailBeNatureFait couvrant infraction pénale
+              sociale compétence directe auditorat, accident grave au
+              travail art. 26 Loi 04/08/1996 + art. 124 C. pén. soc.,
+              suspicion travail non déclaré art. 181 inspection
+              préalable recommandée, discrimination pénale art. 22-24
+              Loi 10/05/2007, harcèlement pénal art. 442bis C. pén.,
+              entrave inspection art. 209-212 C. pén. soc., litige
+              civil pur tribunal du travail art. 578 C. jud. saisine
+              non pertinente, autre nature ouverte A_QUALIFIER.
+            - Mode de saisine envisagé au sens de l'enum
+              AuditoratTravailBeModeSaisine couvrant plainte directe
+              constitution partie civile art. 63 CIC, dénonciation
+              simple art. 29 CIC, signalement inspection sociale PV
+              transmis art. 76 C. pén. soc., voie civile parallèle
+              tribunal du travail art. 578 C. jud., indéterminé.
+            - Date des faits indicative conditionnant le calcul de
+              la prescription pénale art. 81 C. pén. soc.
+            - Faits prescrits drapeau de l'avocat bloque la saisine.
+            - Inspection déjà saisie conditionne le basculement
+              auditorat directe.
+            - Plainte civile déposée procédure parallèle au tribunal
+              du travail.
+            - Urgence sécurité personnes mesures conservatoires.
+            - Recours pénal envisagé axe stratégique de l'avocat.
+            - Employeur personne morale qualité de l'auteur poursuivi
+              art. 5 C. pén. + multiplication par 5 art. 105 C. pén.
+              soc. en cas de poursuite.
+
+            Verdict : SAISINE_AUDITORAT_RECOMMANDEE plainte ou
+            dénonciation à l'auditeur direct pour les infractions
+            pénales sociales caractérisées, accident grave,
+            harcèlement pénal, discrimination pénale, entrave
+            inspection ; DENONCIATION_INSPECTION_PREALABLE signalement
+            aux services d'inspection sociale pour objectiver les
+            faits par PV transmis art. 76 C. pén. soc., voie
+            privilégiée pour le travail non déclaré suspecté sans
+            preuve constituée ; SAISINE_NON_PERTINENTE compétence
+            tribunal du travail art. 578 C. jud. pour les litiges
+            civils purs ou prescription pénale acquise art. 81
+            C. pén. soc. ; A_QUALIFIER nature ouverte AUTRE
+            qualification précise à établir par l'avocat.
+
+            Outil structurel single-country BELGIQUE — la France n'a
+            pas d'auditorat du travail parquet spécialisé. Les
+            infractions au droit du travail français sont poursuivies
+            par le procureur de la République parquet généraliste sur
+            PV de l'inspection du travail Code du travail
+            art. L. 8112-1 et suivants. Pas d'équivalent direct du
+            système belge organisation judiciaire spécialisée vs
+            organisation administrative inspection. Restitution
+            séparée par outil — pas de tentative d'harmonisation
+            FR/BE.
+
+            Snapshot JSON complet inputs plus outputs verdict, mode
+            de saisine recommandé, drapeaux conditionnels
+            constitution partie civile recommandée, inspection
+            préalable requise, voie civile concurrente, prescription
+            bloquante, urgence signalée, una via applicable, avis
+            auditeur obligatoire civil pour permettre la restitution
+            UI sans recalcul pattern uniforme F-DT-42 / SF-213-01 à
+            SF-213-10 / SF-219-01 à SF-219-24.
+
+            La règle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portée par la
+            migration de SF-219-25b frontend, couplée à l'entrée
+            TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id auditorat-travail-be est ajouté dès cette SF
+            backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès
+            le seed visibility par SF-219-25b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-24b.
+        </comment>
+
+        <createTable tableName="auditorat_travail_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_auditorat_travail_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="auditorat_travail_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_auditorat_travail_be_case_file"/>
+
+        <createIndex tableName="auditorat_travail_be_analyses"
+                     indexName="idx_auditorat_travail_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="auditorat_travail_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

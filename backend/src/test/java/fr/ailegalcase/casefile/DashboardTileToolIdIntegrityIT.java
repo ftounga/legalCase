@@ -761,7 +761,23 @@ class DashboardTileToolIdIntegrityIT {
             // emprisonnement éventuel niveau 4, majorations × travailleurs
             // (art. 103 § 2), × 5 personne morale (art. 105), × 2
             // récidive ≤ 1 an (art. 110).
-            "code-penal-social-be"
+            "code-penal-social-be",
+            // SF-219-25 (2026-05-28) : auditorat-travail-be — backend
+            // Code judiciaire art. 138bis + Code d'instruction criminelle
+            // art. 24 + Loi 03/08/1992 sur le Code judiciaire + Loi
+            // 06/06/2010 introduisant le Code pénal social. Outil
+            // d'orientation / checklist de saisine du parquet spécialisé
+            // en droit social pénal. Verdicts : SAISINE_AUDITORAT_RECOMMANDEE
+            // (infraction pénale sociale, accident grave, harcèlement
+            // pénal, discrimination pénale, entrave inspection),
+            // DENONCIATION_INSPECTION_PREALABLE (travail non déclaré
+            // suspecté), SAISINE_NON_PERTINENTE (litige civil pur
+            // art. 578 C. jud. ou prescription pénale art. 81 acquise),
+            // A_QUALIFIER (nature ouverte). Frontend SF-219-25b à
+            // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
+            // backend (pattern uniforme F-213 / F-219 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "auditorat-travail-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
