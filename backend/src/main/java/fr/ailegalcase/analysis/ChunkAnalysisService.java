@@ -6,6 +6,7 @@ import fr.ailegalcase.document.ChunkingDoneEvent;
 import fr.ailegalcase.document.DocumentChunk;
 import fr.ailegalcase.document.DocumentChunkRepository;
 import fr.ailegalcase.document.DocumentExtractionRepository;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -152,10 +153,27 @@ public class ChunkAnalysisService {
                         ? caseFileRepository.findCountryById(caseFileId).orElse("FRANCE")
                         : "FRANCE");
 
+        // F-257 — résolution userId avant l'appel (obligatoire pour AiCallContext user-level).
+        // L'ancienne logique de fallback DB est conservée.
+        UUID resolvedUserId = message.userId() != null
+                ? message.userId()
+                : (caseFileId != null
+                        ? caseFileRepository.findCreatedByUserIdById(caseFileId).orElse(null)
+                        : null);
+
+        if (resolvedUserId == null || workspaceId == null || caseFileId == null) {
+            log.warn("Chunk {} missing user/workspace/caseFile context (userId={}, workspaceId={}, caseFileId={}) — analysis skipped",
+                    chunkId, resolvedUserId, workspaceId, caseFileId);
+            analysis.setAnalysisStatus(AnalysisStatus.SKIPPED);
+            analysisRepository.save(analysis);
+            return;
+        }
+
         try {
             log.info("Chunk analysis START for chunk {} ({} chars)", chunkId, chunk.getChunkText().length());
             long anthropicStart = System.currentTimeMillis();
-            AnthropicResult result = anthropicService.analyzeChunk(chunk.getChunkText(), legalDomain, country);
+            AiCallContext ctx = AiCallContext.userLevel(workspaceId, resolvedUserId, caseFileId, JobType.CHUNK_ANALYSIS);
+            AnthropicResult result = anthropicService.analyzeChunk(ctx, chunk.getChunkText(), legalDomain, country);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             analysis.setAnalysisResult(result.content());
             analysis.setModelUsed(result.modelUsed());
@@ -165,6 +183,11 @@ public class ChunkAnalysisService {
             log.info("Chunk analysis DONE for chunk {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     chunkId, anthropicMs, System.currentTimeMillis() - startMs,
                     result.promptTokens(), result.completionTokens());
+        } catch (PaymentRequiredException pre) {
+            // F-257 — quota dépassé pendant l'analyse (cas race après le pre-check ligne 127) → SKIPPED.
+            log.warn("Token budget exceeded during chunk {} analysis — chunk skipped (workspace={})",
+                    chunkId, workspaceId);
+            analysis.setAnalysisStatus(AnalysisStatus.SKIPPED);
         } catch (Exception e) {
             log.error("Chunk analysis FAILED for chunk {} (total {}ms)", chunkId,
                     System.currentTimeMillis() - startMs, e);
@@ -183,20 +206,7 @@ public class ChunkAnalysisService {
             UUID extractionId = chunk.getExtraction().getId();
             updateChunkJob(extractionId, caseFileId);
             triggerDocumentAnalysisIfReady(extractionId);
-            int promptTokens = analysis.getPromptTokens();
-            int completionTokens = analysis.getCompletionTokens();
-            UUID resolvedUserId = message.userId();
-            if (resolvedUserId != null) {
-                if (caseFileId != null) {
-                    usageEventService.record(caseFileId, resolvedUserId, JobType.CHUNK_ANALYSIS,
-                            promptTokens, completionTokens);
-                }
-            } else {
-                extractionRepository.findCaseFileIdById(extractionId).ifPresent(cfId ->
-                    caseFileRepository.findCreatedByUserIdById(cfId).ifPresent(userId ->
-                        usageEventService.record(cfId, userId, JobType.CHUNK_ANALYSIS,
-                                promptTokens, completionTokens)));
-            }
+            // F-257 — record automatique dans AnthropicService.doAnalyze, plus de record manuel ici.
         }
     }
 

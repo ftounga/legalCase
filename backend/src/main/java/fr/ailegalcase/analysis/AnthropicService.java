@@ -3,6 +3,9 @@ package fr.ailegalcase.analysis;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,14 +41,20 @@ public class AnthropicService {
     private final RestClient restClient;
     private final String model;
     private final String modelFast;
+    private final PlanLimitService planLimitService;
+    private final UsageEventService usageEventService;
 
     @Autowired
     public AnthropicService(@Value("${anthropic.api-key}") String apiKey,
                             @Value("${anthropic.model:claude-sonnet-4-6}") String model,
                             @Value("${anthropic.model-fast:${anthropic.model:claude-sonnet-4-6}}") String modelFast,
-                            RestClient.Builder builder) {
+                            RestClient.Builder builder,
+                            PlanLimitService planLimitService,
+                            UsageEventService usageEventService) {
         this.model = model;
         this.modelFast = modelFast;
+        this.planLimitService = planLimitService;
+        this.usageEventService = usageEventService;
         this.restClient = builder
                 .baseUrl("https://api.anthropic.com")
                 .defaultHeader("x-api-key", apiKey)
@@ -53,80 +62,64 @@ public class AnthropicService {
                 .build();
     }
 
-    // Package-private constructor for unit tests
-    AnthropicService(String model, String modelFast, RestClient.Builder builder) {
+    // Package-private constructor for unit tests — F-257 : prend les mocks gate + record
+    AnthropicService(String model, String modelFast, RestClient.Builder builder,
+                     PlanLimitService planLimitService, UsageEventService usageEventService) {
         this.model = model;
         this.modelFast = modelFast;
+        this.planLimitService = planLimitService;
+        this.usageEventService = usageEventService;
         this.restClient = builder.baseUrl("https://api.anthropic.com").build();
     }
 
-    public AnthropicResult analyzeChunk(String chunkText, String legalDomain, String country) {
+    public AnthropicResult analyzeChunk(AiCallContext ctx, String chunkText, String legalDomain, String country) {
         String systemPrompt = CHUNK_SYSTEM_PROMPT_TEMPLATE.formatted(
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country));
-        return analyzeFast(systemPrompt, chunkText, 2048);
+        return analyzeFast(ctx, systemPrompt, chunkText, 2048);
     }
 
-    public AnthropicResult analyzeFast(String systemPrompt, String userMessage, int maxTokens) {
-        return doAnalyze(modelFast, systemPrompt, userMessage, maxTokens);
+    public AnthropicResult analyzeFast(AiCallContext ctx, String systemPrompt, String userMessage, int maxTokens) {
+        return doAnalyze(ctx, modelFast, systemPrompt, userMessage, maxTokens, false);
     }
 
-    public AnthropicResult analyze(String systemPrompt, String userMessage, int maxTokens) {
-        return doAnalyze(model, systemPrompt, userMessage, maxTokens, false);
+    public AnthropicResult analyze(AiCallContext ctx, String systemPrompt, String userMessage, int maxTokens) {
+        return doAnalyze(ctx, model, systemPrompt, userMessage, maxTokens, false);
     }
 
     /**
      * F-120 SF-120-03 — variante avec choix explicite du modèle (utile pour le blog SEO
      * qui appelle Sonnet pour la rédaction et Haiku pour la vérification jurisprudence).
-     *
-     * @param modelId       identifiant du modèle Anthropic (ex: {@code claude-haiku-4-5})
-     * @param systemPrompt  prompt système
-     * @param userMessage   message utilisateur
-     * @param maxTokens     budget de tokens de sortie
      */
-    public AnthropicResult analyzeWithModel(String modelId, String systemPrompt,
+    public AnthropicResult analyzeWithModel(AiCallContext ctx, String modelId, String systemPrompt,
                                             String userMessage, int maxTokens) {
-        return doAnalyze(modelId, systemPrompt, userMessage, maxTokens, false);
+        return doAnalyze(ctx, modelId, systemPrompt, userMessage, maxTokens, false);
     }
 
     /**
      * F-142-04 : variante avec prompt caching Anthropic (cache_control ephemeral).
-     * Le system prompt est mis en cache pour 5 min — latence prefill réduite de
-     * ~85 % sur les appels suivants avec le même prompt système. Gain important
-     * sur les services à gros system prompt (CaseAnalysis, EnrichedAnalysis).
-     *
-     * <p>Éligibilité : minimum 1024 tokens dans le bloc caché (Sonnet) ou 2048
-     * (Haiku). Au-dessous, Anthropic ignore silencieusement le cache_control.
      */
-    public AnthropicResult analyzeWithSystemCache(String systemPrompt, String userMessage, int maxTokens) {
-        return doAnalyze(model, systemPrompt, userMessage, maxTokens, true);
+    public AnthropicResult analyzeWithSystemCache(AiCallContext ctx, String systemPrompt,
+                                                  String userMessage, int maxTokens) {
+        return doAnalyze(ctx, model, systemPrompt, userMessage, maxTokens, true);
     }
 
     /**
-     * F-185 SF-185-01 — variante streaming de {@link #analyzeWithSystemCache} qui
-     * consomme la SSE Anthropic ({@code stream: true}) et invoque
-     * {@code onTextDelta} à chaque chunk de texte reçu (utile pour alimenter
-     * un parser JSON incrémental côté caller — cf. {@link PartialJsonSectionExtractor}).
-     *
-     * <p>La réponse finale agrégée est retournée comme {@link AnthropicResult},
-     * identique au mode non-streaming : le caller peut traiter le résultat
-     * complet de la même façon.
-     *
-     * <p>En cas d'erreur réseau ou HTTP en cours de stream, l'exception est
-     * propagée — le caller doit décider du fallback (ex. retry ou
-     * {@link #analyzeWithSystemCache} synchrone).
-     *
-     * @param systemPrompt prompt système (cachable)
-     * @param userMessage  message utilisateur
-     * @param maxTokens    budget de tokens de sortie
-     * @param onTextDelta  callback invoqué pour chaque text delta reçu (peut être null)
+     * F-185 SF-185-01 — variante streaming de {@link #analyzeWithSystemCache}.
+     * F-257 — gate + record intégrés (gate avant ouverture du stream, record après agrégation).
      */
-    public AnthropicResult analyzeWithSystemCacheStreaming(String systemPrompt,
+    public AnthropicResult analyzeWithSystemCacheStreaming(AiCallContext ctx,
+                                                           String systemPrompt,
                                                            String userMessage,
                                                            int maxTokens,
                                                            java.util.function.Consumer<String> onTextDelta) {
+        if (ctx == null) {
+            throw new IllegalArgumentException("AiCallContext must not be null");
+        }
         if (userMessage == null || userMessage.isBlank()) {
             throw new IllegalArgumentException("userMessage must not be empty");
         }
+
+        checkGate(ctx);
 
         Object systemPayload = List.of(Map.of(
                 "type", "text",
@@ -177,6 +170,8 @@ public class AnthropicService {
                     model, maxTokens, aggregator.outputTokens);
         }
 
+        recordUsage(ctx, aggregator.inputTokens, aggregator.outputTokens);
+
         return new AnthropicResult(aggregator.text.toString(),
                 aggregator.modelUsed != null ? aggregator.modelUsed : model,
                 aggregator.inputTokens, aggregator.outputTokens, aggregator.stopReason);
@@ -184,9 +179,6 @@ public class AnthropicService {
 
     /**
      * Agrégateur d'état pour la consommation d'un stream SSE Anthropic.
-     * Lit ligne par ligne, parse les events {@code data: {...}}, accumule le
-     * texte des {@code content_block_delta.delta.text} et capture les usages
-     * via {@code message_start.message.usage} et {@code message_delta.usage}.
      */
     private static final class StreamAggregator {
         private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -204,8 +196,6 @@ public class AnthropicService {
 
         void consumeLine(String line) {
             if (line == null || line.isEmpty()) return;
-            // SSE format : "data: {...json...}" — on ignore les lignes "event: xxx"
-            // (le type est aussi dans le JSON via le champ "type")
             if (!line.startsWith("data: ")) return;
             String payload = line.substring(6).trim();
             if (payload.isEmpty() || "[DONE]".equals(payload)) return;
@@ -248,31 +238,30 @@ public class AnthropicService {
                     default -> { /* message_stop, ping, content_block_start/stop : ignorés */ }
                 }
             } catch (IOException e) {
-                // Event mal formé — on continue (fail-open). Le stream peut contenir des
-                // events parasites (heartbeats, etc.) qu'on n'a pas à parser.
+                // Event mal formé — on continue (fail-open).
             }
         }
     }
 
     /**
      * SF-148-01 : appel multimodal (images + texte) à Claude Vision.
-     * Chaque image est encodée base64 PNG. L'ordre des images est préservé,
-     * le {@code userText} est appendu en bloc texte final.
-     *
-     * @param modelId      identifiant du modèle (ex: {@code claude-haiku-4-5-20251001})
-     * @param images       liste de bytes PNG (ordre préservé)
-     * @param mediaType    MIME type des images (ex: {@code image/png})
-     * @param maxTokens    budget de tokens de sortie
+     * F-257 — gate + record intégrés.
      */
-    public AnthropicResult analyzeWithImages(String modelId,
+    public AnthropicResult analyzeWithImages(AiCallContext ctx,
+                                             String modelId,
                                              String systemPrompt,
                                              List<byte[]> images,
                                              String mediaType,
                                              String userText,
                                              int maxTokens) {
+        if (ctx == null) {
+            throw new IllegalArgumentException("AiCallContext must not be null");
+        }
         if (images == null || images.isEmpty()) {
             throw new IllegalArgumentException("images must not be empty");
         }
+
+        checkGate(ctx);
 
         List<Map<String, Object>> content = new ArrayList<>(images.size() + 1);
         for (byte[] img : images) {
@@ -309,39 +298,27 @@ public class AnthropicService {
         log.debug("Vision response received ({} chars, {} input tokens, {} output tokens)",
                 contentText.length(), response.usage().inputTokens(), response.usage().outputTokens());
 
+        recordUsage(ctx, response.usage().inputTokens(), response.usage().outputTokens());
+
         return new AnthropicResult(contentText, response.model(),
                 response.usage().inputTokens(), response.usage().outputTokens(), response.stopReason());
     }
 
-    private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage, int maxTokens) {
-        return doAnalyze(modelId, systemPrompt, userMessage, maxTokens, false);
-    }
-
     /**
-     * F-JU-04 SF-JU-04-02 — appel Anthropic avec le tool natif {@code web_search}
-     * (server tool exécuté côté Anthropic, multi-turn géré automatiquement).
-     *
-     * <p>Utilisé pour la recherche de jurisprudence belge dans le bootstrap
-     * F-JU-01 (pas d'équivalent PISTE en BE — cf. mémoire {@code reference_be_jurisprudence_sources}).
-     * Claude recherche sur JUPORTAL / Cassation BE et retourne un contenu
-     * structuré.</p>
-     *
-     * <p>La réponse Anthropic contient potentiellement plusieurs blocs
-     * dans {@code content[]} ({@code server_tool_use}, {@code web_search_tool_result},
-     * {@code text}). On ne retourne que la concaténation des blocs {@code text} —
-     * c'est là que Claude met son résultat final.</p>
-     *
-     * @param systemPrompt    instructions système (rôle juriste BE, format JSON, etc.)
-     * @param userMessage     message utilisateur (mot-clé recherché)
-     * @param maxTokens       limite output Claude
-     * @param maxWebSearches  nombre max d'appels web_search Claude peut faire
-     *                        (recommandé : 3-5 pour éviter coût excessif)
+     * F-JU-04 SF-JU-04-02 — appel Anthropic avec le tool natif {@code web_search}.
+     * F-257 — gate + record intégrés.
      */
-    public AnthropicResult analyzeWithWebSearch(String systemPrompt, String userMessage,
+    public AnthropicResult analyzeWithWebSearch(AiCallContext ctx, String systemPrompt, String userMessage,
                                                 int maxTokens, int maxWebSearches) {
+        if (ctx == null) {
+            throw new IllegalArgumentException("AiCallContext must not be null");
+        }
         if (userMessage == null || userMessage.isBlank()) {
             throw new IllegalArgumentException("userMessage must not be empty");
         }
+
+        checkGate(ctx);
+
         Map<String, Object> body = Map.of(
                 "model", model,
                 "max_tokens", maxTokens,
@@ -365,9 +342,6 @@ public class AnthropicService {
                         .retrieve()
                         .body(AnthropicResponse.class);
 
-                // web_search → content[] contient typiquement plusieurs blocs :
-                //   server_tool_use, web_search_tool_result, text.
-                // On concatène uniquement les blocs text (résultat final Claude).
                 StringBuilder textContent = new StringBuilder();
                 if (response.content() != null) {
                     for (AnthropicResponse.ContentBlock block : response.content()) {
@@ -385,6 +359,9 @@ public class AnthropicService {
                     log.warn("Anthropic web_search response TRUNCATED — model={}, max_tokens={}, output tokens={}",
                             model, maxTokens, response.usage().outputTokens());
                 }
+
+                recordUsage(ctx, response.usage().inputTokens(), response.usage().outputTokens());
+
                 return new AnthropicResult(content, response.model(),
                         response.usage().inputTokens(), response.usage().outputTokens(), stopReason);
 
@@ -408,17 +385,20 @@ public class AnthropicService {
         throw new IllegalStateException("Unreachable");
     }
 
-    private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage,
-                                      int maxTokens, boolean cacheSystem) {
+    private AnthropicResult doAnalyze(AiCallContext ctx, String modelId, String systemPrompt,
+                                      String userMessage, int maxTokens, boolean cacheSystem) {
+        if (ctx == null) {
+            throw new IllegalArgumentException("AiCallContext must not be null");
+        }
         if (userMessage == null || userMessage.isBlank()) {
             throw new IllegalArgumentException("userMessage must not be empty");
         }
 
+        checkGate(ctx);
+
         log.debug("Sending chunk ({} chars) to Anthropic model {} (cacheSystem={})",
                 userMessage.length(), modelId, cacheSystem);
 
-        // F-142-04 : prompt caching — le system prompt peut être envoyé sous forme
-        // de tableau avec cache_control: ephemeral pour réutilisation sur 5 min.
         Object systemPayload = cacheSystem
                 ? List.of(Map.of(
                         "type", "text",
@@ -449,16 +429,13 @@ public class AnthropicService {
                 log.debug("Anthropic response received ({} chars, {} prompt tokens, {} completion tokens, stop_reason={})",
                         content.length(), response.usage().inputTokens(), response.usage().outputTokens(), stopReason);
 
-                // Détection explicite de la troncature silencieuse : Claude retourne
-                // stop_reason="max_tokens" quand il a été coupé en pleine génération.
-                // Le JSON / texte est souvent incomplet et non parsable côté caller.
-                // Bug historique : AiQuestionService avec max_tokens=1024 sur dossier
-                // riche → 0 questions sans aucune trace d'erreur visible.
                 if ("max_tokens".equals(stopReason)) {
                     log.warn("Anthropic response TRUNCATED — stop_reason=max_tokens, model={}, max_tokens={}, " +
                                     "output tokens={}. Le caller va probablement voir un JSON/texte incomplet.",
                             modelId, maxTokens, response.usage().outputTokens());
                 }
+
+                recordUsage(ctx, response.usage().inputTokens(), response.usage().outputTokens());
 
                 return new AnthropicResult(content, response.model(),
                         response.usage().inputTokens(), response.usage().outputTokens(), stopReason);
@@ -480,6 +457,32 @@ public class AnthropicService {
             }
         }
         throw new IllegalStateException("Unreachable");
+    }
+
+    /**
+     * F-257 — gate token. Levée d'une {@link PaymentRequiredException} avant tout appel HTTP
+     * Anthropic si le workspace user-level est au-delà de son budget mensuel.
+     * Pour les contextes system-level, le gate est skip (mais le record reste obligatoire).
+     */
+    private void checkGate(AiCallContext ctx) {
+        if (ctx.jobType().isSystemLevel()) {
+            return;
+        }
+        if (planLimitService.isMonthlyTokenBudgetExceeded(ctx.workspaceId())) {
+            log.warn("Monthly token budget exceeded for workspace {} — Anthropic call refused (jobType={}, caseFileId={})",
+                    ctx.workspaceId(), ctx.jobType(), ctx.caseFileId());
+            throw new PaymentRequiredException(PaymentRequiredCode.TOKEN_BUDGET_EXCEEDED,
+                    "Budget tokens mensuel dépassé.");
+        }
+    }
+
+    /**
+     * F-257 — enregistrement automatique de la consommation après réponse Anthropic.
+     * Pour les contextes system-level, {@code userId} est null (autorisé côté
+     * {@link UsageEventService#record}).
+     */
+    private void recordUsage(AiCallContext ctx, int tokensInput, int tokensOutput) {
+        usageEventService.record(ctx.caseFileId(), ctx.userId(), ctx.jobType(), tokensInput, tokensOutput);
     }
 
     private record AnthropicResponse(
