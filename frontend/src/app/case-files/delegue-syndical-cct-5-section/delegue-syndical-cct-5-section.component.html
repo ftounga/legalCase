@@ -1,0 +1,255 @@
+<div class="delegue-syndical-cct-5-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">how_to_reg</mat-icon>
+    <span class="section-title">Délégué syndical — CCT n° 5 (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="delegue-syndical-cct-5-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (CCT n° 5 du 24/05/1971 — statut des délégations syndicales
+            du personnel des entreprises, conclue au CNT, + CCT n° 5bis
+            et 5ter + AR 26/01/1972 + CCT sectorielles). Le délégué
+            syndical français (C. trav. art. L. 2143-1 et s.) suit un
+            régime distinct (désignation par OS représentative dans
+            l'entreprise, durée mandat 4 ans liée aux élections CSE)
+            non mappable à la CCT n° 5.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie l'éligibilité d'un travailleur au <b>statut de
+            délégué syndical CCT n° 5</b> : champ d'application sectoriel
+            (seuil + présence OS), régularité de la désignation par OS
+            représentative (CSC / FGTB / CGSLB) + notification
+            employeur, missions exerçables (négociation CCT d'entreprise,
+            plaintes, information ; suppléance CE/CPPT si absents — art.
+            24) et durée indicative du mandat (4 ans, durée sectorielle
+            standard). Volet protection licenciement (Loi 19/03/1991) :
+            outil distinct {{ '{licenciement-be-protection-deleguee}' }}.
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date désignation * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de désignation par l'OS *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDesignation()"
+                       (ngModelChange)="onDateDesignationChange($event)"
+                       name="dateDesignation" />
+                <mat-hint>Point de départ du mandat indicatif (+ 4 ans CCT sectorielle standard).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Effectif entreprise * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif de l'entreprise *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="effectifEntreprise()"
+                       (ngModelChange)="onEffectifEntrepriseChange($event)"
+                       name="effectifEntreprise" />
+                <mat-hint>Nombre de travailleurs (référence sectorielle).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Seuil sectoriel requis * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Seuil sectoriel requis *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       step="1"
+                       required
+                       [ngModel]="seuilSectorielRequis()"
+                       (ngModelChange)="onSeuilSectorielRequisChange($event)"
+                       name="seuilSectorielRequis" />
+                <mat-hint>Le plus souvent 20 ou 50 selon la CCT sectorielle (par défaut 50).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Statut désignation * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut de la désignation *</mat-label>
+                <mat-select
+                    [value]="statutDesignation()"
+                    (selectionChange)="onStatutDesignationChange($event.value)"
+                    name="statutDesignation"
+                    required>
+                  <mat-option value="DESIGNE_PAR_OS_REPRESENTATIVE">
+                    Désigné par OS représentative + notification employeur
+                  </mat-option>
+                  <mat-option value="NOTIFICATION_EMPLOYEUR_MANQUANTE">
+                    Désigné par OS mais notification employeur manquante
+                  </mat-option>
+                  <mat-option value="PAS_DESIGNE_PAR_OS">
+                    Pas de désignation par OS (auto-proclamation / élection interne)
+                  </mat-option>
+                  <mat-option value="DESIGNATION_CONTESTEE">
+                    Désignation contestée (conflit inter-syndical / représentativité)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Qualification fondée sur le procès-verbal de désignation + courrier de notification employeur.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5-7. Checklist contexte syndical / institutionnel -->
+            <div class="field-full-width checklist-block">
+              <h4 class="checklist-title">
+                <mat-icon>checklist</mat-icon>
+                Contexte syndical et institutionnel
+              </h4>
+
+              <mat-checkbox
+                  [checked]="presenceOsRepresentative()"
+                  (change)="onPresenceOsRepresentativeChange($event.checked)"
+                  name="presenceOsRepresentative">
+                Au moins une OS représentative (CSC / FGTB / CGSLB) présente dans l'entreprise
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="ceExistant()"
+                  (change)="onCeExistantChange($event.checked)"
+                  name="ceExistant">
+                Conseil d'entreprise existant (≥ 100 ETP)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="cpptExistant()"
+                  (change)="onCpptExistantChange($event.checked)"
+                  name="cpptExistant">
+                Comité PPT existant (≥ 50 ETP)
+              </mat-checkbox>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le statut</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="delegue-syndical-cct-5-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Effectif :
+                <span class="mono">{{ result()!.effectifEntreprise }}</span>
+                / seuil sectoriel
+                <span class="mono">{{ result()!.seuilSectorielRequis }}</span>
+                — entreprise
+                {{ result()!.entrepriseDansChamp ? 'dans le champ' : 'hors champ' }} ;
+                désignation
+                <b>{{ result()!.designationReguliere ? 'régulière' : 'irrégulière' }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fin de mandat indicative -->
+          @if (result()!.dateFinMandatIndicative) {
+            <div class="result-fondement" role="region">
+              <mat-icon>schedule</mat-icon>
+              <span>
+                Fin de mandat indicative (+ 4 ans CCT sectorielle standard) :
+                <b><span class="mono">{{ result()!.dateFinMandatIndicative }}</span></b>
+              </span>
+            </div>
+          }
+
+          <!-- Missions exerçables -->
+          @if (result()!.missionsExercables && result()!.missionsExercables.length > 0) {
+            <div class="result-fondement result-missions" role="region">
+              <mat-icon>task_alt</mat-icon>
+              <div class="missions-content">
+                <div class="missions-title">Missions exerçables (CCT 5 art. 3 + art. 24)</div>
+                <ul class="missions-list">
+                  @for (mission of result()!.missionsExercables; track mission) {
+                    <li>{{ mission }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
