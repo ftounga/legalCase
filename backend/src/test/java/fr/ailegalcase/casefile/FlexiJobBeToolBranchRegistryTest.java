@@ -1,0 +1,18 @@
+package fr.ailegalcase.casefile;
+
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * F-JU-03 / SF-219-12 — vérifie que le registre déclare la branche
+ * {@code flexi-job-be:default} attendue par le mapping jurisprudence.
+ */
+class FlexiJobBeToolBranchRegistryTest {
+
+    @Test
+    void knownBranches_returnsDefaultBranch() {
+        assertThat(new FlexiJobBeToolBranchRegistry().knownBranches())
+                .containsExactly("flexi-job-be:default");
+    }
+}

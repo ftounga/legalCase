@@ -492,7 +492,26 @@ class DashboardTileToolIdIntegrityIT {
             // la durée indicative du mandat (4 ans). Outil distinct
             // de SF-213-08 (protection licenciement Loi 19/03/1991).
             // Frontend SF-219-10b à venir.
-            "delegue-syndical-cct-5"
+            "delegue-syndical-cct-5",
+            // SF-219-12 (2026-05-28) : flexi-job-be — backend (présente
+            // PR) Loi-programme 26/12/2013 art. 13 à 28 + Loi 25/04/2014
+            // + Loi 16/11/2015 (ext. boulangerie/coiffure, validée
+            // Cour const. arrêt 107/2017) + Loi-programme 30/10/2018
+            // (ext. commerce détail / agriculture / soins de santé,
+            // suppression plafond cumul pensionnés) + Loi-programme
+            // 28/12/2023 + AR 02/06/2024 (ext. sport / culture /
+            // événementiel / secteur public limité, indexation
+            // flexi-salaire + plafond annuel). Vérifie l'éligibilité
+            // cumulative (condition personnelle travailleur pensionné
+            // OU salarié 4/5 ETP T-3 ; condition sectorielle employeur ;
+            // interdiction cumul même employeur ; formalisme contrat-
+            // cadre + Dimona FLX ; rémunération ≥ flexi-salaire minimum
+            // indexé + revenu annuel ≤ plafond exonéré sauf pensionné).
+            // Frontend SF-219-12b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "flexi-job-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
