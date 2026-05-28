@@ -586,7 +586,42 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "etudiant-jobiste-be"
+            "etudiant-jobiste-be",
+            // SF-219-16 (2026-05-28) : teletravail-be-cct-85-149 —
+            // backend (présente PR) CCT n° 85 du 09/11/2005 (CNT)
+            // concernant le télétravail régulier et structurel
+            // (rendue obligatoire par AR du 13/06/2006 M.B.
+            // 05/09/2006) + CCT n° 149 du 26/01/2021 (CNT) relative
+            // au télétravail recommandé ou obligatoire en raison
+            // de la crise du coronavirus (devenue cadre de référence
+            // du télétravail occasionnel / force majeure) + Loi du
+            // 03/07/1978 art. 17 (obligations du travailleur) + Loi
+            // du 04/08/1996 + Code du bien-être au travail Livre
+            // VIII Titre 1 + Loi du 26/03/2018 art. 16-18 (droit à
+            // la déconnexion par concertation collective) + Loi du
+            // 03/10/2022 « Deal pour l'emploi » M.B. 10/11/2022
+            // (modalités de déconnexion par CCT / règlement de
+            // travail obligatoires pour les entreprises ≥ 20
+            // travailleurs, e.e.v. 01/04/2023). Vérifie la
+            // conformité cumulative (type STRUCTUREL_CCT_85 /
+            // OCCASIONNEL_CCT_149 / INDETERMINE ; volontariat
+            // réciproque ; convention individuelle écrite art. 6
+            // CCT n° 85 ; équipement fourni ou indemnisé art. 9
+            // CCT n° 85 ; indemnité forfaitaire ≤ plafond
+            // ONSS/SPF Finances ; droits sociaux maintenus art. 4
+            // CCT n° 85 ; modalités de déconnexion définies si
+            // effectif ≥ 20). Verdicts :
+            // CONFORME_CCT_85_STRUCTUREL /
+            // CONFORME_CCT_149_OCCASIONNEL /
+            // NON_CONFORME_CONVENTION_ECRITE_MANQUANTE /
+            // NON_CONFORME_EQUIPEMENT_NON_FOURNI /
+            // NON_CONFORME_DROITS_REDUITS /
+            // FRAGILE_DECONNEXION_NON_DEFINIE / A_ANALYSER.
+            // Frontend SF-219-16b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "teletravail-be-cct-85-149"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
