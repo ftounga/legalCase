@@ -1,8 +1,10 @@
 package fr.ailegalcase.blog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.blog.cost.BlogUsageEventType;
 import fr.ailegalcase.blog.cost.IaCostTracker;
 import fr.ailegalcase.blog.cost.IaProvider;
@@ -166,8 +168,9 @@ public class BlogArticleGeneratorService {
 
     private AnthropicResult callSonnet(BlogPromptBuilder.PromptPair prompts) {
         try {
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_BLOG_GENERATION);
             return anthropicService.analyzeWithModel(
-                    sonnetModel, prompts.system(), prompts.user(), sonnetMaxTokens);
+                    ctx, sonnetModel, prompts.system(), prompts.user(), sonnetMaxTokens);
         } catch (Exception e) {
             log.warn("Sonnet call exception: {}", e.getMessage());
             return null;

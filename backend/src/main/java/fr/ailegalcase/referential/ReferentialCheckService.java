@@ -1,6 +1,8 @@
 package fr.ailegalcase.referential;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.notification.InAppNotificationService;
 import fr.ailegalcase.notification.NotificationType;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -112,7 +114,8 @@ public class ReferentialCheckService {
                 entry.getEntryKey(), entry.getLabel(),
                 entry.getValueJson(), entry.getSourceRef() != null ? entry.getSourceRef() : "non spécifiée");
 
-        var result = anthropicService.analyzeFast(SYSTEM_PROMPT, userMessage, MAX_TOKENS);
+        AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_REFERENTIAL_CHECK);
+        var result = anthropicService.analyzeFast(ctx, SYSTEM_PROMPT, userMessage, MAX_TOKENS);
         String content = result.content().trim();
 
         if (content.startsWith("OUTDATED:")) {

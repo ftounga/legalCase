@@ -2,8 +2,10 @@ package fr.ailegalcase.jurisprudencemapping;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -126,7 +128,8 @@ public class ClaudeJurisprudenceEvaluator {
         String userMessage = buildUserMessage(mapping, candidates);
         AnthropicResult result;
         try {
-            result = anthropic.analyze(systemPrompt, userMessage, MAX_TOKENS);
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_JP_BOOTSTRAP);
+            result = anthropic.analyze(ctx, systemPrompt, userMessage, MAX_TOKENS);
         } catch (Exception e) {
             log.warn("F-JU-01 — ClaudeJurisprudenceEvaluator anthropic call failed: {}", e.getMessage());
             return ClaudeEvaluation.none("Claude indisponible: " + e.getMessage());

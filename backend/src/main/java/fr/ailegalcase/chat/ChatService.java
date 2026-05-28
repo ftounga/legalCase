@@ -1,5 +1,6 @@
 package fr.ailegalcase.chat;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnalysisStatus;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
@@ -114,9 +115,15 @@ public class ChatService {
         String userMessage = buildUserMessage(caseAnalysis.getAnalysisResult(),
                 caseFileId, request.question());
 
+        // F-257 — appel synchrone côté API : la PaymentRequiredException levée par le gate
+        // token (budget mensuel dépassé) remonte directement à l'utilisateur via le
+        // ControllerAdvice global (réponse 402). Pas de catch ici — comportement attendu
+        // identique à isChatMessageLimitReached ci-dessus.
+        AiCallContext ctx = AiCallContext.userLevel(workspaceId, user.getId(), caseFileId,
+                JobType.CHAT_MESSAGE);
         AnthropicResult result = useEnriched
-                ? anthropicService.analyze(SYSTEM_PROMPT, userMessage, 2048)
-                : anthropicService.analyzeFast(SYSTEM_PROMPT, userMessage, 2048);
+                ? anthropicService.analyze(ctx, SYSTEM_PROMPT, userMessage, 2048)
+                : anthropicService.analyzeFast(ctx, SYSTEM_PROMPT, userMessage, 2048);
 
         ChatMessage message = new ChatMessage();
         message.setCaseFileId(caseFileId);
@@ -127,8 +134,8 @@ public class ChatService {
         message.setUseEnriched(useEnriched);
         chatMessageRepository.save(message);
 
-        usageEventService.record(caseFileId, user.getId(), JobType.CHAT_MESSAGE,
-                result.promptTokens(), result.completionTokens());
+        // F-257 — record automatique dans AnthropicService.analyze / analyzeFast,
+        // plus de record manuel ici.
 
         return ChatMessageResponse.from(message);
     }

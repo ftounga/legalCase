@@ -1,10 +1,12 @@
 package fr.ailegalcase.casefile.conclusion;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnalysisStatus;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.StrategicOption;
 import fr.ailegalcase.analysis.StrategicOptionRepository;
 import fr.ailegalcase.analysis.StrategicOptionStatus;
@@ -124,8 +126,10 @@ public class CaseConclusionService {
         try {
             log.info("Conclusion generation START — conclusion={} ({} chars user message)",
                     caseConclusionId, prepared.userMessage().length());
+            AiCallContext ctx = AiCallContext.systemLevel(
+                    JobType.SYSTEM_CASE_CONCLUSION, prepared.caseFileId());
             result = anthropicService.analyzeWithSystemCache(
-                    prepared.systemPrompt(), prepared.userMessage(), MAX_TOKENS);
+                    ctx, prepared.systemPrompt(), prepared.userMessage(), MAX_TOKENS);
             if (result.content() == null || result.content().isBlank()) {
                 throw new IllegalStateException("Réponse IA vide");
             }
@@ -185,7 +189,7 @@ public class CaseConclusionService {
                 conclusion.getStageCode(), conclusion.getPositionCode());
         String systemPrompt = promptBuilder.buildSystemPrompt(key, styleSignatures);
         String userMessage = promptBuilder.buildUserMessage(input);
-        return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty());
+        return new PreparedConclusion(systemPrompt, userMessage, !styleSignatures.isEmpty(), caseFileId);
     }
 
     /**
@@ -372,7 +376,10 @@ public class CaseConclusionService {
      *
      * @param styleApplied SF-98-47 — vrai si le prompt système intègre une consigne
      *                     d'adaptation au style appris du cabinet
+     * @param caseFileId   F-257 — identifiant du dossier rattaché, propagé dans le
+     *                     {@link AiCallContext} pour traçabilité {@code usage_events}
      */
-    record PreparedConclusion(String systemPrompt, String userMessage, boolean styleApplied) {
+    record PreparedConclusion(String systemPrompt, String userMessage, boolean styleApplied,
+                              UUID caseFileId) {
     }
 }

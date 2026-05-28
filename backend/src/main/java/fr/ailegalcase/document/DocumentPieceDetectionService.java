@@ -2,8 +2,10 @@ package fr.ailegalcase.document;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.document.vision.PiecesPersistedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,7 +211,18 @@ public class DocumentPieceDetectionService {
             // SF-145-09 : prompt construit dynamiquement avec les types applicables
             // au domaine du workspace.
             String systemPrompt = buildSystemPrompt(legalDomain);
-            AnthropicResult result = anthropicService.analyze(systemPrompt, truncated, 2048);
+            UUID resolvedCaseFileId = null;
+            try {
+                if (extraction.getDocument().getCaseFile() != null) {
+                    resolvedCaseFileId = extraction.getDocument().getCaseFile().getId();
+                }
+            } catch (Exception ignored) {
+                // fail-open : si la résolution du caseFileId échoue, on continue sans.
+            }
+            AiCallContext ctx = resolvedCaseFileId != null
+                    ? AiCallContext.systemLevel(JobType.SYSTEM_PIECE_DETECTION, resolvedCaseFileId)
+                    : AiCallContext.systemLevel(JobType.SYSTEM_PIECE_DETECTION);
+            AnthropicResult result = anthropicService.analyze(ctx, systemPrompt, truncated, 2048);
             // SF-145-05 : log diagnostic de la réponse brute (tronquée 400 chars)
             // pour identifier les cas où Sonnet sur-segmente ou mal classifie.
             String rawContent = result.content();

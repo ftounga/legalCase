@@ -168,8 +168,10 @@ public class JurisprudenceVerificationService {
 
             // Un seul appel Sonnet : extraction (complément Claude) + vérification
             // fusionnées. System prompt mis en cache (F-142-04) pour réutilisation.
+            AiCallContext ctx = AiCallContext.systemLevel(
+                    JobType.SYSTEM_JURISPRUDENCE_VERIFICATION, caseFileId);
             AnthropicResult result = anthropicService.analyzeWithSystemCache(
-                    SYSTEM_PROMPT, userPrompt, VERIFICATION_MAX_TOKENS);
+                    ctx, SYSTEM_PROMPT, userPrompt, VERIFICATION_MAX_TOKENS);
 
             List<JurisprudenceCheck> checks = parseAndBuildChecks(
                     result.content(), analysis, caseFile, documents);

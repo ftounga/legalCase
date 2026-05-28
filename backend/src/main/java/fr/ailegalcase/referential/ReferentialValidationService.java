@@ -1,6 +1,8 @@
 package fr.ailegalcase.referential;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -50,7 +52,8 @@ public class ReferentialValidationService {
                     Valeur proposée : %s
                     """.formatted(domain, type, key, label, currentValueJson, proposedValueJson);
 
-            var result = anthropicService.analyzeFast(SYSTEM_PROMPT, userMessage, MAX_TOKENS);
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_REFERENTIAL_CHECK);
+            var result = anthropicService.analyzeFast(ctx, SYSTEM_PROMPT, userMessage, MAX_TOKENS);
             String content = result.content().trim();
 
             if (content.startsWith("WARNING:")) {

@@ -2,8 +2,10 @@ package fr.ailegalcase.jurisprudencemapping;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -113,7 +115,8 @@ public class JurisprudenceBeWebSearchClient {
 
         AnthropicResult result;
         try {
-            result = anthropic.analyzeWithWebSearch(SYSTEM_PROMPT, userMessage, MAX_TOKENS, MAX_WEB_SEARCHES);
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_JP_BOOTSTRAP);
+            result = anthropic.analyzeWithWebSearch(ctx, SYSTEM_PROMPT, userMessage, MAX_TOKENS, MAX_WEB_SEARCHES);
         } catch (Exception e) {
             log.warn("F-JU-04 — JurisprudenceBeWebSearchClient anthropic call failed for query='{}': {}",
                     query, e.getMessage());

@@ -1,7 +1,9 @@
 package fr.ailegalcase.stylelearning;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.storage.StorageService;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -105,7 +107,9 @@ public class StyleCorpusExtractionService {
             if (text == null || text.isBlank()) {
                 throw new IllegalStateException("Texte extrait vide — document illisible.");
             }
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_STYLE_LEARNING);
             AnthropicResult result = anthropicService.analyzeWithSystemCache(
+                    ctx,
                     promptBuilder.buildSystemPrompt(),
                     promptBuilder.buildUserMessage(text),
                     StyleSignaturePromptBuilder.MAX_TOKENS);

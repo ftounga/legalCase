@@ -1,7 +1,9 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.ocr.OcrResult;
 import fr.ailegalcase.ocr.OcrService;
 import fr.ailegalcase.storage.StorageService;
@@ -377,7 +379,12 @@ public class ExtractionService {
             String visionModel = visionProps.getModel();
             AnthropicResult result;
             try {
-                result = anthropicService.analyzeWithImages(visionModel, VIDEO_VISION_SYSTEM_PROMPT,
+                UUID caseFileId = (docRef != null && docRef.getCaseFile() != null)
+                        ? docRef.getCaseFile().getId() : null;
+                AiCallContext ctx = caseFileId != null
+                        ? AiCallContext.systemLevel(JobType.SYSTEM_VISION_ENRICHMENT, caseFileId)
+                        : AiCallContext.systemLevel(JobType.SYSTEM_VISION_ENRICHMENT);
+                result = anthropicService.analyzeWithImages(ctx, visionModel, VIDEO_VISION_SYSTEM_PROMPT,
                         frames, "image/png", userText, 2000);
             } catch (Exception e) {
                 log.error("Vision API failed for video document {} — {}",

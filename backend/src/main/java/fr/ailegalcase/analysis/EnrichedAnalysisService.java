@@ -5,6 +5,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.casefile.StatutoryDeadlineService;
 import fr.ailegalcase.chat.ChatMessage;
 import fr.ailegalcase.chat.ChatMessageRepository;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -115,7 +116,8 @@ public class EnrichedAnalysisService {
     }
 
     record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
-                                     AnalysisLimitsProperties.LevelLimits limits, UUID previousAnalysisId) {}
+                                     AnalysisLimitsProperties.LevelLimits limits, UUID previousAnalysisId,
+                                     UUID workspaceId, UUID userId) {}
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -227,6 +229,19 @@ public class EnrichedAnalysisService {
         PreparedEnrichedAnalysis prepared = self.prepareEnrichedAnalysis(message);
         if (prepared == null) return;
 
+        // F-257 — résolution du contexte AiCallContext user-level. Si manquant → FAILED.
+        if (prepared.workspaceId() == null || prepared.userId() == null || prepared.caseFileId() == null) {
+            log.warn("EnrichedAnalysis caseFile {} missing user/workspace context " +
+                            "(userId={}, workspaceId={}, caseFileId={}) — analysis skipped",
+                    caseFileId, prepared.userId(), prepared.workspaceId(), prepared.caseFileId());
+            self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), null,
+                    new IllegalStateException("Missing AiCallContext"), prepared.limits(),
+                    prepared.previousAnalysisId());
+            return;
+        }
+        AiCallContext ctx = AiCallContext.userLevel(prepared.workspaceId(), prepared.userId(),
+                prepared.caseFileId(), JobType.ENRICHED_ANALYSIS);
+
         AnthropicResult result = null;
         Exception failure = null;
         try {
@@ -248,7 +263,7 @@ public class EnrichedAnalysisService {
             try {
                 PartialJsonSectionExtractor extractor = new PartialJsonSectionExtractor();
                 result = anthropicService.analyzeWithSystemCacheStreaming(
-                        prepared.systemPrompt(), prepared.prompt(), 64000,
+                        ctx, prepared.systemPrompt(), prepared.prompt(), 64000,
                         delta -> {
                             chunkCount.incrementAndGet();
                             try {
@@ -272,12 +287,17 @@ public class EnrichedAnalysisService {
                     caseFileId, chunkCount.get(), sectionCount.get(), persistCount.get());
             if (result == null) {
                 result = anthropicService.analyzeWithSystemCache(
-                        prepared.systemPrompt(), prepared.prompt(), 64000);
+                        ctx, prepared.systemPrompt(), prepared.prompt(), 64000);
             }
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Enriched analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
                     result.promptTokens(), result.completionTokens());
+        } catch (PaymentRequiredException pre) {
+            // F-257 — quota dépassé → FAILED localement, ne pas propager dans le listener RabbitMQ.
+            log.warn("Token budget exceeded during enriched analysis caseFile {} — analysis FAILED (workspace={})",
+                    caseFileId, prepared.workspaceId());
+            failure = pre;
         } catch (Exception e) {
             log.error("Enriched analysis FAILED for caseFile {} (total {}ms)", caseFileId,
                     System.currentTimeMillis() - startMs, e);
@@ -467,8 +487,14 @@ public class EnrichedAnalysisService {
         String prompt = (piecesContext == null || piecesContext.isEmpty())
                 ? basePrompt
                 : piecesContext + "\n" + basePrompt;
+        // F-257 — pré-résolution workspaceId + userId pour la construction de
+        // AiCallContext dans consumeReAnalysis (un seul ctx pour streaming + fallback sync).
+        UUID workspaceId = ws != null ? ws.getId()
+                : caseFileRepository.findWorkspaceIdById(caseFileId).orElse(null);
+        UUID userId = caseFileRepository.findCreatedByUserIdById(caseFileId).orElse(null);
+
         return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits,
-                previousAnalysis.getId());
+                previousAnalysis.getId(), workspaceId, userId);
     }
 
     @Transactional
@@ -612,13 +638,8 @@ public class EnrichedAnalysisService {
             }
         });
 
-        if (finalStatus == AnalysisStatus.DONE) {
-            int promptTokens = enrichedAnalysis.getPromptTokens();
-            int completionTokens = enrichedAnalysis.getCompletionTokens();
-            caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
-                usageEventService.record(caseFileId, userId, JobType.ENRICHED_ANALYSIS,
-                        promptTokens, completionTokens));
-        }
+        // F-257 — record automatique dans AnthropicService.analyzeWithSystemCacheStreaming
+        // / analyzeWithSystemCache, plus de record manuel ici.
     }
 
     /**
@@ -650,7 +671,11 @@ public class EnrichedAnalysisService {
                 """;
 
         try {
-            AnthropicResult result = anthropicService.analyzeFast(systemPrompt, chatText, 512);
+            // F-257 — helper Haiku 512 tokens system-level (résumé chat pré-re-analyse).
+            // Skip gate user mais record obligatoire (JobType.SYSTEM_CHAT_SUMMARY) avec
+            // userId=null pour traçabilité globale du coût Anthropic.
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_CHAT_SUMMARY, caseFileId);
+            AnthropicResult result = anthropicService.analyzeFast(ctx, systemPrompt, chatText, 512);
             String summary = result.content();
             return (summary != null && !summary.isBlank()) ? summary.trim() : null;
         } catch (Exception e) {

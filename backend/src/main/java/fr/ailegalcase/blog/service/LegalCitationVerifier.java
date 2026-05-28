@@ -1,8 +1,10 @@
 package fr.ailegalcase.blog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,8 +55,9 @@ public class LegalCitationVerifier {
         BlogPromptBuilder.PromptPair prompts = promptBuilder.buildHaikuPrompt(input);
 
         try {
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_BLOG_GENERATION);
             AnthropicResult result = anthropicService.analyzeWithModel(
-                    haikuModel, prompts.system(), prompts.user(), maxTokens);
+                    ctx, haikuModel, prompts.system(), prompts.user(), maxTokens);
             String json = stripJsonFences(result.content());
             LegalCitationVerdict verdict = objectMapper.readValue(json, LegalCitationVerdict.class);
             boolean hasHallucination = verdict.verdicts() != null && verdict.verdicts().stream()
