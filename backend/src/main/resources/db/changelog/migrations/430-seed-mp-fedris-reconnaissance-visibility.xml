@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="0fab0729-b222-4a4a-ad83-364de0ae3d0d" author="claude">
+        <comment>
+            SF-219-28b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel MP Fedris reconnaissance (mp-fedris-reconnaissance,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-28 (migration 428).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs medico-juridiques propres au regime de la
+            reconnaissance d'une maladie professionnelle Fedris BE :
+            qualification de la maladie (liste fermee AR 28/03/1969
+            modifie 06/12/2018 — sections 1.x agents chimiques, 2.x
+            agents physiques notamment 2.1 vibrations, 2.2 bruit, 2.3
+            amiante, 3.x agents biologiques, 4.x maladies cutanees et
+            respiratoires, 5.x maladies musculosquelettiques, 6.x
+            cancers professionnels / systeme ouvert art. 30bis lois
+            coordonnees 03/06/1970 — preuve causalite directe et
+            determinante Cass. BE 28/05/2008 S.07.0033.F), code et
+            libelle medical de la pathologie issue du rapport
+            specialiste, dates (constatation medicale, connaissance du
+            caractere professionnel point de depart prescription
+            triennale art. 31, declaration Fedris envisagee art. 24),
+            exposition professionnelle au risque correspondant (CV
+            professionnel, fiches de poste, mesures d'ambiance, registre
+            amiante art. 23 AR 16/03/2006, attestations employeurs
+            successifs), caracterisation du lien causal direct et
+            determinant (rapports medicaux specialistes contradictoires,
+            bibliographie scientifique relation dose-effet, exclusion
+            facteurs personnels predominants — Cass. BE 04/02/2002
+            S.01.0095.F caractere direct et essentiel). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (qualification
+               medico-juridique, codes nomenclature AR 28/03/1969,
+               dates medicales, exposition documentee, causalite directe
+               et determinante) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une maladie professionnelle suspecte
+               (constatation medicale par specialiste, suspicion legitime
+               art. 24 lois coordonnees, demande de declaration Fedris,
+               refus de reconnaissance notifie a la victime, contestation
+               du taux IPP attribue, dossier d'expertise medicale
+               judiciaire, recours tribunal du travail art. 580 1° C.
+               jud., action en responsabilite civile complementaire art.
+               51 lois coordonnees). L'outil restitue le verdict
+               6 etats (MALADIE_LISTE_FERMEE_PRESOMPTION presomption art.
+               32 / MALADIE_LISTE_FERMEE_EXPOSITION_INSUFFISANTE
+               presomption bloquee / SYSTEME_OUVERT_CAUSALITE_DIRECTE_
+               DETERMINANTE art. 30bis favorable / SYSTEME_OUVERT_
+               CAUSALITE_INSUFFISANTE refus probable Fedris / DECLARATION_
+               PRESCRITE prescription triennale art. 31 / A_QUALIFIER
+               inputs ambigus) avec le calcul de la prescription
+               triennale art. 31 lois coordonnees 03/06/1970 a compter
+               de la connaissance du caractere professionnel.
+               Pertinent des l'ouverture du dossier pour eclairer la
+               strategie de reconnaissance (declaration immediate vs
+               instruction prealable du dossier medical, basculement
+               liste fermee vers systeme ouvert si exposition
+               insuffisamment documentee, expertise medicale
+               contradictoire Fedris, recours tribunal du travail art.
+               580 1° C. jud. delai 1 an art. 23 lois coordonnees,
+               action residuelle responsabilite civile art. 1382 anc.
+               C. civ. / 5.83 nouv. C. civ. prescription 5 ans art.
+               2262bis / 5.149 nouv. C. civ.).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-145) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 travail-noir-be-dimona (SF-219-26b)
+                 - 145 inastri-statut-travailleur-independant (SF-219-27b)
+                 - 146 cette migration (mp-fedris-reconnaissance)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY mp-fedris-reconnaissance
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-28b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id mp-fedris-reconnaissance deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-28 (PR
+            #1439, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Lois coordonnees du 03/06/1970 relatives a la prevention
+              des maladies professionnelles et a la reparation des
+              dommages resultant de celles-ci (M.B. 27/08/1970) :
+                * art. 30 — systeme de liste fermee : sont reconnues les
+                  maladies inscrites sur la liste dressee par le Roi ;
+                * art. 30bis (Loi du 29/12/1990) — systeme ouvert : peut
+                  egalement etre reconnue toute maladie non listee pour
+                  laquelle la victime etablit que le lien causal avec
+                  l'exposition professionnelle est direct et
+                  determinant ;
+                * art. 31 — prescription triennale de l'action en
+                  reparation a compter de la connaissance du caractere
+                  professionnel ;
+                * art. 32 — presomption juridique de causalite pour les
+                  maladies de la liste fermee ;
+                * art. 53 — recours tribunal du travail dans le delai
+                  d'un an art. 580 1° C. jud. ;
+                * art. 24 — declaration immediate des qu'il y a soupcon
+                  legitime ;
+                * art. 34-37 — indemnites (incapacite temporaire 90 %
+                  remuneration moyenne, incapacite permanente % IPP x
+                  remuneration de base plafonnee, capital deces) ;
+                * art. 51 — action residuelle responsabilite civile.
+            - AR du 28/03/1969 (M.B. 04/04/1969) dressant la liste des
+              maladies professionnelles donnant lieu a reparation,
+              modifie par l'AR du 06/12/2018 (M.B. 24/12/2018). Sections
+              1.x agents chimiques, 2.x agents physiques (notamment 2.1
+              vibrations, 2.2 bruit, 2.3 amiante), 3.x agents
+              biologiques, 4.x maladies cutanees et respiratoires, 5.x
+              maladies musculosquelettiques (section ouverte par l'AR
+              du 06/12/2018), 6.x cancers professionnels.
+            - AR du 16/12/1985 (M.B. 31/12/1985) relatif aux
+              travailleurs occupes a un travail comportant un risque
+              d'apparition d'une maladie professionnelle — modalites du
+              systeme ouvert.
+            - Loi du 11/01/2018 (M.B. 12/02/2018) portant l'organisation
+              administrative de Fedris — fusion FMP (Fonds des Maladies
+              Professionnelles) et FAT (Fonds des Accidents du Travail)
+              au 01/01/2017.
+            - Cass. BE 28/05/2008 S.07.0033.F — systeme ouvert :
+              l'exposition professionnelle doit etre la cause directe et
+              determinante de la maladie ; un simple facteur favorisant
+              parmi d'autres ne suffit pas.
+            - Cass. BE 04/02/2002 S.01.0095.F — confirme le caractere
+              direct et essentiel requis pour la reconnaissance en
+              systeme ouvert.
+            - Cass. BE 13/12/1989 Pas. 1990 I 451 — presomption art. 32
+              lois coordonnees est juridique et non medicale, mais
+              renversable par la preuve contraire de l'absence de lien
+              causal.
+            - Cour const. arret 51/2008 du 13/03/2008 — conformite du
+              regime de reparation forfaitaire MP au principe d'egalite
+              et au droit a la reparation integrale du prejudice
+              corporel.
+
+            Regime BE-only — le regime francais de reconnaissance MP
+            (CPAM, tableaux de l'art. L. 461-2 CSS, comite regional de
+            reconnaissance des maladies professionnelles CRRMP art. L.
+            461-1 CSS, prescription 2 ans art. L. 461-5 CSS, taux IPP
+            attribue par medecin conseil CPAM, recours TASS / TJ pole
+            social art. L. 142-1 et s. CSS, reparation forfaitaire
+            indemnite journaliere 60 % puis 80 % salaire art. L. 433-1
+            CSS, rente IPP art. L. 434-2 CSS) est juridiquement
+            distinct :
+            - CPAM (URSSAF / CARSAT) et non Fedris — modalites
+              administratives differentes (ameli.fr declaration en
+              ligne, formulaires S-6100 et S-6909 et non formulaires
+              501 / 503 Fedris) ;
+            - tableaux FR (art. R. 461-3 CSS — 117 tableaux numerotes
+              MP01 a MP117) et non sections AR 28/03/1969 BE (sections
+              1.x a 6.x), avec criteres specifiques par tableau (delai
+              de prise en charge, liste limitative ou indicative
+              d'exposition) ;
+            - prescription FR 2 ans art. L. 461-5 CSS a compter du
+              certificat medical initial ou de la cessation du travail,
+              vs prescription BE 3 ans art. 31 lois coordonnees a
+              compter de la connaissance du caractere professionnel ;
+            - voie de recours FR : commission de recours amiable CPAM
+              puis tribunal judiciaire pole social art. L. 142-1 CSS
+              (anciennement TASS jusqu'au 31/12/2018), vs voie BE :
+              tribunal du travail art. 580 1° C. jud. delai 1 an art.
+              23 lois coordonnees, requete contradictoire art. 1034bis
+              C. jud. avec rapport medical certifie ;
+            - reparation FR forfaitaire (IJ 60 % puis 80 % salaire, IPP
+              rente capitalisee art. L. 434-2 CSS, prestation
+              complementaire pour recours utile art. L. 434-2 CSS),
+              vs reparation BE forfaitaire (90 % remuneration moyenne
+              ITT art. 34, IPP % attribue par Fedris x remuneration de
+              base plafonnee art. 35, capital deces art. 37, frais
+              medicaux art. 31 octies).
+            Aucune transposition mecanique. L'outil BE expose les 6
+            verdicts propres au cadre Fedris (presomption liste fermee
+            art. 32 / exposition insuffisante / systeme ouvert
+            causalite etablie art. 30bis / causalite insuffisante /
+            prescription triennale art. 31 / A_QUALIFIER).
+
+            Distinct de :
+            - rappel-salaire-be (prio 110) — chiffrage civil
+              d'arrieres de salaire avec interets moratoires 10 %.
+              Distincts (regime salaire vs regime MP) mais
+              complementaires lorsque l'employeur retient indument le
+              salaire de la victime pendant la procedure de
+              reconnaissance MP.
+            - statut-unique-preavis (prio 111) — calcul preavis
+              statut unique 2014. Distincts (rupture de contrat vs
+              maladie professionnelle) mais complementaires lorsque la
+              maladie professionnelle conduit a un licenciement (cause
+              de rupture distincte de la MP elle-meme — la
+              reconnaissance MP ouvre droit a indemnites Fedris en plus
+              de l'indemnite de rupture).
+            - protection-grossesse, protection-deleguee — regimes
+              specifiques de protection contre le licenciement.
+              Distincts mais complementaires lorsque la victime MP
+              beneficie d'une autre protection.
+            - rcc-be-conditions, rcc-be-metiers-lourds — regime du
+              chomage avec complement d'entreprise (RCC). Distincts.
+            - code-penal-social-be (prio 142, SF-219-24b) — qualifie
+              l'infraction sur l'echelle 1-4. Distincts (MP est un
+              regime de reparation, pas une infraction).
+            - auditorat-travail-be (prio 143, SF-219-25b) — outil
+              procedural d'analyse du dossier auditorat. Distincts
+              (reparation civile Fedris vs poursuite penale).
+            - travail-noir-be-dimona (prio 144, SF-219-26b) — defaut
+              DIMONA. Distincts mais articulation possible lorsque la
+              victime MP est un travailleur non declare (cumul
+              presomption art. 328 § 1 + reconnaissance MP malgre
+              l'absence de declaration).
+            - inastri-statut-travailleur-independant (prio 145,
+              SF-219-27b) — qualification du statut INASTI / faux
+              independant. Distincts (statut social vs reparation MP)
+              mais complementaires lorsque l'avocat doit articuler la
+              qualification du statut (salarie vs independant) avec la
+              voie de reparation MP : seul le salarie beneficie du
+              regime Fedris des lois coordonnees 03/06/1970 ;
+              l'independant releve d'un regime distinct INAMI (couverture
+              accidents du travail et maladies professionnelles AR
+              20/12/1971 et arretes ulterieurs, en general moins
+              avantageux que Fedris).
+
+            Cet outil intervient en amont d'une declaration Fedris ou
+            en aval d'un refus de reconnaissance pour eclairer la
+            strategie de recours (renforcer l'expertise medicale,
+            basculer liste fermee vers systeme ouvert, saisir le
+            tribunal du travail, exercer l'action civile residuelle
+            art. 51 lois coordonnees).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('0fab0729-b222-4a4a-ad83-364de0ae3d0d', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'mp-fedris-reconnaissance', 'ALWAYS_ON', NULL, NULL, 146);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '0fab0729-b222-4a4a-ad83-364de0ae3d0d';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

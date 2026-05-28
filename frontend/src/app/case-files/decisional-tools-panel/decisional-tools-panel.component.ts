@@ -225,6 +225,8 @@ import { AuditoratTravailBeSectionComponent } from '../auditorat-travail-be-sect
 import { TravailNoirBeDimonaSectionComponent } from '../travail-noir-be-dimona-section/travail-noir-be-dimona-section.component';
 // SF-219-27b : section décisionnelle INASTI statut travailleur indépendant BE.
 import { InastriStatutTravailleurIndependantSectionComponent } from '../inastri-statut-travailleur-independant-section/inastri-statut-travailleur-independant-section.component';
+// SF-219-28b : section décisionnelle MP Fedris reconnaissance BE.
+import { MpFedrisReconnaissanceSectionComponent } from '../mp-fedris-reconnaissance-section/mp-fedris-reconnaissance-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3158,6 +3160,36 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-28b : MP Fedris reconnaissance — Lois coordonnees du
+      // 03/06/1970 + AR 28/03/1969 liste fermee modifie 06/12/2018 +
+      // AR 16/12/1985 systeme ouvert + Loi 11/01/2018 reformant Fedris.
+      // Analyse 6 verdicts (MALADIE_LISTE_FERMEE_PRESOMPTION art. 32 /
+      // MALADIE_LISTE_FERMEE_EXPOSITION_INSUFFISANTE / SYSTEME_OUVERT_
+      // CAUSALITE_DIRECTE_DETERMINANTE art. 30bis / SYSTEME_OUVERT_
+      // CAUSALITE_INSUFFISANTE / DECLARATION_PRESCRITE prescription
+      // triennale art. 31 / A_QUALIFIER) avec calcul de la prescription
+      // triennale a compter de la connaissance du caractere
+      // professionnel. ALWAYS_ON priority 146 (au-dessus de
+      // inastri-statut-travailleur-independant = 145 SF-219-27b,
+      // travail-noir-be-dimona = 144 SF-219-26b, auditorat-travail-be =
+      // 143 SF-219-25b). Pre-fill IA V1 : aucun champ (alignement
+      // pattern uniforme F-213 / F-219 — typeMaladie, codeMaladieListe,
+      // libelleMaladie, dates, exposition, causalite non extractibles
+      // du dossier salarie generique — relevent du rapport medical
+      // specialiste, du CV professionnel, du carnet de surveillance
+      // sante AR 28/05/2003, et de la nomenclature AR 28/03/1969).
+      ['mp-fedris-reconnaissance', {
+        displayLabel: 'MP Fedris reconnaissance (Belgique)',
+        component: MpFedrisReconnaissanceSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4530,12 +4562,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['auditorat-travail-be', 'VALIDITE'],
     // SF-219-26b : Travail noir BE — DIMONA
     ['travail-noir-be-dimona', 'VALIDITE'],
-    // SF-219-27b : INASTI statut travailleur indépendant BE — qualification
-    // salarié / indépendant + présomption art. 328 § 1 / 337/2 (Loi-programme
-    // I 27/12/2006 art. 333). Thème VALIDITE (parité avec les autres outils
-    // de qualification BE : code-penal-social-be, auditorat-travail-be,
-    // travail-noir-be-dimona, discrimination-be-handicap-amenagement).
+    // SF-219-27b : INASTI statut travailleur indépendant BE
     ['inastri-statut-travailleur-independant', 'VALIDITE'],
+    // SF-219-28b : MP Fedris reconnaissance BE
+    ['mp-fedris-reconnaissance', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
