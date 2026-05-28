@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b1468245-f452-42e5-b890-a9dfb0ec727b" author="claude">
+        <comment>
+            SF-219-27b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel INASTI statut travailleur independant BE
+            (inastri-statut-travailleur-independant, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses creee par SF-219-27
+            (migration 427).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs contractuels propres a la qualification
+            INASTI / salarie : volonte des parties exprimee dans la
+            convention (INDEPENDANT_EXPLICITE contrat d'entreprise /
+            prestations / SALARIE_EXPLICITE contrat de travail Loi
+            03/07/1978 / IMPLICITE_OU_AMBIGUE qualification a deduire
+            des comportements), modalites d'execution reelle (liberte
+            d'organisation du temps de travail TOTALE_INDEPENDANT /
+            PARTIELLE / AUCUNE_SALARIE, liberte d'organisation du
+            travail, controle hierarchique art. 333 Loi-programme I
+            27/12/2006), secteur economique (construction CP 124 /
+            transport / gardiennage / nettoyage / agriculture-
+            horticulture art. 337/2 § 1 / autre), nombre de criteres
+            sectoriels indiquant le salariat (0-9), statut administratif
+            declare (INDEPENDANT_INASTI affilie caisse d'assurances
+            sociales AR n° 38 du 27/07/1967 / SALARIE_DIMONA Loi-
+            programme 24/12/2002 / SANS_DECLARATION presomption art.
+            328 § 1), presence DIMONA, presence d'autres clients (indice
+            d'autonomie economique Cass. BE 23/12/2002 S.02.0021.F).
+            Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception
+            isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (volonte des
+               parties contractuelle, modalites d'execution reelle,
+               criteres de subordination, secteur economique, statut
+               administratif, presence d'autres clients) non couverte
+               V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier evoque une
+               qualification ambigue salarie / independant (controle
+               INASTI sur affiliation, controle ONSS sur DIMONA,
+               citation en requalification devant le tribunal du
+               travail Cass. BE 06/12/2010 S.10.0067.F, action en
+               cessation, audition par l'auditorat du travail dans le
+               cadre d'une suspicion de faux independant Loi-programme
+               I 27/12/2006 art. 328 et s., negociation transactionnelle
+               INASTI / ONSS pour eviter le recouvrement retroactif).
+               L'outil qualifie la nature de la relation (4 criteres
+               generaux art. 333 + presomption sectorielle art. 337/2
+               § 1 ou presomption generale art. 328 § 1) et restitue le
+               verdict (INDEPENDANT_CONFIRME / SALARIE_REQUALIFIE /
+               FAUX_INDEPENDANT_PRESUMPTION_SECTORIELLE /
+               PRESUMPTION_GENERALE_SALARIAT / A_QUALIFIER).
+               Pertinent des l'ouverture du dossier pour eclairer la
+               strategie (negociation INASTI, plaider la primaute de
+               l'execution reelle, contestation de la presomption
+               sectorielle Cour const. arret 167/2013 du 19/12/2013).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-144) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 travail-noir-be-dimona (SF-219-26b)
+                 - 145 cette migration (inastri-statut-travailleur-independant)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY inastri-statut-travailleur-
+            independant livree dans decisional-tools-panel.component.ts
+            (cf. SF-219-27b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id inastri-statut-travailleur-independant deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-27 (PR
+            #1438, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 27/06/1969 revisant l'arrete-loi du 28/12/1944
+              concernant la securite sociale des travailleurs salaries
+              (regime general ONSS).
+            - AR n° 38 du 27/07/1967 organisant le statut social des
+              travailleurs independants (M.B. 29/07/1967) — affiliation
+              caisse d'assurances sociales et cotisations independants.
+            - AR du 19/12/1967 portant reglement general en execution
+              de l'AR n° 38 — modalites pratiques.
+            - Loi-programme I du 27/12/2006 (M.B. 28/12/2006) titre XIII
+              ch. V « De la nature des relations de travail » :
+                * art. 328 § 1 — presomption simple (renversable) de
+                  salariat en l'absence de DIMONA, ouvrant les droits
+                  de la securite sociale des travailleurs salaries ;
+                * art. 333 — 4 criteres generaux de qualification
+                  (volonte des parties, liberte d'organisation du
+                  temps de travail, liberte d'organisation du travail,
+                  exercice d'un controle hierarchique) — « doctrine
+                  Bart Buysse » ;
+                * art. 337/1 a 337/3 (Loi 25/08/2012) — criteres
+                  sectoriels pour 5 secteurs vises (construction CP
+                  124, transport de choses pour compte de tiers,
+                  gardiennage et securite privee, nettoyage,
+                  agriculture / horticulture extension AR 29/10/2013) ;
+                  9 criteres specifiques + presomption refragable en
+                  cas de majorite indiquant le salariat (Cour const.
+                  arret 167/2013 du 19/12/2013 conformite au proces
+                  equitable).
+            - Cass. BE 23/12/2002 S.02.0021.F — primaute de l'execution
+              reelle sur la qualification conventionnelle (doctrine
+              Bart Buysse fondatrice).
+            - Cass. BE 06/12/2010 S.10.0067.F — caractere simple
+              (renversable) de la presomption art. 328 § 1.
+            - Cour const. arret 167/2013 du 19/12/2013 — conformite de
+              la liste sectorielle et de la presomption sectorielle
+              art. 337/2 aux principes du proces equitable.
+            - Loi du 03/07/1978 relative aux contrats de travail —
+              regime salarial applicable en cas de requalification.
+            - Loi du 22/04/2003 art. 28 — amende ONSS forfaitaire 3 ×
+              cotisations dues si requalification salariat retroactive
+              avec absence DIMONA (articulation SF-219-26).
+            - Code penal social art. 181 (Loi 06/06/2010) — sanction
+              defaut DIMONA niveau 4 en cas de requalification cumulee
+              a absence DIMONA (articulation SF-219-26).
+
+            Regime BE-only — le regime francais de qualification
+            salarie / independant (C. trav. art. L. 8221-6 presomption
+            de non-salariat des personnes inscrites aux registres
+            commerce, metiers, agriculture, autoentrepreneur ;
+            renversable Cass. soc. 19/12/2000 n° 98-40572 indices
+            faisceau ; URSSAF redressement majoration 25 % art. R.
+            243-18 ; Loi Madelin 11/02/1994 ; statut autoentrepreneur
+            Loi 04/08/2008 LME) constitue un dispositif juridiquement
+            distinct :
+            - presomption de non-salariat (sens inverse de la
+              presomption BE art. 328 § 1 — presomption de salariat
+              en absence de DIMONA) ;
+            - pas de criteres sectoriels par categorie (presomption
+              uniforme inscription registre) ;
+            - charge probatoire portee par celui qui invoque le
+              salariat (URSSAF, salarie en requalification) ;
+            - sanctions pecuniaires URSSAF redressement majoration
+              25 % art. R. 243-18 et non amende forfaitaire 3 × ONSS ;
+            - procedure : Conseil de prud'hommes (chambre sociale)
+              pour requalification et non auditorat du travail BE.
+            Aucune transposition mecanique. L'outil BE expose les 5
+            verdicts (INDEPENDANT_CONFIRME / SALARIE_REQUALIFIE /
+            FAUX_INDEPENDANT_PRESUMPTION_SECTORIELLE /
+            PRESUMPTION_GENERALE_SALARIAT / A_QUALIFIER) propres au
+            cadre INASTI / ONSS + Loi-programme I 27/12/2006.
+
+            Distinct de :
+            - travail-noir-be-dimona (prio 144, SF-219-26b) — quantifie
+              les consequences materielles (cotisations ONSS
+              retroactives, amende forfaitaire 3 ×, sanction art. 181)
+              du defaut DIMONA. Distincts mais complementaires :
+              SF-219-27 qualifie la NATURE de la relation (salarie /
+              independant) ; SF-219-26 chiffre le PASSIF materiel du
+              defaut DIMONA si une requalification salariat est retenue.
+              Articulation cas reel : l'avocat utilise SF-219-27 pour
+              qualifier la relation a partir des 4 criteres generaux +
+              criteres sectoriels eventuels ; puis SF-219-26 pour
+              chiffrer le passif retroactif (cotisations + amende +
+              art. 181) si requalification.
+            - auditorat-travail-be (prio 143, SF-219-25b) — outil
+              procedural d'orientation auditorat (competence,
+              prescription, opportunite). Distincts mais
+              complementaires : SF-219-27 qualifie la nature ;
+              SF-219-25 eclaire l'orientation procedurale
+              (correctionnelle, politique, classement sans suite,
+              transaction art. 216bis CIC) si une infraction penale
+              sociale (art. 181 defaut DIMONA, art. 328-333
+              faux independant) est suspectee.
+            - code-penal-social-be (prio 142, SF-219-24b) — qualifie
+              l'infraction sociale sur l'echelle 1-4 et restitue les
+              bornes d'amende generiques. Distincts mais
+              complementaires : SF-219-27 qualifie la nature de la
+              relation civile / sociale (independant ou salarie) ;
+              SF-219-24 qualifie l'infraction penale eventuelle
+              (faux independant Loi-programme I 27/12/2006 art. 328
+              et s., niveau 4 par renvoi art. 181).
+            - rappel-salaire-be (prio 110) — rappel d'arrieres civil
+              avec interets moratoires 10 %. Distincts (chiffrage
+              civil de la creance salariale) mais complementaires
+              lorsque le travailleur requalifie reclame retroactivement
+              le paiement de sa remuneration salariale post-
+              requalification.
+
+            Cet outil intervient en amont ou en aval d'une enquete sur
+            la nature de la relation (controle INASTI sur affiliation,
+            controle ONSS sur DIMONA, requete en requalification
+            devant le tribunal du travail, audition par l'auditorat
+            dans le cadre d'une suspicion de faux independant, action
+            civile en restitution de cotisations retroactives) et
+            restitue le verdict (5 etats) eclairant la strategie de
+            defense / d'action (negociation INASTI, contestation de la
+            presomption sectorielle Cour const. 167/2013, plaider la
+            primaute de l'execution reelle Cass. BE 23/12/2002,
+            renverser la presomption simple art. 328 § 1 Cass. BE
+            06/12/2010, articulation avec procedure penale sociale
+            art. 81 C. pen. soc. selon orientation).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('b1468245-f452-42e5-b890-a9dfb0ec727b', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'inastri-statut-travailleur-independant', 'ALWAYS_ON', NULL, NULL, 145);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'b1468245-f452-42e5-b890-a9dfb0ec727b';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
