@@ -447,7 +447,22 @@ class DashboardTileToolIdIntegrityIT {
             // impayées par le FFE en cas d'insolvabilité. Frontend SF-219-06b
             // à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
             // (pattern uniforme F-213 / F-219 vagues).
-            "licenciement-be-fermeture-entreprise"
+            "licenciement-be-fermeture-entreprise",
+            // SF-219-08 (2026-05-28) : transfert-entreprise-cct-32bis —
+            // outil BE checklist conformité transfert conventionnel
+            // d'entreprise (CCT n° 32bis du 07/06/1985 + Loi 17/03/1965 +
+            // Directive 2001/23/CE). Vérifie la qualification de
+            // l'opération (vente, fusion, scission, apport, démembrement
+            // qualifient ; faillite, liquidation, cession d'actions
+            // n'qualifient pas), la préservation de l'identité économique
+            // (jp Süzen / Abler), le respect de la procédure
+            // d'information-consultation préalable, le maintien automatique
+            // des contrats individuels + CCT, et la responsabilité solidaire
+            // 1 an cédant/cessionnaire (art. 3 Directive 2001/23/CE).
+            // Frontend SF-219-08b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 vagues).
+            "transfert-entreprise-cct-32bis"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

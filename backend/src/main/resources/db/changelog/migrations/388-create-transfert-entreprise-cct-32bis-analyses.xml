@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="13713913-d8c7-4678-9c2b-c294a856bb57" author="claude">
+        <comment>
+            SF-219-08 : table dédiée à l'outil décisionnel "Transfert
+            d'entreprise CCT n° 32bis" (transfert-entreprise-cct-32bis,
+            BELGIQUE — fondement : CCT n° 32bis du 07/06/1985 conclue au
+            CNT, Loi du 17/03/1965 (sanctions pénales information-
+            consultation), Directive 2001/23/CE du 12/03/2001 (maintien
+            des droits des travailleurs en cas de transfert
+            d'entreprises), CCT n° 9 et n° 9bis CNT
+            (information-consultation), jp CJUE Süzen 11/03/1997 / Abler
+            20/11/2003 et Cass. BE 17/05/1999 / 14/02/2011.
+
+            L'outil vérifie la conformité d'un transfert conventionnel
+            d'entreprise au sens CCT 32bis :
+            - Qualification de l'opération (vente fonds de commerce,
+              fusion, scission, apport d'universalité, démembrement
+              qualifient ; faillite, liquidation judiciaire, cession
+              d'actions, intra-groupe sans cession n'qualifient pas).
+            - Préservation de l'identité économique de l'entité
+              transférée (jp Süzen / Abler).
+            - Respect de la procédure d'information-consultation
+              préalable (CE / DS / CPPT selon présence).
+            - Maintien automatique des contrats individuels
+              (ancienneté, rémunération, avantages — ordre public).
+            - Maintien temporaire des conventions collectives jusqu'à
+              échéance ou nouvelle CCT (art. 7 CCT 32bis).
+            - Responsabilité solidaire cédant/cessionnaire 1 an sur
+              dettes salariales antérieures (art. 3 Directive 2001/23/CE).
+
+            Verdict : TRANSFERT_CONFORME | TRANSFERT_NON_CONFORME_INFO_CONSULT
+            | INELIGIBLE_TYPE_OPERATION | INELIGIBLE_PAS_ENTITE_ECONOMIQUE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — l'art. L. 1224-1 FR a un
+            régime parent (transposition Directive 2001/23/CE) mais
+            sans la spécificité formaliste BE (CCT 32bis +
+            information-consultation Loi 17/03/1965 + responsabilité
+            solidaire 1 an explicite). Restitution séparée.
+
+            Snapshot JSON complet (inputs + outputs : verdict, droits
+            maintenus, date fin responsabilité solidaire) pour
+            permettre la restitution UI sans recalcul (pattern F-DT-42
+            / SF-213-01 à SF-213-10 / SF-219-01 à SF-219-07).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-08b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "transfert-entreprise-cct-32bis" est ajouté dès
+            cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-08b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-7).
+        </comment>
+
+        <createTable tableName="transfert_entreprise_cct_32bis_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_transf_ent_cct32bis_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="transfert_entreprise_cct_32bis_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_transf_ent_cct32bis_case_file"/>
+
+        <createIndex tableName="transfert_entreprise_cct_32bis_analyses"
+                     indexName="idx_transf_ent_cct32bis_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="transfert_entreprise_cct_32bis_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
