@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1c9dae43-b171-4218-90fb-2614132b9bcb" author="claude">
+        <comment>
+            SF-219-23b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel refus d'amenagements raisonnables handicap BE
+            (discrimination-be-handicap-amenagement, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses creee par SF-219-23
+            (migration 419).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs administratifs propres au regime du refus
+            d'amenagement raisonnable BE : statut handicap (reconnaissance
+            officielle AVIQ Wallonie / VAPH Flandre / PHARE Bruxelles
+            francophone / DGPH federal vs avis SEPP medecin du travail
+            vs invalidite mutualite plus de 12 mois vs situation durable
+            factuelle vs qualification contestee par l'employeur vs
+            indetermine), date demande amenagement (ecrit travailleur
+            formalise ou suggestion SEPP), type d'amenagement demande
+            (texte libre : poste / horaires / teletravail / equipement /
+            reaffectation / formation / autre), cout estime apprecie
+            APRES subsides mobilisables (AVIQ pour Wallonie, VDAB pour
+            Flandre, PHARE pour Bruxelles francophone, Actiris et
+            Bruxelles Formation), flags procedure (subsides demandes
+            ou non, motivation detaillee fournie ou non, avis SEPP
+            favorable ou non, charge disproportionnee invoquee ou non,
+            devis externe a l'appui ou non, mesures alternatives
+            raisonnables proposees ou non), effectif entreprise (element
+            de proportionnalite art. 14 al. 2), chiffre d'affaires
+            annuel (element de proportionnalite), nature de la reponse
+            employeur (accorde / contre-proposition / refus motive
+            detaille / refus non motive / silence delai raisonnable
+            depasse / en attente / indetermine), sanction subie
+            (licenciement / regression conditions de travail /
+            harcelement represaille / aucune) et date sanction
+            (chronologie post-demande caracterisant le lien), salaire
+            mensuel brut (assiette indemnite forfaitaire 6 mois
+            art. 28 § 2 1°), procedure UNIA saisie ou non (Centre
+            interfederal pour l'egalite des chances). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (statut handicap
+               qualifie, demande formalisee, avis SEPP favorable, refus
+               caracterise, motivation detaillee, charge disproportionnee
+               invoquee, devis externe, alternatives proposees, sanction
+               subie, procedure UNIA) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une situation de handicap suivie d'une demande
+               d'amenagement (travailleur en invalidite mutualite
+               reprenant un mi-temps medical, salarie avec reconnaissance
+               AVIQ/VAPH/PHARE/DGPH sollicitant un poste adapte, demande
+               de teletravail therapeutique post-incapacite, reaffectation
+               apres avis SEPP de limitation durable, formation de
+               reconversion suite a inaptitude partielle) pour qualifier
+               le refus eventuel (art. 14 Loi 10/05/2007 + CCT n° 95) ET
+               pour identifier les manquements critiques (presomption
+               representailles art. 17 en cas de licenciement
+               post-demande exposant l'employeur a l'indemnite
+               forfaitaire 6 mois cumulable avec l'indemnite de rupture ;
+               presomption discrimination par absence de motivation
+               detaillee art. 28 § 3 renversant la charge de la preuve ;
+               discrimination indirecte par charge disproportionnee non
+               demontree faute de demande de subside ou d'exploration
+               d'alternatives raisonnables).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-140) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 cette migration (discrimination-be-handicap-amenagement)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY discrimination-be-handicap-amenagement
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-23b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id discrimination-be-handicap-amenagement deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-23 (PR
+            #1429, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 10/05/2007 tendant a lutter contre certaines formes
+              de discrimination (M.B. 30/05/2007) :
+                * art. 4 4° — notion fonctionnelle de handicap
+                  transposant la jurisprudence CJUE 11/04/2013 C-335/11
+                  et C-337/11 HK Danmark / Ring et Werge (limitation
+                  resultant d'atteintes physiques, mentales ou
+                  psychiques durables qui, en interaction avec diverses
+                  barrieres, peut faire obstacle a la pleine et
+                  effective participation a la vie professionnelle sur
+                  la base de l'egalite avec les autres travailleurs) ;
+                * art. 4 9° — definition discrimination indirecte par
+                  defaut de mise en place d'amenagements raisonnables
+                  au benefice d'une personne en situation de handicap ;
+                * art. 14 — interdiction de la discrimination indirecte,
+                  obligation positive d'amenagement raisonnable sauf
+                  charge disproportionnee (al. 2 : appreciation in
+                  concreto au regard du cout compte tenu des subsides,
+                  de la taille de l'entreprise, de l'organisation, de
+                  la securite et de la faisabilite technique) ;
+                * art. 17 — interdiction des represailles (toute mesure
+                  prejudiciable consecutive a une plainte ou demande
+                  d'amenagement), presomption en cas de licenciement /
+                  regression / harcelement intervenu apres la demande,
+                  renversant la charge de la preuve sur l'employeur ;
+                * art. 28 § 2 — sanctions civiles a option : 1°
+                  indemnite forfaitaire 6 mois de remuneration brute
+                  cumulable avec les indemnites de rupture de droit
+                  commun, ou 2° indemnisation du prejudice reellement
+                  subi (a charge pour le travailleur de demontrer) ;
+                * art. 28 § 3 — renversement de la charge de la preuve
+                  des que le travailleur etablit des faits permettant
+                  de presumer la discrimination (notamment absence de
+                  motivation ecrite detaillee), l'employeur doit alors
+                  prouver l'absence de discrimination.
+            - CCT n° 95 du 10/10/2008 du CNT (NAR) sur l'egalite de
+              traitement durant toutes les phases de la relation de
+              travail, rendue obligatoire par AR 11/01/2009
+              (M.B. 13/02/2009) — socle conventionnel transposant la
+              Directive 2000/78/CE notamment pour le secteur prive et
+              le maintien dans l'emploi des travailleurs handicapes.
+            - Directive 2000/78/CE du Conseil du 27/11/2000 portant
+              creation d'un cadre general en faveur de l'egalite de
+              traitement en matiere d'emploi et de travail :
+                * art. 5 — obligation d'amenagement raisonnable au
+                  benefice des personnes handicapees sauf charge
+                  disproportionnee (transposee art. 14 Loi 10/05/2007) ;
+                * jurisprudence CJUE structurante : Ring/Werge
+                  (11/04/2013 C-335/11 et C-337/11 — notion
+                  fonctionnelle de handicap) ; Coleman (17/07/2008
+                  C-303/06 — discrimination par association) ; DW
+                  (11/09/2019 C-397/18 — exclusion du sapeur-pompier
+                  invalide non discriminatoire si in concreto) ; HK
+                  Danmark (18/01/2018 C-684/16 — refus de subside
+                  AGEFIPH ne dispense pas de l'aménagement).
+            - Convention ONU du 13/12/2006 relative aux droits des
+              personnes handicapees, ratifiee par la Belgique le
+              02/07/2009 :
+                * art. 5 — egalite et non-discrimination ;
+                * art. 27 — travail et emploi (droit a l'emploi sur la
+                  base de l'egalite avec les autres, obligation
+                  d'amenagement raisonnable).
+            - Convention OIT n° 159 du 20/06/1983 sur la readaptation
+              professionnelle et l'emploi des personnes handicapees,
+              ratifiee par la Belgique le 23/07/1986 — politique
+              nationale de readaptation et insertion professionnelle.
+            - Loi 04/08/1996 relative au bien-etre des travailleurs
+              lors de l'execution de leur travail, art. 33 et s. —
+              service externe de prevention SEPP / medecin du travail
+              (avis sur l'aptitude et amenagements souhaitables).
+            - C. trav. art. L. 5213-1 et s. + L. 5213-6 (FR — pour
+              memoire) — regime juridiquement distinct.
+
+            Regime BE-only — le regime francais d'OETH (C. trav.
+            art. L. 5213-1 et s. + L. 5213-6 obligation d'amenagement
+            raisonnable + L. 1132-1 prohibition de la discrimination +
+            art. R. 5213-32 et s.) constitue un dispositif
+            juridiquement distinct : taux d'emploi 6 % des effectifs
+            (entreprises plus de 20 salaries), contribution AGEFIPH
+            pour non-respect, indemnites specifiques L. 1226-14
+            inaptitude d'origine professionnelle (doublement de
+            l'indemnite legale de licenciement et indemnite
+            compensatrice egale au preavis), procedure de reclassement
+            obligatoire L. 1226-2 et L. 1226-10. Aucune transposition
+            mecanique. L'outil BE expose les 7 verdicts hierarchises
+            propres au cadre Loi 10/05/2007 + CCT n° 95 + Convention
+            ONU 13/12/2006 art. 27.
+
+            Distinct de :
+            - protection-grossesse (prio 113) — protection de la
+              maternite (Loi 16/03/1971 art. 39 et s.). Une
+              travailleuse enceinte peut etre concernee aussi par une
+              limitation durable et la grossesse n'est pas en soi un
+              handicap (CJUE 13/02/2014 C-167/12 CD) mais les deux
+              regimes sont distincts.
+            - harcelement-be-procedure-formelle (prio 115) — procedure
+              formelle CCT n° 72 + Loi du 04/08/1996. L'art. 17 § 2
+              Loi 10/05/2007 prevoit le harcelement-represaille
+              specifique au refus d'amenagement comme un cas distinct
+              du harcelement moral classique ; les outils sont
+              complementaires en cas de double articulation
+              (representation syndicale + plainte UNIA + dossier
+              SEPP).
+            - cct109-deraisonnable (prio 118) — licenciement
+              manifestement deraisonnable CCT 109 art. 8. Une demande
+              d'amenagement raisonnable suivie d'un licenciement peut
+              etre attaquee a la fois sur le terrain du licenciement
+              deraisonnable (CCT 109) ET sur le terrain des
+              represailles handicap art. 17 (cumul possible — voir
+              C. trav. Bruxelles 03/05/2018 RG n° 2017/AB/89). Les
+              outils sont complementaires : cct109 chiffre l'indemnite
+              de licenciement deraisonnable (3 a 17 semaines), le
+              present outil chiffre l'indemnite forfaitaire 6 mois +
+              ouvre l'action en cessation devant le tribunal du
+              travail.
+            - rappel-salaire-be (prio 110) — rappel d'arrieres avec
+              interets moratoires 10 %. Sans rapport direct avec
+              l'amenagement raisonnable, sauf si le travailleur
+              reclame des arrieres de remuneration pour la periode
+              durant laquelle l'amenagement aurait du etre mis en
+              place (rare).
+
+            Cet outil intervient au coeur de l'analyse (qualification
+            handicap + analyse refus d'amenagement raisonnable +
+            qualification des represailles eventuelles) et chiffre
+            l'indemnite forfaitaire 6 mois indicative pour eclairer
+            la strategie contentieuse (action en cessation devant le
+            tribunal du travail + saisine UNIA + plainte au CTPE +
+            articulation avec procedure SEPP).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('1c9dae43-b171-4218-90fb-2614132b9bcb', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'discrimination-be-handicap-amenagement', 'ALWAYS_ON', NULL, NULL, 141);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '1c9dae43-b171-4218-90fb-2614132b9bcb';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

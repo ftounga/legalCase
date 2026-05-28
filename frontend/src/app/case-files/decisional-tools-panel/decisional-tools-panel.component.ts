@@ -215,6 +215,8 @@ import { PeculeVacancesBeSectionComponent } from '../pecule-vacances-be-section/
 import { EcoChequesChequesRepasBeSectionComponent } from '../eco-cheques-cheques-repas-be-section/eco-cheques-cheques-repas-be-section.component';
 // SF-219-22b : section décisionnelle Égalité salariale F/H BE — Loi 22/04/2012 + AR 17/08/2013 + AR 25/04/2014 (BE-only, ALWAYS_ON).
 import { EgaliteFemmesHommesBeSectionComponent } from '../egalite-femmes-hommes-be-section/egalite-femmes-hommes-be-section.component';
+// SF-219-23b : section décisionnelle refus d'aménagements raisonnables handicap BE — Loi 10/05/2007 + CCT n° 95 + Directive 2000/78/CE art. 5 (BE-only, ALWAYS_ON).
+import { DiscriminationBeHandicapAmenagementSectionComponent } from '../discrimination-be-handicap-amenagement-section/discrimination-be-handicap-amenagement-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2966,6 +2968,62 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-23b : refus d'aménagements raisonnables handicap BE — Loi du
+      // 10/05/2007 tendant à lutter contre certaines formes de
+      // discrimination (M.B. 30/05/2007), art. 4 4° (notion fonctionnelle
+      // de handicap transposant la jurisprudence CJUE 11/04/2013 C-335/11
+      // et C-337/11 HK Danmark / Ring et Werge), art. 14 (interdiction
+      // discrimination indirecte par défaut d'aménagement raisonnable),
+      // art. 17 (présomption de représailles renversant la charge de la
+      // preuve), art. 28 (sanctions civiles — indemnité forfaitaire 6 mois
+      // ou préjudice réel + § 3 renversement charge de la preuve devant
+      // le juge) ; CCT n° 95 du 10/10/2008 du CNT (NAR) sur l'égalité
+      // de traitement durant toutes les phases de la relation de travail ;
+      // Directive 2000/78/CE art. 5 (cadre général égalité de traitement,
+      // obligation d'aménagement raisonnable) ; Convention ONU 13/12/2006
+      // relative aux droits des personnes handicapées art. 5 (égalité et
+      // non-discrimination) et art. 27 (travail et emploi) ; Convention
+      // OIT n° 159 sur la réadaptation professionnelle et l'emploi des
+      // personnes handicapées (1983). Outil BE-only — le régime français
+      // d'OETH (C. trav. art. L. 5213-1 et s. + L. 5213-6 obligation
+      // d'aménagement raisonnable + L. 1132-1 prohibition de la
+      // discrimination + art. R. 5213-32 et s.) constitue un dispositif
+      // juridiquement distinct (taux d'emploi 6 %, contribution AGEFIPH,
+      // indemnités L. 1226-14 inaptitude d'origine professionnelle).
+      // Aucune transposition mécanique. Verdict hiérarchisé 7 états
+      // (CONFORME_AMENAGEMENT_ACCORDE / CONFORME_CHARGE_DISPROPORTIONNEE_DEMONTREE
+      // / DISCRIMINATION_INDIRECTE_REFUS_INJUSTIFIE / DISCRIMINATION_PRESUMEE_NON_MOTIVATION
+      // / REPRESAILLES_PRESUMEES_LICENCIEMENT / FRAGILE_QUALIFICATION_HANDICAP_INCERTAINE
+      // / A_ANALYSER) — court-circuits backend (statut handicap indéterminé /
+      // contesté → qualification fragile ; sanction post-demande → représailles ;
+      // refus sans motivation → présomption ; refus motivé sans subsides ni
+      // alternatives → discrimination indirecte ; charge disproportionnée
+      // démontrée → conforme refus ; aménagement accordé → conforme) +
+      // ventilation 5 conformités cumulatives (qualification handicap,
+      // demande formalisée, refus caractérisé, charge disproportionnée
+      // démontrée, représailles présumées) + indemnité forfaitaire 6 mois
+      // indicative (art. 28 § 2 1°). ALWAYS_ON priority 141 (au-dessus de
+      // egalite-femmes-hommes-be = 140 SF-219-22b, eco-cheques-cheques-repas-be
+      // = 139 SF-219-21b, pecule-vacances-be = 138 SF-219-20b et
+      // droit-deconnexion-be = 137 SF-219-19b). Pré-fill IA V1 : aucun champ
+      // (alignement pattern uniforme F-213 / F-219 — statut handicap,
+      // demande, type d'aménagement, coût, subsides, effectif, CA, réponse
+      // employeur, motivation détaillée, avis SEPP, charge disproportionnée
+      // invoquée, devis, mesures alternatives, sanction, salaire, procédure
+      // UNIA non extractibles du dossier salarié individuel — déclaratifs
+      // RH employeur / médecin du travail SEPP / avocat post-instruction).
+      ['discrimination-be-handicap-amenagement', {
+        displayLabel: 'Aménagements raisonnables handicap (Belgique)',
+        component: DiscriminationBeHandicapAmenagementSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4314,6 +4372,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // statutaire BE : droit-deconnexion-be, semaine-4-jours-be,
     // delegue-syndical-cct-5, teletravail-be-cct-85-149).
     ['egalite-femmes-hommes-be', 'VALIDITE'],
+    // SF-219-23b : Refus aménagements raisonnables handicap BE — analyseur
+    // de conformité art. 14 Loi 10/05/2007 + CCT n° 95 + Directive
+    // 2000/78/CE art. 5 (7 verdicts hiérarchisés couvrant qualification
+    // handicap, refus motivé/non motivé, charge disproportionnée
+    // démontrée/non démontrée, représailles présumées). Thème VALIDITE
+    // (parité avec les autres analyseurs de conformité statutaire BE :
+    // egalite-femmes-hommes-be, droit-deconnexion-be, semaine-4-jours-be,
+    // delegue-syndical-cct-5, teletravail-be-cct-85-149).
+    ['discrimination-be-handicap-amenagement', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
