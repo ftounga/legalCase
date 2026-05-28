@@ -1,0 +1,336 @@
+<div class="outplacement-be-general-30sem-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">work_history</mat-icon>
+    <span class="section-title">Outplacement BE général — préavis ≥ 30 sem.</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="outplacement-be-general-30sem-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 05/09/2001 art. 11 + AR du 21/10/2007 — régime
+            outplacement général lié au préavis ≥ 30 semaines). La France
+            n'a pas d'équivalent direct (dispositifs Cap emploi / CSP
+            distincts).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse la <b>conformité de l'offre d'outplacement</b> au régime
+            « préavis ≥ 30 semaines » (distinct de l'outplacement
+            obligatoire 45+ ans). Conditions cumulatives : licenciement,
+            motif non grave, préavis ≥ 30 sem., offre dans les 15 jours,
+            programme ≥ 60h sur ≤ 12 mois, forme écrite individuelle
+            avec contenu minimum. Fondement : <b>Loi 05/09/2001 art. 11</b>
+            + <b>AR 21/10/2007</b>. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Licenciement effectif * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Licenciement effectif (vs démission) *</mat-label>
+                <mat-select
+                    [value]="licenciementEffectif()"
+                    (selectionChange)="onLicenciementEffectifChange($event.value)"
+                    name="licenciementEffectif"
+                    required>
+                  <mat-option [value]="true">Oui — licenciement par l'employeur</mat-option>
+                  <mat-option [value]="false">Non — démission du travailleur</mat-option>
+                </mat-select>
+                <mat-hint>La démission ferme le régime (pas d'obligation d'offre).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Motif grave * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif grave (art. 35 Loi 03/07/1978) *</mat-label>
+                <mat-select
+                    [value]="motifGrave()"
+                    (selectionChange)="onMotifGraveChange($event.value)"
+                    name="motifGrave"
+                    required>
+                  <mat-option [value]="false">Non — motif autre que grave</mat-option>
+                  <mat-option [value]="true">Oui — licenciement pour motif grave</mat-option>
+                </mat-select>
+                <mat-hint>Le motif grave exclut le droit à l'outplacement (art. 11/3 § 1er).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Semaines préavis ou indemnité * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée du préavis ou indemnité équivalente (semaines) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="semainesPreavisOuIndemnite()"
+                       (ngModelChange)="onSemainesPreavisOuIndemniteChange($event)"
+                       name="semainesPreavisOuIndemnite" />
+                <mat-hint>Seuil 30 semaines — calculé par la formule Claeys ou par accord.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date fin contrat * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de fin du contrat *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFinContrat()"
+                       (ngModelChange)="onDateFinContratChange($event)"
+                       name="dateFinContrat" />
+                <mat-hint>Fin du préavis presté ou date du congé pour indemnité.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Offre notifiée * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>L'employeur a-t-il offert l'outplacement ? *</mat-label>
+                <mat-select
+                    [value]="offreNotifiee()"
+                    (selectionChange)="onOffreNotifieeChange($event.value)"
+                    name="offreNotifiee"
+                    required>
+                  <mat-option [value]="true">Oui — offre notifiée</mat-option>
+                  <mat-option [value]="false">Non — aucune offre</mat-option>
+                </mat-select>
+                <mat-hint>L'absence d'offre vaut non-conformité (sanction indemnitaire).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date notification offre (si offre) -->
+            @if (offreNotifiee() === true) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de notification de l'offre</mat-label>
+                  <input matInput
+                         type="date"
+                         [ngModel]="dateNotificationOffre()"
+                         (ngModelChange)="onDateNotificationOffreChange($event)"
+                         name="dateNotificationOffre" />
+                  <mat-hint>Doit intervenir dans les 15 jours civils après la fin du contrat.</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- 7. Heures programme * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée du programme proposé (heures) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="heuresProgramme()"
+                       (ngModelChange)="onHeuresProgrammeChange($event)"
+                       name="heuresProgramme" />
+                <mat-hint>Minimum 60h cumulées (AR 21/10/2007 art. 1er § 1er).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Durée programme mois * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Période de répartition du programme (mois) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="60"
+                       step="1"
+                       required
+                       [ngModel]="dureeProgrammeMois()"
+                       (ngModelChange)="onDureeProgrammeMoisChange($event)"
+                       name="dureeProgrammeMois" />
+                <mat-hint>Maximum 12 mois cumulés à compter du début du programme.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9. Offre écrite * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Offre écrite (lettre recommandée / courriel) ? *</mat-label>
+                <mat-select
+                    [value]="offreEcrite()"
+                    (selectionChange)="onOffreEcriteChange($event.value)"
+                    name="offreEcrite"
+                    required>
+                  <mat-option [value]="true">Oui — offre écrite</mat-option>
+                  <mat-option [value]="false">Non — orale ou implicite</mat-option>
+                </mat-select>
+                <mat-hint>L'offre orale ne respecte pas la forme légale.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Offre individuelle * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Offre individuelle (nominative) ? *</mat-label>
+                <mat-select
+                    [value]="offreIndividuelle()"
+                    (selectionChange)="onOffreIndividuelleChange($event.value)"
+                    name="offreIndividuelle"
+                    required>
+                  <mat-option [value]="true">Oui — offre nominative</mat-option>
+                  <mat-option [value]="false">Non — collective ou anonyme</mat-option>
+                </mat-select>
+                <mat-hint>Une offre collective non-nominative est non conforme.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 11. Contenu minimum * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Contenu minimum respecté (bilan / projet / coaching / formation / soutien psychologique) ? *</mat-label>
+                <mat-select
+                    [value]="contenuMinimumRespecte()"
+                    (selectionChange)="onContenuMinimumRespecteChange($event.value)"
+                    name="contenuMinimumRespecte"
+                    required>
+                  <mat-option [value]="true">Oui — tous les volets sont prévus</mat-option>
+                  <mat-option [value]="false">Non — au moins un volet absent</mat-option>
+                </mat-select>
+                <mat-hint>
+                  Bilan personnel et professionnel + accompagnement projet
+                  + soutien psychologique + coaching + formation : tous
+                  obligatoires.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la conformité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="outplacement-be-general-30sem-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Préavis : <span class="mono">{{ result()!.semainesPreavisOuIndemnite }} sem.</span>
+                — programme : <span class="mono">{{ result()!.heuresProgramme }} h / {{ result()!.dureeProgrammeMois }} mois</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Indemnité forfaitaire si non-conforme -->
+          @if (!result()!.conforme && result()!.indemniteForfaitaireTravailleur > 0) {
+            <div class="result-alert" role="alert">
+              <mat-icon>payments</mat-icon>
+              <span>
+                Indemnité forfaitaire indicative due au travailleur :
+                <span class="mono">{{ result()!.indemniteForfaitaireTravailleur }} €</span>
+                (cf. art. 11/7 Loi 05/09/2001 — sanction de la
+                non-conformité).
+              </span>
+            </div>
+          }
+
+          <!-- Checklist conditions -->
+          <div class="result-fondement result-checklist" role="region">
+            <mat-icon>checklist</mat-icon>
+            <div class="checklist-grid">
+              <div class="checklist-row" [class.row-ok]="result()!.conditionLicenciementRemplie" [class.row-ko]="!result()!.conditionLicenciementRemplie">
+                <mat-icon>{{ result()!.conditionLicenciementRemplie ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Licenciement effectif (non démission)</span>
+              </div>
+              <div class="checklist-row" [class.row-ok]="result()!.conditionMotifNonGraveRemplie" [class.row-ko]="!result()!.conditionMotifNonGraveRemplie">
+                <mat-icon>{{ result()!.conditionMotifNonGraveRemplie ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Motif non grave</span>
+              </div>
+              <div class="checklist-row" [class.row-ok]="result()!.conditionPreavis30semRemplie" [class.row-ko]="!result()!.conditionPreavis30semRemplie">
+                <mat-icon>{{ result()!.conditionPreavis30semRemplie ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Préavis ≥ 30 semaines</span>
+              </div>
+              <div class="checklist-row" [class.row-ok]="result()!.conditionOffreDansLes15joursRemplie" [class.row-ko]="!result()!.conditionOffreDansLes15joursRemplie">
+                <mat-icon>{{ result()!.conditionOffreDansLes15joursRemplie ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Offre notifiée dans les 15 jours civils</span>
+              </div>
+              <div class="checklist-row" [class.row-ok]="result()!.conditionDureeProgrammeRemplie" [class.row-ko]="!result()!.conditionDureeProgrammeRemplie">
+                <mat-icon>{{ result()!.conditionDureeProgrammeRemplie ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Programme ≥ 60h sur ≤ 12 mois</span>
+              </div>
+              <div class="checklist-row" [class.row-ok]="result()!.conditionFormeOffreRemplie" [class.row-ko]="!result()!.conditionFormeOffreRemplie">
+                <mat-icon>{{ result()!.conditionFormeOffreRemplie ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Forme conforme (écrit + individuel + contenu minimum)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
