@@ -281,6 +281,19 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   // SF-215-08 — idem pour `naturalisation-12bis-be-section` :
   // `Naturalisation12bis` collerait `naturalisation12bis`.
   ['Naturalisation12bisBeSectionComponent', 'naturalisation-12bis-be-section'],
+  // SF-219-05b — le dossier réel insère un tiret entre `general` et `30sem`
+  // (`outplacement-be-general-30sem-section`), alors que la dérivation
+  // kebab-case standard collerait `General30sem` → `general30sem`. Même
+  // cas de figure que Naturalisation12bis ci-dessus.
+  ['OutplacementBeGeneral30semSectionComponent', 'outplacement-be-general-30sem-section'],
+  // SF-219-08b — le dossier réel insère un tiret entre `cct` et `32bis`
+  // (`transfert-entreprise-cct-32bis-section`), alors que la dérivation
+  // kebab-case standard produirait `Cct32bis` → `cct32bis`.
+  ['TransfertEntrepriseCct32bisSectionComponent', 'transfert-entreprise-cct-32bis-section'],
+  // SF-219-10b — le dossier réel insère un tiret entre `cct` et `5`
+  // (`delegue-syndical-cct-5-section`), alors que la dérivation
+  // kebab-case standard collerait `Cct5` → `cct5`.
+  ['DelegueSyndicalCct5SectionComponent', 'delegue-syndical-cct-5-section'],
   // SF-219-14b — le dossier réel insère un tiret entre `cct` et `322`
   // (`interim-be-cct-322-section`), alors que la dérivation kebab-case
   // standard collerait `Cct322` → `cct322`. Même pattern que Belgian9bis.
