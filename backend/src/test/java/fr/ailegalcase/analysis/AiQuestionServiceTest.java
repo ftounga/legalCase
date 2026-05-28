@@ -64,7 +64,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"questions\":[\"Q1 ?\",\"Q2 ?\",\"Q3 ?\"]}", "claude-sonnet-4-6", 100, 50));
         when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -104,7 +104,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"questions\":[\"Q1 ?\"]}", "claude-sonnet-4-6", 100, 50));
         when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -131,7 +131,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
@@ -155,7 +155,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
 

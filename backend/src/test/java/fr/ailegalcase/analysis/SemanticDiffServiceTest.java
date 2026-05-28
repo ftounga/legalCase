@@ -123,7 +123,7 @@ class SemanticDiffServiceTest {
         CaseAnalysis from = analysisWithId(UUID.randomUUID(), analysisJson(List.of("A")));
         CaseAnalysis to = analysisWithId(UUID.randomUUID(), analysisJson(List.of("B")));
 
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "[{\"text\":\"B\",\"state\":\"added\",\"reason\":\"Nouvelle pièce\"}]",
                         "claude-haiku-4-5", 100, 50));
@@ -132,7 +132,7 @@ class SemanticDiffServiceTest {
         service.diff(from, to, List.of(), List.of());
 
         // 4 sections texte + 1 timeline = 5 appels
-        verify(anthropicService, times(5)).analyzeFast(any(), any(), anyInt());
+        verify(anthropicService, times(5)).analyzeFast(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     @Test
@@ -148,10 +148,10 @@ class SemanticDiffServiceTest {
                 ]
                 """;
         // défaut : tableau vide pour toutes les sections
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("[]", "claude-haiku-4-5", 10, 5));
         // override pour la section faits uniquement
-        when(anthropicService.analyzeFast(eq(SemanticDiffService.SECTION_SYSTEM_PROMPT), contains("faits"), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), eq(SemanticDiffService.SECTION_SYSTEM_PROMPT), contains("faits"), anyInt()))
                 .thenReturn(new AnthropicResult(faitJson, "claude-haiku-4-5", 100, 50));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(any())).thenReturn(List.of());
 
@@ -175,12 +175,12 @@ class SemanticDiffServiceTest {
         CaseAnalysis to = analysisWithId(UUID.randomUUID(), jsonWithRisques.replace("\"A\"", "\"B\"").replace("\"RisqueX\"", "\"RisqueY\""));
 
         // défaut : item B ajouté avec reason pour toutes les sections
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "[{\"text\":\"B\",\"state\":\"added\",\"reason\":\"Nouvelle pièce\"}]",
                         "claude-haiku-4-5", 50, 20));
         // risques échoue
-        when(anthropicService.analyzeFast(eq(SemanticDiffService.SECTION_SYSTEM_PROMPT), contains("risques"), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), eq(SemanticDiffService.SECTION_SYSTEM_PROMPT), contains("risques"), anyInt()))
                 .thenThrow(new RuntimeException("API error on risques"));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(any())).thenReturn(List.of());
 
@@ -199,7 +199,7 @@ class SemanticDiffServiceTest {
         CaseAnalysis from = analysisWithId(UUID.randomUUID(), analysisJson(List.of("A", "B")));
         CaseAnalysis to = analysisWithId(UUID.randomUUID(), analysisJson(List.of("B", "C")));
 
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenThrow(new RuntimeException("API error"));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(any())).thenReturn(List.of());
 
@@ -216,10 +216,10 @@ class SemanticDiffServiceTest {
         CaseAnalysis to = analysisWithId(UUID.randomUUID(), analysisJson(List.of("B")));
 
         // défaut : tableau vide
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("[]", "haiku", 10, 5));
         // faits retourne du JSON invalide
-        when(anthropicService.analyzeFast(eq(SemanticDiffService.SECTION_SYSTEM_PROMPT), contains("faits"), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), eq(SemanticDiffService.SECTION_SYSTEM_PROMPT), contains("faits"), anyInt()))
                 .thenReturn(new AnthropicResult("NOT VALID JSON {{", "haiku", 10, 5));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(any())).thenReturn(List.of());
 

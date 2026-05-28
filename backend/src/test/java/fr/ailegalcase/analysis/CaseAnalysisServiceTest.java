@@ -88,7 +88,7 @@ class CaseAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-sonnet-4-6", 300, 150));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -127,7 +127,7 @@ class CaseAnalysisServiceTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -155,7 +155,7 @@ class CaseAnalysisServiceTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -187,9 +187,9 @@ class CaseAnalysisServiceTest {
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // Streaming stub : invoque le callback avec 2 sections puis retourne le résultat final
-        when(anthropicService.analyzeWithSystemCacheStreaming(any(), any(), anyInt(), any())).thenAnswer(inv -> {
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any())).thenAnswer(inv -> {
             @SuppressWarnings("unchecked")
-            java.util.function.Consumer<String> onDelta = inv.getArgument(3);
+            java.util.function.Consumer<String> onDelta = inv.getArgument(4);
             onDelta.accept("{\"faits\": [{\"texte\": \"f1\"}], ");
             onDelta.accept("\"risques\": []}");
             return new AnthropicResult("{\"faits\":[{\"texte\":\"f1\"}],\"risques\":[]}",
@@ -259,7 +259,7 @@ class CaseAnalysisServiceTest {
                 .thenReturn(List.of(daLater, daEarlier)); // ordre inversé intentionnel
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -268,7 +268,7 @@ class CaseAnalysisServiceTest {
         service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeWithSystemCache(any(), promptCaptor.capture(), anyInt());
+        verify(anthropicService).analyzeWithSystemCache(any(AiCallContext.class), any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
         assertThat(prompt.indexOf("document-0")).isLessThan(prompt.indexOf("document-1"));
         assertThat(prompt).contains("{\"faits\":[\"A\"]}");
@@ -403,7 +403,7 @@ class CaseAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId)).thenReturn(0);
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -430,7 +430,7 @@ class CaseAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId)).thenReturn(2);
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());

@@ -1,5 +1,6 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.ocr.OcrService;
 import fr.ailegalcase.storage.StorageService;
 import fr.ailegalcase.workspace.WorkspaceRepository;
@@ -518,7 +519,7 @@ class ExtractionServiceTest {
         fr.ailegalcase.analysis.AnthropicResult visionResult =
                 new fr.ailegalcase.analysis.AnthropicResult("Scène extérieure, parking de nuit, ...",
                         "claude-haiku-4-5-20251001", 100, 200, "end_turn");
-        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), eq("image/png"),
+        when(anthropicService.analyzeWithImages(any(AiCallContext.class), anyString(), anyString(), any(), eq("image/png"),
                 anyString(), anyInt())).thenReturn(visionResult);
 
         service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
@@ -526,7 +527,7 @@ class ExtractionServiceTest {
         DocumentExtraction saved = capturedFinalSave();
         assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
         assertThat(saved.getExtractedText()).contains("Scène extérieure");
-        verify(anthropicService).analyzeWithImages(anyString(), anyString(), eq(frames),
+        verify(anthropicService).analyzeWithImages(any(AiCallContext.class), anyString(), anyString(), eq(frames),
                 eq("image/png"), anyString(), eq(2000));
         // Une DocumentPiece PHOTO doit être persistée avec visualDescription
         ArgumentCaptor<DocumentPiece> pieceCaptor = ArgumentCaptor.forClass(DocumentPiece.class);
@@ -545,7 +546,7 @@ class ExtractionServiceTest {
         when(storageService.download(STORAGE_KEY)).thenReturn("fake mov bytes".getBytes());
         when(videoFrameExtractor.extract5Frames(any())).thenReturn(
                 java.util.List.of(pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes()));
-        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithImages(any(AiCallContext.class), anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
                 .thenReturn(new fr.ailegalcase.analysis.AnthropicResult("description", "claude-haiku-4-5", 50, 80, "end_turn"));
 
         service.extract(DOC_ID, STORAGE_KEY, "video/quicktime");
@@ -594,7 +595,7 @@ class ExtractionServiceTest {
         when(storageService.download(STORAGE_KEY)).thenReturn("fake mp4".getBytes());
         when(videoFrameExtractor.extract5Frames(any())).thenReturn(
                 java.util.List.of(pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes()));
-        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithImages(any(AiCallContext.class), anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
                 .thenThrow(new RuntimeException("Anthropic 503"));
 
         service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
@@ -610,7 +611,7 @@ class ExtractionServiceTest {
         when(storageService.download(STORAGE_KEY)).thenReturn("fake mp4".getBytes());
         when(videoFrameExtractor.extract5Frames(any())).thenReturn(
                 java.util.List.of(pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes()));
-        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithImages(any(AiCallContext.class), anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
                 .thenReturn(new fr.ailegalcase.analysis.AnthropicResult("   ", "claude-haiku-4-5", 50, 5, "end_turn"));
 
         service.extract(DOC_ID, STORAGE_KEY, "video/mp4");

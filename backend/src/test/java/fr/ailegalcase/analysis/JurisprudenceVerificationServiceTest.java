@@ -72,7 +72,7 @@ class JurisprudenceVerificationServiceTest {
         service.verifyForAnalysis(analysis);
 
         verify(jurisprudenceCheckRepository, never()).saveAll(any());
-        verify(anthropicService, never()).analyzeWithSystemCache(anyString(), anyString(), anyInt());
+        verify(anthropicService, never()).analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt());
     }
 
     @Test
@@ -86,7 +86,7 @@ class JurisprudenceVerificationServiceTest {
         service.verifyForAnalysis(analysis);
 
         verify(jurisprudenceCheckRepository, never()).saveAll(any());
-        verify(anthropicService, never()).analyzeWithSystemCache(anyString(), anyString(), anyInt());
+        verify(anthropicService, never()).analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt());
     }
 
     @Test
@@ -109,7 +109,7 @@ class JurisprudenceVerificationServiceTest {
                    "positionAlleguee": null,
                    "claudeConfidence": "HIGH"}
                 ]}""";
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet", 100, 50));
 
         service.verifyForAnalysis(analysis);
@@ -142,7 +142,7 @@ class JurisprudenceVerificationServiceTest {
                    "explication": "Statut inconnu renvoye par le modele.",
                    "claudeConfidence": "LOW"}
                 ]}""";
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet", 100, 50));
 
         service.verifyForAnalysis(analysis);
@@ -163,7 +163,7 @@ class JurisprudenceVerificationServiceTest {
     void verifyForAnalysis_sonnetThrows_failOpenNoPersist() {
         Document doc = document("conclusions.pdf");
         stubDocumentWithText(doc, "Cass. soc. 25 septembre 2013, n° 12-17.516.");
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenThrow(new RuntimeException("Anthropic 500"));
 
         // Ne doit PAS propager l'exception (fail-open).
@@ -176,7 +176,7 @@ class JurisprudenceVerificationServiceTest {
     void verifyForAnalysis_invalidJson_failOpenNoPersist() {
         Document doc = document("conclusions.pdf");
         stubDocumentWithText(doc, "Cass. soc. 25 septembre 2013, n° 12-17.516.");
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("ceci n'est pas du JSON", "claude-sonnet", 10, 5));
 
         service.verifyForAnalysis(analysis);
@@ -188,7 +188,7 @@ class JurisprudenceVerificationServiceTest {
     void verifyForAnalysis_emptyChecksArray_persistsNothing() {
         Document doc = document("conclusions.pdf");
         stubDocumentWithText(doc, "Aucune jurisprudence citee ici.");
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("{\"checks\": []}", "claude-sonnet", 10, 5));
 
         service.verifyForAnalysis(analysis);
@@ -210,7 +210,7 @@ class JurisprudenceVerificationServiceTest {
                    "explication": "Connaissance insuffisante.",
                    "claudeConfidence": "LOW"}
                 ]}""";
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet", 100, 50));
         when(webSearchService.searchJurisprudence(anyString(), any()))
                 .thenReturn(WebSearchResult.found("https://legifrance.gouv.fr/arret"));
@@ -240,7 +240,7 @@ class JurisprudenceVerificationServiceTest {
                    "explication": "Arret inexistant.",
                    "claudeConfidence": "HIGH"}
                 ]}""";
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet", 100, 50));
 
         service.verifyForAnalysis(analysis);
@@ -261,7 +261,7 @@ class JurisprudenceVerificationServiceTest {
                    "explication": "Position alleguee detournee.",
                    "claudeConfidence": "HIGH"}
                 ]}""";
-        when(anthropicService.analyzeWithSystemCache(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet", 100, 50));
 
         service.verifyForAnalysis(analysis);

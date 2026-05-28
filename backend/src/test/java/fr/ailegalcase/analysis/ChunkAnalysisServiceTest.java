@@ -91,7 +91,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any(), any(), any())).thenReturn(
+        when(anthropicService.analyzeChunk(any(AiCallContext.class), any(), any(), any())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(1L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
@@ -108,7 +108,7 @@ class ChunkAnalysisServiceTest {
 
         service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
-        verify(anthropicService).analyzeChunk(eq("Texte juridique valide."), any(), any());
+        verify(anthropicService).analyzeChunk(any(AiCallContext.class), eq("Texte juridique valide."), any(), any());
 
         ArgumentCaptor<ChunkAnalysis> captor = ArgumentCaptor.forClass(ChunkAnalysis.class);
         verify(analysisRepository, times(3)).save(captor.capture());
@@ -144,7 +144,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any(), any(), any())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeChunk(any(AiCallContext.class), any(), any(), any())).thenThrow(new RuntimeException("API error"));
 
         service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
@@ -199,7 +199,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any(), any(), any())).thenReturn(
+        when(anthropicService.analyzeChunk(any(AiCallContext.class), any(), any(), any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(3L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
@@ -240,7 +240,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any(), any(), any())).thenReturn(
+        when(anthropicService.analyzeChunk(any(AiCallContext.class), any(), any(), any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(1L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
@@ -313,7 +313,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"))).thenReturn(
+        when(anthropicService.analyzeChunk(any(AiCallContext.class), any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"))).thenReturn(
                 new AnthropicResult("{\"faits\":[\"fait\"]}", "claude-haiku-4-5-20251001", 80, 40));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(1L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
@@ -339,7 +339,7 @@ class ChunkAnalysisServiceTest {
         verify(caseFileRepository, never()).findCreatedByUserIdById(any());
 
         // Analyse DONE avec le bon legalDomain
-        verify(anthropicService).analyzeChunk(any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"));
+        verify(anthropicService).analyzeChunk(any(AiCallContext.class), any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"));
 
         // Usage enregistré directement via userId du message
         verify(usageEventService).record(caseFileId, userId, JobType.CHUNK_ANALYSIS, 80, 40);

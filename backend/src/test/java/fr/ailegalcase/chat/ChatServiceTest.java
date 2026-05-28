@@ -1,5 +1,6 @@
 package fr.ailegalcase.chat;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnalysisStatus;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
@@ -104,7 +105,7 @@ class ChatServiceTest {
     @Test
     void sendMessage_success_returnsResponse() {
         mockContext(false, true);
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("Réponse IA", "claude-haiku-4-5-20251001", 100, 50));
         when(chatMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -149,7 +150,7 @@ class ChatServiceTest {
     void sendMessage_useEnriched_pro_callsSonnet() {
         mockContext(false, true);
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
-        when(anthropicService.analyze(any(), any(), anyInt()))
+        when(anthropicService.analyze(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("Réponse Sonnet", "claude-sonnet-4-6", 200, 100));
         when(chatMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -157,8 +158,8 @@ class ChatServiceTest {
                 CASE_FILE_ID, new ChatMessageRequest("Analyse approfondie", true), null, "GOOGLE", null);
 
         assertThat(response.useEnriched()).isTrue();
-        verify(anthropicService).analyze(any(), any(), anyInt());
-        verify(anthropicService, never()).analyzeFast(any(), any(), anyInt());
+        verify(anthropicService).analyze(any(AiCallContext.class), any(), any(), anyInt());
+        verify(anthropicService, never()).analyzeFast(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     // U-05 : useEnriched=true + STARTER → fallback Haiku
@@ -166,7 +167,7 @@ class ChatServiceTest {
     void sendMessage_useEnriched_starter_fallbackToHaiku() {
         mockContext(false, true);
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(false);
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("Réponse Haiku", "claude-haiku-4-5-20251001", 100, 50));
         when(chatMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -174,15 +175,15 @@ class ChatServiceTest {
                 CASE_FILE_ID, new ChatMessageRequest("Question", true), null, "GOOGLE", null);
 
         assertThat(response.useEnriched()).isFalse();
-        verify(anthropicService).analyzeFast(any(), any(), anyInt());
-        verify(anthropicService, never()).analyze(any(), any(), anyInt());
+        verify(anthropicService).analyzeFast(any(AiCallContext.class), any(), any(), anyInt());
+        verify(anthropicService, never()).analyze(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     // U-06 : sans souscription → autorisé (isChatMessageLimitReached retourne false)
     @Test
     void sendMessage_noSubscription_allowed() {
         mockContext(false, true);
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("OK", "claude-haiku-4-5-20251001", 50, 25));
         when(chatMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

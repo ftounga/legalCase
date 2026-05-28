@@ -1,6 +1,7 @@
 package fr.ailegalcase.casefile.conclusion;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnalysisStatus;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
@@ -77,7 +78,7 @@ class CaseConclusionServiceTest {
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
         when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte généré", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
 
@@ -102,7 +103,7 @@ class CaseConclusionServiceTest {
         stubGenerationStubs(conclusionId, conclusion);
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
                 .thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — débouter", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
 
@@ -110,7 +111,7 @@ class CaseConclusionServiceTest {
 
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
         verify(anthropicService).analyzeWithSystemCache(
-                contains("avocat du défendeur (employeur)"), any(), anyInt());
+                any(AiCallContext.class), contains("avocat du défendeur (employeur)"), any(), anyInt());
     }
 
     @Test
@@ -123,7 +124,7 @@ class CaseConclusionServiceTest {
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
         when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenThrow(new RuntimeException("Anthropic 529 overloaded"));
 
         service.generate(conclusionId);
@@ -143,7 +144,7 @@ class CaseConclusionServiceTest {
                 any(), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
         when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(any())).thenReturn(List.of());
         when(caseFileDashboardService.assembleDecisionToolTiles(any())).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("  ", "claude-sonnet-4-6", 10, 0, "end_turn"));
 
         service.generate(conclusionId);
@@ -161,7 +162,7 @@ class CaseConclusionServiceTest {
 
         service.generate(conclusionId);
 
-        verify(anthropicService, never()).analyzeWithSystemCache(any(), any(), anyInt());
+        verify(anthropicService, never()).analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     // ── SF-98-47 — style mimicking ───────────────────────────────────────────
@@ -175,7 +176,7 @@ class CaseConclusionServiceTest {
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(
                 workspaceId, StyleCorpusDocumentStatus.DONE))
                 .thenReturn(List.of(styleDocument("Phrases courtes, registre assertif.")));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
 
@@ -184,7 +185,7 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
         assertThat(conclusion.isStyleApplied()).isTrue();
         verify(anthropicService).analyzeWithSystemCache(
-                contains("Adopte le style rédactionnel suivant"), any(), anyInt());
+                any(AiCallContext.class), contains("Adopte le style rédactionnel suivant"), any(), anyInt());
     }
 
     @Test
@@ -194,7 +195,7 @@ class CaseConclusionServiceTest {
         stubGenerationStubs(conclusionId, conclusion);
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
                 .thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
 
@@ -203,7 +204,7 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
         assertThat(conclusion.isStyleApplied()).isFalse();
         verify(anthropicService).analyzeWithSystemCache(
-                argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
+                any(AiCallContext.class), argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
     }
 
     @Test
@@ -213,7 +214,7 @@ class CaseConclusionServiceTest {
         stubGenerationStubs(conclusionId, conclusion);
         when(styleCorpusRepository.findByWorkspaceIdAndActiveTrueAndStatus(any(), any()))
                 .thenThrow(new RuntimeException("style_corpus_documents indisponible"));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("PAR CES MOTIFS — texte", "claude-sonnet-4-6",
                         1200, 3400, "end_turn"));
 
@@ -223,7 +224,7 @@ class CaseConclusionServiceTest {
         assertThat(conclusion.getStatus()).isEqualTo(CaseConclusionStatus.DONE);
         assertThat(conclusion.isStyleApplied()).isFalse();
         verify(anthropicService).analyzeWithSystemCache(
-                argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
+                any(AiCallContext.class), argThat(s -> !s.contains("Adopte le style rédactionnel suivant")), any(), anyInt());
     }
 
     /** Stubs communs aux scénarios de génération aboutie (hors corpus de style et IA). */

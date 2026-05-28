@@ -1,6 +1,7 @@
 package fr.ailegalcase.jurisprudencemapping;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,14 +95,14 @@ class ClaudeJurisprudenceEvaluatorTest {
 
     @Test
     void evaluate_anthropicFails_returnsNone() {
-        when(anthropic.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("anthropic down"));
+        when(anthropic.analyze(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("anthropic down"));
         ClaudeEvaluation result = evaluator.evaluate(buildMapping(), List.of(buildArret("AAA")));
         assertThat(result.action()).isEqualTo(EvaluationAction.NONE);
     }
 
     @Test
     void evaluate_anthropicReturnsValidJson_returnsParsed() {
-        when(anthropic.analyze(any(), any(), anyInt()))
+        when(anthropic.analyze(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "Voici la réponse : {\"action\":\"CONFIRM\",\"confidence_score\":0.95,\"raison\":\"ok\"}",
                         "claude-sonnet", 100, 50));
@@ -114,7 +115,7 @@ class ClaudeJurisprudenceEvaluatorTest {
 
     @Test
     void evaluate_realMapping_usesDerivePrompt() {
-        when(anthropic.analyze(any(), any(), anyInt()))
+        when(anthropic.analyze(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "{\"action\":\"CONFIRM\",\"confidence_score\":0.9,\"raison\":\"ok\"}",
                         "claude-sonnet", 100, 50));
@@ -122,7 +123,7 @@ class ClaudeJurisprudenceEvaluatorTest {
         evaluator.evaluate(buildMapping(), List.of(buildArret("AAA")));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropic).analyze(systemCaptor.capture(), any(), eq(600));
+        verify(anthropic).analyze(any(AiCallContext.class), systemCaptor.capture(), any(), eq(600));
         String systemPrompt = systemCaptor.getValue();
         assertThat(systemPrompt).contains("CONFIRM, ADD, REPLACE, ARCHIVE, NONE");
         assertThat(systemPrompt).doesNotContain("bootstrap initial");
@@ -130,7 +131,7 @@ class ClaudeJurisprudenceEvaluatorTest {
 
     @Test
     void evaluate_bootstrapMapping_usesBootstrapPrompt() {
-        when(anthropic.analyze(any(), any(), anyInt()))
+        when(anthropic.analyze(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "{\"action\":\"ADD\",\"arret_choisi_id\":\"AAA\",\"confidence_score\":0.85,\"raison\":\"structurant\"}",
                         "claude-sonnet", 100, 50));
@@ -138,7 +139,7 @@ class ClaudeJurisprudenceEvaluatorTest {
         evaluator.evaluate(buildBootstrapMapping(), List.of(buildArret("AAA")));
 
         ArgumentCaptor<String> systemCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropic).analyze(systemCaptor.capture(), any(), eq(600));
+        verify(anthropic).analyze(any(AiCallContext.class), systemCaptor.capture(), any(), eq(600));
         String systemPrompt = systemCaptor.getValue();
         assertThat(systemPrompt).contains("bootstrap initial");
         assertThat(systemPrompt).contains("Actions autorisées : ADD ou NONE uniquement");
@@ -160,7 +161,7 @@ class ClaudeJurisprudenceEvaluatorTest {
     @Test
     void evaluate_bootstrapMapping_addReply_returnsArret() {
         JudilibreArret picked = buildArret("BBB");
-        when(anthropic.analyze(any(), any(), anyInt()))
+        when(anthropic.analyze(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "{\"action\":\"ADD\",\"arret_choisi_id\":\"BBB\",\"confidence_score\":0.9,\"raison\":\"structurant\"}",
                         "claude-sonnet", 100, 50));
@@ -176,7 +177,7 @@ class ClaudeJurisprudenceEvaluatorTest {
 
     @Test
     void evaluate_bootstrapMapping_noneReply_returnsNone() {
-        when(anthropic.analyze(any(), any(), anyInt()))
+        when(anthropic.analyze(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "{\"action\":\"NONE\",\"arret_choisi_id\":null,\"confidence_score\":0.4,\"raison\":\"aucun candidat pertinent\"}",
                         "claude-sonnet", 100, 50));

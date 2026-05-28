@@ -1,5 +1,6 @@
 package fr.ailegalcase.referential;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.auth.AuthAccount;
@@ -108,7 +109,7 @@ class ReferentialUpdateControllerIT {
         memberAuth = buildGoogleAuth("google-upd-member-" + ts, "member-upd-it-" + ts + "@example.com");
 
         // Default: Anthropic returns VALID
-        when(anthropicService.analyzeFast(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("VALID", "haiku", 10, 5));
     }
 
@@ -152,7 +153,7 @@ class ReferentialUpdateControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.saved", is(true)));
 
-        verify(anthropicService, never()).analyzeFast(any(), any(), anyInt());
+        verify(anthropicService, never()).analyzeFast(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     private LegalReferential buildSystemEntry(String type, String key) {

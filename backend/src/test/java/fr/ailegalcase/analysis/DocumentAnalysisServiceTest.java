@@ -102,7 +102,7 @@ class DocumentAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-haiku-4-5-20251001", 200, 100));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -164,7 +164,7 @@ class DocumentAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
@@ -223,7 +223,7 @@ class DocumentAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -231,7 +231,7 @@ class DocumentAnalysisServiceTest {
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeFast(any(), promptCaptor.capture(), anyInt());
+        verify(anthropicService).analyzeFast(any(AiCallContext.class), any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
         assertThat(prompt.indexOf("Chunk 0")).isLessThan(prompt.indexOf("Chunk 1"));
     }
