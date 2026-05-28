@@ -187,6 +187,8 @@ import { LicenciementBeFermetureEntrepriseSectionComponent } from '../licencieme
 import { LicenciementBeCollectifRenaultSectionComponent } from '../licenciement-be-collectif-renault-section/licenciement-be-collectif-renault-section.component';
 // SF-219-08b : section décisionnelle Transfert d'entreprise CCT 32bis (BE-only, ALWAYS_ON).
 import { TransfertEntrepriseCct32bisSectionComponent } from '../transfert-entreprise-cct-32bis-section/transfert-entreprise-cct-32bis-section.component';
+// SF-219-10b : section décisionnelle Statut délégué syndical CCT n° 5 (BE-only, ALWAYS_ON).
+import { DelegueSyndicalCct5SectionComponent } from '../delegue-syndical-cct-5-section/delegue-syndical-cct-5-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2432,6 +2434,32 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-10b : Statut du délégué syndical CCT n° 5 (CNT, 24/05/1971)
+      // + CCT 5bis/5ter + AR 26/01/1972 + CCT sectorielles. Outil BE-only
+      // de qualification + checklist statut DS : éligibilité (champ
+      // sectoriel + désignation OS représentative + notification employeur),
+      // missions exerçables (art. 3 + art. 24 supplétif CE/CPPT) et durée
+      // indicative du mandat (4 ans). Distinct de SF-213-08 (protection
+      // licenciement Loi 19/03/1991).
+      // Verdict 5 états (STATUT_RECONNU / STATUT_FRAGILE_NOTIFICATION_MANQUANTE /
+      // INELIGIBLE_ENTREPRISE_HORS_CHAMP / INELIGIBLE_PAS_DESIGNE_PAR_OS /
+      // A_ANALYSER). ALWAYS_ON priority 128 (au-dessus de
+      // elections-sociales-be = 127 SF-219-09b). Pré-fill IA V1 : aucun
+      // champ (alignement pattern uniforme F-213/F-219 — qualifications
+      // syndicales, paramétrage sectoriel, institutionnel CE/CPPT non
+      // extractibles).
+      ['delegue-syndical-cct-5', {
+        displayLabel: 'Délégué syndical — CCT n° 5 (Belgique)',
+        component: DelegueSyndicalCct5SectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3666,6 +3694,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // consultation préalable. Parité avec les autres analyseurs de validité
     // procédurale BE (rcc-be-conditions, outplacement-be-obligatoire-45).
     ['transfert-entreprise-cct-32bis', 'VALIDITE'],
+    // SF-219-10b : Statut du délégué syndical CCT n° 5 (CNT, 24/05/1971) +
+    // CCT 5bis/5ter + AR 26/01/1972 + CCT sectorielles. Thème VALIDITE —
+    // l'outil qualifie le statut du DS (5 verdicts : 1 reconnu / 1 fragile /
+    // 2 inéligibles / 1 à analyser) et liste les missions exerçables.
+    // Parité avec les autres analyseurs de validité statutaire BE
+    // (transfert-entreprise-cct-32bis, licenciement-be-protection-deleguee).
+    ['delegue-syndical-cct-5', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
