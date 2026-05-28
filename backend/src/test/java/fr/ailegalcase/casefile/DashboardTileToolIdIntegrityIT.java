@@ -777,7 +777,18 @@ class DashboardTileToolIdIntegrityIT {
             // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
             // backend (pattern uniforme F-213 / F-219 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "auditorat-travail-be"
+            "auditorat-travail-be",
+            // SF-219-26 (2026-05-28) : travail-noir-be-dimona — backend
+            // Loi-programme 24/12/2002 art. 167-184 + AR 05/11/2002 +
+            // Code pénal social art. 181 niveau 4. Analyse défaut DIMONA
+            // (CONFORME / TARDIVE / ABSENTE / INDEPENDANT) avec calcul
+            // cotisations ONSS rétroactives (employeur 25 % + travailleur
+            // 13,07 %), amende ONSS forfaitaire 3 × art. 28 Loi 22/04/2003,
+            // sanction pénale art. 181 niveau 4 (300/600 - 3000/6000 €,
+            // emprisonnement 6-36 mois) + présomption salariat art. 328
+            // C. pén. soc., requalification faux indépendant Loi-programme
+            // I 27/12/2006 art. 333. Frontend SF-219-26b à venir.
+            "travail-noir-be-dimona"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
