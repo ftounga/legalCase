@@ -1,0 +1,329 @@
+<div class="transfert-entreprise-cct-32bis-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">swap_horiz</mat-icon>
+    <span class="section-title">Transfert d'entreprise CCT 32bis (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="transfert-entreprise-cct-32bis-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (CCT n° 32bis du 07/06/1985 + Loi du 17/03/1965 sur les
+            transferts d'entreprises + Directive 2001/23/CE). Le régime
+            français (art. L. 1224-1 CT) est parent mais distinct
+            — pas d'info-consultation pénalement sanctionnée ni de
+            responsabilité solidaire 1 an cédant / cessionnaire.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse l'éligibilité au régime <b>CCT n° 32bis du 07/06/1985</b>
+            (transfert conventionnel d'entreprise) et la conformité de la
+            procédure : qualification de l'opération (9 cas), préservation
+            de l'<b>identité économique</b> (CJUE Süzen / Abler),
+            <b>information-consultation préalable</b> du conseil
+            d'entreprise (CE / DS / CPPT, Loi 17/03/1965), <b>maintien
+            automatique</b> des contrats (ancienneté, rémunération, CCT)
+            et <b>responsabilité solidaire</b> cédant / cessionnaire
+            1 an sur dettes salariales antérieures. Champs marqués
+            * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date du transfert * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date effective du transfert *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateTransfert()"
+                       (ngModelChange)="onDateTransfertChange($event)"
+                       name="dateTransfert" />
+                <mat-hint>Date de cession / fusion / scission (≠ rupture contrat).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Type d'opération * (9 cas) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type d'opération *</mat-label>
+                <mat-select
+                    [value]="typeOperation()"
+                    (selectionChange)="onTypeOperationChange($event.value)"
+                    name="typeOperation"
+                    required>
+                  <mat-option value="VENTE_FONDS_COMMERCE">
+                    Vente du fonds de commerce / universalité (qualifiant)
+                  </mat-option>
+                  <mat-option value="FUSION_ABSORPTION">
+                    Fusion par absorption — CSA (qualifiant)
+                  </mat-option>
+                  <mat-option value="SCISSION">
+                    Scission totale ou partielle (qualifiant)
+                  </mat-option>
+                  <mat-option value="APPORT_UNIVERSALITE">
+                    Apport d'une branche d'activité / universalité (qualifiant)
+                  </mat-option>
+                  <mat-option value="DEMEMBREMENT">
+                    Démembrement / réorganisation conventionnelle (qualifiant)
+                  </mat-option>
+                  <mat-option value="FAILLITE">
+                    Faillite judiciaire (NON qualifiant — CCT 102)
+                  </mat-option>
+                  <mat-option value="LIQUIDATION_JUDICIAIRE">
+                    Liquidation judiciaire (NON qualifiant)
+                  </mat-option>
+                  <mat-option value="CESSION_ACTIONS">
+                    Cession d'actions / parts (NON qualifiant — employeur ne change pas)
+                  </mat-option>
+                  <mat-option value="TRANSFERT_INTRA_GROUPE_SANS_CESSION">
+                    Transfert intra-groupe sans cession véritable (NON qualifiant)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Seuls les transferts conventionnels avec entité économique
+                  qualifient.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Identité économique * (3 cas) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Identité économique de l'entité transférée *</mat-label>
+                <mat-select
+                    [value]="identiteEconomique()"
+                    (selectionChange)="onIdentiteEconomiqueChange($event.value)"
+                    name="identiteEconomique"
+                    required>
+                  <mat-option value="PRESERVEE">
+                    Préservée — continuité d'activité, reprise des moyens essentiels
+                  </mat-option>
+                  <mat-option value="NON_PRESERVEE">
+                    Non préservée — simple cession d'actifs isolés
+                  </mat-option>
+                  <mat-option value="A_ANALYSER">
+                    À analyser — appréciation ambiguë (avocat BE requis)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Critère central CCT 32bis (CJUE Süzen 11/03/1997,
+                  Abler 20/11/2003).
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Info-consult préalable respectée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="infoConsultPrealableRespectee() === true"
+                  [indeterminate]="infoConsultPrealableRespectee() === null"
+                  (change)="onInfoConsultPrealableRespecteeChange($event.checked)"
+                  name="infoConsultPrealableRespectee">
+                Procédure d'<b>information-consultation préalable</b> respectée *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Loi 17/03/1965 — sanction pénale en cas de non-respect.
+                CE / délégation syndicale / CPPT selon présence dans
+                l'entreprise.
+              </small>
+            </div>
+
+            <!-- 5. CE consulté * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="conseilEntrepriseConsulte() === true"
+                  [indeterminate]="conseilEntrepriseConsulte() === null"
+                  (change)="onConseilEntrepriseConsulteChange($event.checked)"
+                  name="conseilEntrepriseConsulte">
+                <b>Conseil d'entreprise</b> consulté préalablement *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Si CE existant. À défaut : délégation syndicale ou CPPT.
+              </small>
+            </div>
+
+            <!-- 6. Maintien contrats automatique * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="maintienContratsAutomatique() === true"
+                  [indeterminate]="maintienContratsAutomatique() === null"
+                  (change)="onMaintienContratsAutomatiqueChange($event.checked)"
+                  name="maintienContratsAutomatique">
+                Cessionnaire déclare <b>maintenir automatiquement</b>
+                les contrats individuels *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                CCT 32bis art. 7 — devrait être true par défaut, sinon
+                violation des règles d'ordre public.
+              </small>
+            </div>
+
+            <!-- 7. Maintien ancienneté * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="maintienAncienneteRespecte() === true"
+                  [indeterminate]="maintienAncienneteRespecte() === null"
+                  (change)="onMaintienAncienneteRespecteChange($event.checked)"
+                  name="maintienAncienneteRespecte">
+                <b>Ancienneté</b> reprise intégralement par le cessionnaire *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Conservation de la durée pré-transfert (préavis, congés, etc.).
+              </small>
+            </div>
+
+            <!-- 8. Maintien rémunération * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="maintienRemunerationRespecte() === true"
+                  [indeterminate]="maintienRemunerationRespecte() === null"
+                  (change)="onMaintienRemunerationRespecteChange($event.checked)"
+                  name="maintienRemunerationRespecte">
+                <b>Rémunération</b> maintenue au moins au niveau pré-transfert *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Salaire de base + avantages individuels acquis.
+              </small>
+            </div>
+
+            <!-- 9. CCT maintenues * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="conventionsCollectivesMaintenues() === true"
+                  [indeterminate]="conventionsCollectivesMaintenues() === null"
+                  (change)="onConventionsCollectivesMaintenuesChange($event.checked)"
+                  name="conventionsCollectivesMaintenues">
+                <b>CCT applicables</b> maintenues jusqu'à échéance / nouvelle CCT *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 23 Directive 2001/23/CE ; CCT 32bis art. 7.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le transfert</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="transfert-entreprise-cct-32bis-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Type : <b>{{ typeOperationLabel(result()!.typeOperation) }}</b>
+                — identité économique : <b>{{ identiteEconomiqueLabel(result()!.identiteEconomique) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Droits maintenus -->
+          @if (result()!.droitsMaintenus) {
+            <div class="result-fondement" role="region">
+              <mat-icon>shield</mat-icon>
+              <span>
+                <b>Droits maintenus</b> : ancienneté + rémunération +
+                avantages individuels + CCT applicables jusqu'à échéance
+                ou nouvelle CCT (CCT 32bis art. 7, Directive 2001/23/CE
+                art. 3+).
+              </span>
+            </div>
+          }
+
+          <!-- Responsabilité solidaire 1 an -->
+          @if (result()!.eligibleCct32bis) {
+            <div class="result-fondement" role="region">
+              <mat-icon>groups</mat-icon>
+              <span>
+                <b>Responsabilité solidaire</b> cédant / cessionnaire sur
+                dettes salariales antérieures —
+                jusqu'au <span class="mono">{{ result()!.dateFinResponsabiliteSolidaire }}</span>
+                (1 an post-transfert, art. 3 Directive 2001/23/CE).
+              </span>
+            </div>
+          }
+
+          <!-- Procédure conforme -->
+          @if (!result()!.procedureConforme && result()!.eligibleCct32bis) {
+            <div class="result-alert" role="alert">
+              <mat-icon>gavel</mat-icon>
+              <span>
+                <b>Info-consultation préalable non respectée</b> —
+                sanction pénale Loi 17/03/1965 + dommages-intérêts
+                individuels possibles. Le maintien des contrats reste
+                inchangé (ordre public).
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

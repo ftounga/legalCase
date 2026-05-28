@@ -183,6 +183,8 @@ import { CumulRccAllocationsSectionComponent } from '../cumul-rcc-allocations-se
 import { OutplacementBeGeneral30semSectionComponent } from '../outplacement-be-general-30sem-section/outplacement-be-general-30sem-section.component';
 // SF-219-06b : section décisionnelle Licenciement BE fermeture d'entreprise (BE-only, ALWAYS_ON).
 import { LicenciementBeFermetureEntrepriseSectionComponent } from '../licenciement-be-fermeture-entreprise-section/licenciement-be-fermeture-entreprise-section.component';
+// SF-219-08b : section décisionnelle Transfert d'entreprise CCT 32bis (BE-only, ALWAYS_ON).
+import { TransfertEntrepriseCct32bisSectionComponent } from '../transfert-entreprise-cct-32bis-section/transfert-entreprise-cct-32bis-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2373,6 +2375,31 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-08b : Transfert d'entreprise CCT n° 32bis (Conseil National
+      // du Travail, 07/06/1985) — transfert conventionnel BE (vente fonds,
+      // fusion, scission, apport, démembrement) + Loi 17/03/1965 (info-
+      // consultation préalable, sanction pénale) + Directive 2001/23/CE
+      // (responsabilité solidaire 1 an). Outil BE-only — l'art. L. 1224-1
+      // FR pose un régime parent mais sans les spécificités procédurales.
+      // Verdict 5 états (CONFORME / NON_CONFORME_INFO_CONSULT /
+      // INELIGIBLE_TYPE_OPERATION / INELIGIBLE_PAS_ENTITE_ECONOMIQUE /
+      // A_ANALYSER). ALWAYS_ON priority 126 (au-dessus de
+      // licenciement-be-collectif-renault = 125 SF-219-07b). Pré-fill IA V1 :
+      // aucun champ (alignement pattern uniforme F-213/F-219 — qualification
+      // juridique 9 cas, identité économique, info-consultation et
+      // déclarations cessionnaire non extractibles).
+      ['transfert-entreprise-cct-32bis', {
+        displayLabel: 'Transfert d\'entreprise CCT 32bis (Belgique)',
+        component: TransfertEntrepriseCct32bisSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3591,6 +3618,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (salaires + pécule + indemnité de rupture impayés). Parité avec
     // rcc-be-indemnite-complementaire / formule-claeys / rappel-salaire-be.
     ['licenciement-be-fermeture-entreprise', 'INDEMNITES'],
+    // SF-219-08b : Transfert d'entreprise CCT n° 32bis (07/06/1985) +
+    // Loi 17/03/1965 + Directive 2001/23/CE. Thème VALIDITE — l'outil
+    // qualifie le transfert (5 verdicts : 1 conforme / 1 conforme partiel /
+    // 2 inéligibles / 1 à analyser) et valide la procédure d'information-
+    // consultation préalable. Parité avec les autres analyseurs de validité
+    // procédurale BE (rcc-be-conditions, outplacement-be-obligatoire-45).
+    ['transfert-entreprise-cct-32bis', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
