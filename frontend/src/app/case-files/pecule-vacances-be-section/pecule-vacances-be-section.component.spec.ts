@@ -343,7 +343,7 @@ describe('PeculeVacancesBeSectionComponent', () => {
       typeCalcul: 'PECULE_DEPART',
       dateSortie: '2026-06-30',
     }));
-    expect(component.verdictLabel()).toContain('départ');
+    expect(component.verdictLabel()).toContain('sortie');
     expect(component.verdictClass()).toBe('verdict-ok');
     expect(component.verdictIcon()).toBe('logout');
   });
