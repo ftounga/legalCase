@@ -493,25 +493,44 @@ class DashboardTileToolIdIntegrityIT {
             // de SF-213-08 (protection licenciement Loi 19/03/1991).
             // Frontend SF-219-10b à venir.
             "delegue-syndical-cct-5",
-            // SF-219-12 (2026-05-28) : flexi-job-be — backend (présente
-            // PR) Loi-programme 26/12/2013 art. 13 à 28 + Loi 25/04/2014
-            // + Loi 16/11/2015 (ext. boulangerie/coiffure, validée
-            // Cour const. arrêt 107/2017) + Loi-programme 30/10/2018
-            // (ext. commerce détail / agriculture / soins de santé,
-            // suppression plafond cumul pensionnés) + Loi-programme
-            // 28/12/2023 + AR 02/06/2024 (ext. sport / culture /
-            // événementiel / secteur public limité, indexation
-            // flexi-salaire + plafond annuel). Vérifie l'éligibilité
-            // cumulative (condition personnelle travailleur pensionné
-            // OU salarié 4/5 ETP T-3 ; condition sectorielle employeur ;
-            // interdiction cumul même employeur ; formalisme contrat-
-            // cadre + Dimona FLX ; rémunération ≥ flexi-salaire minimum
-            // indexé + revenu annuel ≤ plafond exonéré sauf pensionné).
-            // Frontend SF-219-12b à venir. Préventif
-            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
-            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // SF-219-12 (2026-05-28) : flexi-job-be — backend (PR #1404
+            // mergée parallèle) Loi-programme 26/12/2013 art. 13 à 28
+            // + Loi 25/04/2014 + Loi 16/11/2015 (ext. boulangerie /
+            // coiffure, validée Cour const. arrêt 107/2017) +
+            // Loi-programme 30/10/2018 (ext. commerce détail /
+            // agriculture / soins de santé, suppression plafond cumul
+            // pensionnés) + Loi-programme 28/12/2023 + AR 02/06/2024
+            // (ext. sport / culture / événementiel / secteur public
+            // limité, indexation flexi-salaire + plafond annuel).
+            // Vérifie l'éligibilité cumulative (condition personnelle
+            // travailleur pensionné OU salarié 4/5 ETP T-3 ; condition
+            // sectorielle employeur ; interdiction cumul même employeur ;
+            // formalisme contrat-cadre + Dimona FLX ; rémunération ≥
+            // flexi-salaire minimum indexé + revenu annuel ≤ plafond
+            // exonéré sauf pensionné). Frontend SF-219-12b à venir.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
+            // (pattern uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "flexi-job-be"
+            "flexi-job-be",
+            // SF-219-11 (2026-05-28) : conge-education-paye-region —
+            // backend (présente PR) Loi du 22/01/1985 (Section 6,
+            // art. 108-117) régionalisée par la 6e réforme de l'État
+            // (Loi spéciale 06/01/2014, transfert 01/07/2014). Outil
+            // unique à branchement régional interne (Wallonie : Décret
+            // 19/02/2014 + AGW 19/12/2014 ; Flandre : VOV Décret
+            // 12/12/2014 ; Bruxelles : Ordonnance 02/07/2015 + AGBR
+            // 14/04/2016). Calcule droit au congé selon région du lieu
+            // de travail + type de formation (PROFESSIONNELLE_QUALIFIANTE
+            // / GENERALE / ENSEIGNEMENT_SUPERIEUR_ALTERNANCE /
+            // RECONVERSION_PUBLIC_FRAGILISE / HORS_LISTE_AGREEE) +
+            // taux d'occupation (proratisation au mi-temps, dérogation
+            // FLA 1/5 temps publics fragilisés). Verdicts :
+            // ELIGIBLE_PLEIN_DROIT / ELIGIBLE_PRORATA /
+            // INELIGIBLE_HORS_FORMATION_AGREEE /
+            // INELIGIBLE_OCCUPATION_INSUFFISANTE / A_ANALYSER. Frontend
+            // SF-219-11b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues).
+            "conge-education-paye-region"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

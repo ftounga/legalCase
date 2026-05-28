@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="43fafac1-3bf8-4dc4-a585-b3cabaac1eeb" author="claude">
+        <comment>
+            SF-219-11 : table dédiée à l'outil décisionnel "Congé-éducation
+            payé régionalisé" (conge-education-paye-region, BELGIQUE —
+            fondement : Loi du 22/01/1985 contenant des dispositions
+            sociales, Section 6 « Congé-éducation payé », articles 108
+            à 117). À la suite de la 6e réforme de l'État (Loi spéciale
+            du 06/01/2014), la compétence congé-éducation payé a été
+            transférée aux Régions au 01/07/2014. Chacune des trois
+            Régions (Wallonie, Flandre, Bruxelles-Capitale) a depuis
+            adopté son propre régime :
+
+            - Wallonie : Décret WBR 19/02/2014 + Arrêté GW
+              19/12/2014 — congé-éducation payé maintenu sous la
+              dénomination historique, plafond annuel 120 h (formation
+              générale), 180 h (formation professionnelle).
+
+            - Flandre : Décret 12/12/2014 (Vlaams Opleidingsverlof —
+              VOV, en vigueur 01/09/2019) — refonte complète,
+              plafond annuel 125 h (mais 250 h pour études supérieures
+              en alternance), liste des formations agréées par le
+              Vlaams Ministerie van Werk.
+
+            - Bruxelles-Capitale : Ordonnance 02/07/2015 +
+              Arrêté GBR 14/04/2016 — congé-éducation payé maintenu,
+              plafond annuel 100 h (formation professionnelle générale)
+              ajusté selon le type de cours.
+
+            L'outil unique vérifie le droit à congé selon : (a) région
+            du lieu de travail (gate régional WBR / FLA / BXL),
+            (b) type de formation (qualifiante / non qualifiante /
+            reconversion), (c) heures de cours hebdomadaires
+            (proratisées selon temps de travail), (d) conditions
+            employeur (occupation au moins à mi-temps en règle
+            générale ; certaines régions abaissent ce seuil pour
+            certains publics — peu qualifiés FLA).
+
+            Verdict : ELIGIBLE_PLEIN_DROIT | ELIGIBLE_PRORATA |
+            INELIGIBLE_HORS_FORMATION_AGREEE |
+            INELIGIBLE_OCCUPATION_INSUFFISANTE | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a un régime de
+            CPF / Pro-A / Plan de développement des compétences (Code
+            du travail art. L. 6111-1 et s.), structurellement
+            différent (compte personnel d'heures vs droit à congé
+            rémunéré préfinancé Région). Restitution séparée.
+
+            Snapshot JSON complet (inputs + outputs : verdict, heures
+            de congé allouées, plafond régional applicable, base
+            juridique régionale) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213-01 à SF-213-10 /
+            SF-219-01 à SF-219-10).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-11b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "conge-education-paye-region" est ajouté dès
+            cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-11b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-10b).
+        </comment>
+
+        <createTable tableName="conge_education_paye_region_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_cep_region_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="conge_education_paye_region_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_cep_region_case_file"/>
+
+        <createIndex tableName="conge_education_paye_region_analyses"
+                     indexName="idx_cep_region_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="conge_education_paye_region_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
