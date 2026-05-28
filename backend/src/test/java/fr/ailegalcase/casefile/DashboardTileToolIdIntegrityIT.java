@@ -857,7 +857,29 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
             // F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "bien-etre-rps-conseiller-prevention"
+            "bien-etre-rps-conseiller-prevention",
+            // SF-219-31 (2026-05-28) : conge-paternite-naissance-be —
+            // backend Loi 03/07/1978 art. 30 § 2 + Loi 12/08/2000 + Loi
+            // 07/04/2023 Deal pour l'emploi (extension 20 jours
+            // ouvrables pour naissances ≥ 01/01/2023, ouverture à tous
+            // les co-parents comaternité / reconnaissance / cohabitation
+            // légale ou mariage). Calcule durée applicable (20 / 15 / 10
+            // jours selon date naissance), jours restants, échéance 4
+            // mois post-naissance art. 30 § 2 al. 2, fin protection 5
+            // mois art. 30 § 4, indemnité employeur 100 % 3 premiers
+            // jours / mutuelle 82 % suivants AR 03/07/1996. Verdicts :
+            // ELIGIBLE_CONGE_OUVERT / CONGE_EN_COURS_PROTECTION_ACTIVE /
+            // CONGE_PRIS_PROTECTION_RESIDUELLE / INELIGIBLE_STATUT_NON_
+            // COUVERT / INELIGIBLE_FILIATION_NON_ETABLIE / DROIT_PERDU_
+            // DELAI_DEPASSE / INELIGIBLE_NAISSANCE_FUTURE / A_QUALIFIER.
+            // Jurisprudence Cass. BE 16/03/2015 S.13.0094.F protection 5
+            // mois + Cass. BE 25/11/2019 S.18.0086.F preuve filiation +
+            // Cass. BE 12/05/2014 S.13.0103.F articulation suspensions.
+            // Frontend SF-219-31b à venir. Préventif KNOWN_NO_DASHBOARD_
+            // TILE_IDS dès le backend (pattern uniforme F-213 / F-219
+            // vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_
+            // check).
+            "conge-paternite-naissance-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

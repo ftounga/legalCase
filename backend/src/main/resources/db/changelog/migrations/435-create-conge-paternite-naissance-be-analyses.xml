@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c37fb2ef-f632-4bce-9e2b-5b63251c3806" author="claude">
+        <comment>
+            SF-219-31 : table dédiée à l'outil décisionnel Congé
+            paternité naissance BE (conge-paternite-naissance-be,
+            BELGIQUE — fondement : Loi du 03/07/1978 M.B. 22/08/1978
+            relative aux contrats de travail art. 30 paragraphe 2 droit
+            au congé de naissance pour le travailleur salarié alinéa 1
+            ouverture du droit au père reconnu ou présumé et depuis la
+            Loi du 07/04/2023 Deal pour l'emploi 2022 à tout co-parent
+            indépendamment du genre comaternité art. 325/2 C. civ.
+            reconnaissance art. 327/1 C. civ. cohabitation légale ou
+            mariage avec la mère alinéa 2 délai légal de quatre mois à
+            compter de la naissance pour la prise des jours alinéa 3
+            jours fractionnables en demi-journées sans contrainte de
+            continuité alinéa 4 cas de report incapacité prolongée de
+            la mère hospitalisation de l'enfant article 30 paragraphe 4
+            protection contre le licenciement pendant cinq mois à
+            compter de la notification écrite à l'employeur et jusqu'à
+            cinq mois après la fin de la prise effective sauf motif
+            étranger au congé charge de la preuve sur l'employeur ;
+            Loi du 12/08/2000 M.B. 31/08/2000 portant des dispositions
+            sociales budgétaires et diverses création initiale du congé
+            dix jours dont trois obligatoires ; Loi-programme du
+            27/06/2021 M.B. 30/06/2021 art. 14 extension à quinze jours
+            pour les naissances à compter du 01/01/2021 ; Loi du
+            07/04/2023 M.B. 19/05/2023 Deal pour l'emploi extension à
+            vingt jours pour les naissances à compter du 01/01/2023 et
+            ouverture du droit à tous les co-parents ; AR du 17/10/1994
+            M.B. 16/12/1994 modalités d'information de l'employeur et
+            de présentation des justificatifs ; AR du 03/07/1996 M.B.
+            31/07/1996 portant exécution de la loi relative à
+            l'assurance obligatoire soins de santé et indemnités art.
+            1er indemnisation des trois premiers jours à cent pour cent
+            par l'employeur jours suivants quatre-vingt-deux pour cent
+            par la mutuelle du salaire journalier plafonné INAMI ;
+            Loi du 13/04/2019 et AR du 23/05/2019 régime du congé de
+            naissance pour le travailleur indépendant vingt jours
+            forfaitaires indemnisés par l'INASTI ; AR du 19/11/1998
+            art. 23 et suivants régime sectoriel du congé de paternité
+            pour l'agent public statutaire fédéral ; Cass. BE
+            16/03/2015 S.13.0094.F protection cinq mois art. 30
+            paragraphe 4 opposable à l'employeur en cas de licenciement
+            non fondé sur un motif étranger au congé ; Cass. BE
+            25/11/2019 S.18.0086.F preuve du lien de filiation par tout
+            document juridique probant ; Cass. BE 12/05/2014
+            S.13.0103.F articulation du congé de naissance avec les
+            autres suspensions du contrat de travail incapacité
+            interruption de carrière chômage temporaire.
+
+            L'outil analyse une situation de droit au congé de
+            naissance pour le co-parent salarié sous l'angle de
+            l'éligibilité et de la durée :
+            - Statut professionnel SALARIE INDEPENDANT
+              AGENT_PUBLIC_STATUTAIRE AUTRE — seul le salarié relève du
+              régime art. 30 paragraphe 2 Loi 03/07/1978.
+            - Lien de filiation PERE_BIOLOGIQUE COPARENT_COMATERNITE
+              COPARENT_RECONNAISSANCE COHABITANT_LEGAL_OU_MARIE AUTRE —
+              ouverture du droit à tous les co-parents Loi 07/04/2023.
+            - Étape procédurale AVANT_NAISSANCE NAISSANCE_SURVENUE
+              NOTIFICATION_EMPLOYEUR_FAITE CONGE_EN_COURS_DE_PRISE
+              CONGE_PRIS_ENTIEREMENT DELAI_QUATRE_MOIS_DEPASSE.
+            - Filiation établie juridiquement acte de naissance
+              reconnaissance comaternité mariage cohabitation légale.
+            - Contrat de travail en cours au moment de la naissance ou
+              de la prise.
+            - Notification écrite à l'employeur effectuée art. AR du
+              17/10/1994 préalable ou immédiatement après le premier
+              jour pris avec justificatif.
+            - Date de naissance de l'enfant pour calcul de la durée
+              applicable et de l'échéance des quatre mois.
+            - Date de notification à l'employeur pour calcul du point
+              de départ de la protection cinq mois.
+            - Nombre de jours déjà pris pour calcul des jours restants
+              et de l'indemnisation employeur trois premiers jours puis
+              mutuelle.
+            - Date de fin de prise effective pour calcul de la
+              protection résiduelle cinq mois.
+
+            Calcule :
+            - Durée applicable en jours ouvrables vingt jours pour
+              naissances à compter du 01/01/2023 quinze jours pour
+              naissances 01/01/2021 au 31/12/2022 dix jours pour
+              naissances antérieures.
+            - Jours restants à prendre maximum durée moins jours déjà
+              pris.
+            - Échéance quatre mois post-naissance date de naissance plus
+              quatre mois.
+            - Fin de protection licenciement cinq mois après fin de
+              prise effective ou notification.
+            - Drapeau protection licenciement active selon étape et
+              notification.
+            - Indemnité employeur cent pour cent trois premiers jours
+              pris.
+            - Indemnité mutuelle quatre-vingt-deux pour cent jours
+              suivants.
+
+            Verdict : ELIGIBLE_CONGE_OUVERT si droit ouvert et en
+            attente de prise ou prise partielle ; CONGE_EN_COURS_
+            PROTECTION_ACTIVE si congé en cours de prise et protection
+            cinq mois active ; CONGE_PRIS_PROTECTION_RESIDUELLE si
+            congé entièrement pris et protection cinq mois résiduelle ;
+            INELIGIBLE_STATUT_NON_COUVERT si indépendant agent public
+            ou contrat rompu orientation vers régime spécifique ;
+            INELIGIBLE_FILIATION_NON_ETABLIE si lien parental non
+            établi juridiquement ; DROIT_PERDU_DELAI_DEPASSE si délai
+            quatre mois dépassé sans prise complète ;
+            INELIGIBLE_NAISSANCE_FUTURE si naissance non encore
+            survenue calcul indicatif ; A_QUALIFIER si inputs
+            contradictoires nécessitant analyse complémentaire avocat.
+
+            Outil single-country BELGIQUE — la France a un régime
+            distinct Code du travail FR art. L. 1225-35 congé de
+            paternité et d'accueil de l'enfant vingt-cinq jours
+            calendaires dont sept obligatoires depuis la Loi de
+            financement de la sécurité sociale 2021 art. 73.
+            Restitution séparée par outil — pas de tentative
+            d'harmonisation FR BE.
+
+            Articulation avec les outils congés BE existants :
+            l'outil ne fait pas double emploi avec un autre outil F-219
+            ni F-DT. SF-219-32 conge-parental-be (parallèle) couvre le
+            crédit-temps congé parental Loi 22/01/1985 et AR 29/10/1997
+            régime distinct. La présente SF-219-31 couvre uniquement le
+            congé de naissance court terme art. 30 paragraphe 2 Loi
+            03/07/1978.
+
+            Snapshot JSON complet inputs plus outputs verdict, durée
+            applicable, jours restants, échéance quatre mois post-
+            naissance, fin protection cinq mois, drapeau protection
+            active, indemnité employeur trois premiers jours cent pour
+            cent, indemnité mutuelle suivants quatre-vingt-deux pour
+            cent, raison code, synthèse texte, base juridique,
+            avertissement avocat — pour permettre la restitution UI
+            sans recalcul pattern uniforme F-DT-42 SF-213-01 à
+            SF-213-10 SF-219-01 à SF-219-30.
+
+            La règle d'affichage F-IA-04 decision_tool_visibility_rules
+            sera portée par la migration de SF-219-31b frontend,
+            couplée à l'entrée TOOL_REGISTRY dans decisional-tools-
+            panel.component.ts pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT cas réel F-164 staging
+            2026-04-26 treize tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id conge-paternite-naissance-be est ajouté dès
+            cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès le
+            seed visibility par SF-219-31b, pattern uniforme F-213
+            vagues 1-10b F-219 vagues 1-30b.
+        </comment>
+
+        <createTable tableName="conge_paternite_naissance_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_conge_paternite_naissance_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="conge_paternite_naissance_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_conge_paternite_naissance_be_case_file"/>
+
+        <createIndex tableName="conge_paternite_naissance_be_analyses"
+                     indexName="idx_conge_paternite_naissance_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="conge_paternite_naissance_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
