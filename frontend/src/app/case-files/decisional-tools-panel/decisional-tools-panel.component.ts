@@ -233,6 +233,8 @@ import { AtMpRenteCapitalBeSectionComponent } from '../at-mp-rente-capital-be-se
 import { BienEtreRpsConseillerPreventionSectionComponent } from '../bien-etre-rps-conseiller-prevention-section/bien-etre-rps-conseiller-prevention-section.component';
 // SF-219-31b : section décisionnelle Conge paternite / naissance BE — Loi 03/07/1978 art. 30 paragr. 2 + Loi 07/04/2023.
 import { CongePaterniteNaissanceBeSectionComponent } from '../conge-paternite-naissance-be-section/conge-paternite-naissance-be-section.component';
+// SF-219-32b : section décisionnelle Interruption de carriere conge parental BE — Loi 22/01/1985 + AR 29/10/1997 + CCT 64.
+import { InterruptionCarriereSoinsParentalSectionComponent } from '../interruption-carriere-soins-parental-section/interruption-carriere-soins-parental-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3294,6 +3296,44 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-32b : Interruption de carriere pour conge parental BE —
+      // Loi de redressement du 22/01/1985 art. 99 a 107quater (cadre
+      // general + protection licenciement art. 101) + AR du 29/10/1997
+      // (conditions d'eligibilite, formes 4 / 8 / 20 mois, formalisme
+      // notification 2-3 mois) + CCT n 64 du 29/04/1997 (rendant le
+      // droit obligatoire dans le secteur prive) + AR du 12/08/1991
+      // (allocations forfaitaires ONEM) + AR du 12/12/2001 (cinquieme
+      // temps). BE-only, ALWAYS_ON priority 150 (au-dessus de
+      // conge-paternite-naissance-be = 149 SF-219-31b,
+      // bien-etre-rps-conseiller-prevention = 148 SF-219-30b,
+      // at-mp-rente-capital-be = 147 SF-219-29b). Verdict 8 etats
+      // (ELIGIBLE_COMPLET info / ELIGIBLE_AVEC_RESERVES neutral /
+      // INELIGIBLE_ANCIENNETE critical / INELIGIBLE_AGE_ENFANT critical /
+      // INELIGIBLE_SOLDE_INSUFFISANT critical / INELIGIBLE_FORMALISME
+      // warn / DIFFERE_EMPLOYEUR warn / A_QUALIFIER neutral) avec calcul
+      // de la duree (4 / 8 / 20 mois), de l'allocation ONEM, de la date
+      // de fin, de la protection art. 101 et de l'indemnite forfaitaire
+      // 6 mois. Distinct de F-DT-29 credit-temps-be (CCT 103 regime
+      // universel sans motif specifique) — cet outil couvre uniquement
+      // le conge parental Loi 22/01/1985 et CCT 64 (droit individuel
+      // par enfant et par parent avec conditions d'age enfant et formes
+      // specifiques). Pre-fill IA V1 : aucun champ (alignement pattern
+      // uniforme F-213 / F-219 — forme, anciennete (periode reference
+      // 15 mois), age enfant, handicap, solde ONEM, mode notification,
+      // accord et differe employeur, cumul ONEM, dates et remuneration
+      // art. 101 non extractibles du dossier salarie generique).
+      ['interruption-carriere-soins-parental', {
+        displayLabel: 'Interruption de carriere — Conge parental (Belgique)',
+        component: InterruptionCarriereSoinsParentalSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4684,6 +4724,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // mp-fedris-reconnaissance, bien-etre-rps-conseiller-prevention,
     // protection-grossesse).
     ['conge-paternite-naissance-be', 'VALIDITE'],
+    // SF-219-32b : Interruption de carriere conge parental BE — analyseur
+    // d'eligibilite (Loi 22/01/1985 + AR 29/10/1997 + CCT 64 + AR
+    // 12/08/1991 ONEM). Theme VALIDITE — coherent avec les autres
+    // analyseurs de conformite legale (mp-fedris-reconnaissance,
+    // bien-etre-rps-conseiller-prevention, code-penal-social-be).
+    // Distinct de F-DT-29 credit-temps-be (CCT 103, regime universel).
+    ['interruption-carriere-soins-parental', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

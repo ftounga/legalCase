@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="113cae5b-b40b-4f2b-806c-f2c8167c6f1e" author="claude">
+        <comment>
+            SF-219-32b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel Interruption de carriere pour conge parental BE
+            (interruption-carriere-soins-parental, BELGIQUE,
+            DROIT_DU_TRAVAIL), table d'analyses creee par SF-219-32
+            (migration 436).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs propres au regime du conge parental BE :
+            forme demandee (TEMPS_PLEIN 4 mois, MI_TEMPS 8 mois,
+            CINQUIEME_TEMPS 20 mois — AR 29/10/1997 art. 3 modifie AR
+            12/12/2001), anciennete sur la periode specifique 15 mois
+            precedant la demande (art. 5), age de l'enfant en mois a la
+            date du debut (art. 4 — &lt; 12 ans ou &lt; 21 ans
+            handicap), statut handicap &gt;= 66 pour cent (attestation
+            Vierge Noire / DG Personnes handicapees), solde individuel
+            ONEM 4 mois ETP par enfant et par parent (art. 2), mode de
+            notification (lettre recommandee / remise en main / autre —
+            art. 6), accord ou differe motive employeur (art. 7),
+            cumul allocation forfaitaire ONEM (AR 12/08/1991 art. 4),
+            dates de debut et de notification, remuneration mensuelle
+            brute pour le calcul de l'indemnite de protection 6 mois
+            art. 101 Loi 22/01/1985. Aucun flag DB CONTEXTUAL fiable
+            n'est disponible ; l'introduire pour un seul outil ajouterait
+            une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (qualification
+               situation familiale enfant, statut handicap administratif,
+               compteur individuel ONEM, formalisme notification
+               employeur) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque un projet de conge parental (preparation d'une
+               demande, contestation d'un refus employeur, contestation
+               d'un differe motive art. 7, contestation d'un licenciement
+               survenu pendant la fenetre de protection art. 101 Loi
+               22/01/1985, articulation avec un eventuel credit-temps
+               CCT 103 en aval ou alternative — voir F-DT-29
+               credit-temps-be). L'outil restitue le verdict 8 etats
+               (ELIGIBLE_COMPLET / ELIGIBLE_AVEC_RESERVES /
+               INELIGIBLE_ANCIENNETE / INELIGIBLE_AGE_ENFANT /
+               INELIGIBLE_SOLDE_INSUFFISANT / INELIGIBLE_FORMALISME /
+               DIFFERE_EMPLOYEUR / A_QUALIFIER) avec calcul de la duree
+               (4 / 8 / 20 mois selon forme), de l'allocation
+               forfaitaire ONEM mensuelle et totale (AR 12/08/1991
+               art. 4), de la date de fin de l'interruption, de la
+               fenetre de protection contre le licenciement art. 101 et
+               de l'indemnite forfaitaire 6 mois en cas de licenciement
+               injustifie.
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-149) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 auditorat-travail-be (SF-219-25b)
+                 - 144 travail-noir-be-dimona (SF-219-26b)
+                 - 145 inastri-statut-travailleur-independant (SF-219-27b)
+                 - 146 mp-fedris-reconnaissance (SF-219-28b)
+                 - 147 at-mp-rente-capital-be (SF-219-29b)
+                 - 148 bien-etre-rps-conseiller-prevention (SF-219-30b)
+                 - 149 conge-paternite-naissance-be (SF-219-31b)
+                 - 150 cette migration (interruption-carriere-soins-parental)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY
+            interruption-carriere-soins-parental livree dans
+            decisional-tools-panel.component.ts (cf. SF-219-32b). Sans ce
+            couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            echoue (seed en DB sans entree TOOL_REGISTRY frontend = outil
+            silencieusement masque — cas reel F-164 staging 2026-04-26,
+            memoire feedback_pre_merge_visibility_seed_check).
+
+            tool_id interruption-carriere-soins-parental deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-32 (PR
+            #1447, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            THEME_BY_TOOL_ID = VALIDITE (analyseur de conformite legale
+            de l'eligibilite au conge parental, coherent avec les autres
+            analyseurs F-219 : mp-fedris-reconnaissance,
+            bien-etre-rps-conseiller-prevention, code-penal-social-be).
+            Distinct des outils INDEMNITES qui chiffrent un montant
+            principal (l'allocation ONEM et l'indemnite art. 101 sont
+            des sorties auxiliaires de l'analyse d'eligibilite, pas
+            l'objet principal).
+
+            Fondement juridique :
+            - Loi de redressement du 22/01/1985 (M.B. 24/01/1985)
+              contenant des dispositions sociales :
+                * art. 99 a 107quater — cadre general des interruptions
+                  de carriere ;
+                * art. 101 — protection contre le licenciement pendant
+                  l'interruption et jusqu'a 3 mois apres, indemnite
+                  forfaitaire 6 mois de remuneration en cas de
+                  licenciement non motive par un motif etranger a
+                  l'interruption.
+            - AR du 29/10/1997 (M.B. 07/11/1997) relatif a
+              l'introduction d'un droit au conge parental dans le cadre
+              d'une interruption de carriere :
+                * art. 2 — droit individuel 4 mois ETP par enfant et
+                  par parent ;
+                * art. 3 — formes TEMPS_PLEIN 4 mois, MI_TEMPS 8 mois
+                  (modifie par AR 12/12/2001 introduisant CINQUIEME_TEMPS
+                  20 mois) ;
+                * art. 4 — plafond age enfant 12 ans (porte a 21 ans si
+                  handicap &gt;= 66 pour cent al. 2) ;
+                * art. 5 — anciennete 12 mois aupres du meme employeur
+                  dans les 15 mois precedant la demande ;
+                * art. 6 — formalisme notification 2 a 3 mois avant le
+                  debut, lettre recommandee ou remise en main propre
+                  contre accuse date / signe ;
+                * art. 7 — differe motive employeur maximum 6 mois pour
+                  raisons organisationnelles.
+            - CCT n 64 du 29/04/1997 conclue au sein du Conseil
+              national du travail concernant le droit au conge parental,
+              rendue obligatoire par AR du 29/10/1997 — etend le droit
+              au secteur prive entier.
+            - AR du 12/08/1991 (M.B. 31/08/1991) fixant le montant
+              forfaitaire de l'allocation d'interruption — base de
+              calcul de l'allocation forfaitaire ONEM mensuelle (art. 4).
+            - AR du 12/12/2001 (M.B. 18/12/2001) introduisant la forme
+              CINQUIEME_TEMPS 20 mois (art. 1).
+            - Loi du 28/12/2011 (M.B. 30/12/2011) — allongement de la
+              duree de 3 a 4 mois ETP (refonte transversale).
+            - AR du 05/05/2019 (M.B. 22/05/2019) introduisant la forme
+              DIXIEME_TEMPS 40 mois sur accord employeur — hors scope V1
+              de cet outil.
+
+            Regime BE-only — le regime francais du conge parental
+            d'education (Code du travail FR art. L. 1225-47 a L. 1225-60,
+            duree 1 an renouvelable jusqu'au 3e anniversaire de l'enfant
+            ou 6 ans si handicap, base AT non distincte, allocations
+            CAF — Prestation Partagee d'Education de l'Enfant PreParE —
+            et non ONEM, formalisme par lettre recommandee art. L.
+            1225-50, periode d'essai 1 mois, voie de recours conseil de
+            prud'hommes art. L. 1411-1) est juridiquement distinct :
+            - duree de base 1 an renouvelable FR vs 4 mois ETP / enfant
+              / parent BE ;
+            - plafond age 3 ans FR vs 12 ans BE (21 ans handicap BE) ;
+            - allocations CAF / MSA FR vs ONEM BE (montants et regles
+              de cumul distincts) ;
+            - voie de recours conseil de prud'hommes FR vs tribunal du
+              travail art. 578 C. jud. BE.
+            Aucune transposition mecanique.
+
+            Distinct de :
+            - F-DT-29 credit-temps-be — CCT 103 NAR du 27/06/2012,
+              regime universel sans motif specifique (motifs : soins
+              enfant, formation, soins palliatifs, fin de carriere).
+              Distincts : le credit-temps CCT 103 n'a pas de condition
+              d'age enfant et a un quota global plus large (51 mois max
+              cumul vs 4 mois ETP par enfant et par parent en conge
+              parental). Articulation : le conge parental peut s'imputer
+              sur le credit-temps soins art. 8 CCT 103, mais les conditions
+              d'eligibilite et le formalisme restent specifiques a chaque
+              regime.
+            - protection-grossesse (prio 113) — Loi 16/03/1971 sur le
+              travail art. 39 a 43, protection differente (perinatale,
+              non liee a une demande de conge specifique).
+            - statut-unique-preavis (prio 111) — calcul du preavis dans
+              le cadre du statut unique 2014. Distincts (rupture de
+              contrat vs interruption temporaire). Articulation possible
+              en cas de licenciement injustifie pendant la protection
+              art. 101 Loi 22/01/1985 (cumul preavis legal +
+              indemnite protection 6 mois forfaitaire).
+            - rappel-salaire-be (prio 110) — chiffrage civil d'arrieres
+              de salaire avec interets moratoires 10 pour cent.
+              Distincts mais complementaires en cas de licenciement
+              pendant la fenetre de protection art. 101 (indemnite 6
+              mois + eventuel rappel des salaires retenus indument).
+            - conge-paternite-naissance-be (prio 149, SF-219-31b) —
+              regime du conge de paternite court (10 ou 20 jours selon
+              Loi 07/04/2023, art. 30 § 2 Loi 03/07/1978). Distincts :
+              le conge paternite est un droit du second parent dans les
+              4 mois de la naissance (sans condition d'anciennete chez
+              le meme employeur), le conge parental est un droit
+              individuel jusqu'aux 12 ans avec condition d'anciennete
+              12 mois et formes 4 / 8 / 20 mois.
+            - bien-etre-rps-conseiller-prevention (prio 148, SF-219-30b) —
+              procedure interne CPAP, distincte (cadre RPS Loi 04/08/1996,
+              pas un congé familial).
+            - mp-fedris-reconnaissance (prio 146, SF-219-28b) /
+              at-mp-rente-capital-be (prio 147, SF-219-29b) — regime AT
+              et MP, distincts (origine medicale, indemnite forfaitaire
+              vs droit individuel familial).
+            - F-DT-30 harcelement-licenciement-nul-section — sanction
+              nullite licenciement represailles. Articulation possible
+              en cas de licenciement pendant la fenetre de protection
+              art. 101 si le licenciement est lie a l'exercice du droit.
+
+            Cet outil intervient en aval du diagnostic d'eligibilite
+            pour qualifier la demande, calculer la duree et l'allocation
+            ONEM, et anticiper la protection contre le licenciement.
+            Cohabite avec F-DT-29 credit-temps-be (regime distinct) et
+            SF-219-31b conge-paternite-naissance-be (regime distinct).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('113cae5b-b40b-4f2b-806c-f2c8167c6f1e', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'interruption-carriere-soins-parental', 'ALWAYS_ON', NULL, NULL, 150);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '113cae5b-b40b-4f2b-806c-f2c8167c6f1e';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

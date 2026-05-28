@@ -1,0 +1,373 @@
+<div class="interruption-carriere-soins-parental-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">family_restroom</mat-icon>
+    <span class="section-title">Interruption de carriere — Conge parental (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="interruption-carriere-soins-parental-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est reserve aux dossiers de droit du travail belge
+            (Loi de redressement du 22/01/1985 art. 99 a 107quater + AR
+            du 29/10/1997 + CCT n 64 du 29/04/1997 + AR du 12/08/1991
+            allocations ONEM + AR du 12/12/2001 cinquieme temps). Le
+            regime francais du conge parental d'education (Code du
+            travail FR art. L. 1225-47 a L. 1225-60, duree 1 an
+            renouvelable jusqu'au 3e anniversaire de l'enfant, pas de
+            base AT distincte, allocations CAF non ONEM) constitue un
+            dispositif juridiquement distinct. Aucune transposition
+            mecanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement...</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse l'eligibilite au conge parental BE selon les
+            conditions de la <b>Loi 22/01/1985</b> et de l'<b>AR
+            29/10/1997</b> : anciennete (12 mois dans les 15 mois
+            precedant la demande, art. 5), age de l'enfant
+            (&lt; 12 ans ou &lt; 21 ans handicap, art. 4), solde
+            individuel restant du droit 4 mois ETP par enfant et par
+            parent (art. 2), formalisme de notification (mode et delai
+            2-3 mois, art. 6) et calcule la duree (4 / 8 / 20 mois
+            selon forme), l'allocation forfaitaire ONEM (AR 12/08/1991
+            art. 4), la date de fin et la protection contre le
+            licenciement (art. 101 Loi 22/01/1985). Champs marques *
+            requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Forme * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Forme de l'interruption *</mat-label>
+                <mat-select
+                    [value]="forme()"
+                    (selectionChange)="onFormeChange($event.value)"
+                    name="forme"
+                    required>
+                  <mat-option value="TEMPS_PLEIN">
+                    Temps plein — 4 mois (AR 29/10/1997 art. 3)
+                  </mat-option>
+                  <mat-option value="MI_TEMPS">
+                    Mi-temps — 8 mois (AR 29/10/1997 art. 3)
+                  </mat-option>
+                  <mat-option value="CINQUIEME_TEMPS">
+                    Cinquieme temps — 20 mois (AR 12/12/2001 art. 1)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Equivalent 4 mois ETP par enfant et par parent — duree multipliee selon ratio d'occupation maintenu.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Anciennete mois * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Anciennete (en mois) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="ancienneteMois()"
+                       (ngModelChange)="onAncienneteMoisChange($event)"
+                       name="ancienneteMois" />
+                <mat-hint>Doit etre &gt;= 12 mois aupres du meme employeur sur la periode 15 mois precedant la demande (art. 5 AR 29/10/1997).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Age enfant mois * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Age de l'enfant (en mois) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="ageEnfantMois()"
+                       (ngModelChange)="onAgeEnfantMoisChange($event)"
+                       name="ageEnfantMois" />
+                <mat-hint>Doit etre &lt; 144 mois (12 ans) ou &lt; 252 mois (21 ans si handicap &gt;= 66 pour cent) au debut (art. 4 AR 29/10/1997).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Solde restant ETP * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Solde restant du droit individuel (mois ETP) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="soldeRestantMoisEtp()"
+                       (ngModelChange)="onSoldeRestantMoisEtpChange($event)"
+                       name="soldeRestantMoisEtp" />
+                <mat-hint>Compteur individuel ONEM (4 mois ETP par enfant et par parent, art. 2 AR 29/10/1997).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Mode notification * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Mode de notification employeur *</mat-label>
+                <mat-select
+                    [value]="modeNotification()"
+                    (selectionChange)="onModeNotificationChange($event.value)"
+                    name="modeNotification"
+                    required>
+                  <mat-option value="LETTRE_RECOMMANDEE">
+                    Lettre recommandee (voie standard art. 6)
+                  </mat-option>
+                  <mat-option value="REMISE_EN_MAIN">
+                    Remise en main propre contre accuse signe
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre — mode non conforme art. 6
+                  </mat-option>
+                </mat-select>
+                <mat-hint>L'art. 6 AR 29/10/1997 impose un formalisme strict : recommandee ou remise en main contre AR.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date debut interruption -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de debut souhaitee de l'interruption</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDebutInterruption()"
+                       (ngModelChange)="onDateDebutInterruptionChange($event)"
+                       name="dateDebutInterruption" />
+                <mat-hint>Point de depart du calcul de la date de fin et de la fenetre de protection art. 101 Loi 22/01/1985.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Date notification -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de notification a l'employeur</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateNotification()"
+                       (ngModelChange)="onDateNotificationChange($event)"
+                       name="dateNotification" />
+                <mat-hint>Doit preceder le debut de 2 a 3 mois (art. 6 AR 29/10/1997) — sert au controle de la conformite delai.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Remuneration mensuelle brute -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Remuneration mensuelle brute (EUR)</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       [ngModel]="remunerationMensuelleBrute()"
+                       (ngModelChange)="onRemunerationMensuelleBruteChange($event)"
+                       name="remunerationMensuelleBrute" />
+                <mat-hint>Base de calcul de l'indemnite de protection 6 mois en cas de licenciement (art. 101 Loi 22/01/1985).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9-12. Cases a cocher : handicap + accord / differe + cumul ONEM -->
+            <div class="field-full-width formalites-block">
+              <p class="formalites-title">Situation enfant, accord employeur et allocation ONEM</p>
+
+              <mat-checkbox
+                  [checked]="enfantHandicap()"
+                  (change)="onEnfantHandicapChange($event.checked)"
+                  name="enfantHandicap">
+                Enfant handicap &gt;= 66 pour cent (plafond age porte a 21 ans, art. 4 al. 2 AR 29/10/1997)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="employeurAccepte()"
+                  (change)="onEmployeurAccepteChange($event.checked)"
+                  name="employeurAccepte">
+                Employeur a donne son accord sur la forme demandee
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="employeurAdiffere()"
+                  (change)="onEmployeurAdiffereChange($event.checked)"
+                  name="employeurAdiffere">
+                Employeur a notifie un differe motive maximum 6 mois (art. 7 AR 29/10/1997)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="cumulAllocationOnemDemande()"
+                  (change)="onCumulAllocationOnemDemandeChange($event.checked)"
+                  name="cumulAllocationOnemDemande">
+                Demande d'allocation ONEM forfaitaire mensuelle (AR 12/08/1991 art. 4)
+              </mat-checkbox>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'eligibilite</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="interruption-carriere-soins-parental-result">
+
+          <!-- Banniere verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Forme : <b>{{ formeLabel(result()!.forme) }}</b>
+                <span> / Notification : <b>{{ modeNotificationLabel(result()!.modeNotification) }}</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation analyse -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Detail de l'analyse</div>
+
+            <div class="ventilation-row" [class.row-critical]="!result()!.ancienneteOk">
+              <mat-icon class="ventilation-icon">work_history</mat-icon>
+              <span class="ventilation-label">Anciennete (&gt;= 12 mois)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.ancienneteOk) }}</span>
+            </div>
+
+            <div class="ventilation-row" [class.row-critical]="!result()!.ageEnfantOk">
+              <mat-icon class="ventilation-icon">child_care</mat-icon>
+              <span class="ventilation-label">Age enfant dans les bornes</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.ageEnfantOk) }}</span>
+            </div>
+
+            <div class="ventilation-row" [class.row-critical]="!result()!.formalismeOk">
+              <mat-icon class="ventilation-icon">fact_check</mat-icon>
+              <span class="ventilation-label">Formalisme notification respecte</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.formalismeOk) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">event_note</mat-icon>
+              <span class="ventilation-label">Duree de l'interruption</span>
+              <span class="ventilation-value mono">{{ formatMois(result()!.dureeInterruptionMois) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">production_quantity_limits</mat-icon>
+              <span class="ventilation-label">Solde restant apres imputation (mois ETP)</span>
+              <span class="ventilation-value mono">{{ formatMois(result()!.soldeRestantApresImputationMoisEtp) }}</span>
+            </div>
+
+            @if (result()!.allocationOnemMensuelle !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">payments</mat-icon>
+                <span class="ventilation-label">Allocation ONEM mensuelle (AR 12/08/1991)</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.allocationOnemMensuelle) }}</span>
+              </div>
+            }
+
+            @if (result()!.allocationOnemTotale !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">euro</mat-icon>
+                <span class="ventilation-label">Allocation ONEM totale</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.allocationOnemTotale) }}</span>
+              </div>
+            }
+
+            @if (result()!.dateFinInterruption) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">event_available</mat-icon>
+                <span class="ventilation-label">Date de fin de l'interruption</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateFinInterruption) }}</span>
+              </div>
+            }
+
+            @if (result()!.finProtectionLicenciement) {
+              <div class="ventilation-row" [class.row-info]="result()!.protectionLicenciementActive">
+                <mat-icon class="ventilation-icon">shield</mat-icon>
+                <span class="ventilation-label">Fin protection licenciement (art. 101)</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.finProtectionLicenciement) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row" [class.row-info]="result()!.protectionLicenciementActive">
+              <mat-icon class="ventilation-icon">security</mat-icon>
+              <span class="ventilation-label">Protection licenciement active</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.protectionLicenciementActive) }}</span>
+            </div>
+
+            @if (result()!.indemniteProtectionEnCasLicenciement !== null) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">gavel</mat-icon>
+                <span class="ventilation-label">Indemnite protection 6 mois (en cas de licenciement)</span>
+                <span class="ventilation-value mono">{{ formatMontant(result()!.indemniteProtectionEnCasLicenciement) }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Synthese -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le resultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
