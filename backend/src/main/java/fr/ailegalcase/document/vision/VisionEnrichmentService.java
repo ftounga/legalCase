@@ -1,7 +1,9 @@
 package fr.ailegalcase.document.vision;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.document.Document;
 import fr.ailegalcase.document.DocumentExtraction;
 import fr.ailegalcase.document.DocumentExtractionRepository;
@@ -269,7 +271,19 @@ public class VisionEnrichmentService {
             }
 
             String userText = buildUserText(piece);
+            UUID caseFileId = null;
+            try {
+                if (piece.getDocument() != null && piece.getDocument().getCaseFile() != null) {
+                    caseFileId = piece.getDocument().getCaseFile().getId();
+                }
+            } catch (Exception ignored) {
+                // fail-open : si la résolution du caseFileId échoue, on continue sans.
+            }
+            AiCallContext ctx = caseFileId != null
+                    ? AiCallContext.systemLevel(JobType.SYSTEM_VISION_ENRICHMENT, caseFileId)
+                    : AiCallContext.systemLevel(JobType.SYSTEM_VISION_ENRICHMENT);
             AnthropicResult result = anthropicService.analyzeWithImages(
+                    ctx,
                     props.getModel(),
                     VISION_SYSTEM_PROMPT,
                     pageImages,

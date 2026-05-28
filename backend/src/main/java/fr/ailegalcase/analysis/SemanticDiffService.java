@@ -17,6 +17,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+/**
+ * F-257 — appels Anthropic system-level (jobType {@link JobType#SYSTEM_SEMANTIC_DIFF}),
+ * rattachés au {@code caseFileId} de l'analyse cible.
+ */
 @Service
 public class SemanticDiffService {
 
@@ -73,15 +77,15 @@ public class SemanticDiffService {
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<AnalysisDiffResponse.SectionDiff> faitsFuture =
-                    executor.submit(() -> diffSection("faits", context, toTexts(from.faits()), toTexts(to.faits()), from, to));
+                    executor.submit(() -> diffSection("faits", context, toTexts(from.faits()), toTexts(to.faits()), from, to, caseFileId));
             Future<AnalysisDiffResponse.SectionDiff> pointsFuture =
-                    executor.submit(() -> diffSection("points_juridiques", context, toTexts(from.pointsJuridiques()), toTexts(to.pointsJuridiques()), from, to));
+                    executor.submit(() -> diffSection("points_juridiques", context, toTexts(from.pointsJuridiques()), toTexts(to.pointsJuridiques()), from, to, caseFileId));
             Future<AnalysisDiffResponse.SectionDiff> risquesFuture =
-                    executor.submit(() -> diffSection("risques", context, toTexts(from.risques()), toTexts(to.risques()), from, to));
+                    executor.submit(() -> diffSection("risques", context, toTexts(from.risques()), toTexts(to.risques()), from, to, caseFileId));
             Future<AnalysisDiffResponse.SectionDiff> questionsFuture =
-                    executor.submit(() -> diffSection("questions_ouvertes", context, from.questionsOuvertes(), to.questionsOuvertes(), from, to));
+                    executor.submit(() -> diffSection("questions_ouvertes", context, from.questionsOuvertes(), to.questionsOuvertes(), from, to, caseFileId));
             Future<AnalysisDiffResponse.TimelineSectionDiff> timelineFuture =
-                    executor.submit(() -> diffTimeline(context, from.timeline(), to.timeline(), from, to));
+                    executor.submit(() -> diffTimeline(context, from.timeline(), to.timeline(), from, to, caseFileId));
 
             return new AnalysisDiffResponse(
                     toVersionInfo(fromAnalysis), toVersionInfo(toAnalysis),
@@ -97,13 +101,15 @@ public class SemanticDiffService {
 
     private AnalysisDiffResponse.SectionDiff diffSection(String sectionName, String context,
                                                           List<String> fromItems, List<String> toItems,
-                                                          CaseAnalysisResponse from, CaseAnalysisResponse to) {
+                                                          CaseAnalysisResponse from, CaseAnalysisResponse to,
+                                                          UUID caseFileId) {
         String prompt = context +
                 "[Section : " + sectionName + "]\n" +
                 "Version de base : " + (fromItems.isEmpty() ? "[]" : fromItems.toString()) + "\n" +
                 "Nouvelle version : " + (toItems.isEmpty() ? "[]" : toItems.toString()) + "\n";
         try {
-            AnthropicResult result = anthropicService.analyzeFast(SECTION_SYSTEM_PROMPT, prompt, 2048);
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_SEMANTIC_DIFF, caseFileId);
+            AnthropicResult result = anthropicService.analyzeFast(ctx, SECTION_SYSTEM_PROMPT, prompt, 2048);
             return parseSectionArray(result.content());
         } catch (Exception e) {
             log.warn("Semantic diff failed for section '{}', falling back to exact: {}", sectionName, e.getMessage());
@@ -115,7 +121,8 @@ public class SemanticDiffService {
                                                                    List<CaseAnalysisResponse.TimelineEntry> fromItems,
                                                                    List<CaseAnalysisResponse.TimelineEntry> toItems,
                                                                    CaseAnalysisResponse from,
-                                                                   CaseAnalysisResponse to) {
+                                                                   CaseAnalysisResponse to,
+                                                                   UUID caseFileId) {
         StringBuilder sb = new StringBuilder(context);
         sb.append("[Section : timeline]\n");
         sb.append("Version de base : ");
@@ -124,7 +131,8 @@ public class SemanticDiffService {
         appendTimelineItems(sb, toItems);
 
         try {
-            AnthropicResult result = anthropicService.analyzeFast(TIMELINE_SYSTEM_PROMPT, sb.toString(), 2048);
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_SEMANTIC_DIFF, caseFileId);
+            AnthropicResult result = anthropicService.analyzeFast(ctx, TIMELINE_SYSTEM_PROMPT, sb.toString(), 2048);
             return parseTimelineArray(result.content());
         } catch (Exception e) {
             log.warn("Semantic diff failed for section 'timeline', falling back to exact: {}", e.getMessage());

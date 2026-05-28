@@ -6,6 +6,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.DocumentExtraction;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.ExtractionStatus;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -151,7 +152,8 @@ public class CaseAnalysisService {
     }
 
     record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
-                                 AnalysisLimitsProperties.LevelLimits limits) {}
+                                 AnalysisLimitsProperties.LevelLimits limits,
+                                 UUID workspaceId, UUID userId) {}
 
     /** SF — budget pour les extraits bruts injectés par doc (pour éviter les
      *  mauvaises classifications quand les doc-analyses ne captent pas le
@@ -227,6 +229,19 @@ public class CaseAnalysisService {
         PreparedCaseAnalysis prepared = self.prepareCaseAnalysis(message);
         if (prepared == null) return;
 
+        // F-257 — résolution du contexte AiCallContext user-level. Si manquant → FAILED
+        // (cohérent avec le pattern de validation des autres pipelines).
+        if (prepared.workspaceId() == null || prepared.userId() == null || prepared.caseFileId() == null) {
+            log.warn("CaseAnalysis caseFile {} missing user/workspace context " +
+                            "(userId={}, workspaceId={}, caseFileId={}) — analysis skipped",
+                    caseFileId, prepared.userId(), prepared.workspaceId(), prepared.caseFileId());
+            self.finalizeCaseAnalysis(prepared.analysisId(), prepared.caseFileId(), null,
+                    new IllegalStateException("Missing AiCallContext"), prepared.limits());
+            return;
+        }
+        AiCallContext ctx = AiCallContext.userLevel(prepared.workspaceId(), prepared.userId(),
+                prepared.caseFileId(), JobType.CASE_ANALYSIS);
+
         AnthropicResult result = null;
         Exception failure = null;
         try {
@@ -259,7 +274,7 @@ public class CaseAnalysisService {
             try {
                 PartialJsonSectionExtractor extractor = new PartialJsonSectionExtractor();
                 result = anthropicService.analyzeWithSystemCacheStreaming(
-                        prepared.systemPrompt(), prepared.prompt(), 64000,
+                        ctx, prepared.systemPrompt(), prepared.prompt(), 64000,
                         delta -> {
                             chunkCount.incrementAndGet();
                             try {
@@ -286,13 +301,18 @@ public class CaseAnalysisService {
             // méthode streaming ; dans tous les cas on retombe sur l'appel synchrone éprouvé.
             if (result == null) {
                 result = anthropicService.analyzeWithSystemCache(
-                        prepared.systemPrompt(), prepared.prompt(), 64000);
+                        ctx, prepared.systemPrompt(), prepared.prompt(), 64000);
             }
 
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
                     result.promptTokens(), result.completionTokens());
+        } catch (PaymentRequiredException pre) {
+            // F-257 — quota dépassé → FAILED localement, ne pas propager dans le listener RabbitMQ.
+            log.warn("Token budget exceeded during case analysis caseFile {} — analysis FAILED (workspace={})",
+                    caseFileId, prepared.workspaceId());
+            failure = pre;
         } catch (Exception e) {
             log.error("Case analysis FAILED for caseFile {} (total {}ms)", caseFileId,
                     System.currentTimeMillis() - startMs, e);
@@ -395,7 +415,14 @@ public class CaseAnalysisService {
         String userPrompt = (piecesContext == null || piecesContext.isEmpty())
                 ? buildAggregatedPrompt(documentAnalyses)
                 : piecesContext + "\n" + buildAggregatedPrompt(documentAnalyses);
-        return new PreparedCaseAnalysis(analysis.getId(), userPrompt, systemPrompt, caseFileId, limits);
+        // F-257 — pré-résolution workspaceId + userId pour la construction de
+        // AiCallContext dans consumeCaseAnalysis (un seul ctx pour streaming + fallback sync).
+        UUID workspaceId = ws != null ? ws.getId()
+                : caseFileRepository.findWorkspaceIdById(caseFileId).orElse(null);
+        UUID userId = caseFileRepository.findCreatedByUserIdById(caseFileId).orElse(null);
+
+        return new PreparedCaseAnalysis(analysis.getId(), userPrompt, systemPrompt, caseFileId, limits,
+                workspaceId, userId);
     }
 
     @Transactional
@@ -484,13 +511,8 @@ public class CaseAnalysisService {
             }
         });
 
-        if (finalStatus == AnalysisStatus.DONE) {
-            int promptTokens = analysis.getPromptTokens();
-            int completionTokens = analysis.getCompletionTokens();
-            caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
-                usageEventService.record(caseFileId, userId, JobType.CASE_ANALYSIS,
-                        promptTokens, completionTokens));
-        }
+        // F-257 — record automatique dans AnthropicService.analyzeWithSystemCacheStreaming
+        // / analyzeWithSystemCache, plus de record manuel ici.
     }
 
     /**

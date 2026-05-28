@@ -227,7 +227,7 @@ class JobFailureLoggingTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -238,8 +238,11 @@ class JobFailureLoggingTest {
         when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
+        // F-257 — pré-résolution user-level pour AiCallContext (sinon SKIP early → log ERROR + status FAILED)
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -258,7 +261,7 @@ class JobFailureLoggingTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
     }
 
     private DocumentAnalysis documentAnalysis(String result, Instant createdAt) {

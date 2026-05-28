@@ -1,6 +1,7 @@
 package fr.ailegalcase.blog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import org.junit.jupiter.api.Test;
@@ -30,12 +31,12 @@ class LegalCitationVerifierTest {
 
         assertThat(outcome.called()).isFalse();
         assertThat(outcome.hasLikelyHallucination()).isFalse();
-        verify(anthropicService, never()).analyzeWithModel(anyString(), anyString(), anyString(), anyInt());
+        verify(anthropicService, never()).analyzeWithModel(any(AiCallContext.class), anyString(), anyString(), anyString(), anyInt());
     }
 
     @Test
     void verify_zeroHallucination_returnsHasFalse() {
-        when(anthropicService.analyzeWithModel(any(), any(), any(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), any(), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "{\"verdicts\":[{\"reference\":\"Code du travail, art. L1237-13\"," +
                                 "\"verdict\":\"KNOWN\",\"rationale\":\"article existant\"}]}",
@@ -50,7 +51,7 @@ class LegalCitationVerifierTest {
 
     @Test
     void verify_oneHallucination_flagsHasHallucination() {
-        when(anthropicService.analyzeWithModel(any(), any(), any(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), any(), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult(
                         "{\"verdicts\":[" +
                                 "{\"reference\":\"Code du travail, art. L9999\",\"verdict\":\"LIKELY_HALLUCINATION\",\"rationale\":\"inexistant\"}," +
@@ -68,7 +69,7 @@ class LegalCitationVerifierTest {
 
     @Test
     void verify_haikuExceptionFallsBackToFailed() {
-        when(anthropicService.analyzeWithModel(any(), any(), any(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), any(), any(), any(), anyInt()))
                 .thenThrow(new RuntimeException("503 anthropic"));
 
         LegalCitationVerifier.VerifierOutcome outcome = verifier.verify(List.of(

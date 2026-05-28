@@ -1,5 +1,6 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.casefile.CaseFile;
@@ -53,7 +54,7 @@ class DocumentPieceDetectionServiceTest {
                   {"type":"ATTESTATION","label":"Attestation collègue","pageStart":4,"pageEnd":4,"orderIndex":1}
                 ]
                 """;
-        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(haikuResponse, "haiku", 100, 50));
 
         service.detect(EXTRACTION_ID, "un long texte...");
@@ -74,7 +75,7 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_haikuException_fallbackToAutre() {
         mockExtraction();
-        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenThrow(new RuntimeException("haiku down"));
 
         service.detect(EXTRACTION_ID, "un long texte...");
@@ -89,7 +90,7 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_invalidJson_fallbackToAutre() {
         mockExtraction();
-        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("pas du JSON du tout", "haiku", 10, 5));
 
         service.detect(EXTRACTION_ID, "un long texte...");
@@ -103,7 +104,7 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_existingPieces_deletedBeforeInsert() {
         mockExtraction();
-        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("[]", "haiku", 10, 5));
 
         service.detect(EXTRACTION_ID, "texte");
@@ -159,14 +160,14 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_usesSonnetNotHaiku() {
         mockExtraction();
-        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("[]", "sonnet", 100, 50));
 
         service.detect(EXTRACTION_ID, "texte");
 
-        verify(anthropicService).analyze(anyString(), anyString(), anyInt());
+        verify(anthropicService).analyze(any(AiCallContext.class), anyString(), anyString(), anyInt());
         verify(anthropicService, org.mockito.Mockito.never())
-                .analyzeFast(anyString(), anyString(), anyInt());
+                .analyzeFast(any(AiCallContext.class), anyString(), anyString(), anyInt());
     }
 
     private void mockExtraction() {

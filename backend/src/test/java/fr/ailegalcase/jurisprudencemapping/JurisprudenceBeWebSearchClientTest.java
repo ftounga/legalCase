@@ -1,6 +1,7 @@
 package fr.ailegalcase.jurisprudencemapping;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ class JurisprudenceBeWebSearchClientTest {
                 LocalDate.of(2014, 1, 1), LocalDate.now(), 5);
 
         assertThat(result).isEmpty();
-        verify(anthropic, never()).analyzeWithWebSearch(any(), any(), anyInt(), anyInt());
+        verify(anthropic, never()).analyzeWithWebSearch(any(AiCallContext.class), any(), any(), anyInt(), anyInt());
     }
 
     @Test
@@ -66,7 +67,7 @@ class JurisprudenceBeWebSearchClientTest {
                   }
                 ]}
                 """;
-        when(anthropic.analyzeWithWebSearch(any(), any(), anyInt(), anyInt()))
+        when(anthropic.analyzeWithWebSearch(any(AiCallContext.class), any(), any(), anyInt(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet", 100, 200, "end_turn"));
 
         List<JudilibreArret> result = client.fetchArretsByKeyword("outplacement 45+",
@@ -82,7 +83,7 @@ class JurisprudenceBeWebSearchClientTest {
 
     @Test
     void fetchArretsByKeyword_anthropicReturnsEmptyArrets_returnsEmpty() {
-        when(anthropic.analyzeWithWebSearch(any(), any(), anyInt(), anyInt()))
+        when(anthropic.analyzeWithWebSearch(any(AiCallContext.class), any(), any(), anyInt(), anyInt()))
                 .thenReturn(new AnthropicResult("{\"arrets\":[]}", "claude-sonnet", 50, 20, "end_turn"));
 
         List<JudilibreArret> result = client.fetchArretsByKeyword("introuvable BE",
@@ -93,7 +94,7 @@ class JurisprudenceBeWebSearchClientTest {
 
     @Test
     void fetchArretsByKeyword_anthropicReturnsGarbage_returnsEmptyGracefully() {
-        when(anthropic.analyzeWithWebSearch(any(), any(), anyInt(), anyInt()))
+        when(anthropic.analyzeWithWebSearch(any(AiCallContext.class), any(), any(), anyInt(), anyInt()))
                 .thenReturn(new AnthropicResult("Je suis désolé je n'ai pas pu chercher",
                         "claude-sonnet", 50, 20, "end_turn"));
 
@@ -105,7 +106,7 @@ class JurisprudenceBeWebSearchClientTest {
 
     @Test
     void fetchArretsByKeyword_anthropicThrows_returnsEmptyGracefully() {
-        when(anthropic.analyzeWithWebSearch(any(), any(), anyInt(), anyInt()))
+        when(anthropic.analyzeWithWebSearch(any(AiCallContext.class), any(), any(), anyInt(), anyInt()))
                 .thenThrow(new RuntimeException("anthropic down"));
 
         List<JudilibreArret> result = client.fetchArretsByKeyword("test",

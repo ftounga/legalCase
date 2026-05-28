@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -122,7 +123,8 @@ public class AiQuestionService {
         return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
     }
 
-    record PreparedQuestionGeneration(String prompt, String systemPrompt, UUID caseFileId, UUID caseAnalysisId) {}
+    record PreparedQuestionGeneration(String prompt, String systemPrompt, UUID caseFileId, UUID caseAnalysisId,
+                                       UUID workspaceId, UUID userId) {}
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -159,6 +161,16 @@ public class AiQuestionService {
         PreparedQuestionGeneration prepared = self.prepareQuestionGeneration(message);
         if (prepared == null) return;
 
+        // F-257 — résolution du contexte AiCallContext user-level. Si manquant → FAILED.
+        if (prepared.workspaceId() == null || prepared.userId() == null || prepared.caseFileId() == null) {
+            log.warn("QuestionGeneration caseFile {} missing user/workspace context " +
+                            "(userId={}, workspaceId={}, caseFileId={}) — generation skipped",
+                    caseFileId, prepared.userId(), prepared.workspaceId(), prepared.caseFileId());
+            self.finalizeQuestionGeneration(prepared.caseFileId(), prepared.caseAnalysisId(), null,
+                    new IllegalStateException("Missing AiCallContext"));
+            return;
+        }
+
         AnthropicResult result = null;
         Exception failure = null;
         try {
@@ -172,11 +184,18 @@ public class AiQuestionService {
             // éliminer définitivement le risque de troncature silencieuse).
             // F-142-04 : prompt caching ephemeral (5 min TTL) — gain de latence sur
             // les appels successifs avec le même system prompt dans la même session.
-            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 8192);
+            AiCallContext ctx = AiCallContext.userLevel(prepared.workspaceId(), prepared.userId(),
+                    prepared.caseFileId(), JobType.QUESTION_GENERATION);
+            result = anthropicService.analyzeWithSystemCache(ctx, prepared.systemPrompt(), prepared.prompt(), 8192);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Question generation DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
                     result.promptTokens(), result.completionTokens());
+        } catch (PaymentRequiredException pre) {
+            // F-257 — quota dépassé → FAILED localement, ne pas propager dans le listener RabbitMQ.
+            log.warn("Token budget exceeded during question generation caseFile {} — generation FAILED (workspace={})",
+                    caseFileId, prepared.workspaceId());
+            failure = pre;
         } catch (Exception e) {
             log.error("Question generation FAILED for caseFile {} (total {}ms)", caseFileId,
                     System.currentTimeMillis() - startMs, e);
@@ -223,7 +242,15 @@ public class AiQuestionService {
         String systemPrompt = buildSystemPrompt(
                 ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL",
                 ws != null ? ws.getCountry() : "FRANCE");
-        return new PreparedQuestionGeneration(caseAnalysis.getAnalysisResult(), systemPrompt, caseFileId, caseAnalysis.getId());
+
+        // F-257 — pré-résolution workspaceId + userId pour la construction de
+        // AiCallContext dans consumeQuestionGeneration.
+        UUID workspaceId = ws != null ? ws.getId()
+                : caseFileRepository.findWorkspaceIdById(caseFileId).orElse(null);
+        UUID userId = caseFileRepository.findCreatedByUserIdById(caseFileId).orElse(null);
+
+        return new PreparedQuestionGeneration(caseAnalysis.getAnalysisResult(), systemPrompt, caseFileId, caseAnalysis.getId(),
+                workspaceId, userId);
     }
 
     @Transactional
@@ -275,12 +302,8 @@ public class AiQuestionService {
 
         analysisJobRepository.save(job);
 
-        if (job.getStatus() == AnalysisStatus.DONE) {
-            final AnthropicResult finalResult = result;
-            caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
-                usageEventService.record(caseFileId, userId, JobType.QUESTION_GENERATION,
-                        finalResult.promptTokens(), finalResult.completionTokens()));
-        }
+        // F-257 — record automatique dans AnthropicService.analyzeWithSystemCache,
+        // plus de record manuel ici.
 
         // F-185 SF-185-02 — émission SSE QUESTION_GENERATION_DONE / _FAILED après commit
         // pour que le frontend bascule du spinner "Génération des questions complémentaires…"

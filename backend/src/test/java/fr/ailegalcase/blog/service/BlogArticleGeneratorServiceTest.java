@@ -1,6 +1,7 @@
 package fr.ailegalcase.blog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.blog.cost.BlogUsageEventType;
@@ -92,14 +93,14 @@ class BlogArticleGeneratorServiceTest {
 
         assertThat(result).isInstanceOf(ArticleGenerationResult.BudgetBlocked.class);
         verify(topicSelectorService).releaseReservation(topic.getId());
-        verify(anthropicService, never()).analyzeWithModel(any(), any(), any(), anyInt());
+        verify(anthropicService, never()).analyzeWithModel(any(AiCallContext.class), any(), any(), any(), anyInt());
         verify(articleRepository, never()).save(any());
     }
 
     @Test
     void generateForTopic_nominalCase_persistsDraftAndRecordsCosts() {
         when(costTracker.canSpend(eq(IaProvider.ANTHROPIC), any())).thenReturn(true);
-        when(anthropicService.analyzeWithModel(eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(validJson(), "claude-sonnet-4-6", 500, 4000, "end_turn"));
 
         ArticleGenerationResult result = service.generateForTopic(topic.getId());
@@ -127,7 +128,7 @@ class BlogArticleGeneratorServiceTest {
     @Test
     void generateForTopic_invalidJsonTwice_returnsFailed_releasesTopic() {
         when(costTracker.canSpend(eq(IaProvider.ANTHROPIC), any())).thenReturn(true);
-        when(anthropicService.analyzeWithModel(eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("not a json", "claude-sonnet-4-6", 100, 50, "end_turn"));
 
         ArticleGenerationResult result = service.generateForTopic(topic.getId());
@@ -137,7 +138,7 @@ class BlogArticleGeneratorServiceTest {
         verify(topicSelectorService).releaseReservation(topic.getId());
         verify(articleRepository, never()).save(any());
         // Sonnet appelé 2 fois (1er + 1 retry)
-        verify(anthropicService, times(2)).analyzeWithModel(any(), any(), any(), anyInt());
+        verify(anthropicService, times(2)).analyzeWithModel(any(AiCallContext.class), any(), any(), any(), anyInt());
     }
 
     @Test
@@ -146,7 +147,7 @@ class BlogArticleGeneratorServiceTest {
         String json = validJson().replace(
                 "\"metaTitle\": \"Rupture conventionnelle : qui paye les frais d'avocat ?\"",
                 "\"metaTitle\": \"" + "x".repeat(70) + "\"");
-        when(anthropicService.analyzeWithModel(eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(json, "claude-sonnet-4-6", 500, 4000, "end_turn"));
 
         ArticleGenerationResult result = service.generateForTopic(topic.getId());
@@ -173,7 +174,7 @@ class BlogArticleGeneratorServiceTest {
                   "legalCitations": []
                 }
                 """;
-        when(anthropicService.analyzeWithModel(eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(shortJson, "claude-sonnet-4-6", 200, 1000, "end_turn"));
 
         ArticleGenerationResult result = service.generateForTopic(topic.getId());
@@ -185,7 +186,7 @@ class BlogArticleGeneratorServiceTest {
     @Test
     void generateForTopic_hallucinationDetected_persistsAsNeedsReview() {
         when(costTracker.canSpend(eq(IaProvider.ANTHROPIC), any())).thenReturn(true);
-        when(anthropicService.analyzeWithModel(eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(validJson(), "claude-sonnet-4-6", 500, 4000, "end_turn"));
         AnthropicResult haikuResult = new AnthropicResult(
                 "{\"verdicts\":[{\"reference\":\"X\",\"verdict\":\"LIKELY_HALLUCINATION\",\"rationale\":\"\"}]}",
@@ -204,7 +205,7 @@ class BlogArticleGeneratorServiceTest {
     @Test
     void generateForTopic_haikuFails_persistsArticleAnyway() {
         when(costTracker.canSpend(eq(IaProvider.ANTHROPIC), any())).thenReturn(true);
-        when(anthropicService.analyzeWithModel(eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeWithModel(any(AiCallContext.class), eq("claude-sonnet-4-6"), anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(validJson(), "claude-sonnet-4-6", 500, 4000, "end_turn"));
         when(citationVerifier.verify(any())).thenReturn(LegalCitationVerifier.VerifierOutcome.failed());
 

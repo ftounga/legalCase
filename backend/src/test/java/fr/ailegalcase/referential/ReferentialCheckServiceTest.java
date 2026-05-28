@@ -1,5 +1,6 @@
 package fr.ailegalcase.referential;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.notification.InAppNotificationService;
@@ -59,7 +60,7 @@ class ReferentialCheckServiceTest {
     void checkAllSystemEntries_upToDate_noAlertCreated() {
         LegalReferential entry = systemEntry("0_ANS");
         when(referentialRepository.findAllSystemEntries()).thenReturn(List.of(entry));
-        when(anthropicService.analyzeFast(anyString(), anyString(), eq(512)))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), anyString(), anyString(), eq(512)))
                 .thenReturn(new AnthropicResult("UP_TO_DATE", "haiku", 10, 5));
 
         service.checkAllSystemEntries();
@@ -72,7 +73,7 @@ class ReferentialCheckServiceTest {
     void checkAllSystemEntries_outdated_alertCreatedAndOwnersNotified() {
         LegalReferential entry = systemEntry("0_ANS");
         when(referentialRepository.findAllSystemEntries()).thenReturn(List.of(entry));
-        when(anthropicService.analyzeFast(anyString(), anyString(), eq(512)))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), anyString(), anyString(), eq(512)))
                 .thenReturn(new AnthropicResult(
                         "OUTDATED: {\"value\":1050} | Le barème a été revalorisé en janvier 2026.",
                         "haiku", 10, 30));
@@ -96,7 +97,7 @@ class ReferentialCheckServiceTest {
     void checkAllSystemEntries_claudeException_failOpen() {
         LegalReferential entry = systemEntry("0_ANS");
         when(referentialRepository.findAllSystemEntries()).thenReturn(List.of(entry));
-        when(anthropicService.analyzeFast(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), anyString(), anyString(), anyInt()))
                 .thenThrow(new RuntimeException("Anthropic unavailable"));
 
         service.checkAllSystemEntries();
@@ -109,7 +110,7 @@ class ReferentialCheckServiceTest {
     void checkAllSystemEntries_alreadyPendingAlert_noDuplicate() {
         LegalReferential entry = systemEntry("0_ANS");
         when(referentialRepository.findAllSystemEntries()).thenReturn(List.of(entry));
-        when(anthropicService.analyzeFast(anyString(), anyString(), eq(512)))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), anyString(), anyString(), eq(512)))
                 .thenReturn(new AnthropicResult(
                         "OUTDATED: {\"value\":1050} | Valeur obsolète.", "haiku", 10, 20));
         when(alertRepository.findByEntry_IdAndStatus(any(), eq(ReferentialAlert.Status.PENDING)))

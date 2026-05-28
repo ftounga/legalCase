@@ -1,5 +1,6 @@
 package fr.ailegalcase.stylelearning;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.storage.StorageService;
@@ -59,7 +60,7 @@ class StyleCorpusExtractionServiceTest {
         when(styleCorpusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storageService.download(STORAGE_KEY))
                 .thenReturn("FAITS ET PROCÉDURE — texte de conclusion.".getBytes(StandardCharsets.UTF_8));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("Style assertif, phrases courtes.",
                         "claude-sonnet-4-6", 800, 300, "end_turn"));
 
@@ -80,7 +81,7 @@ class StyleCorpusExtractionServiceTest {
         when(styleCorpusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storageService.download(STORAGE_KEY))
                 .thenReturn("Texte de conclusion.".getBytes(StandardCharsets.UTF_8));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenThrow(new RuntimeException("Anthropic API indisponible"));
 
         service.process(id, STORAGE_KEY);
@@ -106,7 +107,7 @@ class StyleCorpusExtractionServiceTest {
         assertThat(doc.getStyleSignature()).isNull();
         verify(storageService).delete(STORAGE_KEY);
         // Aucun appel IA quand le texte extrait est vide.
-        verify(anthropicService, never()).analyzeWithSystemCache(any(), any(), anyInt());
+        verify(anthropicService, never()).analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     @Test
@@ -117,7 +118,7 @@ class StyleCorpusExtractionServiceTest {
         when(styleCorpusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storageService.download(STORAGE_KEY))
                 .thenReturn("Texte.".getBytes(StandardCharsets.UTF_8));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("  ", "claude-sonnet-4-6", 10, 0, "end_turn"));
 
         service.process(id, STORAGE_KEY);
@@ -159,7 +160,7 @@ class StyleCorpusExtractionServiceTest {
         when(styleCorpusRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storageService.download(STORAGE_KEY))
                 .thenReturn("Texte.".getBytes(StandardCharsets.UTF_8));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("Style mesuré.", "claude-sonnet-4-6", 5, 5, "end_turn"));
         doThrow(new RuntimeException("S3 down")).when(storageService).delete(STORAGE_KEY);
 

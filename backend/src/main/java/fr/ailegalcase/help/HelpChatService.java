@@ -1,6 +1,8 @@
 package fr.ailegalcase.help;
 
+import fr.ailegalcase.analysis.AiCallContext;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.analysis.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,7 +26,8 @@ public class HelpChatService {
 
     public HelpChatResponse chat(String message) {
         try {
-            var result = anthropicService.analyzeFast(systemPrompt, message, MAX_TOKENS);
+            AiCallContext ctx = AiCallContext.systemLevel(JobType.SYSTEM_HELP_CHAT);
+            var result = anthropicService.analyzeFast(ctx, systemPrompt, message, MAX_TOKENS);
             return new HelpChatResponse(result.content());
         } catch (Exception e) {
             log.warn("Anthropic unavailable for help chat: {}", e.getMessage());

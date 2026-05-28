@@ -6,6 +6,7 @@ import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.document.ExtractionFailedEvent;
 import fr.ailegalcase.document.ExtractionStatus;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -47,7 +48,8 @@ public class DocumentAnalysisService {
     }
 
     record PreparedAnalysis(DocumentAnalysis analysis, String prompt, String systemPrompt, UUID caseFileId,
-                             AnalysisLimitsProperties.LevelLimits limits) {}
+                             AnalysisLimitsProperties.LevelLimits limits,
+                             UUID workspaceId, UUID userId) {}
 
     private final ChunkAnalysisRepository chunkAnalysisRepository;
     private final DocumentAnalysisRepository documentAnalysisRepository;
@@ -93,18 +95,37 @@ public class DocumentAnalysisService {
         PreparedAnalysis prepared = self.prepareAnalysis(message);
         if (prepared == null) return;
 
+        // F-257 — résolution du contexte AiCallContext user-level. Si manquant → SKIP
+        // (cohérent avec le pattern ChunkAnalysisService).
+        if (prepared.workspaceId() == null || prepared.userId() == null || prepared.caseFileId() == null) {
+            log.warn("DocumentAnalysis extraction {} missing user/workspace/caseFile context " +
+                            "(userId={}, workspaceId={}, caseFileId={}) — analysis skipped",
+                    extractionId, prepared.userId(), prepared.workspaceId(), prepared.caseFileId());
+            self.finalizeAnalysis(prepared.analysis().getId(), prepared.caseFileId(), null,
+                    new IllegalStateException("Missing AiCallContext"), prepared.limits());
+            return;
+        }
+
         AnthropicResult result = null;
         Exception failure = null;
         try {
             log.info("Document analysis START for extraction {} ({}, {} chars)",
                     extractionId, message.directAnalysis() ? "direct" : "chunked", prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyzeFast(prepared.systemPrompt(), prepared.prompt(), 4096);
+            AiCallContext ctx = AiCallContext.userLevel(prepared.workspaceId(), prepared.userId(),
+                    prepared.caseFileId(), JobType.DOCUMENT_ANALYSIS);
+            result = anthropicService.analyzeFast(ctx, prepared.systemPrompt(), prepared.prompt(), 4096);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Document analysis DONE for extraction {} ({}) — Anthropic {}ms, total {}ms, tokens {}/{}",
                     extractionId, message.directAnalysis() ? "direct" : "chunked",
                     anthropicMs, System.currentTimeMillis() - startMs,
                     result.promptTokens(), result.completionTokens());
+        } catch (PaymentRequiredException pre) {
+            // F-257 — quota dépassé → SKIPPED. NE PAS propager dans le listener RabbitMQ
+            // (sinon retry/DLQ inutile, le quota ne change pas en re-rejouant).
+            log.warn("Token budget exceeded during document analysis (extraction {}) — analysis SKIPPED (workspace={})",
+                    extractionId, prepared.workspaceId());
+            failure = pre;
         } catch (Exception e) {
             log.error("Document analysis FAILED for extraction {} (total {}ms)", extractionId,
                     System.currentTimeMillis() - startMs, e);
@@ -157,7 +178,18 @@ public class DocumentAnalysisService {
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = documentAnalysisRepository.save(analysis);
 
-        return new PreparedAnalysis(analysis, prompt, buildSystemPrompt(legalDomain, country, limits), caseFileId, limits);
+        // F-257 — pré-résolution workspaceId + userId pour la construction de
+        // AiCallContext dans consumeDocumentAnalysis. Si caseFileId est null
+        // (cas dégénéré), les deux restent null → SKIP côté consumer.
+        UUID workspaceId = caseFileId != null
+                ? caseFileRepository.findWorkspaceIdById(caseFileId).orElse(null)
+                : null;
+        UUID userId = caseFileId != null
+                ? caseFileRepository.findCreatedByUserIdById(caseFileId).orElse(null)
+                : null;
+
+        return new PreparedAnalysis(analysis, prompt, buildSystemPrompt(legalDomain, country, limits), caseFileId, limits,
+                workspaceId, userId);
     }
 
     @Transactional
@@ -198,11 +230,8 @@ public class DocumentAnalysisService {
                         }
                     });
                 }
-                int promptTokens = analysis.getPromptTokens();
-                int completionTokens = analysis.getCompletionTokens();
-                caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
-                    usageEventService.record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS,
-                            promptTokens, completionTokens));
+                // F-257 — record automatique dans AnthropicService.analyzeFast,
+                // plus de record manuel ici.
             }
         }
     }

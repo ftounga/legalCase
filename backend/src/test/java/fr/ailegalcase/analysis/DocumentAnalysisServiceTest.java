@@ -86,12 +86,15 @@ class DocumentAnalysisServiceTest {
         job.setProcessedItems(0);
 
         UUID userId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
 
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca0, ca1));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(workspaceId));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
                 .thenReturn(Optional.of(job));
@@ -102,7 +105,7 @@ class DocumentAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-haiku-4-5-20251001", 200, 100));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -122,8 +125,7 @@ class DocumentAnalysisServiceTest {
         assertThat(finalJob.getProcessedItems()).isEqualTo(1);
         assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
 
-        // Usage enregistré
-        verify(usageEventService).record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS, 200, 100);
+        // F-257 — record automatique côté AnthropicService (mocké ici), plus de verify manuel.
     }
 
     // U-02 : erreur Anthropic → DocumentAnalysis FAILED + job FAILED (F-147-01)
@@ -164,7 +166,7 @@ class DocumentAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
@@ -213,6 +215,9 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(List.of(ca1, ca0)); // ordre inversé intentionnel
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        // F-257 — pré-résolution user-level pour AiCallContext
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -223,7 +228,7 @@ class DocumentAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -231,7 +236,7 @@ class DocumentAnalysisServiceTest {
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeFast(any(), promptCaptor.capture(), anyInt());
+        verify(anthropicService).analyzeFast(any(AiCallContext.class), any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
         assertThat(prompt.indexOf("Chunk 0")).isLessThan(prompt.indexOf("Chunk 1"));
     }

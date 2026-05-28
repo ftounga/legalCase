@@ -39,6 +39,12 @@ class AiQuestionServiceTest {
         TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(service, "self", service);
         when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> Optional.of(new CaseAnalysis()));
+        // F-257 — pré-résolution AiCallContext user-level. Les tests qui exercent
+        // consumeQuestionGeneration utilisent `new CaseFile()` sans workspace ; on stube
+        // ici les fallbacks DB pour que workspaceId + userId soient résolus par défaut
+        // (sinon SKIP early → FAILED, anthropicService jamais appelé).
+        when(caseFileRepository.findWorkspaceIdById(any())).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findCreatedByUserIdById(any())).thenReturn(Optional.of(UUID.randomUUID()));
     }
 
     @AfterEach
@@ -50,7 +56,6 @@ class AiQuestionServiceTest {
     @Test
     void consumeQuestionGeneration_nominal_persistsQuestionsAndJobDone() {
         UUID caseFileId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
         CaseFile caseFile = new CaseFile();
 
         CaseAnalysis analysis = new CaseAnalysis();
@@ -60,11 +65,10 @@ class AiQuestionServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
-        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"questions\":[\"Q1 ?\",\"Q2 ?\",\"Q3 ?\"]}", "claude-sonnet-4-6", 100, 50));
         when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -83,8 +87,8 @@ class AiQuestionServiceTest {
         assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(finalJob.getProcessedItems()).isEqualTo(1);
 
-        // Usage enregistré
-        verify(usageEventService).record(caseFileId, userId, JobType.QUESTION_GENERATION, 100, 50);
+        // F-257 — record automatique dans AnthropicService.analyzeWithSystemCache, plus de record direct ici.
+        verifyNoInteractions(usageEventService);
     }
 
     // F-185 SF-185-02 : DONE → événement SSE QUESTION_GENERATION publié après commit
@@ -104,7 +108,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"questions\":[\"Q1 ?\"]}", "claude-sonnet-4-6", 100, 50));
         when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -131,7 +135,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
@@ -155,7 +159,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
 

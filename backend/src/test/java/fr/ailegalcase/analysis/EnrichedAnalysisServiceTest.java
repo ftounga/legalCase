@@ -133,11 +133,13 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 400, 200));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -152,8 +154,7 @@ class EnrichedAnalysisServiceTest {
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(jobCaptor.getValue().getProcessedItems()).isEqualTo(1);
 
-        // Usage enregistré
-        verify(usageEventService).record(caseFileId, userId, JobType.ENRICHED_ANALYSIS, 400, 200);
+        // F-257 — record automatique côté AnthropicService (mocké ici), plus de verify manuel.
 
         // F-192 SF-192-01 — la matérialisation est appelée à la fin du run
         verify(retainedPisteAlignmentService, times(1)).materializeForAnalysis(any());
@@ -176,9 +177,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 100, 50));
 
         // F-192 — la matérialisation jette
@@ -210,7 +213,7 @@ class EnrichedAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
@@ -295,7 +298,7 @@ class EnrichedAnalysisServiceTest {
         when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of());
 
         assertThat(service.buildChatSummary(caseFileId)).isNull();
-        verify(anthropicService, never()).analyzeFast(any(), any(), anyInt());
+        verify(anthropicService, never()).analyzeFast(any(AiCallContext.class), any(), any(), anyInt());
     }
 
     // U-10 : buildChatSummary — erreur Haiku → fail-open, retourne null
@@ -306,7 +309,7 @@ class EnrichedAnalysisServiceTest {
         msg.setQuestion("Question libre ?");
         msg.setAnswer("Réponse IA");
         when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of(msg));
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenThrow(new RuntimeException("Haiku timeout"));
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt())).thenThrow(new RuntimeException("Haiku timeout"));
 
         assertThat(service.buildChatSummary(caseFileId)).isNull();
     }
@@ -319,7 +322,7 @@ class EnrichedAnalysisServiceTest {
         msg.setQuestion("Quel est le délai ?");
         msg.setAnswer("Le délai est de 2 ans.");
         when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of(msg));
-        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+        when(anthropicService.analyzeFast(any(AiCallContext.class), any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("Délai de prescription : 2 ans", "claude-haiku-4-5", 50, 20));
 
         assertThat(service.buildChatSummary(caseFileId)).isEqualTo("Délai de prescription : 2 ans");
@@ -346,7 +349,7 @@ class EnrichedAnalysisServiceTest {
         when(procedureCheckService.listNonCompliant(any())).thenReturn(List.of());
         when(procedureCheckService.listToCheck(any())).thenReturn(List.of());
         when(procedureCheckService.listVerified(any())).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -697,13 +700,16 @@ class EnrichedAnalysisServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        // F-257 — pré-résolution user-level pour AiCallContext
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
         // Streaming stub : invoque le callback avec 2 sections puis retourne le résultat final
-        when(anthropicService.analyzeWithSystemCacheStreaming(any(), any(), anyInt(), any())).thenAnswer(inv -> {
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any())).thenAnswer(inv -> {
             @SuppressWarnings("unchecked")
-            java.util.function.Consumer<String> onDelta = inv.getArgument(3);
+            java.util.function.Consumer<String> onDelta = inv.getArgument(4);
             onDelta.accept("{\"faits\": [{\"texte\": \"f1\"}], ");
             onDelta.accept("\"risques\": []}");
             return new AnthropicResult("{\"faits\":[{\"texte\":\"f1\"}],\"risques\":[]}",
@@ -737,17 +743,20 @@ class EnrichedAnalysisServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        // F-257 — pré-résolution user-level pour AiCallContext
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
         // Streaming retourne null (mock par défaut) → le service doit retomber sur analyzeWithSystemCache
-        when(anthropicService.analyzeWithSystemCacheStreaming(any(), any(), anyInt(), any())).thenReturn(null);
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(AiCallContext.class), any(), any(), anyInt(), any())).thenReturn(null);
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"fallback\"]}", "claude-sonnet-4-6", 200, 100));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
-        verify(anthropicService).analyzeWithSystemCache(any(), any(), anyInt());
+        verify(anthropicService).analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt());
         ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
         verify(caseAnalysisRepository, atLeastOnce()).save(captor.capture());
         CaseAnalysis last = captor.getValue();
@@ -849,9 +858,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -876,9 +887,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 100, 50));
 
         org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
@@ -978,9 +991,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -1005,9 +1020,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
 
         org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
@@ -1041,9 +1058,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -1068,9 +1087,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
 
         org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
@@ -1165,9 +1186,11 @@ class EnrichedAnalysisServiceTest {
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        // F-257 — pré-résolution workspaceId user-level pour AiCallContext
+        when(caseFileRepository.findWorkspaceIdById(caseFileId)).thenReturn(Optional.of(UUID.randomUUID()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(AiCallContext.class), any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
