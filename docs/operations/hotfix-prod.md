@@ -1,6 +1,6 @@
 # Hotfix prod — Tableau de bord
 
-**Dernière analyse** : 2026-05-27T17:50:00Z (skill `prod-health-check`)
+**Dernière analyse** : 2026-05-28T00:15:00Z (skill `prod-health-check` — confirmation post-deploy)
 
 > Ce fichier est **généré et maintenu** par la skill `ai-skills/prod-health-check.md`.
 > Il liste les problèmes détectés en production que **l'humain** doit ensuite trier et corriger.
@@ -43,8 +43,8 @@ _(aucun)_
 - **Validation** :
   - Filter mis à jour : `aws logs describe-metric-filters` confirme le nouveau pattern JSON
   - Cause amont aussi neutralisée par PR #1361 (HF-2026-05-27-03) — défense en profondeur
-  - À valider au prochain run `prod-health-check` : plus aucun flap sur l'alarme
-- **Status** : `✅ TERMINÉ` (2 fix complémentaires appliqués 2026-05-27 : cause amont + scope du filter)
+  - ✅ **Confirmation prod-health-check 2026-05-28T00:15Z** : alarme `legalcase-production-backend-error-rate` en état OK stable depuis le 2026-05-27T18:36 UTC — **plus aucun flap depuis 5h40min** (vs 2 flap en 45min le 27/05 après-midi). Fix complet et durable.
+- **Status** : `✅ TERMINÉ` (2 fix complémentaires appliqués 2026-05-27 : cause amont + scope du filter, validé prod-health-check 2026-05-28T00:15Z)
 - **Leçon retenue** : à la création d'un metric filter sur un log group EKS shared, **TOUJOURS scoper par namespace** via filter pattern JSON. Pattern à privilégier : `{ $.kubernetes.namespace_name = "X" && $.log = "*PATTERN*" }`.
 
 ### HF-2026-05-27-02 — `value too long for type character varying(255)` sur `in_app_notifications` (PROD) ✅ TERMINÉ
@@ -66,8 +66,8 @@ _(aucun)_
 - **Validation** :
   - 10/10 UT verts (`InAppNotificationServiceTest`) — 6 nouveaux scénarios (T-1 à T-6)
   - CI master verte post-merge
-  - À valider au prochain run `prod-health-check` : plus aucune ligne ERROR `value too long for type character varying(255)` sur in_app_notifications
-- **Status** : `✅ TERMINÉ` (Fixed by #1367)
+  - ✅ **Confirmation prod-health-check 2026-05-28T00:15Z** : pods prod basculés sur image `c26b20c` à 23:11 UTC (4 hotfixes frontend intercalés pour débloquer prod build : PR #1381/1384/1385/1386). 8 events PROD à 08:00 UTC du 27/05 (cron `DeadlineAlertService` ANTÉRIEURS au deploy 23:11). **Prochain cron 08:00 UTC du 28/05 sera le 1er test du fix en prod réelle** — si 0 event, fix validé. Re-runner `prod-health-check` après 08:00 UTC du 28/05 pour confirmation finale.
+- **Status** : `✅ TERMINÉ` (Fixed by #1367, validation prod programmée 28/05 08:00 UTC sur cron `DeadlineAlertService`)
 - **Notes** : choix Option (b) tronquer en code (mini-spec section « Hors périmètre ») privilégié sur ALTER COLUMN — défense en profondeur applicable à tout futur caller, ne déplace pas le problème à VARCHAR(500).
 
 ### HF-2026-05-27-03 — F-JU-01 bootstrap re-insère sans ON CONFLICT (STAGING, 200+/24h) ✅ TERMINÉ
@@ -89,8 +89,8 @@ _(aucun)_
 - **Validation** :
   - 10/10 UT verts (`JurisprudenceBootstrapServiceTest`) — 2 nouveaux scénarios T-1 (skip pur) + T-2 (mix new/existing)
   - CI master verte post-merge
-  - À valider au prochain run `prod-health-check` : HF-2026-05-27-03 doit basculer auto-resolve si plus observé
-- **Status** : `✅ TERMINÉ` (Fixed by #1361)
+  - ✅ **Confirmation prod-health-check 2026-05-28T00:15Z** : 50 events staging UNIQUEMENT entre 18:52-18:58 UTC (juste après le rolling update staging avec la nouvelle image, 6 min de cleanup d'un job résiduel), puis **0 event depuis 5+ heures**. Volume effondré 200+/24h → 50 résiduels → 0 stable. Fix prouvé efficace.
+- **Status** : `✅ TERMINÉ` (Fixed by #1361, validé prod-health-check 2026-05-28T00:15Z)
 - **Leçon retenue** : 4e SF F-JU-01 en moins de 7 jours qui corrige le bootstrap (SF-JU-01-09 transactions, SF-JU-01-10 async polling, SF-JU-01-13 search vs export, SF-JU-01-14 idempotence). Pattern récurrent → la prochaine itération devrait inclure un IT bout-en-bout du bootstrap.
 
 ### HF-2026-05-21-02 — Spike CPU staging RDS éphémère 2026-05-20 08:31 (19s)
@@ -143,11 +143,11 @@ Les items terminés depuis plus de 30 jours sont déplacés dans `docs/operation
 
 Ces points ne sont pas des hotfix à corriger, mais utiles pour le contexte au prochain audit :
 
-- **RDS prod** : **`db.t4g.small`** (✅ upgrade SF-INFRA-01 confirmé via `describe-db-instances`), storage 50 GB, status `available`. **Alarmes recréées 2026-05-27** : `legalcase-production-rds-cpu-high` / `connections-high` / `free-memory-low` avaient une dimension cassée `DBInstanceIdentifier=db-WAJ76MUNCEDJASMT4UNMBXYURU` (= ancien `DbiResourceId`) au lieu du nom canonical `legalcase-production-postgres` — d'où le "no datapoints received" persistant. Recréées via `aws cloudwatch put-metric-alarm` avec la bonne dimension. Métrique réelle confirmée vivante (72 datapoints/6h, CPU ~4%, 20 connections max). À valider au prochain run `prod-health-check` : alarmes doivent passer en `OK` avec un Reason citant une vraie valeur (plus "no datapoints").
+- **RDS prod** : **`db.t4g.small`** (✅ upgrade SF-INFRA-01 confirmé), storage 50 GB, status `available`. **Alarmes recréées 2026-05-27T18:59 UTC** avec dimension `DBInstanceIdentifier=legalcase-production-postgres`. Métrique réelle confirmée vivante : **72 datapoints sur 6h, CPU ~4.2% (dernier datapoint), max 20 connections**. `StateReason` reste figé sur l'ancien "no datapoints received" car CloudWatch ne met à jour `StateReason` qu'aux transitions d'état OK↔ALARM ; l'état OK reste constant (valeurs < seuils 80% CPU / 100 connections / 200MB free memory), donc pas de transition. Comportement attendu. La prochaine ALARM (si elle arrive) écrira un Reason citant la vraie métrique.
 - **RDS staging** : `db.t3.micro`, storage 20 GB. Stable.
-- **Pods K8s** : 0 pod en non-Running, 0 restart sur tous (prod backend up depuis 12+ jours, prod frontend up depuis 2 jours). Backend prod ~640 Mi mémoire (calme).
-- **Cost Anomaly 7j** : RDS $1.40 au 2026-05-25 (corrélé au switch t3.micro→t4g.small, attendu) + Secrets Manager $0.04 (négligeable).
-- **Alarmes CloudWatch** : 7 configurées, 1 a flap aujourd'hui (cf. HF-2026-05-27-01), 0 actuellement en ALARM.
+- **Pods K8s** : 0 pod en non-Running, 0 restart sur tous. **Backend prod redéployé sur image `c26b20c` à 23:11/23:40 UTC** (rolling update HF-02 + HF-03), 2 pods ready, CPU 3-4m, mémoire 613/671 Mi (calme). **Frontend prod** redéployé sur `latest-prod`.
+- **Cost Anomaly 7j** : RDS $1.40 au 2026-05-25 (corrélé au switch t3.micro→t4g.small, attendu) + Secrets Manager $0.04 (négligeable). Pas de nouvelle anomalie depuis.
+- **Alarmes CloudWatch** : 7 configurées, **0 en ALARM**. Aucun flap depuis 18:36 UTC (HF-2026-05-27-01 fixé).
 - **DaemonSet Fluent Bit** : 3/3 Running depuis 7+ jours, 0 restart, logs shippés correctement (cf. HF-2026-05-21-01 résolu).
 
 ---
