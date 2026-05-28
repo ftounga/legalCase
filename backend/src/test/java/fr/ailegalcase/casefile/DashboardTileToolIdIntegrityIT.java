@@ -530,7 +530,39 @@ class DashboardTileToolIdIntegrityIT {
             // INELIGIBLE_OCCUPATION_INSUFFISANTE / A_ANALYSER. Frontend
             // SF-219-11b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 vagues).
-            "conge-education-paye-region"
+            "conge-education-paye-region",
+            // SF-219-14 (2026-05-28) : interim-be-cct-322 — backend
+            // (présente PR) Loi du 24/07/1987 relative au travail
+            // temporaire, au travail intérimaire et à la mise de
+            // travailleurs à la disposition d'utilisateurs (M.B.
+            // 20/08/1987) + CCT n° 322 du 14/06/2010 conclue au CNT
+            // (responsabilité solidaire ETI/utilisateur, parité
+            // salariale) + CCT n° 108 du 16/07/2013 (motif insertion
+            // en vue d'embauche durable, art. 1bis Loi 24/07/1987)
+            // + AR du 11/10/1976 (liste limitative travail
+            // exceptionnel). Analyse la validité d'une mission
+            // intérimaire tripartite (entreprise utilisatrice / ETI /
+            // intérimaire) sous l'angle cumulatif motif autorisé
+            // (REMPLACEMENT / SURCROIT / EXCEPTIONNEL / INSERTION /
+            // ARTISTIQUE / FLUX / NON_AUTORISE), interdiction de
+            // remplacement grève/lock-out (art. 19, présomption
+            // irréfragable de fraude), durée maximale légale selon
+            // motif, parité salariale stricte (art. 10 : intérimaire
+            // perçoit ≥ salaire d'un permanent de même qualification
+            // chez l'utilisateur), formalisme (contrat écrit
+            // ETI/intérimaire art. 8 + Dimona ETI). Verdicts :
+            // ELIGIBLE_MISSION_REGULIERE / INELIGIBLE_MOTIF_INTERDIT_GREVE_LOCKOUT
+            // / INELIGIBLE_MOTIF_NON_AUTORISE / INELIGIBLE_DUREE_MAX_DEPASSEE
+            // / INELIGIBLE_PARITE_SALARIALE_VIOLEE
+            // / FRAGILE_CONTRAT_OU_DIMONA_MANQUANT / A_ANALYSER.
+            // Sanction commune verdicts négatifs : requalification CDI
+            // utilisateur + responsabilité solidaire ETI/utilisateur
+            // pour cotisations ONSS éludées + salaires arriérés +
+            // indemnités de rupture (art. 20 + CCT n° 322). Frontend
+            // SF-219-14b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues,
+            // cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "interim-be-cct-322"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
