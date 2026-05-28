@@ -879,7 +879,34 @@ class DashboardTileToolIdIntegrityIT {
             // TILE_IDS dès le backend (pattern uniforme F-213 / F-219
             // vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_
             // check).
-            "conge-paternite-naissance-be"
+            "conge-paternite-naissance-be",
+            // SF-219-32 (2026-05-28) : interruption-carriere-soins-parental
+            // — backend Loi de redressement du 22/01/1985 art. 99 à
+            // 107quater + AR du 29/10/1997 + CCT n° 64 du 29/04/1997 +
+            // AR du 12/08/1991 allocations ONEM. Calcule l'éligibilité
+            // au congé parental BE (ancienneté 12 mois art. 5, enfant
+            // < 12 ans / < 21 ans handicap art. 4, solde individuel
+            // 4 mois ETP par enfant et par parent art. 2, formalisme
+            // lettre recommandée 2-3 mois avant début art. 6) + durée
+            // effective (TEMPS_PLEIN 4 mois / MI_TEMPS 8 mois /
+            // CINQUIEME_TEMPS 20 mois art. 3) + allocations ONEM
+            // forfaitaires mensuelles indicatives (250 / 350 / 450 EUR)
+            // + protection licenciement art. 101 (demande à fin + 3 mois,
+            // indemnité 6 mois rémunération brute). Verdicts :
+            // ELIGIBLE_COMPLET, ELIGIBLE_AVEC_RESERVES,
+            // INELIGIBLE_ANCIENNETE, INELIGIBLE_AGE_ENFANT,
+            // INELIGIBLE_SOLDE_INSUFFISANT, INELIGIBLE_FORMALISME,
+            // DIFFERE_EMPLOYEUR (art. 7 différé motivé max 6 mois),
+            // A_QUALIFIER. Jurisprudence Cass. BE 26/05/2008 S.07.0040.F
+            // protection licenciement opposable + Cass. BE 22/06/2009
+            // S.08.0102.N motif grave + Cass. BE 16/01/2017 S.15.0102.N
+            // cumul allocation ONEM de droit. Distinct de F-DT-29
+            // credit-temps-be CCT 103 (régime universel sans motif
+            // spécifique). Frontend SF-219-32b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "interruption-carriere-soins-parental"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
