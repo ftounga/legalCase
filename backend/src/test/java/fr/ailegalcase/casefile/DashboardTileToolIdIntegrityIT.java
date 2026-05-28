@@ -752,7 +752,16 @@ class DashboardTileToolIdIntegrityIT {
             // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
             // backend (pattern uniforme F-213 / F-219 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "discrimination-be-handicap-amenagement"
+            "discrimination-be-handicap-amenagement",
+            // SF-219-24 (2026-05-28) : code-penal-social-be — backend
+            // Loi 06/06/2010 introduisant le Code pénal social. Qualifie
+            // une infraction sociale (14 types ou AUTRE_QUALIFICATION)
+            // et restitue le niveau de sanction 1 à 4 (art. 101-103
+            // C. pén. soc.) avec bornes d'amende admin / pénale,
+            // emprisonnement éventuel niveau 4, majorations × travailleurs
+            // (art. 103 § 2), × 5 personne morale (art. 105), × 2
+            // récidive ≤ 1 an (art. 110).
+            "code-penal-social-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
