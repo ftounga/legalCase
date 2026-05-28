@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="ef01b5d3-8be4-4b59-9b65-4fa5e7c72319" author="claude">
+        <comment>
+            SF-219-13 : table dédiée à l'outil décisionnel "Étudiant
+            jobiste BE" (etudiant-jobiste-be, BELGIQUE — fondement :
+            Loi du 03/07/1978 sur les contrats de travail, Titre VII
+            "Du contrat d'occupation d'étudiants" (art. 120 à 130ter,
+            mod. par Loi-programme du 24/12/2002 instaurant les
+            cotisations de solidarité réduites + AR du 14/07/1995
+            réglant les modalités) ; Loi-programme du 27/12/2012
+            relevant le quota à 50 jours/an puis Loi du 18/12/2016
+            relevant le quota à 475 heures/an ; Loi-programme du
+            25/12/2017 relevant le quota à 475 heures/an pérenne ;
+            Loi-programme du 28/12/2022 + AR 06/03/2023 portant
+            transitoirement le quota à 600 heures/an pour 2023-2024
+            puis pérennisé par la Loi-programme du 22/12/2023 (M.B.
+            29/12/2023). Conditions cumulatives : statut étudiant à
+            titre principal (études supérieures ou enseignement
+            secondaire avec interruption max. 12 mois consécutifs
+            entre cycles) ; contrat d'occupation étudiant écrit
+            obligatoire (art. 123 Loi 03/07/1978) ; Dimona spécifique
+            de type STU avant le début des prestations ; respect du
+            quota annuel de 600h (compteur Student@work — student.be) ;
+            cotisations réduites ONSS dites "de solidarité" (5,42 %
+            patronale + 2,71 % personnelle, soit 8,13 % total au lieu
+            de ~50 % en régime salarié ordinaire — base
+            rémunération brute, AR 14/07/1995, montants confirmés par
+            AR 22/12/2023). Dépassement du quota = bascule à
+            cotisations ordinaires sur la totalité des heures hors
+            quota (récupération ONSS pour le passé, ~37 % patronales +
+            ~13 % personnelles selon CP, intérêts moratoires).
+
+            Verdicts hiérarchisés :
+            INELIGIBLE_STATUT_NON_ETUDIANT (sortie immédiate : ni
+            étudiant à titre principal, ni en interruption autorisée
+            ≤ 12 mois) ;
+            INELIGIBLE_QUOTA_DEPASSE (heures du contrat font dépasser
+            le quota 600h restant — bascule au régime ordinaire pour
+            les heures excédentaires) ;
+            FRAGILE_CONTRAT_OU_DIMONA_MANQUANT (statut étudiant et
+            quota OK mais contrat écrit absent ou Dimona STU non
+            déclarée — risque de requalification ONSS au régime
+            ordinaire avec récupération de cotisations) ;
+            FRAGILE_COTISATIONS_NON_REDUITES (statut + formalisme OK
+            mais cotisations déclarées par l'employeur hors barème
+            réduit AR 14/07/1995) ;
+            ELIGIBLE (occupation étudiant pleinement régulière) ;
+            A_ANALYSER (cas frontière, p. ex. étudiant en année de
+            "vide pédagogique" supérieur à 12 mois mais inscription
+            confirmée pour l'année suivante — analyse avocat BE).
+
+            Outil single-country BELGIQUE — la France n'a pas
+            d'équivalent direct. Le régime français du "job étudiant"
+            (étudiant salarié en CDD ou CDI à temps partiel) relève
+            du droit commun du travail (Code du travail FR
+            art. L. 1242-1 et s.) sans cotisations réduites
+            spécifiques (les abattements pour stages relèvent
+            de l'art. 81 bis CGI mais ne sont pas un régime
+            jobiste). Le contrat de stage en milieu professionnel
+            (Loi 10/07/2014, art. L. 124-1 C. éduc. FR) et le
+            contrat d'apprentissage (Loi 05/03/2014) sont
+            structurellement incomparables (durée déterminée,
+            volet formation obligatoire). Restitution séparée.
+
+            Snapshot JSON complet (inputs + outputs : verdict,
+            heures restantes du quota, dépassement éventuel, montant
+            de cotisations dues sur l'excédent, ventilation
+            d'éligibilité par dimension statut/quota/formalisme/
+            cotisations) pour permettre la restitution UI sans
+            recalcul (pattern F-DT-42 / SF-213-01 à SF-213-10 /
+            SF-219-01 à SF-219-12).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-13b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel
+            F-164 staging 2026-04-26 — 13 tool_id orphelins, cf.
+            CLAUDE.md feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "etudiant-jobiste-be" est ajouté dès cette
+            SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile
+            dès le seed visibility par SF-219-13b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-12b).
+        </comment>
+
+        <createTable tableName="etudiant_jobiste_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_etudiant_jobiste_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="etudiant_jobiste_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_etudiant_jobiste_be_case_file"/>
+
+        <createIndex tableName="etudiant_jobiste_be_analyses"
+                     indexName="idx_etudiant_jobiste_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="etudiant_jobiste_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

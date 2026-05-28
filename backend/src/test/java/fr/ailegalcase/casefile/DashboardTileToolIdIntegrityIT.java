@@ -532,7 +532,7 @@ class DashboardTileToolIdIntegrityIT {
             // dès le backend (pattern uniforme F-213 / F-219 vagues).
             "conge-education-paye-region",
             // SF-219-14 (2026-05-28) : interim-be-cct-322 — backend
-            // (présente PR) Loi du 24/07/1987 relative au travail
+            // (mergée PR #1408) Loi du 24/07/1987 relative au travail
             // temporaire, au travail intérimaire et à la mise de
             // travailleurs à la disposition d'utilisateurs (M.B.
             // 20/08/1987) + CCT n° 322 du 14/06/2010 conclue au CNT
@@ -562,7 +562,31 @@ class DashboardTileToolIdIntegrityIT {
             // SF-219-14b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 vagues,
             // cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "interim-be-cct-322"
+            "interim-be-cct-322",
+            // SF-219-13 (2026-05-28) : etudiant-jobiste-be — backend
+            // (présente PR) Loi du 03/07/1978 sur les contrats de
+            // travail, Titre VII (art. 120 à 130ter — contrat
+            // d'occupation d'étudiants) + Loi-programme du 24/12/2002
+            // (instauration des cotisations de solidarité réduites)
+            // + AR du 14/07/1995 (modalités — 5,42 % patronale +
+            // 2,71 % personnelle = 8,13 % total) + AR du 05/11/2002
+            // (Dimona spécifique type STU) + Loi du 18/12/2016
+            // (passage 50 jours → 475 heures/an) + Loi-programme du
+            // 28/12/2022 + AR du 06/03/2023 (relèvement transitoire
+            // 600h/an 2023-2024) + Loi-programme du 22/12/2023
+            // (M.B. 29/12/2023) pérennisant le quota à 600 heures/an.
+            // Vérifie l'éligibilité cumulative (statut étudiant à
+            // titre principal OU interruption courte ≤ 12 mois ;
+            // quota annuel 600h non dépassé ; contrat écrit signé ;
+            // Dimona STU déclarée ; cotisations réduites appliquées).
+            // Verdicts : ELIGIBLE / INELIGIBLE_STATUT_NON_ETUDIANT /
+            // INELIGIBLE_QUOTA_DEPASSE / FRAGILE_CONTRAT_OU_DIMONA_MANQUANT
+            // / FRAGILE_COTISATIONS_NON_REDUITES / A_ANALYSER.
+            // Frontend SF-219-13b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "etudiant-jobiste-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
