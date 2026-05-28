@@ -742,7 +742,17 @@ class DashboardTileToolIdIntegrityIT {
             // SF-219-22 (2026-05-28) : egalite-femmes-hommes-be — backend
             // Loi 22/04/2012 + AR 17/08/2013 + CCT n°25. Rapport biennal
             // employeurs ≥ 50 travailleurs.
-            "egalite-femmes-hommes-be"
+            "egalite-femmes-hommes-be",
+            // SF-219-23 (2026-05-28) : discrimination-be-handicap-amenagement
+            // — backend Loi 10/05/2007 art. 14 + art. 17 + art. 28 + CCT
+            // n° 95 + Directive 2000/78/CE art. 5 + Convention ONU
+            // 13/12/2006 art. 27. Analyse refus d'aménagements
+            // raisonnables = discrimination indirecte handicap sauf
+            // charge disproportionnée démontrée. Frontend SF-219-23b à
+            // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
+            // backend (pattern uniforme F-213 / F-219 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "discrimination-be-handicap-amenagement"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

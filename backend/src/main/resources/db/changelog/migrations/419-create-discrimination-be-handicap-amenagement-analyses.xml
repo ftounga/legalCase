@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6775c314-c52a-4948-9e3d-26e06258d161" author="claude">
+        <comment>
+            SF-219-23 : table dédiée à l'outil décisionnel
+            « Discrimination handicap — refus d'aménagements raisonnables BE »
+            (discrimination-be-handicap-amenagement, BELGIQUE — fondement :
+            Loi du 10/05/2007 tendant à lutter contre certaines formes de
+            discrimination M.B. 30/05/2007, art. 4 9° définition de
+            l'aménagement raisonnable et art. 14 obligation d'aménagement
+            raisonnable au bénéfice de la personne en situation de handicap,
+            le refus de mettre en place un aménagement raisonnable
+            constituant une discrimination indirecte fondée sur le
+            handicap sauf si l'employeur démontre la charge
+            disproportionnée ; art. 28 indemnité forfaitaire de 6 mois
+            de rémunération brute pour la victime ou indemnisation du
+            préjudice réellement subi ; CCT n° 95 du 10/10/2008 du CNT
+            NAR sur l'égalité de traitement durant toutes les phases de
+            la relation de travail, rendue obligatoire par AR du
+            11/01/2009 M.B. 22/01/2009 ; CCT n° 38 et CCT n° 95 sur le
+            recrutement et la sélection ; Loi du 04/08/1996 relative au
+            bien-être des travailleurs lors de l'exécution de leur
+            travail M.B. 18/09/1996, art. 32bis-32sexies harcèlement et
+            comportement abusif protégeant aussi le handicap ;
+            Convention OIT n° 159 du 20/06/1983 concernant la réadaptation
+            professionnelle et l'emploi des personnes handicapées,
+            ratifiée par la Belgique M.B. 28/04/1989 ; Convention de
+            l'ONU du 13/12/2006 relative aux droits des personnes
+            handicapées, ratifiée par la Belgique M.B. 22/07/2009
+            entrée en vigueur 02/08/2009, art. 5 égalité et
+            non-discrimination + art. 27 travail et emploi ; Directive
+            européenne 2000/78/CE du Conseil du 27/11/2000 portant
+            création d'un cadre général en faveur de l'égalité de
+            traitement en matière d'emploi et de travail, art. 5
+            aménagements raisonnables ; Loi du 30/07/1981 tendant à
+            réprimer certains actes inspirés par le racisme ou la
+            xénophobie pour mémoire critère distinct ; C. pén. social
+            du 06/06/2010, art. 121 sanction de niveau 2 amende
+            administrative 80 à 800 euros ou pénale 200 à 2 000 euros
+            par travailleur plafonnée pour les infractions à la Loi
+            10/05/2007 ; Cass. (BE) 09/01/2017 S.15.0035.N caractère
+            indirect de la discrimination par refus d'aménagement ;
+            Cass. (BE) 18/12/2017 S.16.0014.F charge disproportionnée
+            stricte ; CJUE 11/04/2013 C-335/11 et C-337/11 HK Danmark /
+            Ring et Werge handicap incluant maladie de longue durée ;
+            CJUE 11/09/2019 C-397/18 Nobel Plastiques articulation
+            invalidité / aménagements.
+
+            L'outil analyse le refus d'aménagements raisonnables sous
+            l'angle cumulatif :
+            - Qualification handicap au sens de la Loi 10/05/2007 art.
+              4 4° et de la jurisprudence CJUE Ring/Werge — limitation
+              durable et substantielle de la capacité de participer à
+              la vie professionnelle sur un pied d'égalité.
+            - Demande d'aménagement formalisée par le travailleur ou
+              proposée par le médecin du travail / service externe de
+              prévention SEPP — la jurisprudence belge admet aussi
+              l'aménagement spontanément envisagé par l'employeur
+              alerté de la situation.
+            - Statut handicap RECONNU_OFFICIEL avec attestation AVIQ /
+              VAPH / PHARE / DGPH ou MEDECIN_TRAVAIL_AVIS uniquement
+              avis SEPP ou INVALIDITE_MUTUELLE ou DURABLE_FACTUEL sans
+              attestation officielle (admis par jurisprudence) ou
+              CONTESTE ou INDETERMINE.
+            - Type d'aménagement demandé AMENAGEMENT_POSTE / HORAIRES_FLEXIBLES /
+              TELETRAVAIL_ADAPTE / EQUIPEMENT_TECHNIQUE / REAFFECTATION_INTERNE /
+              FORMATION_RECONVERSION / AUTRE.
+            - Coût estimé aménagement en euros — un coût élevé en
+              valeur absolue ne suffit pas à fonder la charge
+              disproportionnée ; il faut le rapporter au chiffre
+              d'affaires et aux subsides AVIQ/VDAB/Actiris/Bruxelles
+              Formation disponibles.
+            - Subsides demandés à AVIQ / VDAB / PHARE / Actiris —
+              l'absence de demande de subside affaiblit la défense
+              employeur charge disproportionnée puisque le coût net
+              n'a pas été calculé.
+            - Effectif entreprise et chiffre d'affaires annuel
+              indicatifs (proportionnalité art. 14 Loi 10/05/2007).
+            - Réponse employeur ACCORDE / REFUSE_MOTIVE_DETAILLE /
+              REFUSE_NON_MOTIVE / NON_REPONDU_RAISONNABLE /
+              CONTRE_PROPOSITION / EN_ATTENTE / INDETERMINE.
+            - Motifs charge disproportionnée invoqués (combinables) :
+              coût absolu, coût relatif au CA, organisation du travail,
+              sécurité, faisabilité technique, taille entreprise.
+            - Mesures alternatives proposées par l'employeur.
+            - Avis SEPP médecin du travail favorable ou non à
+              l'aménagement (élément de preuve essentiel).
+            - Procédure UNIA / Institut Égalité F/H saisie ou non.
+            - Sanction subie par le travailleur post-demande
+              (LICENCIEMENT / REGRESSION_CONDITIONS_TRAVAIL /
+              HARCELEMENT_REPRESAILLE / AUCUNE) — déclenche présomption
+              de représailles art. 17 Loi 10/05/2007.
+
+            Verdict : DISCRIMINATION_INDIRECTE_REFUS_INJUSTIFIE
+            | DISCRIMINATION_PRESUMEE_NON_MOTIVATION
+            | REPRESAILLES_PRESUMEES_LICENCIEMENT
+            | CONFORME_AMENAGEMENT_ACCORDE
+            | CONFORME_CHARGE_DISPROPORTIONNEE_DEMONTREE
+            | FRAGILE_QUALIFICATION_HANDICAP_INCERTAINE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a un dispositif
+            distinct Code du travail art. L. 5213-1 et suiv. obligation
+            d'emploi des travailleurs handicapés OETH 6 pourcent + art.
+            L. 5213-6 obligation d'aménagement raisonnable + Code du
+            travail art. L. 1132-1 prohibition discrimination handicap +
+            Code de l'action sociale et des familles art. L. 114
+            définition du handicap + Décret n° 2009-1272 + Décret
+            n° 2020-1208. Les définitions, seuils, sanctions, organismes
+            de subside diffèrent substantiellement. Restitution séparée
+            par outil — pas de tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet inputs + outputs verdict, ventilation
+            par dimension qualification handicap / demande formalisée /
+            réponse employeur / charge disproportionnée justifiée /
+            représailles présumées / sanctions financières pour permettre
+            la restitution UI sans recalcul pattern uniforme F-DT-42 /
+            SF-213-01 à SF-213-10 / SF-219-01 à SF-219-22.
+
+            La règle d'affichage F-IA-04 decision_tool_visibility_rules
+            sera portée par la migration de SF-219-23b frontend,
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id "discrimination-be-handicap-amenagement" est
+            ajouté dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS
+            de DashboardTileToolIdIntegrityIT préventif sera utile dès
+            le seed visibility par SF-219-23b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-22b.
+        </comment>
+
+        <createTable tableName="discrimination_be_handicap_amenagement_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_discrim_be_hcp_amen_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="discrimination_be_handicap_amenagement_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_discrim_be_hcp_amen_case_file"/>
+
+        <createIndex tableName="discrimination_be_handicap_amenagement_analyses"
+                     indexName="idx_discrim_be_hcp_amen_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="discrimination_be_handicap_amenagement_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
