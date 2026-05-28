@@ -1,0 +1,331 @@
+<div class="eco-cheques-cheques-repas-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">redeem</mat-icon>
+    <span class="section-title">Éco-chèques + chèques-repas (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="eco-cheques-cheques-repas-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (<b>CCT n°98 du CNT du 20/02/2009</b> pour les éco-chèques +
+            <b>Loi du 25/04/2014</b> + <b>AR du 03/02/2010</b> art.
+            19bis AR 28/11/1969 pour les chèques-repas). Les
+            titres-restaurant français (<b>CGI art. 81 19° ter</b>)
+            reposent sur un mécanisme analogue mais avec plafond
+            d'exonération distinct (7,18 EUR/jour en 2024, contribution
+            employeur 50-60 %) et il n'existe pas d'équivalent direct
+            des éco-chèques en droit français. Aucune transposition
+            mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse la <b>conformité de l'attribution d'éco-chèques ou
+            de chèques-repas BE</b> au regard de la CCT n°98 + Loi
+            25/04/2014 + AR 03/02/2010 (art. 19bis AR 28/11/1969).
+            Verdict en 6 états : (1) <b>conforme exonération
+            intégrale</b>, (2) <b>conforme partiellement exonéré</b>
+            (fraction excédentaire requalifiée), (3) <b>dépassement
+            plafond</b>, (4) <b>substitution rémunération</b>
+            (requalification intégrale rétroactive — Cass. 16/10/2017),
+            (5) <b>condition manquante</b> (CCT/convention, paiement
+            électronique, contribution travailleur 1,09 EUR min, cumul
+            frais de bouche, validité), (6) <b>à analyser</b>. Champs
+            marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type d'avantage * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type d'avantage *</mat-label>
+                <mat-select
+                    [value]="typeAvantage()"
+                    (selectionChange)="onTypeAvantageChange($event.value)"
+                    name="typeAvantage"
+                    required>
+                  <mat-option value="ECO_CHEQUES">
+                    Éco-chèques — CCT n°98 du 20/02/2009
+                  </mat-option>
+                  <mat-option value="CHEQUES_REPAS">
+                    Chèques-repas — Loi 25/04/2014 + AR 03/02/2010
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Type indéterminé (analyse cas par cas)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Détermine le plafond légal et les conditions cumulatives applicables.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Montant annuel total * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Montant annuel total (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="100000"
+                       step="0.01"
+                       required
+                       [ngModel]="montantAnnuelEur()"
+                       (ngModelChange)="onMontantAnnuelEurChange($event)"
+                       name="montantAnnuelEur" />
+                <mat-hint>Cumul attribué sur l'année civile, comparé au plafond légal.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Valeur faciale unitaire * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Valeur faciale unitaire (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="1000"
+                       step="0.01"
+                       required
+                       [ngModel]="valeurFacialeUnitaireEur()"
+                       (ngModelChange)="onValeurFacialeUnitaireEurChange($event)"
+                       name="valeurFacialeUnitaireEur" />
+                <mat-hint>Montant d'un chèque — max 8 EUR pour chèques-repas (art. 19bis §2 8°).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Contribution travailleur unitaire * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Contribution travailleur unitaire (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="1000"
+                       step="0.01"
+                       required
+                       [ngModel]="contributionTravailleurUnitaireEur()"
+                       (ngModelChange)="onContributionTravailleurUnitaireEurChange($event)"
+                       name="contributionTravailleurUnitaireEur" />
+                <mat-hint>Min 1,09 EUR pour chèques-repas (art. 19bis §2 7°). Saisir 0 pour éco-chèques.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Jours effectivement prestés * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Jours effectivement prestés *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="joursEffectivementPrestes()"
+                       (ngModelChange)="onJoursEffectivementPrestesChange($event)"
+                       name="joursEffectivementPrestes" />
+                <mat-hint>Proratisation chèques-repas — 1 chèque/jour (art. 19bis §2 2° AR 28/11/1969).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date attribution (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'attribution (facultatif)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateAttribution()"
+                       (ngModelChange)="onDateAttributionChange($event)"
+                       name="dateAttribution" />
+                <mat-hint>Contrôle de validité : 24 mois éco-chèques (art. 13 CCT n°98), 12 mois chèques-repas.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. CCT sectorielle ou d'entreprise * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="cctSectorielleOuEntrepriseExiste() === true"
+                  [indeterminate]="cctSectorielleOuEntrepriseExiste() === null"
+                  (change)="onCctSectorielleOuEntrepriseExisteChange($event.checked)"
+                  name="cctSectorielleOuEntrepriseExiste">
+                <b>CCT sectorielle ou d'entreprise existe</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Requis sauf à défaut convention individuelle écrite (art. 3 CCT n°98 / art. 19bis §2 1° AR 28/11/1969).
+              </small>
+            </div>
+
+            <!-- 8. Convention individuelle écrite * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="conventionIndividuelleEcrite() === true"
+                  [indeterminate]="conventionIndividuelleEcrite() === null"
+                  (change)="onConventionIndividuelleEcriteChange($event.checked)"
+                  name="conventionIndividuelleEcrite">
+                <b>Convention individuelle écrite</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Alternative à défaut de CCT (art. 3 CCT n°98). Au moins une des deux requise.
+              </small>
+            </div>
+
+            <!-- 9. Paiement électronique * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="paiementElectronique() === true"
+                  [indeterminate]="paiementElectronique() === null"
+                  (change)="onPaiementElectroniqueChange($event.checked)"
+                  name="paiementElectronique">
+                <b>Paiement électronique</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Obligatoire chèques-repas depuis 01/01/2016 (Loi 25/04/2014 art. 51). Non applicable aux éco-chèques.
+              </small>
+            </div>
+
+            <!-- 10. Cumul frais de bouche * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="cumulFraisBouche() === true"
+                  [indeterminate]="cumulFraisBouche() === null"
+                  (change)="onCumulFraisBoucheChange($event.checked)"
+                  name="cumulFraisBouche">
+                <b>Cumul avec indemnité frais de bouche</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Interdit chèques-repas pour le même jour (art. 19bis §2 4° al. 4 AR 28/11/1969).
+              </small>
+            </div>
+
+            <!-- 11. Substitution rémunération * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="substitutionRemuneration() === true"
+                  [indeterminate]="substitutionRemuneration() === null"
+                  (change)="onSubstitutionRemunerationChange($event.checked)"
+                  name="substitutionRemuneration">
+                <b>Substitution à une rémunération préexistante</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Interdit (art. 4 CCT n°98 + Cass. 16/10/2017 S.16.0042.F) — requalification intégrale rétroactive 5 ans.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la conformité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="eco-cheques-cheques-repas-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Type : <b>{{ typeAvantageLabel(result()!.typeAvantage) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation montants -->
+          <div class="montants-list">
+            <div class="montants-title">Détail des montants calculés</div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">euro</mat-icon>
+              <span class="montant-label">Montant annuel attribué</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.montantAnnuelEur) }}</span>
+            </div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">vertical_align_top</mat-icon>
+              <span class="montant-label">Plafond légal applicable</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.plafondLegalApplicableEur) }}</span>
+            </div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">verified</mat-icon>
+              <span class="montant-label">Montant exonéré</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.montantExonereEur) }}</span>
+            </div>
+
+            <div class="montant-row">
+              <mat-icon class="montant-icon">price_change</mat-icon>
+              <span class="montant-label">Montant requalifié en rémunération</span>
+              <span class="montant-value mono">{{ formatMontant(result()!.montantRequalifieEnRemunerationEur) }}</span>
+            </div>
+
+            <div class="montant-row montant-total">
+              <mat-icon class="montant-icon">account_balance</mat-icon>
+              <span class="montant-label"><b>Cotisations ONSS estimées (employeur)</b></span>
+              <span class="montant-value mono"><b>{{ formatMontant(result()!.cotisationsOnssEstimeesEur) }}</b></span>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>

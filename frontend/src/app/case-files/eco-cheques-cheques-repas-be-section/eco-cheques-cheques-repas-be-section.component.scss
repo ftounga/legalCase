@@ -1,0 +1,325 @@
+// SF-219-21b — Section éco-chèques + chèques-repas BE (analyseur de conformité).
+// Charte F-IA-04 alignée pattern SF-219-01b à 20b
+// (palette navy/or, vert ok, rouge critical, ambre warn, gris info).
+//
+// Design system :
+// - Inter (UI), Merriweather (titres long), JetBrains Mono (montants / dates / base juridique)
+// - Espacements multiples de 4px
+// - Bordures arrondies 8px
+// - Couleurs : navy #1A3A5C / or #C9973A / vert #1F7A4E / ambre #92400E
+//            / rouge #9B1B1B / gris info #6B7A8D
+
+.eco-cheques-cheques-repas-be-section {}
+
+.section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #1A3A5C;
+
+  &:hover { opacity: 0.8; }
+
+  .section-icon { color: #C9973A; }
+  .section-title {
+    flex: 1; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .section-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 2px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+
+    &.badge-critical { background: #FCE9E9; color: #9B1B1B; }
+    &.badge-ok       { background: #E1F4EA; color: #1F7A4E; }
+    &.badge-warn     { background: #FEF7E6; color: #92400E; }
+    &.badge-neutral  { background: #EEF2F7; color: #6B7A8D; }
+  }
+  .section-chevron { color: #6B7A8D; font-size: 20px; }
+}
+
+.eco-cheques-cheques-repas-be-body {
+  padding: 0 4px;
+}
+
+.empty-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  background: #F7F9FC;
+  border-radius: 8px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+
+  mat-icon { color: #C9973A; flex-shrink: 0; }
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 12px;
+    background: #EEF2F7;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.questionnaire {
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.form-help {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  mat-form-field { width: 100%; }
+}
+
+.field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-full-width {
+  grid-column: 1 / -1;
+}
+
+.checkbox-row {
+  padding: 8px 0;
+}
+
+.checkbox-hint {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #6B7A8D;
+  margin-top: 4px;
+  margin-left: 32px;
+  line-height: 1.4;
+}
+
+.form-field { width: 100%; }
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.eco-cheques-cheques-repas-be-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+}
+
+.result-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #1A3A5C;
+  background: rgba(26, 58, 92, 0.06);
+
+  mat-icon { flex-shrink: 0; color: #1A3A5C; }
+
+  &.verdict-critical {
+    border-left-color: #9B1B1B;
+    background: #FCE9E9;
+    mat-icon { color: #9B1B1B; }
+  }
+
+  &.verdict-ok {
+    border-left-color: #1F7A4E;
+    background: #E1F4EA;
+    mat-icon { color: #1F7A4E; }
+  }
+
+  &.verdict-warn {
+    border-left-color: #C9973A;
+    background: #FEF7E6;
+    mat-icon { color: #92400E; }
+  }
+
+  &.verdict-neutral {
+    border-left-color: #6B7A8D;
+    background: #EEF2F7;
+    mat-icon { color: #6B7A8D; }
+  }
+}
+
+.result-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.result-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1A2330;
+}
+
+.result-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+}
+
+.result-fondement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #F2F4F8;
+  border-radius: 8px;
+  border-left: 3px solid #1A3A5C;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #1A2330;
+  line-height: 1.5;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; font-size: 18px; height: 18px; width: 18px; }
+}
+
+// Bannière avertissement ambre
+.result-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #FEF7E6;
+  border-left: 4px solid #C9973A;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.5;
+
+  mat-icon { color: #92400E; flex-shrink: 0; }
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+// Liste de ventilation des montants calculés
+.montants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #F2F4F8;
+  border-radius: 8px;
+  border-left: 3px solid #1A3A5C;
+
+  .montants-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: #1A2330;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+
+  .montant-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #1A2330;
+    line-height: 1.4;
+    padding: 6px 0;
+    border-bottom: 1px dashed #D8DEE8;
+
+    &:last-child { border-bottom: none; }
+
+    .montant-icon {
+      font-size: 18px; height: 18px; width: 18px;
+      flex-shrink: 0;
+      color: #1A3A5C;
+    }
+
+    .montant-label { flex: 1; }
+    .montant-value {
+      font-size: 13px;
+      color: #1A2330;
+      text-align: right;
+    }
+
+    &.montant-total {
+      background: rgba(155, 27, 27, 0.06);
+      padding: 8px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      border-bottom: none;
+
+      .montant-icon { color: #9B1B1B; }
+      .montant-value { color: #9B1B1B; font-size: 14px; }
+    }
+  }
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #E0E4EA;
+}
+
+.result-meta-base {
+  font-size: 12px;
+  color: #6B7A8D;
+  font-style: italic;
+}
