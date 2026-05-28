@@ -199,6 +199,8 @@ import { FlexiJobBeSectionComponent } from '../flexi-job-be-section/flexi-job-be
 import { EtudiantJobisteBeSectionComponent } from '../etudiant-jobiste-be-section/etudiant-jobiste-be-section.component';
 // SF-219-14b : section décisionnelle statut intérim BE — CCT n° 322 (BE-only, ALWAYS_ON).
 import { InterimBeCct322SectionComponent } from '../interim-be-cct-322-section/interim-be-cct-322-section.component';
+// SF-219-16b : section décisionnelle Télétravail BE — CCT n° 85 / CCT n° 149 (BE-only, ALWAYS_ON).
+import { TeletravailBeCct85149SectionComponent } from '../teletravail-be-cct-85-149-section/teletravail-be-cct-85-149-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2620,6 +2622,46 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-16b : télétravail BE — CCT n° 85 du 09/11/2005 (CNT,
+      // structurel régulier, rendue obligatoire AR 13/06/2006 M.B.
+      // 05/09/2006) + CCT n° 149 du 26/01/2021 (CNT, occasionnel /
+      // force majeure / COVID) + Loi du 03/07/1978 art. 17 + Loi du
+      // 04/08/1996 + Code du bien-être au travail Livre VIII Titre 1 +
+      // Loi du 26/03/2018 art. 16-18 (droit à la déconnexion par
+      // concertation collective) + Loi du 03/10/2022 « Deal pour
+      // l'emploi » M.B. 10/11/2022 (modalités déconnexion CCT /
+      // règlement de travail obligatoires entreprises ≥ 20 travailleurs,
+      // e.e.v. 01/04/2023). Outil BE-only — la France a un cadre
+      // télétravail structurellement différent (C. trav. L. 1222-9 et s.
+      // + ANI 26/11/2020 ; déconnexion encadrée par L. 2242-17
+      // négociation annuelle). Verdict hiérarchisé 7 états
+      // (CONFORME_CCT_85_STRUCTUREL / CONFORME_CCT_149_OCCASIONNEL /
+      // NON_CONFORME_CONVENTION_ECRITE_MANQUANTE /
+      // NON_CONFORME_EQUIPEMENT_NON_FOURNI / NON_CONFORME_DROITS_REDUITS /
+      // FRAGILE_DECONNEXION_NON_DEFINIE / A_ANALYSER) — priorité
+      // structurel conforme → occasionnel conforme → convention écrite →
+      // équipement → droits → déconnexion → à analyser + ventilation
+      // 4 conformités cumulatives + indemnité excédentaire au plafond
+      // ONSS/SPF Finances. ALWAYS_ON priority 134 (au-dessus de
+      // interim-be-cct-322 = 132 SF-219-14b ; priorité 133 réservée à
+      // SF-219-15b interim-be-indemnite-fin-mission parallèle).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme
+      // F-213/F-219 — date entrée télétravail / type structurel ou
+      // occasionnel / flags art. 4-5-6-9 CCT n° 85 / montant indemnité /
+      // plafond ONSS/SPF Finances / modalités déconnexion Loi 03/10/2022 /
+      // effectif entreprise non extractibles du dossier salarié principal).
+      ['teletravail-be-cct-85-149', {
+        displayLabel: 'Télétravail (Belgique — CCT 85 / 149)',
+        component: TeletravailBeCct85149SectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3904,6 +3946,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // analyseurs de validité statutaire BE (flexi-job-be,
     // delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
     ['interim-be-cct-322', 'VALIDITE'],
+    // SF-219-16b : Télétravail BE — CCT n° 85 du 09/11/2005 + CCT n° 149
+    // du 26/01/2021 + Loi du 03/10/2022 « Deal pour l'emploi ». Thème
+    // VALIDITE — l'outil qualifie la conformité d'une formule de télétravail
+    // (structurel ou occasionnel) sur 4 conditions cumulatives (convention
+    // écrite art. 6 / équipement art. 9 / droits sociaux art. 4 /
+    // modalités déconnexion Loi 03/10/2022) avec verdict hiérarchisé
+    // 7 états (2 conformes structurel/occasionnel / 3 non-conformes / 1
+    // fragile déconnexion / 1 à analyser indéterminé). Parité avec les
+    // autres analyseurs de conformité statutaire BE (interim-be-cct-322,
+    // flexi-job-be, delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
+    ['teletravail-be-cct-85-149', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

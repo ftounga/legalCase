@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="85d15ea8-3310-4bf1-917c-fe72f67017f4" author="claude">
+        <comment>
+            SF-219-16b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel telework BE — CCT n° 85 du 09/11/2005 (CNT,
+            structurel regulier rendue obligatoire AR 13/06/2006 M.B.
+            05/09/2006) + CCT n° 149 du 26/01/2021 (CNT, occasionnel /
+            force majeure / COVID) + Loi du 03/10/2022 "Deal pour
+            l'emploi" M.B. 10/11/2022 (modalites de deconnexion par
+            CCT / reglement de travail obligatoires entreprises ge 20
+            travailleurs, e.e.v. 01/04/2023). tool_id
+            teletravail-be-cct-85-149 / BELGIQUE / DROIT_DU_TRAVAIL,
+            table d'analyses creee par SF-219-16 (migration 404).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            la date d'entree en vigueur de la formule teletravail
+            (avenant / annexe au contrat de travail), ni la
+            qualification structurelle CCT n° 85 vs occasionnelle
+            CCT n° 149 vs indeterminee, ni les flags conventionnels
+            cumulatifs (volontariat reciproque art. 5 CCT n° 85,
+            convention individuelle ecrite art. 6 CCT n° 85,
+            equipement fourni ou indemnise art. 9 CCT n° 85, droits
+            sociaux maintenus art. 4 CCT n° 85), ni le montant
+            mensuel de l'indemnite forfaitaire frais (internet,
+            electricite, ergonomie) et le plafond ONSS / SPF Finances
+            applicable a la periode (revise annuellement, saisie par
+            l'avocat selon date d'occupation), ni le flag modalites
+            de deconnexion definies (Loi 03/10/2022 — exigible pour
+            les entreprises ge 20 travailleurs), ni l'effectif total
+            de l'entreprise utilise pour le gating Loi 03/10/2022.
+            Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception
+            isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible —
+               l'introduire pour ce seul outil creerait une exception
+               isolee et necessiterait une extraction IA enrichie
+               (date entree teletravail / type structurel ou
+               occasionnel / flags art. 4-5-6-9 CCT n° 85 / montant
+               indemnite / plafond ONSS-SPF Finances / modalites
+               deconnexion Loi 03/10/2022 / effectif entreprise) non
+               couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du
+               travail BE evoque une formule de teletravail (avenant
+               au contrat de travail, convention individuelle
+               teletravail, reglement de travail, fiche de paie avec
+               indemnite forfaitaire, courriers d'entreprise sur les
+               modalites de deconnexion) pour verifier la conformite
+               cumulative et le risque de requalification de
+               l'indemnite excedentaire en remuneration soumise a
+               cotisations ONSS et precompte professionnel.
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-134) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 reservee SF-219-15b interim-be-indemnite-fin-mission
+                 - 134 cette migration (teletravail-be-cct-85-149)
+               Evite une exception isolee qui compliquerait la
+               lisibilite du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie
+               par defaut (collapsed=true) et la gate workspaceCountry
+               === BELGIQUE cote composant masque le contenu en cas
+               de dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY teletravail-be-cct-85-149
+            livree dans decisional-tools-panel.component.ts (cf.
+            SF-219-16b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement
+            masque — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id teletravail-be-cct-85-149 deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-16 (PR
+            #1412, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel
+            decisionnel du case file.
+
+            Fondement juridique :
+            - CCT n° 85 du 09/11/2005 (Conseil National du Travail)
+              concernant le teletravail, rendue obligatoire par AR du
+              13/06/2006 M.B. 05/09/2006 :
+                * art. 2 — definition du teletravail structurel
+                  (regulier, au moins une partie du temps de travail
+                  dans le cadre du contrat de travail) ;
+                * art. 4 — droits sociaux maintenus (memes droits que
+                  les travailleurs presentiels : formation, carriere,
+                  protection sociale, droits collectifs) ;
+                * art. 5 — volontariat reciproque (accord employeur /
+                  travailleur, refus sans prejudice juridique) ;
+                * art. 6 — convention individuelle ecrite par
+                  teletravailleur, reprenant frequence, jours, lieu,
+                  equipement fourni, indemnite, periode d'essai
+                  eventuelle, modalites de reversibilite ;
+                * art. 9 — equipement fourni, installe et entretenu
+                  par l'employeur (ordinateur, acces, support
+                  technique) ou prise en charge des couts si BYOD.
+            - CCT n° 149 du 26/01/2021 (CNT) relative au teletravail
+              recommande ou obligatoire en raison de la crise du
+              coronavirus, devenue cadre de reference du teletravail
+              occasionnel / force majeure / personnel — accord cadre
+              suffit, pas de convention ecrite obligatoire au cas par
+              cas.
+            - Loi du 03/07/1978 relative aux contrats de travail,
+              art. 17 — obligations du travailleur (executer le
+              travail avec diligence, suivre les instructions de
+              l'employeur).
+            - Loi du 04/08/1996 relative au bien-etre des travailleurs
+              lors de l'execution de leur travail + Code du bien-etre
+              au travail Livre VIII Titre 1 — obligations sante /
+              securite du teletravailleur.
+            - Loi du 26/03/2018 relative au renforcement de la
+              croissance economique et de la cohesion sociale, art.
+              16 a 18 — droit a la deconnexion par concertation
+              collective (premier socle, applicable a toutes les
+              entreprises sans seuil d'effectif).
+            - Loi du 03/10/2022 portant des dispositions diverses
+              relatives au travail (M.B. 10/11/2022, "Deal pour
+              l'emploi"), e.e.v. 01/04/2023 — modalites de
+              deconnexion definies par CCT d'entreprise ou reglement
+              de travail obligatoires pour les entreprises ge 20
+              travailleurs ; sanctions SPF ETCS (controle du
+              bien-etre au travail).
+
+            Regime BE-only — la France dispose d'un cadre teletravail
+            structurellement different : C. trav. art. L. 1222-9 et
+            s. (cadre legal et conventionnel volontaire, ni
+            obligation de convention ecrite individuelle ni CCT
+            contraignante du CNT analogue) ; ANI du 26/11/2020
+            (accord-cadre interprofessionnel) ; deconnexion encadree
+            par C. trav. L. 2242-17 (negociation annuelle obligatoire
+            sur la qualite de vie au travail) ; plafond URSSAF
+            d'allocation forfaitaire teletravail distinct (2,60
+            euros/jour ou 50 euros/mois en 2024) non identique au
+            plafond ONSS-SPF Finances BE (154,74 euros/mois en 2024).
+            Aucune transposition mecanique possible.
+
+            Distinct de :
+            - rcc-be-metiers-lourds (SF-219-01b, prio 119) — regime
+              de chomage avec complement d'entreprise. Sans rapport
+              avec le teletravail (modalite d'organisation du temps
+              de travail).
+            - outplacement-be-general-30sem (SF-219-05b, prio 123) —
+              accompagnement obligatoire a la sortie. Sans rapport
+              avec la conformite d'une formule de teletravail.
+            - transfert-entreprise-cct-32bis (SF-219-08b, prio 126) —
+              transfert d'entreprise CCT 32bis. Sans rapport avec
+              l'organisation du temps de travail.
+            - delegue-syndical-cct-5 (SF-219-10b, prio 128) — statut
+              de delegue syndical. Sans rapport avec le teletravail.
+            - flexi-job-be (SF-219-12b, prio 130) — regime flexi-job
+              HoReCa. Statut atypique d'occupation distinct.
+            - etudiant-jobiste-be (SF-219-13b, prio 131) — regime
+              etudiant jobiste. Statut atypique d'occupation distinct.
+            - interim-be-cct-322 (SF-219-14b, prio 132) — regime du
+              travail interimaire / mise a disposition (Loi
+              24/07/1987 + CCT n° 322). Sans rapport avec le
+              teletravail (modalite d'execution du contrat employeur
+              unique).
+            Cet outil intervient a la qualification de la conformite
+            d'une formule de teletravail — verifie 4 conditions
+            cumulatives (convention ecrite art. 6 / equipement art. 9 /
+            droits sociaux art. 4 / modalites deconnexion Loi
+            03/10/2022) + verdict hierarchise 7 etats + ventilation
+            conformites + indemnite excedentaire au plafond ONSS-SPF
+            Finances.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('85d15ea8-3310-4bf1-917c-fe72f67017f4', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'teletravail-be-cct-85-149', 'ALWAYS_ON', NULL, NULL, 134);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '85d15ea8-3310-4bf1-917c-fe72f67017f4';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

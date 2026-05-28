@@ -298,6 +298,11 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   // (`interim-be-cct-322-section`), alors que la dérivation kebab-case
   // standard collerait `Cct322` → `cct322`. Même pattern que Belgian9bis.
   ['InterimBeCct322SectionComponent', 'interim-be-cct-322-section'],
+  // SF-219-16b — le dossier réel insère des tirets entre `cct`, `85` et `149`
+  // (`teletravail-be-cct-85-149-section`), alors que la dérivation kebab-case
+  // standard collerait `Cct85149` → `cct85149`. Même pattern que
+  // InterimBeCct322 / Belgian9bis.
+  ['TeletravailBeCct85149SectionComponent', 'teletravail-be-cct-85-149-section'],
 ]);
 
 function deriveFolderFromClassName(className: string): string {
