@@ -207,6 +207,8 @@ import { TeletravailBeCct85149SectionComponent } from '../teletravail-be-cct-85-
 import { ClauseEcolageBeSectionComponent } from '../clause-ecolage-be-section/clause-ecolage-be-section.component';
 // SF-219-18b : section décisionnelle Semaine de 4 jours BE — Loi 03/10/2022 « Deal pour l'emploi » (BE-only, ALWAYS_ON).
 import { Semaine4JoursBeSectionComponent } from '../semaine-4-jours-be-section/semaine-4-jours-be-section.component';
+// SF-219-19b : section décisionnelle Droit à la déconnexion BE — Loi 03/10/2022 art. 16 + AR 19/02/2023 + CCT 149 (BE-only, ALWAYS_ON).
+import { DroitDeconnexionBeSectionComponent } from '../droit-deconnexion-be-section/droit-deconnexion-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2765,6 +2767,48 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-19b : Droit à la déconnexion BE — Loi du 03/10/2022
+      // « Deal pour l'emploi » M.B. 10/11/2022, art. 16 (obligation
+      // employeur ≥ 20 travailleurs de conclure une CCT d'entreprise
+      // ou modifier le règlement de travail définissant les modalités
+      // du droit à la déconnexion sur 3 thèmes : modalités pratiques,
+      // sensibilisation/formation, modalités d'organisation du travail) ;
+      // AR du 19/02/2023 (entrée en vigueur 01/04/2023) ; CCT n° 149
+      // du Conseil national du travail (cadre supplétif) ; Loi du
+      // 08/04/1965 art. 11-12 (procédure règlement de travail) ;
+      // C. pén. social art. 137 (sanction de niveau 2). Outil BE-only —
+      // le droit à la déconnexion français (C. trav. art. L. 2242-17, 7°
+      // issu de la Loi n° 2016-1088 du 08/08/2016 dite « El Khomri »)
+      // est un régime juridiquement distinct (obligation de négociation
+      // annuelle dans les entreprises ≥ 50 salariés, sans obligation
+      // de résultat). Aucune transposition mécanique.
+      // Verdict hiérarchisé 6 états (HORS_CHAMP_SEUIL_NON_ATTEINT /
+      // CONFORME_ACCORD_COMPLET / NON_CONFORME_CONTENU_INCOMPLET /
+      // NON_CONFORME_INSTRUMENT_MANQUANT / MANQUEMENT_GRAVE_AUCUNE_INITIATIVE
+      // / A_ANALYSER) — court-circuits backend (seuil < 20 → aucune
+      // initiative → instrument manquant → contenu incomplet → conforme
+      // / indéterminé) + ventilation 7 conformités cumulatives (seuil,
+      // instrument formalisé, 3 thèmes art. 16 § 2, consultation,
+      // contenu complet). ALWAYS_ON priority 137 (au-dessus de
+      // semaine-4-jours-be = 136 SF-219-18b et clause-ecolage-be =
+      // 135 SF-219-17b). Pré-fill IA V1 : aucun champ (alignement
+      // pattern uniforme F-213/F-219 — effectif employeur, statut
+      // accord, date entrée en vigueur, modalités pratiques /
+      // sensibilisation / organisation, consultation organe
+      // concertation, manquement signalé CBE/SPF non extractibles
+      // du dossier salarié principal — déclaratifs RH ou avocat).
+      ['droit-deconnexion-be', {
+        displayLabel: 'Droit à la déconnexion (Belgique)',
+        component: DroitDeconnexionBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4095,6 +4139,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (interim-be-cct-322, flexi-job-be, delegue-syndical-cct-5,
     // transfert-entreprise-cct-32bis, teletravail-be-cct-85-149).
     ['semaine-4-jours-be', 'VALIDITE'],
+    // SF-219-19b : Droit à la déconnexion BE — Loi du 03/10/2022 « Deal pour
+    // l'emploi » M.B. 10/11/2022, art. 16 + AR du 19/02/2023 + CCT n° 149.
+    // Thème VALIDITE — l'outil qualifie la conformité de l'obligation
+    // déconnexion sur 5 conditions cumulatives (seuil 20 travailleurs /
+    // instrument formalisé CCT ou règlement / 3 thèmes art. 16 § 2 :
+    // modalités pratiques, sensibilisation, organisation du travail) avec
+    // verdict hiérarchisé 6 états (1 conforme / 1 manquement grave critique
+    // / 2 non-conformes / 1 hors champ seuil / 1 à analyser indéterminé)
+    // + ventilation 7 conformités. Parité avec les autres analyseurs de
+    // conformité statutaire BE (semaine-4-jours-be, clause-ecolage-be,
+    // teletravail-be-cct-85-149, transfert-entreprise-cct-32bis,
+    // delegue-syndical-cct-5).
+    ['droit-deconnexion-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
