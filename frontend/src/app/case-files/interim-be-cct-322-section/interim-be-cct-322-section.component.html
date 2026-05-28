@@ -1,0 +1,328 @@
+<div class="interim-be-cct-322-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">engineering</mat-icon>
+    <span class="section-title">Intérim (Belgique — CCT 322)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="interim-be-cct-322-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 24/07/1987 + CCT n° 322 du 14/06/2010 + CCT n° 108
+            du 16/07/2013 + AR 11/10/1976 + Loi-programme du 27/12/2012).
+            Le régime français de travail temporaire (C. trav. art.
+            L. 1251-1 et s.) partage la logique de mission mais les
+            motifs limitatifs, plafonds, parité salariale et formalisme
+            Dimona / DPAE sont structurellement différents — aucune
+            transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la <b>régularité d'une mission intérimaire BE</b> selon les
+            <b>4 dimensions cumulatives</b> de la Loi du 24/07/1987 et de la
+            CCT n° 322 : (1) <b>motif autorisé</b> (liste limitative
+            art. 1er § 1 / art. 1bis ; remplacement de grève / lock-out
+            interdit absolu art. 19), (2) <b>durée respectée</b> selon le
+            plafond légal applicable au motif, (3) <b>parité salariale</b>
+            stricte avec le permanent de référence chez l'utilisateur
+            (art. 10), (4) <b>formalisme cumulatif</b> contrat écrit ETI /
+            intérimaire (art. 8 § 1) + Dimona ETI. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date début mission * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de début de la mission *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutMission()"
+                       (ngModelChange)="onDateDebutMissionChange($event)"
+                       name="dateDebutMission" />
+                <mat-hint>Date de début de la 1<sup>re</sup> prestation intérimaire chez l'utilisateur.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Motif mission * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif du recours à l'intérim *</mat-label>
+                <mat-select
+                    [value]="motifMission()"
+                    (selectionChange)="onMotifMissionChange($event.value)"
+                    name="motifMission"
+                    required>
+                  <mat-option value="REMPLACEMENT_TRAVAILLEUR_PERMANENT">
+                    Remplacement d'un travailleur permanent (art. 1er § 1, 1°)
+                  </mat-option>
+                  <mat-option value="SURCROIT_TEMPORAIRE_DE_TRAVAIL">
+                    Surcroît temporaire de travail (art. 1er § 1, 2°)
+                  </mat-option>
+                  <mat-option value="EXECUTION_TRAVAIL_EXCEPTIONNEL">
+                    Travail exceptionnel — AR 11/10/1976 (art. 1er § 1, 3°)
+                  </mat-option>
+                  <mat-option value="INSERTION_EMBAUCHE_DURABLE">
+                    Insertion en vue d'embauche durable (art. 1bis + CCT 108)
+                  </mat-option>
+                  <mat-option value="MOTIF_ARTISTIQUE">
+                    Motif artistique (art. 1bis § 4)
+                  </mat-option>
+                  <mat-option value="FLUX_TRAVAUX_EXCEPTIONNEL_TRAJET_SCOLAIRE">
+                    Flux exceptionnels / trajet scolaire (AR sectoriels)
+                  </mat-option>
+                  <mat-option value="AUTRE_NON_AUTORISE">
+                    Autre motif (non listé par la loi) — recours illégal
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Liste limitative — tout autre motif entraîne la requalification CDI (art. 20).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Remplacement grève / lock-out * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="remplacementGreveOuLockout() === true"
+                  [indeterminate]="remplacementGreveOuLockout() === null"
+                  (change)="onRemplacementGreveOuLockoutChange($event.checked)"
+                  name="remplacementGreveOuLockout">
+                <b>Recours pour remplacer un travailleur en grève ou lock-out</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Si coché : interdiction absolue (art. 19 Loi 24/07/1987, présomption irréfragable de fraude).
+              </small>
+            </div>
+
+            <!-- 4. Durée totale mission * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Durée totale cumulée (jours) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="dureeTotaleMissionJours()"
+                       (ngModelChange)="onDureeTotaleMissionJoursChange($event)"
+                       name="dureeTotaleMissionJours" />
+                <mat-hint>Durée totale, contrats successifs inclus.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Plafond légal applicable * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Plafond légal applicable (jours) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="1"
+                       step="1"
+                       required
+                       [ngModel]="dureeMaxLegaleJours()"
+                       (ngModelChange)="onDureeMaxLegaleJoursChange($event)"
+                       name="dureeMaxLegaleJours" />
+                <mat-hint>Selon motif : remplacement = suspension + 7j ; surcroît = 365j (12 mois) ; insertion = 270j (9 mois) ; etc.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Salaire horaire intérimaire * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire horaire intérimaire brut (€/h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="salaireHoraireIntimaireBrut()"
+                       (ngModelChange)="onSalaireHoraireIntimaireBrutChange($event)"
+                       name="salaireHoraireIntimaireBrut" />
+                <mat-hint>Taux horaire convenu entre ETI et intérimaire.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Salaire horaire référence * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire horaire permanent de référence (€/h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="salaireHoraireReferenceBrut()"
+                       (ngModelChange)="onSalaireHoraireReferenceBrutChange($event)"
+                       name="salaireHoraireReferenceBrut" />
+                <mat-hint>Taux horaire d'un permanent de même qualification chez l'utilisateur (art. 10).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Contrat écrit signé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="contratEcritSigne() === true"
+                  [indeterminate]="contratEcritSigne() === null"
+                  (change)="onContratEcritSigneChange($event.checked)"
+                  name="contratEcritSigne">
+                <b>Contrat de travail écrit ETI / intérimaire signé</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 8 § 1 Loi 24/07/1987 — formalisme obligatoire à peine de requalification.
+              </small>
+            </div>
+
+            <!-- 9. Dimona ETI déclarée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="dimonaDeclareeParEti() === true"
+                  [indeterminate]="dimonaDeclareeParEti() === null"
+                  (change)="onDimonaDeclareeParEtiChange($event.checked)"
+                  name="dimonaDeclareeParEti">
+                <b>Déclaration Dimona faite par l'ETI</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                ETI = employeur formel — Dimona ETI obligatoire pour la mission.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le statut intérim</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="interim-be-cct-322-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Motif : <b>{{ motifMissionLabel(result()!.motifMission) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation 4 dimensions cumulatives -->
+          <div class="dimensions-list">
+            <div class="dimensions-title">Ventilation des 4 conditions cumulatives</div>
+            <div class="dimension-row" [class.dim-ok]="result()!.motifAutorise" [class.dim-ko]="!result()!.motifAutorise">
+              <mat-icon>{{ result()!.motifAutorise ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>1. Motif autorisé</b> — liste limitative art. 1er § 1 / 1bis Loi 24/07/1987
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.dureeRespectee" [class.dim-ko]="!result()!.dureeRespectee">
+              <mat-icon>{{ result()!.dureeRespectee ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>2. Durée respectée</b> — total cumulé ≤ plafond légal applicable au motif
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.pariteRespectee" [class.dim-ko]="!result()!.pariteRespectee">
+              <mat-icon>{{ result()!.pariteRespectee ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>3. Parité salariale</b> — intérimaire ≥ permanent de référence (art. 10)
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.formalismeRespecte" [class.dim-ko]="!result()!.formalismeRespecte">
+              <mat-icon>{{ result()!.formalismeRespecte ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>4. Formalisme</b> — contrat écrit ETI/intérimaire (art. 8) + Dimona ETI
+              </span>
+            </div>
+          </div>
+
+          <!-- Jours excédentaires (si applicable) -->
+          @if (result()!.joursExcedentaires > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>schedule</mat-icon>
+              <span>
+                <b>Jours excédentaires au plafond</b> :
+                <span class="mono">{{ result()!.joursExcedentaires }} jour(s)</span>
+                — au-delà des <span class="mono">{{ result()!.dureeMaxLegaleJours }} jour(s)</span>
+                applicables au motif. Requalification automatique en CDI utilisateur (art. 20).
+              </span>
+            </div>
+          }
+
+          <!-- Écart parité salariale (si applicable) -->
+          @if (result()!.ecartPariteSalariale > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>euro</mat-icon>
+              <span>
+                <b>Écart de parité salariale</b> :
+                <span class="mono">{{ result()!.ecartPariteSalariale }} €/h</span>
+                en faveur du permanent de référence — rappel de salaire intégral
+                + primes + cotisations ONSS sur la différence (responsabilité solidaire ETI / utilisateur, CCT n° 322).
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
