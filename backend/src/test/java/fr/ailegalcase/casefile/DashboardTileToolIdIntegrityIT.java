@@ -788,7 +788,22 @@ class DashboardTileToolIdIntegrityIT {
             // emprisonnement 6-36 mois) + présomption salariat art. 328
             // C. pén. soc., requalification faux indépendant Loi-programme
             // I 27/12/2006 art. 333. Frontend SF-219-26b à venir.
-            "travail-noir-be-dimona"
+            "travail-noir-be-dimona",
+            // SF-219-27 (2026-05-28) : inastri-statut-travailleur-independant
+            // — backend Loi 27/06/1969 + AR n° 38 27/07/1967 + AR 19/12/1967
+            // + Loi-programme I 27/12/2006 art. 328 à 333 doctrine Bart
+            // Buysse + art. 337/2 critères sectoriels. Qualifie la nature
+            // de la relation (salarié vs indépendant) via 4 critères
+            // généraux (volonté, liberté temps, liberté travail, contrôle
+            // hiérarchique) + critères sectoriels art. 337/2 (construction,
+            // transport, gardiennage, nettoyage, agri/horti). Verdicts :
+            // INDEPENDANT_CONFIRME, SALARIE_REQUALIFIE,
+            // FAUX_INDEPENDANT_PRESUMPTION_SECTORIELLE,
+            // PRESUMPTION_GENERALE_SALARIAT, A_QUALIFIER. Frontend
+            // SF-219-27b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "inastri-statut-travailleur-independant"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

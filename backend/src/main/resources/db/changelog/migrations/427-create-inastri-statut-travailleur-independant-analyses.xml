@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2214dc24-ab94-46dc-a1cc-34f4608a9ba9" author="claude">
+        <comment>
+            SF-219-27 : table dédiée à l'outil décisionnel
+            INASTI statut travailleur indépendant et qualification
+            salarié indépendant (inastri-statut-travailleur-independant,
+            BELGIQUE — fondement : Loi du 27/06/1969 M.B. 25/07/1969
+            révisant l'arrêté-loi du 28/12/1944 concernant la sécurité
+            sociale des travailleurs salariés art. 1er présomption
+            générale d'assujettissement à la sécurité sociale
+            salariée applicable en l'absence d'éléments démontrant
+            l'indépendance ; AR n° 38 du 27/07/1967 M.B. 29/07/1967
+            organisant le statut social des travailleurs indépendants
+            art. 3 paragraphe 1 définition du travailleur indépendant
+            et obligation d'affiliation à une caisse d'assurances
+            sociales pour travailleurs indépendants INASTI / CASTI ;
+            AR du 19/12/1967 M.B. 28/12/1967 portant règlement général
+            en exécution de l'AR n° 38 modalités d'affiliation
+            cotisations trimestrielles et base de calcul ; Loi-programme
+            I du 27/12/2006 M.B. 28/12/2006 art. 328 à 333 doctrine
+            Bart Buysse — art. 328 paragraphe 1 présomption simple de
+            salariat applicable à toute personne pour laquelle aucune
+            DIMONA n'a été effectuée présomption réfragable par tout
+            moyen de preuve Cass. BE 06/12/2010 S.10.0067.F ; art. 333
+            quatre critères généraux de qualification volonté des
+            parties liberté d'organisation du temps de travail liberté
+            d'organisation du travail exercice d'un contrôle
+            hiérarchique ; art. 337/1 à 337/3 Loi-programme I 27/12/2006
+            introduits par la Loi du 25/08/2012 M.B. 11/09/2012
+            présomption sectorielle de salariat applicable aux secteurs
+            construction AR du 07/06/2013 transport de choses
+            gardiennage nettoyage et agriculture horticulture AR du
+            29/10/2013 — 9 critères sectoriels présomption déclenchée
+            si majorité simple 5 sur 9 indique le salariat ; Cass. BE
+            23/12/2002 S.02.0021.F primauté de l'exécution réelle de
+            la relation sur la qualification conventionnelle doctrine
+            Bart Buysse consacrée ; Cour const. arrêt 167/2013 du
+            19/12/2013 conformité de la liste sectorielle et de la
+            présomption sectorielle art. 337/2 aux principes du procès
+            équitable ; Cour const. arrêt 102/2009 du 18/06/2009
+            conformité de la présomption générale de salariat art. 328
+            paragraphe 1 ; Code pénal social art. 181 sanction niveau 4
+            défaut DIMONA cumulée en cas de requalification salariat
+            voir SF-219-26 pour le chiffrage exact des conséquences
+            ONSS et pénales.
+
+            L'outil analyse une situation de qualification de la
+            nature de la relation de travail BE sous l'angle cumulatif :
+            - Volonté des parties INDEPENDANT_EXPLICITE ou
+              SALARIE_EXPLICITE ou IMPLICITE_OU_AMBIGUE.
+            - Liberté d'organisation du temps de travail
+              TOTALE_INDEPENDANT ou PARTIELLE ou AUCUNE_SALARIE.
+            - Liberté d'organisation du travail TOTALE_INDEPENDANT ou
+              PARTIELLE ou AUCUNE_SALARIE.
+            - Exercice d'un contrôle hiérarchique TOTALE_INDEPENDANT
+              ou PARTIELLE ou AUCUNE_SALARIE (logique inversée car
+              absence de contrôle = autonomie = indépendance).
+            - Secteur d'activité CONSTRUCTION ou TRANSPORT_DE_CHOSES
+              ou GARDIENNAGE ou NETTOYAGE ou AGRICULTURE_HORTICULTURE
+              ou AUTRE.
+            - Nombre de critères sectoriels indiquant le salariat sur 9
+              (art. 337/2 paragraphe 1, ignoré si secteur AUTRE).
+            - Statut déclaré INDEPENDANT_INASTI ou SALARIE_DIMONA ou
+              SANS_DECLARATION.
+            - DIMONA présente ou absente pour évaluer la cohérence
+              statut déclaré et la mobilisation de la présomption
+              générale art. 328 paragraphe 1.
+            - Présence d'un autre client autre que l'employeur
+              principal indice d'autonomie économique.
+
+            Calcule :
+            - Scores critères généraux art. 333 (indépendance vs salariat).
+            - Drapeau présomption sectorielle applicable selon secteur.
+            - Drapeau présomption sectorielle déclenchée si 5 sur 9
+              critères sectoriels indiquent le salariat.
+            - Drapeau présomption générale art. 328 paragraphe 1
+              mobilisable si absence DIMONA et statut SANS_DECLARATION.
+            - Drapeau requalification salariat recommandée.
+            - Drapeau cohérence DIMONA statut déclaré.
+            - Drapeau mono-client indice salariat déguisé Cass. BE
+              23/12/2002.
+
+            Verdict : INDEPENDANT_CONFIRME si critères généraux
+            majoritairement compatibles avec autonomie économique ;
+            SALARIE_REQUALIFIE si critères généraux majoritairement
+            indices de subordination ; FAUX_INDEPENDANT_PRESUMPTION_SECTORIELLE
+            si présomption sectorielle art. 337/2 déclenchée par
+            secteur visé et 5 sur 9 critères sectoriels salariat ;
+            PRESUMPTION_GENERALE_SALARIAT si absence DIMONA et statut
+            SANS_DECLARATION mobilisent la présomption art. 328
+            paragraphe 1 ; A_QUALIFIER si critères contradictoires ou
+            inputs ambigus nécessitant analyse complémentaire avocat.
+
+            Outil single-country BELGIQUE — la France a un régime
+            distinct présomption d'absence de salariat pour inscrits
+            BCE / RCS art. L. 8221-6 Code du travail français
+            renversable par preuve de subordination juridique
+            permanente, et inversement art. L. 8221-6-1 pour les
+            personnes effectuant des prestations dans des conditions
+            du salariat. Le faisceau d'indices français n'est pas
+            codifié de la même manière que les 4 critères généraux
+            art. 333 belges (volonté liberté temps liberté travail
+            contrôle hiérarchique) ni avec les critères sectoriels
+            art. 337/2 sectoriels CONSTRUCTION transport gardiennage
+            nettoyage agriculture. Restitution séparée par outil — pas
+            de tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet inputs plus outputs verdict, scores
+            critères généraux indépendance vs salariat, drapeaux
+            présomption sectorielle applicable et déclenchée,
+            présomption générale art. 328 mobilisable, requalification
+            recommandée, cohérence DIMONA statut, mono-client pour
+            permettre la restitution UI sans recalcul pattern uniforme
+            F-DT-42 / SF-213-01 à SF-213-10 / SF-219-01 à SF-219-26.
+
+            La règle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portée par la
+            migration de SF-219-27b frontend, couplée à l'entrée
+            TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id inastri-statut-travailleur-independant est
+            ajouté dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS
+            de DashboardTileToolIdIntegrityIT préventif sera utile dès
+            le seed visibility par SF-219-27b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-26b.
+        </comment>
+
+        <createTable tableName="inastri_statut_travailleur_independant_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_inastri_statut_trav_ind_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="inastri_statut_travailleur_independant_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_inastri_statut_trav_ind_case_file"/>
+
+        <createIndex tableName="inastri_statut_travailleur_independant_analyses"
+                     indexName="idx_inastri_statut_trav_ind_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="inastri_statut_travailleur_independant_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
