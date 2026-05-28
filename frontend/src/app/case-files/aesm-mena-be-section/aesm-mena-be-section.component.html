@@ -1,0 +1,321 @@
+<section class="aesm-mena-section">
+  <header class="aesm-mena-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="aesm-mena-body">
+    <mat-icon class="aesm-mena-icon">child_care</mat-icon>
+    <span class="aesm-mena-title">AESM + TUTELLE DGDE (MENA)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdictAESM)">
+        {{ verdictLabel(result()!.verdictAESM) }}
+      </span>
+    }
+    <mat-icon class="aesm-mena-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="aesm-mena-body" class="aesm-mena-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="aesm-mena-banner aesm-mena-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="aesm-mena-banner-content">
+            <div class="aesm-mena-banner-title">Outil Belgique uniquement</div>
+            <div class="aesm-mena-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. L'outil
+              AESM + tutelle DGDE (Loi 04/05/2007) est <strong>réservé aux
+              MENA présents sur le territoire belge</strong>. Pour la France,
+              voir l'outil mineur isolé étranger (Cciv, ordonnance JE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="aesm-mena-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="aesm-mena-form" (ngSubmit)="analyze()">
+              <!-- ============================================ -->
+              <!-- Partie 1 — Tutelle DGDE (Loi 04/05/2007)     -->
+              <!-- ============================================ -->
+              <fieldset class="aesm-mena-fieldset" data-testid="fieldset-tutelle">
+                <legend class="aesm-mena-legend">
+                  <mat-icon>gavel</mat-icon>
+                  Partie 1 — Tutelle DGDE (Loi 04/05/2007)
+                </legend>
+
+                <div class="aesm-mena-field-wrap aesm-mena-field-wrap--full">
+                  <mat-checkbox
+                      data-testid="tuteur-designe-checkbox"
+                      [ngModel]="tuteurDesigne()"
+                      (ngModelChange)="onTuteurDesigneChange($event)"
+                      name="tuteurDesigne">
+                    Tuteur DGDE déjà désigné (Service des Tutelles)
+                  </mat-checkbox>
+                </div>
+
+                <div class="aesm-mena-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date d'arrivée en Belgique</mat-label>
+                    <input matInput type="date" required
+                           data-testid="date-arrivee-input"
+                           [ngModel]="dateArriveeBelgique()"
+                           (ngModelChange)="onDateArriveeBelgiqueChange($event)"
+                           name="dateArriveeBelgique"
+                           />
+                  </mat-form-field>
+                  @if (provenanceDateArrivee() === 'IA') {
+                    <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                  }
+                  <div class="aesm-mena-hint">
+                    Saisine Service Tutelles obligatoire dans les 24h ouvrables suivant l'identification.
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- ============================================ -->
+              <!-- Partie 2 — AESM Scoring (art. 9bis + circ. OE)-->
+              <!-- ============================================ -->
+              <fieldset class="aesm-mena-fieldset" data-testid="fieldset-aesm">
+                <legend class="aesm-mena-legend">
+                  <mat-icon>school</mat-icon>
+                  Partie 2 — AESM scoring (Art. 9bis Loi 15/12/1980 adapté)
+                </legend>
+
+                <div class="aesm-mena-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Âge actuel (0-17)</mat-label>
+                    <input matInput type="number" required min="0" max="17" step="1"
+                           data-testid="age-actuel-input"
+                           [ngModel]="ageActuel()"
+                           (ngModelChange)="onAgeActuelChange($event)"
+                           name="ageActuel"
+                           />
+                  </mat-form-field>
+                  @if (provenanceAge() === 'IA') {
+                    <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                  }
+                </div>
+
+                <div class="aesm-mena-field-wrap aesm-mena-field-wrap--full">
+                  <mat-checkbox
+                      data-testid="integration-scolaire-checkbox"
+                      [ngModel]="integrationScolaire()"
+                      (ngModelChange)="onIntegrationScolaireChange($event)"
+                      name="integrationScolaire">
+                    Inscription scolaire effective en Belgique
+                  </mat-checkbox>
+                </div>
+
+                @if (integrationScolaire()) {
+                  <div class="aesm-mena-field-wrap" data-testid="duree-scolaire-wrap">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Durée scolarisation (mois)</mat-label>
+                      <input matInput type="number" required min="0" max="120" step="1"
+                             data-testid="duree-scolaire-input"
+                             [ngModel]="dureeScolaire()"
+                             (ngModelChange)="onDureeScolaireChange($event)"
+                             name="dureeScolaire"
+                             />
+                    </mat-form-field>
+                    @if (provenanceDureeScolaire() === 'IA') {
+                      <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                    }
+                    <div class="aesm-mena-hint">
+                      Bonus AESM +5 pts si scolarisation &gt; 24 mois.
+                    </div>
+                  </div>
+                }
+
+                <div class="aesm-mena-field-wrap aesm-mena-field-wrap--full">
+                  <mat-checkbox
+                      data-testid="projet-vie-checkbox"
+                      [ngModel]="projetVieElabore()"
+                      (ngModelChange)="onProjetVieElaboreChange($event)"
+                      name="projetVieElabore">
+                    Projet de vie élaboré (rapport tutelle / éducateur)
+                  </mat-checkbox>
+                </div>
+                <div class="aesm-mena-field-wrap aesm-mena-field-wrap--full">
+                  <mat-checkbox
+                      data-testid="perspective-autonomie-checkbox"
+                      [ngModel]="perspectiveAutonomie()"
+                      (ngModelChange)="onPerspectiveAutonomieChange($event)"
+                      name="perspectiveAutonomie">
+                    Perspective d'autonomie post-majorité (apprentissage / contrat employeur)
+                  </mat-checkbox>
+                </div>
+                <div class="aesm-mena-field-wrap aesm-mena-field-wrap--full">
+                  <mat-checkbox
+                      data-testid="menace-ordre-public-checkbox"
+                      [ngModel]="menaceOrdrePublic()"
+                      (ngModelChange)="onMenaceOrdrePublicChange($event)"
+                      name="menaceOrdrePublic">
+                    Menace pour l'ordre public ou la sécurité nationale (rédhibitoire)
+                  </mat-checkbox>
+                </div>
+              </fieldset>
+
+              <div class="aesm-mena-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser AESM + tutelle</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="aesm-mena-result">
+              <!-- Bandeau urgence rouge si age >= 17 -->
+              @if (result()!.prioriteUrgence) {
+                <div class="aesm-mena-urgence" role="alert" data-testid="urgence-banner">
+                  <mat-icon>warning_amber</mat-icon>
+                  <div class="aesm-mena-urgence-content">
+                    <div class="aesm-mena-urgence-title">
+                      Approche de la majorité — procédure urgente
+                    </div>
+                    <div class="aesm-mena-urgence-sub">
+                      Délai critique avant 18 ans. Anticiper la transition de statut tutelle → séjour adulte.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Bandeau verdict AESM (3 couleurs) -->
+              <div [class]="verdictBannerClass(result()!.verdictAESM)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdictAESM) }}</mat-icon>
+                <div class="aesm-mena-banner-content">
+                  <div class="aesm-mena-banner-title">{{ verdictLabel(result()!.verdictAESM) }}</div>
+                  <div class="aesm-mena-banner-sub">
+                    AESM — Autorisation Exceptionnelle de Séjour Mineurs (Art. 9bis adapté).
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bloc info ORANGE si etapeTutelle renseigné -->
+              @if (result()!.etapeTutelle) {
+                <div class="aesm-mena-tutelle-block" data-testid="etape-tutelle-block">
+                  <div class="aesm-mena-tutelle-header">
+                    <mat-icon>flag</mat-icon>
+                    <span class="aesm-mena-tutelle-label">À faire</span>
+                  </div>
+                  <div class="aesm-mena-tutelle-body">
+                    <div class="aesm-mena-tutelle-text">{{ result()!.etapeTutelle }}</div>
+                    <div class="aesm-mena-tutelle-delai">
+                      <span class="aesm-mena-tutelle-delai-label">Délai limite :</span>
+                      <span class="aesm-mena-tutelle-delai-value" data-testid="delai-tutelle-value">
+                        {{ formatDateFr(result()!.delaiDesignationTuteur) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Jauge score 0-100 -->
+              <div class="aesm-mena-score-block" data-testid="score-block">
+                <div class="aesm-mena-score-header">
+                  <span class="aesm-mena-score-label">Score d'intégration</span>
+                  <span class="aesm-mena-score-value">{{ result()!.scoreIntegration }} / 100</span>
+                </div>
+                <mat-progress-bar
+                    mode="determinate"
+                    [value]="result()!.scoreIntegration"
+                    [color]="progressColor(result()!.verdictAESM)">
+                </mat-progress-bar>
+                @if (result()!.bonus > 0) {
+                  <div class="aesm-mena-bonus" data-testid="bonus-block">
+                    <mat-icon>star</mat-icon>
+                    <span>+{{ result()!.bonus }} pts bonus scolarité longue durée</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Critères non remplis -->
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="aesm-mena-criteres-block" data-testid="criteres-non-remplis-block">
+                  <div class="aesm-mena-criteres-label">Critères non remplis</div>
+                  <mat-list class="aesm-mena-criteres-list">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-list-item class="aesm-mena-criteres-item">
+                        <mat-icon matListItemIcon class="aesm-mena-criteres-icon">cancel</mat-icon>
+                        <span matListItemTitle>{{ c }}</span>
+                      </mat-list-item>
+                    }
+                  </mat-list>
+                </div>
+              }
+
+              <!-- Breakdown -->
+              <ul class="aesm-mena-breakdown">
+                <li>
+                  <span class="aesm-mena-bd-label">Âge actuel</span>
+                  <span class="aesm-mena-bd-value">{{ result()!.ageActuel }} ans</span>
+                </li>
+                <li>
+                  <span class="aesm-mena-bd-label">Date d'arrivée Belgique</span>
+                  <span class="aesm-mena-bd-value aesm-mena-bd-value--mono">{{ result()!.dateArriveeBelgique }}</span>
+                </li>
+                <li>
+                  <span class="aesm-mena-bd-label">Tuteur DGDE désigné</span>
+                  <span class="aesm-mena-bd-value">{{ result()!.tuteurDesigne ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="aesm-mena-bd-label">Intégration scolaire</span>
+                  <span class="aesm-mena-bd-value">
+                    {{ result()!.integrationScolaire ? 'Oui' : 'Non' }}
+                    @if (result()!.integrationScolaire && result()!.dureeScolaire !== null) {
+                      ({{ result()!.dureeScolaire }} mois)
+                    }
+                  </span>
+                </li>
+                <li>
+                  <span class="aesm-mena-bd-label">Projet de vie élaboré</span>
+                  <span class="aesm-mena-bd-value">{{ result()!.projetVieElabore ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="aesm-mena-bd-label">Perspective autonomie</span>
+                  <span class="aesm-mena-bd-value">{{ result()!.perspectiveAutonomie ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="aesm-mena-bd-label">Menace ordre public</span>
+                  <span class="aesm-mena-bd-value">{{ result()!.menaceOrdrePublic ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              <!-- Prochain acte -->
+              <div class="aesm-mena-procedure" data-testid="prochain-acte-block">
+                <mat-icon>account_balance</mat-icon>
+                <span><strong>Prochain acte :</strong> {{ result()!.prochainActe }}</span>
+              </div>
+
+              <div class="aesm-mena-meta">
+                <span class="aesm-mena-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
