@@ -1495,6 +1495,24 @@ export interface ImmigrationExtractedData {
   naturalisationBeArt16DateMarriage?: string | null;
   naturalisationBeArt16DureeCohabitation?: number | null;
   naturalisationBeArt16NiveauLangue?: 'INFERIEUR_A2' | 'A2' | 'SUPERIEUR_A2' | null;
+  /**
+   * SF-215-11 / SF-215-12 — Pré-fill outil composite F-IM-30-aesm-mena-be
+   * « AESM + tutelle DGDE (MENA) ». BELGIQUE uniquement — dossier FR : null.
+   * Tous nullables.
+   *
+   * `menaAge` : âge actuel du Mineur Étranger Non Accompagné (entier 0-17).
+   * `menaDateArrivee` : date d'arrivée sur le territoire belge (ISO yyyy-MM-dd, non future).
+   * `menaDureeScolaire` : durée d'inscription scolaire effective en mois
+   *   (entier 0-120, déclenche un bonus AESM +5 pts si > 24).
+   *
+   * NB : les 5 critères restants (tuteurDesigne, integrationScolaire,
+   * projetVieElabore, perspectiveAutonomie, menaceOrdrePublic) sont
+   * aspirationnels — `PREFILL_COUNT_ALWAYS_ZERO` côté UI car le LLM
+   * ne peut pas les inférer de manière fiable depuis les pièces.
+   */
+  menaAge?: number | null;
+  menaDateArrivee?: string | null;
+  menaDureeScolaire?: number | null;
 }
 
 export interface CaseAnalysisVersionSummary {

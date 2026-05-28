@@ -69,6 +69,8 @@ import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-se
 import { Naturalisation12bisBeSectionComponent } from '../naturalisation-12bis-be-section/naturalisation-12bis-be-section.component';
 // SF-215-10 : composant complet F-IM-29-naturalisation-conjoint-belge-be (Immigration BE, naturalisation conjoint Belge art. 16).
 import { NaturalisationConjointBelgeBeSectionComponent } from '../naturalisation-conjoint-belge-be-section/naturalisation-conjoint-belge-be-section.component';
+// SF-215-12 : composant complet F-IM-30-aesm-mena-be (Immigration BE, AESM + tutelle DGDE MENA — composite 2 volets, CONTEXTUAL).
+import { AesmMenaBeSectionComponent } from '../aesm-mena-be-section/aesm-mena-be-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -1529,6 +1531,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-29-naturalisation-conjoint-belge-be', {
         displayLabel: 'Naturalisation conjoint Belge (art. 16)',
         component: NaturalisationConjointBelgeBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-12 : composant complet F-IM-30-aesm-mena-be — outil composite
+      // AESM + tutelle DGDE (MENA). BELGIQUE uniquement, CONTEXTUAL via flag
+      // `mineur_non_accompagne_be_detecte` (F-203). Pré-fill IA RÉEL 3 champs
+      // (menaAge, menaDateArrivee, menaDureeScolaire) via static
+      // getPrefillCount + AesmMenaBePrefillRules. Les 5 checkboxes restantes
+      // (tuteurDesigne, integrationScolaire, projetVieElabore,
+      // perspectiveAutonomie, menaceOrdrePublic) sont aspirationnelles —
+      // `PREFILL_COUNT_ALWAYS_ZERO`. Composite 2 volets : tutelle DGDE
+      // (Loi 04/05/2007) + AESM scoring (Art. 9bis adapté + Circulaire OE
+      // 15/09/2005). Verdict AESM 3 états + bandeau urgence rouge si age ≥ 17.
+      ['F-IM-30-aesm-mena-be', {
+        displayLabel: 'AESM + tutelle DGDE (MENA)',
+        component: AesmMenaBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -3477,6 +3499,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (partagé avec F-IM-28 — la voie 12bis 5 ans et la voie conjoint Belge
     // sont les deux voies « courtes » qui co-existent — l'avocat compare).
     ['F-IM-29-naturalisation-conjoint-belge-be', 'VALIDITE'],
+    // SF-215-12 : F-IM-30-aesm-mena-be — AESM + tutelle DGDE (MENA, BE).
+    // Thème VALIDITE — analyseur d'éligibilité composite 2 volets
+    // (tutelle DGDE Loi 04/05/2007 + scoring AESM Art. 9bis adapté +
+    // Circulaire OE 15/09/2005). Verdict 3 états + bandeau urgence
+    // si age ≥ 17 + bloc info tutelle conditionnel. Symétrie avec les
+    // autres F-IM-XX-be (visibility CONTEXTUAL via flag
+    // `mineur_non_accompagne_be_detecte` — F-203).
+    ['F-IM-30-aesm-mena-be', 'VALIDITE'],
     // SF-207-06b : RCC BE — conditions d'éligibilité (analyseur 4 régimes).
     // Thème VALIDITE (analyse d'éligibilité, cohérent avec les autres analyseurs).
     ['rcc-be-conditions', 'VALIDITE'],
