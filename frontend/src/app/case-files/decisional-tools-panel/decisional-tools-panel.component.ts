@@ -187,6 +187,8 @@ import { LicenciementBeFermetureEntrepriseSectionComponent } from '../licencieme
 import { LicenciementBeCollectifRenaultSectionComponent } from '../licenciement-be-collectif-renault-section/licenciement-be-collectif-renault-section.component';
 // SF-219-08b : section décisionnelle Transfert d'entreprise CCT 32bis (BE-only, ALWAYS_ON).
 import { TransfertEntrepriseCct32bisSectionComponent } from '../transfert-entreprise-cct-32bis-section/transfert-entreprise-cct-32bis-section.component';
+// SF-219-09b : section décisionnelle Élections sociales BE (BE-only, ALWAYS_ON).
+import { ElectionsSocialesBeSectionComponent } from '../elections-sociales-be-section/elections-sociales-be-section.component';
 // SF-219-10b : section décisionnelle Statut délégué syndical CCT n° 5 (BE-only, ALWAYS_ON).
 import { DelegueSyndicalCct5SectionComponent } from '../delegue-syndical-cct-5-section/delegue-syndical-cct-5-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
@@ -2434,6 +2436,30 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-09b : Élections sociales (Belgique) — Loi du 04/12/2007 + AR
+      // du 25/05/2012 + Loi 04/08/1996 art. 49 (CPPT) + Loi 19/03/1991
+      // (protection candidats). Outil BE-only — pas d'équivalent FR (CSE
+      // français = calendrier libre, seuils 11/50/300, pas de jour Y
+      // national imposé). Verdict 4 états (OBLIGATION_CE_ET_CPPT /
+      // OBLIGATION_CPPT_SEUL / NON_APPLICABLE_SEUIL / EFFECTIF_A_RECALCULER)
+      // + calendrier rebours complet (X-60 / X / X-35 / X+35 / X+40 / Y /
+      // Y+6 / Y+45) + fenêtre de protection candidats (Loi 19/03/1991).
+      // ALWAYS_ON priority 127 (au-dessus de transfert-entreprise-cct-32bis
+      // = 126 SF-219-08b). Pré-fill IA V1 : aucun champ (alignement pattern
+      // uniforme F-213/F-219 — cycle AR / dateJourY employeur / effectif
+      // ETP RH / UTE paritaire non extractibles).
+      ['elections-sociales-be', {
+        displayLabel: 'Élections sociales (Belgique)',
+        component: ElectionsSocialesBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-10b : Statut du délégué syndical CCT n° 5 (CNT, 24/05/1971)
       // + CCT 5bis/5ter + AR 26/01/1972 + CCT sectorielles. Outil BE-only
       // de qualification + checklist statut DS : éligibilité (champ
@@ -3694,6 +3720,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // consultation préalable. Parité avec les autres analyseurs de validité
     // procédurale BE (rcc-be-conditions, outplacement-be-obligatoire-45).
     ['transfert-entreprise-cct-32bis', 'VALIDITE'],
+    // SF-219-09b : Élections sociales BE (Loi 04/12/2007 + AR 25/05/2012 +
+    // Loi 04/08/1996 art. 49 + Loi 19/03/1991). Thème VALIDITE — l'outil
+    // qualifie l'obligation procédurale (4 verdicts : CE+CPPT / CPPT seul /
+    // non applicable / à recalculer) et la conformité de la procédure
+    // (calendrier rebours, UTE, fenêtre protection candidats). Parité avec
+    // les autres analyseurs de validité procédurale BE
+    // (licenciement-be-collectif-renault, transfert-entreprise-cct-32bis).
+    ['elections-sociales-be', 'VALIDITE'],
     // SF-219-10b : Statut du délégué syndical CCT n° 5 (CNT, 24/05/1971) +
     // CCT 5bis/5ter + AR 26/01/1972 + CCT sectorielles. Thème VALIDITE —
     // l'outil qualifie le statut du DS (5 verdicts : 1 reconnu / 1 fragile /

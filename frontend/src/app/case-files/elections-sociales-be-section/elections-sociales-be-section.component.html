@@ -1,0 +1,260 @@
+<div class="elections-sociales-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">how_to_vote</mat-icon>
+    <span class="section-title">Élections sociales (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="elections-sociales-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 04/12/2007 + AR du 25/05/2012 + Loi du 04/08/1996
+            art. 49 + Loi du 19/03/1991 protection candidats). Les
+            élections CSE françaises suivent un calendrier libre et
+            des seuils différents (11/50/300) — aucune transposition
+            mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Détermine l'<b>obligation d'organiser des élections sociales</b>
+            (CE / CPPT) selon les seuils de la <b>Loi du 04/12/2007</b>
+            (≥ 50 ETP : CPPT ; ≥ 100 ETP : CE + CPPT) et calcule le
+            <b>calendrier rebours</b> à partir du jour Y choisi dans la
+            fenêtre AR (X = Y-90 affichage avis, X-60 procédure UTE,
+            X-35 listes électeurs, X+35 dépôt candidats, X+40 affichage
+            candidats, Y+6 proclamation, Y+45 1<sup>re</sup> réunion) et
+            la <b>fenêtre de protection des candidats</b> contre le
+            licenciement (Loi 19/03/1991 — 30 j avant affichage
+            jusqu'à installation des élus du cycle suivant / + 2 ans pour
+            les non-élus). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Cycle électoral * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Cycle électoral *</mat-label>
+                <mat-select
+                    [value]="cycleElectoral()"
+                    (selectionChange)="onCycleElectoralChange($event.value)"
+                    name="cycleElectoral"
+                    required>
+                  <mat-option value="CYCLE_2024">
+                    Cycle 2024 — fenêtre Y : 13-26 mai 2024 (AR 14/07/2022)
+                  </mat-option>
+                  <mat-option value="CYCLE_2028">
+                    Cycle 2028 — fenêtre Y : 11-24 mai 2028 (annoncé)
+                  </mat-option>
+                  <mat-option value="CYCLE_2032">
+                    Cycle 2032 — fenêtre Y : mai 2032 (prévisionnel)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Le jour Y doit appartenir à la fenêtre nationale 14 j fixée par AR.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Date jour Y * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du scrutin (jour Y) *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateJourY()"
+                       (ngModelChange)="onDateJourYChange($event)"
+                       name="dateJourY" />
+                <mat-hint>Date choisie par l'employeur dans la fenêtre AR du cycle.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Effectif moyen ETP * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif moyen ETP *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="effectifMoyenEtp()"
+                       (ngModelChange)="onEffectifMoyenEtpChange($event)"
+                       name="effectifMoyenEtp" />
+                <mat-hint>Calculé sur les 4 trimestres précédant l'année des élections.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. UTE confirmée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="uniteTechniqueExploitationConfirmee() === true"
+                  [indeterminate]="uniteTechniqueExploitationConfirmee() === null"
+                  (change)="onUniteTechniqueExploitationConfirmeeChange($event.checked)"
+                  name="uniteTechniqueExploitationConfirmee">
+                <b>Unité technique d'exploitation (UTE)</b> déjà confirmée *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Accord paritaire ou décision juridictionnelle. Sinon, la
+                procédure UTE doit être initiée à X-60.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser les élections</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="elections-sociales-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Effectif déclaré : <b class="mono">{{ result()!.effectifMoyenEtp }}</b> ETP
+                — seuils CE = <b class="mono">{{ result()!.seuilCeApplique }}</b> ·
+                CPPT = <b class="mono">{{ result()!.seuilCpptApplique }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Obligation détaillée -->
+          @if (result()!.conseilEntrepriseObligatoire || result()!.comitePreventionProtectionObligatoire) {
+            <div class="result-fondement" role="region">
+              <mat-icon>groups</mat-icon>
+              <span>
+                <b>Instances à organiser</b> :
+                @if (result()!.conseilEntrepriseObligatoire) {
+                  <span>Conseil d'entreprise (CE)</span>
+                }
+                @if (result()!.conseilEntrepriseObligatoire && result()!.comitePreventionProtectionObligatoire) {
+                  <span> + </span>
+                }
+                @if (result()!.comitePreventionProtectionObligatoire) {
+                  <span>Comité pour la Prévention et la Protection au Travail (CPPT)</span>
+                }
+                . Loi 04/12/2007 art. 9 § 1<sup>er</sup> + Loi 04/08/1996 art. 49.
+              </span>
+            </div>
+          }
+
+          <!-- Calendrier rebours -->
+          <div class="calendar-list">
+            <div class="calendar-title">Calendrier rebours (à partir de Y)</div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.dateDebutProcedureUte }}</span>
+              <span class="calendar-label">X-60 — début de la procédure UTE</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.jourX }}</span>
+              <span class="calendar-label">Jour X (Y-90) — affichage de l'avis des élections</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.dateTransmissionListesElecteurs }}</span>
+              <span class="calendar-label">X-35 — transmission des listes électorales</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.dateDepotListesCandidats }}</span>
+              <span class="calendar-label">X+35 — dépôt des listes de candidats</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.dateAffichageCandidats }}</span>
+              <span class="calendar-label">X+40 — affichage des candidats (déclenche la période protégée)</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.dateJourY }}</span>
+              <span class="calendar-label">Jour Y — scrutin</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.dateProclamationResultats }}</span>
+              <span class="calendar-label">Y+6 — proclamation des résultats</span>
+            </div>
+            <div class="calendar-row">
+              <span class="calendar-date">{{ result()!.datePremiereReunionInstance }}</span>
+              <span class="calendar-label">Y+45 — première réunion CE / CPPT installé</span>
+            </div>
+          </div>
+
+          <!-- Fenêtre de protection candidats (Loi 19/03/1991) -->
+          @if (result()!.dateDebutPeriodeProtegeeCandidats && result()!.dateFinPeriodeProtegeeNonElus) {
+            <div class="result-fondement" role="region">
+              <mat-icon>shield</mat-icon>
+              <span>
+                <b>Fenêtre de protection candidats</b> (Loi 19/03/1991 art. 2 § 1<sup>er</sup>) —
+                du <span class="mono">{{ result()!.dateDebutPeriodeProtegeeCandidats }}</span>
+                (≈ 30 j avant affichage, occulte rétroactive)
+                jusqu'à l'installation des élus du cycle suivant ou
+                <span class="mono">{{ result()!.dateFinPeriodeProtegeeNonElus }}</span>
+                (affichage + 2 ans, non-élus présentés pour la 1<sup>re</sup> fois).
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
