@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="9dc9bd99-073a-41bf-ac6f-c02129304d38" author="claude">
+        <comment>
+            SF-219-12 : table dédiée à l'outil décisionnel "Flexi-job BE"
+            (flexi-job-be, BELGIQUE — fondement : Loi-programme du
+            26/12/2013 (M.B. 31/12/2013), art. 13 à 28 — instauration du
+            régime initial HoReCa CP 302 ; Loi du 25/04/2014 (dispositions
+            diverses sécurité sociale, ajustements techniques Dimona FLX
+            et CITSS) ; Loi du 16/11/2015 (extension boulangerie CP 119 +
+            coiffure CP 314, validée par Cour const. arrêt 107/2017 du
+            28/09/2017) ; Loi-programme du 30/10/2018 (extension commerce
+            de détail CP 201/202/311/312, agriculture/horticulture
+            CP 132/144/145, soins de santé partiels + suppression du
+            plafond de cumul pour les pensionnés toutes catégories) ;
+            Loi-programme du 28/12/2023 + AR du 02/06/2024 (extension
+            secteurs publics limités, sport CP 223, culture CP 304,
+            événementiel, déménagement CP 140.05, garages CP 112,
+            transport autocar CP 140.01, assurances limité, indexation
+            du flexi-salaire minimum et du plafond annuel exonéré).
+
+            L'outil vérifie l'éligibilité d'une occupation flexi-job sous
+            l'angle cumulatif :
+            - Condition personnelle travailleur (pensionné toutes
+              catégories OU salarié 4/5 ETP minimum chez un AUTRE
+              employeur au 3e trimestre civil précédant — référence T-3
+              ONSS DmfA).
+            - Condition sectorielle employeur (CP éligibles : HoReCa
+              2013 + extensions successives 2015/2018/2023, à confirmer
+              CP exacte par avocat BE).
+            - Interdiction de cumul chez le même employeur (anti-
+              substitution prestations principales/flexi — art. 13 § 2
+              Loi-prog. 26/12/2013).
+            - Formalisme cumulatif : contrat-cadre écrit obligatoire
+              (art. 16 Loi-prog. 26/12/2013) + déclaration Dimona
+              spécifique FLX (DmfA ONSS).
+            - Rémunération : flexi-salaire horaire brut ≥ minimum légal
+              indexé (~12,33 €/h au 01/05/2024, paramétrable) + revenu
+              annuel cumulé ≤ plafond exonéré (~12 000 € au 01/05/2024,
+              paramétrable, INAPPLICABLE aux pensionnés depuis ext. 2018).
+
+            Verdict : ELIGIBLE | FRAGILE_CONTRAT_OU_DIMONA_MANQUANT
+            | FRAGILE_PLAFOND_DEPASSE | INELIGIBLE_TRAVAILLEUR_HORS_CONDITION
+            | INELIGIBLE_SECTEUR_NON_ELIGIBLE
+            | INELIGIBLE_CUMUL_INTERDIT_MEME_EMPLOYEUR | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France n'a pas
+            d'équivalent direct. Le régime de « CDD d'usage » (C. trav.
+            art. L. 1242-2 § 3) et de « CDI intérimaire » (art.
+            L. 1251-58-1) partage une logique d'occupation atypique
+            dans des secteurs limitativement énumérés mais le régime
+            de cotisations, de formalisme (Dimona inexistante en FR)
+            et de plafonds annuels sont structurellement incomparables.
+            Restitution séparée.
+
+            Snapshot JSON complet (inputs + outputs : verdict, ventilation
+            d'éligibilité par dimension travailleur/secteur/cumul/
+            formalisme/rémunération, montant excédentaire au plafond)
+            pour permettre la restitution UI sans recalcul (pattern
+            F-DT-42 / SF-213-01 à SF-213-10 / SF-219-01 à SF-219-10).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-12b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel F-164
+            staging 2026-04-26 — 13 tool_id orphelins, cf. CLAUDE.md
+            feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id "flexi-job-be" est ajouté dès cette SF backend
+            à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile dès
+            le seed visibility par SF-219-12b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-10b).
+        </comment>
+
+        <createTable tableName="flexi_job_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_flexi_job_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="flexi_job_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_flexi_job_be_case_file"/>
+
+        <createIndex tableName="flexi_job_be_analyses"
+                     indexName="idx_flexi_job_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="flexi_job_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
