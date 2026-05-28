@@ -193,6 +193,8 @@ import { ElectionsSocialesBeSectionComponent } from '../elections-sociales-be-se
 import { DelegueSyndicalCct5SectionComponent } from '../delegue-syndical-cct-5-section/delegue-syndical-cct-5-section.component';
 // SF-219-11b : section décisionnelle Congé-éducation payé régionalisé (BE-only, ALWAYS_ON).
 import { CongeEducationPayeRegionSectionComponent } from '../conge-education-paye-region-section/conge-education-paye-region-section.component';
+// SF-219-12b : section décisionnelle Flexi-job BE (BE-only, ALWAYS_ON).
+import { FlexiJobBeSectionComponent } from '../flexi-job-be-section/flexi-job-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2512,6 +2514,40 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-12b : Flexi-job BE (Loi-programme du 26/12/2013 art. 13 à 28 +
+      // Loi 25/04/2014 + Loi-programme 16/11/2015 boulangerie/coiffure +
+      // Loi-programme 30/10/2018 commerce/agriculture/soins de santé +
+      // suppression plafond pensionnés + Loi-programme 28/12/2023 +
+      // AR 02/06/2024 extension secteurs publics/sport/culture/garages/
+      // transport). Outil BE-only — pas d'équivalent FR (CDD d'usage et
+      // CDI intérimaire FR partagent une logique d'occupation atypique
+      // mais le régime de cotisations / formalisme Dimona / plafonds
+      // annuels est structurellement incomparable). Verdict hiérarchisé
+      // 7 états (ELIGIBLE / FRAGILE_CONTRAT_OU_DIMONA_MANQUANT /
+      // FRAGILE_PLAFOND_DEPASSE / INELIGIBLE_TRAVAILLEUR_HORS_CONDITION /
+      // INELIGIBLE_SECTEUR_NON_ELIGIBLE /
+      // INELIGIBLE_CUMUL_INTERDIT_MEME_EMPLOYEUR / A_ANALYSER) — priorité
+      // travailleur → secteur → cumul → formalisme → rémunération +
+      // ventilation 5 dimensions cumulatives + montant excédentaire au
+      // plafond annuel exonéré. ALWAYS_ON priority 130 (au-dessus de
+      // conge-education-paye-region = 129 SF-219-11b et delegue-syndical-
+      // cct-5 = 128 SF-219-10b). Pré-fill IA V1 : aucun champ (alignement
+      // pattern uniforme F-213/F-219 — date occupation flexi employeur /
+      // statut T-3 chez un AUTRE employeur / secteur paritaire flexi /
+      // formalisme Dimona FLX / paramètres légaux indexés non
+      // extractibles du dossier salarié principal).
+      ['flexi-job-be', {
+        displayLabel: 'Flexi-job (Belgique)',
+        component: FlexiJobBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3769,6 +3805,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // analyseurs de validité d'éligibilité BE (cumul-rcc-allocations,
     // outplacement-be-general-30sem, rcc-be-conditions).
     ['conge-education-paye-region', 'VALIDITE'],
+    // SF-219-12b : Flexi-job BE (Loi-programme du 26/12/2013 art. 13 à 28 +
+    // extensions 2015/2018/2023 + AR 02/06/2024). Thème VALIDITE — l'outil
+    // qualifie l'éligibilité d'une occupation flexi-job sur 5 dimensions
+    // cumulatives (travailleur / secteur / cumul / formalisme / rémunération)
+    // avec verdict hiérarchisé 7 états (1 éligible / 2 fragiles / 3 inéligibles
+    // / 1 à analyser). Parité avec les autres analyseurs de validité statutaire
+    // BE (delegue-syndical-cct-5, transfert-entreprise-cct-32bis).
+    ['flexi-job-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

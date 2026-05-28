@@ -1,0 +1,355 @@
+<div class="flexi-job-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">restaurant_menu</mat-icon>
+    <span class="section-title">Flexi-job (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="flexi-job-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi-programme du 26/12/2013 + extensions 2015 / 2018 / 2023
+            + AR 02/06/2024). Le régime français de CDD d'usage
+            (C. trav. art. L. 1242-2 § 3) et de CDI intérimaire
+            (art. L. 1251-58-1) partage une logique d'occupation
+            atypique mais les régimes de cotisations, de formalisme
+            Dimona et de plafonds annuels sont structurellement
+            incomparables — aucune transposition mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie l'<b>éligibilité d'une occupation flexi-job BE</b>
+            selon les <b>5 dimensions cumulatives</b> de la Loi-programme
+            du 26/12/2013 et de ses extensions successives :
+            (1) <b>statut travailleur</b> (pensionné toutes catégories OU
+            salarié ≥ 4/5 ETP chez un AUTRE employeur au T-3 — DmfA ONSS),
+            (2) <b>secteur employeur</b> éligible (HoReCa 2013 +
+            extensions 2015 / 2018 / 2023), (3) <b>cumul interdit</b>
+            chez le même employeur (anti-substitution art. 13 § 2),
+            (4) <b>formalisme</b> cumulatif (contrat-cadre écrit
+            art. 16 + Dimona FLX), (5) <b>rémunération</b> (flexi-salaire
+            horaire ≥ minimum légal indexé + revenu annuel ≤ plafond
+            exonéré, inapplicable aux pensionnés depuis 2018).
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date première occupation flexi * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de première occupation flexi *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="datePremiereOccupationFlexi()"
+                       (ngModelChange)="onDatePremiereOccupationFlexiChange($event)"
+                       name="datePremiereOccupationFlexi" />
+                <mat-hint>Date de début de la 1<sup>re</sup> prestation flexi pour cet employeur.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Statut travailleur * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut du travailleur *</mat-label>
+                <mat-select
+                    [value]="statutTravailleur()"
+                    (selectionChange)="onStatutTravailleurChange($event.value)"
+                    name="statutTravailleur"
+                    required>
+                  <mat-option value="PENSIONNE">
+                    Pensionné (retraite ou survie) — cumul sans plafond depuis 2018
+                  </mat-option>
+                  <mat-option value="SALARIE_4_5_TEMPS_T_MOINS_3">
+                    Salarié ≥ 4/5 ETP au T-3 chez un AUTRE employeur (DmfA ONSS)
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre situation (chômeur, étudiant, etc.) — pas de statut flexi
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Loi-programme 26/12/2013 art. 13 — catégories personnelles.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Secteur employeur * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Secteur de l'employeur *</mat-label>
+                <mat-select
+                    [value]="secteurEmployeur()"
+                    (selectionChange)="onSecteurEmployeurChange($event.value)"
+                    name="secteurEmployeur"
+                    required>
+                  <mat-option value="HORECA_302">
+                    HoReCa (CP 302) — régime historique 2013
+                  </mat-option>
+                  <mat-option value="BOULANGERIE_COIFFURE">
+                    Boulangerie / coiffure (CP 119 / CP 314) — extension 2015
+                  </mat-option>
+                  <mat-option value="COMMERCE_DETAIL">
+                    Commerce de détail (CP 201/202/311/312) — extension 2018
+                  </mat-option>
+                  <mat-option value="AGRICULTURE">
+                    Agriculture / horticulture (CP 132/144/145) — extension 2018
+                  </mat-option>
+                  <mat-option value="SOINS_DE_SANTE">
+                    Soins de santé (périmètre limité) — extension 2018
+                  </mat-option>
+                  <mat-option value="SECTEUR_PUBLIC">
+                    Secteur public (périmètre limité) — extension 2023
+                  </mat-option>
+                  <mat-option value="SPORT_CULTURE_EVENEMENTIEL">
+                    Sport / culture / événementiel / garages / transport — extension 2023
+                  </mat-option>
+                  <mat-option value="AUTRE_NON_ELIGIBLE">
+                    Secteur non listé par les lois-programmes (non éligible)
+                  </mat-option>
+                  <mat-option value="ZONE_GRISE_EXTENSION_RECENTE">
+                    Extension récente sans AR d'application — analyse requise
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Commission paritaire de l'employeur flexi à confirmer par avocat BE.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Cumul interdit même employeur * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="dejaOccupeChezMemeEmployeur() === true"
+                  [indeterminate]="dejaOccupeChezMemeEmployeur() === null"
+                  (change)="onDejaOccupeChezMemeEmployeurChange($event.checked)"
+                  name="dejaOccupeChezMemeEmployeur">
+                <b>Travailleur déjà occupé chez le MÊME employeur</b> (salarié principal ou autre régime) *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Si coché : cumul interdit (art. 13 § 2 Loi-prog. 26/12/2013, anti-substitution).
+              </small>
+            </div>
+
+            <!-- 5. Contrat-cadre écrit * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="contratCadreSigne() === true"
+                  [indeterminate]="contratCadreSigne() === null"
+                  (change)="onContratCadreSigneChange($event.checked)"
+                  name="contratCadreSigne">
+                <b>Contrat-cadre flexi écrit signé</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Art. 16 Loi-prog. 26/12/2013 — formalisme obligatoire avant toute prestation.
+              </small>
+            </div>
+
+            <!-- 6. Dimona FLX déclarée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="dimonaFlxDeclaree() === true"
+                  [indeterminate]="dimonaFlxDeclaree() === null"
+                  (change)="onDimonaFlxDeclareeChange($event.checked)"
+                  name="dimonaFlxDeclaree">
+                <b>Déclaration Dimona spécifique FLX faite</b> (DmfA ONSS) *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Type d'occupation FLX — distinct de la Dimona classique salarié.
+              </small>
+            </div>
+
+            <!-- 7. Flexi-salaire horaire brut * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Flexi-salaire horaire brut (€/h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       required
+                       [ngModel]="flexiSalaireHoraireBrut()"
+                       (ngModelChange)="onFlexiSalaireHoraireBrutChange($event)"
+                       name="flexiSalaireHoraireBrut" />
+                <mat-hint>Taux horaire flexi convenu (hors pécule 8 %).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Flexi-salaire minimum applicable * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Minimum légal applicable (€/h) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       required
+                       [ngModel]="flexiSalaireMinimumApplicable()"
+                       (ngModelChange)="onFlexiSalaireMinimumApplicableChange($event)"
+                       name="flexiSalaireMinimumApplicable" />
+                <mat-hint>~12,33 €/h au 01/05/2024 — indexable selon date d'occupation.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9. Revenu annuel flexi cumulé * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Revenu flexi cumulé année civile (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="revenuAnnuelFlexiCumule()"
+                       (ngModelChange)="onRevenuAnnuelFlexiCumuleChange($event)"
+                       name="revenuAnnuelFlexiCumule" />
+                <mat-hint>Total flexi année civile en cours (toutes occupations cumulées).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Plafond annuel exonéré * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Plafond annuel exonéré (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0.01"
+                       step="1"
+                       required
+                       [ngModel]="plafondAnnuelExonere()"
+                       (ngModelChange)="onPlafondAnnuelExonereChange($event)"
+                       name="plafondAnnuelExonere" />
+                <mat-hint>~12 000 € au 01/05/2024 — inapplicable aux pensionnés depuis 2018.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser l'éligibilité flexi</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="flexi-job-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut : <b>{{ statutTravailleurLabel(result()!.statutTravailleur) }}</b>
+                — secteur : <b>{{ secteurEmployeurLabel(result()!.secteurEmployeur) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation 5 dimensions cumulatives -->
+          <div class="dimensions-list">
+            <div class="dimensions-title">Ventilation des 5 conditions cumulatives</div>
+            <div class="dimension-row" [class.dim-ok]="result()!.travailleurEligible" [class.dim-ko]="!result()!.travailleurEligible">
+              <mat-icon>{{ result()!.travailleurEligible ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>1. Travailleur</b> — pensionné OU 4/5 ETP T-3 chez un AUTRE employeur
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.secteurEligible" [class.dim-ko]="!result()!.secteurEligible">
+              <mat-icon>{{ result()!.secteurEligible ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>2. Secteur</b> — CP éligible (HoReCa 2013 + extensions 2015/2018/2023)
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.cumulRespecte" [class.dim-ko]="!result()!.cumulRespecte">
+              <mat-icon>{{ result()!.cumulRespecte ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>3. Cumul</b> — pas d'occupation principale chez le même employeur (anti-substitution)
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.formalismeRespecte" [class.dim-ko]="!result()!.formalismeRespecte">
+              <mat-icon>{{ result()!.formalismeRespecte ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>4. Formalisme</b> — contrat-cadre écrit (art. 16) + Dimona spécifique FLX
+              </span>
+            </div>
+            <div class="dimension-row" [class.dim-ok]="result()!.remunerationConforme" [class.dim-ko]="!result()!.remunerationConforme">
+              <mat-icon>{{ result()!.remunerationConforme ? 'check_circle' : 'cancel' }}</mat-icon>
+              <span class="dimension-label">
+                <b>5. Rémunération</b> — flexi-salaire ≥ minimum + revenu annuel ≤ plafond
+              </span>
+            </div>
+          </div>
+
+          <!-- Excédent au plafond (si applicable) -->
+          @if (result()!.montantExcedentaireAuPlafond > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>euro</mat-icon>
+              <span>
+                <b>Excédent au plafond annuel exonéré</b> :
+                <span class="mono">{{ result()!.montantExcedentaireAuPlafond }} €</span>
+                — partie soumise à cotisations normales + taxation
+                (sauf pensionnés depuis 2018, exemptés du plafond).
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
