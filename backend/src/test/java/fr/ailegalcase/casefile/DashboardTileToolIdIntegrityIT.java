@@ -818,7 +818,23 @@ class DashboardTileToolIdIntegrityIT {
             // SF-219-28b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "mp-fedris-reconnaissance"
+            "mp-fedris-reconnaissance",
+            // SF-219-29 (2026-05-28) : at-mp-rente-capital-be — backend
+            // Loi 10/04/1971 art. 24 (mode versement IPP : capital < 19% /
+            // rente >= 19%) + Lois coordonnées 03/06/1970 art. 35 (renvoi
+            // AT pour MP) + AR 21/12/1971 + AR 24/02/2005 bareme
+            // capitalisation Table I-bis. Calcule rente annuelle, capital
+            // forfaitaire, conversion partielle 1/3 max après délai
+            // d'épreuve 3 ans (art. 45ter). Verdicts : CAPITAL_FORFAITAIRE_
+            // LT_19 / RENTE_ANNUELLE_GE_19 / INELIGIBLE_NON_RECONNU /
+            // IPP_NON_DETERMINE / A_QUALIFIER. Jurisprudence Cass. BE
+            // 06/11/2000 S.99.0119.F capitalisation d'office < 19% +
+            // Cass. BE 26/05/2003 S.01.0079.F rente viagère + Cass. BE
+            // 23/03/2009 S.08.0072.F délai d'épreuve 3 ans. Frontend
+            // SF-219-29b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "at-mp-rente-capital-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
