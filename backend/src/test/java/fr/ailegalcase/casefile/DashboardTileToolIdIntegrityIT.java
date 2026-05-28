@@ -662,7 +662,7 @@ class DashboardTileToolIdIntegrityIT {
             // feedback_pre_merge_visibility_seed_check).
             "interim-be-indemnite-fin-mission",
             // SF-219-17 (2026-05-28) : clause-ecolage-be — backend
-            // (présente PR) art. 22bis Loi du 03/07/1978 sur les
+            // (mergée PR #1416) art. 22bis Loi du 03/07/1978 sur les
             // contrats de travail (inséré par la Loi du 27/12/2006
             // M.B. 28/12/2006, modifié par la Loi du 22/12/2017 —
             // Pacte de compétitivité) : forme écrite obligatoire au
@@ -692,7 +692,42 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "clause-ecolage-be"
+            "clause-ecolage-be",
+            // SF-219-18 (2026-05-28) : semaine-4-jours-be — backend
+            // (présente PR) Loi du 03/10/2022 portant des dispositions
+            // diverses en matière de travail dite « Deal pour
+            // l'emploi » M.B. 10/11/2022, art. 5 — possibilité offerte
+            // au travailleur à temps plein de demander la compression
+            // de la durée hebdomadaire de travail 38 à 40 h sur 4
+            // jours sans réduction. Journée plafonnée à 9 h 30
+            // (10 h si CCT sectorielle), accord employeur formalisé
+            // par annexe écrite au contrat de travail durée max
+            // 6 mois renouvelables, refus motivé écrit dans le mois,
+            // protection contre le licenciement motivé par la
+            // demande (indemnité forfaitaire 6 mois de rémunération).
+            // Vérifie l'éligibilité cumulative (statut demande
+            // ACCORDE_AVENANT_SIGNE / REFUSE_MOTIVE_PAR_ECRIT /
+            // REFUSE_SANS_MOTIVATION_ECRITE /
+            // EN_ATTENTE_REPONSE_EMPLOYEUR / LICENCIE_APRES_DEMANDE
+            // / INDETERMINE ; travailleur à temps plein ; demande
+            // écrite ; journée ≤ 9 h 30 ou 10 h par CCT ; avenant
+            // écrit signé ; règlement de travail modifié ; durée
+            // ≤ 6 mois ou renouvelé ; refus motivé par écrit si
+            // refus ; motif licenciement objectif établi si
+            // licenciement post-demande). Verdicts :
+            // CONFORME_REGIME_4_JOURS_VALIDE /
+            // NON_ELIGIBLE_TEMPS_PARTIEL /
+            // NON_CONFORME_DEMANDE_ECRITE_MANQUANTE /
+            // NON_CONFORME_JOURNEE_DEPASSE_9H30 /
+            // NON_CONFORME_AVENANT_OU_REGLEMENT_MANQUANT /
+            // NON_CONFORME_DUREE_DEPASSE_6_MOIS /
+            // REFUS_EMPLOYEUR_NON_MOTIVE /
+            // LICENCIEMENT_REPRESAILLES_PRESUME / A_ANALYSER.
+            // Frontend SF-219-18b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "semaine-4-jours-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
