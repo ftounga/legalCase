@@ -223,6 +223,8 @@ import { CodePenalSocialBeSectionComponent } from '../code-penal-social-be-secti
 import { AuditoratTravailBeSectionComponent } from '../auditorat-travail-be-section/auditorat-travail-be-section.component';
 // SF-219-26b : section décisionnelle Travail noir BE DIMONA.
 import { TravailNoirBeDimonaSectionComponent } from '../travail-noir-be-dimona-section/travail-noir-be-dimona-section.component';
+// SF-219-27b : section décisionnelle INASTI statut travailleur indépendant BE.
+import { InastriStatutTravailleurIndependantSectionComponent } from '../inastri-statut-travailleur-independant-section/inastri-statut-travailleur-independant-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3124,6 +3126,38 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-27b : INASTI statut travailleur indépendant BE — Loi
+      // 27/06/1969 + AR n° 38 du 27/07/1967 + AR du 19/12/1967 +
+      // Loi-programme I du 27/12/2006 art. 328 à 333 « doctrine Bart
+      // Buysse » (4 critères généraux + présomption simple de salariat
+      // art. 328 § 1) + art. 337/1 à 337/3 critères sectoriels (Loi
+      // 25/08/2012, extension agriculture / horticulture AR 29/10/2013 ;
+      // Cour const. arrêt 167/2013 du 19/12/2013). 5 verdicts
+      // (INDEPENDANT_CONFIRME / SALARIE_REQUALIFIE / FAUX_INDEPENDANT_
+      // PRESUMPTION_SECTORIELLE / PRESUMPTION_GENERALE_SALARIAT /
+      // A_QUALIFIER) avec scores critères généraux 4/4 + critères
+      // sectoriels 9/9 + flags présomption sectorielle / générale,
+      // cohérence DIMONA / statut déclaré et indice mono-client (Cass.
+      // BE 23/12/2002 S.02.0021.F). ALWAYS_ON priority 145 (au-dessus
+      // de travail-noir-be-dimona = 144 SF-219-26b, auditorat-travail-
+      // be = 143 SF-219-25b, code-penal-social-be = 142 SF-219-24b).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme F-213
+      // / F-219 — volonté des parties, modalités d'exécution, critères
+      // de subordination, secteur, statut administratif, présence
+      // d'autres clients non extractibles du dossier salarié — relèvent
+      // de l'analyse contractuelle in concreto par l'avocat).
+      ['inastri-statut-travailleur-independant', {
+        displayLabel: 'INASTI — statut travailleur indépendant (Belgique)',
+        component: InastriStatutTravailleurIndependantSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4496,6 +4530,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['auditorat-travail-be', 'VALIDITE'],
     // SF-219-26b : Travail noir BE — DIMONA
     ['travail-noir-be-dimona', 'VALIDITE'],
+    // SF-219-27b : INASTI statut travailleur indépendant BE — qualification
+    // salarié / indépendant + présomption art. 328 § 1 / 337/2 (Loi-programme
+    // I 27/12/2006 art. 333). Thème VALIDITE (parité avec les autres outils
+    // de qualification BE : code-penal-social-be, auditorat-travail-be,
+    // travail-noir-be-dimona, discrimination-be-handicap-amenagement).
+    ['inastri-statut-travailleur-independant', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

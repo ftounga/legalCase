@@ -1,0 +1,381 @@
+<div class="inastri-statut-travailleur-independant-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">badge</mat-icon>
+    <span class="section-title">INASTI — statut travailleur indépendant (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="inastri-statut-travailleur-independant-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 27/06/1969 + AR n° 38 du 27/07/1967 + AR du 19/12/1967
+            + Loi-programme I du 27/12/2006 art. 328 à 333 « doctrine Bart
+            Buysse » + art. 337/1 à 337/3 critères sectoriels). Le régime
+            français de qualification salarié / indépendant (présomption
+            de non-salariat art. L. 8221-6 C. trav. + URSSAF redressement
+            art. R. 243-18 + Loi Madelin + statut autoentrepreneur Loi
+            04/08/2008) constitue un dispositif juridiquement distinct
+            (pas de présomption sectorielle 5 secteurs, pas de doctrine
+            Bart Buysse, pas de présomption art. 328 § 1 C. pén. soc.
+            mobilisable en l'absence de DPAE). Aucune transposition
+            mécanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Qualifie la <b>nature de la relation de travail</b> au sens
+            de l'INASTI / ONSS (salarié, indépendant, faux indépendant).
+            Applique les <b>4 critères généraux art. 333</b>
+            Loi-programme I 27/12/2006 (volonté des parties, liberté
+            d'organisation du temps, liberté d'organisation du travail,
+            contrôle hiérarchique) et, le cas échéant, les
+            <b>9 critères sectoriels art. 337/2 § 1</b> (construction,
+            transport, gardiennage, nettoyage, agriculture / horticulture).
+            Mobilise la <b>présomption simple de salariat art. 328 § 1
+            C. pén. soc.</b> en cas d'absence DIMONA (renversable —
+            Cass. BE 06/12/2010 S.10.0067.F). Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Volonté des parties * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Volonté des parties (art. 333) *</mat-label>
+                <mat-select
+                    [value]="volonteParties()"
+                    (selectionChange)="onVolontePartiesChange($event.value)"
+                    name="volonteParties"
+                    required>
+                  <mat-option value="INDEPENDANT_EXPLICITE">
+                    Convention écrite expressément indépendante
+                  </mat-option>
+                  <mat-option value="SALARIE_EXPLICITE">
+                    Convention écrite expressément salariée
+                  </mat-option>
+                  <mat-option value="IMPLICITE_OU_AMBIGUE">
+                    Qualification implicite ou ambiguë
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Indice non décisif — primauté de l'exécution réelle (Cass. BE 23/12/2002 S.02.0021.F).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Liberté organisation temps * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Liberté d'organisation du temps de travail *</mat-label>
+                <mat-select
+                    [value]="liberteOrganisationTemps()"
+                    (selectionChange)="onLiberteOrganisationTempsChange($event.value)"
+                    name="liberteOrganisationTemps"
+                    required>
+                  <mat-option value="TOTALE_INDEPENDANT">
+                    Totale — fixe seul horaires / congés
+                  </mat-option>
+                  <mat-option value="PARTIELLE">
+                    Partielle — encadrement ponctuel
+                  </mat-option>
+                  <mat-option value="AUCUNE_SALARIE">
+                    Aucune — horaires imposés
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Critère 2/4 art. 333.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Liberté organisation travail * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Liberté d'organisation du travail *</mat-label>
+                <mat-select
+                    [value]="liberteOrganisationTravail()"
+                    (selectionChange)="onLiberteOrganisationTravailChange($event.value)"
+                    name="liberteOrganisationTravail"
+                    required>
+                  <mat-option value="TOTALE_INDEPENDANT">
+                    Totale — choisit méthodes / outils / sous-traitants
+                  </mat-option>
+                  <mat-option value="PARTIELLE">
+                    Partielle — quelques instructions
+                  </mat-option>
+                  <mat-option value="AUCUNE_SALARIE">
+                    Aucune — instructions imposées
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Critère 3/4 art. 333.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Contrôle hiérarchique * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Exercice d'un contrôle hiérarchique *</mat-label>
+                <mat-select
+                    [value]="controleHierarchique()"
+                    (selectionChange)="onControleHierarchiqueChange($event.value)"
+                    name="controleHierarchique"
+                    required>
+                  <mat-option value="TOTALE_INDEPENDANT">
+                    Absent — aucune sanction / direction
+                  </mat-option>
+                  <mat-option value="PARTIELLE">
+                    Ponctuel — supervision épisodique
+                  </mat-option>
+                  <mat-option value="AUCUNE_SALARIE">
+                    Régulier — pouvoir de direction et de sanction
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Critère 4/4 art. 333.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Secteur * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Secteur d'activité économique *</mat-label>
+                <mat-select
+                    [value]="secteur()"
+                    (selectionChange)="onSecteurChange($event.value)"
+                    name="secteur"
+                    required>
+                  <mat-option value="CONSTRUCTION">
+                    Construction (CP 124)
+                  </mat-option>
+                  <mat-option value="TRANSPORT_DE_CHOSES">
+                    Transport de choses
+                  </mat-option>
+                  <mat-option value="GARDIENNAGE">
+                    Gardiennage / sécurité privée
+                  </mat-option>
+                  <mat-option value="NETTOYAGE">
+                    Nettoyage
+                  </mat-option>
+                  <mat-option value="AGRICULTURE_HORTICULTURE">
+                    Agriculture / horticulture
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre — pas de présomption sectorielle
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Présomption art. 337/2 § 1 applicable aux 5 premiers secteurs.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Nb critères sectoriels salarié * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Critères sectoriels salarié (0 à 9) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       max="9"
+                       step="1"
+                       required
+                       [ngModel]="nbCriteresSectorielsSalarie()"
+                       (ngModelChange)="onNbCriteresSectorielsSalarieChange($event)"
+                       name="nbCriteresSectorielsSalarie" />
+                <mat-hint>Sur 9 critères art. 337/2 § 1 (ignoré si secteur AUTRE). Majorité ⇒ présomption sectorielle.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Statut déclaré * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut déclaré par la personne *</mat-label>
+                <mat-select
+                    [value]="statutDeclare()"
+                    (selectionChange)="onStatutDeclareChange($event.value)"
+                    name="statutDeclare"
+                    required>
+                  <mat-option value="INDEPENDANT_INASTI">
+                    Indépendant — affilié INASTI / caisse d'assurances sociales
+                  </mat-option>
+                  <mat-option value="SALARIE_DIMONA">
+                    Salarié — DIMONA ONSS effectuée
+                  </mat-option>
+                  <mat-option value="SANS_DECLARATION">
+                    Aucune déclaration administrative
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Permet de croiser avec la qualification réelle (faux indépendant / faux salarié).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. DIMONA présente * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="dimonaPresente() === true"
+                  [indeterminate]="dimonaPresente() === null"
+                  (change)="onDimonaPresenteChange($event.checked)"
+                  name="dimonaPresente">
+                <b>DIMONA ONSS effectuée</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Absence ⇒ présomption simple de salariat art. 328 § 1 C. pén. soc. mobilisable (Cass. BE 06/12/2010 S.10.0067.F).
+              </small>
+            </div>
+
+            <!-- 9. Autre client * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="autreClientPresent() === true"
+                  [indeterminate]="autreClientPresent() === null"
+                  (change)="onAutreClientPresentChange($event.checked)"
+                  name="autreClientPresent">
+                <b>Présence d'un autre client</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Indice d'autonomie économique. Mono-client = indice de salariat déguisé (Cass. BE 23/12/2002).
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le statut INASTI</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="inastri-statut-travailleur-independant-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Statut déclaré : <b>{{ statutDeclareLabel(result()!.statutDeclare) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation scores + présomptions -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Détail des scores et des présomptions</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">trending_up</mat-icon>
+              <span class="ventilation-label">Score critères généraux INDÉPENDANT (sur 4)</span>
+              <span class="ventilation-value mono">{{ formatInt(result()!.scoreCriteresGenerauxIndependant) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">trending_down</mat-icon>
+              <span class="ventilation-label">Score critères généraux SALARIÉ (sur 4)</span>
+              <span class="ventilation-value mono">{{ formatInt(result()!.scoreCriteresGenerauxSalarie) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">category</mat-icon>
+              <span class="ventilation-label">Secteur</span>
+              <span class="ventilation-value mono">{{ secteurLabel(result()!.secteur) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">format_list_numbered</mat-icon>
+              <span class="ventilation-label">Critères sectoriels salarié (sur 9)</span>
+              <span class="ventilation-value mono">{{ formatInt(result()!.nbCriteresSectorielsSalarie) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">rule</mat-icon>
+              <span class="ventilation-label">Présomption sectorielle applicable (art. 337/2 § 1)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.presumptionSectorielleApplicable) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">flag</mat-icon>
+              <span class="ventilation-label">Présomption sectorielle DÉCLENCHÉE</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.presumptionSectorielleDeclenchee) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">policy</mat-icon>
+              <span class="ventilation-label">Présomption générale art. 328 § 1 mobilisable</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.presumptionGeneraleSalariatMobilisable) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">swap_horiz</mat-icon>
+              <span class="ventilation-label">Requalification salariat recommandée</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.requalificationSalariatRecommandee) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">verified</mat-icon>
+              <span class="ventilation-label">DIMONA cohérente avec statut déclaré</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.dimonaCoherenteAvecStatutDeclare) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">person_search</mat-icon>
+              <span class="ventilation-label">Mono-client = indice salariat (Cass. BE 23/12/2002)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.monoClientIndiceSalariat) }}</span>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
