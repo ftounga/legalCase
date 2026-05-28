@@ -183,6 +183,8 @@ import { CumulRccAllocationsSectionComponent } from '../cumul-rcc-allocations-se
 import { OutplacementBeGeneral30semSectionComponent } from '../outplacement-be-general-30sem-section/outplacement-be-general-30sem-section.component';
 // SF-219-06b : section décisionnelle Licenciement BE fermeture d'entreprise (BE-only, ALWAYS_ON).
 import { LicenciementBeFermetureEntrepriseSectionComponent } from '../licenciement-be-fermeture-entreprise-section/licenciement-be-fermeture-entreprise-section.component';
+// SF-219-07b : section décisionnelle Licenciement collectif BE — Loi Renault (BE-only, ALWAYS_ON).
+import { LicenciementBeCollectifRenaultSectionComponent } from '../licenciement-be-collectif-renault-section/licenciement-be-collectif-renault-section.component';
 // SF-219-08b : section décisionnelle Transfert d'entreprise CCT 32bis (BE-only, ALWAYS_ON).
 import { TransfertEntrepriseCct32bisSectionComponent } from '../transfert-entreprise-cct-32bis-section/transfert-entreprise-cct-32bis-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
@@ -2375,6 +2377,36 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-07b : Licenciement collectif BE — Loi Renault (Loi 13/02/1998 +
+      // CCT n° 24 + CCT n° 39 + Directive 98/59/CE). Outil BE-only — pas
+      // d'équivalent FR (le PSE français suit une procédure DIRECCTE / DDETS
+      // distincte avec validation/homologation, calendrier d'expertise CSE).
+      // Checklist procédurale, pas calculateur — vérifie le seuil de
+      // déclenchement (10/20/30 lic./60 j selon taille), les 3 phases
+      // (information CE/CPPT → consultation → décision + notification
+      // autorité régionale Forem/Actiris/VDAB) et le délai d'attente
+      // obligatoire de 30 jours après notification (au cours duquel aucun
+      // préavis ne peut être notifié sous peine de nullité + indemnité
+      // spéciale art. 67). Verdict 6 états : NON_APPLICABLE_SEUIL (info) /
+      // CONFORME (vert) / 4× NON_CONFORME_* (rouge : info incomplète,
+      // consultation insuffisante, notification autorité manquante, délai
+      // 30 j non respecté). ALWAYS_ON priority 125 (au-dessus de
+      // licenciement-be-fermeture-entreprise = 124 SF-219-06b).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme F-213/F-219
+      // — qualifications procédurales / statut effectif employeur / actes
+      // procéduraux non extractibles).
+      ['licenciement-be-collectif-renault', {
+        displayLabel: 'Licenciement collectif — Loi Renault (Belgique)',
+        component: LicenciementBeCollectifRenaultSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-219-08b : Transfert d'entreprise CCT n° 32bis (Conseil National
       // du Travail, 07/06/1985) — transfert conventionnel BE (vente fonds,
       // fusion, scission, apport, démembrement) + Loi 17/03/1965 (info-
@@ -3618,6 +3650,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (salaires + pécule + indemnité de rupture impayés). Parité avec
     // rcc-be-indemnite-complementaire / formule-claeys / rappel-salaire-be.
     ['licenciement-be-fermeture-entreprise', 'INDEMNITES'],
+    // SF-219-07b : Licenciement collectif BE — Loi Renault (Loi 13/02/1998 +
+    // CCT n° 24 + CCT n° 39 + Directive 98/59/CE). Thème VALIDITE — l'outil
+    // est une checklist procédurale (PAS un calculateur) qui vérifie la
+    // conformité des 3 phases + délai d'attente 30 j conditionnant la
+    // VALIDITÉ du licenciement collectif (sanction art. 67 + nullité préavis
+    // en cas de non-respect). Parité avec outplacement-be-general-30sem /
+    // outplacement-be-obligatoire-45 / F-DT-27-motif-grave-be (analyseurs
+    // de conformité légale).
+    ['licenciement-be-collectif-renault', 'VALIDITE'],
     // SF-219-08b : Transfert d'entreprise CCT n° 32bis (07/06/1985) +
     // Loi 17/03/1965 + Directive 2001/23/CE. Thème VALIDITE — l'outil
     // qualifie le transfert (5 verdicts : 1 conforme / 1 conforme partiel /

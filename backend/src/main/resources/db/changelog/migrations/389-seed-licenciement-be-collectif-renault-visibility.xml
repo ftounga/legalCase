@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="62383048-4944-4bc9-9654-5261463913f9" author="claude">
+        <comment>
+            SF-219-07b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Licenciement collectif BE — Loi Renault »
+            (licenciement-be-collectif-renault, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses créée par SF-219-07 (migration 387).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            les qualifications procédurales nécessaires (taille de
+            l'entreprise au sens Loi 13/02/1998, effectif moyen 4
+            trimestres, nombre de licenciements envisagés, phase
+            procédurale atteinte, checklist booléens d'information /
+            consultation / notification autorité régionale). Aucun flag
+            DB CONTEXTUAL fiable n'est disponible pour détecter la
+            situation de licenciement collectif ; l'introduire pour un
+            seul outil créerait une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (taille
+               entreprise, effectif moyen, calendrier procédural,
+               checklist procédurale) non couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque un plan de restructuration / PSE / fermeture
+               partielle / licenciement multiple.
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-125) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 cette migration (licenciement-be-collectif-renault)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY
+            `licenciement-be-collectif-renault` livrée dans
+            decisional-tools-panel.component.ts (cf. SF-219-07b). Sans
+            ce couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            échoue (seed en DB sans entrée TOOL_REGISTRY frontend = outil
+            silencieusement masqué — cas réel F-164 staging 2026-04-26,
+            mémoire `feedback_pre_merge_visibility_seed_check`).
+
+            tool_id `licenciement-be-collectif-renault` déjà ajouté à
+            `KNOWN_NO_DASHBOARD_TILE_IDS` côté backend par SF-219-07
+            PR #1397 (préventif, évite master-red à l'arrivée de cette
+            SF frontend). Aucune tuile dashboard n'est associée —
+            l'outil est consulté uniquement depuis le panel décisionnel
+            du case file.
+
+            Fondement juridique :
+            - Loi du 13/02/1998 portant des dispositions en faveur de
+              l'emploi (dite « loi Renault », suite à la fermeture
+              brutale de Renault-Vilvorde en février 1997). Définit la
+              procédure de licenciement collectif + seuils + sanctions
+              art. 67 (indemnité spéciale + protection contre le
+              licenciement pour les représentants du personnel).
+            - CCT n° 24 du 02/10/1975 (CNT) — information et
+              consultation des représentants des travailleurs en cas de
+              licenciement collectif (art. 6 motifs économiques, art. 7
+              consultation effective + réponses motivées).
+            - CCT n° 39 du 13/12/1983 (CNT) — mesures sociales
+              d'accompagnement (reclassement, formation, primes de
+              départ).
+            - Directive 98/59/CE du Conseil du 20/07/1998 — concernant
+              le rapprochement des législations des États membres
+              relatives aux licenciements collectifs.
+
+            Régime BE uniquement — le PSE français (Code du travail art.
+            L. 1233-21 et s.) suit une procédure DIRECCTE / DDETS
+            distincte (validation / homologation, calendrier
+            d'expertise CSE) non mappable à la procédure Renault.
+
+            Distinct de :
+            - `licenciement-be-fermeture-entreprise` (SF-219-06b) —
+              outil d'éligibilité FFE + indemnité de fermeture
+              forfaitaire (calculateur, pas checklist procédurale).
+            - `licenciement-be-cct109-deraisonnable` (F-213) — caractère
+              déraisonnable du licenciement individuel.
+            - `licenciement-be-protection-deleguee` (F-213) — protection
+              spéciale délégué CE/CPPT, peut se cumuler en cas de
+              licenciement collectif touchant un délégué.
+            - `outplacement-be-general-30sem` (SF-219-05b) — obligation
+              d'outplacement post-licenciement (souvent cumulable).
+            - `transfert-entreprise-cct-32bis` (SF-219-08b) — transfert
+              conventionnel d'entreprise, alternative au licenciement
+              collectif si l'identité économique est préservée.
+            Cet outil intervient *en amont* des préavis individuels :
+            qualifie l'applicabilité de la Loi Renault (seuil) +
+            checklist conformité 3 phases + vérification délai 30 j.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('62383048-4944-4bc9-9654-5261463913f9', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-collectif-renault', 'ALWAYS_ON', NULL, NULL, 125);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '62383048-4944-4bc9-9654-5261463913f9';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,313 @@
+<div class="licenciement-be-collectif-renault-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">groups</mat-icon>
+    <span class="section-title">Licenciement collectif — Loi Renault (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-collectif-renault-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 13/02/1998 dite « loi Renault » + CCT n° 24 + CCT
+            n° 39 + Directive 98/59/CE). Le PSE français (Code du
+            travail art. L. 1233-21 et s.) suit une procédure
+            DIRECCTE / DDETS distincte (validation / homologation,
+            calendrier d'expertise CSE) non mappable à la procédure
+            Renault.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Vérifie la conformité d'une procédure de <b>licenciement
+            collectif Loi Renault</b> : seuil de déclenchement (selon
+            taille), 3 phases (information CE/CPPT → consultation →
+            décision + notification autorité régionale) + délai d'attente
+            obligatoire de <b>30 jours</b> après notification à
+            l'autorité. Non-respect = sanction art. 67 (réintégration /
+            indemnité spéciale) + nullité possible des préavis.
+            Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date projet * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du projet de licenciement *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateProjet()"
+                       (ngModelChange)="onDateProjetChange($event)"
+                       name="dateProjet" />
+                <mat-hint>Annonce employeur de l'intention (point de départ fenêtre 60 j).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Taille entreprise * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Tranche de taille de l'entreprise *</mat-label>
+                <mat-select
+                    [value]="tailleEntreprise()"
+                    (selectionChange)="onTailleEntrepriseChange($event.value)"
+                    name="tailleEntreprise"
+                    required>
+                  <mat-option value="PETITE_MOINS_20">
+                    Petite (&lt; 20 — Loi Renault non applicable)
+                  </mat-option>
+                  <mat-option value="PME_20_99">
+                    PME (20-99 — seuil 10 lic./60 j)
+                  </mat-option>
+                  <mat-option value="GRANDE_100_299">
+                    Grande (100-299 — seuil 10 % effectif/60 j)
+                  </mat-option>
+                  <mat-option value="TRES_GRANDE_300_PLUS">
+                    Très grande (≥ 300 — seuil 30 lic./60 j)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Effectif moyen sur les 4 trimestres civils précédents.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Effectif moyen * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif moyen (4 trimestres) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="effectifMoyen()"
+                       (ngModelChange)="onEffectifMoyenChange($event)"
+                       name="effectifMoyen" />
+                <mat-hint>Moyenne sur les 4 trimestres civils précédents.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Nombre licenciements envisagés * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Nombre de licenciements envisagés (60 j) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="nombreLicenciementsEnvisages()"
+                       (ngModelChange)="onNombreLicenciementsEnvisagesChange($event)"
+                       name="nombreLicenciementsEnvisages" />
+                <mat-hint>Projet employeur sur la fenêtre glissante de 60 jours.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Phase atteinte * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Phase atteinte par l'employeur *</mat-label>
+                <mat-select
+                    [value]="phaseAtteinte()"
+                    (selectionChange)="onPhaseAtteinteChange($event.value)"
+                    name="phaseAtteinte"
+                    required>
+                  <mat-option value="AUCUNE_PROCEDURE_DEMARREE">
+                    Aucune procédure démarrée (projet seulement)
+                  </mat-option>
+                  <mat-option value="INFORMATION">
+                    Phase 1 — Information CE / CPPT / DS
+                  </mat-option>
+                  <mat-option value="CONSULTATION">
+                    Phase 2 — Consultation effective
+                  </mat-option>
+                  <mat-option value="DECISION_ET_NOTIFICATION">
+                    Phase 3 — Décision + notification autorité
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Les 3 phases doivent être strictement séquentielles.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6-10. Checklist procédurale (5 booléens) -->
+            <div class="field-full-width checklist-block">
+              <h4 class="checklist-title">
+                <mat-icon>checklist</mat-icon>
+                Checklist procédurale (CCT n° 24 + CCT n° 39)
+              </h4>
+
+              <mat-checkbox
+                  [checked]="informationEcriteCePrealable()"
+                  (change)="onInformationEcriteCePrealableChange($event.checked)"
+                  name="informationEcriteCePrealable">
+                Phase 1 — Notification écrite préalable au CE / CPPT / DS
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="documentsLegauxCommuniques()"
+                  (change)="onDocumentsLegauxCommuniquesChange($event.checked)"
+                  name="documentsLegauxCommuniques">
+                Phase 1 — Documents légaux communiqués (motifs économiques,
+                catégories, critères de sélection, période)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="consultationEffectiveTenue()"
+                  (change)="onConsultationEffectiveTenueChange($event.checked)"
+                  name="consultationEffectiveTenue">
+                Phase 2 — Réunion(s) de consultation effectivement tenue(s)
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="reponsesMotiveesEmployeur()"
+                  (change)="onReponsesMotiveesEmployeurChange($event.checked)"
+                  name="reponsesMotiveesEmployeur">
+                Phase 2 — Réponses écrites motivées de l'employeur aux
+                questions / contre-propositions
+              </mat-checkbox>
+
+              <mat-checkbox
+                  [checked]="notificationAutoriteRegionaleFaite()"
+                  (change)="onNotificationAutoriteRegionaleFaiteChange($event.checked)"
+                  name="notificationAutoriteRegionaleFaite">
+                Phase 3 — Notification écrite à l'autorité régionale
+                (Forem / Actiris / VDAB)
+              </mat-checkbox>
+            </div>
+
+            <!-- 11. Date notification autorité (conditionnelle) -->
+            @if (notificationAutoriteRegionaleFaite()) {
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Date de notification à l'autorité *</mat-label>
+                  <input matInput
+                         type="date"
+                         required
+                         [ngModel]="dateNotificationAutorite()"
+                         (ngModelChange)="onDateNotificationAutoriteChange($event)"
+                         name="dateNotificationAutorite" />
+                  <mat-hint>Point de départ du délai d'attente de 30 jours.</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+
+            <!-- 12. Date premier préavis (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date du 1er préavis notifié (facultatif)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="datePremierPreavisNotifie()"
+                       (ngModelChange)="onDatePremierPreavisNotifieChange($event)"
+                       name="datePremierPreavisNotifie" />
+                <mat-hint>
+                  Détermine si le délai d'attente 30 j a été respecté.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Vérifier la procédure</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-collectif-renault-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Seuil légal applicable :
+                <span class="mono">{{ result()!.seuilLegalApplicable }} licenciements / 60 j</span> —
+                projet : <span class="mono">{{ result()!.nombreLicenciementsEnvisages }}</span>
+                ({{ result()!.seuilDeclenchementAtteint ? 'franchi' : 'non franchi' }})
+              </div>
+            </div>
+          </div>
+
+          <!-- Délai d'attente (si notification autorité faite) -->
+          @if (result()!.dateFinDelaiAttente) {
+            <div class="result-fondement" role="region">
+              <mat-icon>schedule</mat-icon>
+              <span>
+                Fin du délai d'attente 30 j :
+                <b><span class="mono">{{ result()!.dateFinDelaiAttente }}</span></b>
+                — délai
+                <b>{{ result()!.delaiAttenteRespecte ? 'respecté' : 'violé' }}</b>
+                @if (result()!.datePremierPreavisNotifie) {
+                  (1<sup>er</sup> préavis :
+                  <span class="mono">{{ result()!.datePremierPreavisNotifie }}</span>)
+                }
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
