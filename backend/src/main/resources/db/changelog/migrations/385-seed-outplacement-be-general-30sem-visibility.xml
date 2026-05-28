@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="768dd9b2-00ae-4113-9791-c4f015dfbb31" author="claude">
+        <comment>
+            SF-219-05b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Outplacement BE général au titre du régime
+            préavis ≥ 30 semaines » (outplacement-be-general-30sem,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses créée par
+            SF-219-05 (migration 381).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            les éléments déclencheurs (durée du préavis en semaines,
+            forme/contenu de la lettre d'offre, programme prestataire
+            externe). Aucun flag DB CONTEXTUAL fiable n'est disponible
+            pour détecter la fenêtre 30 semaines ; l'introduire pour un
+            seul outil ajouterait une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (durée précise
+               préavis en semaines, motif grave qualifié juridiquement,
+               forme et contenu de la lettre d'offre outplacement) non
+               couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque un licenciement avec préavis long (cadres,
+               anciennetés élevées, formule Claeys ≥ 30 semaines).
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-122) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 cette migration (outplacement-be-general-30sem)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY `outplacement-be-general-30sem`
+            livrée dans decisional-tools-panel.component.ts (cf. SF-219-05b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué —
+            cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            Fondement juridique :
+            - Loi du 05/09/2001 art. 11 (régime d'outplacement général lié
+              à la durée du préavis ≥ 30 semaines).
+            - Arrêté Royal du 21/10/2007 art. 1er § 1er (programme
+              minimum 60 heures réparties sur ≤ 12 mois, contenu minimum
+              bilan / projet / coaching / formation / soutien psychologique).
+            - Art. 11/3 § 1er Loi 05/09/2001 (exclusion motif grave au
+              sens art. 35 Loi 03/07/1978).
+            - Art. 11/7 Loi 05/09/2001 (sanction indemnitaire forfaitaire
+              du travailleur en cas de non-conformité).
+
+            Régime BE uniquement — la France a des dispositifs distincts
+            (Cap emploi pour travailleurs handicapés, CSP pour licenciement
+            économique). Aucun équivalent strict au régime préavis ≥ 30 sem.
+
+            Distinct de :
+            - `outplacement-be-obligatoire-45` (F-207 SF-207-08) — régime
+              45+ ans, applicable quelle que soit la durée du préavis. Les
+              deux régimes peuvent coexister sur un même dossier.
+            - `formule-claeys-be` (F-DT-26-08) — calcul du préavis (input
+              de cet outil), pas analyse de conformité de l'offre.
+            - `cumul-rcc-allocations` (SF-219-04b) — vérification cumul
+              RCC, distinct de l'outplacement (régime post-préavis).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('768dd9b2-00ae-4113-9791-c4f015dfbb31', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'outplacement-be-general-30sem', 'ALWAYS_ON', NULL, NULL, 123);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '768dd9b2-00ae-4113-9791-c4f015dfbb31';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

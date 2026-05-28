@@ -178,6 +178,7 @@ import { RccBeMetiersLourdsSectionComponent } from '../rcc-be-metiers-lourds-sec
 import { RccBeEntrepriseDifficulteSectionComponent } from '../rcc-be-entreprise-difficulte-section/rcc-be-entreprise-difficulte-section.component';
 // SF-219-04b : section décisionnelle Cumul RCC + allocations (BE-only, ALWAYS_ON).
 import { CumulRccAllocationsSectionComponent } from '../cumul-rcc-allocations-section/cumul-rcc-allocations-section.component';
+import { OutplacementBeGeneral30semSectionComponent } from '../outplacement-be-general-30sem-section/outplacement-be-general-30sem-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2300,6 +2301,31 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-05b : Outplacement BE général au titre du régime
+      // préavis ≥ 30 semaines — Loi 05/09/2001 art. 11 + AR 21/10/2007.
+      // Analyseur de conformité 7 verdicts (CONFORME / NON_DU_DEMISSION /
+      // NON_DU_MOTIF_GRAVE / NON_DU_PREAVIS_INSUFFISANT /
+      // NON_CONFORME_OFFRE_TARDIVE / NON_CONFORME_DUREE_INSUFFISANTE /
+      // NON_CONFORME_FORME) + indemnité forfaitaire sanction art. 11/7.
+      // BE-only, ALWAYS_ON priority 123 (au-dessus de cumul-rcc-allocations
+      // = 122). Distinct de outplacement-be-obligatoire-45 (F-207 SF-207-08
+      // — régime 45+ ans applicable quelle que soit la durée du préavis ;
+      // les deux régimes peuvent coexister). Pré-fill IA V1 : aucun champ
+      // (alignement pattern uniforme F-213/F-219 — qualifications juridiques
+      // licenciement/motif grave/durée/forme non extractibles depuis
+      // pipeline Travail BE actuel).
+      ['outplacement-be-general-30sem', {
+        displayLabel: 'Outplacement BE général (préavis ≥ 30 sem.)',
+        component: OutplacementBeGeneral30semSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3497,6 +3523,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // cumul mensuel (plafond + régime de disponibilité + bascule pension +
     // compatibilité activité). 4 verdicts. Parité rcc-be-conditions.
     ['cumul-rcc-allocations', 'VALIDITE'],
+    // SF-219-05b : Outplacement BE général au titre du régime préavis ≥ 30
+    // semaines (Loi 05/09/2001 art. 11 + AR 21/10/2007). Thème VALIDITE —
+    // analyseur de conformité (parité outplacement-be-obligatoire-45 +
+    // autres analyseurs de conformité légale). 7 verdicts hiérarchiques
+    // + indemnité forfaitaire sanction.
+    ['outplacement-be-general-30sem', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).
