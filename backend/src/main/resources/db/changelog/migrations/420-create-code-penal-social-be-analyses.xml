@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1c370cb8-facb-4487-b222-ebb852db5ac3" author="claude">
+        <comment>
+            SF-219-24 : table dédiée à l'outil décisionnel
+            « Code pénal social BE — qualification d'infraction
+            sociale + niveau de sanction 1 à 4 »
+            (code-penal-social-be, BELGIQUE — fondement :
+            Loi du 06/06/2010 introduisant le Code pénal social
+            M.B. 01/07/2010 e.e.v. 01/07/2011 par AR du 31/01/2011,
+            Livre 1 art. 1er à 118 principes généraux du droit
+            social pénal — champ d'application matériel, échelle
+            unifiée des sanctions à 4 niveaux art. 101 à 103,
+            décimes additionnels par renvoi art. 102, multiplication
+            par 5 personne morale art. 105, plafond 100 fois maximum
+            unitaire art. 105 paragraphe 1, imputation préposés et
+            mandataires art. 109, récidive légale dans le délai
+            d'un an art. 110, règle Una Via art. 73 à 78 choix
+            administratif ou pénal de l'auditorat du travail
+            confirmée par la Cour constitutionnelle arrêt 61/2014
+            du 03/04/2014 ; Livre 2 art. 119 à 235 infractions et
+            répression en particulier — Titres 2 bien-être au
+            travail art. 119 à 132 Loi du 04/08/1996 et Code du
+            bien-être au travail AR du 28/04/2017, 3 durée du
+            travail art. 137 à 138 Loi du 16/03/1971, 4 protection
+            de la rémunération art. 162 à 167 Loi du 12/04/1965,
+            5 documents sociaux et Dimona art. 181 et 185 AR du
+            08/08/1980, 6 inspection sociale art. 209 à 212, 8
+            contrats à durée déterminée spéciaux et intérim
+            art. 178 Loi du 24/07/1987, 9 sécurité sociale
+            art. 223 DmfA ONSS et art. 224 cotisations,
+            10 discrimination art. 145 Loi du 10/05/2007, 11
+            entrave à l'inspection sociale, 12 faux social
+            art. 232 à 235 ; Loi du 05/03/1952 relative aux décimes
+            additionnels sur les amendes pénales art. 1er,
+            coefficient d'indexation plus 0,80 jusqu'au 31/12/2024
+            puis plus 0,90 depuis le 01/01/2025 par AR du
+            27/12/2024 ; Cass. chambre néerlandophone 21/11/2017
+            P.17.0532.N qualification du travail non déclaré comme
+            infraction de niveau 4 art. 181 ; Cour constitutionnelle
+            arrêt 158/2009 du 13/10/2009 conformité du Code pénal
+            social aux principes de légalité et de proportionnalité
+            des peines).
+
+            L'outil qualifie une infraction sociale et restitue le
+            niveau de sanction associé sous l'angle cumulatif :
+            - Type d'infraction au sens de l'enum
+              CodePenalSocialBeTypeInfraction couvrant travail non
+              déclaré niveau 4, absence Dimona niveau 4, absence
+              DmfA niveau 4 si intentionnel ou niveau 2 si non
+              intentionnel, non-paiement rémunération niveau 2,
+              dépassement temps de travail niveau 3, manquement
+              bien-être niveau 3, accident grave non déclaré
+              niveau 4, discrimination emploi niveau 2, entrave
+              inspection niveau 3, faux social niveau 4, absence
+              registre du personnel niveau 3, infraction intérim
+              niveau 3, infraction détachement LIMOSA niveau 3 ou
+              4 selon dol, autre qualification ouverte avec
+              niveauPropose obligatoire.
+            - Niveau renseigné par l'avocat optionnel de 1 à 4 qui
+              prime sur le niveau dérivé du type.
+            - Date des faits indicative conditionnant les
+              coefficients d'indexation in concreto.
+            - Nombre de travailleurs concernés multiplicateur
+              art. 103 paragraphe 2.
+            - Personne morale majoration par 5 art. 105 paragraphe
+              1.
+            - Récidive dans l'an art. 110 doublement du plafond.
+            - Prévenu préposé ou mandataire art. 109 imputation.
+            - Élément moral intentionnel ajustement de niveau pour
+              ABSENCE_DMFA et INFRACTION_DETACHEMENT.
+
+            Verdict : SANCTION_NIVEAU_1 amende administrative seule
+            10 à 100 euros non indexée prononcée par le SPF Emploi
+            art. 79 sans peine pénale possible ; SANCTION_NIVEAU_2
+            amende administrative 50 à 500 euros ou amende pénale
+            50 à 500 euros au choix de l'auditorat règle Una Via,
+            pas d'emprisonnement ; SANCTION_NIVEAU_3 amende
+            administrative 100 à 1000 euros ou amende pénale 100
+            à 1000 euros au choix de l'auditorat, pas
+            d'emprisonnement, plafond multiplié par 10 par rapport
+            au niveau 2 ; SANCTION_NIVEAU_4 amende administrative
+            300 à 3000 euros ou amende pénale 600 à 6000 euros au
+            choix et ou emprisonnement 6 mois à 3 ans, niveau
+            réservé aux atteintes les plus graves travail non
+            déclaré faux social accident grave non déclaré ;
+            A_QUALIFIER configuration AUTRE_QUALIFICATION sans
+            niveau renseigné.
+
+            Outil single-country BELGIQUE — la France a un régime
+            distinct travail dissimulé Code du travail art.
+            L. 8221-1 et suivants amende 45 000 euros personne
+            physique et 225 000 euros personne morale art.
+            L. 8224-1, sanctions santé sécurité art. L. 4741-1
+            jusqu'à 45 000 euros, IRP art. L. 2316-1 jusqu'à
+            7500 euros, Code pénal travail forcé art. 225-13 et
+            suivants. Quanta sensiblement différents, procédure
+            distincte parquet et non auditorat, pas de règle Una
+            Via strictement comparable. Restitution séparée par
+            outil — pas de tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet inputs plus outputs verdict,
+            niveau de sanction, bornes d'amende administrative et
+            pénale, emprisonnement applicable et durée, drapeaux
+            multiplication par travailleur et personne morale et
+            récidive pour permettre la restitution UI sans recalcul
+            pattern uniforme F-DT-42 / SF-213-01 à SF-213-10 /
+            SF-219-01 à SF-219-22.
+
+            La règle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portée par la
+            migration de SF-219-24b frontend, couplée à l'entrée
+            TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id "code-penal-social-be" est ajouté dès cette
+            SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès
+            le seed visibility par SF-219-24b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-22b.
+        </comment>
+
+        <createTable tableName="code_penal_social_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_code_penal_social_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="code_penal_social_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_code_penal_social_be_case_file"/>
+
+        <createIndex tableName="code_penal_social_be_analyses"
+                     indexName="idx_code_penal_social_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="code_penal_social_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
