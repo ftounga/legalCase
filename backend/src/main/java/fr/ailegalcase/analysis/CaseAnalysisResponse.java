@@ -2437,7 +2437,25 @@ public record CaseAnalysisResponse(
             /** SF-215-09 : durée de cohabitation ininterrompue en mois (≥ 0, ≤ 600) — art. 16 §1 2° CNB. Null si non extractible ou dossier FR. */
             Integer naturalisationBeArt16DureeCohabitation,
             /** SF-215-09 : niveau de langue — whitelist INFERIEUR_A2/A2/SUPERIEUR_A2. Null si non extractible ou dossier FR. */
-            String naturalisationBeArt16NiveauLangue) {
+            String naturalisationBeArt16NiveauLangue,
+            // === SF-215-11 — F-IM-30 AESM + tutelle MENA BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-215-11 : true si les pièces évoquent un mineur étranger non accompagné
+             * sur le territoire belge (MENA — mention « mineur non accompagné »,
+             * « MENA », « tuteur DGDE », « Service des Tutelles SPF Justice », « AESM »,
+             * « certificat de scolarité MENA », passeport sans accompagnant, etc.).
+             * Pivot pour la visibility rule CONTEXTUAL de F-IM-30 (trigger
+             * {@code mineur_non_accompagne_be_detecte}). Distinct de
+             * {@code clientMineurDetecte} (F-201 — mineurs FR L.435-3 CESEDA).
+             * Dossiers FR : toujours false.
+             */
+            boolean mineurNonAccompagneBeDetecte,
+            /** SF-215-11 : âge du mineur en années entières (0–17, gate strict mineur). Null si non extractible ou dossier FR. */
+            Integer menaAge,
+            /** SF-215-11 : date d'arrivée en Belgique du MENA au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String menaDateArrivee,
+            /** SF-215-11 : durée de scolarité continue en mois (0–120). Null si non extractible ou dossier FR. */
+            Integer menaDureeScolaire) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2539,7 +2557,12 @@ public record CaseAnalysisResponse(
                     // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE (art. 16 CNB)
                     .naturalisationBeArt16DateMarriage(naturalisationBeArt16DateMarriage)
                     .naturalisationBeArt16DureeCohabitation(naturalisationBeArt16DureeCohabitation)
-                    .naturalisationBeArt16NiveauLangue(naturalisationBeArt16NiveauLangue);
+                    .naturalisationBeArt16NiveauLangue(naturalisationBeArt16NiveauLangue)
+                    // SF-215-11 : F-IM-30 AESM + tutelle MENA BE
+                    .mineurNonAccompagneBeDetecte(mineurNonAccompagneBeDetecte)
+                    .menaAge(menaAge)
+                    .menaDateArrivee(menaDateArrivee)
+                    .menaDureeScolaire(menaDureeScolaire);
         }
 
         public static final class Builder {
@@ -2635,6 +2658,11 @@ public record CaseAnalysisResponse(
             private String naturalisationBeArt16DateMarriage;
             private Integer naturalisationBeArt16DureeCohabitation;
             private String naturalisationBeArt16NiveauLangue;
+            // SF-215-11 : F-IM-30 AESM + tutelle MENA BE
+            private boolean mineurNonAccompagneBeDetecte;
+            private Integer menaAge;
+            private String menaDateArrivee;
+            private Integer menaDureeScolaire;
 
             private Builder() {}
 
@@ -2729,6 +2757,11 @@ public record CaseAnalysisResponse(
             public Builder naturalisationBeArt16DateMarriage(String v) { this.naturalisationBeArt16DateMarriage = v; return this; }
             public Builder naturalisationBeArt16DureeCohabitation(Integer v) { this.naturalisationBeArt16DureeCohabitation = v; return this; }
             public Builder naturalisationBeArt16NiveauLangue(String v) { this.naturalisationBeArt16NiveauLangue = v; return this; }
+            // SF-215-11 : F-IM-30 AESM + tutelle MENA BE
+            public Builder mineurNonAccompagneBeDetecte(boolean v) { this.mineurNonAccompagneBeDetecte = v; return this; }
+            public Builder menaAge(Integer v) { this.menaAge = v; return this; }
+            public Builder menaDateArrivee(String v) { this.menaDateArrivee = v; return this; }
+            public Builder menaDureeScolaire(Integer v) { this.menaDureeScolaire = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2773,7 +2806,12 @@ public record CaseAnalysisResponse(
                         // SF-215-09 : F-IM-29 Naturalisation conjoint Belge BE (art. 16 CNB)
                         naturalisationBeArt16DateMarriage,
                         naturalisationBeArt16DureeCohabitation,
-                        naturalisationBeArt16NiveauLangue);
+                        naturalisationBeArt16NiveauLangue,
+                        // SF-215-11 : F-IM-30 AESM + tutelle MENA BE
+                        mineurNonAccompagneBeDetecte,
+                        menaAge,
+                        menaDateArrivee,
+                        menaDureeScolaire);
             }
         }
     }
@@ -5782,6 +5820,19 @@ public record CaseAnalysisResponse(
         String naturalisationBeArt16NiveauLangue = normalizeEnumCode(
                 textOrNull(root, "naturalisation_be_art16_niveau_langue"),
                 NATURALISATION_BE_NIVEAU_LANGUE_CODES);
+        // SF-215-11 : F-IM-30 AESM + tutelle MENA BE — flag pivot + 3 champs IA réels.
+        // 5 champs aspirationnels NON extraits (tuteurDesigne / integrationScolaire /
+        // projetVieElabore / perspectiveAutonomie / menaceOrdrePublic) = évaluations
+        // juridiques saisies manuellement par l'avocat (PREFILL_COUNT_ALWAYS_ZERO).
+        boolean mineurNonAccompagneBeDetecte = booleanOrFalse(
+                root, "mineur_non_accompagne_be_detecte");
+        Integer menaAge = boundedIntOrNull(root, "mena_age", 0, 17);
+        String menaDateArriveeRaw = textOrNull(root, "mena_date_arrivee");
+        String menaDateArrivee = (menaDateArriveeRaw != null
+                && menaDateArriveeRaw.matches(ISO_DATE_SF214)
+                && menaDateArriveeRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
+                ? menaDateArriveeRaw : null;
+        Integer menaDureeScolaire = boundedIntOrNull(root, "mena_duree_scolaire", 0, 120);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5827,7 +5878,12 @@ public record CaseAnalysisResponse(
                 // SF-215-09 : 3 champs IA art. 16 CNB (nullables)
                 && naturalisationBeArt16DateMarriage == null
                 && naturalisationBeArt16DureeCohabitation == null
-                && naturalisationBeArt16NiveauLangue == null) return null;
+                && naturalisationBeArt16NiveauLangue == null
+                // SF-215-11 : F-IM-30 AESM + tutelle MENA BE (flag + 3 champs IA, nullables)
+                && !mineurNonAccompagneBeDetecte
+                && menaAge == null
+                && menaDateArrivee == null
+                && menaDureeScolaire == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -5928,6 +5984,11 @@ public record CaseAnalysisResponse(
                 .naturalisationBeArt16DateMarriage(naturalisationBeArt16DateMarriage)
                 .naturalisationBeArt16DureeCohabitation(naturalisationBeArt16DureeCohabitation)
                 .naturalisationBeArt16NiveauLangue(naturalisationBeArt16NiveauLangue)
+                // SF-215-11 : F-IM-30 AESM + tutelle MENA BE — flag pivot + 3 champs pré-fill réels
+                .mineurNonAccompagneBeDetecte(mineurNonAccompagneBeDetecte)
+                .menaAge(menaAge)
+                .menaDateArrivee(menaDateArrivee)
+                .menaDureeScolaire(menaDureeScolaire)
                 .build();
     }
 

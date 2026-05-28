@@ -423,6 +423,12 @@ class DashboardTileToolIdIntegrityIT {
             // Outil BE frontend autosuffisant sans tile DashboardTile —
             // pattern uniforme F-215 P2 Immigration BE.
             "F-IM-29-naturalisation-conjoint-belge-be",
+            // SF-215-11/12 (2026-05-28) : F-IM-30-aesm-mena-be — outil composite
+            // tutelle DGDE (Loi 04/05/2007) + AESM (art. 9bis adapté MENA +
+            // circulaire OE 15/09/2005). Seed visibility livrée dans la PR
+            // backend SF-215-11. Outil BE frontend autosuffisant sans tile
+            // DashboardTile — pattern uniforme F-215 P2 Immigration BE.
+            "F-IM-30-aesm-mena-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
             // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs
