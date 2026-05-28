@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="34cfeb55-4371-4ff3-98b2-82f5739fb757" author="claude">
+        <comment>
+            SF-219-21 : table dédiée à l'outil décisionnel
+            « Éco-chèques + chèques-repas BE »
+            (eco-cheques-cheques-repas-be, BELGIQUE — fondement :
+            CCT n°98 du Conseil National du Travail CNT du 20/02/2009
+            concernant les éco-chèques, rendue obligatoire par AR du
+            12/04/2009 M.B. 06/05/2009, art. 3 CCT sectorielle ou
+            d'entreprise ou à défaut convention individuelle écrite,
+            art. 6 plafond annuel 250 EUR par travailleur, art. 13
+            durée de validité 24 mois ; Loi du 25/04/2014 portant des
+            dispositions diverses M.B. 07/05/2014, art. 51 paiement
+            électronique obligatoire des chèques-repas depuis le
+            01/01/2016 ; AR du 03/02/2010 modifiant l'art. 19bis de
+            l'AR du 28/11/1969 portant exécution de la loi du
+            27/06/1969 révisant l'AL du 28/12/1944 sur la sécurité
+            sociale des travailleurs M.B. du 17/02/2010, conditions
+            cumulatives d'exonération ONSS des chèques-repas un chèque
+            par jour effectivement presté nominatif usage repas ou
+            denrées alimentaires uniquement intervention employeur
+            max 6,91 EUR contribution travailleur min 1,09 EUR valeur
+            faciale max 8 EUR validité 12 mois pas de cumul avec
+            indemnité frais de bouche pour le même jour ; art. 19 §2
+            16e AR 28/11/1969 et art. 38 §1 25e CIR 92 exonération
+            éco-chèques ; Cass. 16/10/2017 S.16.0042.F ONSS c/ SA et
+            art. 4 CCT n°98 interdiction substitution à rémunération
+            requalification intégrale en rémunération ; art. 42 al. 1
+            Loi 27/06/1969 prescription action ONSS 5 ans 7 ans en cas
+            de fraude ou dissimulation).
+
+            L'outil analyse la conformité de l'attribution des
+            avantages extra-légaux éco-chèques et chèques-repas selon
+            la combinaison type d'avantage + plafond + conditions
+            cumulatives :
+            - Type d'avantage ECO_CHEQUES CHEQUES_REPAS INDETERMINE.
+            - Montant annuel total en euros — cumul attribué sur
+              l'année civile comparé au plafond légal.
+            - Valeur faciale unitaire en euros — montant d'un chèque
+              max 8 EUR pour les chèques-repas.
+            - Contribution travailleur unitaire en euros — minimum
+              1,09 EUR par chèque-repas.
+            - Jours effectivement prestés — proratisation du plafond
+              chèques-repas.
+            - CCT sectorielle ou d'entreprise et convention
+              individuelle écrite — au moins une requise art. 3 CCT
+              n°98 / art. 19bis §2 1e AR 28/11/1969.
+            - Paiement électronique — obligatoire chèques-repas depuis
+              01/01/2016.
+            - Cumul frais de bouche — interdit chèques-repas.
+            - Substitution à rémunération — interdit cf. Cass.
+              16/10/2017 art. 4 CCT n°98.
+            - Date d'attribution — sert au contrôle de validité.
+
+            Verdict : CONFORME_EXONERATION_INTEGRALE
+            | CONFORME_PARTIELLEMENT_EXONERE
+            | NON_CONFORME_DEPASSEMENT_PLAFOND
+            | NON_CONFORME_SUBSTITUTION_REMUNERATION
+            | NON_CONFORME_CONDITION_MANQUANTE
+            | A_ANALYSER.
+
+            Outil single-country BELGIQUE — la France a les titres-
+            restaurant CGI art. 81 19e ter avec plafond d'exonération
+            distinct 7,18 EUR/jour en 2024 et contribution employeur
+            50-60 pourcent, pas de régime équivalent à la CCT n°98
+            pour les éco-chèques. Restitution séparée par outil — pas
+            de tentative d'harmonisation FR/BE.
+
+            Snapshot JSON complet (inputs + outputs : verdict, plafond
+            légal appliqué en euros, montant exonéré vs montant
+            requalifié en rémunération en euros, redressement
+            cotisations ONSS employeur estimatif taux 25 pourcent
+            indicatif en euros) pour permettre la restitution UI sans
+            recalcul (pattern uniforme F-DT-42 / SF-213-01 à SF-213-10
+            / SF-219-01 à SF-219-20).
+
+            La règle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            sera portée par la migration de SF-219-21b (frontend),
+            couplée à l'entrée TOOL_REGISTRY dans
+            decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT (cas réel
+            F-164 staging 2026-04-26 — 13 tool_id orphelins, cf.
+            CLAUDE.md feedback_pre_merge_visibility_seed_check).
+
+            Le tool_id eco-cheques-cheques-repas-be est ajouté dès
+            cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT (préventif — sera utile
+            dès le seed visibility par SF-219-21b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-20b).
+        </comment>
+
+        <createTable tableName="eco_cheques_cheques_repas_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_eco_cheques_cheques_repas_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="eco_cheques_cheques_repas_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_eco_cheques_cheques_repas_be_case_file"/>
+
+        <createIndex tableName="eco_cheques_cheques_repas_be_analyses"
+                     indexName="idx_eco_cheques_cheques_repas_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="eco_cheques_cheques_repas_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -735,7 +735,17 @@ class DashboardTileToolIdIntegrityIT {
             // SF-219-19 (2026-05-28) : droit-deconnexion-be — backend
             // Loi 03/10/2022 Deal pour l'emploi art. 16 + AR 19/02/2023.
             // Obligation employeur ≥ 20 travailleurs CCT/règlement travail.
-            "droit-deconnexion-be"
+            "droit-deconnexion-be",
+            // SF-219-21 (2026-05-28) : eco-cheques-cheques-repas-be — backend
+            // CCT n°98 du CNT 20/02/2009 (éco-chèques, plafond 250 EUR/an)
+            // + Loi 25/04/2014 + AR 03/02/2010 art. 19bis AR 28/11/1969
+            // (chèques-repas, plafond 8 EUR facial, contribution
+            // travailleur min 1,09 EUR, paiement électronique post 2016).
+            // Frontend SF-219-21b à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "eco-cheques-cheques-repas-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
