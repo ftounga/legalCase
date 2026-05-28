@@ -803,7 +803,22 @@ class DashboardTileToolIdIntegrityIT {
             // SF-219-27b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "inastri-statut-travailleur-independant"
+            "inastri-statut-travailleur-independant",
+            // SF-219-28 (2026-05-28) : mp-fedris-reconnaissance — backend
+            // Lois coordonnées du 03/06/1970 + AR du 28/03/1969 liste fermée
+            // modifié 06/12/2018 + AR du 16/12/1985 système ouvert + Loi
+            // 11/01/2018 réformant Fedris. Analyse éligibilité à la
+            // reconnaissance MP (LISTE_FERMEE_PRESOMPTION art. 32 / LISTE_
+            // FERMEE_EXPOSITION_INSUFFISANTE / SYSTEME_OUVERT_CAUSALITE_
+            // DIRECTE_DETERMINANTE art. 30bis / SYSTEME_OUVERT_CAUSALITE_
+            // INSUFFISANTE / DECLARATION_PRESCRITE art. 31 délai triennal /
+            // A_QUALIFIER) + jurisprudence Cass. BE 28/05/2008 S.07.0033.F
+            // causalité directe et déterminante + Cass. BE 13/12/1989
+            // présomption art. 32 juridique renversable. Frontend
+            // SF-219-28b à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "mp-fedris-reconnaissance"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

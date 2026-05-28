@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="8d856bfa-ff7c-4b87-9746-2603912c1a1f" author="claude">
+        <comment>
+            SF-219-28 : table dediee a l'outil decisionnel
+            « Reconnaissance d'une maladie professionnelle Fedris BE »
+            (mp-fedris-reconnaissance, BELGIQUE — fondement :
+            Lois coordonnees du 03/06/1970 relatives a la prevention
+            des maladies professionnelles et a la reparation des
+            dommages resultant de celles-ci M.B. 27/08/1970 ; art. 30
+            systeme de liste fermee renvoyant a la liste dressee par
+            le Roi ; art. 30bis systeme ouvert preuve causalite directe
+            et determinante introduit par la Loi du 29/12/1990 ;
+            art. 31 prescription triennale de l'action en reparation
+            a compter de la date a laquelle la victime a eu connaissance
+            du caractere professionnel de la maladie ; art. 32
+            presomption juridique de causalite pour les maladies de la
+            liste lorsque l'exposition au risque est avere pendant la
+            periode minimale requise par l'AR ; art. 53 voie de recours
+            tribunal du travail dans le delai d'un an a compter de la
+            decision de refus Fedris art. 580 1° C. jud. ; AR du
+            28/03/1969 M.B. 04/04/1969 dressant la liste des maladies
+            professionnelles donnant lieu a reparation modifie a de
+            nombreuses reprises et en dernier lieu par l'AR du 06/12/2018
+            M.B. 24/12/2018 sections 1.x agents chimiques, 2.x agents
+            physiques notamment 2.1 vibrations 2.2 bruit 2.3 amiante,
+            3.x agents biologiques, 4.x maladies cutanees et
+            respiratoires, 5.x maladies musculosquelettiques section
+            ouverte par l'AR 06/12/2018, 6.x cancers professionnels ;
+            AR du 16/12/1985 M.B. 31/12/1985 relatif aux travailleurs
+            occupes a un travail comportant un risque d'apparition d'une
+            maladie professionnelle modalites du systeme ouvert ; Loi
+            du 11/01/2018 M.B. 12/02/2018 portant l'organisation
+            administrative de Fedris fusion FMP - Fonds des Maladies
+            Professionnelles et FAT - Fonds des Accidents du Travail au
+            01/01/2017 ; Cass. BE 28/05/2008 S.07.0033.F systeme ouvert
+            l'exposition professionnelle doit etre la cause directe et
+            determinante de la maladie un simple facteur favorisant
+            parmi d'autres ne suffit pas ; Cass. BE 04/02/2002
+            S.01.0095.F confirme le caractere direct et essentiel
+            requis ; Cass. BE 13/12/1989 Pas. 1990 I 451 presomption
+            art. 32 juridique et non medicale renversable par la
+            preuve contraire ; Cour const. arret 51/2008 du 13/03/2008
+            conformite du regime de reparation forfaitaire au principe
+            d'egalite et au droit a la reparation integrale du
+            prejudice corporel.
+
+            L'outil analyse une situation de reconnaissance MP en BE
+            sous l'angle cumulatif :
+            - Type de maladie LISTE_FERMEE ou HORS_LISTE.
+            - Code maladie de la liste si LISTE_FERMEE format libre
+              section 1.x a 6.x AR 28/03/1969.
+            - Libelle medical de la maladie declaree.
+            - Date de premiere constatation medicale.
+            - Date de connaissance du caractere professionnel point
+              de depart de la prescription art. 31 lois coordonnees.
+            - Date de declaration envisagee Fedris (mode prospectif).
+            - Exposition professionnelle AVEREE INSUFFISANTE
+              INDETERMINEE.
+            - Causalite DIRECTE_DETERMINANTE INSUFFISANTE INDETERMINEE
+              NON_APPLICABLE pour le systeme ouvert.
+
+            Calcule :
+            - Date de prescription dateConnaissanceProfessionnel ou
+              dateConstatationMedicale a defaut + 3 ans.
+            - Jours avant prescription = datePrescription -
+              dateDeclarationEnvisagee (positif = marge, negatif =
+              jours de retard).
+            - Drapeau presomptionApplicable art. 32 lois coordonnees
+              actif si LISTE_FERMEE + AVEREE.
+            - Drapeau causaliteRequise actif en systeme ouvert
+              art. 30bis.
+
+            Verdict : MALADIE_LISTE_FERMEE_PRESOMPTION si liste fermee
+            et exposition averee la presomption art. 32 joue ; MALADIE_
+            LISTE_FERMEE_EXPOSITION_INSUFFISANTE si liste fermee mais
+            exposition non documentee selon les conditions de la
+            section ; SYSTEME_OUVERT_CAUSALITE_DIRECTE_DETERMINANTE si
+            hors liste et lien causal direct et determinant etabli
+            art. 30bis ; SYSTEME_OUVERT_CAUSALITE_INSUFFISANTE si hors
+            liste et causalite non etablie pronostic refus Fedris ;
+            DECLARATION_PRESCRITE si dateDeclarationEnvisagee
+            posterieure a datePrescription ; A_QUALIFIER si exposition
+            INDETERMINEE ou causalite INDETERMINEE - analyse
+            complementaire requise.
+
+            Outil single-country BELGIQUE — la France a un regime
+            distinct CPAM, tableaux art. L. 461-2 CSS, CRRMP comite
+            regional reconnaissance maladies professionnelles
+            art. L. 461-1 CSS, delai prescription 2 ans art. L. 461-5
+            CSS. Tableaux fermes FR differents des annexes AR
+            28/03/1969 BE, procedure CPAM et non Fedris, restitution
+            separee par outil — pas de tentative d'harmonisation
+            FR/BE.
+
+            Snapshot JSON complet inputs plus outputs verdict,
+            presomption applicable, causalite requise, date
+            prescription, drapeau prescriteAuJour, jours avant
+            prescription, raison synthetique, synthese juridique
+            detaillee, base juridique et avertissement avocat BE pour
+            permettre la restitution UI sans recalcul - pattern
+            uniforme F-DT-42 / SF-213-01 a SF-213-10 / SF-219-01 a
+            SF-219-26.
+
+            La regle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portee par la migration
+            de SF-219-28b frontend, couplee a l'entree TOOL_REGISTRY
+            dans decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT - cas reel F-164
+            staging 2026-04-26 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id mp-fedris-reconnaissance est ajoute des cette SF
+            backend a KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT preventif sera utile des le
+            seed visibility par SF-219-28b - pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-26b.
+        </comment>
+
+        <createTable tableName="mp_fedris_reconnaissance_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mp_fedris_reconnaissance_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mp_fedris_reconnaissance_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mp_fedris_reconnaissance_case_file"/>
+
+        <createIndex tableName="mp_fedris_reconnaissance_analyses"
+                     indexName="idx_mp_fedris_reconnaissance_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="mp_fedris_reconnaissance_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
