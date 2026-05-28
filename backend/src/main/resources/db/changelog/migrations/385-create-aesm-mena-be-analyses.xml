@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c9d0e1f2-a3b4-4567-8901-2cdef3456789-create-aesm-mena" author="legalcase">
+        <comment>
+            SF-215-11 : table dédiée à l'outil composite "AESM + tutelle MENA BE"
+            (F-IM-30-aesm-mena-be) — BELGIQUE UNIQUEMENT, mineurs uniquement
+            (ageActuel &lt; 18). Sources :
+              - Loi 04/05/2007 relative à la tutelle MENA (Service des Tutelles SPF Justice)
+                — volet tutelle DGDE : checklist désignation tuteur + délai 30 jours.
+              - Loi 15/12/1980 art. 9bis adapté MENA + circulaire OE 15/09/2005
+                — volet AESM : scoring 0-100 (intégration scolaire 40 + projet de vie 30
+                + perspective autonomie 20 + !menace OP 10 + bonus durée scolaire ≥ 24 mois 5),
+                verdict 3 états (FAVORABLE ≥ 70 / SOUS_RESERVE 50-69 / DEFAVORABLE &lt; 50),
+                prioriteUrgence = (ageActuel ≥ 17).
+
+            Outil composite 2 volets distincts mais liés (tutelle = pré-requis procédural
+            de l'AESM). Un outil = une situation (CLAUDE.md
+            feedback_decision_tools_one_per_situation) — distinct de :
+              - F-IM-19 mineurs FR (MNA — ordonnance JE + L.435-3 CESEDA).
+              - F-IM-14-9bis-humanitaire-be (9bis adulte, sans condition minorité ni tutelle).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01 / SF-215-05 / SF-215-07).
+
+            Pattern F-215 CORRIGÉ : la migration de seed visibility CONTEXTUAL
+            (386-seed-aesm-mena-be-visibility.xml) est livrée dans la MÊME PR que cette
+            table.
+        </comment>
+
+        <createTable tableName="aesm_mena_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_aesm_mena_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="age_actuel" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_arrivee_belgique" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tuteur_designe" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="integration_scolaire" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_scolaire" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="projet_vie_elabore" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="perspective_autonomie" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_integration" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_aesm" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="aesm_mena_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_aesm_mena_be_case_file"/>
+
+        <createIndex tableName="aesm_mena_be_analyses"
+                     indexName="idx_aesm_mena_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="aesm_mena_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

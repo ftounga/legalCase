@@ -290,6 +290,9 @@ public class DecisionToolVisibilityService {
         // SF-215-07 : F-IM-28 Naturalisation 12bis BE — flag pivot CONTEXTUAL Immigration BE.
         // Partagé avec SF-215-09 (naturalisation conjoint Belge art. 16 CNB).
         addBooleanFlagIfTrue(detected, immigrationNode, "naturalisation_be_envisagee");
+        // SF-215-11 : F-IM-30 AESM + tutelle MENA BE — flag pivot CONTEXTUAL Immigration BE.
+        // Mineurs uniquement (gate ageActuel < 18 dans le calculator).
+        addBooleanFlagIfTrue(detected, immigrationNode, "mineur_non_accompagne_be_detecte");
 
         // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
         // les règles CONTEXTUAL conditionnées à un régime national bilatéral

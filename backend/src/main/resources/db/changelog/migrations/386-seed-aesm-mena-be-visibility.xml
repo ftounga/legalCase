@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c9d0e1f2-a3b4-4567-8901-2cdef3456789-seed-aesm-mena" author="legalcase">
+        <comment>
+            SF-215-11 : seed visibility pour l'outil composite "AESM + tutelle MENA BE"
+            (F-IM-30-aesm-mena-be). Pattern F-215 CORRIGÉ — cette migration de seed
+            est livrée DANS LA MÊME PR que la table.
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les
+            dossiers BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte un indice de
+            mineur non accompagné via le flag `mineur_non_accompagne_be_detecte`
+            (cadré F-203 cf. SF-215-00-coherence, activé dans cette SF — extension
+            du record `ImmigrationExtractedData` et de `LegalDomainPromptBuilder`
+            dans la même PR).
+
+            Priority 205 — juste après naturalisation conjoint Belge (priority 204).
+
+            ATTENTION : colonne `layer` (pas `visibility`) — leçon vague 1
+            SF-215-02 hotfix migration 372.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) + le
+            composant Angular wrapper seront ajoutés par SF-215-12 (frontend, en parallèle
+            de cette PR via agent W). Coordination de merge : merger SF-215-12 APRÈS
+            cette PR pour limiter la fenêtre transitoire pendant laquelle le test
+            d'intégrité DecisionToolVisibilityIntegrityIT verrait un orphelin DB.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'c9d0e1f2-0000-0000-0000-000000000386',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-30-aesm-mena-be',
+                'CONTEXTUAL',
+                'mineur_non_accompagne_be_detecte',
+                'true',
+                205
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'c9d0e1f2-0000-0000-0000-000000000386';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
