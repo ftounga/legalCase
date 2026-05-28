@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c5d43491-095e-49c7-83fe-5dda021f4fe2" author="claude">
+        <comment>
+            SF-219-32 : table dédiée à l'outil décisionnel
+            Interruption de carrière pour soins parental BE
+            (interruption-carriere-soins-parental, BELGIQUE — fondement :
+            Loi de redressement du 22/01/1985 M.B. 24/01/1985 contenant
+            des dispositions sociales art. 99 à 107quater régime général
+            de l'interruption de carrière professionnelle dans le secteur
+            privé ; AR du 29/10/1997 M.B. 07/11/1997 relatif a
+            l'introduction d'un droit au congé parental dans le cadre
+            d'une interruption de la carrière professionnelle art. 2
+            droit individuel de quatre mois équivalent temps plein par
+            enfant pour chaque travailleur et par parent art. 3 formes
+            interruption complète temps plein quatre mois ou réduction
+            de moitié huit mois ou réduction d'un cinquième vingt mois
+            art. 4 conditions enfant moins de douze ans à la date du
+            début de l'interruption ou moins de vingt et un ans si
+            handicap physique mental ou sensoriel de soixante-six pour
+            cent et plus art. 5 ancienneté de douze mois auprès du même
+            employeur dans la période de quinze mois précédant la
+            demande art. 6 formalisme demande écrite notifiée à
+            l'employeur deux à trois mois avant le début souhaité par
+            lettre recommandée ou remise en main propre contre accusé
+            de réception art. 7 droit de l'employeur de différer
+            l'interruption maximum six mois pour des raisons
+            organisationnelles motivées et notifiées dans le mois
+            art. 8 fin anticipée possible avec accord employeur ou
+            décès enfant ; AR du 12/12/2001 M.B. 18/01/2002 modifiant
+            l'AR du 29/10/1997 introduction du cinquième temps comme
+            forme reconnue ; AR du 14/04/2009 M.B. 27/04/2009 portant
+            extension du droit au congé parental aux enfants de moins
+            de douze ans porte plafond d'âge de six ans à douze ans
+            généralisé ; AR du 05/05/2019 M.B. 22/05/2019 modifiant
+            l'AR du 12/12/2001 introduction de la forme un dixième
+            quarante mois sur autorisation employeur uniquement ; CCT
+            n° 64 du 29/04/1997 rendue obligatoire par AR du
+            29/10/1997 M.B. 07/11/1997 conclue au sein du Conseil
+            National du Travail établissant un droit au congé parental
+            dispositions complémentaires articles 3 à 5 droit du
+            travailleur d'opter pour la forme la plus adaptée ; AR du
+            12/08/1991 M.B. 31/08/1991 portant exécution chapitre IV
+            section 5 Loi de redressement du 22/01/1985 réglant les
+            allocations d'interruption à charge de l'ONEM art. 4 montant
+            forfaitaire mensuel selon la forme temps plein deux cent
+            cinquante euros environ mi-temps trois cent cinquante euros
+            environ cinquième quatre cent cinquante euros environ
+            montants indexés annuellement par arrêté ministériel ;
+            Loi du 22/01/1985 art. 101 protection contre le licenciement
+            depuis le jour de la demande écrite jusqu'à trois mois après
+            la fin de l'interruption sauf motif grave ou raisons
+            étrangères à la demande indemnité de protection égale à
+            six mois de rémunération brute en cas de licenciement
+            irrégulier ; Cass. BE 26/05/2008 S.07.0040.F protection
+            licenciement art. 101 Loi 22/01/1985 opposable même si la
+            demande n'a pas été notifiée dans le strict délai trois à
+            quatre mois dès lors qu'elle a été acceptée ou consommée
+            par l'employeur ; Cass. BE 22/06/2009 S.08.0102.N
+            interprétation du motif grave et des raisons étrangères à
+            la demande pour la levée de la protection ; Cass. BE
+            16/01/2017 S.15.0102.N le cumul congé parental et
+            allocation ONEM est de droit dès lors que les conditions
+            sont remplies refus employeur ou ONEM constitutif d'une
+            atteinte au droit subjectif de l'art. 99 Loi 22/01/1985.
+
+            L'outil analyse une situation d'interruption de carrière
+            pour soins parental sous l'angle cumulatif :
+            - Forme d'interruption demandée TEMPS_PLEIN quatre mois ou
+              MI_TEMPS huit mois ou CINQUIEME_TEMPS vingt mois.
+            - Ancienneté du travailleur auprès du même employeur en
+              mois.
+            - Age de l'enfant en mois ou en années avec drapeau handicap.
+            - Date de début souhaitée de l'interruption.
+            - Date de notification de la demande à l'employeur.
+            - Mode de notification LETTRE_RECOMMANDEE ou REMISE_EN_MAIN.
+            - Solde restant du droit individuel au congé parental
+              quatre mois ETP exprimé en mois ETP.
+            - Drapeau employeur a accepté la forme demandée ou demande
+              un différé motivé.
+            - Drapeau cumul allocation ONEM demandé.
+
+            Calcule :
+            - Drapeau éligibilité ancienneté douze mois art. 5 AR
+              29/10/1997.
+            - Drapeau éligibilité enfant moins de douze ans ou moins de
+              vingt et un ans avec handicap art. 4 AR 29/10/1997.
+            - Drapeau formalisme demande respecté lettre recommandée
+              ou remise en main propre contre accusé deux à trois mois
+              avant le début art. 6 AR 29/10/1997.
+            - Solde restant après imputation de la demande sur le droit
+              individuel quatre mois ETP par enfant et par parent.
+            - Durée effective de l'interruption en mois selon la forme
+              quatre huit ou vingt mois.
+            - Allocation ONEM mensuelle forfaitaire estimée selon la
+              forme art. 4 AR 12/08/1991.
+            - Allocation ONEM totale sur la durée de l'interruption.
+            - Date de fin calculée date de début plus durée en mois.
+            - Fin de la protection contre licenciement art. 101 Loi
+              22/01/1985 date de fin plus trois mois.
+            - Drapeau protection licenciement active de la demande à
+              la fin plus trois mois.
+            - Indemnité protection six mois rémunération brute en cas
+              de licenciement irrégulier.
+
+            Verdict : ELIGIBLE_COMPLET si toutes les conditions sont
+            remplies et la demande peut aboutir sans difficulté ;
+            ELIGIBLE_AVEC_RESERVES si éligibilité confirmée mais
+            formalisme délais ou solde justifient une vigilance ;
+            INELIGIBLE_ANCIENNETE si moins de douze mois auprès du
+            même employeur art. 5 AR 29/10/1997 ; INELIGIBLE_AGE_ENFANT
+            si enfant douze ans ou plus sans handicap ou vingt et un
+            ans ou plus avec handicap art. 4 AR 29/10/1997 ;
+            INELIGIBLE_SOLDE_INSUFFISANT si la demande dépasse le solde
+            individuel restant quatre mois ETP par enfant et par parent
+            art. 2 AR 29/10/1997 ; INELIGIBLE_FORMALISME si la
+            notification ne respecte pas le délai deux à trois mois
+            avant le début ou le mode lettre recommandée ou remise en
+            main propre art. 6 AR 29/10/1997 ; DIFFERE_EMPLOYEUR si
+            l'employeur a notifié dans le mois un différé motivé
+            maximum six mois art. 7 AR 29/10/1997 ; A_QUALIFIER si
+            inputs contradictoires ou insuffisants nécessitant analyse
+            complémentaire avocat.
+
+            Outil single-country BELGIQUE — distinct de F-DT-29
+            credit-temps-be qui couvre le crédit-temps CCT 103
+            (régime général de réduction des prestations) et distinct
+            du congé parental FR Code du travail FR art. L. 1225-47 à
+            L. 1225-60 (régime à statut différent durée différente
+            base de calcul AT différente employeur ou caisses
+            d'allocations familiales). Restitution séparée par outil —
+            pas de tentative d'harmonisation FR BE ni avec le
+            crédit-temps BE CCT 103.
+
+            Articulation avec les outils BE existants :
+            F-DT-29 credit-temps-be couvre le crédit-temps CCT 103
+            (différent du congé parental car régime universel ouvert
+            sans motif spécifique) ; SF-219-32 (présente) couvre
+            spécifiquement le congé parental régi par la Loi 22/01/1985
+            et la CCT 64 (droit individuel par enfant et par parent
+            avec conditions d'âge enfant et formes spécifiques).
+
+            Snapshot JSON complet inputs plus outputs verdict, durée
+            interruption en mois, date de fin calculée, allocation
+            ONEM mensuelle, allocation ONEM totale, solde restant
+            après imputation, drapeau formalisme respecté, drapeau
+            éligibilité ancienneté, drapeau éligibilité âge enfant,
+            fin protection licenciement, drapeau protection active,
+            raison code, synthèse texte, base juridique, avertissement
+            avocat — pour permettre la restitution UI sans recalcul
+            pattern uniforme F-DT-42 / SF-213-01 à SF-213-10 / SF-219-01
+            à SF-219-30.
+
+            La règle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portée par la migration
+            de SF-219-32b frontend, couplée à l'entrée TOOL_REGISTRY
+            dans decisional-tools-panel.component.ts pour respecter le
+            garde-fou DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 treize tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id interruption-carriere-soins-parental est ajouté
+            dès cette SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès le
+            seed visibility par SF-219-32b, pattern uniforme F-213
+            vagues 1-10b / F-219 vagues 1-30b.
+        </comment>
+
+        <createTable tableName="interruption_carriere_soins_parental_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_interr_carr_soins_par_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="interruption_carriere_soins_parental_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_interr_carr_soins_par_case_file"/>
+
+        <createIndex tableName="interruption_carriere_soins_parental_analyses"
+                     indexName="idx_interr_carr_soins_par_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="interruption_carriere_soins_parental_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
