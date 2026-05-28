@@ -1,0 +1,326 @@
+<div class="mp-fedris-reconnaissance-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">medical_services</mat-icon>
+    <span class="section-title">MP Fedris reconnaissance (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="mp-fedris-reconnaissance-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est reserve aux dossiers de droit du travail belge
+            (Lois coordonnees du 03/06/1970 + AR du 28/03/1969 liste fermee
+            modifie 06/12/2018 + AR du 16/12/1985 systeme ouvert + Loi du
+            11/01/2018 reformant Fedris). Le regime francais de
+            reconnaissance MP (CPAM, tableaux art. L. 461-2 CSS, CRRMP art.
+            L. 461-1 CSS, prescription 2 ans art. L. 461-5 CSS) constitue
+            un dispositif juridiquement distinct (CPAM et non Fedris,
+            tableaux FR differents des annexes BE, delai prescription 2 ans
+            FR vs 3 ans BE). Aucune transposition mecanique n'est possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse l'eligibilite a la <b>reconnaissance d'une maladie
+            professionnelle Fedris</b> selon la qualification (liste fermee
+            AR 28/03/1969 — presomption art. 32 / systeme ouvert art. 30bis
+            — preuve causalite directe et determinante) et la prescription
+            triennale art. 31 lois coordonnees 03/06/1970. Renseigner le
+            <b>type de maladie</b>, le <b>code de la liste</b> (si liste
+            fermee), le <b>libelle medical</b>, la <b>date de constatation
+            medicale</b>, la <b>date de connaissance du caractere
+            professionnel</b> (point de depart prescription), la <b>date
+            de declaration envisagee</b>, l'<b>exposition au risque</b>
+            et la <b>causalite</b>. Champs marques * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Type maladie * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Qualification de la maladie *</mat-label>
+                <mat-select
+                    [value]="typeMaladie()"
+                    (selectionChange)="onTypeMaladieChange($event.value)"
+                    name="typeMaladie"
+                    required>
+                  <mat-option value="LISTE_FERMEE">
+                    Liste fermee AR 28/03/1969 (presomption art. 32)
+                  </mat-option>
+                  <mat-option value="HORS_LISTE">
+                    Hors liste — systeme ouvert art. 30bis
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Determine la branche du verdict (presomption vs preuve causalite directe et determinante).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Code maladie liste (requis si LISTE_FERMEE) -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>
+                  Code maladie liste (ex. 1.404.01, 2.3.1, 5.01.01)
+                  @if (typeMaladie() === 'LISTE_FERMEE') { <span>*</span> }
+                </mat-label>
+                <input matInput
+                       type="text"
+                       maxlength="255"
+                       [ngModel]="codeMaladieListe()"
+                       (ngModelChange)="onCodeMaladieListeChange($event)"
+                       name="codeMaladieListe" />
+                <mat-hint>Section AR 28/03/1969 modifie 06/12/2018 — 1.x agents chimiques, 2.x physiques, 3.x biologiques, 4.x cutanees / respiratoires, 5.x musculosquelettiques, 6.x cancers.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Libelle maladie * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Libelle medical de la maladie *</mat-label>
+                <input matInput
+                       type="text"
+                       maxlength="255"
+                       required
+                       [ngModel]="libelleMaladie()"
+                       (ngModelChange)="onLibelleMaladieChange($event)"
+                       name="libelleMaladie" />
+                <mat-hint>Nom medical (ex. silicose, mesotheliome pleural, hypoacousie de perception, affection lombaire chronique).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Date constatation medicale * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de premiere constatation medicale *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateConstatationMedicale()"
+                       (ngModelChange)="onDateConstatationMedicaleChange($event)"
+                       name="dateConstatationMedicale" />
+                <mat-hint>Rapport specialiste / certificat medical initial Fedris formulaire 501.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Date connaissance professionnel -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de connaissance du caractere professionnel</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateConnaissanceProfessionnel()"
+                       (ngModelChange)="onDateConnaissanceProfessionnelChange($event)"
+                       name="dateConnaissanceProfessionnel" />
+                <mat-hint>Point de depart du delai de prescription triennale art. 31. Si vide, prend la date de constatation medicale.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Date declaration envisagee -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de declaration Fedris envisagee</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateDeclarationEnvisagee()"
+                       (ngModelChange)="onDateDeclarationEnvisageeChange($event)"
+                       name="dateDeclarationEnvisagee" />
+                <mat-hint>Mode prospectif. Si vide, prend la date du jour Europe/Brussels.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Exposition * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Exposition professionnelle au risque *</mat-label>
+                <mat-select
+                    [value]="exposition()"
+                    (selectionChange)="onExpositionChange($event.value)"
+                    name="exposition"
+                    required>
+                  <mat-option value="AVEREE">
+                    Averee — documentee, conforme aux conditions de la section
+                  </mat-option>
+                  <mat-option value="INSUFFISANTE">
+                    Insuffisante — partielle, hors champ
+                  </mat-option>
+                  <mat-option value="INDETERMINEE">
+                    Indeterminee — caracterisation a etablir
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Decisive pour la presomption art. 32 en liste fermee (Cass. BE 13/12/1989).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Causalite * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Causalite directe et determinante *</mat-label>
+                <mat-select
+                    [value]="causalite()"
+                    (selectionChange)="onCausaliteChange($event.value)"
+                    name="causalite"
+                    required>
+                  <mat-option value="DIRECTE_DETERMINANTE">
+                    Directe et determinante (etablie)
+                  </mat-option>
+                  <mat-option value="INSUFFISANTE">
+                    Insuffisante — facteur favorisant simple
+                  </mat-option>
+                  <mat-option value="INDETERMINEE">
+                    Indeterminee — expertise medicale a demander
+                  </mat-option>
+                  <mat-option value="NON_APPLICABLE">
+                    Non applicable (liste fermee — presomption art. 32)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Decisive en systeme ouvert art. 30bis (Cass. BE 28/05/2008 S.07.0033.F, Cass. BE 04/02/2002 S.01.0095.F).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la reconnaissance MP Fedris</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="mp-fedris-reconnaissance-result">
+
+          <!-- Banniere verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Maladie : <b>{{ result()!.libelleMaladie }}</b>
+                @if (result()!.codeMaladieListe) {
+                  <span>(code {{ result()!.codeMaladieListe }})</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation analyse -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Detail de l'analyse</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">category</mat-icon>
+              <span class="ventilation-label">Qualification maladie</span>
+              <span class="ventilation-value">{{ typeMaladieLabel(result()!.typeMaladie) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">work</mat-icon>
+              <span class="ventilation-label">Exposition au risque</span>
+              <span class="ventilation-value">{{ expositionLabel(result()!.exposition) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">science</mat-icon>
+              <span class="ventilation-label">Causalite</span>
+              <span class="ventilation-value">{{ causaliteLabel(result()!.causalite) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">verified_user</mat-icon>
+              <span class="ventilation-label">Presomption art. 32 applicable</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.presomptionApplicable) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">fact_check</mat-icon>
+              <span class="ventilation-label">Causalite a etablir (systeme ouvert)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.causaliteRequise) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">today</mat-icon>
+              <span class="ventilation-label">Date constatation medicale</span>
+              <span class="ventilation-value mono">{{ formatDate(result()!.dateConstatationMedicale) }}</span>
+            </div>
+
+            @if (result()!.dateConnaissanceProfessionnel) {
+              <div class="ventilation-row">
+                <mat-icon class="ventilation-icon">event_note</mat-icon>
+                <span class="ventilation-label">Date connaissance professionnel</span>
+                <span class="ventilation-value mono">{{ formatDate(result()!.dateConnaissanceProfessionnel) }}</span>
+              </div>
+            }
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">hourglass_bottom</mat-icon>
+              <span class="ventilation-label">Date de prescription (3 ans art. 31)</span>
+              <span class="ventilation-value mono">{{ formatDate(result()!.datePrescription) }}</span>
+            </div>
+
+            <div class="ventilation-row" [class.row-critical]="result()!.prescriteAuJour">
+              <mat-icon class="ventilation-icon">timer</mat-icon>
+              <span class="ventilation-label">Marge prescription</span>
+              <span class="ventilation-value mono">{{ formatJoursPrescription(result()!.joursAvantPrescription) }}</span>
+            </div>
+          </div>
+
+          <!-- Synthese -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le resultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
