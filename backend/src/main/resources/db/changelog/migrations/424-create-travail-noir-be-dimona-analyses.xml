@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="ec3df540-0bbc-4cee-9a16-a95721ab3c0a" author="claude">
+        <comment>
+            SF-219-26 : table dédiée à l'outil décisionnel
+            « Travail noir BE — DIMONA, requalification et sanctions »
+            (travail-noir-be-dimona, BELGIQUE — fondement :
+            Loi-programme du 24/12/2002 art. 167 à 184
+            M.B. 31/12/2002 instaurant la Déclaration Immédiate
+            de l'Emploi DIMONA obligatoire avant toute occupation
+            d'un travailleur salarié ; AR du 05/11/2002 instaurant
+            une déclaration immédiate de l'emploi en application de
+            l'art. 38 de la Loi du 26/07/1996 portant modernisation
+            de la sécurité sociale ; Code pénal social du 06/06/2010
+            art. 181 sanction niveau 4 défaut DIMONA — amende
+            administrative 300 à 3000 euros ou amende pénale 600 à
+            6000 euros et ou emprisonnement 6 mois à 3 ans plus
+            multiplication par travailleur concerné art. 103
+            paragraphe 2 plus majoration par 5 personne morale art.
+            105 paragraphe 1 ; Loi du 27/06/1969 révisant l'arrêté-loi
+            du 28/12/1944 concernant la sécurité sociale des
+            travailleurs salariés art. 1er présomption générale
+            d'assujettissement à la sécurité sociale salariée
+            applicable en l'absence de DIMONA ; Code pénal social
+            art. 328 paragraphe 1 présomption de salariat applicable
+            à toute personne pour laquelle aucune DIMONA n'a été
+            effectuée ; Loi du 27/12/2006 art. 328 instituant la
+            présomption de relation de travail dans le secteur de
+            la construction transport et nettoyage modifiée par la
+            Loi du 25/08/2012 ; Loi-programme I du 27/12/2006 art.
+            331 à 333 cotisations de solidarité ONSS sur
+            requalification ; AR du 28/11/1969 d'exécution de la
+            Loi du 27/06/1969 — taux cotisations ONSS employeur
+            environ 25 pourcent plus travailleur 13,07 pourcent
+            sur rémunération brute due rétroactivement sur la
+            période non déclarée ; Loi du 22/04/2003 portant
+            adaptation des sanctions administratives en matière de
+            sécurité sociale art. 28 amende ONSS forfaitaire de
+            3 fois les cotisations dues en cas d'absence DIMONA ;
+            Cass. ch. néerl. 21/11/2017 P.17.0532.N qualification
+            du travail non déclaré comme infraction de niveau 4 ;
+            Cour const. arrêt 102/2009 du 18/06/2009 conformité de
+            la présomption de salariat aux principes du procès
+            équitable ; Cass. ch. fr. 06/12/2010 S.10.0067.F
+            présomption simple de salariat renversable par tout
+            moyen de preuve.
+
+            L'outil analyse une situation de travail dissimulé / non
+            déclaré en BE sous l'angle cumulatif :
+            - Statut DIMONA déclaré ou absent ou tardif.
+            - Date début occupation effective.
+            - Date DIMONA effective (si présente).
+            - Date du contrôle inspection sociale.
+            - Durée non déclarée en jours calendrier.
+            - Nombre de travailleurs concernés.
+            - Personne morale employeur ou personne physique.
+            - Récidive dans l'année art. 110 C. pén. soc.
+            - Salaire brut moyen mensuel pour calcul cotisations.
+            - Présence d'éléments de subordination travail
+              salarié OUI ou NON ou INDETERMINE pour activer
+              l'analyse présomption art. 328 C. pén. soc.
+
+            Calcule :
+            - Cotisations ONSS rétroactives dues sur la période non
+              déclarée employeur 25 pourcent plus travailleur
+              13,07 pourcent.
+            - Amende administrative ONSS forfaitaire 3 fois les
+              cotisations dues art. 28 Loi du 22/04/2003.
+            - Sanction pénale Code pénal social art. 181 niveau 4 —
+              amende admin 300 à 3000 euros ou pénale 600 à 6000
+              euros ET ou emprisonnement 6 mois à 3 ans avec
+              majorations multiplication travailleurs + 5 personne
+              morale + doublement récidive.
+
+            Verdict : DIMONA_CONFORME si déclaration faite avant
+            début occupation ; DIMONA_TARDIVE_REGULARISABLE si
+            déclaration faite après début mais avant contrôle
+            inspection sociale, sanction administrative possible
+            mais pas niveau 4 pénal ; ABSENCE_DIMONA_SANCTION_NIVEAU_4
+            si aucune déclaration au moment du contrôle, sanction
+            cumulative cotisations rétroactives plus amende ONSS
+            3 fois plus sanction pénale niveau 4 art. 181 C. pén.
+            soc. ; REQUALIFICATION_SALARIE_PRESUMEE si présomption
+            d'assujettissement art. 328 C. pén. soc. déclenchée
+            par éléments de subordination et absence de DIMONA ;
+            INDEPENDANT_REQUALIFIE_NON_DECLARE si la relation
+            faussement qualifiée d'indépendante doit être
+            requalifiée en salariat et que les obligations DIMONA
+            et ONSS n'ont pas été remplies depuis l'origine ;
+            A_ANALYSER configuration inputs insuffisants ou
+            ambigus nécessitant analyse complémentaire.
+
+            Outil single-country BELGIQUE — la France a un régime
+            distinct travail dissimulé Code du travail art.
+            L. 8221-1 et suivants amende 45 000 euros personne
+            physique et 225 000 euros personne morale art.
+            L. 8224-1 dissimulation d'activité ou d'emploi salarié,
+            URSSAF redressement majoration 25 pourcent, pas de
+            DIMONA en FR mais Déclaration Préalable à l'Embauche
+            DPAE Code du travail art. L. 1221-10 et L. 8221-5 1°,
+            procédure parquet et non auditorat. Quanta sensiblement
+            différents, dispositif technique distinct DIMONA contre
+            DPAE, restitution séparée par outil — pas de tentative
+            d'harmonisation FR/BE.
+
+            Snapshot JSON complet inputs plus outputs verdict,
+            cotisations rétroactives employeur et travailleur,
+            amende ONSS forfaitaire, sanction pénale art. 181
+            niveau 4 admin et pénale, emprisonnement, drapeaux
+            multiplication par travailleur et personne morale et
+            récidive pour permettre la restitution UI sans recalcul
+            pattern uniforme F-DT-42 / SF-213-01 à SF-213-10 /
+            SF-219-01 à SF-219-24.
+
+            La règle d'affichage F-IA-04
+            decision_tool_visibility_rules sera portée par la
+            migration de SF-219-26b frontend, couplée à l'entrée
+            TOOL_REGISTRY dans decisional-tools-panel.component.ts
+            pour respecter le garde-fou
+            DecisionToolVisibilityIntegrityIT cas réel F-164
+            staging 2026-04-26 13 tool_id orphelins,
+            cf. CLAUDE.md feedback_pre_merge_visibility_seed_check.
+
+            Le tool_id travail-noir-be-dimona est ajouté dès cette
+            SF backend à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT préventif sera utile dès
+            le seed visibility par SF-219-26b, pattern uniforme
+            F-213 vagues 1-10b / F-219 vagues 1-24b.
+        </comment>
+
+        <createTable tableName="travail_noir_be_dimona_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_travail_noir_be_dimona_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="travail_noir_be_dimona_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_travail_noir_be_dimona_case_file"/>
+
+        <createIndex tableName="travail_noir_be_dimona_analyses"
+                     indexName="idx_travail_noir_be_dimona_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="travail_noir_be_dimona_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
