@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="ac0dbd86-d610-4607-9ec5-1a1b486d6e00" author="claude">
+        <comment>
+            SF-219-06b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Licenciement BE — fermeture d'entreprise »
+            (licenciement-be-fermeture-entreprise, BELGIQUE, DROIT_DU_TRAVAIL),
+            table d'analyses créée par SF-219-06 (migration 382).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            le type de fermeture (qualification juridique 6 cas), le
+            statut de solvabilité de l'employeur (3 cas) ni l'effectif
+            ETP (donnée employeur DmfA ONSS hors dossier salarié).
+            Aucun flag DB CONTEXTUAL fiable n'est disponible pour
+            détecter la situation de fermeture d'entreprise ; l'introduire
+            pour un seul outil ajouterait une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (type fermeture,
+               solvabilité employeur, effectif employeur, créances
+               impayées) non couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque une cessation d'activité ou une faillite
+               employeur.
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-124) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 cette migration (licenciement-be-fermeture-entreprise)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY
+            `licenciement-be-fermeture-entreprise` livrée dans
+            decisional-tools-panel.component.ts (cf. SF-219-06b). Sans
+            ce couplage, le garde-fou CI DecisionToolVisibilityIntegrityIT
+            échoue (seed en DB sans entrée TOOL_REGISTRY frontend = outil
+            silencieusement masqué — cas réel F-164 staging 2026-04-26,
+            mémoire `feedback_pre_merge_visibility_seed_check`).
+
+            tool_id `licenciement-be-fermeture-entreprise` déjà ajouté à
+            `KNOWN_NO_DASHBOARD_TILE_IDS` côté backend par SF-219-06 PR #1388
+            (préventif, évite master-red à l'arrivée de cette SF
+            frontend). Aucune tuile dashboard n'est associée — l'outil est
+            consulté uniquement depuis le panel décisionnel du case file.
+
+            Fondement juridique :
+            - Loi du 26/06/2002 relative aux fermetures d'entreprises
+              (institue l'indemnité de fermeture + le Fonds de Fermeture
+              des Entreprises FFE géré par l'ONEM).
+            - AR du 23/03/2007 d'exécution (modalités de calcul
+              indemnité forfaitaire par année d'ancienneté + supplément
+              mensuel selon l'âge ≥ 45 ans + seuils d'effectif).
+            - CCT n° 9bis (Conseil National du Travail — information /
+              consultation préalable des travailleurs en cas de fermeture
+              d'entreprise).
+            - Loi du 13/02/1998 sur les licenciements collectifs
+              (procédure Renault — invariante avec la fermeture).
+
+            Régime BE uniquement — la France a un dispositif distinct
+            (FNGS — garantie des salaires en cas de redressement /
+            liquidation, mais pas d'indemnité de fermeture forfaitaire
+            indépendante).
+
+            Distinct de :
+            - `licenciement-be-cct109-deraisonnable` (F-213) — caractère
+              déraisonnable du licenciement individuel.
+            - `licenciement-be-protection-deleguee` (F-213) — protection
+              spéciale délégué CE/CPPT.
+            - `outplacement-be-general-30sem` (SF-219-05b) — obligation
+              d'outplacement post-licenciement (parfois cumulable).
+            - `rappel-salaire-be` (F-213) — créances salariales hors
+              fermeture employeur.
+            Cet outil intervient *au moment* de la fermeture officielle
+            d'activité ou de la faillite : qualifie l'éligibilité au
+            FFE + calcule l'indemnité + agrège les créances reprises.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('ac0dbd86-d610-4607-9ec5-1a1b486d6e00', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'licenciement-be-fermeture-entreprise', 'ALWAYS_ON', NULL, NULL, 124);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'ac0dbd86-d610-4607-9ec5-1a1b486d6e00';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

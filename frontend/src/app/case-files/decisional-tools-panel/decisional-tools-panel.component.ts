@@ -181,6 +181,8 @@ import { RccBeEntrepriseDifficulteSectionComponent } from '../rcc-be-entreprise-
 // SF-219-04b : section décisionnelle Cumul RCC + allocations (BE-only, ALWAYS_ON).
 import { CumulRccAllocationsSectionComponent } from '../cumul-rcc-allocations-section/cumul-rcc-allocations-section.component';
 import { OutplacementBeGeneral30semSectionComponent } from '../outplacement-be-general-30sem-section/outplacement-be-general-30sem-section.component';
+// SF-219-06b : section décisionnelle Licenciement BE fermeture d'entreprise (BE-only, ALWAYS_ON).
+import { LicenciementBeFermetureEntrepriseSectionComponent } from '../licenciement-be-fermeture-entreprise-section/licenciement-be-fermeture-entreprise-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -2348,6 +2350,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-06b : Licenciement BE — fermeture d'entreprise (Loi 26/06/2002 +
+      // AR 23/03/2007 + CCT n° 9bis). Outil BE-only — Fonds de Fermeture
+      // des Entreprises (FFE) géré par l'ONEM. Calcule l'indemnité de
+      // fermeture (forfaitaire par année d'ancienneté + supplément ≥ 45 ans)
+      // et les créances activables (salaires + pécule + indemnité de
+      // rupture impayés) si l'employeur est insolvable. Verdict 6 états
+      // (3 éligibles FFE / 3 motifs d'inéligibilité : ancienneté < 1 an /
+      // type non qualifiant / effectif < 20 ETP). ALWAYS_ON priority 124
+      // (au-dessus de outplacement-be-general-30sem = 123 SF-219-05b).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme F-213/F-219 —
+      // type fermeture / solvabilité / effectif employeur non extractibles).
+      ['licenciement-be-fermeture-entreprise', {
+        displayLabel: 'Fermeture d\'entreprise (Belgique)',
+        component: LicenciementBeFermetureEntrepriseSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -3559,6 +3584,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // autres analyseurs de conformité légale). 7 verdicts hiérarchiques
     // + indemnité forfaitaire sanction.
     ['outplacement-be-general-30sem', 'VALIDITE'],
+    // SF-219-06b : Licenciement BE — fermeture d'entreprise (Loi 26/06/2002
+    // + AR 23/03/2007 + CCT 9bis). Thème INDEMNITES — l'outil calcule
+    // l'indemnité de fermeture (forfaitaire par année d'ancienneté +
+    // supplément ≥ 45 ans) et le montant total des créances FFE reprises
+    // (salaires + pécule + indemnité de rupture impayés). Parité avec
+    // rcc-be-indemnite-complementaire / formule-claeys / rappel-salaire-be.
+    ['licenciement-be-fermeture-entreprise', 'INDEMNITES'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

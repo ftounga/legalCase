@@ -1,0 +1,327 @@
+<div class="licenciement-be-fermeture-entreprise-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">business</mat-icon>
+    <span class="section-title">Fermeture d'entreprise (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="licenciement-be-fermeture-entreprise-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Loi du 26/06/2002 relative aux fermetures d'entreprises +
+            AR du 23/03/2007 d'exécution + CCT n° 9bis — indemnité prise
+            en charge par le Fonds de Fermeture des Entreprises FFE
+            géré par l'ONEM). La France a un dispositif distinct (FNGS —
+            pas d'indemnité forfaitaire indépendante).
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Analyse l'éligibilité au <b>Fonds de Fermeture des Entreprises</b>
+            (FFE — ONEM) et calcule l'<b>indemnité de fermeture</b>
+            (forfaitaire par année d'ancienneté + supplément ≥ 45 ans)
+            ainsi que les créances activables (salaires, pécule, indemnité
+            de rupture impayés). Fondement : <b>Loi du 26/06/2002</b>
+            + <b>AR du 23/03/2007</b> + <b>CCT n° 9bis</b>. Champs
+            marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Date naissance * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de naissance *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateNaissance()"
+                       (ngModelChange)="onDateNaissanceChange($event)"
+                       name="dateNaissance" />
+                <mat-hint>Détermine l'âge à la fermeture (supplément ≥ 45 ans).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Date début contrat * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de début du contrat *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateDebutContrat()"
+                       (ngModelChange)="onDateDebutContratChange($event)"
+                       name="dateDebutContrat" />
+                <mat-hint>Détermine l'ancienneté à la fermeture (seuil 1 an).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date fermeture * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de fermeture *</mat-label>
+                <input matInput
+                       type="date"
+                       required
+                       [ngModel]="dateFermeture()"
+                       (ngModelChange)="onDateFermetureChange($event)"
+                       name="dateFermeture" />
+                <mat-hint>Cessation officielle d'activité ou jugement de faillite.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Rémunération mensuelle brute * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Rémunération mensuelle brute (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="remunerationMensuelleBrute()"
+                       (ngModelChange)="onRemunerationMensuelleBruteChange($event)"
+                       name="remunerationMensuelleBrute" />
+                <mat-hint>Base de référence pour les créances reprises par le FFE.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 5. Type fermeture * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Type de fermeture *</mat-label>
+                <mat-select
+                    [value]="typeFermeture()"
+                    (selectionChange)="onTypeFermetureChange($event.value)"
+                    name="typeFermeture"
+                    required>
+                  <mat-option value="CESSATION_DEFINITIVE">
+                    Cessation définitive d'activité
+                  </mat-option>
+                  <mat-option value="FAILLITE_LIQUIDATION_JUDICIAIRE">
+                    Faillite / liquidation judiciaire
+                  </mat-option>
+                  <mat-option value="CESSATION_PARTIELLE">
+                    Cessation partielle (non qualifiant V1)
+                  </mat-option>
+                  <mat-option value="TRANSFERT_CCT_32BIS">
+                    Transfert d'entreprise CCT 32bis (non qualifiant)
+                  </mat-option>
+                  <mat-option value="FUSION_SANS_SUPPRESSION">
+                    Fusion par absorption sans suppression (non qualifiant)
+                  </mat-option>
+                  <mat-option value="FERMETURE_TEMPORAIRE">
+                    Fermeture temporaire (chômage technique)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Seules les cessations définitives et faillites qualifient
+                  pour le FFE.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 6. Statut employeur * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Statut de l'employeur *</mat-label>
+                <mat-select
+                    [value]="statutEmployeur()"
+                    (selectionChange)="onStatutEmployeurChange($event.value)"
+                    name="statutEmployeur"
+                    required>
+                  <mat-option value="SOLVABLE">
+                    Solvable — créances payées
+                  </mat-option>
+                  <mat-option value="INSOLVABLE_AVERE">
+                    Insolvable (avéré par procédure)
+                  </mat-option>
+                  <mat-option value="FAILLITE_DECLAREE">
+                    Faillite déclarée par le Tribunal de l'entreprise
+                  </mat-option>
+                </mat-select>
+                <mat-hint>
+                  Détermine la reprise par le FFE des créances impayées.
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 7. Effectif ETP * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Effectif employeur (ETP) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="effectifEtp()"
+                       (ngModelChange)="onEffectifEtpChange($event)"
+                       name="effectifEtp" />
+                <mat-hint>Seuil régime général V1 : ≥ 20 ETP (moyenne 4 trimestres).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 8. Salaires impayés * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaires impayés (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="salairesImpayes()"
+                       (ngModelChange)="onSalairesImpayesChange($event)"
+                       name="salairesImpayes" />
+                <mat-hint>0 si l'employeur est solvable.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 9. Pécule vacances impayé * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Pécule de vacances impayé (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="peculeVacancesImpaye()"
+                       (ngModelChange)="onPeculeVacancesImpayeChange($event)"
+                       name="peculeVacancesImpaye" />
+                <mat-hint>Reprise par le FFE si insolvable.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 10. Indemnité rupture impayée * -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Indemnité de rupture impayée (€) *</mat-label>
+                <input matInput
+                       type="number"
+                       min="0"
+                       step="1"
+                       required
+                       [ngModel]="indemniteRuptureImpayee()"
+                       (ngModelChange)="onIndemniteRuptureImpayeeChange($event)"
+                       name="indemniteRuptureImpayee" />
+                <mat-hint>Indemnité compensatoire de préavis impayée.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la fermeture</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="licenciement-be-fermeture-entreprise-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Âge à la fermeture : {{ result()!.ageADateFermeture }} ans —
+                ancienneté : <span class="mono">{{ result()!.anneesAnciennete }} ans</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Indemnité de fermeture (si éligible) -->
+          @if (result()!.eligible && result()!.indemniteFermeture > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>paid</mat-icon>
+              <span>
+                Indemnité de fermeture due :
+                <b><span class="mono">{{ result()!.indemniteFermeture }} €</span></b>
+                (forfaitaire <span class="mono">{{ result()!.montantForfaitaireParAnnee }} €/an</span>
+                @if (result()!.supplementAgeMensuel > 0) {
+                  + supplément ≥ 45 ans <span class="mono">{{ result()!.supplementAgeMensuel }} €/mois</span>
+                }
+                )
+              </span>
+            </div>
+          }
+
+          <!-- Créances FFE reprises -->
+          @if (result()!.montantTotalCreancesFfe > 0) {
+            <div class="result-fondement" role="region">
+              <mat-icon>savings</mat-icon>
+              <span>
+                Créances reprises par le FFE :
+                <b><span class="mono">{{ result()!.montantTotalCreancesFfe }} €</span></b>
+                (salaires <span class="mono">{{ result()!.salairesImpayes }} €</span>
+                + pécule <span class="mono">{{ result()!.peculeVacancesImpaye }} €</span>
+                + indemnité de rupture <span class="mono">{{ result()!.indemniteRuptureImpayee }} €</span>)
+              </span>
+            </div>
+          }
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
