@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="5b71c0f7-8ea4-4b1a-940d-6c24d44506cd" author="claude">
+        <comment>
+            SF-219-25b — seed decision_tool_visibility_rules pour l'outil
+            decisionnel Auditorat du travail BE (auditorat-travail-be,
+            BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses creee par
+            SF-219-25 (migration 423).
+
+            Choix layer = ALWAYS_ON plutot que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mecaniquement
+            les declaratifs procéduraux propres a l'orientation auditorat :
+            nature des faits qualifiee (8 cas dont infraction Code penal
+            social Livre 2, accident grave non declare art. 124, travail
+            non declare suspecte art. 181, discrimination penale
+            art. 22-24 Loi 10/05/2007, harcelement penal art. 442bis
+            C. pen., entrave inspection art. 209-212 C. pen. soc.,
+            litige civil pur art. 578 C. jud., autre), mode de saisine
+            envisage (plainte directe art. 63 CIC, denonciation simple
+            art. 29 CIC, signalement inspection sociale art. 76
+            C. pen. soc., voie civile parallele art. 578 C. jud.,
+            indetermine), date des faits (conditionne la prescription
+            penale art. 81 C. pen. soc. — 5 ans niveaux 2-4, 3 ans
+            niveau 1), prescription bloquante (drapeau explicite
+            avocat), inspection deja saisie (PV existe — basculement
+            voie auditorat art. 76), plainte civile parallele en
+            cours (autonomie voie penale art. 4 Titre prel. CIC),
+            urgence securite personnes (mesures conservatoires
+            auditeur), recours penal envisage comme axe principal
+            (constitution partie civile art. 63 CIC), qualite
+            employeur personne morale (multiplication × 5 art. 105
+            C. pen. soc. en cas de poursuite). Aucun flag DB
+            CONTEXTUAL fiable n'est disponible ; l'introduire pour un
+            seul outil ajouterait une exception isolee.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil creerait une exception isolee et
+               necessiterait une extraction IA enrichie (qualification
+               penale des faits, mode de saisine envisage, prescription,
+               urgence, qualite employeur) non couverte V1.
+            2. Pertinence des la premiere rencontre client — l'avocat
+               peut activer l'outil des qu'un dossier de droit du travail
+               BE evoque une infraction sociale potentielle a poursuivre
+               (proces-verbal d'inspection sociale notifie a l'employeur,
+               controle ONSS ouvrant le dossier auditorat, signalement
+               CTPE, accident grave au travail Loi 04/08/1996, harcelement
+               persistant avec atteinte a l'integrite, discrimination
+               intentionnelle a l'embauche ou au licenciement). L'outil
+               restitue le verdict d'orientation procedurale (4 routes :
+               SAISINE_AUDITORAT_RECOMMANDEE, DENONCIATION_INSPECTION_PREALABLE,
+               SAISINE_NON_PERTINENTE, A_QUALIFIER) avec les drapeaux
+               d'analyse associes (constitution partie civile recommandee
+               art. 63 CIC, inspection prealable requise art. 76 C. pen.
+               soc., voie civile concurrente possible art. 4 Titre prel.
+               CIC, prescription bloquante art. 81 C. pen. soc., urgence
+               a signaler a l'auditeur, regle "Una Via" applicable au
+               choix de l'auditeur art. 73-78 C. pen. soc., avis
+               d'auditeur obligatoire en voie civile art. 138bis § 1er
+               C. jud. matieres art. 580/581). Pertinent des l'ouverture
+               du dossier pour eclairer la strategie procedurale
+               (choix entre plainte directe avec constitution partie
+               civile, denonciation simple, signalement inspection
+               sociale, voie civile parallele tribunal du travail).
+            3. Coherence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-142) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b)
+                 - 130 flexi-job-be (SF-219-12b)
+                 - 131 etudiant-jobiste-be (SF-219-13b)
+                 - 132 interim-be-cct-322 (SF-219-14b)
+                 - 133 interim-be-indemnite-fin-mission (SF-219-15b)
+                 - 134 teletravail-be-cct-85-149 (SF-219-16b)
+                 - 135 clause-ecolage-be (SF-219-17b)
+                 - 136 semaine-4-jours-be (SF-219-18b)
+                 - 137 droit-deconnexion-be (SF-219-19b)
+                 - 138 pecule-vacances-be (SF-219-20b)
+                 - 139 eco-cheques-cheques-repas-be (SF-219-21b)
+                 - 140 egalite-femmes-hommes-be (SF-219-22b)
+                 - 141 discrimination-be-handicap-amenagement (SF-219-23b)
+                 - 142 code-penal-social-be (SF-219-24b)
+                 - 143 cette migration (auditorat-travail-be)
+               Evite une exception isolee qui compliquerait la lisibilite
+               du panel.
+            4. Pas de cout pour l'utilisateur — l'outil reste replie par
+               defaut (collapsed=true) et la gate workspaceCountry ===
+               BELGIQUE cote composant masque le contenu en cas de
+               dossier FR.
+
+            Couplee a l'entree TOOL_REGISTRY auditorat-travail-be livree
+            dans decisional-tools-panel.component.ts (cf. SF-219-25b).
+            Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT echoue (seed en DB sans
+            entree TOOL_REGISTRY frontend = outil silencieusement masque
+            — cas reel F-164 staging 2026-04-26, memoire
+            feedback_pre_merge_visibility_seed_check).
+
+            tool_id auditorat-travail-be deja ajoute a
+            KNOWN_NO_DASHBOARD_TILE_IDS cote backend par SF-219-25 (PR
+            #1433, preventif). Aucune tuile dashboard n'est associee —
+            l'outil est consulte uniquement depuis le panel decisionnel
+            du case file.
+
+            Fondement juridique :
+            - Code judiciaire BE :
+                * art. 138bis — competence de l'auditorat du travail
+                  (parquet specialise) : poursuite des infractions au
+                  droit social penal + avis dans les contentieux civils
+                  du tribunal du travail (art. 580 / 581 matieres
+                  securite sociale et controle social) ;
+                * art. 578 — competence du tribunal du travail (litiges
+                  individuels d'execution du contrat, paiement
+                  arrieres, indemnites de rupture) ;
+                * art. 580 / 581 — matieres de securite sociale et
+                  controle social ou l'avis de l'auditeur est
+                  obligatoire ;
+                * art. 76 — chambres specialisees du tribunal
+                  correctionnel (citation auditorat).
+            - Code d'instruction criminelle :
+                * art. 24 — saisine du parquet ;
+                * art. 28bis — instruction obligatoire en cas de
+                  constitution partie civile ;
+                * art. 28quater § 1er — opportunite des poursuites
+                  reservee au ministere public ;
+                * art. 29 — denonciation simple ;
+                * art. 63 — constitution partie civile ;
+                * art. 216bis — transaction avec extinction de l'action
+                  publique ;
+                * art. 4 Titre prel. — autonomie de la voie repressive
+                  et de la voie civile.
+            - Loi du 03/08/1992 sur le Code judiciaire — refonte de
+              l'organisation judiciaire belge incluant l'auditorat
+              du travail.
+            - Loi du 06/06/2010 introduisant le Code penal social
+              (M.B. 01/07/2010, e.e.v. 01/07/2011) :
+                * art. 73-78 — choix de l'auditorat entre voie
+                  administrative et voie penale (regle "Una Via"
+                  — non bis in idem strictement opposable — Cour
+                  const. arret 61/2014 du 03/04/2014, CEDH Grande
+                  Stevens c. Italie 04/03/2014) ;
+                * art. 76 — transmission du proces-verbal d'inspection
+                  sociale a l'auditeur du travail ;
+                * art. 81 — prescription penale (5 ans niveaux 2-4,
+                  3 ans niveau 1, interruption art. 22-23 Titre prel.
+                  CIC) ;
+                * art. 100 et 100bis — force probante des PV
+                  d'inspection sociale (preuve contraire requise) ;
+                * art. 105 — multiplication × 5 personne morale,
+                  plafond 100 × max unitaire ;
+                * art. 119-235 (Livre 2) — definitions des infractions
+                  qualifiees (bien-etre, travail non declare,
+                  discrimination, entrave inspection, faux social).
+            - Loi du 04/08/1996 relative au bien-etre des travailleurs
+              lors de l'execution de leur travail — art. 26 obligation
+              de notification d'accident grave + procedure formelle
+              harcelement.
+            - Code penal BE art. 442bis — harcelement (infraction de
+              droit commun, distincte du manquement au bien-etre
+              traite en voie civile + medecin du travail).
+            - Loi du 10/05/2007 tendant a lutter contre certaines
+              formes de discrimination — art. 22-24 infractions
+              penales intentionnelles + art. 587bis C. jud. action
+              civile en cessation tribunal du travail.
+            - Loi du 16/11/1972 relative a l'inspection du travail —
+              regime procedural des constatations par les inspecteurs
+              sociaux (pouvoirs art. 6, audition, droits de la
+              defense, nullites de procedure Cass. P.16.0117.N
+              10/05/2016).
+
+            Regime BE-only — la France n'a pas d'auditorat du travail
+            equivalent. Les infractions au droit du travail FR
+            (travail dissimule C. trav. art. L. 8221-1 a L. 8224-5,
+            marchandage L. 8231-1 a L. 8234-3, pret illicite
+            L. 8241-1 a L. 8243-3, emploi etranger sans titre
+            L. 8251-1 a L. 8256-5, harcelement moral / sexuel
+            C. pen. art. 222-33 / 222-33-2, discrimination C. trav.
+            art. L. 1132-1 + C. pen. art. 225-1) sont poursuivies par
+            le procureur de la Republique sur proces-verbal de
+            l'inspection du travail (C. trav. art. L. 8112-1 et s.).
+            Pas d'auditorat specialise, pas de regle "Una Via"
+            strictement comparable (poursuites URSSAF / DREETS / OFII
+            distinctes des poursuites penales), pas d'avis obligatoire
+            d'auditeur dans le contentieux civil prud'homal. Aucune
+            transposition mecanique.
+
+            Distinct de :
+            - code-penal-social-be (prio 142) — quantification du
+              niveau de sanction encourue (amendes + emprisonnement)
+              une fois l'infraction qualifiee. Cet outil intervient
+              EN AMONT (orientation : faut-il saisir l'auditorat et
+              par quel mode procedural ?), code-penal-social-be
+              intervient EN AVAL (quel est le quantum encouru ?).
+              Complementarite forte sur les dossiers d'infraction
+              penale sociale caracterisee.
+            - harcelement-be-procedure-formelle (prio 115) — procedure
+              formelle CCT n° 72 + Loi 04/08/1996 (medecin du travail,
+              conseiller en prevention, CEPP). Distinct mais
+              complementaire : un harcelement penal art. 442bis
+              C. pen. peut engager parallelement l'auditorat (voie
+              penale) ET la procedure formelle CCT 72 (voie sociale).
+            - discrimination-be-handicap-amenagement (prio 141) —
+              refus d'amenagement raisonnable handicap (action civile
+              en cessation art. 587bis C. jud., dommages et interets
+              Loi 10/05/2007). Distinct mais complementaire : une
+              discrimination intentionnelle peut engager parallelement
+              l'auditorat (poursuites penales art. 22-24 Loi
+              10/05/2007).
+
+            Cet outil intervient en amont d'une saisine de l'auditorat
+            (analyse strategique de la pertinence et du mode
+            procedural) pour eclairer la decision de l'avocat :
+            faut-il plainter directement art. 63 CIC, denoncer
+            simplement art. 29 CIC, signaler a l'inspection sociale
+            (PV transmis art. 76 C. pen. soc.), ou rester sur la voie
+            civile tribunal du travail (art. 578 C. jud.) ? L'outil
+            ne tranche pas — il oriente et liste les drapeaux
+            procèduraux conditionnels (constitution partie civile
+            recommandee, inspection prealable requise, voie civile
+            concurrente, prescription bloquante, urgence a signaler,
+            "Una Via" applicable, avis obligatoire civil).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('5b71c0f7-8ea4-4b1a-940d-6c24d44506cd', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'auditorat-travail-be', 'ALWAYS_ON', NULL, NULL, 143);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '5b71c0f7-8ea4-4b1a-940d-6c24d44506cd';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

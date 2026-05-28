@@ -219,6 +219,8 @@ import { EgaliteFemmesHommesBeSectionComponent } from '../egalite-femmes-hommes-
 import { DiscriminationBeHandicapAmenagementSectionComponent } from '../discrimination-be-handicap-amenagement-section/discrimination-be-handicap-amenagement-section.component';
 // SF-219-24b : section décisionnelle Code pénal social BE — Loi 06/06/2010 (BE-only, ALWAYS_ON, qualification d'infraction + niveau de sanction 1 à 4).
 import { CodePenalSocialBeSectionComponent } from '../code-penal-social-be-section/code-penal-social-be-section.component';
+// SF-219-25b : section décisionnelle Auditorat du travail BE — Code judiciaire art. 138bis + CIC art. 24 + Loi 03/08/1992 (BE-only, ALWAYS_ON, orientation et checklist de saisine).
+import { AuditoratTravailBeSectionComponent } from '../auditorat-travail-be-section/auditorat-travail-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
 import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
@@ -3055,6 +3057,40 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-219-25b : outil décisionnel Auditorat du travail BE
+      // (Code judiciaire art. 138bis + Code d'instruction criminelle
+      // art. 24 + Loi du 03/08/1992 sur le Code judiciaire + Loi du
+      // 06/06/2010 introduisant le Code pénal social). Outil
+      // d'orientation et de checklist de saisine du parquet
+      // spécialisé en droit social pénal. Verdicts :
+      // SAISINE_AUDITORAT_RECOMMANDEE (infraction pénale sociale
+      // caractérisée, accident grave, harcèlement pénal art. 442bis
+      // C. pén., discrimination pénale, entrave inspection),
+      // DENONCIATION_INSPECTION_PREALABLE (travail non déclaré
+      // suspecté, PV transmis art. 76 C. pén. soc.),
+      // SAISINE_NON_PERTINENTE (litige civil pur art. 578 C. jud.
+      // ou faits prescrits art. 81 C. pén. soc.), A_QUALIFIER
+      // (nature ouverte ou pluri-qualifications à arbitrer).
+      // BE uniquement (la France n'a pas d'auditorat du travail
+      // équivalent — PV inspection au procureur sur
+      // art. L. 8112-1 et s. C. trav. FR).
+      // Pré-fill IA V1 : aucun champ (alignement pattern uniforme
+      // F-213 / F-219 — nature des faits, mode de saisine,
+      // prescription, urgence, recours pénal, qualité employeur non
+      // extractibles du dossier salarié individuel — relèvent de
+      // l'analyse stratégique avocat et du dossier d'instruction).
+      ['auditorat-travail-be', {
+        displayLabel: 'Auditorat du travail (Belgique)',
+        component: AuditoratTravailBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-DT-28-avantages-conventionnels-be', {
         displayLabel: 'Avantages conventionnels (Belgique)',
         component: AvantagesConventionnelsBeSectionComponent,
@@ -4423,6 +4459,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // restitution de la peine encourue — pas de chiffrage indemnitaire
     // (distinct des outils INDEMNITES rappel-salaire-be, formule-claeys).
     ['code-penal-social-be', 'VALIDITE'],
+    // SF-219-25b : Auditorat du travail BE (orientation et checklist
+    // de saisine du parquet spécialisé en droit social pénal).
+    // Thème VALIDITE — l'outil qualifie la pertinence procédurale
+    // d'une saisine de l'auditorat (compétence, mode adéquat,
+    // prescription, urgence) sans produire de chiffrage indemnitaire.
+    // Cohérent avec les autres outils d'orientation procédurale
+    // pénale-statutaire BE (code-penal-social-be VALIDITE,
+    // harcelement-be-procedure-formelle VALIDITE).
+    ['auditorat-travail-be', 'VALIDITE'],
     // SF-207-08b : Outplacement BE obligatoire 45+ (analyseur de conformité,
     // 5 verdicts). Thème VALIDITE — cohérent avec les autres analyseurs de
     // conformité légale (rcc-be-conditions, F-DT-27-motif-grave-be).

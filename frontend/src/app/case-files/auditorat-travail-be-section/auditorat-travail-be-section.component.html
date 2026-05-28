@@ -1,0 +1,346 @@
+<div class="auditorat-travail-be-section">
+  <button class="section-header" type="button" (click)="toggleCollapse()">
+    <mat-icon class="section-icon">account_balance</mat-icon>
+    <span class="section-title">Auditorat du travail (Belgique)</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class]="verdictBadgeClass(result()!.verdict)">
+        {{ verdictBadge(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="auditorat-travail-be-body">
+
+      @if (!isAvailable()) {
+        <div class="empty-result" role="note">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cet outil est réservé aux dossiers de droit du travail belge
+            (Code judiciaire art. 138bis — auditorat du travail, parquet
+            spécialisé compétent pour la poursuite des infractions au
+            droit social pénal et l'avis dans les contentieux civils du
+            tribunal du travail). La France n'a pas d'auditorat du
+            travail équivalent : les infractions au droit du travail FR
+            sont poursuivies par le procureur de la République sur PV
+            de l'inspection du travail (Code du travail
+            art. L. 8112-1 et s.). Aucune transposition mécanique n'est
+            possible.
+          </span>
+        </div>
+      }
+
+      @if (isAvailable() && loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && showForm()) {
+        <div class="questionnaire">
+
+          <p class="form-help">
+            Détermine la <b>pertinence et le mode de saisine</b> de
+            l'auditorat du travail (parquet spécialisé en droit social
+            pénal — art. 138bis C. jud.). Saisir la <b>nature des faits</b>
+            (8 cas dont infraction Code pénal social Livre 2, accident
+            grave non déclaré art. 124 C. pén. soc., harcèlement pénal
+            art. 442bis C. pén., entrave inspection art. 209-212), le
+            <b>mode de saisine envisagé</b> (plainte directe art. 63 CIC,
+            dénonciation simple art. 29 CIC, signalement inspection
+            art. 76 C. pén. soc., voie civile parallèle art. 578 C. jud.),
+            la <b>date des faits</b> (prescription pénale art. 81
+            C. pén. soc.) et les <b>éléments procéduraux</b> (prescription,
+            inspection déjà saisie, plainte civile parallèle, urgence,
+            recours pénal envisagé, qualité employeur personne morale
+            art. 105). L'outil restitue le verdict d'orientation (4
+            routes + qualification ouverte) et les drapeaux d'analyse
+            associés. Champs marqués * requis.
+          </p>
+
+          <form class="form-grid" (ngSubmit)="calculate()">
+
+            <!-- 1. Nature des faits * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Nature des faits *</mat-label>
+                <mat-select
+                    [value]="natureFait()"
+                    (selectionChange)="onNatureFaitChange($event.value)"
+                    name="natureFait"
+                    required>
+                  <mat-option value="INFRACTION_PENALE_SOCIALE">
+                    Infraction Code pénal social (art. 119-235 — Livre 2)
+                  </mat-option>
+                  <mat-option value="ACCIDENT_TRAVAIL_GRAVE">
+                    Accident du travail grave (art. 26 Loi 04/08/1996 + art. 124 C. pén. soc.)
+                  </mat-option>
+                  <mat-option value="TRAVAIL_NON_DECLARE_SUSPECTE">
+                    Travail non déclaré suspecté (art. 181 C. pén. soc.)
+                  </mat-option>
+                  <mat-option value="DISCRIMINATION_PENALE">
+                    Discrimination pénale (art. 22-24 Loi 10/05/2007)
+                  </mat-option>
+                  <mat-option value="HARCELEMENT_PENAL">
+                    Harcèlement moral / sexuel pénal (art. 442bis C. pén.)
+                  </mat-option>
+                  <mat-option value="ENTRAVE_INSPECTION">
+                    Entrave à l'inspection sociale (art. 209-212 C. pén. soc.)
+                  </mat-option>
+                  <mat-option value="LITIGE_CIVIL_PUR">
+                    Litige civil pur (compétence tribunal travail — art. 578 C. jud.)
+                  </mat-option>
+                  <mat-option value="AUTRE">
+                    Autre nature — qualification ouverte
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Détermine la compétence de l'auditorat ou le renvoi au tribunal du travail.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 2. Mode de saisine envisagé * -->
+            <div class="field-with-alert field-full-width">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Mode de saisine envisagé *</mat-label>
+                <mat-select
+                    [value]="modeSaisineEnvisage()"
+                    (selectionChange)="onModeSaisineEnvisageChange($event.value)"
+                    name="modeSaisineEnvisage"
+                    required>
+                  <mat-option value="PLAINTE_DIRECTE">
+                    Plainte directe avec constitution partie civile (art. 63 CIC)
+                  </mat-option>
+                  <mat-option value="DENONCIATION_SIMPLE">
+                    Dénonciation simple sans constitution partie civile (art. 29 CIC)
+                  </mat-option>
+                  <mat-option value="SIGNALEMENT_INSPECTION_SOCIALE">
+                    Signalement inspection sociale (PV transmis art. 76 C. pén. soc.)
+                  </mat-option>
+                  <mat-option value="VOIE_CIVILE_PARALLELE">
+                    Voie civile tribunal travail (art. 578 C. jud.) en parallèle
+                  </mat-option>
+                  <mat-option value="INDETERMINE">
+                    Mode non encore choisi (analyse préliminaire)
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Conditionne la checklist procédurale restituée.</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 3. Date faits (facultatif) -->
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date des faits (facultatif)</mat-label>
+                <input matInput
+                       type="date"
+                       [ngModel]="dateFaits()"
+                       (ngModelChange)="onDateFaitsChange($event)"
+                       name="dateFaits" />
+                <mat-hint>Conditionne la prescription pénale (art. 81 C. pén. soc.).</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- 4. Faits prescrits * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="faitsPrescrits() === true"
+                  [indeterminate]="faitsPrescrits() === null"
+                  (change)="onFaitsPrescritsChange($event.checked)"
+                  name="faitsPrescrits">
+                <b>Faits prescrits (art. 81 C. pén. soc.)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                5 ans pour les niveaux 2-4 ; 3 ans pour le niveau 1, à compter de la commission.
+              </small>
+            </div>
+
+            <!-- 5. Inspection déjà saisie * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="inspectionDejaSaisie() === true"
+                  [indeterminate]="inspectionDejaSaisie() === null"
+                  (change)="onInspectionDejaSaisieChange($event.checked)"
+                  name="inspectionDejaSaisie">
+                <b>Inspection sociale déjà saisie / PV existe</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Bascule vers la voie auditorat directe (art. 76 C. pén. soc.).
+              </small>
+            </div>
+
+            <!-- 6. Plainte civile déposée * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="plainteCivileDeposee() === true"
+                  [indeterminate]="plainteCivileDeposee() === null"
+                  (change)="onPlainteCivileDeposeeChange($event.checked)"
+                  name="plainteCivileDeposee">
+                <b>Plainte civile parallèle déposée (tribunal travail)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                N'affecte pas la voie pénale (autonomie art. 4 Titre prél. CIC).
+              </small>
+            </div>
+
+            <!-- 7. Urgence sécurité personnes * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="urgenceSecuritePersonnes() === true"
+                  [indeterminate]="urgenceSecuritePersonnes() === null"
+                  (change)="onUrgenceSecuritePersonnesChange($event.checked)"
+                  name="urgenceSecuritePersonnes">
+                <b>Urgence sécurité personnes (danger immédiat)</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                L'auditorat dispose d'un pouvoir de mesures conservatoires et de réquisition.
+              </small>
+            </div>
+
+            <!-- 8. Recours pénal envisagé * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="recoursPenalEnvisage() === true"
+                  [indeterminate]="recoursPenalEnvisage() === null"
+                  (change)="onRecoursPenalEnvisageChange($event.checked)"
+                  name="recoursPenalEnvisage">
+                <b>Recours pénal envisagé comme axe principal</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Ajuste la checklist (constitution partie civile, articulation civil).
+              </small>
+            </div>
+
+            <!-- 9. Employeur personne morale * -->
+            <div class="field-with-alert field-full-width checkbox-row">
+              <mat-checkbox
+                  [checked]="employeurPersonneMorale() === true"
+                  [indeterminate]="employeurPersonneMorale() === null"
+                  (change)="onEmployeurPersonneMoraleChange($event.checked)"
+                  name="employeurPersonneMorale">
+                <b>Employeur personne morale</b> *
+              </mat-checkbox>
+              <small class="checkbox-hint">
+                Multiplication × 5 des amendes (art. 105 C. pén. soc.) en cas de poursuite.
+              </small>
+            </div>
+
+            <div class="form-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la saisine</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (isAvailable() && !loading() && !showForm() && result()) {
+        <div class="auditorat-travail-be-result">
+
+          <!-- Bannière verdict -->
+          <div class="result-banner" role="status" [class]="verdictClass()">
+            <mat-icon>{{ verdictIcon() }}</mat-icon>
+            <div class="result-banner-content">
+              <div class="result-banner-title">
+                {{ verdictLabel() }}
+              </div>
+              <div class="result-banner-sub">
+                Nature : <b>{{ natureFaitLabel(result()!.natureFait) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ventilation drapeaux d'analyse -->
+          <div class="ventilations-list">
+            <div class="ventilations-title">Drapeaux d'analyse et orientation procédurale</div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">route</mat-icon>
+              <span class="ventilation-label">Mode de saisine recommandé</span>
+              <span class="ventilation-value mono">
+                {{ modeSaisineLabel(result()!.modeSaisineRecommande) }}
+              </span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">how_to_reg</mat-icon>
+              <span class="ventilation-label">Constitution partie civile recommandée (art. 63 CIC)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.constitutionPartieCivileRecommandee) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">fact_check</mat-icon>
+              <span class="ventilation-label">Inspection sociale préalable requise (art. 76)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.inspectionPrealableRequise) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">balance</mat-icon>
+              <span class="ventilation-label">Voie civile concurrente possible (art. 4 Titre prél. CIC)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.voieCivileConcurrente) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">block</mat-icon>
+              <span class="ventilation-label">Prescription pénale bloquante (art. 81)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.prescriptionBloquante) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">priority_high</mat-icon>
+              <span class="ventilation-label">Urgence à signaler à l'auditeur</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.urgenceSignalee) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">rule</mat-icon>
+              <span class="ventilation-label">Règle « Una Via » applicable (art. 73 C. pén. soc.)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.unaViaApplicable) }}</span>
+            </div>
+
+            <div class="ventilation-row">
+              <mat-icon class="ventilation-icon">verified</mat-icon>
+              <span class="ventilation-label">Avis d'auditeur obligatoire en voie civile (art. 138bis)</span>
+              <span class="ventilation-value mono">{{ formatBoolean(result()!.avisAuditeurObligatoireCivil) }}</span>
+            </div>
+          </div>
+
+          <!-- Synthèse -->
+          @if (result()!.synthese) {
+            <div class="result-fondement" role="region">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.synthese }}</span>
+            </div>
+          }
+
+          <!-- Avertissement -->
+          @if (result()!.avertissement) {
+            <div class="result-alert" role="alert">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ result()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="result-meta">
+            <span class="result-meta-base mono">{{ result()!.baseJuridique }}</span>
+            <button mat-stroked-button type="button" (click)="editMode()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+
+          <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+          <app-tool-jurisprudence-citations
+            [toolId]="toolIdForJurisprudence"
+            [branchActive]="brancheActiveForJurisprudence">
+          </app-tool-jurisprudence-citations>
+        </div>
+      }
+    </div>
+  }
+</div>
