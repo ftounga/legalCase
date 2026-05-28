@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20a047b1-31af-4377-8752-2f5abd339773" author="claude">
+        <comment>
+            SF-219-12b — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel « Flexi-job (Belgique) »
+            (flexi-job-be, BELGIQUE, DROIT_DU_TRAVAIL), table d'analyses
+            créée par SF-219-12 (migration 396).
+
+            Choix `layer = ALWAYS_ON` plutôt que CONTEXTUAL :
+
+            Le pipeline IA Travail BE actuel n'extrait pas mécaniquement
+            la date de première occupation flexi pour CET employeur, ni
+            le statut du candidat (pensionné toutes catégories ou salarié
+            4/5 ETP T-3 chez un AUTRE employeur — DmfA ONSS référence
+            T-3), ni le secteur paritaire de l'employeur flexi (commission
+            paritaire CP 302 HoReCa / CP 119 boulangerie / CP 314 coiffure /
+            CP 201-202-311-312 commerce / CP 132-144-145 agriculture /
+            CP 223 sport / CP 304 culture / etc.), ni le formalisme cumulatif
+            (contrat-cadre écrit art. 16 Loi-prog. 26/12/2013 + Dimona
+            spécifique FLX DmfA ONSS), ni les paramètres légaux indexés
+            (flexi-salaire minimum ~12,33 €/h au 01/05/2024, plafond annuel
+            exonéré ~12 000 € au 01/05/2024 inapplicable aux pensionnés
+            depuis 2018). Aucun flag DB CONTEXTUAL fiable n'est disponible ;
+            l'introduire pour un seul outil ajouterait une exception isolée.
+
+            Motifs :
+            1. Pas de flag DB CONTEXTUAL fiable disponible — l'introduire
+               pour ce seul outil créerait une exception isolée et
+               nécessiterait une extraction IA enrichie (date occupation
+               flexi employeur / statut T-3 chez AUTRE employeur / secteur
+               paritaire flexi / formalisme Dimona FLX / paramètres légaux
+               indexés) non couverte V1.
+            2. Pertinence dès la première rencontre client — l'avocat
+               peut activer l'outil dès qu'un dossier de droit du travail
+               BE évoque une occupation atypique (pensionné cumulant un
+               complément de revenu, salarié temps plein souhaitant un
+               revenu d'appoint sectoriel HoReCa/commerce/sport/culture/
+               garages/transport).
+            3. Cohérence avec les autres outils F-213 V1 + F-219 (tous
+               ALWAYS_ON priority 110-129) :
+                 - 110 rappel-salaire-be
+                 - 111 statut-unique-preavis
+                 - 112 formule-claeys
+                 - 113 protection-grossesse
+                 - 114 transaction-be-travail
+                 - 115 harcelement-be-procedure-formelle
+                 - 116 protection-deleguee
+                 - 117 acte-equivalent
+                 - 118 cct109-deraisonnable
+                 - 119 rcc-be-metiers-lourds (SF-219-01b)
+                 - 120 rcc-be-longue-carriere (SF-219-02b)
+                 - 121 rcc-be-entreprise-difficulte (SF-219-03b)
+                 - 122 cumul-rcc-allocations (SF-219-04b)
+                 - 123 outplacement-be-general-30sem (SF-219-05b)
+                 - 124 licenciement-be-fermeture-entreprise (SF-219-06b)
+                 - 125 licenciement-be-collectif-renault (SF-219-07b)
+                 - 126 transfert-entreprise-cct-32bis (SF-219-08b)
+                 - 127 elections-sociales-be (SF-219-09b)
+                 - 128 delegue-syndical-cct-5 (SF-219-10b)
+                 - 129 conge-education-paye-region (SF-219-11b — parallèle)
+                 - 130 cette migration (flexi-job-be)
+               Évite une exception isolée qui compliquerait la lisibilité
+               du panel.
+            4. Pas de coût pour l'utilisateur — l'outil reste replié par
+               défaut (`collapsed=true`) et la gate
+               `workspaceCountry === 'BELGIQUE'` côté composant masque le
+               contenu en cas de dossier FR.
+
+            Couplée à l'entrée TOOL_REGISTRY `flexi-job-be`
+            livrée dans decisional-tools-panel.component.ts
+            (cf. SF-219-12b). Sans ce couplage, le garde-fou CI
+            DecisionToolVisibilityIntegrityIT échoue (seed en DB sans
+            entrée TOOL_REGISTRY frontend = outil silencieusement masqué
+            — cas réel F-164 staging 2026-04-26, mémoire
+            `feedback_pre_merge_visibility_seed_check`).
+
+            tool_id `flexi-job-be` déjà ajouté à
+            `KNOWN_NO_DASHBOARD_TILE_IDS` côté backend par SF-219-12
+            PR #1404 (préventif, évite master-red à l'arrivée de cette SF
+            frontend). Aucune tuile dashboard n'est associée — l'outil est
+            consulté uniquement depuis le panel décisionnel du case file.
+
+            Fondement juridique :
+            - Loi-programme du 26/12/2013 (M.B. 31/12/2013) art. 13 à 28 :
+              instauration du régime flexi-job (HoReCa CP 302
+              uniquement), conditions personnelles (pensionné ou salarié
+              4/5 ETP T-3 chez un AUTRE employeur), formalisme cumulatif
+              (contrat-cadre écrit art. 16 + Dimona spécifique FLX),
+              flexi-salaire minimum + plafond annuel exonéré.
+            - Loi du 25/04/2014 (dispositions diverses sécurité sociale) :
+              ajustements techniques Dimona FLX et CITSS.
+            - Loi-programme du 16/11/2015 : extension boulangerie
+              (CP 119) + coiffure (CP 314), validée par Cour const.
+              arrêt 107/2017 du 28/09/2017.
+            - Loi-programme du 30/10/2018 : extension commerce de détail
+              (CP 201/202/311/312), agriculture / horticulture
+              (CP 132/144/145), soins de santé partiels + SUPPRESSION
+              du plafond de cumul pour les pensionnés toutes catégories.
+            - Loi-programme du 28/12/2023 + AR 02/06/2024 : extension
+              secteurs publics limités, sport (CP 223), culture (CP 304),
+              événementiel, déménagement (CP 140.05), garages (CP 112),
+              transport autocar (CP 140.01), assurances limité +
+              indexation du flexi-salaire minimum (~12,33 €/h au
+              01/05/2024) et du plafond annuel exonéré (~12 000 € au
+              01/05/2024).
+
+            Régime BE-only — la France n'a pas d'équivalent direct au
+            flexi-job. Le régime de « CDD d'usage » (C. trav. art.
+            L. 1242-2 § 3) et de « CDI intérimaire » (art. L. 1251-58-1)
+            partage une logique d'occupation atypique dans des secteurs
+            limitativement énumérés mais les régimes de cotisations, de
+            formalisme (Dimona inexistante en FR — DPAE différente) et
+            de plafonds annuels sont structurellement incomparables.
+
+            Distinct de :
+            - `rcc-be-metiers-lourds` (SF-219-01b, prio 119) — régime
+              de chômage avec complément d'entreprise. Sans rapport
+              avec le flexi-job (régime d'occupation atypique).
+            - `outplacement-be-general-30sem` (SF-219-05b, prio 123) —
+              accompagnement obligatoire à la sortie. Sans rapport avec
+              l'entrée dans une occupation flexi.
+            - `transfert-entreprise-cct-32bis` (SF-219-08b, prio 126) —
+              transfert d'entreprise CCT 32bis. Sans rapport avec le
+              régime individuel flexi.
+            - `protection-grossesse` (F-213, prio 113) — protection
+              spécifique grossesse Loi 16/03/1971. Cumulable mais sans
+              recouvrement de logique.
+            Cet outil intervient à la qualification d'une occupation
+            flexi-job — vérifie l'éligibilité par 5 dimensions
+            cumulatives + verdict hiérarchisé 7 états + montant
+            excédentaire au plafond annuel exonéré.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('20a047b1-31af-4377-8752-2f5abd339773', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'flexi-job-be', 'ALWAYS_ON', NULL, NULL, 130);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '20a047b1-31af-4377-8752-2f5abd339773';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
