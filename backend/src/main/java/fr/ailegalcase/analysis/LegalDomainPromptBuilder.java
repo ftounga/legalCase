@@ -1116,6 +1116,9 @@ public final class LegalDomainPromptBuilder {
             "aes_familial_eligible_detecte" : booléen — true si le dossier évoque une AES au titre des liens personnels et familiaux (art. L. 435-1 CESEDA — durée de séjour, intensité des liens, scolarisation des enfants en France, conjoint Français, etc.). False par défaut.
             "aes_humanitaire_eligible_detecte" : booléen — true si le dossier évoque une AES pour motif humanitaire (art. L. 435-1 CESEDA — situation médicale grave non couverte par L.425-9, victime d'une infraction grave, etc.). False par défaut.
             "aes_etudiant_eligible_detecte" : booléen — true si le dossier évoque une AES au titre étudiant (art. L. 435-3 CESEDA — étudiant en cours d'études, parcours universitaire continu, etc.). False par défaut.
+            # SF-214-11 — NE PAS EXTRAIRE de flag "aes_calcul_presence_declenche" : ce flag pivot
+            # de l'outil F-IM-30 (AES calcul présence prouvée) est DÉRIVÉ côté backend par OR des
+            # 4 flags AES ci-dessus, jamais demandé au modèle.
             "changement_statut_envisage_detecte" : booléen — true si le dossier évoque un changement de statut envisagé (étudiant → salarié L.412-1, conjoint → indépendant, asile rejeté → AES, etc.) avec indice factuel (CDI signé, demande déposée, etc.). False par défaut.
             "procedure_asile_detectee" : booléen — true uniquement si le dossier comporte une procédure d'asile en cours ou récente (récépissé asile, dépôt OFPRA, recours CNDA, attestation demande asile, document Dublin). False par défaut.
             "naturalisation_envisagee_detectee" : booléen — true uniquement si le dossier évoque une démarche de naturalisation en cours ou imminente (dossier déposé en préfecture, demande par décret art. 21-15 CCiv, demande par déclaration art. 21-2 / 21-13). False par défaut.

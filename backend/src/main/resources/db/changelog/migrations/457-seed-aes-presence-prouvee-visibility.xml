@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="457-seed-aes-presence-prouvee-visibility" author="legalcase">
+        <comment>
+            SF-214-11 — seed `decision_tool_visibility_rules` pour l'outil décisionnel
+            "AES calcul présence prouvée" (F-IM-30-aes-presence-prouvee-fr, FRANCE
+            uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil de calcul de
+            présence prouvée est transversal aux 4 voies AES. Il apparaît dès qu'au
+            moins une des 4 voies AES est détectée par le pipeline IA. Plutôt que de
+            répliquer 4 règles, on utilise un flag pivot dérivé
+            `aes_calcul_presence_declenche` = true, calculé par
+            DecisionToolVisibilityService comme l'OR des 4 flags AES existants
+            (aes_metiers_tension_eligible_detecte, aes_familial_eligible_detecte,
+            aes_humanitaire_eligible_detecte, aes_etudiant_eligible_detecte — F-201).
+            priority 30 — après F-IM-29 OQTF catégories (priority 29).
+
+            Source juridique : circulaire 28/11/2012 (Valls) ; L. 435-1 / L. 435-3
+            CESEDA ; CE 4 décembre 2009 n° 310980.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-214 : f214000d-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f214000d-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-30-aes-presence-prouvee-fr', 'CONTEXTUAL', 'aes_calcul_presence_declenche', 'true', 30);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f214000d-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

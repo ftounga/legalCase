@@ -305,6 +305,12 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_familial_envisage");
         // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "vie_privee_familiale_detectee");
+        // SF-214-11 : F-IM-30 AES calcul présence prouvée FR — flag pivot DÉRIVÉ.
+        // L'outil de calcul de présence est transversal aux 4 voies AES : il se déclenche
+        // dès qu'au moins une des 4 voies AES est détectée. Le flag pivot
+        // `aes_calcul_presence_declenche` n'est pas extrait par le pipeline IA — il est
+        // dérivé ici par OR des 4 flags AES existants (F-201).
+        addDerivedAesPresenceDeclenche(detected, immigrationNode);
 
         // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
         // les règles CONTEXTUAL conditionnées à un régime national bilatéral
@@ -556,6 +562,34 @@ public class DecisionToolVisibilityService {
             return;
         }
         map.computeIfAbsent(field, k -> new HashSet<>()).add(value);
+    }
+
+    /**
+     * SF-214-11 : flag pivot DÉRIVÉ {@code aes_calcul_presence_declenche} pour l'outil
+     * F-IM-30 AES calcul présence prouvée (FR). L'outil étant transversal aux 4 voies
+     * AES, il se déclenche dès qu'au moins un des 4 flags AES existants (F-201) est true :
+     * {@code aes_metiers_tension_eligible_detecte}, {@code aes_familial_eligible_detecte},
+     * {@code aes_humanitaire_eligible_detecte}, {@code aes_etudiant_eligible_detecte}.
+     * Le flag n'est PAS extrait par le pipeline IA : il est calculé ici par OR.
+     */
+    private static void addDerivedAesPresenceDeclenche(Map<String, Set<String>> detected, JsonNode parent) {
+        boolean any = readBooleanFlag(parent, "aes_metiers_tension_eligible_detecte")
+                || readBooleanFlag(parent, "aes_familial_eligible_detecte")
+                || readBooleanFlag(parent, "aes_humanitaire_eligible_detecte")
+                || readBooleanFlag(parent, "aes_etudiant_eligible_detecte");
+        if (any) {
+            addIfPresent(detected, "aes_calcul_presence_declenche", "true");
+        }
+    }
+
+    /** Lit un flag booléen tolérant (boolean natif ou texte "true"). false si absent/null. */
+    private static boolean readBooleanFlag(JsonNode parent, String field) {
+        if (parent == null || !parent.has(field)) return false;
+        JsonNode v = parent.get(field);
+        if (v == null || v.isNull()) return false;
+        if (v.isBoolean()) return v.asBoolean();
+        if (v.isTextual()) return "true".equalsIgnoreCase(v.asText());
+        return false;
     }
 
     private VisibleToolSetResponse buildResponse(List<DecisionToolVisibilityRule> rules,
