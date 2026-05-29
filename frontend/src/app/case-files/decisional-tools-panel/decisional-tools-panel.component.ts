@@ -65,6 +65,8 @@ import { RegroupementFamilialSectionComponent } from '../regroupement-familial-s
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
 import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vls-ts-validation-section.component';
+// SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
+import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-categories-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
@@ -1557,6 +1559,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-28-vls-ts-validation-ofii-fr', {
         displayLabel: 'Validation VLS-TS OFII (FR)',
         component: VlsTsValidationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF
+      // catégories L.611-1 (FR). FR uniquement. Pour la catégorie L.611-1 (1° à 7°)
+      // choisie : moyens de défense spécifiques + base juridique + délai de recours
+      // + renvoi F-IM-22 (Dublin) si CAT_7. Pré-fill IA 2 champs (dateNotificationOqtf,
+      // motifOqtf depuis motifOqtfCode) via static getPrefillCount + OqtfCategoriesPrefillRules.
+      ['F-IM-29-oqtf-categories-l6111-fr', {
+        displayLabel: 'OQTF catégories L.611-1 (FR)',
+        component: OqtfCategoriesSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4636,6 +4653,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // procédure de recours si expiré). FR uniquement, ALWAYS_ON. Aligné sur
     // F-IM-25-single-permit-be et les autres calculateurs de délais Immigration.
     ['F-IM-28-vls-ts-validation-ofii-fr', 'DELAIS'],
+    // SF-214-10 : F-IM-29-oqtf-categories-l6111-fr OQTF catégories L.611-1 (FR).
+    // Thème VALIDITE — analyseur des moyens de défense propres à chaque catégorie
+    // L.611-1 (1° à 7°) + renvoi F-IM-22 si CAT_7. ThemeKey VALIDITE (le groupement
+    // métier « contentieux OQTF » de la mini-spec se rattache au thème VALIDITE,
+    // seul ThemeKey disponible pour les analyseurs de validité/qualification).
+    ['F-IM-29-oqtf-categories-l6111-fr', 'VALIDITE'],
     // SF-215-02 : F-IM-25-single-permit-be permis unique BE (travail+séjour).
     // Thème DELAIS (calcul date limite dépôt = dateFinPermit - 60j + 4 statuts
     // de renouvellement). Aligné sur les autres outils Immigration BE-only
