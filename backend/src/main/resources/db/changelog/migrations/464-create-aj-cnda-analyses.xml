@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="464-create-aj-cnda-analyses" author="legalcase">
+        <comment>
+            SF-214-19 — table `aj_cnda_analyses` pour l'outil décisionnel
+            "AJ CNDA — éligibilité et délais" (F-IM-34-aj-cnda-fr, FRANCE).
+
+            Outil single-country FR : vérifie l'éligibilité à l'aide
+            juridictionnelle (AJ) devant la Cour nationale du droit d'asile (CNDA)
+            sous condition de ressources et calcule les délais — recours CNDA
+            (1 mois, 15 j en procédure accélérée) et demande d'AJ (15 j). Persiste
+            l'analyse 1:1 par dossier.
+
+            Source juridique : loi n° 91-647 du 10/07/1991 (aide juridictionnelle,
+            art. 2, 4, 9-12) ; décret n° 2020-1717 du 28/12/2020 (plafonds AJ) ;
+            L. 532-1 à L. 532-35 CESEDA (procédure CNDA) ; L. 532-4 CESEDA (délai
+            de recours) ; R. 532-1 à R. 532-7 CESEDA (modalités AJ devant la CNDA).
+
+            UUID namespace F-214 : f2140013-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="aj_cnda_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_aj_cnda_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_decision_ofpra" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ressources_mensuelles_nettes" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column name="procedure_acceleree" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_aj_deposee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_depot_aj" type="DATE"/>
+            <column name="eligible_aj" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="aj_cnda_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

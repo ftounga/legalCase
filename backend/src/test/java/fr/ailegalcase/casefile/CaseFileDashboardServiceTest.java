@@ -104,6 +104,8 @@ class CaseFileDashboardServiceTest {
     private RecepisseAttestationRepository recepisseAttestationRepo;
     // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FR)
     private OfpraIntroductionRepository ofpraIntroductionRepo;
+    // SF-214-19 : F-IM-34 AJ CNDA éligibilité & délais loi 91-647 / L. 532-4 CESEDA (FR)
+    private AjCndaRepository ajCndaRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -237,6 +239,7 @@ class CaseFileDashboardServiceTest {
         renouvellementDelaiRepo = mock(RenouvellementDelaiRepository.class);
         recepisseAttestationRepo = mock(RecepisseAttestationRepository.class);
         ofpraIntroductionRepo = mock(OfpraIntroductionRepository.class);
+        ajCndaRepo = mock(AjCndaRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -461,6 +464,7 @@ class CaseFileDashboardServiceTest {
                 renouvellementDelaiRepo,
                 recepisseAttestationRepo,
                 ofpraIntroductionRepo,
+                ajCndaRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

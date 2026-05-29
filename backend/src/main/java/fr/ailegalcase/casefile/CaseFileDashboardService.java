@@ -116,6 +116,8 @@ public class CaseFileDashboardService {
     private final RecepisseAttestationRepository recepisseAttestationRepo;
     // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FR)
     private final OfpraIntroductionRepository ofpraIntroductionRepo;
+    // SF-214-19 : F-IM-34 AJ CNDA éligibilité & délais loi 91-647 / L. 532-4 CESEDA (FR)
+    private final AjCndaRepository ajCndaRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -263,6 +265,7 @@ public class CaseFileDashboardService {
                                      RenouvellementDelaiRepository renouvellementDelaiRepo,
                                      RecepisseAttestationRepository recepisseAttestationRepo,
                                      OfpraIntroductionRepository ofpraIntroductionRepo,
+                                     AjCndaRepository ajCndaRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -393,6 +396,7 @@ public class CaseFileDashboardService {
         this.renouvellementDelaiRepo = renouvellementDelaiRepo;
         this.recepisseAttestationRepo = recepisseAttestationRepo;
         this.ofpraIntroductionRepo = ofpraIntroductionRepo;
+        this.ajCndaRepo = ajCndaRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -594,6 +598,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-32-recepisse-attestation-fr", caseFileId, () -> tileFromRecepisseAttestationAnalysis(caseFileId));
         // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FR)
         addSafely(tiles, "F-IM-33-ofpra-introduction-fr", caseFileId, () -> tileFromOfpraIntroductionAnalysis(caseFileId));
+        // SF-214-19 : F-IM-34 AJ CNDA éligibilité & délais loi 91-647 / L. 532-4 CESEDA (FR)
+        addSafely(tiles, "F-IM-34-aj-cnda-fr", caseFileId, () -> tileFromAjCndaAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2014,6 +2020,41 @@ public class CaseFileDashboardService {
                         "F-IM-33-ofpra-introduction-fr",
                         "DELAIS",
                         "Introduction OFPRA (GUDA/ADA)",
+                        effectif.name(),
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-19 — tuile F-IM-34 AJ CNDA : statut d'éligibilité / délais d'aide
+     * juridictionnelle devant la CNDA. ALERT si hors délai, WARNING si non
+     * éligible aux ressources, OK sinon (à demander / déposée).
+     */
+    private DashboardTile tileFromAjCndaAnalysis(UUID caseFileId) {
+        return ajCndaRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AjCndaResult.class);
+                AjCndaStatut statut = r.statut();
+                AjCndaStatut effectif = statut == null ? AjCndaStatut.AJ_A_DEMANDER : statut;
+                String secondary = switch (effectif) {
+                    case AJ_A_DEMANDER -> "AJ à demander avant le " + r.dateEcheanceDemandeAJ();
+                    case AJ_DEPOSEE -> "Demande d'AJ déposée";
+                    case HORS_DELAI_AJ -> "Délai de demande d'AJ (15 j) dépassé";
+                    case NON_ELIGIBLE_RESSOURCES -> "Ressources > plafond AJ";
+                };
+                String alert = switch (effectif) {
+                    case HORS_DELAI_AJ -> "ALERT";
+                    case NON_ELIGIBLE_RESSOURCES -> "WARNING";
+                    case AJ_A_DEMANDER, AJ_DEPOSEE -> "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-34-aj-cnda-fr",
+                        "DELAIS",
+                        "AJ CNDA — éligibilité & délais",
                         effectif.name(),
                         secondary,
                         alert);

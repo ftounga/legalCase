@@ -2372,6 +2372,9 @@ public record CaseAnalysisResponse(
             Integer algerienPresenceReguliereMois,
             /** Date de la décision antérieure sur demande d'asile (YYYY-MM-DD, non future). */
             String asileDateDecisionAnterieure,
+            /** SF-214-19 : true si la demande d'asile a été examinée en procédure accélérée
+             *  (pays sûr, L. 531-24 — délai de recours CNDA réduit à 15 j). Pré-fill F-IM-34. */
+            boolean asileProcedureeAccelereee,
             /** Durée de présence irrégulière en France en mois entiers (IRTF art. L.612-6+). */
             Integer eloiDureePresenceIrreguliereMois,
             /**
@@ -2624,6 +2627,7 @@ public record CaseAnalysisResponse(
                     .mineursDateNaissance(mineursDateNaissance)
                     .algerienPresenceReguliereMois(algerienPresenceReguliereMois)
                     .asileDateDecisionAnterieure(asileDateDecisionAnterieure)
+                    .asileProcedureeAccelereee(asileProcedureeAccelereee)
                     .eloiDureePresenceIrreguliereMois(eloiDureePresenceIrreguliereMois)
                     .eloiMotifMenace(eloiMotifMenace)
                     // SF-246-20 : lot Immigration BE
@@ -2739,6 +2743,7 @@ public record CaseAnalysisResponse(
             private String mineursDateNaissance;
             private Integer algerienPresenceReguliereMois;
             private String asileDateDecisionAnterieure;
+            private boolean asileProcedureeAccelereee;
             private Integer eloiDureePresenceIrreguliereMois;
             private String eloiMotifMenace;
             // SF-246-20 : lot Immigration BE
@@ -2863,6 +2868,7 @@ public record CaseAnalysisResponse(
             public Builder mineursDateNaissance(String v) { this.mineursDateNaissance = v; return this; }
             public Builder algerienPresenceReguliereMois(Integer v) { this.algerienPresenceReguliereMois = v; return this; }
             public Builder asileDateDecisionAnterieure(String v) { this.asileDateDecisionAnterieure = v; return this; }
+            public Builder asileProcedureeAccelereee(boolean v) { this.asileProcedureeAccelereee = v; return this; }
             public Builder eloiDureePresenceIrreguliereMois(Integer v) { this.eloiDureePresenceIrreguliereMois = v; return this; }
             public Builder eloiMotifMenace(String v) { this.eloiMotifMenace = v; return this; }
             // SF-246-20 : lot Immigration BE
@@ -2946,7 +2952,8 @@ public record CaseAnalysisResponse(
                         changementTitreEnvisage, changementRemunerationEur,
                         natDureeResidenceReguliereAnnees, natDureeMariageAnnees, natAgeDemandeur,
                         mineursDateNaissance, algerienPresenceReguliereMois,
-                        asileDateDecisionAnterieure, eloiDureePresenceIrreguliereMois,
+                        asileDateDecisionAnterieure, asileProcedureeAccelereee,
+                        eloiDureePresenceIrreguliereMois,
                         eloiMotifMenace,
                         be9bisDateEntreeBelgique, be9bisDureePresenceMois,
                         be9terDateDebutSymptomes,
@@ -5922,6 +5929,8 @@ public record CaseAnalysisResponse(
                 asileDateDecisionAnterieure = asileDateDecisionAnterieureRaw;
             }
         }
+        // SF-214-19 : asile examiné en procédure accélérée (pré-fill F-IM-34 AJ CNDA)
+        boolean asileProcedureeAccelereee = booleanOrFalse(root, "asile_procedure_acceleree_detectee");
         // Mesures d'éloignement : durée présence irrégulière + motif menace
         Integer eloiDureePresenceIrreguliereMois = boundedIntOrNull(
                 root, "eloi_duree_presence_irreguliere_mois", 0, MAX_PRESENCE_MOIS);
@@ -6250,6 +6259,7 @@ public record CaseAnalysisResponse(
                 .mineursDateNaissance(mineursDateNaissance)
                 .algerienPresenceReguliereMois(algerienPresenceReguliereMois)
                 .asileDateDecisionAnterieure(asileDateDecisionAnterieure)
+                .asileProcedureeAccelereee(asileProcedureeAccelereee)
                 .eloiDureePresenceIrreguliereMois(eloiDureePresenceIrreguliereMois)
                 .eloiMotifMenace(eloiMotifMenace)
                 // SF-246-20 : lot Immigration BE
