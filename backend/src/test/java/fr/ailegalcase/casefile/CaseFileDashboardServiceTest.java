@@ -90,6 +90,8 @@ class CaseFileDashboardServiceTest {
     private EtrangerMaladeRepository etrangerMaladeRepo;
     // SF-214-03 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR)
     private RegroupementFamilialRepository regroupementFamilialRepo;
+    // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 CESEDA (FR)
+    private VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -216,6 +218,7 @@ class CaseFileDashboardServiceTest {
         resiliationJudiciaireCphRepo = mock(ResiliationJudiciaireCphRepository.class);
         etrangerMaladeRepo = mock(EtrangerMaladeRepository.class);
         regroupementFamilialRepo = mock(RegroupementFamilialRepository.class);
+        vpfLiensPersonnelsRepo = mock(VpfLiensPersonnelsRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -433,6 +436,7 @@ class CaseFileDashboardServiceTest {
                 resiliationJudiciaireCphRepo,
                 etrangerMaladeRepo,
                 regroupementFamilialRepo,
+                vpfLiensPersonnelsRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

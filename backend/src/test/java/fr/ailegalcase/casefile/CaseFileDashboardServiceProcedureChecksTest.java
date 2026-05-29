@@ -90,6 +90,7 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(ResiliationJudiciaireCphRepository.class),
                 mock(EtrangerMaladeRepository.class),
                 mock(RegroupementFamilialRepository.class),
+                mock(VpfLiensPersonnelsRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),

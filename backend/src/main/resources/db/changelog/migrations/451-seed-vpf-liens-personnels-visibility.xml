@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="451-seed-vpf-liens-personnels-visibility" author="legalcase">
+        <comment>
+            SF-214-05 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "VPF liens personnels et familiaux L. 423-23 CESEDA"
+            (F-IM-27-vpf-liens-personnels-l42323-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît
+            que si le pipeline IA détecte une vie privée et familiale au sens
+            L. 423-23 — trigger `vie_privee_familiale_detectee` = true (signal
+            booléen extrait par LegalDomainPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue).
+            priority 27 — après F-IM-26 regroupement familial (priority 26).
+
+            Source juridique : L. 423-23 CESEDA ; art. 8 CEDH ; CEDH Boultif c.
+            Suisse 02/08/2001 ; CE 19 janvier 2011 n° 334018.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-214 : f2140006-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140006-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-27-vpf-liens-personnels-l42323-fr', 'CONTEXTUAL', 'vie_privee_familiale_detectee', 'true', 27);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140006-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

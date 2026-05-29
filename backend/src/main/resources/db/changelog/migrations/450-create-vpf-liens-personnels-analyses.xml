@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="450-create-vpf-liens-personnels-analyses" author="legalcase">
+        <comment>
+            SF-214-05 — table `vpf_liens_personnels_analyses` pour l'outil décisionnel
+            "VPF liens personnels et familiaux L. 423-23 CESEDA"
+            (F-IM-27-vpf-liens-personnels-l42323-fr, FRANCE).
+
+            Outil single-country FR : analyse l'éligibilité au titre de séjour
+            « vie privée et familiale » (ancien L. 313-11 7°, art. 8 CEDH) en
+            combinant un critère de durée de résidence (≥ 5 ans, ou ≥ 3 ans si
+            entrée pendant la minorité) et un score d'intensité des liens
+            personnels et familiaux. Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : L. 423-23 CESEDA ; art. 8 CEDH ; CEDH Boultif c.
+            Suisse 02/08/2001 ; CE 19 janvier 2011 n° 334018.
+
+            UUID namespace F-214 : f2140005-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="vpf_liens_personnels_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_vpf_liens_personnels_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="duree_residence_france_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entree_en_france_mineur" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enfants_en_france" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="conjoint_en_france" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parents_en_france" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="situation_familiale_a_letranger" type="VARCHAR(300)"/>
+            <column name="niveau_integration" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ancienne_conviction_penale" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="vpf_liens_personnels_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

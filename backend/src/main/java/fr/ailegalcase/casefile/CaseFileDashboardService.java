@@ -102,6 +102,8 @@ public class CaseFileDashboardService {
     private final EtrangerMaladeRepository etrangerMaladeRepo;
     // SF-214-03 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR)
     private final RegroupementFamilialRepository regroupementFamilialRepo;
+    // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 CESEDA (FR)
+    private final VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -242,6 +244,7 @@ public class CaseFileDashboardService {
                                      ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo,
                                      EtrangerMaladeRepository etrangerMaladeRepo,
                                      RegroupementFamilialRepository regroupementFamilialRepo,
+                                     VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -365,6 +368,7 @@ public class CaseFileDashboardService {
         this.resiliationJudiciaireCphRepo = resiliationJudiciaireCphRepo;
         this.etrangerMaladeRepo = etrangerMaladeRepo;
         this.regroupementFamilialRepo = regroupementFamilialRepo;
+        this.vpfLiensPersonnelsRepo = vpfLiensPersonnelsRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -553,6 +557,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-25-etranger-malade-l4259-fr", caseFileId, () -> tileFromEtrangerMaladeAnalysis(caseFileId));
         // SF-214-03 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR)
         addSafely(tiles, "F-IM-26-regroupement-familial-fr", caseFileId, () -> tileFromRegroupementFamilialAnalysis(caseFileId));
+        // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 CESEDA (FR)
+        addSafely(tiles, "F-IM-27-vpf-liens-personnels-l42323-fr", caseFileId, () -> tileFromVpfLiensPersonnelsAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1724,6 +1730,38 @@ public class CaseFileDashboardService {
                         "F-IM-26-regroupement-familial-fr",
                         "VALIDITE",
                         "Regroupement familial L.434-1",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-05 — F-IM-27 VPF liens personnels et familiaux L.423-23 CESEDA (FR).
+     * Expose le verdict d'éligibilité ; score d'intensité des liens en valeur
+     * secondaire ; alertLevel mappé sur la sémantique du verdict.
+     */
+    private DashboardTile tileFromVpfLiensPersonnelsAnalysis(UUID caseFileId) {
+        return vpfLiensPersonnelsRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), VpfLiensPersonnelsResult.class);
+                String verdict = r.verdict();
+                String secondary = String.format(
+                        "Score liens : %d — Durée de résidence : %s",
+                        r.score(), r.dureeResidenceRemplie() ? "remplie" : "insuffisante");
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "ELIGIBLE_PROBABLE" -> "OK";
+                    case "ELIGIBLE_SOUS_RESERVE", "DOSSIER_A_CONSOLIDER" -> "WARNING";
+                    case "NON_ELIGIBLE" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-27-vpf-liens-personnels-l42323-fr",
+                        "VALIDITE",
+                        "VPF liens personnels L.423-23",
                         verdict != null ? verdict : "—",
                         secondary,
                         alert);
