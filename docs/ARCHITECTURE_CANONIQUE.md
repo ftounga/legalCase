@@ -1655,6 +1655,585 @@ Migration : 241-create-contribution-conjoint-be-analyses.xml
 
 ---
 
+## aes_presence_prouvee_analyses
+
+F-214 SF-214-11 — analyse de l'outil décisionnel « AES calcul présence prouvée » (`F-IM-30-aes-presence-prouvee-fr`, FRANCE). Calcule le nombre d'années de présence effective justifiée par pièces recevables (circulaire Valls 28/11/2012) et l'éligibilité aux 4 voies AES (famille 5 ans, humanitaire 10 ans, étudiant 3 ans, métiers en tension 3 ans — L. 435-1 / L. 435-3 CESEDA). 1:1 avec un dossier. Périodes saisies/fusionnées, gaps, éligibilité par voie persistés en JSON dans `result_data`.
+
+```
+aes_presence_prouvee_analyses
+  id                       UUID PK
+  case_file_id             UUID FK → case_files(id)  UNIQUE (inline)
+  annees_totales_prouvees  INT NOT NULL
+  mois_totaux_prouves      INT NOT NULL
+  country                  VARCHAR(20) NOT NULL
+  result_data              TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at               TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at               TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_aes_presence_prouvee_case_file) — une seule analyse par dossier
+
+Migration : 456-create-aes-presence-prouvee-analyses.xml (+ 457-seed-aes-presence-prouvee-visibility.xml — visibility CONTEXTUAL priority 30)
+
+---
+
+## aj_cnda_analyses
+
+F-214 SF-214-19 — analyse de l'outil décisionnel « AJ CNDA — éligibilité et délais » (`F-IM-34-aj-cnda-fr`, FRANCE). Vérifie l'éligibilité à l'aide juridictionnelle devant la CNDA sous condition de ressources (loi n° 91-647 du 10/07/1991 ; décret n° 2020-1717) et calcule les délais — recours CNDA (1 mois, 15 j en procédure accélérée, L. 532-4 CESEDA) et demande d'AJ (15 j). 1:1 avec un dossier.
+
+```
+aj_cnda_analyses
+  id                            UUID PK
+  case_file_id                  UUID FK → case_files(id)  UNIQUE (inline)
+  date_decision_ofpra           DATE NOT NULL
+  ressources_mensuelles_nettes  DOUBLE PRECISION NOT NULL
+  procedure_acceleree           BOOLEAN NOT NULL
+  demande_aj_deposee            BOOLEAN NOT NULL
+  date_depot_aj                 DATE                       -- nullable
+  eligible_aj                   BOOLEAN NOT NULL
+  statut                        VARCHAR(30) NOT NULL
+  country                       VARCHAR(20) NOT NULL
+  result_data                   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_aj_cnda_case_file) — une seule analyse par dossier
+
+Migration : 464-create-aj-cnda-analyses.xml (+ 465-seed-aj-cnda-visibility.xml — visibility CONTEXTUAL priority 34)
+
+---
+
+## anef_procedure_analyses
+
+F-214 SF-214-25 — analyse de l'outil décisionnel « ANEF procédure / pannes / recours » (`F-IM-37-anef-procedure-fr`, FRANCE). Guide les démarches ANEF (R. 311-2-2 CESEDA ; arrêté 27/04/2021) et les recours en cas de panne du dépôt dématérialisé. Calcule le statut (NORMAL / URGENT si expiration < 30 j / PANNE_EN_COURS / RECOURS_POSSIBLE), les étapes alternatives (preuve panne, LRAR préfecture, dépôt physique) et le délai de recours pour faute (2 ans, L. 114-9 CRPA). 1:1 avec un dossier.
+
+```
+anef_procedure_analyses
+  id                            UUID PK
+  case_file_id                  UUID FK → case_files(id)  UNIQUE (inline)
+  type_titre_concerne           VARCHAR(120)               -- nullable
+  date_expiration_titre         DATE NOT NULL
+  pannee_anef_signalee          BOOLEAN NOT NULL
+  date_tentative_depot          DATE                       -- nullable
+  demande_adressee_prefecture   BOOLEAN NOT NULL
+  statut                        VARCHAR(20) NOT NULL
+  country                       VARCHAR(20) NOT NULL
+  result_data                   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_anef_procedure_case_file) — une seule analyse par dossier
+
+Migration : 470-create-anef-procedure-analyses.xml (+ 471-seed-anef-procedure-visibility.xml — visibility CONTEXTUAL priority 37)
+
+---
+
+## appel_caa_cassation_analyses
+
+F-214 SF-214-33 — analyse de l'outil décisionnel « Appel CAA / cassation CE délais » (`F-IM-41-appel-caa-cassation-ce-fr`, FRANCE). Calcule le délai d'appel devant la CAA (1 mois de droit commun, 15 j en OQTF sans délai de départ) et rappelle le délai de cassation devant le CE (2 mois, R. 821-1 CJA) + filtre d'admission des pourvois OQTF (L. 821-2 CJA). 1:1 avec un dossier.
+
+```
+appel_caa_cassation_analyses
+  id                  UUID PK
+  case_file_id        UUID FK → case_files(id)  UNIQUE (inline)
+  date_jugement_ta    DATE NOT NULL
+  type_decision_ta    VARCHAR(20) NOT NULL
+  type_contentieux    VARCHAR(20) NOT NULL
+  delai_special_oqtf  BOOLEAN NOT NULL
+  statut              VARCHAR(20) NOT NULL
+  country             VARCHAR(20) NOT NULL
+  result_data         TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at          TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at          TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_appel_caa_cassation_case_file) — une seule analyse par dossier
+
+Migration : 478-create-appel-caa-cassation-analyses.xml (+ 479-seed-appel-caa-cassation-visibility.xml — visibility CONTEXTUAL priority 41)
+
+---
+
+## assignation_residence_analyses
+
+F-214 SF-214-35 — analyse de l'outil décisionnel « Assignation à résidence L. 731-1 » (`F-IM-42-assignation-residence-fr`, FRANCE). Analyse la validité d'une assignation à résidence (alternative à la rétention), calcule la durée maximale légale (45 j renouvelable 2 fois = 135 j, L. 731-1 CESEDA) et génère les moyens de contestation devant le TA (recours 48 h). 1:1 avec un dossier.
+
+```
+assignation_residence_analyses
+  id                             UUID PK
+  case_file_id                   UUID FK → case_files(id)  UNIQUE (inline)
+  date_notification_assignation  DATE NOT NULL
+  duree_assignation_jours        INT NOT NULL
+  motif_assignation              VARCHAR(40) NOT NULL
+  obligations_presentation       TEXT                       -- nullable
+  statut                         VARCHAR(20) NOT NULL
+  country                        VARCHAR(20) NOT NULL
+  result_data                    TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                     TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                     TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_assignation_residence_case_file) — une seule analyse par dossier
+
+Migration : 480-create-assignation-residence-analyses.xml (+ 481-seed-assignation-residence-visibility.xml — visibility CONTEXTUAL priority 42)
+
+---
+
+## autorisation_travail_employeur_analyses
+
+F-214 SF-214-43 — analyse de l'outil décisionnel « Autorisation de travail employeur » (`F-IM-46-autorisation-travail-employeur-fr`, FRANCE). Analyse les obligations de l'employeur recrutant un travailleur étranger hors UE (autorisation préalable L. 5221-1 Code du travail), détermine si une autorisation est requise selon la nationalité, le délai d'instruction OFII (2 mois, R. 5221-20) et le délai de recours en cas de refus. 1:1 avec un dossier.
+
+```
+autorisation_travail_employeur_analyses
+  id                       UUID PK
+  case_file_id             UUID FK → case_files(id)  UNIQUE (inline)
+  type_contrat             VARCHAR(20) NOT NULL
+  poste_proposes           VARCHAR(200) NOT NULL
+  nationalite_candidat     VARCHAR(100) NOT NULL
+  duree_contrat_mois       INTEGER                    -- nullable
+  refus_autorisation       BOOLEAN NOT NULL
+  date_refus_autorisation  DATE                       -- nullable
+  statut                   VARCHAR(30) NOT NULL
+  country                  VARCHAR(20) NOT NULL
+  result_data              TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at               TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at               TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_autorisation_travail_employeur_case_file) — une seule analyse par dossier
+
+Migration : 488-create-autorisation-travail-employeur-analyses.xml (+ 489-seed-autorisation-travail-employeur-visibility.xml — visibility ALWAYS_ON priority 46)
+
+---
+
+## carte_resident_analyses
+
+F-214 SF-214-23 — analyse de l'outil décisionnel « Carte de résident 10 ans L. 426-1 » (`F-IM-36-carte-resident-l4261-fr`, FRANCE). Analyse l'éligibilité à la carte de résident 10 ans (≥ 5 ans de séjour régulier, intégration MOYEN/FORT, ressources ≥ SMIC ; L. 426-1 CESEDA ; loi 26/01/2024). Une condamnation pénale grave rend la demande irrecevable. 1:1 avec un dossier.
+
+```
+carte_resident_analyses
+  id                            UUID PK
+  case_file_id                  UUID FK → case_files(id)  UNIQUE (inline)
+  duree_sejour_regulier_annees  INT NOT NULL
+  types_titres_anterieurs       VARCHAR(500)               -- nullable
+  niveau_integration            VARCHAR(20) NOT NULL
+  ressources_mensuelles_nettes  DOUBLE NOT NULL
+  condamnations_penales_graves  BOOLEAN NOT NULL
+  country                       VARCHAR(20) NOT NULL
+  result_data                   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_carte_resident_case_file) — une seule analyse par dossier
+
+Migration : 468-create-carte-resident-analyses.xml (+ 469-seed-carte-resident-visibility.xml — visibility CONTEXTUAL priority 36)
+
+---
+
+## itf_judiciaire_analyses
+
+F-214 SF-214-37 — analyse de l'outil décisionnel « ITF judiciaire » (`F-IM-43-itf-judiciaire-fr`, FRANCE). Analyse une interdiction du territoire français prononcée par un juge pénal comme peine complémentaire (C. pén. 131-30 à 131-30-2), ses voies de recours (appel 10 j, cassation 5 j) et la requête en relèvement (C. pén. 702-1, 5 ans minimum). Distinct de l'IRTF administrative (F-IM-20). 1:1 avec un dossier.
+
+```
+itf_judiciaire_analyses
+  id                      UUID PK
+  case_file_id            UUID FK → case_files(id)
+  date_condamnation       DATE NOT NULL
+  duree_itf_annees        INT NOT NULL
+  infraction_principale   VARCHAR(200)               -- nullable
+  condamnation_definitive BOOLEAN NOT NULL
+  statut                  VARCHAR(20) NOT NULL
+  country                 VARCHAR(20) NOT NULL
+  result_data             TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at              TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at              TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_itf_judiciaire_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_itf_judiciaire_analyses_case_file
+
+Migration : 482-create-itf-judiciaire-analyses.xml (+ 483-seed-itf-judiciaire-visibility.xml — visibility CONTEXTUAL priority 43)
+
+---
+
+## mna_evaluation_age_analyses
+
+F-214 SF-214-27 — analyse de l'outil décisionnel « MNA évaluation d'âge » (`F-IM-38-mna-evaluation-age-fr`, FRANCE). Guide la procédure d'évaluation d'âge d'un mineur non accompagné refusé par l'ASE, les recours devant le juge des enfants et la contestation des examens osseux. 1:1 avec un dossier.
+
+```
+mna_evaluation_age_analyses
+  id                      UUID PK
+  case_file_id            UUID FK → case_files(id)
+  date_naissance_declaree DATE NOT NULL
+  evaluation_ase_refusee  BOOLEAN NOT NULL DEFAULT false
+  date_refus_ase          DATE                       -- nullable
+  examen_osseux_ordonne   BOOLEAN NOT NULL DEFAULT false
+  statut                  VARCHAR(40) NOT NULL
+  country                 VARCHAR(20) NOT NULL
+  result_data             TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at              TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at              TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_mna_evaluation_age_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_mna_evaluation_age_analyses_case_file
+
+Migration : 472-create-mna-evaluation-age-analyses.xml (+ 473-seed-mna-evaluation-age-visibility.xml — visibility CONTEXTUAL priority 38)
+
+---
+
+## naturalisation_recours_ta_analyses
+
+F-214 SF-214-31 — analyse de l'outil décisionnel « Recours TA Nantes refus de naturalisation par décret » (`F-IM-40-naturalisation-recours-ta-fr`, FRANCE). Calcule le délai de recours pour excès de pouvoir devant le TA de Nantes (compétence exclusive nationale, R. 312-4 CJA) contre un refus de naturalisation par décret — 2 mois (Cciv 21-15 ; L. 213-1 CJA). Procédure ADMINISTRATIVE, distincte du recours TJ (SF-214-29). 1:1 avec un dossier.
+
+```
+naturalisation_recours_ta_analyses
+  id                 UUID PK
+  case_file_id       UUID FK → case_files(id)  UNIQUE (inline)
+  date_refus_decret  DATE NOT NULL
+  recours_prerequis  BOOLEAN NOT NULL DEFAULT false
+  statut             VARCHAR(20) NOT NULL
+  country            VARCHAR(20) NOT NULL
+  result_data        TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at         TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at         TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_naturalisation_recours_ta_case_file) — une seule analyse par dossier
+
+Migration : 476-create-naturalisation-recours-ta-analyses.xml (+ 477-seed-naturalisation-recours-ta-visibility.xml — visibility CONTEXTUAL priority 40)
+
+---
+
+## naturalisation_recours_tj_analyses
+
+F-214 SF-214-29 — analyse de l'outil décisionnel « Recours TJ refus déclaration de nationalité » (`F-IM-39-naturalisation-recours-tj-fr`, FRANCE). Calcule le délai de recours devant le tribunal judiciaire contre un refus de déclaration de nationalité française — 6 mois (Cciv 26-3 ; CPC 1043). Procédure CIVILE, distincte du recours décret porté devant le TA de Nantes (SF-214-31). 1:1 avec un dossier.
+
+```
+naturalisation_recours_tj_analyses
+  id                      UUID PK
+  case_file_id            UUID FK → case_files(id)  UNIQUE (inline)
+  voie_naturalisation     VARCHAR(30) NOT NULL
+  date_refus_declaration  DATE NOT NULL
+  type_refus              VARCHAR(30) NOT NULL
+  statut                  VARCHAR(20) NOT NULL
+  country                 VARCHAR(20) NOT NULL
+  result_data             TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at              TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at              TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_naturalisation_recours_tj_case_file) — une seule analyse par dossier
+
+Migration : 474-create-naturalisation-recours-tj-analyses.xml (+ 475-seed-naturalisation-recours-tj-visibility.xml — visibility CONTEXTUAL priority 39)
+
+---
+
+## ofpra_introduction_analyses
+
+F-214 SF-214-17 — analyse de l'outil décisionnel « Demande OFPRA introduction (GUDA/ADA) » (`F-IM-33-ofpra-introduction-fr`, FRANCE). Guide la procédure d'introduction de la demande d'asile via le GUDA et l'ADA, calcule le délai d'introduction de 90 jours depuis l'arrivée (R. 521-1 CESEDA), les étapes/pièces requises et le risque de procédure accélérée (pays sûr, L. 531-24). 1:1 avec un dossier.
+
+```
+ofpra_introduction_analyses
+  id                     UUID PK
+  case_file_id           UUID FK → case_files(id)  UNIQUE (inline)
+  date_arrivee_en_france DATE NOT NULL
+  passage_guda_effectue  BOOLEAN NOT NULL
+  date_passage_guda      DATE                       -- nullable
+  ada_requise            BOOLEAN NOT NULL
+  pays_origine           VARCHAR(120)               -- nullable
+  statut_delai           VARCHAR(20) NOT NULL
+  country                VARCHAR(20) NOT NULL
+  result_data            TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at             TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at             TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_ofpra_introduction_case_file) — une seule analyse par dossier
+
+Migration : 462-create-ofpra-introduction-analyses.xml (+ 463-seed-ofpra-introduction-visibility.xml — visibility CONTEXTUAL priority 33)
+
+---
+
+## oqtf_categories_analyses
+
+F-214 SF-214-09 — analyse de l'outil décisionnel « OQTF catégories L. 611-1 » (`F-IM-29-oqtf-categories-l6111-fr`, FRANCE). Détermine la catégorie d'OQTF parmi les 7 de L. 611-1 (1° à 7°) et les moyens de défense spécifiques. Complémentaire de F-IM-08 (OQTF avec/sans délai). 1:1 avec un dossier.
+
+```
+oqtf_categories_analyses
+  id                      UUID PK
+  case_file_id            UUID FK → case_files(id)
+  categorie_l611          VARCHAR(10) NOT NULL
+  date_notification_oqtf  DATE NOT NULL
+  motif_oqtf              VARCHAR(300)               -- nullable
+  country                 VARCHAR(20) NOT NULL
+  result_data             TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at              TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at              TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_oqtf_categories_analyses_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_oqtf_categories_analyses_case_file
+
+Migration : 454-create-oqtf-categories-analyses.xml (+ 455-seed-oqtf-categories-visibility.xml — visibility CONTEXTUAL priority 29)
+
+---
+
+## recepisse_attestation_analyses
+
+F-214 SF-214-15 — analyse de l'outil décisionnel « Récépissé vs attestation de prolongation » (`F-IM-32-recepisse-attestation-fr`, FRANCE). Distingue les droits attachés au récépissé (séjour + travail, R. 311-4) vs l'attestation de prolongation d'instruction (séjour seul, PAS de droit au travail, R. 311-6). Confusion source de sanctions employeur (L. 8253-1 Code du travail). 1:1 avec un dossier.
+
+```
+recepisse_attestation_analyses
+  id                            UUID PK
+  case_file_id                  UUID FK → case_files(id)  UNIQUE (inline)
+  type_document                 VARCHAR(30) NOT NULL
+  date_delivrance               DATE                       -- nullable
+  date_expiration               DATE                       -- nullable
+  mention_autorisation_travail  BOOLEAN                    -- nullable
+  country                       VARCHAR(20) NOT NULL
+  result_data                   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_recepisse_attestation_case_file) — une seule analyse par dossier
+
+Migration : 460-create-recepisse-attestation-analyses.xml (+ 461-seed-recepisse-attestation-visibility.xml — visibility CONTEXTUAL priority 32)
+
+---
+
+## regroupement_familial_analyses
+
+F-214 SF-214-03 — analyse de l'outil décisionnel « Regroupement familial L. 434-1+ » (`F-IM-26-regroupement-familial-fr`, FRANCE). Analyse l'éligibilité au regroupement familial (durée de séjour régulier ≥ 18 mois R. 434-4, ressources ≥ SMIC net pondéré R. 434-30, surface habitable minimale R. 434-20 ; L. 434-1 à L. 434-13 CESEDA). 1:1 avec un dossier.
+
+```
+regroupement_familial_analyses
+  id                            UUID PK
+  case_file_id                  UUID FK → case_files(id)  UNIQUE (inline)
+  duree_sejour_regulier_mois    INT NOT NULL
+  ressources_mensuelles_nettes  DOUBLE NOT NULL
+  taille_logement_m2            INT NOT NULL
+  nombre_personnes_foyer        INT NOT NULL
+  type_regroupement             VARCHAR(20) NOT NULL
+  membres_famille_a_regrouper   INT NOT NULL
+  country                       VARCHAR(20) NOT NULL
+  result_data                   TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                    TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_regroupement_familial_case_file) — une seule analyse par dossier
+
+Migration : 448-create-regroupement-familial-analyses.xml (+ 449-seed-regroupement-familial-visibility.xml — visibility CONTEXTUAL priority 26)
+
+---
+
+## renouvellement_delai_analyses
+
+F-214 SF-214-13 — analyse de l'outil décisionnel « Renouvellement — délai de dépôt 2 mois avant » (`F-IM-31-renouvellement-delai-depot-fr`, FRANCE). Calcule le délai optimal de dépôt du renouvellement (2 mois avant expiration, R. 433-1 CESEDA) et le seuil impératif (1 mois avant) ; alerte sur le risque d'interruption des droits. 1:1 avec un dossier.
+
+```
+renouvellement_delai_analyses
+  id                     UUID PK
+  case_file_id           UUID FK → case_files(id)  UNIQUE (inline)
+  date_expiration_titre  DATE NOT NULL
+  date_depot_dossier     DATE                       -- nullable
+  type_titre             VARCHAR(120)               -- nullable
+  statut                 VARCHAR(20) NOT NULL
+  country                VARCHAR(20) NOT NULL
+  result_data            TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at             TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at             TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_renouvellement_delai_case_file) — une seule analyse par dossier
+
+Migration : 458-create-renouvellement-delai-analyses.xml (+ 459-seed-renouvellement-delai-visibility.xml — visibility ALWAYS_ON priority 31)
+
+---
+
+## retrait_titre_fraude_analyses
+
+F-214 SF-214-41 — analyse de l'outil décisionnel « Retrait de titre pour fraude L. 412-7 » (`F-IM-45-retrait-titre-fraude-fr`, FRANCE). Analyse la validité d'un retrait de titre pour fraude (mariage gris, fausses déclarations, fraude documentaire), vérifie le contradictoire préalable obligatoire (L. 411-5 CESEDA), identifie les vices de procédure et calcule le délai de recours TA (2 mois). 1:1 avec un dossier.
+
+```
+retrait_titre_fraude_analyses
+  id                         UUID PK
+  case_file_id               UUID FK → case_files(id)  UNIQUE (inline)
+  date_retrait               DATE NOT NULL
+  motif_retrait              VARCHAR(40) NOT NULL
+  mise_en_demeure_prealable  BOOLEAN NOT NULL
+  date_mise_en_demeure       DATE                       -- nullable
+  statut                     VARCHAR(20) NOT NULL
+  country                    VARCHAR(20) NOT NULL
+  result_data                TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                 TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                 TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_retrait_titre_fraude_case_file) — une seule analyse par dossier
+
+Migration : 486-create-retrait-titre-fraude-analyses.xml (+ 487-seed-retrait-titre-fraude-visibility.xml — visibility CONTEXTUAL priority 45)
+
+---
+
+## ue_eee_suisse_sejour_analyses
+
+F-214 SF-214-39 — analyse de l'outil décisionnel « Séjour UE/EEE/Suisse » (`F-IM-44-ue-eee-suisse-sejour-fr`, FRANCE). Analyse le droit au séjour des citoyens UE/EEE/Suisse et de leurs membres de famille (directive 2004/38/CE, L. 233-1+ CESEDA) : séjour automatique 3 mois (art. 6), au-delà sous conditions (art. 7), droit permanent après 60 mois (art. 16), carte « membre de famille de citoyen de l'Union » (art. 10). 1:1 avec un dossier.
+
+```
+ue_eee_suisse_sejour_analyses
+  id                        UUID PK
+  case_file_id              UUID FK → case_files(id)  UNIQUE (inline)
+  nationalite               VARCHAR(255)               -- nullable
+  est_citoyen_ue            BOOLEAN NOT NULL
+  membre_famille_non_ue     BOOLEAN NOT NULL
+  duree_sejour_mois         INT NOT NULL
+  activite_professionnelle  VARCHAR(50) NOT NULL
+  country                   VARCHAR(20) NOT NULL
+  result_data               TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_ue_eee_suisse_sejour_case_file) — une seule analyse par dossier
+
+Migration : 484-create-ue-eee-suisse-sejour-analyses.xml (+ 485-seed-ue-eee-suisse-sejour-visibility.xml — visibility CONTEXTUAL priority 44)
+
+---
+
+## victime_traite_analyses
+
+F-214 SF-214-21 — analyse de l'outil décisionnel « Victime de la traite des êtres humains L. 425-1 » (`F-IM-35-victime-traite-l4251-fr`, FRANCE). Analyse l'éligibilité au titre L. 425-1 (plainte ou signalement par association agréée + collaboration OCRTEH + identification comme victime) ouvrant une APS 6 mois avec droit au travail. Distinct de L. 425-6 (violences conjugales, F-208). 1:1 avec un dossier.
+
+```
+victime_traite_analyses
+  id                                  UUID PK
+  case_file_id                        UUID FK → case_files(id)  UNIQUE (inline)
+  plainte_deposee                     BOOLEAN NOT NULL
+  collaboration_ocrteh                BOOLEAN NOT NULL
+  date_plainte                        DATE                       -- nullable
+  titre_actuel                        VARCHAR(120)               -- nullable
+  presence_autorite_refugie_detectee  BOOLEAN NOT NULL
+  country                             VARCHAR(20) NOT NULL
+  result_data                         TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                          TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                          TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_victime_traite_case_file) — une seule analyse par dossier
+
+Migration : 466-create-victime-traite-analyses.xml (+ 467-seed-victime-traite-visibility.xml — visibility CONTEXTUAL priority 35)
+
+---
+
+## vls_ts_validation_analyses
+
+F-214 SF-214-07 — analyse de l'outil décisionnel « Validation VLS-TS OFII 3 mois » (`F-IM-28-vls-ts-validation-ofii-fr`, FRANCE). Calcule le délai de validation du VLS-TS (visa long séjour valant titre de séjour) auprès de l'OFII — 3 mois à compter de l'entrée en France (R. 311-3 CESEDA) — et alerte sur le risque d'irrégularité passé ce délai. 1:1 avec un dossier.
+
+```
+vls_ts_validation_analyses
+  id                       UUID PK
+  case_file_id             UUID FK → case_files(id)  UNIQUE (inline)
+  date_entree_france       DATE NOT NULL
+  type_vls_ts              VARCHAR(30) NOT NULL
+  validation_ofii_effectuee BOOLEAN NOT NULL
+  date_validation_ofii     DATE                       -- nullable
+  statut                   VARCHAR(20) NOT NULL
+  country                  VARCHAR(20) NOT NULL
+  result_data              TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at               TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at               TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_vls_ts_validation_case_file) — une seule analyse par dossier
+
+Migration : 452-create-vls-ts-validation-analyses.xml (+ 453-seed-vls-ts-validation-visibility.xml — visibility ALWAYS_ON priority 28)
+
+---
+
+## vpf_liens_personnels_analyses
+
+F-214 SF-214-05 — analyse de l'outil décisionnel « VPF liens personnels et familiaux L. 423-23 » (`F-IM-27-vpf-liens-personnels-l42323-fr`, FRANCE). Analyse l'éligibilité au titre « vie privée et familiale » (art. 8 CEDH, L. 423-23 CESEDA) en combinant durée de résidence (≥ 5 ans, ou ≥ 3 ans si entrée pendant la minorité) et score d'intensité des liens. 1:1 avec un dossier.
+
+```
+vpf_liens_personnels_analyses
+  id                              UUID PK
+  case_file_id                    UUID FK → case_files(id)  UNIQUE (inline)
+  duree_residence_france_mois     INT NOT NULL
+  entree_en_france_mineur         BOOLEAN NOT NULL
+  enfants_en_france               BOOLEAN NOT NULL
+  conjoint_en_france              BOOLEAN NOT NULL
+  parents_en_france               BOOLEAN NOT NULL
+  situation_familiale_a_letranger VARCHAR(300)               -- nullable
+  niveau_integration              VARCHAR(20) NOT NULL
+  ancienne_conviction_penale      BOOLEAN NOT NULL
+  country                         VARCHAR(20) NOT NULL
+  result_data                     TEXT NOT NULL              -- JSON : inputs + résultat calculé
+  created_at                      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+contrainte UNIQUE inline sur case_file_id (fk_vpf_liens_personnels_case_file) — une seule analyse par dossier
+
+Migration : 450-create-vpf-liens-personnels-analyses.xml (+ 451-seed-vpf-liens-personnels-visibility.xml — visibility CONTEXTUAL priority 27)
+
+---
+
 ## jurisprudence_checks
 
 F-179 — vérifications de la jurisprudence citée dans les documents uploadés d'un dossier (typiquement les conclusions adverses). Une ligne = une référence jurisprudentielle détectée, vérifiée par Claude Sonnet quant à son existence réelle et à la fidélité de la position alléguée. Produite en post-traitement de `CaseAnalysisService`.
