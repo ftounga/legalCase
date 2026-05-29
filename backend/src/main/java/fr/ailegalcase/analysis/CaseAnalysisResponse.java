@@ -2472,7 +2472,12 @@ public record CaseAnalysisResponse(
             /** SF-215-15 : date de l'acte exécutoire imminent (OQT exécutoire, transfert Dublin) YYYY-MM-DD. Null si non extractible ou dossier FR. */
             String recoursExtremeUrgenceDateActe,
             /** SF-215-15 : type d'acte exécutoire — whitelist {@link #CCE_EXTREME_URGENCE_TYPE_ACTE_CODES} (5 codes). Null si non extractible ou dossier FR. */
-            String recoursExtremeUrgenceTypeActe) {
+            String recoursExtremeUrgenceTypeActe,
+            // === SF-215-17 — F-IM-33 Annexe 13quinquies OQT + interdiction d'entrée art. 74/11 BE (BELGIQUE UNIQUEMENT, null pour FR) ===
+            /** SF-215-17 : date de notification de l'Annexe 13quinquies (OQT + interdiction d'entrée) YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String interdictionEntreeDateNotification,
+            /** SF-215-17 : motif de l'interdiction d'entrée — whitelist {@link #INTERDICTION_ENTREE_MOTIF_CODES} (5 codes). Null si non extractible ou dossier FR. */
+            String interdictionEntreeMotif) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2586,7 +2591,9 @@ public record CaseAnalysisResponse(
                     .recoursCceTypeDecision(recoursCceTypeDecision)
                     // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
                     .recoursExtremeUrgenceDateActe(recoursExtremeUrgenceDateActe)
-                    .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe);
+                    .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe)
+                    .interdictionEntreeDateNotification(interdictionEntreeDateNotification)
+                    .interdictionEntreeMotif(interdictionEntreeMotif);
         }
 
         public static final class Builder {
@@ -2694,6 +2701,8 @@ public record CaseAnalysisResponse(
             // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
             private String recoursExtremeUrgenceDateActe;
             private String recoursExtremeUrgenceTypeActe;
+            private String interdictionEntreeDateNotification;
+            private String interdictionEntreeMotif;
 
             private Builder() {}
 
@@ -2800,6 +2809,8 @@ public record CaseAnalysisResponse(
             // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
             public Builder recoursExtremeUrgenceDateActe(String v) { this.recoursExtremeUrgenceDateActe = v; return this; }
             public Builder recoursExtremeUrgenceTypeActe(String v) { this.recoursExtremeUrgenceTypeActe = v; return this; }
+            public Builder interdictionEntreeDateNotification(String v) { this.interdictionEntreeDateNotification = v; return this; }
+            public Builder interdictionEntreeMotif(String v) { this.interdictionEntreeMotif = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2856,7 +2867,9 @@ public record CaseAnalysisResponse(
                         recoursCceTypeDecision,
                         // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
                         recoursExtremeUrgenceDateActe,
-                        recoursExtremeUrgenceTypeActe);
+                        recoursExtremeUrgenceTypeActe,
+                        interdictionEntreeDateNotification,
+                        interdictionEntreeMotif);
             }
         }
     }
@@ -2999,6 +3012,16 @@ public record CaseAnalysisResponse(
     static final Set<String> CCE_EXTREME_URGENCE_TYPE_ACTE_CODES = Set.of(
             "OQT_EXECUTE", "TRANSFERT_DUBLIN", "REFUS_ACCES_TERRITOIRE",
             "EXPULSION_IMMEDIATE", "AUTRE"
+    );
+
+    /**
+     * SF-215-17 : whitelist (5 valeurs) du motif de l'interdiction d'entrée pour
+     * F-IM-33 (Annexe 13quinquies, art. 74/11) — alignée sur l'enum Java
+     * {@code Annexe13quinquiesBeMotifEnum}.
+     */
+    static final Set<String> INTERDICTION_ENTREE_MOTIF_CODES = Set.of(
+            "SEJOUR_IRREGULIER", "MENACE_ORDRE_PUBLIC", "RAISONS_SECURITE_NATIONALE",
+            "ATTEINTE_INTERET_UE", "DECISION_JUDICIAIRE"
     );
 
     /** SF-246-20 : borne max revenus mensuels nets regroupant belge (plausibilité). */
@@ -5912,6 +5935,15 @@ public record CaseAnalysisResponse(
                 ? recoursExtremeUrgenceDateActeRaw : null;
         String recoursExtremeUrgenceTypeActe = normalizeEnumCode(
                 textOrNull(root, "recours_extreme_urgence_type_acte"), CCE_EXTREME_URGENCE_TYPE_ACTE_CODES);
+        // SF-215-17 : F-IM-33 Annexe 13quinquies OQT + interdiction d'entrée art. 74/11 BE — 2 champs IA réels.
+        // precedentSejour / recoursForme / dateRecours sont aspirationnels (non extractibles de façon fiable).
+        String interdictionEntreeDateNotificationRaw = textOrNull(root, "interdiction_entree_date_notification");
+        String interdictionEntreeDateNotification = (interdictionEntreeDateNotificationRaw != null
+                && interdictionEntreeDateNotificationRaw.matches(ISO_DATE_SF214)
+                && interdictionEntreeDateNotificationRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
+                ? interdictionEntreeDateNotificationRaw : null;
+        String interdictionEntreeMotif = normalizeEnumCode(
+                textOrNull(root, "interdiction_entree_motif"), INTERDICTION_ENTREE_MOTIF_CODES);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5969,7 +6001,10 @@ public record CaseAnalysisResponse(
                 && recoursCceTypeDecision == null
                 // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE (2 champs IA, nullables)
                 && recoursExtremeUrgenceDateActe == null
-                && recoursExtremeUrgenceTypeActe == null) return null;
+                && recoursExtremeUrgenceTypeActe == null
+                // SF-215-17 : F-IM-33 Annexe 13quinquies OQT + interdiction d'entrée BE (2 champs IA, nullables)
+                && interdictionEntreeDateNotification == null
+                && interdictionEntreeMotif == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6082,6 +6117,8 @@ public record CaseAnalysisResponse(
                 // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE — 2 champs pré-fill réels
                 .recoursExtremeUrgenceDateActe(recoursExtremeUrgenceDateActe)
                 .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe)
+                .interdictionEntreeDateNotification(interdictionEntreeDateNotification)
+                .interdictionEntreeMotif(interdictionEntreeMotif)
                 .build();
     }
 

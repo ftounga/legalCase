@@ -297,6 +297,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "recours_cce_envisage");
         // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE — flag pivot CONTEXTUAL Immigration BE.
         addBooleanFlagIfTrue(detected, immigrationNode, "recours_cce_extreme_urgence");
+        // SF-215-17 : F-IM-33 Annexe 13quinquies OQT + interdiction d'entrée art. 74/11 BE — flag pivot CONTEXTUAL Immigration BE.
+        addBooleanFlagIfTrue(detected, immigrationNode, "interdiction_entree_be_detectee");
 
         // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
         // les règles CONTEXTUAL conditionnées à un régime national bilatéral

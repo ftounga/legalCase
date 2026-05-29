@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="19fc3f09-0612-44be-98cd-5fd945730eb4" author="legalcase">
+        <comment>
+            SF-215-17 : table dédiée à l'outil décisionnel "Annexe 13quinquies OQT +
+            interdiction d'entrée BE" (F-IM-33-annexe13quinquies-ie-be, BELGIQUE — fondement :
+            Loi du 15 décembre 1980 sur l'accès au territoire, le séjour, l'établissement et
+            l'éloignement des étrangers, art. 74/11 (interdiction d'entrée — durée 3/5/8 ans),
+            art. 74/12 (levée / suspension) et art. 39/82 §4 al. 1 (recours en annulation CCE —
+            30 jours calendaires) + AR 08/10/1981 (Annexe 13quinquies).
+
+            CCE = Conseil du Contentieux des Étrangers (juridiction administrative belge en
+            droit des étrangers) — AUCUN rapport avec un dispositif de crédit à la consommation.
+
+            L'outil calcule :
+            - dureeInterdiction (années) selon motifInterdictionEntree :
+              SEJOUR_IRREGULIER + !precedentSejour → 3 ; SEJOUR_IRREGULIER + precedentSejour → 5 ;
+              MENACE_ORDRE_PUBLIC / RAISONS_SECURITE_NATIONALE → 5 ;
+              ATTEINTE_INTERET_UE / DECISION_JUDICIAIRE → 8 (maximum) — art. 74/11 §2 ;
+            - dateFinInterdiction = dateNotificationAnnexe + dureeInterdiction années ;
+            - datePossibleLevePrecoce = dateNotificationAnnexe + (2/3 × dureeInterdiction × 12) mois
+              (levée anticipée possible si ≥ 2/3 du délai écoulé — art. 74/12) ;
+            - dateLimiteRecoursAnnulation = dateNotificationAnnexe + 30 jours CALENDAIRES
+              (recours en annulation CCE, art. 39/82 §4 al. 1 — PAS jours ouvrables, distinction
+              critique avec le recours en extrême urgence 5 jours ouvrables F-IM-32) ;
+            - joursRestantsRecours = jours entre today et dateLimiteRecoursAnnulation ;
+            - statutRecours 4 états : DISPONIBLE (&gt; 10 j), URGENT (1-10 j), EXPIRE (≤ 0 j),
+              FORME (recours déjà introduit) ;
+            - conditionsLevee : conditions de levée anticipée art. 74/12.
+
+            Outil single-country BELGIQUE — distinct de F-IM-08 (Annexe 13 simple, OQT SANS
+            interdiction d'entrée), F-IM-31 (recours annulation 30j, SF-215-13) et F-IM-32
+            (recours extrême urgence 5j ouvrables, SF-215-15).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-215-13).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (444-seed-annexe13quinquies-be-visibility.xml) est livrée dans la MÊME PR que cette
+            table.
+        </comment>
+
+        <createTable tableName="annexe13quinquies_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_annexe13quinquies_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_notification_annexe" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_interdiction_entree" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="precedent_sejour" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_interdiction" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_forme" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_recours" type="date"/>
+            <column name="statut" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="annexe13quinquies_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_annexe13quinquies_be_case_file"/>
+
+        <createIndex tableName="annexe13quinquies_be_analyses"
+                     indexName="idx_annexe13quinquies_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="annexe13quinquies_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
