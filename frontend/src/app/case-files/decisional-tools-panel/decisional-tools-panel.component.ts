@@ -70,6 +70,8 @@ import { CceAnnulationBeSectionComponent } from '../cce-annulation-be-section/cc
 import { CceExtremeUrgenceBeSectionComponent } from '../cce-extreme-urgence-be-section/cce-extreme-urgence-be-section.component';
 // SF-215-18 : composant complet F-IM-33-annexe13quinquies-ie-be (Immigration BE, annexe 13quinquies OQT + interdiction d'entrée Schengen).
 import { Annexe13quinquiesBeSectionComponent } from '../annexe13quinquies-be-section/annexe13quinquies-be-section.component';
+// SF-215-20 : composant complet F-IM-34-protection-temporaire-ukraine-be (Immigration BE, protection temporaire Ukraine — décision (UE) 2022/382).
+import { ProtectionTemporaireUkraineBeSectionComponent } from '../protection-temporaire-ukraine-be-section/protection-temporaire-ukraine-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -1594,6 +1596,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-33-annexe13quinquies-ie-be', {
         displayLabel: 'Annexe 13quinquies OQT + interdiction entrée (BE)',
         component: Annexe13quinquiesBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-20 : composant complet F-IM-34-protection-temporaire-ukraine-be —
+      // protection temporaire des personnes déplacées d'Ukraine (décision
+      // d'exécution (UE) 2022/382 activant la directive 2001/55/CE). BELGIQUE
+      // uniquement, CONTEXTUAL via flag `protection_temporaire_ukraine_detectee`.
+      // Checklist + calculateur : éligibilité (badge ELIGIBLE vert / INELIGIBLE
+      // rouge), durée de protection restante (X jours — JetBrains Mono), bandeau
+      // orange si renouvellement imminent (< 90 j), bloc droits travail proéminent
+      // (mention « pas de single permit requis »), droits aux aides + chemin
+      // procédural en liste numérotée. Pré-fill IA RÉEL 2 champs (dateArrivee,
+      // nationaliteUkrainienne) via static getPrefillCount +
+      // ProtectionTemporaireUkraineBePrefillRules. residenceUkraineAvant24Fev2022 /
+      // apatridesUkraine / membreFamilleProtege / titreSejourBE aspirationnels
+      // (jamais comptés). VOIE (a) F-IA-03 : badge inline sur dateArrivee.
+      ['F-IM-34-protection-temporaire-ukraine-be', {
+        displayLabel: 'Protection temporaire Ukraine (BE)',
+        component: ProtectionTemporaireUkraineBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4575,6 +4600,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // jours restants). Aligné sur F-IM-31-cce-annulation-30j-be et les autres
     // calculateurs de délais CCE/CESEDA.
     ['F-IM-33-annexe13quinquies-ie-be', 'DELAIS'],
+    // SF-215-20 : F-IM-34-protection-temporaire-ukraine-be protection temporaire
+    // Ukraine (BE). Thème VALIDITE — analyseur d'éligibilité (badge ELIGIBLE /
+    // INELIGIBLE, durée de protection restante, droits travail/aides, chemin
+    // procédural). Aligné sur les autres analyseurs d'éligibilité Immigration BE
+    // (F-IM-27 regroupement 10bis, F-IM-28 naturalisation 12bis).
+    ['F-IM-34-protection-temporaire-ukraine-be', 'VALIDITE'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

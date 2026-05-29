@@ -1,0 +1,273 @@
+<section class="pt-section">
+  <header class="pt-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pt-body">
+    <mat-icon class="pt-icon">shield</mat-icon>
+    <span class="pt-title">PROTECTION TEMPORAIRE UKRAINE (BE)</span>
+    @if (result()) {
+      <span [class]="eligibiliteBadgeClass(result()!.eligible)">
+        {{ eligibiliteLabel(result()!.eligible) }}
+      </span>
+    }
+    <mat-icon class="pt-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pt-body" class="pt-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="pt-banner pt-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pt-banner-content">
+            <div class="pt-banner-title">Outil Belgique uniquement</div>
+            <div class="pt-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. La protection
+              temporaire Ukraine (décision d'exécution (UE) 2022/382 activant la
+              directive 2001/55/CE) est gérée ici dans le cadre belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pt-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="pt-form" (ngSubmit)="analyze()">
+              <div class="pt-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'arrivée sur le territoire</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-arrivee-input"
+                         [ngModel]="dateArrivee()"
+                         (ngModelChange)="onDateArriveeChange($event)"
+                         name="dateArrivee" />
+                </mat-form-field>
+                @if (provenanceDateArrivee() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (dateArriveeAlert(); as alert) {
+                  <span class="pt-coherence-badge coherence-warning"
+                        data-testid="coherence-date-arrivee"
+                        [attr.title]="alert.tooltip"
+                        [attr.aria-label]="alert.label">
+                    <mat-icon>warning</mat-icon> {{ alert.label }}
+                  </span>
+                }
+              </div>
+
+              <div class="pt-field-wrap pt-field-wrap--full">
+                <mat-checkbox
+                    data-testid="nationalite-checkbox"
+                    [ngModel]="nationaliteUkrainienne()"
+                    (ngModelChange)="onNationaliteChange($event)"
+                    name="nationaliteUkrainienne">
+                  Nationalité ukrainienne
+                </mat-checkbox>
+                @if (provenanceNationalite() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pt-field-wrap pt-field-wrap--full">
+                <mat-checkbox
+                    data-testid="residence-checkbox"
+                    [ngModel]="residenceUkraineAvant24Fev2022()"
+                    (ngModelChange)="onResidenceChange($event)"
+                    name="residenceUkraineAvant24Fev2022">
+                  Résidait en Ukraine avant le 24 février 2022
+                </mat-checkbox>
+              </div>
+
+              <div class="pt-field-wrap pt-field-wrap--full">
+                <mat-checkbox
+                    data-testid="apatrides-checkbox"
+                    [ngModel]="apatridesUkraine()"
+                    (ngModelChange)="onApatridesChange($event)"
+                    name="apatridesUkraine">
+                  Apatride / ressortissant d'un pays tiers protégé en Ukraine
+                </mat-checkbox>
+              </div>
+
+              <div class="pt-field-wrap pt-field-wrap--full">
+                <mat-checkbox
+                    data-testid="membre-famille-checkbox"
+                    [ngModel]="membreFamilleProtege()"
+                    (ngModelChange)="onMembreFamilleChange($event)"
+                    name="membreFamilleProtege">
+                  Membre de famille d'un bénéficiaire de la protection temporaire
+                </mat-checkbox>
+              </div>
+
+              <div class="pt-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Titre de séjour belge actuel</mat-label>
+                  <mat-select required
+                              data-testid="titre-sejour-select"
+                              [ngModel]="titreSejourBE()"
+                              (ngModelChange)="onTitreSejourChange($event)"
+                              name="titreSejourBE">
+                    @for (opt of titres; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="pt-hint">
+                Régime de protection temporaire Ukraine : décision d'exécution
+                (UE) 2022/382 du Conseil (activation de la directive 2001/55/CE).
+                Accès au marché du travail sans single permit (permis unique).
+              </div>
+
+              <div class="pt-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Vérifier l'éligibilité + droits</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pt-result">
+              <!-- Badge éligibilité ELIGIBLE vert / INELIGIBLE rouge -->
+              <div class="pt-elig-block" role="status">
+                <span class="pt-elig-label">Éligibilité protection temporaire</span>
+                <span [class]="eligibiliteBadgeClass(result()!.eligible)" data-testid="eligibilite-badge">
+                  <mat-icon>{{ eligibiliteIcon(result()!.eligible) }}</mat-icon>
+                  {{ eligibiliteLabel(result()!.eligible) }}
+                </span>
+              </div>
+
+              @if (result()!.eligible) {
+                <!-- Durée de protection restante en JetBrains Mono -->
+                <div class="pt-duree-block" role="status">
+                  <span class="pt-duree-label">Durée de protection restante</span>
+                  <span class="pt-duree-mono" data-testid="duree-restante">
+                    {{ result()!.dureeProtectionRestante }} jours
+                  </span>
+                </div>
+
+                <!-- Bandeau orange si renouvellement imminent (< 90 j) -->
+                @if (renouvellementImminent(result())) {
+                  <div class="pt-banner pt-banner--warning" role="status" data-testid="renouvellement-banner">
+                    <mat-icon>schedule</mat-icon>
+                    <div class="pt-banner-content">
+                      <div class="pt-banner-title">Renouvellement à anticiper</div>
+                      <div class="pt-banner-sub">{{ renouvellementMessage(result()) }}</div>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="pt-renouvellement-note" data-testid="renouvellement-note">
+                    {{ renouvellementMessage(result()) }}
+                  </div>
+                }
+
+                <!-- Bloc droits travail PROÉMINENT (mention single permit non requis) -->
+                <div class="pt-droits-travail" role="note" data-testid="droits-travail">
+                  <div class="pt-droits-travail-title">
+                    <mat-icon>work</mat-icon> Droit au travail
+                  </div>
+                  <div class="pt-droits-travail-body">{{ result()!.droitsTravail }}</div>
+                  <div class="pt-droits-travail-flag">
+                    <mat-icon>check_circle</mat-icon>
+                    Accès au marché du travail <strong>sans single permit (permis unique)</strong> requis.
+                  </div>
+                </div>
+
+                <!-- Droits aux aides -->
+                @if (result()!.droitsAides.length) {
+                  <div class="pt-aides" role="note" data-testid="droits-aides">
+                    <div class="pt-aides-title">
+                      <mat-icon>volunteer_activism</mat-icon> Droits aux aides
+                    </div>
+                    <ul>
+                      @for (aide of result()!.droitsAides; track aide) {
+                        <li>{{ aide }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+
+                <!-- Chemin procédural en liste numérotée / stepper -->
+                @if (result()!.cheminProcedure.length) {
+                  <div class="pt-procedure" role="note" data-testid="chemin-procedure">
+                    <div class="pt-procedure-title">
+                      <mat-icon>route</mat-icon> Chemin procédural
+                    </div>
+                    <ol class="pt-stepper">
+                      @for (etape of result()!.cheminProcedure; track etape; let i = $index) {
+                        <li class="pt-step">
+                          <span class="pt-step-index">{{ i + 1 }}</span>
+                          <span class="pt-step-label">{{ etape }}</span>
+                        </li>
+                      }
+                    </ol>
+                  </div>
+                }
+              } @else {
+                <div class="pt-banner pt-banner--danger" role="status" data-testid="ineligible-banner">
+                  <mat-icon>gpp_bad</mat-icon>
+                  <div class="pt-banner-content">
+                    <div class="pt-banner-title">Non éligible à la protection temporaire</div>
+                    <div class="pt-banner-sub">
+                      Les conditions du régime de protection temporaire Ukraine ne
+                      sont pas réunies au vu des éléments saisis. Vérifier les
+                      voies alternatives (asile, regroupement, séjour humanitaire).
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <ul class="pt-breakdown">
+                <li>
+                  <span class="pt-bd-label">Arrivée sur le territoire</span>
+                  <span class="pt-bd-value pt-bd-value--mono">{{ formatDateFr(result()!.dateArrivee) }}</span>
+                </li>
+                <li>
+                  <span class="pt-bd-label">Nationalité ukrainienne</span>
+                  <span class="pt-bd-value">{{ result()!.nationaliteUkrainienne ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="pt-bd-label">Résidence en Ukraine avant le 24/02/2022</span>
+                  <span class="pt-bd-value">{{ result()!.residenceUkraineAvant24Fev2022 ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="pt-bd-label">Titre de séjour belge actuel</span>
+                  <span class="pt-bd-value">{{ titreLabel(result()!.titreSejourBE) }}</span>
+                </li>
+              </ul>
+
+              <div class="pt-meta">
+                @if (result()!.baseJuridique) {
+                  <span class="pt-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

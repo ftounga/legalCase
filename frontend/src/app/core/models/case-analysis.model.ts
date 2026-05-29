@@ -1466,6 +1466,21 @@ export interface ImmigrationExtractedData {
   interdictionEntreeDateNotification?: string | null;
   interdictionEntreeMotif?: 'SEJOUR_IRREGULIER' | 'MENACE_ORDRE_PUBLIC' | 'RAISONS_SECURITE_NATIONALE' | 'ATTEINTE_INTERET_UE' | 'DECISION_JUDICIAIRE' | null;
   /**
+   * SF-215-19 / SF-215-20 — Pré-fill outil F-IM-34-protection-temporaire-ukraine-be
+   * « Protection temporaire Ukraine (BE) » — décision d'exécution (UE) 2022/382
+   * (directive 2001/55/CE). BELGIQUE uniquement — dossier FR : null.
+   *
+   * `protectionTemporaireUkraineDetectee` : flag CONTEXTUAL — une situation de
+   *   protection temporaire Ukraine est détectée dans le dossier.
+   * `ptUkraineDateArrivee`                : date d'arrivée sur le territoire
+   *   (ISO yyyy-MM-dd) — champ pré-fill RÉEL.
+   * `ptUkraineNationalite`                : nationalité ukrainienne détectée
+   *   (booléen) — champ pré-fill RÉEL (pré-coche la checkbox nationalité).
+   */
+  protectionTemporaireUkraineDetectee?: boolean | null;
+  ptUkraineDateArrivee?: string | null;
+  ptUkraineNationalite?: boolean | null;
+  /**
    * SF-215-05 / SF-215-06 — Pré-fill outil F-IM-27-regroupement-10bis-be
    * « Regroupement familial art. 10bis (BE) » — Loi 15/12/1980 art. 10bis,
    * AR 17/05/2007 (seuil ressources 120 % RIS). À la différence de l'art.
