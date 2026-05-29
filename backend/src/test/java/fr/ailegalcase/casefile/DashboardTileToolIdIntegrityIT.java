@@ -429,6 +429,13 @@ class DashboardTileToolIdIntegrityIT {
             // backend SF-215-11. Outil BE frontend autosuffisant sans tile
             // DashboardTile — pattern uniforme F-215 P2 Immigration BE.
             "F-IM-30-aesm-mena-be",
+            // SF-215-13 (2026-05-29) : F-IM-31-cce-annulation-30j-be — calculateur
+            // de délai du recours en annulation devant le Conseil du Contentieux
+            // des Étrangers (CCE — art. 39/82 §4 al. 1 Loi 15/12/1980, 30 jours
+            // calendaires). Seed visibility livrée dans la PR backend SF-215-13.
+            // Outil BE frontend autosuffisant sans tile DashboardTile —
+            // pattern uniforme F-215 P2 Immigration BE.
+            "F-IM-31-cce-annulation-30j-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
             // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs

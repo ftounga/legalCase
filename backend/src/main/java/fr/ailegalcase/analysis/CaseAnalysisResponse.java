@@ -2455,7 +2455,19 @@ public record CaseAnalysisResponse(
             /** SF-215-11 : date d'arrivée en Belgique du MENA au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
             String menaDateArrivee,
             /** SF-215-11 : durée de scolarité continue en mois (0–120). Null si non extractible ou dossier FR. */
-            Integer menaDureeScolaire) {
+            Integer menaDureeScolaire,
+            // === SF-215-13 — F-IM-31 Recours CCE annulation 30j BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-215-13 : true si les pièces évoquent un recours en annulation envisagé
+             * devant le Conseil du Contentieux des Étrangers (CCE) — décision OE/CGRA
+             * notifiée, recours art. 39/82, etc. Pivot pour la visibility rule CONTEXTUAL
+             * de F-IM-31 (trigger {@code recours_cce_envisage}). Dossiers FR : toujours false.
+             */
+            boolean recoursCceEnvisage,
+            /** SF-215-13 : date de notification de la décision OE/CGRA YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String recoursCceDateNotification,
+            /** SF-215-13 : type de décision contestée — whitelist {@link #CCE_TYPE_DECISION_CODES} (7 codes). Null si non extractible ou dossier FR. */
+            String recoursCceTypeDecision) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2562,7 +2574,11 @@ public record CaseAnalysisResponse(
                     .mineurNonAccompagneBeDetecte(mineurNonAccompagneBeDetecte)
                     .menaAge(menaAge)
                     .menaDateArrivee(menaDateArrivee)
-                    .menaDureeScolaire(menaDureeScolaire);
+                    .menaDureeScolaire(menaDureeScolaire)
+                    // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE
+                    .recoursCceEnvisage(recoursCceEnvisage)
+                    .recoursCceDateNotification(recoursCceDateNotification)
+                    .recoursCceTypeDecision(recoursCceTypeDecision);
         }
 
         public static final class Builder {
@@ -2663,6 +2679,10 @@ public record CaseAnalysisResponse(
             private Integer menaAge;
             private String menaDateArrivee;
             private Integer menaDureeScolaire;
+            // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE
+            private boolean recoursCceEnvisage;
+            private String recoursCceDateNotification;
+            private String recoursCceTypeDecision;
 
             private Builder() {}
 
@@ -2762,6 +2782,10 @@ public record CaseAnalysisResponse(
             public Builder menaAge(Integer v) { this.menaAge = v; return this; }
             public Builder menaDateArrivee(String v) { this.menaDateArrivee = v; return this; }
             public Builder menaDureeScolaire(Integer v) { this.menaDureeScolaire = v; return this; }
+            // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE
+            public Builder recoursCceEnvisage(boolean v) { this.recoursCceEnvisage = v; return this; }
+            public Builder recoursCceDateNotification(String v) { this.recoursCceDateNotification = v; return this; }
+            public Builder recoursCceTypeDecision(String v) { this.recoursCceTypeDecision = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2811,7 +2835,11 @@ public record CaseAnalysisResponse(
                         mineurNonAccompagneBeDetecte,
                         menaAge,
                         menaDateArrivee,
-                        menaDureeScolaire);
+                        menaDureeScolaire,
+                        // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE
+                        recoursCceEnvisage,
+                        recoursCceDateNotification,
+                        recoursCceTypeDecision);
             }
         }
     }
@@ -2939,6 +2967,15 @@ public record CaseAnalysisResponse(
      */
     static final Set<String> NATURALISATION_BE_NIVEAU_LANGUE_CODES = Set.of(
             "INFERIEUR_A2", "A2", "SUPERIEUR_A2"
+    );
+
+    /**
+     * SF-215-13 : type de décision OE/CGRA contestée par le recours en annulation CCE —
+     * 7 codes alignés sur l'enum Java {@code CceAnnulationBeTypeDecisionEnum}.
+     */
+    static final Set<String> CCE_TYPE_DECISION_CODES = Set.of(
+            "REFUS_TITRE", "REFUS_REGROUPEMENT", "REFUS_9BIS", "REFUS_9TER",
+            "OQT_ANNEXE13", "DECISION_CGRA", "AUTRE"
     );
 
     /** SF-246-20 : borne max revenus mensuels nets regroupant belge (plausibilité). */
@@ -5833,6 +5870,16 @@ public record CaseAnalysisResponse(
                 && menaDateArriveeRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
                 ? menaDateArriveeRaw : null;
         Integer menaDureeScolaire = boundedIntOrNull(root, "mena_duree_scolaire", 0, 120);
+        // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE — flag pivot + 2 champs IA réels.
+        // recoursForme / dateRecours sont aspirationnels (actions procédurales non extractibles).
+        boolean recoursCceEnvisage = booleanOrFalse(root, "recours_cce_envisage");
+        String recoursCceDateNotificationRaw = textOrNull(root, "recours_cce_date_notification");
+        String recoursCceDateNotification = (recoursCceDateNotificationRaw != null
+                && recoursCceDateNotificationRaw.matches(ISO_DATE_SF214)
+                && recoursCceDateNotificationRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
+                ? recoursCceDateNotificationRaw : null;
+        String recoursCceTypeDecision = normalizeEnumCode(
+                textOrNull(root, "recours_cce_type_decision"), CCE_TYPE_DECISION_CODES);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5883,7 +5930,11 @@ public record CaseAnalysisResponse(
                 && !mineurNonAccompagneBeDetecte
                 && menaAge == null
                 && menaDateArrivee == null
-                && menaDureeScolaire == null) return null;
+                && menaDureeScolaire == null
+                // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE (flag + 2 champs IA, nullables)
+                && !recoursCceEnvisage
+                && recoursCceDateNotification == null
+                && recoursCceTypeDecision == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -5989,6 +6040,10 @@ public record CaseAnalysisResponse(
                 .menaAge(menaAge)
                 .menaDateArrivee(menaDateArrivee)
                 .menaDureeScolaire(menaDureeScolaire)
+                // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE — flag pivot + 2 champs pré-fill réels
+                .recoursCceEnvisage(recoursCceEnvisage)
+                .recoursCceDateNotification(recoursCceDateNotification)
+                .recoursCceTypeDecision(recoursCceTypeDecision)
                 .build();
     }
 

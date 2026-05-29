@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a2b3c4-0000-0000-0000-000000000439-create-cce-annulation-be" author="legalcase">
+        <comment>
+            SF-215-13 : table dédiée à l'outil décisionnel "Recours CCE annulation 30 jours BE"
+            (F-IM-31-cce-annulation-30j-be, BELGIQUE — fondement : Loi du 15 décembre 1980 sur
+            l'accès au territoire, le séjour, l'établissement et l'éloignement des étrangers,
+            art. 39/2 §2 et 39/82 §4 al. 1 + loi du 15/09/2006 portant création du Conseil du
+            Contentieux des Étrangers (CCE).
+
+            CCE = Conseil du Contentieux des Étrangers (juridiction administrative belge en
+            droit des étrangers) — AUCUN rapport avec un dispositif de crédit à la consommation.
+
+            L'outil calcule (en jours CALENDAIRES — pas ouvrables) :
+            - dateLimiteRecours = dateNotificationDecision + 30 jours calendaires ;
+            - joursRestants = dateLimiteRecours − today (négatif si expiré) ;
+            - statut 4 états : DISPONIBLE (&gt; 10 j), URGENT (1-10 j), EXPIRE (≤ 0 j),
+              RECOURS_FORME (recours déjà introduit) ;
+            - recommandation de basculement vers le recours en extrême urgence (F-IM-32) si
+              statut URGENT ou EXPIRE et OQT exécutoire.
+
+            Outil single-country BELGIQUE — distinct du recours en extrême urgence 5 jours
+            ouvrables (F-IM-32, SF-215-15) et du calculateur Annexe 13 OQT (F-IM-08).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-215-03).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (440-seed-cce-annulation-be-visibility.xml) est livrée dans la MÊME PR que cette
+            table.
+        </comment>
+
+        <createTable tableName="cce_annulation_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_cce_annulation_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_notification_decision" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_decision" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_forme" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_recours" type="date"/>
+            <column name="statut" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="cce_annulation_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_cce_annulation_be_case_file"/>
+
+        <createIndex tableName="cce_annulation_be_analyses"
+                     indexName="idx_cce_annulation_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="cce_annulation_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

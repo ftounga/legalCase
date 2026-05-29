@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f1a2b3c4-0000-0000-0000-000000000440-seed-cce-annulation-be" author="legalcase">
+        <comment>
+            SF-215-13 : seed visibility pour l'outil décisionnel "Recours CCE annulation
+            30 jours BE" (F-IM-31-cce-annulation-30j-be).
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte qu'un recours devant le Conseil
+            du Contentieux des Étrangers est envisagé via le flag pivot `recours_cce_envisage`
+            extrait depuis le prompt IMMIGRATION_INSTRUCTION (décision OE/CGRA notifiée,
+            recours en annulation, art. 39/82, etc.).
+
+            Priority 206 — à la suite des outils immigration BE existants (200 single-permit,
+            201 regroupement-10ter, 202 regroupement-10bis, 203 naturalisation-12bis,
+            204 naturalisation-conjoint-belge, 205 aesm-mena) pour cohérence d'ordre dans la
+            liste de visibility CONTEXTUAL Immigration BE.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) +
+            KNOWN_FRONTEND_TOOL_IDS du test d'intégrité sera ajoutée par SF-215-14 (frontend).
+            F-IM-31-cce-annulation-30j-be est ajouté à KNOWN_NO_DASHBOARD_TILE_IDS de
+            DashboardTileToolIdIntegrityIT dans cette même PR backend (pattern uniforme
+            F-215 P2 Immigration BE — outil BE sans tile DashboardTile dédié).
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'f1a2b3c4-0000-0000-0000-000000000441',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-31-cce-annulation-30j-be',
+                'CONTEXTUAL',
+                'recours_cce_envisage',
+                'true',
+                206
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a2b3c4-0000-0000-0000-000000000441';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
