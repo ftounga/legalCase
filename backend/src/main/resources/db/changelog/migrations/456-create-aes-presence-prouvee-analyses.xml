@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="456-create-aes-presence-prouvee-analyses" author="legalcase">
+        <comment>
+            SF-214-11 — table `aes_presence_prouvee_analyses` pour l'outil décisionnel
+            "AES calcul présence prouvée" (F-IM-30-aes-presence-prouvee-fr, FRANCE).
+
+            Outil single-country FR : calcule le nombre d'années de présence effective
+            en France justifiée par des pièces recevables (circulaire Valls 28/11/2012)
+            et l'éligibilité aux 4 voies AES (famille 5 ans, humanitaire 10 ans,
+            étudiant 3 ans, métiers en tension 3 ans — L. 435-1 / L. 435-3 CESEDA).
+            Les périodes saisies, périodes fusionnées, gaps, éligibilité par voie et
+            recommandations sont persistés en JSON dans `result_data`. Persiste
+            l'analyse 1:1 par dossier.
+
+            Source juridique : circulaire 28/11/2012 (Valls) ; L. 435-1 et L. 435-3
+            CESEDA ; CE 4 décembre 2009 n° 310980.
+
+            UUID namespace F-214 : f214000c-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="aes_presence_prouvee_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_aes_presence_prouvee_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="annees_totales_prouvees" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mois_totaux_prouves" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="aes_presence_prouvee_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

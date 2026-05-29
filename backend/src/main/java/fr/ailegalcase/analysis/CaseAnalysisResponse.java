@@ -2283,6 +2283,12 @@ public record CaseAnalysisResponse(
             boolean naturalisationEnvisageeDetectee,
             boolean clientMineurDetecte,
             boolean mesureEloignementDetectee,
+            // SF-214-11 : flag pivot DÉRIVÉ pour F-IM-30 AES calcul présence prouvée (FR).
+            // NON extrait par le pipeline IA : dérivé par OR des 4 flags AES ci-dessus
+            // (aesMetiersTension / aesFamilial / aesHumanitaire / aesEtudiant) dans le
+            // builder. Exposé pour cohérence API ; la visibilité de l'outil est calculée
+            // par DecisionToolVisibilityService (même OR sur le JSON immigration_extracted_data).
+            boolean aesCalculPresenceDeclenche,
             // === Flags BE (F-203) ===
             // F-203 : 5 flags décisionnels niveau 3 — Immigration BELGIQUE uniquement, default false.
             // Permettent à F-IA-04 de basculer 5 outils Immigration BE ALWAYS_ON → CONTEXTUAL.
@@ -2556,6 +2562,7 @@ public record CaseAnalysisResponse(
                     .naturalisationEnvisageeDetectee(naturalisationEnvisageeDetectee)
                     .clientMineurDetecte(clientMineurDetecte)
                     .mesureEloignementDetectee(mesureEloignementDetectee)
+                    // SF-214-11 : aesCalculPresenceDeclenche est dérivé dans build() — pas recopié ici.
                     .procedure9bisEnvisagee(procedure9bisEnvisagee)
                     .procedure9terMedicaleDetectee(procedure9terMedicaleDetectee)
                     .regroupement40bisDetecte(regroupement40bisDetecte)
@@ -2890,6 +2897,9 @@ public record CaseAnalysisResponse(
                         aesHumanitaireEligibleDetecte, aesEtudiantEligibleDetecte,
                         changementStatutEnvisageDetecte, procedureAsileDetectee,
                         naturalisationEnvisageeDetectee, clientMineurDetecte, mesureEloignementDetectee,
+                        // SF-214-11 : flag pivot dérivé — OR des 4 flags AES.
+                        (aesMetiersTensionEligibleDetecte || aesFamilialEligibleDetecte
+                                || aesHumanitaireEligibleDetecte || aesEtudiantEligibleDetecte),
                         procedure9bisEnvisagee, procedure9terMedicaleDetectee,
                         regroupement40bisDetecte, regroupement40terDetecte, oqtAnnexe13Detectee,
                         nationalite, dateOrdonnanceProtectionJaf,

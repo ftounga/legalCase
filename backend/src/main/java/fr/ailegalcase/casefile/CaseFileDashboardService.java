@@ -108,6 +108,8 @@ public class CaseFileDashboardService {
     private final VlsTsValidationRepository vlsTsValidationRepo;
     // SF-214-09 : F-IM-29 OQTF catégories L.611-1 CESEDA (FR)
     private final OqtfCategoriesRepository oqtfCategoriesRepo;
+    // SF-214-11 : F-IM-30 AES calcul présence prouvée L.435-1/L.435-3 CESEDA (FR)
+    private final AesPresenceProuveeRepository aesPresenceProuveeRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -251,6 +253,7 @@ public class CaseFileDashboardService {
                                      VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo,
                                      VlsTsValidationRepository vlsTsValidationRepo,
                                      OqtfCategoriesRepository oqtfCategoriesRepo,
+                                     AesPresenceProuveeRepository aesPresenceProuveeRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -377,6 +380,7 @@ public class CaseFileDashboardService {
         this.vpfLiensPersonnelsRepo = vpfLiensPersonnelsRepo;
         this.vlsTsValidationRepo = vlsTsValidationRepo;
         this.oqtfCategoriesRepo = oqtfCategoriesRepo;
+        this.aesPresenceProuveeRepo = aesPresenceProuveeRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -571,6 +575,7 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-28-vls-ts-validation-ofii-fr", caseFileId, () -> tileFromVlsTsValidationAnalysis(caseFileId));
         // SF-214-09 : F-IM-29 OQTF catégories L.611-1 CESEDA (FR)
         addSafely(tiles, "F-IM-29-oqtf-categories-l6111-fr", caseFileId, () -> tileFromOqtfCategoriesAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-30-aes-presence-prouvee-fr", caseFileId, () -> tileFromAesPresenceProuveeAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1807,6 +1812,44 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "OQTF catégorie L. 611-1",
                         r.categorieL611() != null ? r.categorieL611().name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-11 — F-IM-30 AES calcul présence prouvée (circulaire Valls 28/11/2012 ;
+     * L. 435-1 / L. 435-3 CESEDA). Tuile informative : rappelle l'ancienneté de
+     * présence prouvée et la voie AES la plus exigeante atteinte. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si au moins une voie AES est atteinte (≥ 3 ans)</li>
+     *   <li>{@code WARNING} sinon (ancienneté insuffisante pour toute voie)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromAesPresenceProuveeAnalysis(UUID caseFileId) {
+        return aesPresenceProuveeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AesPresenceProuveeResult.class);
+                int annees = r.anneesTotalesProuvees();
+                java.util.Map<String, Boolean> elig = r.eligibiliteParVoie() != null
+                        ? r.eligibiliteParVoie() : java.util.Map.of();
+                boolean uneVoie = elig.values().stream().anyMatch(Boolean.TRUE::equals);
+                String voies = elig.entrySet().stream()
+                        .filter(en -> Boolean.TRUE.equals(en.getValue()))
+                        .map(java.util.Map.Entry::getKey)
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("aucune voie atteinte");
+                String secondary = String.format("Voies éligibles : %s", voies);
+                String alert = uneVoie ? "OK" : "WARNING";
+                return new DashboardTile(
+                        "F-IM-30-aes-presence-prouvee-fr",
+                        "VALIDITE",
+                        "AES présence prouvée",
+                        annees + " an(s) prouvé(s)",
                         secondary,
                         alert);
             } catch (Exception ex) {

@@ -96,6 +96,8 @@ class CaseFileDashboardServiceTest {
     private VlsTsValidationRepository vlsTsValidationRepo;
     // SF-214-09 : F-IM-29 OQTF catégories L.611-1 CESEDA (FR)
     private OqtfCategoriesRepository oqtfCategoriesRepo;
+    // SF-214-11 : F-IM-30 AES calcul présence prouvée L.435-1/L.435-3 CESEDA (FR)
+    private AesPresenceProuveeRepository aesPresenceProuveeRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -225,6 +227,7 @@ class CaseFileDashboardServiceTest {
         vpfLiensPersonnelsRepo = mock(VpfLiensPersonnelsRepository.class);
         vlsTsValidationRepo = mock(VlsTsValidationRepository.class);
         oqtfCategoriesRepo = mock(OqtfCategoriesRepository.class);
+        aesPresenceProuveeRepo = mock(AesPresenceProuveeRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -445,6 +448,7 @@ class CaseFileDashboardServiceTest {
                 vpfLiensPersonnelsRepo,
                 vlsTsValidationRepo,
                 oqtfCategoriesRepo,
+                aesPresenceProuveeRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
