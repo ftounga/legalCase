@@ -1721,6 +1721,21 @@ export interface ImmigrationExtractedData {
    */
   recoursEnvisageDetecte?: boolean | null;
   recoursDateJugementTA?: string | null;
+
+  /**
+   * SF-214-36 — Pré-fill / contexte outil F-IM-42-assignation-residence-fr
+   * « Assignation à résidence » (CESEDA, assignation prononcée en vue de
+   * l'exécution d'une mesure d'éloignement). FRANCE uniquement — dossier BE :
+   * null. Tous nullables.
+   *
+   * `assignationResidenceDetectee` : indice CONTEXTUAL signalant que les pièces
+   *   évoquent une assignation à résidence (sert au scoring de pertinence
+   *   d'affichage, pas un champ de saisie de l'outil).
+   * `assignationDateNotification` : date ISO YYYY-MM-DD de notification de
+   *   l'arrêté d'assignation (→ dateNotificationAssignation, point de départ).
+   */
+  assignationResidenceDetectee?: boolean | null;
+  assignationDateNotification?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
