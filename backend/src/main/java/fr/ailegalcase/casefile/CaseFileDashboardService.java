@@ -126,6 +126,8 @@ public class CaseFileDashboardService {
     private final AnefProcedureRepository anefProcedureRepo;
     // SF-214-27 : F-IM-38 MNA évaluation d'âge (FR)
     private final MnaEvaluationAgeRepository mnaEvaluationAgeRepo;
+    // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité (FR)
+    private final NaturalisationRecoursTjRepository naturalisationRecoursTjRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -278,6 +280,7 @@ public class CaseFileDashboardService {
                                      CarteResidentRepository carteResidentRepo,
                                      AnefProcedureRepository anefProcedureRepo,
                                      MnaEvaluationAgeRepository mnaEvaluationAgeRepo,
+                                     NaturalisationRecoursTjRepository naturalisationRecoursTjRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -413,6 +416,7 @@ public class CaseFileDashboardService {
         this.carteResidentRepo = carteResidentRepo;
         this.anefProcedureRepo = anefProcedureRepo;
         this.mnaEvaluationAgeRepo = mnaEvaluationAgeRepo;
+        this.naturalisationRecoursTjRepo = naturalisationRecoursTjRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -622,6 +626,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-36-carte-resident-l4261-fr", caseFileId, () -> tileFromCarteResidentAnalysis(caseFileId));
         addSafely(tiles, "F-IM-37-anef-procedure-fr", caseFileId, () -> tileFromAnefProcedureAnalysis(caseFileId));
         addSafely(tiles, "F-IM-38-mna-evaluation-age-fr", caseFileId, () -> tileFromMnaEvaluationAgeAnalysis(caseFileId));
+        // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité (Cciv 26-3, FR)
+        addSafely(tiles, "F-IM-39-naturalisation-recours-tj-fr", caseFileId, () -> tileFromNaturalisationRecoursTjAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1960,6 +1966,42 @@ public class CaseFileDashboardService {
                         "DELAI",
                         "MNA évaluation d'âge",
                         statut != null ? statut : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-29 — F-IM-39 recours TJ refus de déclaration de nationalité
+     * (Cciv 26-3 — délai 6 mois devant le tribunal judiciaire). Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si statut {@code RECOURS_POSSIBLE} (marge confortable)</li>
+     *   <li>{@code WARNING} si statut {@code URGENT} (fenêtre courte ≤ 30 j.)</li>
+     *   <li>{@code ALERT} si statut {@code PRESCRIT} (délai dépassé, recours irrecevable)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromNaturalisationRecoursTjAnalysis(UUID caseFileId) {
+        return naturalisationRecoursTjRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), NaturalisationRecoursTjResult.class);
+                NaturalisationRecoursTjStatut statut = r.statut();
+                String secondary = r.dateEcheanceRecoursJudicaire() != null
+                        ? "Échéance recours TJ : " + r.dateEcheanceRecoursJudicaire()
+                        : null;
+                String alert = switch (statut == null ? NaturalisationRecoursTjStatut.RECOURS_POSSIBLE : statut) {
+                    case PRESCRIT -> "ALERT";
+                    case URGENT -> "WARNING";
+                    case RECOURS_POSSIBLE -> "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-39-naturalisation-recours-tj-fr",
+                        "DELAI",
+                        "Recours TJ naturalisation",
+                        statut != null ? statut.name() : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="474-create-naturalisation-recours-tj-analyses" author="legalcase">
+        <comment>
+            SF-214-29 — table `naturalisation_recours_tj_analyses` pour l'outil
+            décisionnel "Recours TJ refus déclaration de nationalité"
+            (F-IM-39-naturalisation-recours-tj-fr, FRANCE).
+
+            Outil single-country FR : calcule le délai de recours devant le
+            tribunal judiciaire contre un refus de déclaration de nationalité
+            française -- 6 mois à compter du refus (Cciv 26-3). Procédure CIVILE,
+            distincte du recours décret de naturalisation porté devant le TA de
+            Nantes (SF-214-31). Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : Cciv 26-3 ; Cciv 21-2 (mariage) ; Cciv 21-13
+            (ascendant) ; Cciv 22-1 (mineur) ; CPC art. 1043.
+
+            UUID namespace F-214 : f214001b-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="naturalisation_recours_tj_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_naturalisation_recours_tj_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="voie_naturalisation" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_refus_declaration" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_refus" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="naturalisation_recours_tj_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

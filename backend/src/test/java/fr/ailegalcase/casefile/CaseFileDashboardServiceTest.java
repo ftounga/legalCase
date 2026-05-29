@@ -114,6 +114,8 @@ class CaseFileDashboardServiceTest {
     private AnefProcedureRepository anefProcedureRepo;
     // SF-214-27 : F-IM-38 MNA évaluation d'âge (FR)
     private MnaEvaluationAgeRepository mnaEvaluationAgeRepo;
+    // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité (FR)
+    private NaturalisationRecoursTjRepository naturalisationRecoursTjRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -252,6 +254,7 @@ class CaseFileDashboardServiceTest {
         carteResidentRepo = mock(CarteResidentRepository.class);
         anefProcedureRepo = mock(AnefProcedureRepository.class);
         mnaEvaluationAgeRepo = mock(MnaEvaluationAgeRepository.class);
+        naturalisationRecoursTjRepo = mock(NaturalisationRecoursTjRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -481,6 +484,7 @@ class CaseFileDashboardServiceTest {
                 carteResidentRepo,
                 anefProcedureRepo,
                 mnaEvaluationAgeRepo,
+                naturalisationRecoursTjRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

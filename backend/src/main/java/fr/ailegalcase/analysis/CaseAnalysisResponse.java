@@ -2618,7 +2618,21 @@ public record CaseAnalysisResponse(
              * du poignet », « détermination de l'âge »). Sert au pré-remplissage de
              * l'outil F-IM-38. Dossiers BE : toujours false.
              */
-            boolean mnaExamenOsseuxOrdonne) {
+            boolean mnaExamenOsseuxOrdonne,
+            // === SF-214-29 — F-IM-39 Recours TJ refus déclaration de nationalité Cciv 26-3 (FRANCE UNIQUEMENT, null pour BE) ===
+            /**
+             * SF-214-29 : voie de déclaration de nationalité française visée par le refus —
+             * whitelist {@code MARIAGE / ASCENDANT / MINEUR_22_1}. Sert au pré-remplissage de
+             * l'outil F-IM-39 (recours TJ) ; la visibilité reste pilotée par le flag existant
+             * {@code naturalisationEnvisageeDetectee} (F-201). Null si non extractible ou dossier BE.
+             */
+            String naturalisationVoie,
+            /**
+             * SF-214-29 : date du refus de déclaration de nationalité au format YYYY-MM-DD
+             * (non future) — point de départ du délai de recours de 6 mois (Cciv 26-3). Null
+             * si non extractible ou dossier BE.
+             */
+            String naturalisationDateRefus) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2881,6 +2895,9 @@ public record CaseAnalysisResponse(
             // SF-214-27 : F-IM-38 MNA évaluation d'âge FR
             private boolean mnaEvaluationRefusee;
             private boolean mnaExamenOsseuxOrdonne;
+            // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité FR
+            private String naturalisationVoie;
+            private String naturalisationDateRefus;
 
             private Builder() {}
 
@@ -3010,6 +3027,8 @@ public record CaseAnalysisResponse(
             public Builder anefPanneDetectee(boolean v) { this.anefPanneDetectee = v; return this; }
             public Builder mnaEvaluationRefusee(boolean v) { this.mnaEvaluationRefusee = v; return this; }
             public Builder mnaExamenOsseuxOrdonne(boolean v) { this.mnaExamenOsseuxOrdonne = v; return this; }
+            public Builder naturalisationVoie(String v) { this.naturalisationVoie = v; return this; }
+            public Builder naturalisationDateRefus(String v) { this.naturalisationDateRefus = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3100,7 +3119,10 @@ public record CaseAnalysisResponse(
                         anefPanneDetectee,
                         // SF-214-27 : F-IM-38 MNA évaluation d'âge FR
                         mnaEvaluationRefusee,
-                        mnaExamenOsseuxOrdonne);
+                        mnaExamenOsseuxOrdonne,
+                        // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité FR
+                        naturalisationVoie,
+                        naturalisationDateRefus);
             }
         }
     }
@@ -3150,6 +3172,15 @@ public record CaseAnalysisResponse(
      */
     static final Set<String> TYPES_VISA_CRRV_CODES = Set.of(
             "COURT_SEJOUR", "LONG_SEJOUR", "REGROUPEMENT_FAMILIAL", "ETUDIANT", "AUTRE"
+    );
+
+    /**
+     * SF-214-29 : voies de déclaration de nationalité française pour le pré-fill de
+     * l'outil F-IM-39 (recours TJ Cciv 26-3). Aligné sur l'enum
+     * {@code NaturalisationRecoursTjVoieEnum} backend.
+     */
+    static final Set<String> NATURALISATION_VOIE_CODES = Set.of(
+            "MARIAGE", "ASCENDANT", "MINEUR_22_1"
     );
 
     /** SF-246-17 : longueur max du motif de refus CRRV (texte libre). */
@@ -6227,6 +6258,18 @@ public record CaseAnalysisResponse(
         // et la visibilité du flag existant client_mineur_detecte (F-201).
         boolean mnaEvaluationRefusee = booleanOrFalse(root, "mna_evaluation_refusee");
         boolean mnaExamenOsseuxOrdonne = booleanOrFalse(root, "mna_examen_osseux_ordonne");
+        // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité Cciv 26-3 FR —
+        // 2 champs de pré-fill (FR uniquement). Voie whitelistée + date de refus ISO non future.
+        // La visibilité reste pilotée par le flag existant naturalisation_envisagee_detectee (F-201).
+        String naturalisationVoie = normalizeEnumCode(
+                textOrNull(root, "naturalisation_voie"), NATURALISATION_VOIE_CODES);
+        String naturalisationDateRefusRaw = textOrNull(root, "naturalisation_date_refus");
+        String naturalisationDateRefus = null;
+        if (naturalisationDateRefusRaw != null
+                && naturalisationDateRefusRaw.matches("\\d{4}-\\d{2}-\\d{2}")
+                && naturalisationDateRefusRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
+            naturalisationDateRefus = naturalisationDateRefusRaw;
+        }
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6316,7 +6359,10 @@ public record CaseAnalysisResponse(
                 && !anefPanneDetectee
                 // SF-214-27 : F-IM-38 MNA évaluation d'âge FR (2 flags de pré-fill)
                 && !mnaEvaluationRefusee
-                && !mnaExamenOsseuxOrdonne) return null;
+                && !mnaExamenOsseuxOrdonne
+                // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité FR (2 champs IA, nullables)
+                && naturalisationVoie == null
+                && naturalisationDateRefus == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6452,6 +6498,8 @@ public record CaseAnalysisResponse(
                 .anefPanneDetectee(anefPanneDetectee)
                 .mnaEvaluationRefusee(mnaEvaluationRefusee)
                 .mnaExamenOsseuxOrdonne(mnaExamenOsseuxOrdonne)
+                .naturalisationVoie(naturalisationVoie)
+                .naturalisationDateRefus(naturalisationDateRefus)
                 .build();
     }
 
