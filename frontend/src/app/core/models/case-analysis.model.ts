@@ -1706,6 +1706,21 @@ export interface ImmigrationExtractedData {
    */
   naturalisationVoie?: 'MARIAGE' | 'ASCENDANT' | 'MINEUR_22_1' | null;
   naturalisationDateRefus?: string | null;
+
+  /**
+   * SF-214-34 — Pré-fill outil F-IM-41-appel-caa-cassation-ce-fr « Appel CAA /
+   * cassation CE » (délais d'appel devant la cour administrative d'appel contre
+   * un jugement de TA en contentieux des étrangers, délai 1 mois ou 15 j en OQTF).
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   *
+   * `recoursEnvisageDetecte` : indice CONTEXTUAL signalant que les pièces
+   *   évoquent un recours / appel envisagé (pas un champ de saisie de l'outil,
+   *   sert au scoring de pertinence d'affichage).
+   * `recoursDateJugementTA` : date ISO YYYY-MM-DD du jugement du tribunal
+   *   administratif (→ dateJugementTA, point de départ du délai d'appel CAA).
+   */
+  recoursEnvisageDetecte?: boolean | null;
+  recoursDateJugementTA?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
