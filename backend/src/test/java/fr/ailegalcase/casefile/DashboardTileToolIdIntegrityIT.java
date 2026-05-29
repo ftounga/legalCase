@@ -451,6 +451,14 @@ class DashboardTileToolIdIntegrityIT {
             // autosuffisant sans tile DashboardTile — pattern uniforme F-215 P2
             // Immigration BE. Entrée TOOL_REGISTRY frontend par SF-215-18.
             "F-IM-33-annexe13quinquies-ie-be",
+            // SF-215-19 (2026-05-29) : F-IM-34-protection-temporaire-ukraine-be —
+            // outil information + checklist + calcul de durée de la protection
+            // temporaire Ukraine (directive 2001/55/CE, décision UE 2022/382,
+            // Loi 15/12/1980 art. 57/29+ — droit au travail immédiat sans single
+            // permit). Seed visibility livrée dans la PR backend SF-215-19. Outil BE
+            // frontend autosuffisant sans tile DashboardTile — pattern uniforme F-215
+            // P2 Immigration BE. Entrée TOOL_REGISTRY frontend par SF-215-20.
+            "F-IM-34-protection-temporaire-ukraine-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
             // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs

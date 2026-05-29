@@ -2477,7 +2477,12 @@ public record CaseAnalysisResponse(
             /** SF-215-17 : date de notification de l'Annexe 13quinquies (OQT + interdiction d'entrée) YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
             String interdictionEntreeDateNotification,
             /** SF-215-17 : motif de l'interdiction d'entrée — whitelist {@link #INTERDICTION_ENTREE_MOTIF_CODES} (5 codes). Null si non extractible ou dossier FR. */
-            String interdictionEntreeMotif) {
+            String interdictionEntreeMotif,
+            // === SF-215-19 — F-IM-34 Protection temporaire Ukraine BE (BELGIQUE UNIQUEMENT, null pour FR) ===
+            /** SF-215-19 : date d'arrivée en Belgique / première demande de protection temporaire YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String ptUkraineDateArrivee,
+            /** SF-215-19 : true si le bénéficiaire est de nationalité ukrainienne. Null si non extractible ou dossier FR. */
+            Boolean ptUkraineNationalite) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2593,7 +2598,10 @@ public record CaseAnalysisResponse(
                     .recoursExtremeUrgenceDateActe(recoursExtremeUrgenceDateActe)
                     .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe)
                     .interdictionEntreeDateNotification(interdictionEntreeDateNotification)
-                    .interdictionEntreeMotif(interdictionEntreeMotif);
+                    .interdictionEntreeMotif(interdictionEntreeMotif)
+                    // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
+                    .ptUkraineDateArrivee(ptUkraineDateArrivee)
+                    .ptUkraineNationalite(ptUkraineNationalite);
         }
 
         public static final class Builder {
@@ -2703,6 +2711,9 @@ public record CaseAnalysisResponse(
             private String recoursExtremeUrgenceTypeActe;
             private String interdictionEntreeDateNotification;
             private String interdictionEntreeMotif;
+            // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
+            private String ptUkraineDateArrivee;
+            private Boolean ptUkraineNationalite;
 
             private Builder() {}
 
@@ -2811,6 +2822,9 @@ public record CaseAnalysisResponse(
             public Builder recoursExtremeUrgenceTypeActe(String v) { this.recoursExtremeUrgenceTypeActe = v; return this; }
             public Builder interdictionEntreeDateNotification(String v) { this.interdictionEntreeDateNotification = v; return this; }
             public Builder interdictionEntreeMotif(String v) { this.interdictionEntreeMotif = v; return this; }
+            // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
+            public Builder ptUkraineDateArrivee(String v) { this.ptUkraineDateArrivee = v; return this; }
+            public Builder ptUkraineNationalite(Boolean v) { this.ptUkraineNationalite = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2869,7 +2883,10 @@ public record CaseAnalysisResponse(
                         recoursExtremeUrgenceDateActe,
                         recoursExtremeUrgenceTypeActe,
                         interdictionEntreeDateNotification,
-                        interdictionEntreeMotif);
+                        interdictionEntreeMotif,
+                        // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
+                        ptUkraineDateArrivee,
+                        ptUkraineNationalite);
             }
         }
     }
@@ -5944,6 +5961,14 @@ public record CaseAnalysisResponse(
                 ? interdictionEntreeDateNotificationRaw : null;
         String interdictionEntreeMotif = normalizeEnumCode(
                 textOrNull(root, "interdiction_entree_motif"), INTERDICTION_ENTREE_MOTIF_CODES);
+        // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE — 2 champs IA réels.
+        // residence/apatride/membreFamille/titreSejour sont aspirationnels (appréciation juridique).
+        String ptUkraineDateArriveeRaw = textOrNull(root, "pt_ukraine_date_arrivee");
+        String ptUkraineDateArrivee = (ptUkraineDateArriveeRaw != null
+                && ptUkraineDateArriveeRaw.matches(ISO_DATE_SF214)
+                && ptUkraineDateArriveeRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
+                ? ptUkraineDateArriveeRaw : null;
+        Boolean ptUkraineNationalite = booleanOrNull(root, "pt_ukraine_nationalite");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6004,7 +6029,10 @@ public record CaseAnalysisResponse(
                 && recoursExtremeUrgenceTypeActe == null
                 // SF-215-17 : F-IM-33 Annexe 13quinquies OQT + interdiction d'entrée BE (2 champs IA, nullables)
                 && interdictionEntreeDateNotification == null
-                && interdictionEntreeMotif == null) return null;
+                && interdictionEntreeMotif == null
+                // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE (2 champs IA, nullables)
+                && ptUkraineDateArrivee == null
+                && ptUkraineNationalite == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6119,6 +6147,9 @@ public record CaseAnalysisResponse(
                 .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe)
                 .interdictionEntreeDateNotification(interdictionEntreeDateNotification)
                 .interdictionEntreeMotif(interdictionEntreeMotif)
+                // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE — 2 champs pré-fill réels
+                .ptUkraineDateArrivee(ptUkraineDateArrivee)
+                .ptUkraineNationalite(ptUkraineNationalite)
                 .build();
     }
 
