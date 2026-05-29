@@ -2664,7 +2664,22 @@ public record CaseAnalysisResponse(
              * YYYY-MM-DD (non future) — point de départ de la durée d'assignation.
              * Sert au pré-remplissage de l'outil F-IM-42. Null si non extractible ou dossier BE.
              */
-            String assignationDateNotification) {
+            String assignationDateNotification,
+            // === SF-214-37 — F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30, FRANCE UNIQUEMENT, null pour BE) ===
+            /**
+             * SF-214-37 : date de la condamnation pénale ayant prononcé l'interdiction
+             * du territoire français (ITF) au format YYYY-MM-DD (non future) — point de
+             * départ du délai de relèvement (5 ans, C. pén. 131-30-1). Sert au
+             * pré-remplissage de l'outil F-IM-43. Null si non extractible ou dossier BE.
+             * La visibilité de l'outil réutilise le flag pivot {@code mesureEloignementDetectee}
+             * (l'ITF est une mesure d'éloignement d'origine pénale, trigger partagé avec F-IM-20).
+             */
+            String itfJudiciaireDateCondamnation,
+            /**
+             * SF-214-37 : durée de l'ITF prononcée, en années entières (> 0). Sert au
+             * pré-remplissage de l'outil F-IM-43. Null si non extractible ou dossier BE.
+             */
+            Integer itfJudiciaireDureeAnnees) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2791,7 +2806,10 @@ public record CaseAnalysisResponse(
                     .regroupementType(regroupementType)
                     // SF-214-35 : F-IM-42 Assignation à résidence L. 731-1 FR
                     .assignationResidenceDetectee(assignationResidenceDetectee)
-                    .assignationDateNotification(assignationDateNotification);
+                    .assignationDateNotification(assignationDateNotification)
+                    // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR
+                    .itfJudiciaireDateCondamnation(itfJudiciaireDateCondamnation)
+                    .itfJudiciaireDureeAnnees(itfJudiciaireDureeAnnees);
         }
 
         public static final class Builder {
@@ -2938,6 +2956,9 @@ public record CaseAnalysisResponse(
             // SF-214-35 : F-IM-42 Assignation à résidence L. 731-1 FR
             private boolean assignationResidenceDetectee;
             private String assignationDateNotification;
+            // SF-214-37 : F-IM-43 ITF judiciaire FR
+            private String itfJudiciaireDateCondamnation;
+            private Integer itfJudiciaireDureeAnnees;
 
             private Builder() {}
 
@@ -3073,6 +3094,8 @@ public record CaseAnalysisResponse(
             public Builder recoursDateJugementTA(String v) { this.recoursDateJugementTA = v; return this; }
             public Builder assignationResidenceDetectee(boolean v) { this.assignationResidenceDetectee = v; return this; }
             public Builder assignationDateNotification(String v) { this.assignationDateNotification = v; return this; }
+            public Builder itfJudiciaireDateCondamnation(String v) { this.itfJudiciaireDateCondamnation = v; return this; }
+            public Builder itfJudiciaireDureeAnnees(Integer v) { this.itfJudiciaireDureeAnnees = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3171,7 +3194,10 @@ public record CaseAnalysisResponse(
                         recoursEnvisageDetecte,
                         recoursDateJugementTA,
                         assignationResidenceDetectee,
-                        assignationDateNotification);
+                        assignationDateNotification,
+                        // SF-214-37 : F-IM-43 ITF judiciaire FR
+                        itfJudiciaireDateCondamnation,
+                        itfJudiciaireDureeAnnees);
             }
         }
     }
@@ -6339,6 +6365,21 @@ public record CaseAnalysisResponse(
                 && assignationDateNotificationRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
             assignationDateNotification = assignationDateNotificationRaw;
         }
+        // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
+        // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
+        // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
+        // Date de condamnation ISO non future + durée d'ITF en années (> 0).
+        String itfJudiciaireDateCondamnationRaw = textOrNull(root, "itf_judiciaire_date_condamnation");
+        String itfJudiciaireDateCondamnation = null;
+        if (itfJudiciaireDateCondamnationRaw != null
+                && itfJudiciaireDateCondamnationRaw.matches("\\d{4}-\\d{2}-\\d{2}")
+                && itfJudiciaireDateCondamnationRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
+            itfJudiciaireDateCondamnation = itfJudiciaireDateCondamnationRaw;
+        }
+        Integer itfJudiciaireDureeAnneesRaw = nonNegativeIntOrNull(root, "itf_judiciaire_duree_annees");
+        Integer itfJudiciaireDureeAnnees = (itfJudiciaireDureeAnneesRaw != null
+                && itfJudiciaireDureeAnneesRaw > 0)
+                ? itfJudiciaireDureeAnneesRaw : null;
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6437,7 +6478,10 @@ public record CaseAnalysisResponse(
                 && recoursDateJugementTA == null
                 // SF-214-35 : F-IM-42 assignation à résidence L. 731-1 FR (1 flag pivot + 1 champ IA)
                 && !assignationResidenceDetectee
-                && assignationDateNotification == null) return null;
+                && assignationDateNotification == null
+                // SF-214-37 : F-IM-43 ITF judiciaire C. pén. 131-30 FR (2 champs IA, flag pivot réutilisé)
+                && itfJudiciaireDateCondamnation == null
+                && itfJudiciaireDureeAnnees == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6579,6 +6623,9 @@ public record CaseAnalysisResponse(
                 .recoursDateJugementTA(recoursDateJugementTA)
                 .assignationResidenceDetectee(assignationResidenceDetectee)
                 .assignationDateNotification(assignationDateNotification)
+                // SF-214-37 : F-IM-43 ITF judiciaire C. pén. 131-30 FR
+                .itfJudiciaireDateCondamnation(itfJudiciaireDateCondamnation)
+                .itfJudiciaireDureeAnnees(itfJudiciaireDureeAnnees)
                 .build();
     }
 
