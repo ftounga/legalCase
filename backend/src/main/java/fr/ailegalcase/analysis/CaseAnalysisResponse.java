@@ -2573,7 +2573,23 @@ public record CaseAnalysisResponse(
              * SF-214-21 : date de dépôt de plainte au format YYYY-MM-DD. Null si non
              * extractible ou dossier BE.
              */
-            String tehDatePlainte) {
+            String tehDatePlainte,
+            // === SF-214-23 — F-IM-36 Carte de résident 10 ans L. 426-1 CESEDA (FRANCE UNIQUEMENT, null/false pour BE) ===
+            /**
+             * SF-214-23 : flag pivot — true si les pièces évoquent une carte de
+             * résident 10 ans envisagée (mentions « carte de résident », « L.426-1 »,
+             * « séjour de 10 ans », « titre 10 ans », « résidence permanente », durée
+             * de présence ≥ 5 ans avec titre VPF en cours). Pivot pour la visibility
+             * rule CONTEXTUAL de F-IM-36 (trigger {@code carte_resident_envisagee}).
+             * Dossiers BE : toujours false.
+             */
+            boolean carteResidentEnvisagee,
+            /**
+             * SF-214-23 : ressources mensuelles nettes du demandeur en € (> 0). Null
+             * si non extractible ou dossier BE. La durée de séjour est dérivée de
+             * {@code aesDureePresenceMois} déjà extrait — non redemandée ici.
+             */
+            Double carteResidentRessources) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2828,6 +2844,9 @@ public record CaseAnalysisResponse(
             private boolean victimeTraiteDetectee;
             private Boolean tehPlainteDeposee;
             private String tehDatePlainte;
+            // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR
+            private boolean carteResidentEnvisagee;
+            private Double carteResidentRessources;
 
             private Builder() {}
 
@@ -2952,6 +2971,8 @@ public record CaseAnalysisResponse(
             public Builder victimeTraiteDetectee(boolean v) { this.victimeTraiteDetectee = v; return this; }
             public Builder tehPlainteDeposee(Boolean v) { this.tehPlainteDeposee = v; return this; }
             public Builder tehDatePlainte(String v) { this.tehDatePlainte = v; return this; }
+            public Builder carteResidentEnvisagee(boolean v) { this.carteResidentEnvisagee = v; return this; }
+            public Builder carteResidentRessources(Double v) { this.carteResidentRessources = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3034,7 +3055,10 @@ public record CaseAnalysisResponse(
                         // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 FR
                         victimeTraiteDetectee,
                         tehPlainteDeposee,
-                        tehDatePlainte);
+                        tehDatePlainte,
+                        // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR
+                        carteResidentEnvisagee,
+                        carteResidentRessources);
             }
         }
     }
@@ -6147,6 +6171,11 @@ public record CaseAnalysisResponse(
         boolean victimeTraiteDetectee = booleanOrFalse(root, "victime_traite_detectee");
         Boolean tehPlainteDeposee = booleanOrNull(root, "teh_plainte_deposee");
         String tehDatePlainte = textOrNull(root, "teh_date_plainte");
+        // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR —
+        // 1 flag pivot + 1 champ pré-fill (FR uniquement). Durée de séjour dérivée
+        // de aesDureePresenceMois déjà extrait.
+        boolean carteResidentEnvisagee = booleanOrFalse(root, "carte_resident_envisagee");
+        Double carteResidentRessources = doubleOrNull(root, "carte_resident_ressources");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6228,7 +6257,10 @@ public record CaseAnalysisResponse(
                 // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 FR (1 flag + 2 champs IA)
                 && !victimeTraiteDetectee
                 && tehPlainteDeposee == null
-                && tehDatePlainte == null) return null;
+                && tehDatePlainte == null
+                // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR (1 flag + 1 champ IA)
+                && !carteResidentEnvisagee
+                && carteResidentRessources == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6359,6 +6391,8 @@ public record CaseAnalysisResponse(
                 .victimeTraiteDetectee(victimeTraiteDetectee)
                 .tehPlainteDeposee(tehPlainteDeposee)
                 .tehDatePlainte(tehDatePlainte)
+                .carteResidentEnvisagee(carteResidentEnvisagee)
+                .carteResidentRessources(carteResidentRessources)
                 .build();
     }
 

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="469-seed-carte-resident-visibility" author="legalcase">
+        <comment>
+            SF-214-23 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Carte de résident 10 ans L. 426-1 CESEDA"
+            (F-IM-36-carte-resident-l4261-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte une carte de résident 10 ans envisagée —
+            trigger `carte_resident_envisagee` = true (signal booléen pivot extrait
+            par LegalDomainPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue depuis
+            immigration_extracted_data). Mentions repérées : « carte de résident »,
+            « L.426-1 », « séjour de 10 ans », « titre 10 ans »,
+            « résidence permanente ».
+            priority 36 — après F-IM-35 victime traite (priority 35).
+
+            Source juridique : L. 426-1 à L. 426-12 CESEDA ; R. 426-1 à R. 426-6 ;
+            loi 26/01/2024.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-214 : f2140017-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140017-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-36-carte-resident-l4261-fr', 'CONTEXTUAL', 'carte_resident_envisagee', 'true', 36);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140017-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

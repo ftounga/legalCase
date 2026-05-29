@@ -108,6 +108,8 @@ class CaseFileDashboardServiceTest {
     private AjCndaRepository ajCndaRepo;
     // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR)
     private VictimeTraiteRepository victimeTraiteRepo;
+    // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
+    private CarteResidentRepository carteResidentRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -243,6 +245,7 @@ class CaseFileDashboardServiceTest {
         ofpraIntroductionRepo = mock(OfpraIntroductionRepository.class);
         ajCndaRepo = mock(AjCndaRepository.class);
         victimeTraiteRepo = mock(VictimeTraiteRepository.class);
+        carteResidentRepo = mock(CarteResidentRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -469,6 +472,7 @@ class CaseFileDashboardServiceTest {
                 ofpraIntroductionRepo,
                 ajCndaRepo,
                 victimeTraiteRepo,
+                carteResidentRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
