@@ -1,0 +1,163 @@
+/* SF-215-18 — Outil décisionnel « Annexe 13quinquies OQT + interdiction d'entrée (BE) »
+   (F-IM-33-annexe13quinquies-ie-be). Loi 15/12/1980 art. 74/11 (durée IE 3/5/8 ans).
+   Pattern miroir : cce-annulation-be-section. */
+@import '../../simulators/standalone-banner';
+
+.a13q-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.a13q-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.a13q-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.a13q-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.a13q-chip {
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  &--success { background: rgba(32, 128, 64, 0.14); color: #156135; }
+  &--warning { background: rgba(201, 165, 75, 0.22); color: var(--ds-accent-gold-dark, #8a6a16); }
+  &--danger  { background: rgba(192, 36, 36, 0.14); color: #9a1c1c; }
+  &--info    { background: rgba(26, 55, 95, 0.12); color: var(--ds-navy, #1a375f); }
+}
+
+.a13q-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.a13q-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.a13q-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.a13q-form {
+  display: flex; flex-direction: column; gap: 14px;
+  mat-form-field { width: 100%; }
+}
+.a13q-field-wrap { display: flex; flex-direction: column; gap: 4px; }
+.a13q-field-wrap--full { grid-column: 1 / -1; }
+
+.a13q-hint {
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.4;
+}
+
+.a13q-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-accent-gold-dark, #8a6a16);
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+/* VOIE (a) F-IA-03 — badge inline statique (PAS de directive popover). */
+.a13q-coherence-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600;
+  padding: 2px 8px; border-radius: 12px;
+  background: rgba(201, 165, 75, 0.18); color: var(--ds-accent-gold-dark, #8a6a16);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+.coherence-warning { background: rgba(201, 165, 75, 0.18); color: var(--ds-accent-gold-dark, #8a6a16); }
+
+.a13q-result { display: flex; flex-direction: column; gap: 12px; }
+
+/* Badge durée IE : 3 ans orange / 5 ans rouge / 8 ans rouge sombre. */
+.a13q-duree-block {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 8px;
+  background: rgba(26, 55, 95, 0.05);
+}
+.a13q-duree-label { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); }
+.duree-badge {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 18px; font-weight: 700;
+  padding: 4px 12px; border-radius: 8px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  &--3ans { background: rgba(214, 137, 16, 0.16); color: #b06d00; border: 1px solid rgba(214, 137, 16, 0.5); }
+  &--5ans { background: rgba(192, 36, 36, 0.14); color: #c02424; border: 1px solid rgba(192, 36, 36, 0.45); }
+  &--8ans { background: rgba(120, 16, 16, 0.18); color: #7a1010; border: 1px solid rgba(120, 16, 16, 0.55); }
+}
+
+.a13q-dates {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  li {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 0; border-bottom: 1px solid var(--ds-border, #e6e1d4);
+    &:last-child { border-bottom: none; }
+  }
+}
+
+.a13q-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--success { border-left-color: #208040; background: rgba(32, 128, 64, 0.10); mat-icon { color: #156135; } .a13q-banner-title { color: #156135; } }
+  &--warning { border-left-color: var(--ds-accent-gold, #c9a54b); background: rgba(201, 165, 75, 0.14); mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); } .a13q-banner-title { color: var(--ds-accent-gold-dark, #8a6a16); } }
+  &--danger { border-left-color: #c02424; background: rgba(192, 36, 36, 0.10); mat-icon { color: #9a1c1c; } .a13q-banner-title { color: #9a1c1c; } }
+}
+
+.a13q-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.a13q-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.a13q-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.4; }
+
+.a13q-cross {
+  strong { font-weight: 700; color: var(--ds-text-primary, #1a2330); }
+}
+
+/* Dates en JetBrains Mono (typographie monospace exigée par F-IA-04). */
+.a13q-date-mono,
+.a13q-bd-value--mono {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-weight: 600; letter-spacing: 0.02em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.a13q-jours {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  font-weight: 700; color: var(--ds-text-primary, #1a2330);
+  &--negative { color: #c02424; }
+}
+
+.a13q-conditions {
+  padding: 12px 14px; border-radius: 8px;
+  background: rgba(26, 55, 95, 0.05);
+  ul { margin: 6px 0 0; padding-left: 20px; }
+  li { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.5; }
+}
+.a13q-conditions-title {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; font-size: 13px; color: var(--ds-text-primary, #1a2330);
+  mat-icon { color: var(--ds-navy, #1a375f); font-size: 18px; width: 18px; height: 18px; }
+}
+
+.a13q-breakdown {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  li {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 0; border-bottom: 1px solid var(--ds-border, #e6e1d4);
+    &:last-child { border-bottom: none; }
+  }
+}
+.a13q-bd-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.a13q-bd-value { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); text-align: right; }
+
+.a13q-meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-top: 4px;
+}
+.a13q-meta-base { font-size: 12px; color: var(--ds-text-secondary, #6a7485); line-height: 1.4; }

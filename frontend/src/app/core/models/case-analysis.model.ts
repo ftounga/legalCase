@@ -1448,6 +1448,24 @@ export interface ImmigrationExtractedData {
   recoursExtremeUrgenceDateActe?: string | null;
   recoursExtremeUrgenceTypeActe?: 'OQT_EXECUTE' | 'TRANSFERT_DUBLIN' | 'REFUS_ACCES_TERRITOIRE' | 'EXPULSION_IMMEDIATE' | 'AUTRE' | null;
   /**
+   * SF-215-17 / SF-215-18 — Pré-fill outil F-IM-33-annexe13quinquies-ie-be
+   * « Annexe 13quinquies OQT + interdiction d'entrée (BE) » — Loi 15/12/1980
+   * art. 74/11 (interdiction d'entrée Schengen 3 / 5 / 8 ans selon le motif),
+   * recours en annulation devant le CCE (Conseil du Contentieux des Étrangers,
+   * art. 39/2 §2 — 30 jours calendaires). BELGIQUE uniquement — dossier FR : null.
+   *
+   * `interdictionEntreeDetectee`        : flag CONTEXTUAL — une annexe 13quinquies
+   *   (OQT + interdiction d'entrée) est détectée dans le dossier.
+   * `interdictionEntreeDateNotification`: date de notification de l'annexe
+   *   (ISO yyyy-MM-dd) — champ pré-fill RÉEL.
+   * `interdictionEntreeMotif`           : motif de l'interdiction — whitelist
+   *   SEJOUR_IRREGULIER / MENACE_ORDRE_PUBLIC / RAISONS_SECURITE_NATIONALE /
+   *   ATTEINTE_INTERET_UE / DECISION_JUDICIAIRE — champ pré-fill RÉEL.
+   */
+  interdictionEntreeDetectee?: boolean | null;
+  interdictionEntreeDateNotification?: string | null;
+  interdictionEntreeMotif?: 'SEJOUR_IRREGULIER' | 'MENACE_ORDRE_PUBLIC' | 'RAISONS_SECURITE_NATIONALE' | 'ATTEINTE_INTERET_UE' | 'DECISION_JUDICIAIRE' | null;
+  /**
    * SF-215-05 / SF-215-06 — Pré-fill outil F-IM-27-regroupement-10bis-be
    * « Regroupement familial art. 10bis (BE) » — Loi 15/12/1980 art. 10bis,
    * AR 17/05/2007 (seuil ressources 120 % RIS). À la différence de l'art.

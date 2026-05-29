@@ -1,0 +1,251 @@
+<section class="a13q-section">
+  <header class="a13q-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="a13q-body">
+    <mat-icon class="a13q-icon">block</mat-icon>
+    <span class="a13q-title">ANNEXE 13QUINQUIES OQT + INTERDICTION ENTRÉE (BE)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statutRecours)">
+        {{ statutLabel(result()!.statutRecours) }}
+      </span>
+    }
+    <mat-icon class="a13q-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="a13q-body" class="a13q-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="a13q-banner a13q-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="a13q-banner-content">
+            <div class="a13q-banner-title">Outil Belgique uniquement</div>
+            <div class="a13q-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. L'annexe
+              13quinquies (OQT assorti d'une interdiction d'entrée Schengen,
+              Loi 15/12/1980 art. 74/11) est une procédure belge. Pour la France,
+              voir les outils d'interdiction du territoire (L.541-1+ CESEDA).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="a13q-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="a13q-form" (ngSubmit)="analyze()">
+              <div class="a13q-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de l'annexe 13quinquies</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-notification-input"
+                         [ngModel]="dateNotificationAnnexe()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationAnnexe" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (dateNotificationAlert(); as alert) {
+                  <span class="a13q-coherence-badge coherence-warning"
+                        data-testid="coherence-date-notification"
+                        [attr.title]="alert.tooltip"
+                        [attr.aria-label]="alert.label">
+                    <mat-icon>warning</mat-icon> {{ alert.label }}
+                  </span>
+                }
+              </div>
+
+              <div class="a13q-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de l'interdiction d'entrée</mat-label>
+                  <mat-select required
+                              data-testid="motif-select"
+                              [ngModel]="motifInterdictionEntree()"
+                              (ngModelChange)="onMotifChange($event)"
+                              name="motifInterdictionEntree">
+                    @for (opt of motifs; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotif() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="a13q-field-wrap a13q-field-wrap--full">
+                <mat-checkbox
+                    data-testid="precedent-sejour-checkbox"
+                    [ngModel]="precedentSejour()"
+                    (ngModelChange)="onPrecedentSejourChange($event)"
+                    name="precedentSejour">
+                  L'intéressé a déjà séjourné régulièrement en Belgique
+                </mat-checkbox>
+              </div>
+
+              <div class="a13q-field-wrap a13q-field-wrap--full">
+                <mat-checkbox
+                    data-testid="recours-forme-checkbox"
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="onRecoursFormeChange($event)"
+                    name="recoursForme">
+                  Un recours en annulation a déjà été formé
+                </mat-checkbox>
+              </div>
+
+              @if (recoursForme()) {
+                <div class="a13q-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de dépôt du recours</mat-label>
+                    <input matInput type="date" required
+                           data-testid="date-recours-input"
+                           [ngModel]="dateRecours()"
+                           (ngModelChange)="onDateRecoursChange($event)"
+                           name="dateRecours" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="a13q-hint">
+                L'annexe 13quinquies est un OQT assorti d'une interdiction d'entrée
+                Schengen de 3 à 8 ans (Loi 15/12/1980, art. 74/11). Recours en
+                annulation devant le CCE : 30 jours calendaires (art. 39/2 §2).
+              </div>
+
+              <div class="a13q-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer durée IE + délai recours</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="a13q-result">
+              <!-- Durée de l'interdiction d'entrée — badge coloré 3/5/8 ans -->
+              <div class="a13q-duree-block" role="status">
+                <span class="a13q-duree-label">Durée de l'interdiction d'entrée</span>
+                <span [class]="dureeBadgeClass(result()!.dureeInterdiction)" data-testid="duree-badge">
+                  {{ dureeLabel(result()!.dureeInterdiction) }}
+                </span>
+              </div>
+
+              <ul class="a13q-dates">
+                <li>
+                  <span class="a13q-bd-label">Fin de l'interdiction d'entrée</span>
+                  <span class="a13q-date-mono" data-testid="date-fin">{{ formatDateFr(result()!.dateFinInterdiction) }}</span>
+                </li>
+                <li>
+                  <span class="a13q-bd-label">Levée possible à partir du</span>
+                  <span class="a13q-date-mono" data-testid="date-leve-precoce">{{ formatDateFr(result()!.datePossibleLevePrecoce) }}</span>
+                </li>
+                <li>
+                  <span class="a13q-bd-label">Date limite du recours en annulation</span>
+                  <span class="a13q-date-mono" data-testid="date-limite-recours">{{ formatDateFr(result()!.dateLimiteRecoursAnnulation) }}</span>
+                </li>
+              </ul>
+
+              <!-- Statut du recours en annulation -->
+              <div [class]="statutBannerClass(result()!.statutRecours)" role="status">
+                <mat-icon>{{ statutIcon(result()!.statutRecours) }}</mat-icon>
+                <div class="a13q-banner-content">
+                  <div class="a13q-banner-title" data-testid="statut-recours">{{ statutLabel(result()!.statutRecours) }}</div>
+                  <div class="a13q-banner-sub">
+                    Jours restants pour le recours :
+                    <span [class]="joursRestantsClass(result()!.joursRestantsRecours)" data-testid="jours-restants">
+                      {{ result()!.joursRestantsRecours }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lien croisé vers F-IM-31 si statutRecours = URGENT -->
+              @if (showCrossLinkCceAnnulation(result()!.statutRecours)) {
+                <div class="a13q-banner a13q-banner--warning a13q-cross" role="note" data-testid="lien-fim31">
+                  <mat-icon>open_in_new</mat-icon>
+                  <div class="a13q-banner-content">
+                    <div class="a13q-banner-title">Recours en annulation urgent</div>
+                    <div class="a13q-banner-sub">
+                      Le délai de recours approche de l'échéance. Pour le calcul fin
+                      du délai (mémoire de synthèse, statut), utiliser l'outil
+                      <strong>Recours CCE annulation 30j (F-IM-31)</strong> —
+                      30 jours calendaires, Loi 15/12/1980 art. 39/2 §2 et 39/57 §1er.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Conditions de levée de l'interdiction d'entrée -->
+              @if (result()!.conditionsLevee?.length) {
+                <div class="a13q-conditions" role="note" data-testid="conditions-levee">
+                  <div class="a13q-conditions-title">
+                    <mat-icon>checklist</mat-icon> Conditions pour solliciter la levée de l'interdiction
+                  </div>
+                  <ul>
+                    @for (cond of result()!.conditionsLevee; track cond) {
+                      <li>{{ cond }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="a13q-breakdown">
+                <li>
+                  <span class="a13q-bd-label">Notification de l'annexe</span>
+                  <span class="a13q-bd-value a13q-bd-value--mono">{{ formatDateFr(result()!.dateNotificationAnnexe) }}</span>
+                </li>
+                <li>
+                  <span class="a13q-bd-label">Motif de l'interdiction</span>
+                  <span class="a13q-bd-value">{{ motifLabel(result()!.motifInterdictionEntree) }}</span>
+                </li>
+                <li>
+                  <span class="a13q-bd-label">Séjour régulier antérieur</span>
+                  <span class="a13q-bd-value">{{ result()!.precedentSejour ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="a13q-bd-label">Recours déjà formé</span>
+                  <span class="a13q-bd-value">{{ result()!.recoursForme ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.recoursForme && result()!.dateRecours) {
+                  <li>
+                    <span class="a13q-bd-label">Date du recours</span>
+                    <span class="a13q-bd-value a13q-bd-value--mono">{{ formatDateFr(result()!.dateRecours) }}</span>
+                  </li>
+                }
+              </ul>
+
+              <div class="a13q-meta">
+                @if (result()!.baseJuridique) {
+                  <span class="a13q-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

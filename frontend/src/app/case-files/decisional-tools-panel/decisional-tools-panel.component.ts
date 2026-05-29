@@ -68,6 +68,8 @@ import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-se
 import { CceAnnulationBeSectionComponent } from '../cce-annulation-be-section/cce-annulation-be-section.component';
 // SF-215-16 : composant complet F-IM-32-cce-extreme-urgence-5j-be (Immigration BE, recours CCE extrême urgence 5j ouvrables).
 import { CceExtremeUrgenceBeSectionComponent } from '../cce-extreme-urgence-be-section/cce-extreme-urgence-be-section.component';
+// SF-215-18 : composant complet F-IM-33-annexe13quinquies-ie-be (Immigration BE, annexe 13quinquies OQT + interdiction d'entrée Schengen).
+import { Annexe13quinquiesBeSectionComponent } from '../annexe13quinquies-be-section/annexe13quinquies-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -1572,6 +1574,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-32-cce-extreme-urgence-5j-be', {
         displayLabel: 'Recours CCE extrême urgence 5j (BE)',
         component: CceExtremeUrgenceBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-18 : composant complet F-IM-33-annexe13quinquies-ie-be — annexe
+      // 13quinquies = OQT assorti d'une interdiction d'entrée (IE) Schengen.
+      // BELGIQUE uniquement, CONTEXTUAL via flag `interdiction_entree_be_detectee`.
+      // Calculateur (Loi 15/12/1980 art. 74/11) : durée IE 3/5/8 ans (badge coloré),
+      // date de fin, date de levée précoce possible, délai du recours en annulation
+      // CCE (art. 39/2 §2 — 30j calendaires) avec statut DISPONIBLE/URGENT/EXPIRE/
+      // FORME + lien croisé vers F-IM-31 si URGENT. Pré-fill IA RÉEL 2 champs
+      // (dateNotificationAnnexe, motifInterdictionEntree) via static getPrefillCount
+      // + Annexe13quinquiesBePrefillRules. precedentSejour / recoursForme /
+      // dateRecours aspirationnels (jamais comptés). VOIE (a) F-IA-03 : badge inline.
+      ['F-IM-33-annexe13quinquies-ie-be', {
+        displayLabel: 'Annexe 13quinquies OQT + interdiction entrée (BE)',
+        component: Annexe13quinquiesBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4547,6 +4569,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // audience estimée). Aligné sur F-IM-31-cce-annulation-30j-be et les autres
     // calculateurs de délais CCE/CESEDA.
     ['F-IM-32-cce-extreme-urgence-5j-be', 'DELAIS'],
+    // SF-215-18 : F-IM-33-annexe13quinquies-ie-be annexe 13quinquies OQT + IE (BE).
+    // Thème DELAIS — calculateur (durée IE 3/5/8 ans, date de fin, date de levée
+    // précoce, délai du recours en annulation CCE 30j calendaires + statut +
+    // jours restants). Aligné sur F-IM-31-cce-annulation-30j-be et les autres
+    // calculateurs de délais CCE/CESEDA.
+    ['F-IM-33-annexe13quinquies-ie-be', 'DELAIS'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).
