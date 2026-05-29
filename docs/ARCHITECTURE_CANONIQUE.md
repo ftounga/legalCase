@@ -1491,6 +1491,37 @@ Migration : 237-create-autorite-parentale-be-analyses.xml
 
 ---
 
+## cce_annulation_be_analyses
+
+F-215 SF-215-13 — analyse de l'outil décisionnel « Recours CCE annulation 30 jours BE » (`F-IM-31-cce-annulation-30j-be`, BELGIQUE). Calculateur de délais du recours en annulation devant le **Conseil du Contentieux des Étrangers** (art. 39/2 §2 et 39/82 §4 al. 1 Loi du 15/12/1980 + loi du 15/09/2006) — 30 jours **calendaires** depuis la notification. 1:1 avec un dossier. Stocke les inputs métier dénormalisés (pour requête/index) + le snapshot JSON complet (inputs + résultat calculé) dans `result_data`.
+
+```
+cce_annulation_be_analyses
+  id                          UUID PK
+  case_file_id                UUID FK → case_files(id)  UNIQUE
+  date_notification_decision  DATE NOT NULL
+  type_decision               VARCHAR(30) NOT NULL  -- enum 7 valeurs (REFUS_TITRE … AUTRE)
+  recours_forme               BOOLEAN NOT NULL
+  date_recours                DATE                  -- nullable (si recours déjà formé)
+  statut                      VARCHAR(20) NOT NULL  -- DISPONIBLE / URGENT / EXPIRE / RECOURS_FORME
+  country                     VARCHAR(20) NOT NULL DEFAULT 'BELGIQUE'
+  result_data                 TEXT NOT NULL         -- JSON : inputs + résultat calculé
+  created_at                  TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                  TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_cce_annulation_be_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_cce_annulation_be_case_file
+
+Migration : 439-create-cce-annulation-be-analyses.xml (+ 440-seed-cce-annulation-be-visibility.xml — visibility CONTEXTUAL `recours_cce_envisage=true` priority 206)
+
+---
+
 ## contribution_alimentaire_enfants_be_analyses
 
 F-217 SF-217-06 — analyse de l'outil décisionnel « contribution alimentaire pour enfants BE » (méthode Renard, Code civil belge art. 203 / 203bis), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé (estimation indicative) sous forme JSON TEXT.
