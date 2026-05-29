@@ -104,6 +104,7 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(AppelCaaCassationRepository.class),
                 mock(AssignationResidenceRepository.class),
                 mock(ItfJudiciaireRepository.class),
+                mock(UeEeeSuisseSejourRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
