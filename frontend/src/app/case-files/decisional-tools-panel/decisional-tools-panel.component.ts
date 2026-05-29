@@ -63,6 +63,8 @@ import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etran
 import { RegroupementFamilialSectionComponent } from '../regroupement-familial-section/regroupement-familial-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
+// SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
+import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vls-ts-validation-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
@@ -1540,6 +1542,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-27-vpf-liens-personnels-l42323-fr', {
         displayLabel: 'VPF liens personnels L.423-23 (FR)',
         component: VpfLiensPersonnelsSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation
+      // VLS-TS OFII (FR). FR uniquement, ALWAYS_ON. Calculateur de délai 3 mois
+      // (CESEDA R.431-16+) : statut A_VALIDER/URGENT/EXPIRE/VALIDE + échéance +
+      // jours restants. Pré-fill IA 1 champ (date d'entrée en France) via static
+      // getPrefillCount + VlsTsValidationPrefillRules. Bridge échéance F-69.
+      ['F-IM-28-vls-ts-validation-ofii-fr', {
+        displayLabel: 'Validation VLS-TS OFII (FR)',
+        component: VlsTsValidationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4613,6 +4630,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.
     ['F-IM-27-vpf-liens-personnels-l42323-fr', 'VALIDITE'],
+    // SF-214-08 : F-IM-28-vls-ts-validation-ofii-fr validation VLS-TS OFII (FR).
+    // Thème DELAIS — calculateur de délai (3 mois CESEDA R.431-16+ : date
+    // d'échéance + jours restants + statut A_VALIDER/URGENT/EXPIRE/VALIDE +
+    // procédure de recours si expiré). FR uniquement, ALWAYS_ON. Aligné sur
+    // F-IM-25-single-permit-be et les autres calculateurs de délais Immigration.
+    ['F-IM-28-vls-ts-validation-ofii-fr', 'DELAIS'],
     // SF-215-02 : F-IM-25-single-permit-be permis unique BE (travail+séjour).
     // Thème DELAIS (calcul date limite dépôt = dateFinPermit - 60j + 4 statuts
     // de renouvellement). Aligné sur les autres outils Immigration BE-only

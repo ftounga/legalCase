@@ -1617,6 +1617,12 @@ export interface ImmigrationExtractedData {
    * mineur (→ entreeEnFranceMineur de l'outil VPF liens personnels). FR : nullable.
    */
   clientMineurDetecte?: boolean | null;
+  /**
+   * SF-214-08 — true si le pipeline IA détecte que la validation VLS-TS auprès
+   * de l'OFII a déjà été effectuée (outil F-IM-28). FR uniquement : nullable.
+   * La date d'entrée en France est pré-remplie depuis `aesDateEntreeFrance`.
+   */
+  vlsTsValidationOFIIEffectuee?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

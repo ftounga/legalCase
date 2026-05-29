@@ -1,0 +1,187 @@
+<section class="vls-section">
+  <header class="vls-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="vls-body">
+    <mat-icon class="vls-icon">event_available</mat-icon>
+    <span class="vls-title">VALIDATION VLS-TS OFII (FR)</span>
+    @if (result()) {
+      <span class="vls-chip"
+            [class.vls-chip--success]="result()!.statut === 'VALIDE'"
+            [class.vls-chip--info]="result()!.statut === 'A_VALIDER'"
+            [class.vls-chip--warning]="result()!.statut === 'URGENT'"
+            [class.vls-chip--danger]="result()!.statut === 'EXPIRE'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="vls-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="vls-body" class="vls-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="vls-banner vls-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="vls-banner-content">
+            <div class="vls-banner-title">Validation VLS-TS OFII — procédure française uniquement</div>
+            <div class="vls-banner-sub">
+              La validation du visa long séjour valant titre de séjour auprès de
+              l'OFII (CESEDA R.431-16+) est spécifique au droit français et
+              n'a pas d'équivalent en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="vls-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="vls-form" (ngSubmit)="analyze()">
+              <div class="vls-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée en France</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateEntreeFrance()"
+                         (ngModelChange)="onDateEntreeChange($event)"
+                         name="dateEntreeFrance" />
+                  <mat-hint>Point de départ du délai de 3 mois (R.431-16)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateEntree() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="vls-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de VLS-TS</mat-label>
+                  <mat-select required
+                              [ngModel]="typeVlsTs()"
+                              (ngModelChange)="onTypeChange($event)"
+                              name="typeVlsTs">
+                    @for (opt of typeOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="vls-toggle-row">
+                <mat-checkbox [ngModel]="validationOFIIEffectuee()"
+                              (ngModelChange)="onValidationEffectueeChange($event)"
+                              name="validationOFIIEffectuee">
+                  Validation OFII déjà effectuée
+                </mat-checkbox>
+              </div>
+
+              @if (validationOFIIEffectuee()) {
+                <div class="vls-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de validation OFII</mat-label>
+                    <input matInput type="date" required
+                           [ngModel]="dateValidationOFII()"
+                           (ngModelChange)="onDateValidationChange($event)"
+                           name="dateValidationOFII" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="vls-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai de validation</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="vls-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="vls-banner-content">
+                  <div class="vls-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  @if (result()!.joursRestantsValidation !== null) {
+                    <div class="vls-jours-restants">
+                      <span class="vls-jours-big"
+                            [class.vls-jours-big--danger]="(result()!.joursRestantsValidation ?? 0) < 0">
+                        {{ result()!.joursRestantsValidation }}
+                      </span>
+                      <span class="vls-jours-label">jour(s) restant(s)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="vls-breakdown">
+                <li>
+                  <span class="vls-bd-label">Date d'entrée en France</span>
+                  <span class="vls-bd-value">{{ result()!.dateEntreeFrance }}</span>
+                </li>
+                <li>
+                  <span class="vls-bd-label">Échéance de validation</span>
+                  <span class="vls-bd-value vls-bd-value--echeance">{{ result()!.dateEcheanceValidation }}</span>
+                </li>
+                <li>
+                  <span class="vls-bd-label">Type de VLS-TS</span>
+                  <span class="vls-bd-value">{{ typeLabel(result()!.typeVlsTs) }}</span>
+                </li>
+                <li>
+                  <span class="vls-bd-label">Validation OFII effectuée</span>
+                  <span class="vls-bd-value">{{ result()!.validationOFIIEffectuee ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.validationOFIIEffectuee && result()!.dateValidationOFII) {
+                  <li>
+                    <span class="vls-bd-label">Date de validation OFII</span>
+                    <span class="vls-bd-value">{{ result()!.dateValidationOFII }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.statut === 'EXPIRE' && result()!.procedureRecours) {
+                <div class="vls-recours-block" role="note">
+                  <mat-icon>gavel</mat-icon>
+                  <div class="vls-recours-content">
+                    <div class="vls-recours-title">Procédure de recours</div>
+                    <div class="vls-recours-text">{{ result()!.procedureRecours }}</div>
+                  </div>
+                </div>
+              }
+
+              @if (deadlineCreated()) {
+                <div class="vls-deadline-note" role="note">
+                  <mat-icon>event</mat-icon>
+                  <span>Échéance « Validation VLS-TS OFII » ajoutée aux échéances du dossier.</span>
+                </div>
+              }
+
+              <div class="vls-meta">
+                <span class="vls-meta-base">CESEDA R.431-16 et suivants — validation OFII dans les 3 mois de l'entrée</span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
