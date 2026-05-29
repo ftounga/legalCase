@@ -79,6 +79,8 @@ import { ItfJudiciaireSectionComponent } from '../itf-judiciaire-section/itf-jud
 import { UeEeeSuisseSejourSectionComponent } from '../ue-eee-suisse-sejour-section/ue-eee-suisse-sejour-section.component';
 // SF-214-42 : composant complet F-IM-45-retrait-titre-fraude-fr — retrait titre pour fraude (FR, analyseur validité + vices de procédure + bridge échéance F-69).
 import { RetraitTitreFraudeSectionComponent } from '../retrait-titre-fraude-section/retrait-titre-fraude-section.component';
+// SF-214-44 : composant complet F-IM-46-autorisation-travail-employeur-fr — autorisation travail employeur (FR, checklist procédure OFII + délai instruction + bridge échéance F-69 si refus).
+import { AutorisationTravailEmployeurSectionComponent } from '../autorisation-travail-employeur-section/autorisation-travail-employeur-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1721,6 +1723,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-45-retrait-titre-fraude-fr', {
         displayLabel: 'Retrait titre pour fraude (FR)',
         component: RetraitTitreFraudeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-44 : composant complet F-IM-46-autorisation-travail-employeur-fr —
+      // autorisation de travail employeur (FR). FR uniquement, ALWAYS_ON. Outil côté
+      // employeur, complémentaire à F-IM-07 (côté salarié) : statut AUTORISATION_REQUISE
+      // (bleu) / AUTORISATION_NON_REQUISE (vert, dispense UE/EEE/Suisse) / RECOURS_POSSIBLE
+      // (orange, refus contestable) / RECOURS_PRESCRIT (rouge) + checklist obligations de la
+      // demande (procédure OFII) + délai d'instruction OFII + taxe OFII + délai du recours TA
+      // si refus. Pré-fill IA 1 champ (nationaliteCandidat depuis nationalite) via static
+      // getPrefillCount + AutorisationTravailEmployeurPrefillRules. Bridge échéance F-69
+      // (label « Recours TA autorisation travail », statut RECOURS_POSSIBLE).
+      ['F-IM-46-autorisation-travail-employeur-fr', {
+        displayLabel: 'Autorisation travail employeur (FR)',
+        component: AutorisationTravailEmployeurSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5011,6 +5032,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // procédure + motifs de contestation au fond) + délai du recours TA. Bridge
     // échéance F-69 (statut RECOURS_POSSIBLE / URGENT). Cohérent avec F-IM-42/43.
     ['F-IM-45-retrait-titre-fraude-fr', 'VALIDITE'],
+    // SF-214-44 : F-IM-46-autorisation-travail-employeur-fr autorisation travail
+    // employeur (FR). Thème DOCUMENTS — checklist de la procédure de demande
+    // d'autorisation de travail auprès de l'OFII (obligations de la demande +
+    // délai d'instruction + taxe OFII), côté employeur. Bridge échéance F-69
+    // (délai du recours TA si refus, statut RECOURS_POSSIBLE).
+    ['F-IM-46-autorisation-travail-employeur-fr', 'DOCUMENTS'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).
