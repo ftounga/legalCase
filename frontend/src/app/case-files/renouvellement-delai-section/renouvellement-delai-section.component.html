@@ -1,0 +1,188 @@
+<section class="rdd-section">
+  <header class="rdd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rdd-body">
+    <mat-icon class="rdd-icon">event_repeat</mat-icon>
+    <span class="rdd-title">RENOUVELLEMENT DÉLAI DÉPÔT (FR)</span>
+    @if (result()) {
+      <span class="rdd-chip" [class]="chipClass(result()!.statut)">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="rdd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rdd-body" class="rdd-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="rdd-banner rdd-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rdd-banner-content">
+            <div class="rdd-banner-title">Renouvellement délai dépôt — procédure française uniquement</div>
+            <div class="rdd-banner-sub">
+              Le calcul du délai de dépôt d'une demande de renouvellement de titre
+              de séjour (CESEDA) est spécifique au droit français et n'a pas
+              d'équivalent direct en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rdd-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="rdd-form" (ngSubmit)="analyze()">
+              <div class="rdd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'expiration du titre</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateExpirationTitre()"
+                         (ngModelChange)="onDateExpirationChange($event)"
+                         name="dateExpirationTitre" />
+                  <mat-hint>Point de départ du calcul du délai de dépôt</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateExpiration() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rdd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de titre</mat-label>
+                  <input matInput type="text"
+                         [ngModel]="typeTitre()"
+                         (ngModelChange)="onTypeTitreChange($event)"
+                         name="typeTitre"
+                         placeholder="Ex : carte de séjour pluriannuelle" />
+                </mat-form-field>
+                @if (provenanceTypeTitre() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rdd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt du dossier (si déjà déposé)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDepotDossier()"
+                         (ngModelChange)="onDateDepotChange($event)"
+                         name="dateDepotDossier" />
+                  <mat-hint>Optionnel — laisser vide si la demande n'est pas encore déposée</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="rdd-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai de dépôt</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rdd-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="rdd-banner-content">
+                  <div class="rdd-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="rdd-jours-restants">
+                    <span class="rdd-jours-big"
+                          [class.rdd-jours-big--danger]="result()!.joursRestantsAvantOptimal < 0">
+                      {{ result()!.joursRestantsAvantOptimal }}
+                    </span>
+                    <span class="rdd-jours-label">jour(s) avant le dépôt optimal</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.risqueIrruption && result()!.statut === 'EXPIRE') {
+                <div class="rdd-irruption-block" role="alert">
+                  <mat-icon>gpp_bad</mat-icon>
+                  <div class="rdd-irruption-content">
+                    <div class="rdd-irruption-title">Risque d'irrégularité</div>
+                    <div class="rdd-irruption-text">
+                      Le titre est expiré : le ressortissant se trouve en situation
+                      irrégulière. Un dépôt sans délai est impératif.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.alerteRetard) {
+                <div class="rdd-retard-note" role="alert">
+                  <mat-icon>notification_important</mat-icon>
+                  <span>Alerte retard — le délai optimal de dépôt est dépassé ou imminent.</span>
+                </div>
+              }
+
+              <ul class="rdd-breakdown">
+                <li>
+                  <span class="rdd-bd-label">Date d'expiration du titre</span>
+                  <span class="rdd-bd-value">{{ result()!.dateExpirationTitre }}</span>
+                </li>
+                <li>
+                  <span class="rdd-bd-label">Date optimale de dépôt</span>
+                  <span class="rdd-bd-value rdd-bd-value--optimal">{{ result()!.dateOptimalDepot }}</span>
+                </li>
+                <li>
+                  <span class="rdd-bd-label">Date impérative de dépôt</span>
+                  <span class="rdd-bd-value rdd-bd-value--imperatif">{{ result()!.dateDepotImperatif }}</span>
+                </li>
+                <li>
+                  <span class="rdd-bd-label">Jours avant dépôt impératif</span>
+                  <span class="rdd-bd-value">{{ result()!.joursRestantsAvantImperatif }}</span>
+                </li>
+                @if (result()!.typeTitre) {
+                  <li>
+                    <span class="rdd-bd-label">Type de titre</span>
+                    <span class="rdd-bd-value">{{ result()!.typeTitre }}</span>
+                  </li>
+                }
+                @if (result()!.dateDepotDossier) {
+                  <li>
+                    <span class="rdd-bd-label">Date de dépôt du dossier</span>
+                    <span class="rdd-bd-value">{{ result()!.dateDepotDossier }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (deadlineCreated()) {
+                <div class="rdd-deadline-note" role="note">
+                  <mat-icon>event</mat-icon>
+                  <span>Échéance « Dépôt renouvellement titre » ajoutée aux échéances du dossier.</span>
+                </div>
+              }
+
+              <div class="rdd-meta">
+                <span class="rdd-meta-base">CESEDA — dépôt de la demande de renouvellement avant expiration du titre</span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

@@ -65,6 +65,8 @@ import { RegroupementFamilialSectionComponent } from '../regroupement-familial-s
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
 import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vls-ts-validation-section.component';
+// SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
+import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
 import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-categories-section.component';
 // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
@@ -1561,6 +1563,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-28-vls-ts-validation-ofii-fr', {
         displayLabel: 'Validation VLS-TS OFII (FR)',
         component: VlsTsValidationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr —
+      // renouvellement délai dépôt (FR). FR uniquement, ALWAYS_ON. Calculateur de
+      // délai (CESEDA) : statut EN_AVANCE/A_DEPOSER/A_DEPOSER_URGENT/EXPIRE/DEPOSE
+      // + date optimale + date impérative + jours restants + risqueIrruption/
+      // alerteRetard. Pré-fill IA 2 champs (dateExpirationTitre, typeTitre depuis
+      // typeTitreSejour) via static getPrefillCount + RenouvellementDelaiPrefillRules.
+      // Bridge échéance F-69 (label « Dépôt renouvellement titre »).
+      ['F-IM-31-renouvellement-delai-depot-fr', {
+        displayLabel: 'Renouvellement délai dépôt (FR)',
+        component: RenouvellementDelaiSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4671,6 +4690,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // procédure de recours si expiré). FR uniquement, ALWAYS_ON. Aligné sur
     // F-IM-25-single-permit-be et les autres calculateurs de délais Immigration.
     ['F-IM-28-vls-ts-validation-ofii-fr', 'DELAIS'],
+    // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
+    // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
+    // de la demande de renouvellement de titre + statut + jours restants).
+    ['F-IM-31-renouvellement-delai-depot-fr', 'DELAIS'],
     // SF-214-10 : F-IM-29-oqtf-categories-l6111-fr OQTF catégories L.611-1 (FR).
     // Thème VALIDITE — analyseur des moyens de défense propres à chaque catégorie
     // L.611-1 (1° à 7°) + renvoi F-IM-22 si CAT_7. ThemeKey VALIDITE (le groupement
