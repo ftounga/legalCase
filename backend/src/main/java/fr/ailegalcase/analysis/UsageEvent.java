@@ -18,14 +18,18 @@ public class UsageEvent {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "case_file_id", nullable = false)
+    // F-257 SF-257-02 — nullable : les jobs SYSTEM_* (gate centralisé) n'ont ni
+    // dossier ni utilisateur. Les lignes system restent exclues des budgets
+    // workspace (INNER JOIN case_files dans UsageEventRepository).
+    @Column(name = "case_file_id")
     private UUID caseFileId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private UUID userId;
 
+    // F-257 SF-257-02 — varchar(40) : SYSTEM_JURISPRUDENCE_VERIFICATION = 33 car.
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_type", nullable = false, length = 30)
+    @Column(name = "event_type", nullable = false, length = 40)
     private JobType eventType;
 
     @Column(name = "tokens_input", nullable = false)
