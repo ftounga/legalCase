@@ -104,6 +104,8 @@ public class CaseFileDashboardService {
     private final RegroupementFamilialRepository regroupementFamilialRepo;
     // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 CESEDA (FR)
     private final VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo;
+    // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 CESEDA (FR)
+    private final VlsTsValidationRepository vlsTsValidationRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -245,6 +247,7 @@ public class CaseFileDashboardService {
                                      EtrangerMaladeRepository etrangerMaladeRepo,
                                      RegroupementFamilialRepository regroupementFamilialRepo,
                                      VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo,
+                                     VlsTsValidationRepository vlsTsValidationRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -369,6 +372,7 @@ public class CaseFileDashboardService {
         this.etrangerMaladeRepo = etrangerMaladeRepo;
         this.regroupementFamilialRepo = regroupementFamilialRepo;
         this.vpfLiensPersonnelsRepo = vpfLiensPersonnelsRepo;
+        this.vlsTsValidationRepo = vlsTsValidationRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -559,6 +563,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-26-regroupement-familial-fr", caseFileId, () -> tileFromRegroupementFamilialAnalysis(caseFileId));
         // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 CESEDA (FR)
         addSafely(tiles, "F-IM-27-vpf-liens-personnels-l42323-fr", caseFileId, () -> tileFromVpfLiensPersonnelsAnalysis(caseFileId));
+        // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 CESEDA (FR)
+        addSafely(tiles, "F-IM-28-vls-ts-validation-ofii-fr", caseFileId, () -> tileFromVlsTsValidationAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1763,6 +1769,44 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "VPF liens personnels L.423-23",
                         verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-07 — F-IM-28 validation VLS-TS auprès de l'OFII (3 mois à compter de
+     * l'entrée en France, art. R. 311-3 CESEDA). Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si statut {@code VALIDE} ou {@code A_VALIDER} (marge confortable)</li>
+     *   <li>{@code WARNING} si statut {@code URGENT} (fenêtre courte ≤ 15 j.)</li>
+     *   <li>{@code ALERT} si statut {@code EXPIRE} (délai dépassé, risque d'irrégularité)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromVlsTsValidationAnalysis(UUID caseFileId) {
+        return vlsTsValidationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), VlsTsValidationResult.class);
+                VlsTsValidationStatut statut = r.statut();
+                String secondary = statut == VlsTsValidationStatut.VALIDE
+                        ? "Validation OFII effectuée"
+                        : (r.joursRestantsValidation() != null
+                                ? r.joursRestantsValidation() + " j. avant l'échéance"
+                                : "Échéance non déterminée");
+                String alert = switch (statut == null ? VlsTsValidationStatut.A_VALIDER : statut) {
+                    case VALIDE, A_VALIDER -> "OK";
+                    case URGENT -> "WARNING";
+                    case EXPIRE -> "ALERT";
+                };
+                return new DashboardTile(
+                        "F-IM-28-vls-ts-validation-ofii-fr",
+                        "DELAIS",
+                        "Validation VLS-TS OFII",
+                        statut != null ? statut.name() : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {

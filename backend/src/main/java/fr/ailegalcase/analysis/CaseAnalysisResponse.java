@@ -2507,7 +2507,17 @@ public record CaseAnalysisResponse(
              */
             boolean viePriveeFamilialeDetectee,
             /** SF-214-05 : niveau d'intégration du requérant — whitelist FORT/MOYEN/FAIBLE. Null si non extractible ou dossier BE. */
-            String vpfNiveauIntegration) {
+            String vpfNiveauIntegration,
+            // === SF-214-07 — F-IM-28 Validation VLS-TS OFII 3 mois R. 311-3 CESEDA (FRANCE UNIQUEMENT, null pour BE) ===
+            /**
+             * SF-214-07 : true si les pièces indiquent que la validation du VLS-TS auprès
+             * de l'OFII a été effectuée (mentions « VLS-TS validé », « validation OFII »,
+             * « vignette OFII », « taxe OFII acquittée », confirmation ANEF de validation),
+             * false sinon. La date d'entrée est réutilisée via {@code aesDateEntreeFrance}
+             * et le type de VLS-TS via {@code typeTitreSejourCode} (proxy). Null si non
+             * extractible ou dossier BE.
+             */
+            Boolean vlsTsValidationOFIIEffectuee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2748,6 +2758,8 @@ public record CaseAnalysisResponse(
             // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR
             private boolean viePriveeFamilialeDetectee;
             private String vpfNiveauIntegration;
+            // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 FR
+            private Boolean vlsTsValidationOFIIEffectuee;
 
             private Builder() {}
 
@@ -2864,6 +2876,7 @@ public record CaseAnalysisResponse(
             public Builder regroupementType(String v) { this.regroupementType = v; return this; }
             public Builder viePriveeFamilialeDetectee(boolean v) { this.viePriveeFamilialeDetectee = v; return this; }
             public Builder vpfNiveauIntegration(String v) { this.vpfNiveauIntegration = v; return this; }
+            public Builder vlsTsValidationOFIIEffectuee(Boolean v) { this.vlsTsValidationOFIIEffectuee = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2932,7 +2945,8 @@ public record CaseAnalysisResponse(
                         regroupementType,
                         // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR
                         viePriveeFamilialeDetectee,
-                        vpfNiveauIntegration);
+                        vpfNiveauIntegration,
+                        vlsTsValidationOFIIEffectuee);
             }
         }
     }
@@ -6027,6 +6041,9 @@ public record CaseAnalysisResponse(
         boolean viePriveeFamilialeDetectee = booleanOrFalse(root, "vie_privee_familiale_detectee");
         String vpfNiveauIntegration = normalizeEnumCode(textOrNull(root, "vpf_niveau_integration"),
                 java.util.Set.of("FORT", "MOYEN", "FAIBLE"));
+        // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 FR — 1 booléen tri-état (FR uniquement).
+        // Date d'entrée réutilisée via aesDateEntreeFrance ; type via typeTitreSejourCode (proxy).
+        Boolean vlsTsValidationOFIIEffectuee = booleanOrNull(root, "vls_ts_validation_ofii_effectuee");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6097,7 +6114,9 @@ public record CaseAnalysisResponse(
                 && regroupementType == null
                 // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR (1 flag + 1 champ IA)
                 && !viePriveeFamilialeDetectee
-                && vpfNiveauIntegration == null) return null;
+                && vpfNiveauIntegration == null
+                // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 FR (1 booléen tri-état)
+                && vlsTsValidationOFIIEffectuee == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6220,6 +6239,7 @@ public record CaseAnalysisResponse(
                 .regroupementType(regroupementType)
                 .viePriveeFamilialeDetectee(viePriveeFamilialeDetectee)
                 .vpfNiveauIntegration(vpfNiveauIntegration)
+                .vlsTsValidationOFIIEffectuee(vlsTsValidationOFIIEffectuee)
                 .build();
     }
 

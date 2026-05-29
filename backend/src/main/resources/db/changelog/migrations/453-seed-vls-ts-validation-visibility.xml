@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="453-seed-vls-ts-validation-visibility" author="legalcase">
+        <comment>
+            SF-214-07 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Validation VLS-TS OFII 3 mois"
+            (F-IM-28-vls-ts-validation-ofii-fr, FRANCE uniquement).
+
+            Mode ALWAYS_ON, DROIT_IMMIGRATION / FRANCE : l'outil est toujours
+            proposé dans le panneau décisionnel des dossiers français — le délai
+            de validation OFII (3 mois à compter de l'entrée en France,
+            art. R. 311-3 CESEDA) concerne tout détenteur de VLS-TS, sans signal
+            booléen déclencheur. trigger_field / trigger_value = NULL (convention
+            ALWAYS_ON). priority 28 — après F-IM-27 VPF liens personnels
+            (CONTEXTUAL priority 27) et F-IM-26 regroupement familial (priority 26).
+
+            Source juridique : art. R. 311-3 CESEDA ; OFII (validation VLS-TS).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolée,
+            l'entrée TOOL_REGISTRY frontend pour F-IM-28-vls-ts-validation-ofii-fr
+            est livrée dans la PR frontend SF-214-08 (mergée juste après). Les
+            tests DecisionToolVisibilityIntegrityIT / DashboardTileToolIdIntegrityIT
+            repassent verts une fois la PR frontend mergée sur master.
+
+            UUID namespace F-214 : f2140008-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140008-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-28-vls-ts-validation-ofii-fr', 'ALWAYS_ON', NULL, NULL, 28);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140008-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
