@@ -122,6 +122,8 @@ public class CaseFileDashboardService {
     private final VictimeTraiteRepository victimeTraiteRepo;
     // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
     private final CarteResidentRepository carteResidentRepo;
+    // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours (FR)
+    private final AnefProcedureRepository anefProcedureRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -272,6 +274,7 @@ public class CaseFileDashboardService {
                                      AjCndaRepository ajCndaRepo,
                                      VictimeTraiteRepository victimeTraiteRepo,
                                      CarteResidentRepository carteResidentRepo,
+                                     AnefProcedureRepository anefProcedureRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -405,6 +408,7 @@ public class CaseFileDashboardService {
         this.ajCndaRepo = ajCndaRepo;
         this.victimeTraiteRepo = victimeTraiteRepo;
         this.carteResidentRepo = carteResidentRepo;
+        this.anefProcedureRepo = anefProcedureRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -612,6 +616,7 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-35-victime-traite-l4251-fr", caseFileId, () -> tileFromVictimeTraiteAnalysis(caseFileId));
         // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
         addSafely(tiles, "F-IM-36-carte-resident-l4261-fr", caseFileId, () -> tileFromCarteResidentAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-37-anef-procedure-fr", caseFileId, () -> tileFromAnefProcedureAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1816,6 +1821,37 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "Carte de résident L.426-1",
                         verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-25 — F-IM-37 ANEF procédure / pannes / recours (FR). Tuile de type
+     * DELAI : expose le statut de la démarche ; jours avant expiration du titre en
+     * valeur secondaire ; alertLevel mappé sur la sémantique du statut.
+     */
+    private DashboardTile tileFromAnefProcedureAnalysis(UUID caseFileId) {
+        return anefProcedureRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AnefProcedureResult.class);
+                String statut = r.statut() != null ? r.statut().name() : null;
+                String secondary = String.format(
+                        "Jours avant expiration du titre : %d", r.joursAvantExpiration());
+                String alert = switch (statut == null ? "" : statut) {
+                    case "NORMAL" -> "OK";
+                    case "RECOURS_POSSIBLE" -> "WARNING";
+                    case "URGENT", "PANNE_EN_COURS" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-37-anef-procedure-fr",
+                        "DELAI",
+                        "ANEF procédure / recours",
+                        statut != null ? statut : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {

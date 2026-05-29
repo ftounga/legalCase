@@ -110,6 +110,8 @@ class CaseFileDashboardServiceTest {
     private VictimeTraiteRepository victimeTraiteRepo;
     // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
     private CarteResidentRepository carteResidentRepo;
+    // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours (FR)
+    private AnefProcedureRepository anefProcedureRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -246,6 +248,7 @@ class CaseFileDashboardServiceTest {
         ajCndaRepo = mock(AjCndaRepository.class);
         victimeTraiteRepo = mock(VictimeTraiteRepository.class);
         carteResidentRepo = mock(CarteResidentRepository.class);
+        anefProcedureRepo = mock(AnefProcedureRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -473,6 +476,7 @@ class CaseFileDashboardServiceTest {
                 ajCndaRepo,
                 victimeTraiteRepo,
                 carteResidentRepo,
+                anefProcedureRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

@@ -97,6 +97,7 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(AjCndaRepository.class),
                 mock(VictimeTraiteRepository.class),
                 mock(CarteResidentRepository.class),
+                mock(AnefProcedureRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
