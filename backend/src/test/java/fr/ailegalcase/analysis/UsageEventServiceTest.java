@@ -54,4 +54,33 @@ class UsageEventServiceTest {
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getEventType()).isEqualTo(JobType.ENRICHED_ANALYSIS);
     }
+
+    // U-04 (SF-257-02) : job SYSTEM_* sans dossier ni utilisateur → caseFileId et
+    // userId null acceptés, aucune exception (cf. régression bootstrap F-JU-01).
+    @Test
+    void record_systemJob_acceptsNullCaseFileAndUser() {
+        service.record(null, null, JobType.SYSTEM_JP_BOOTSTRAP, 4000, 150);
+
+        ArgumentCaptor<UsageEvent> captor = ArgumentCaptor.forClass(UsageEvent.class);
+        verify(repository).save(captor.capture());
+        UsageEvent saved = captor.getValue();
+
+        assertThat(saved.getCaseFileId()).isNull();
+        assertThat(saved.getUserId()).isNull();
+        assertThat(saved.getEventType()).isEqualTo(JobType.SYSTEM_JP_BOOTSTRAP);
+        assertThat(saved.getTokensInput()).isEqualTo(4000);
+    }
+
+    // U-05 (SF-257-02) : event_type le plus long (SYSTEM_JURISPRUDENCE_VERIFICATION,
+    // 33 car.) → persisté sans troncature (colonne élargie à varchar(40)).
+    @Test
+    void record_longestSystemEventType_persistedWithoutTruncation() {
+        assertThat(JobType.SYSTEM_JURISPRUDENCE_VERIFICATION.name().length()).isLessThanOrEqualTo(40);
+
+        service.record(null, null, JobType.SYSTEM_JURISPRUDENCE_VERIFICATION, 100, 10);
+
+        ArgumentCaptor<UsageEvent> captor = ArgumentCaptor.forClass(UsageEvent.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().getEventType()).isEqualTo(JobType.SYSTEM_JURISPRUDENCE_VERIFICATION);
+    }
 }

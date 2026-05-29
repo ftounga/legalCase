@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="447-relax-usage-events-for-system-jobs" author="legalcase">
+        <comment>
+            F-257 SF-257-02 — corrige la régression du gate Anthropic centralisé
+            (SF-257-01, PR #1451) : `AnthropicService.recordUsage` enregistre
+            désormais un `usage_events` pour CHAQUE appel Anthropic, y compris
+            les 11 `JobType.SYSTEM_*` (ex. SYSTEM_JP_BOOTSTRAP) qui n'ont ni
+            dossier ni utilisateur. Or la table imposait `case_file_id NOT NULL`,
+            `user_id NOT NULL` et `event_type varchar(30)` — trop court pour
+            `SYSTEM_JURISPRUDENCE_VERIFICATION` (33 car.). Résultat : l'INSERT
+            échouait et faisait échouer l'appel Anthropic entier → tous les jobs
+            system cassés (bootstrap jurisprudence, blog, help chat, vision,
+            détection pièces, style, conclusions, veille, web_search BE, résumé).
+
+            Correctif : rendre case_file_id et user_id nullable (les lignes
+            system restent exclues des budgets workspace par INNER JOIN
+            case_files) et élargir event_type à varchar(40).
+        </comment>
+
+        <dropNotNullConstraint tableName="usage_events"
+                               columnName="case_file_id"
+                               columnDataType="uuid"/>
+
+        <dropNotNullConstraint tableName="usage_events"
+                               columnName="user_id"
+                               columnDataType="uuid"/>
+
+        <modifyDataType tableName="usage_events"
+                        columnName="event_type"
+                        newDataType="varchar(40)"/>
+
+        <rollback>
+            <modifyDataType tableName="usage_events"
+                            columnName="event_type"
+                            newDataType="varchar(30)"/>
+            <addNotNullConstraint tableName="usage_events"
+                                  columnName="user_id"
+                                  columnDataType="uuid"/>
+            <addNotNullConstraint tableName="usage_events"
+                                  columnName="case_file_id"
+                                  columnDataType="uuid"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
