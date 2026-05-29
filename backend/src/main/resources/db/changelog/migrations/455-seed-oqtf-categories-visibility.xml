@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="455-seed-oqtf-categories-visibility" author="legalcase">
+        <comment>
+            SF-214-09 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "OQTF catégories L. 611-1 CESEDA"
+            (F-IM-29-oqtf-categories-l6111-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil partage le
+            trigger de F-IM-08 (OQTF) afin d'apparaître côte à côte. Comme
+            F-IM-08 est scindé en deux outils (avec délai / sans délai), on
+            réplique ses DEUX règles de visibilité :
+              - trigger type_procedure_detectee = OQTF_AVEC_DELAI (cf. F-IM-08
+                avec délai)
+              - trigger type_procedure_detectee = OQTF_SANS_DELAI (cf. F-IM-08
+                sans délai)
+            de sorte que l'outil de catégorisation soit visible quel que soit le
+            type d'OQTF détecté. priority 29 — après F-IM-28 (priority 28).
+
+            Source juridique : L. 611-1 1° à 7° CESEDA ; L. 614-5 ; L. 614-1 ;
+            L. 612-6 ; CE 5 décembre 2014 n° 373520 ; CE 10 octobre 2013
+            n° 366528 ; loi 26 janvier 2024.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-214 : f214000a / f214000b.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f214000a-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-29-oqtf-categories-l6111-fr', 'CONTEXTUAL', 'type_procedure_detectee', 'OQTF_AVEC_DELAI', 29);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f214000b-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-29-oqtf-categories-l6111-fr', 'CONTEXTUAL', 'type_procedure_detectee', 'OQTF_SANS_DELAI', 29);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN ('f214000a-0000-0000-0000-214000000001', 'f214000b-0000-0000-0000-214000000001');
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

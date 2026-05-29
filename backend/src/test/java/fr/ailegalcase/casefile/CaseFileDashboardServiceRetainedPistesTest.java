@@ -89,6 +89,7 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(RegroupementFamilialRepository.class),
                 mock(VpfLiensPersonnelsRepository.class),
                 mock(VlsTsValidationRepository.class),
+                mock(OqtfCategoriesRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
