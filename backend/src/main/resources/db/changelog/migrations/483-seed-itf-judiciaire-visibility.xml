@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="483-seed-itf-judiciaire-visibility" author="legalcase">
+        <comment>
+            SF-214-37 -- seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "ITF judiciaire" (F-IM-43-itf-judiciaire-fr, FRANCE
+            uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte une mesure d'éloignement -- flag pivot EXISTANT
+            `mesure_eloignement_detectee` = true (introduit par F-201, déjà utilisé
+            par F-IM-20 mesures d'éloignement). L'ITF est une mesure d'éloignement
+            d'origine pénale ; le trigger est donc PARTAGÉ avec F-IM-20 (réutilisé,
+            pas recréé). Mentions repérées en complément par LegalDomainPromptBuilder :
+            "interdiction du territoire français", "ITF", "peine complémentaire",
+            "C.pén. 131-30", "condamnation pénale". priority 43 -- après F-IM-42
+            assignation à résidence (CONTEXTUAL priority 42).
+
+            Source juridique : C. pén. 131-30 à 131-30-2 (ITF peine complémentaire) ;
+            C. pén. 131-30-1 / 702-1 (relèvement, 5 ans minimum) ; C. pr. pén. 380-1
+            (appel 10 j) ; C. pr. pén. 568 (cassation 5 j) ; L. 631-3 CESEDA ;
+            Cass. crim. 14 sept. 2016, n° 16-80.161.
+
+            Distinction : l'IRTF administrative (préfet, L. 612-6 CESEDA) est couverte
+            par l'outil F-IM-20 -- régime juridique distinct.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 cote service.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolée,
+            l'entrée TOOL_REGISTRY frontend pour F-IM-43-itf-judiciaire-fr est livrée
+            dans la PR frontend SF-214-38 (mergée juste après). Les tests
+            DecisionToolVisibilityIntegrityIT / DashboardTileToolIdIntegrityIT
+            repassent verts une fois la PR frontend mergée sur master.
+
+            UUID namespace F-214 : f2140022-0000-0000-0000-214000000002.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140022-0000-0000-0000-214000000002', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-43-itf-judiciaire-fr', 'CONTEXTUAL', 'mesure_eloignement_detectee', 'true', 43);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140022-0000-0000-0000-214000000002';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

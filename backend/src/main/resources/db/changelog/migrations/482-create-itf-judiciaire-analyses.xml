@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="482-create-itf-judiciaire-analyses" author="legalcase">
+        <comment>
+            SF-214-37 : table dédiée à l'outil décisionnel "ITF judiciaire"
+            (F-IM-43-itf-judiciaire-fr, FRANCE uniquement). Analyse une
+            interdiction du territoire français prononcée par un juge pénal comme
+            peine complémentaire (C. pén. 131-30 à 131-30-2), ses voies de recours
+            (appel 10 j, cassation 5 j) et la requête en relèvement (C. pén. 702-1,
+            5 ans minimum). Distinct de l'IRTF administrative (préfet, L. 612-6,
+            outil F-IM-20). 1:1 case_file.
+        </comment>
+
+        <createTable tableName="itf_judiciaire_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_itf_judiciaire_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_condamnation" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_itf_annees" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="infraction_principale" type="varchar(200)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="condamnation_definitive" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="itf_judiciaire_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_itf_judiciaire_analyses_case_file"/>
+
+        <createIndex tableName="itf_judiciaire_analyses"
+                     indexName="idx_itf_judiciaire_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="itf_judiciaire_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
