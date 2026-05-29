@@ -138,6 +138,8 @@ public class CaseFileDashboardService {
     private final ItfJudiciaireRepository itfJudiciaireRepo;
     // SF-214-39 : F-IM-44 séjour UE/EEE/Suisse (directive 2004/38, L. 233-1+ CESEDA) (FR)
     private final UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo;
+    // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 (FR)
+    private final RetraitTitreFraudeRepository retraitTitreFraudeRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -296,6 +298,7 @@ public class CaseFileDashboardService {
                                      AssignationResidenceRepository assignationResidenceRepo,
                                      ItfJudiciaireRepository itfJudiciaireRepo,
                                      UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo,
+                                     RetraitTitreFraudeRepository retraitTitreFraudeRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -437,6 +440,7 @@ public class CaseFileDashboardService {
         this.assignationResidenceRepo = assignationResidenceRepo;
         this.itfJudiciaireRepo = itfJudiciaireRepo;
         this.ueEeeSuisseSejourRepo = ueEeeSuisseSejourRepo;
+        this.retraitTitreFraudeRepo = retraitTitreFraudeRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -656,6 +660,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-43-itf-judiciaire-fr", caseFileId, () -> tileFromItfJudiciaireAnalysis(caseFileId));
         // SF-214-39 : F-IM-44 séjour UE/EEE/Suisse (directive 2004/38, L. 233-1+ CESEDA) FR
         addSafely(tiles, "F-IM-44-ue-eee-suisse-sejour-fr", caseFileId, () -> tileFromUeEeeSuisseSejourAnalysis(caseFileId));
+        // SF-214-41 : F-IM-45 retrait de titre pour fraude (L. 412-7 CESEDA) FR
+        addSafely(tiles, "F-IM-45-retrait-titre-fraude-fr", caseFileId, () -> tileFromRetraitTitreFraudeAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2140,6 +2146,44 @@ public class CaseFileDashboardService {
                         "F-IM-42-assignation-residence-fr",
                         "DELAI",
                         "Assignation à résidence",
+                        statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-41 — F-IM-45 retrait de titre de séjour pour fraude (L. 412-7 CESEDA).
+     * Tuile DELAI : rappelle le statut du recours au regard du délai de saisine du
+     * tribunal administratif (2 mois) et l'échéance correspondante. Outil FRANCE
+     * uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si le recours reste ouvert (RECOURS_POSSIBLE)</li>
+     *   <li>{@code WARNING} si le délai expire sous 15 jours (URGENT)</li>
+     *   <li>{@code ALERT} si le délai de recours est dépassé (PRESCRIT)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromRetraitTitreFraudeAnalysis(UUID caseFileId) {
+        return retraitTitreFraudeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RetraitTitreFraudeResult.class);
+                RetraitTitreFraudeStatut statut = r.statut();
+                String secondary = r.delaiRecoursTA() != null
+                        ? "Délai recours TA : " + r.delaiRecoursTA()
+                        : null;
+                String alert = switch (statut == null ? RetraitTitreFraudeStatut.RECOURS_POSSIBLE : statut) {
+                    case PRESCRIT -> "ALERT";
+                    case URGENT -> "WARNING";
+                    case RECOURS_POSSIBLE -> "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-45-retrait-titre-fraude-fr",
+                        "DELAI",
+                        "Retrait de titre pour fraude",
                         statut != null ? statut.name() : "—",
                         secondary,
                         alert);
