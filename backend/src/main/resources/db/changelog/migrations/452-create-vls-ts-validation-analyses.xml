@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="452-create-vls-ts-validation-analyses" author="legalcase">
+        <comment>
+            SF-214-07 — table `vls_ts_validation_analyses` pour l'outil décisionnel
+            "Validation VLS-TS OFII 3 mois" (F-IM-28-vls-ts-validation-ofii-fr, FRANCE).
+
+            Outil single-country FR : calcule le délai de validation du VLS-TS
+            (visa long séjour valant titre de séjour) auprès de l'OFII — 3 mois à
+            compter de l'entrée en France (art. R. 311-3 CESEDA). Alerte sur le
+            risque d'irrégularité du séjour passé ce délai. Persiste l'analyse
+            1:1 par dossier.
+
+            Source juridique : R. 311-3 CESEDA ; R. 311-13 CESEDA ; arrêté du
+            27/04/2021 (ANEF) ; CE 16 juillet 2014 n° 375479.
+
+            UUID namespace F-214 : f2140007-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="vls_ts_validation_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_vls_ts_validation_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_entree_france" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_vls_ts" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="validation_ofii_effectuee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_validation_ofii" type="DATE"/>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="vls_ts_validation_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
