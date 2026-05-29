@@ -1336,6 +1336,7 @@ export interface ImmigrationExtractedData {
    * `mineursDateNaissance` : date de naissance du mineur YYYY-MM-DD (non future).
    * `algerienPresenceReguliereMois` : durée présence régulière en mois (0–600, régime algérien).
    * `asileDateDecisionAnterieure` : date décision antérieure asile YYYY-MM-DD (non future).
+   * `asileProcedureeAccelereee` : SF-214-20 — procédure d'asile traitée en accélérée (F-IM-34 AJ CNDA, délai de recours réduit).
    * `eloiDureePresenceIrreguliereMois` : durée présence irrégulière en mois (0–600, IRTF).
    * `eloiMotifMenace` : motif menace (ORDRE_PUBLIC / SECURITE_ETAT / TERRORISME / RECIDIVE_GRAVE / AUTRE).
    */
@@ -1347,6 +1348,7 @@ export interface ImmigrationExtractedData {
   mineursDateNaissance?: string | null;
   algerienPresenceReguliereMois?: number | null;
   asileDateDecisionAnterieure?: string | null;
+  asileProcedureeAccelereee?: boolean | null;
   eloiDureePresenceIrreguliereMois?: number | null;
   eloiMotifMenace?: string | null;
   /**
