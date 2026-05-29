@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="458-create-renouvellement-delai-analyses" author="legalcase">
+        <comment>
+            SF-214-13 — table `renouvellement_delai_analyses` pour l'outil décisionnel
+            "Renouvellement — délai de dépôt 2 mois avant"
+            (F-IM-31-renouvellement-delai-depot-fr, FRANCE).
+
+            Outil single-country FR : calcule le délai optimal de dépôt du
+            renouvellement du titre de séjour — 2 mois avant l'expiration
+            (art. R. 433-1 CESEDA) — et le seuil impératif (1 mois avant). Alerte
+            sur le risque d'interruption des droits en cas de dépôt tardif ou de
+            titre expiré. Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : R. 433-1 CESEDA ; R. 433-2 CESEDA (récépissé) ;
+            CE 25 octobre 2004 n° 258806.
+
+            UUID namespace F-214 : f214000e-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="renouvellement_delai_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_renouvellement_delai_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_expiration_titre" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_depot_dossier" type="DATE"/>
+            <column name="type_titre" type="VARCHAR(120)"/>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="renouvellement_delai_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

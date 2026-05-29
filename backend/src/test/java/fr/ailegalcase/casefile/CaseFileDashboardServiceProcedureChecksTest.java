@@ -94,6 +94,7 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(VlsTsValidationRepository.class),
                 mock(OqtfCategoriesRepository.class),
                 mock(AesPresenceProuveeRepository.class),
+                mock(RenouvellementDelaiRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
