@@ -67,6 +67,8 @@ import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-sect
 import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vls-ts-validation-section.component';
 // SF-214-30 : composant complet F-IM-39-naturalisation-recours-tj-fr — recours TJ naturalisation (FR, calculateur délai 6 mois).
 import { NaturalisationRecoursTjSectionComponent } from '../naturalisation-recours-tj-section/naturalisation-recours-tj-section.component';
+// SF-214-32 : composant complet F-IM-40-naturalisation-recours-ta-fr — recours TA Nantes naturalisation (FR, calculateur délai 2 mois).
+import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recours-ta-section/naturalisation-recours-ta-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1596,6 +1598,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-39-naturalisation-recours-tj-fr', {
         displayLabel: 'Recours TJ naturalisation (FR)',
         component: NaturalisationRecoursTjSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-32 : composant complet F-IM-40-naturalisation-recours-ta-fr —
+      // recours TA Nantes naturalisation (FR). FR uniquement, ALWAYS_ON.
+      // Calculateur de délai 2 mois (recours pour excès de pouvoir contre un
+      // refus de décret de naturalisation, compétence exclusive TA de Nantes) :
+      // statut RECOURS_POSSIBLE/URGENT/PRESCRIT + échéance recours TA + jours
+      // restants + tribunal compétent (TA Nantes) + motifs de recours + bases
+      // juridiques. Pré-fill IA 1 champ (dateRefusDecret réutilise
+      // naturalisationDateRefus) via static getPrefillCount +
+      // NaturalisationRecoursTaPrefillRules. Bridge échéance F-69.
+      ['F-IM-40-naturalisation-recours-ta-fr', {
+        displayLabel: 'Recours TA Nantes naturalisation (FR)',
+        component: NaturalisationRecoursTaSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4854,6 +4875,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // date du refus → échéance recours judiciaire + jours restants + tribunal
     // compétent). Bridge échéance F-69. Cohérent avec F-IM-28 (DELAIS).
     ['F-IM-39-naturalisation-recours-tj-fr', 'DELAIS'],
+    // SF-214-32 : F-IM-40-naturalisation-recours-ta-fr recours TA Nantes
+    // naturalisation (FR). Thème DELAIS — calculateur de délai (2 mois recours
+    // pour excès de pouvoir : date du refus de décret → échéance recours TA +
+    // jours restants + TA de Nantes). Bridge échéance F-69. Cohérent avec
+    // F-IM-39 (DELAIS).
+    ['F-IM-40-naturalisation-recours-ta-fr', 'DELAIS'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).

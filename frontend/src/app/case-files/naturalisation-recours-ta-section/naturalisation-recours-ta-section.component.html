@@ -1,0 +1,177 @@
+<section class="nrt-section">
+  <header class="nrt-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="nrt-body">
+    <mat-icon class="nrt-icon">gavel</mat-icon>
+    <span class="nrt-title">RECOURS TA NANTES NATURALISATION (FR)</span>
+    @if (result()) {
+      <span class="nrt-chip"
+            [class.nrt-chip--success]="result()!.statut === 'RECOURS_POSSIBLE'"
+            [class.nrt-chip--warning]="result()!.statut === 'URGENT'"
+            [class.nrt-chip--danger]="result()!.statut === 'PRESCRIT'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="nrt-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="nrt-body" class="nrt-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="nrt-banner nrt-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="nrt-banner-content">
+            <div class="nrt-banner-title">Recours TA Nantes naturalisation — procédure française uniquement</div>
+            <div class="nrt-banner-sub">
+              Le recours pour excès de pouvoir contre un refus de décret de
+              naturalisation relève de la compétence exclusive du tribunal
+              administratif de Nantes et n'a pas d'équivalent en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="nrt-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="nrt-form" (ngSubmit)="analyze()">
+              <div class="nrt-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du refus de décret</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateRefusDecret()"
+                         (ngModelChange)="onDateRefusChange($event)"
+                         name="dateRefusDecret" />
+                  <mat-hint>Point de départ du délai de recours de 2 mois</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateRefus() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="nrt-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motivation du refus (optionnel)</mat-label>
+                  <textarea matInput rows="3"
+                            [ngModel]="motivationRefus()"
+                            (ngModelChange)="onMotivationChange($event)"
+                            name="motivationRefus"
+                            placeholder="Motif invoqué par l'administration (assimilation, ordre public, ...)"></textarea>
+                </mat-form-field>
+              </div>
+
+              <div class="nrt-field-wrap nrt-checkbox-wrap">
+                <mat-checkbox [ngModel]="recoursPrerequis()"
+                              (ngModelChange)="onRecoursPrerequisChange($event)"
+                              name="recoursPrerequis">
+                  Recours administratif préalable effectué
+                </mat-checkbox>
+              </div>
+
+              <div class="nrt-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai de recours</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="nrt-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="nrt-banner-content">
+                  <div class="nrt-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="nrt-jours-restants">
+                    <span class="nrt-jours-big"
+                          [class.nrt-jours-big--danger]="result()!.joursRestants < 0">
+                      {{ result()!.joursRestants }}
+                    </span>
+                    <span class="nrt-jours-label">jour(s) restant(s)</span>
+                  </div>
+                </div>
+              </div>
+
+              <ul class="nrt-breakdown">
+                <li>
+                  <span class="nrt-bd-label">Date du refus de décret</span>
+                  <span class="nrt-bd-value">{{ result()!.dateRefusDecret }}</span>
+                </li>
+                <li>
+                  <span class="nrt-bd-label">Échéance du recours TA</span>
+                  <span class="nrt-bd-value nrt-bd-value--echeance">{{ result()!.dateEcheanceRecoursTa }}</span>
+                </li>
+                <li>
+                  <span class="nrt-bd-label">Tribunal compétent</span>
+                  <span class="nrt-bd-value nrt-bd-value--tribunal">{{ result()!.tribunalCompetent }}</span>
+                </li>
+                <li>
+                  <span class="nrt-bd-label">Recours administratif préalable</span>
+                  <span class="nrt-bd-value">{{ result()!.recoursPrerequis ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              @if (result()!.motivationRefus) {
+                <div class="nrt-motivation-block" role="note">
+                  <div class="nrt-motivation-title">Motivation du refus</div>
+                  <div class="nrt-motivation-text">{{ result()!.motivationRefus }}</div>
+                </div>
+              }
+
+              @if (result()!.motifsRecoursDisponibles && result()!.motifsRecoursDisponibles.length > 0) {
+                <div class="nrt-motifs-block" role="note">
+                  <div class="nrt-motifs-title">Motifs de recours disponibles</div>
+                  <ul class="nrt-motifs-list">
+                    @for (motif of result()!.motifsRecoursDisponibles; track motif) {
+                      <li>{{ motif }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (deadlineCreated()) {
+                <div class="nrt-deadline-note" role="note">
+                  <mat-icon>event</mat-icon>
+                  <span>Échéance « Recours TA Nantes naturalisation » ajoutée aux échéances du dossier.</span>
+                </div>
+              }
+
+              <div class="nrt-meta">
+                <div class="nrt-bases">
+                  @if (result()!.basesJuridiques && result()!.basesJuridiques.length > 0) {
+                    <span class="nrt-meta-base">{{ result()!.basesJuridiques.join(' · ') }}</span>
+                  } @else {
+                    <span class="nrt-meta-base">CJA — recours pour excès de pouvoir, délai 2 mois (TA de Nantes)</span>
+                  }
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
