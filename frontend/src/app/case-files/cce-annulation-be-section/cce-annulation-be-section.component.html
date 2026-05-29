@@ -1,0 +1,212 @@
+<section class="cce-section">
+  <header class="cce-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cce-body">
+    <mat-icon class="cce-icon">gavel</mat-icon>
+    <span class="cce-title">RECOURS CCE ANNULATION 30J (BE)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="cce-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cce-body" class="cce-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="cce-banner cce-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="cce-banner-content">
+            <div class="cce-banner-title">Outil Belgique uniquement</div>
+            <div class="cce-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. Le recours en
+              annulation devant le Conseil du Contentieux des Étrangers (Loi
+              15/12/1980) ne s'applique qu'en Belgique. Pour la France, voir les
+              outils de recours TA / CNDA.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="cce-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="cce-form" (ngSubmit)="analyze()">
+              <div class="cce-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de la décision</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-notification-input"
+                         [ngModel]="dateNotificationDecision()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationDecision" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="cce-coherence-badge coherence-warning"
+                        data-testid="coherence-date-notification"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [attr.aria-label]="alertBadgeLabel(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="cce-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de décision attaquée</mat-label>
+                  <mat-select required
+                              [ngModel]="typeDecision()"
+                              (ngModelChange)="onTypeDecisionChange($event)"
+                              name="typeDecision">
+                    @for (opt of typesDecision; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceTypeDecision() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="cce-field-wrap cce-field-wrap--full">
+                <mat-checkbox
+                    data-testid="recours-forme-checkbox"
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="onRecoursFormeChange($event)"
+                    name="recoursForme">
+                  Un recours en annulation a déjà été formé
+                </mat-checkbox>
+              </div>
+
+              @if (recoursForme()) {
+                <div class="cce-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de dépôt du recours</mat-label>
+                    <input matInput type="date" required
+                           data-testid="date-recours-input"
+                           [ngModel]="dateRecours()"
+                           (ngModelChange)="onDateRecoursChange($event)"
+                           name="dateRecours" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="cce-hint">
+                Délai de droit commun : {{ delaiJours }} jours calendaires à compter
+                de la notification (Loi 15/12/1980, art. 39/2 §2 et 39/57 §1er).
+              </div>
+
+              <div class="cce-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="cce-result">
+              <div [class]="statutBannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ statutIcon(result()!.statut) }}</mat-icon>
+                <div class="cce-banner-content">
+                  <div class="cce-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="cce-banner-sub">
+                    Date limite du recours :
+                    <span class="cce-date-mono" data-testid="date-limite">{{ formatDateFr(result()!.dateLimiteRecours) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cce-jours-block">
+                <span class="cce-jours-label">Jours restants</span>
+                <span [class]="joursRestantsClass(result()!.joursRestants)" data-testid="jours-restants">
+                  {{ result()!.joursRestants }}
+                </span>
+              </div>
+
+              <div class="cce-memoire-block" role="note" data-testid="delais-memoire">
+                <mat-icon>description</mat-icon>
+                <div>
+                  <div class="cce-memoire-title">Délai mémoire de synthèse</div>
+                  <div class="cce-memoire-text">{{ result()!.delaisMemoire }}</div>
+                </div>
+              </div>
+
+              @if (showRecommandation(result()!.statut) && result()!.recommandation) {
+                <div class="cce-banner cce-banner--warning cce-reco" role="note" data-testid="recommandation">
+                  <mat-icon>priority_high</mat-icon>
+                  <div class="cce-banner-content">
+                    <div class="cce-banner-title">Recommandation</div>
+                    <div class="cce-banner-sub">{{ result()!.recommandation }}</div>
+                    <div class="cce-cross-link" data-testid="lien-fim32">
+                      <mat-icon>open_in_new</mat-icon>
+                      <span>Si l'acte est exécutoire de façon imminente, basculer vers
+                      l'outil <strong>Recours en extrême urgence (F-IM-32)</strong> —
+                      5 jours ouvrables, art. 39/82 Loi 15/12/1980.</span>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <ul class="cce-breakdown">
+                <li>
+                  <span class="cce-bd-label">Notification de la décision</span>
+                  <span class="cce-bd-value cce-bd-value--mono">{{ formatDateFr(result()!.dateNotificationDecision) }}</span>
+                </li>
+                <li>
+                  <span class="cce-bd-label">Type de décision</span>
+                  <span class="cce-bd-value">{{ typeDecisionLabel(result()!.typeDecision) }}</span>
+                </li>
+                <li>
+                  <span class="cce-bd-label">Recours déjà formé</span>
+                  <span class="cce-bd-value">{{ result()!.recoursForme ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.recoursForme && result()!.dateRecours) {
+                  <li>
+                    <span class="cce-bd-label">Date du recours</span>
+                    <span class="cce-bd-value cce-bd-value--mono">{{ formatDateFr(result()!.dateRecours) }}</span>
+                  </li>
+                }
+              </ul>
+
+              <div class="cce-meta">
+                @if (result()!.baseJuridique) {
+                  <span class="cce-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
