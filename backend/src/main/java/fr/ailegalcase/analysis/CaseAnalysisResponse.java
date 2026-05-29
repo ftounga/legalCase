@@ -2553,7 +2553,27 @@ public record CaseAnalysisResponse(
              * visible via le trigger {@code procedure_asile_detectee} (F-201). Dossiers
              * BE : toujours false.
              */
-            boolean gudaPassageEffectue) {
+            boolean gudaPassageEffectue,
+            // === SF-214-21 — F-IM-35 Victime de la traite des êtres humains L. 425-1 CESEDA (FRANCE UNIQUEMENT, false/null pour BE) ===
+            /**
+             * SF-214-21 : flag pivot — true si les pièces évoquent une situation de
+             * traite des êtres humains (mentions « traite des êtres humains », « TEH »,
+             * « prostitution forcée », « exploitation », « OCRTEH », « victime de
+             * traite », « servitude »). Pivot pour la visibility rule CONTEXTUAL de
+             * F-IM-35 (trigger {@code victime_traite_detectee}). Dossiers BE : toujours false.
+             */
+            boolean victimeTraiteDetectee,
+            /**
+             * SF-214-21 : true si une plainte (ou un signalement par une association
+             * agréée) a été déposée contre l'auteur des faits de traite, false sinon,
+             * null si non extractible ou dossier BE.
+             */
+            Boolean tehPlainteDeposee,
+            /**
+             * SF-214-21 : date de dépôt de plainte au format YYYY-MM-DD. Null si non
+             * extractible ou dossier BE.
+             */
+            String tehDatePlainte) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2804,6 +2824,10 @@ public record CaseAnalysisResponse(
             private String recepisseOuAttestationType;
             // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ FR
             private boolean gudaPassageEffectue;
+            // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 FR
+            private boolean victimeTraiteDetectee;
+            private Boolean tehPlainteDeposee;
+            private String tehDatePlainte;
 
             private Builder() {}
 
@@ -2925,6 +2949,9 @@ public record CaseAnalysisResponse(
             public Builder recouvrementTitreEnCours(boolean v) { this.recouvrementTitreEnCours = v; return this; }
             public Builder recepisseOuAttestationType(String v) { this.recepisseOuAttestationType = v; return this; }
             public Builder gudaPassageEffectue(boolean v) { this.gudaPassageEffectue = v; return this; }
+            public Builder victimeTraiteDetectee(boolean v) { this.victimeTraiteDetectee = v; return this; }
+            public Builder tehPlainteDeposee(Boolean v) { this.tehPlainteDeposee = v; return this; }
+            public Builder tehDatePlainte(String v) { this.tehDatePlainte = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3003,7 +3030,11 @@ public record CaseAnalysisResponse(
                         recouvrementTitreEnCours,
                         recepisseOuAttestationType,
                         // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA FR
-                        gudaPassageEffectue);
+                        gudaPassageEffectue,
+                        // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 FR
+                        victimeTraiteDetectee,
+                        tehPlainteDeposee,
+                        tehDatePlainte);
             }
         }
     }
@@ -6111,6 +6142,11 @@ public record CaseAnalysisResponse(
         // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ FR — 1 flag pré-fill (FR uniquement).
         // Date d'arrivée réutilisée via aesDateEntreeFrance ; visibilité via procedure_asile_detectee (F-201).
         boolean gudaPassageEffectue = booleanOrFalse(root, "guda_passage_effectue");
+        // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 FR —
+        // 1 flag pivot + 2 champs pré-fill (FR uniquement).
+        boolean victimeTraiteDetectee = booleanOrFalse(root, "victime_traite_detectee");
+        Boolean tehPlainteDeposee = booleanOrNull(root, "teh_plainte_deposee");
+        String tehDatePlainte = textOrNull(root, "teh_date_plainte");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6188,7 +6224,11 @@ public record CaseAnalysisResponse(
                 && !recouvrementTitreEnCours
                 && recepisseOuAttestationType == null
                 // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA FR (1 flag pré-fill)
-                && !gudaPassageEffectue) return null;
+                && !gudaPassageEffectue
+                // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 FR (1 flag + 2 champs IA)
+                && !victimeTraiteDetectee
+                && tehPlainteDeposee == null
+                && tehDatePlainte == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6316,6 +6356,9 @@ public record CaseAnalysisResponse(
                 .recouvrementTitreEnCours(recouvrementTitreEnCours)
                 .recepisseOuAttestationType(recepisseOuAttestationType)
                 .gudaPassageEffectue(gudaPassageEffectue)
+                .victimeTraiteDetectee(victimeTraiteDetectee)
+                .tehPlainteDeposee(tehPlainteDeposee)
+                .tehDatePlainte(tehDatePlainte)
                 .build();
     }
 

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="466-create-victime-traite-analyses" author="legalcase">
+        <comment>
+            SF-214-21 — table `victime_traite_analyses` pour l'outil décisionnel
+            "Victime de la traite des êtres humains L. 425-1 CESEDA"
+            (F-IM-35-victime-traite-l4251-fr, FRANCE).
+
+            Outil single-country FR : analyse l'éligibilité au titre L. 425-1
+            (ancien L. 316-1) qui requiert une plainte (ou un signalement par une
+            association agréée) et une collaboration avec les services d'enquête
+            (OCRTEH), et l'identification comme victime de la traite. Ouvre une APS
+            de 6 mois avec droit au travail attaché et des mesures de protection.
+            Persiste l'analyse 1:1 par dossier.
+
+            Distinction L. 425-6 (violences conjugales, ordonnance JAF — F-208) vs
+            L. 425-1 (traite des êtres humains, cet outil) : deux situations
+            juridiques distinctes, deux outils distincts.
+
+            Source juridique : L. 425-1 CESEDA ; Code pénal L. 225-4-1 et s. ;
+            Protocole de Palerme (ONU, 2000) ; Directive UE 2011/36 ;
+            Circ. 19/05/2015.
+
+            UUID namespace F-214 : f2140014-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="victime_traite_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_victime_traite_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="plainte_deposee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="collaboration_ocrteh" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_plainte" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="titre_actuel" type="VARCHAR(120)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="presence_autorite_refugie_detectee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="victime_traite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

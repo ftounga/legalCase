@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="467-seed-victime-traite-visibility" author="legalcase">
+        <comment>
+            SF-214-21 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Victime de la traite des êtres humains L. 425-1 CESEDA"
+            (F-IM-35-victime-traite-l4251-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte une situation de traite des êtres humains —
+            trigger `victime_traite_detectee` = true (signal booléen pivot extrait
+            par LegalDomainPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue depuis
+            immigration_extracted_data). Mentions repérées : « traite des êtres
+            humains », « TEH », « prostitution forcée », « exploitation »,
+            « OCRTEH », « victime de traite », « servitude ».
+            priority 35 — après F-IM-34 AJ CNDA (priority 34).
+
+            Source juridique : L. 425-1 CESEDA ; Code pénal L. 225-4-1 et s. ;
+            Protocole de Palerme (ONU, 2000).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-214 : f2140015-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140015-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-35-victime-traite-l4251-fr', 'CONTEXTUAL', 'victime_traite_detectee', 'true', 35);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140015-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
