@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="470-create-anef-procedure-analyses" author="legalcase">
+        <comment>
+            SF-214-25 — table `anef_procedure_analyses` pour l'outil décisionnel
+            "ANEF procédure / pannes / recours" (F-IM-37-anef-procedure-fr, FRANCE).
+
+            Outil single-country FR : guide les démarches ANEF (administration
+            numérique des étrangers en France) et les recours en cas de panne ou
+            d'impossibilité du dépôt dématérialisé. Calcule le statut de la
+            démarche (NORMAL, URGENT si expiration du titre à moins de 30 jours,
+            PANNE_EN_COURS, RECOURS_POSSIBLE), les étapes standard et les étapes
+            alternatives (preuve de la panne, LRAR préfecture, dépôt physique,
+            recours pour faute), et le délai du recours pour faute de
+            l'administration (2 ans). Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : R. 311-2-2 CESEDA (modalités dématérialisées ANEF) ;
+            arrêté du 27/04/2021 (obligations de dématérialisation) ; L. 114-9 CRPA
+            (délai substitutif en cas d'impossibilité technique) ; CE 16 juillet
+            2014 n° 375479 (responsabilité de l'administration pour faute).
+
+            UUID namespace F-214 : f2140019-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="anef_procedure_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_anef_procedure_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="type_titre_concerne" type="VARCHAR(120)"/>
+            <column name="date_expiration_titre" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pannee_anef_signalee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_tentative_depot" type="DATE"/>
+            <column name="demande_adressee_prefecture" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="anef_procedure_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

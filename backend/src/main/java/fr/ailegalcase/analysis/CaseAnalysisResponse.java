@@ -2589,7 +2589,18 @@ public record CaseAnalysisResponse(
              * si non extractible ou dossier BE. La durée de séjour est dérivée de
              * {@code aesDureePresenceMois} déjà extrait — non redemandée ici.
              */
-            Double carteResidentRessources) {
+            Double carteResidentRessources,
+            // === SF-214-25 — F-IM-37 ANEF procédure / pannes / recours (FRANCE UNIQUEMENT, false pour BE) ===
+            /**
+             * SF-214-25 : flag pivot — true si les pièces évoquent une panne ou une
+             * impossibilité de dépôt sur la plateforme ANEF (mentions « ANEF en
+             * panne », « site indisponible », « connexion impossible », « erreur
+             * ANEF », « plateforme étrangers »). Pivot pour la visibility rule
+             * CONTEXTUAL de F-IM-37 (trigger {@code anef_panne_detectee}). Le type
+             * de titre et la date d'expiration sont dérivés de {@code typeTitreSejour}
+             * et {@code dateExpirationTitre} déjà extraits. Dossiers BE : toujours false.
+             */
+            boolean anefPanneDetectee) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2847,6 +2858,8 @@ public record CaseAnalysisResponse(
             // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR
             private boolean carteResidentEnvisagee;
             private Double carteResidentRessources;
+            // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR
+            private boolean anefPanneDetectee;
 
             private Builder() {}
 
@@ -2973,6 +2986,7 @@ public record CaseAnalysisResponse(
             public Builder tehDatePlainte(String v) { this.tehDatePlainte = v; return this; }
             public Builder carteResidentEnvisagee(boolean v) { this.carteResidentEnvisagee = v; return this; }
             public Builder carteResidentRessources(Double v) { this.carteResidentRessources = v; return this; }
+            public Builder anefPanneDetectee(boolean v) { this.anefPanneDetectee = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3058,7 +3072,9 @@ public record CaseAnalysisResponse(
                         tehDatePlainte,
                         // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR
                         carteResidentEnvisagee,
-                        carteResidentRessources);
+                        carteResidentRessources,
+                        // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR
+                        anefPanneDetectee);
             }
         }
     }
@@ -6176,6 +6192,10 @@ public record CaseAnalysisResponse(
         // de aesDureePresenceMois déjà extrait.
         boolean carteResidentEnvisagee = booleanOrFalse(root, "carte_resident_envisagee");
         Double carteResidentRessources = doubleOrNull(root, "carte_resident_ressources");
+        // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR — 1 flag pivot
+        // (FR uniquement). Type de titre et date d'expiration dérivés des champs
+        // typeTitreSejour / dateExpirationTitre déjà extraits.
+        boolean anefPanneDetectee = booleanOrFalse(root, "anef_panne_detectee");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6260,7 +6280,9 @@ public record CaseAnalysisResponse(
                 && tehDatePlainte == null
                 // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 FR (1 flag + 1 champ IA)
                 && !carteResidentEnvisagee
-                && carteResidentRessources == null) return null;
+                && carteResidentRessources == null
+                // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR (1 flag pivot)
+                && !anefPanneDetectee) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6393,6 +6415,7 @@ public record CaseAnalysisResponse(
                 .tehDatePlainte(tehDatePlainte)
                 .carteResidentEnvisagee(carteResidentEnvisagee)
                 .carteResidentRessources(carteResidentRessources)
+                .anefPanneDetectee(anefPanneDetectee)
                 .build();
     }
 

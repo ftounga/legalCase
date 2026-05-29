@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="471-seed-anef-procedure-visibility" author="legalcase">
+        <comment>
+            SF-214-25 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "ANEF procédure / pannes / recours"
+            (F-IM-37-anef-procedure-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte une panne / impossibilité de dépôt ANEF —
+            trigger `anef_panne_detectee` = true (signal booléen pivot extrait par
+            LegalDomainPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue depuis
+            immigration_extracted_data). Mentions repérées : "ANEF en panne",
+            "site indisponible", "connexion impossible", "erreur ANEF",
+            "plateforme étrangers". En l'absence de panne détectée, l'outil n'est
+            pas visible (ne pas polluer tous les dossiers immigration).
+            priority 37 — après F-IM-36 carte de résident (priority 36).
+
+            Source juridique : R. 311-2-2 CESEDA ; arrêté du 27/04/2021 ;
+            L. 114-9 CRPA ; CE 16 juillet 2014 n° 375479.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 côté service.
+
+            UUID namespace F-214 : f2140019-0000-0000-0000-214000000002.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140019-0000-0000-0000-214000000002', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-37-anef-procedure-fr', 'CONTEXTUAL', 'anef_panne_detectee', 'true', 37);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140019-0000-0000-0000-214000000002';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
