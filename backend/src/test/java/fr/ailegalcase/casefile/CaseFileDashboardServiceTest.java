@@ -122,6 +122,8 @@ class CaseFileDashboardServiceTest {
     private AppelCaaCassationRepository appelCaaCassationRepo;
     // SF-214-35 : F-IM-42 assignation à résidence L. 731-1 (FR)
     private AssignationResidenceRepository assignationResidenceRepo;
+    // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) (FR)
+    private ItfJudiciaireRepository itfJudiciaireRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -264,6 +266,7 @@ class CaseFileDashboardServiceTest {
         naturalisationRecoursTaNantesRepo = mock(NaturalisationRecoursTaNantesRepository.class);
         appelCaaCassationRepo = mock(AppelCaaCassationRepository.class);
         assignationResidenceRepo = mock(AssignationResidenceRepository.class);
+        itfJudiciaireRepo = mock(ItfJudiciaireRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -497,6 +500,7 @@ class CaseFileDashboardServiceTest {
                 naturalisationRecoursTaNantesRepo,
                 appelCaaCassationRepo,
                 assignationResidenceRepo,
+                itfJudiciaireRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

@@ -134,6 +134,8 @@ public class CaseFileDashboardService {
     private final AppelCaaCassationRepository appelCaaCassationRepo;
     // SF-214-35 : F-IM-42 assignation à résidence L. 731-1 (FR)
     private final AssignationResidenceRepository assignationResidenceRepo;
+    // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) (FR)
+    private final ItfJudiciaireRepository itfJudiciaireRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -290,6 +292,7 @@ public class CaseFileDashboardService {
                                      NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo,
                                      AppelCaaCassationRepository appelCaaCassationRepo,
                                      AssignationResidenceRepository assignationResidenceRepo,
+                                     ItfJudiciaireRepository itfJudiciaireRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -429,6 +432,7 @@ public class CaseFileDashboardService {
         this.naturalisationRecoursTaNantesRepo = naturalisationRecoursTaNantesRepo;
         this.appelCaaCassationRepo = appelCaaCassationRepo;
         this.assignationResidenceRepo = assignationResidenceRepo;
+        this.itfJudiciaireRepo = itfJudiciaireRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -644,6 +648,8 @@ public class CaseFileDashboardService {
         // SF-214-33 : F-IM-41 appel CAA / cassation CE délais (CJA, FR)
         addSafely(tiles, "F-IM-41-appel-caa-cassation-ce-fr", caseFileId, () -> tileFromAppelCaaCassationAnalysis(caseFileId));
         addSafely(tiles, "F-IM-42-assignation-residence-fr", caseFileId, () -> tileFromAssignationResidenceAnalysis(caseFileId));
+        // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR
+        addSafely(tiles, "F-IM-43-itf-judiciaire-fr", caseFileId, () -> tileFromItfJudiciaireAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2128,6 +2134,44 @@ public class CaseFileDashboardService {
                         "F-IM-42-assignation-residence-fr",
                         "DELAI",
                         "Assignation à résidence",
+                        statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-37 — F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30).
+     * Tuile informative : rappelle le statut de l'ITF au regard des recours et du
+     * relèvement et l'échéance de recevabilité de la requête en relèvement (5 ans).
+     * Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si une voie est ouverte (APPEL_POSSIBLE / RELEVE_POSSIBLE)</li>
+     *   <li>{@code WARNING} en cours de purge (relèvement non encore recevable)</li>
+     *   <li>{@code ALERT} si recours prescrit (voies ordinaires closes)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromItfJudiciaireAnalysis(UUID caseFileId) {
+        return itfJudiciaireRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ItfJudiciaireResult.class);
+                ItfJudiciaireStatut statut = r.statut();
+                String secondary = r.dateEcheanceReleve() != null
+                        ? "Relèvement recevable à partir du : " + r.dateEcheanceReleve()
+                        : null;
+                String alert = switch (statut == null ? ItfJudiciaireStatut.EN_COURS_PURGE : statut) {
+                    case APPEL_POSSIBLE, RELEVE_POSSIBLE -> "OK";
+                    case EN_COURS_PURGE -> "WARNING";
+                    case RECOURS_PRESCRIT -> "ALERT";
+                };
+                return new DashboardTile(
+                        "F-IM-43-itf-judiciaire-fr",
+                        "VALIDITE",
+                        "ITF judiciaire",
                         statut != null ? statut.name() : "—",
                         secondary,
                         alert);
