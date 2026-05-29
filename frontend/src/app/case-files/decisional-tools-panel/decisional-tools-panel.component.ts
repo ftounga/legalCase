@@ -71,6 +71,8 @@ import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-sec
 import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-categories-section.component';
 // SF-214-16 : composant complet F-IM-32-recepisse-attestation-fr — récépissé vs attestation (FR, analyseur droits séjour/travail + risque employeur).
 import { RecepisseAttestationSectionComponent } from '../recepisse-attestation-section/recepisse-attestation-section.component';
+// SF-214-18 : composant complet F-IM-33-ofpra-introduction-fr — OFPRA introduction (FR, échéance + stepper 5 étapes + risque procédure accélérée).
+import { OfpraIntroductionSectionComponent } from '../ofpra-introduction-section/ofpra-introduction-section.component';
 // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
 import { AesPresenceProuveeSectionComponent } from '../aes-presence-prouvee-section/aes-presence-prouvee-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
@@ -1615,6 +1617,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-32-recepisse-attestation-fr', {
         displayLabel: 'Récépissé vs attestation (FR)',
         component: RecepisseAttestationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-18 : composant complet F-IM-33-ofpra-introduction-fr — OFPRA
+      // introduction (FR). FR uniquement. Calcule la date d'échéance d'introduction
+      // de la demande d'asile auprès de l'OFPRA (après passage GUDA), affiche un
+      // stepper de 5 étapes de procédure + les pièces requises et alerte sur le
+      // risque de procédure accélérée. Pré-fill IA 1 champ (dateArriveeEnFrance
+      // depuis aesDateEntreeFrance) via static getPrefillCount + OfpraIntroductionPrefillRules.
+      ['F-IM-33-ofpra-introduction-fr', {
+        displayLabel: 'OFPRA introduction (FR)',
+        component: OfpraIntroductionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4724,6 +4742,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Thème VALIDITE — analyseur des droits (séjour / travail / durée de validité)
     // attachés au récépissé ou à l'attestation de prolongation d'instruction.
     ['F-IM-32-recepisse-attestation-fr', 'VALIDITE'],
+    // SF-214-18 : F-IM-33-ofpra-introduction-fr OFPRA introduction (FR) — checklist
+    // procédure (stepper 5 étapes + pièces requises) → thème DOCUMENTS.
+    ['F-IM-33-ofpra-introduction-fr', 'DOCUMENTS'],
     // SF-214-12 : F-IM-30-aes-presence-prouvee-fr AES présence prouvée (FR).
     // Thème DIAGNOSTIC — l'outil agrège des périodes de présence justifiées par
     // pièce et restitue un diagnostic d'éligibilité aux 4 voies AES (famille 5 ans,
