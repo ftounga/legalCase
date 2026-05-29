@@ -2523,7 +2523,23 @@ public record CaseAnalysisResponse(
              * et le type de VLS-TS via {@code typeTitreSejourCode} (proxy). Null si non
              * extractible ou dossier BE.
              */
-            Boolean vlsTsValidationOFIIEffectuee) {
+            Boolean vlsTsValidationOFIIEffectuee,
+            // === SF-214-15 — F-IM-32 Récépissé vs attestation de prolongation R. 311-4 / R. 311-6 CESEDA (FRANCE UNIQUEMENT, null/false pour BE) ===
+            /**
+             * SF-214-15 : flag pivot — true si les pièces évoquent un titre de séjour
+             * en cours de recouvrement / renouvellement avec document transitoire
+             * (mentions « récépissé », « attestation de prolongation », « en cours de
+             * renouvellement », « en attente de décision »). Pivot pour la visibility
+             * rule CONTEXTUAL de F-IM-32 (trigger {@code recouvrement_titre_en_cours}).
+             * Dossiers BE : toujours false.
+             */
+            boolean recouvrementTitreEnCours,
+            /**
+             * SF-214-15 : type du document transitoire — whitelist
+             * RECEPISSE/ATTESTATION_PROLONGATION/INCONNU. Null si non extractible ou
+             * dossier BE. La date d'expiration est réutilisée via {@code dateExpirationTitre}.
+             */
+            String recepisseOuAttestationType) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2767,6 +2783,9 @@ public record CaseAnalysisResponse(
             private String vpfNiveauIntegration;
             // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 FR
             private Boolean vlsTsValidationOFIIEffectuee;
+            // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 FR
+            private boolean recouvrementTitreEnCours;
+            private String recepisseOuAttestationType;
 
             private Builder() {}
 
@@ -2884,6 +2903,8 @@ public record CaseAnalysisResponse(
             public Builder viePriveeFamilialeDetectee(boolean v) { this.viePriveeFamilialeDetectee = v; return this; }
             public Builder vpfNiveauIntegration(String v) { this.vpfNiveauIntegration = v; return this; }
             public Builder vlsTsValidationOFIIEffectuee(Boolean v) { this.vlsTsValidationOFIIEffectuee = v; return this; }
+            public Builder recouvrementTitreEnCours(boolean v) { this.recouvrementTitreEnCours = v; return this; }
+            public Builder recepisseOuAttestationType(String v) { this.recepisseOuAttestationType = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2956,7 +2977,10 @@ public record CaseAnalysisResponse(
                         // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR
                         viePriveeFamilialeDetectee,
                         vpfNiveauIntegration,
-                        vlsTsValidationOFIIEffectuee);
+                        vlsTsValidationOFIIEffectuee,
+                        // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation FR
+                        recouvrementTitreEnCours,
+                        recepisseOuAttestationType);
             }
         }
     }
@@ -6054,6 +6078,11 @@ public record CaseAnalysisResponse(
         // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 FR — 1 booléen tri-état (FR uniquement).
         // Date d'entrée réutilisée via aesDateEntreeFrance ; type via typeTitreSejourCode (proxy).
         Boolean vlsTsValidationOFIIEffectuee = booleanOrNull(root, "vls_ts_validation_ofii_effectuee");
+        // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 FR —
+        // 1 flag pivot + 1 champ pré-fill (FR uniquement). Date d'expiration réutilisée via dateExpirationTitre.
+        boolean recouvrementTitreEnCours = booleanOrFalse(root, "recouvrement_titre_en_cours");
+        String recepisseOuAttestationType = normalizeEnumCode(textOrNull(root, "recepisse_ou_attestation_type"),
+                java.util.Set.of("RECEPISSE", "ATTESTATION_PROLONGATION", "INCONNU"));
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6126,7 +6155,10 @@ public record CaseAnalysisResponse(
                 && !viePriveeFamilialeDetectee
                 && vpfNiveauIntegration == null
                 // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 FR (1 booléen tri-état)
-                && vlsTsValidationOFIIEffectuee == null) return null;
+                && vlsTsValidationOFIIEffectuee == null
+                // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation FR (1 flag + 1 champ IA)
+                && !recouvrementTitreEnCours
+                && recepisseOuAttestationType == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6250,6 +6282,8 @@ public record CaseAnalysisResponse(
                 .viePriveeFamilialeDetectee(viePriveeFamilialeDetectee)
                 .vpfNiveauIntegration(vpfNiveauIntegration)
                 .vlsTsValidationOFIIEffectuee(vlsTsValidationOFIIEffectuee)
+                .recouvrementTitreEnCours(recouvrementTitreEnCours)
+                .recepisseOuAttestationType(recepisseOuAttestationType)
                 .build();
     }
 

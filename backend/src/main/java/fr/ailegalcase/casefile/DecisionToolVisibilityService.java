@@ -305,6 +305,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_familial_envisage");
         // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "vie_privee_familiale_detectee");
+        // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 FR — flag pivot CONTEXTUAL Immigration FR.
+        addBooleanFlagIfTrue(detected, immigrationNode, "recouvrement_titre_en_cours");
         // SF-214-11 : F-IM-30 AES calcul présence prouvée FR — flag pivot DÉRIVÉ.
         // L'outil de calcul de présence est transversal aux 4 voies AES : il se déclenche
         // dès qu'au moins une des 4 voies AES est détectée. Le flag pivot
