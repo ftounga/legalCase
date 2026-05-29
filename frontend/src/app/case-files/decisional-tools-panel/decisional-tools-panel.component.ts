@@ -75,6 +75,8 @@ import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-sectio
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
 import { ItfJudiciaireSectionComponent } from '../itf-judiciaire-section/itf-judiciaire-section.component';
+// SF-214-40 : composant complet F-IM-44-ue-eee-suisse-sejour-fr — séjour UE/EEE/Suisse (FR, analyseur de droits + encadré membre de famille non-UE).
+import { UeEeeSuisseSejourSectionComponent } from '../ue-eee-suisse-sejour-section/ue-eee-suisse-sejour-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1680,6 +1682,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-43-itf-judiciaire-fr', {
         displayLabel: 'ITF judiciaire (FR)',
         component: ItfJudiciaireSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-40 : composant complet F-IM-44-ue-eee-suisse-sejour-fr — séjour
+      // UE/EEE/Suisse (FR). FR uniquement, ALWAYS_ON. Analyseur de droits
+      // (directive 2004/38/CE, art. L. 233-1 et s. du CESEDA) : droit au séjour
+      // automatique de 3 mois + droit au séjour permanent au-delà de 5 ans + titre
+      // obtenu (attestation d'enregistrement / carte de séjour membre de famille)
+      // + conditions respectées + encadré situation du membre de famille non-UE.
+      // Pré-fill IA 3 champs (nationalite depuis nationalite, estCitoyenUE depuis
+      // nationaliteUe, dureeSejourMois depuis aesDureePresenceMois) via static
+      // getPrefillCount + UeEeeSuisseSejourPrefillRules. Pas de bridge échéance.
+      ['F-IM-44-ue-eee-suisse-sejour-fr', {
+        displayLabel: 'Séjour UE/EEE/Suisse (FR)',
+        component: UeEeeSuisseSejourSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4960,6 +4981,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // ITF judiciaire vs IRTF administrative). Bridge échéance F-69 (statut
     // APPEL_POSSIBLE).
     ['F-IM-43-itf-judiciaire-fr', 'VALIDITE'],
+    // SF-214-40 : F-IM-44-ue-eee-suisse-sejour-fr séjour UE/EEE/Suisse (FR).
+    // Thème VALIDITE — analyseur de droits au séjour des citoyens UE/EEE/Suisse
+    // (directive 2004/38/CE) : droit automatique 3 mois + droit permanent > 5 ans
+    // + titre obtenu + encadré membre de famille non-UE. Pas de bridge échéance.
+    ['F-IM-44-ue-eee-suisse-sejour-fr', 'VALIDITE'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).
