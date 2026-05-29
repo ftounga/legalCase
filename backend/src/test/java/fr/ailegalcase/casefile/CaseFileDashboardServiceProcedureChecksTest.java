@@ -101,6 +101,7 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(VictimeTraiteRepository.class),
                 mock(CarteResidentRepository.class),
                 mock(AnefProcedureRepository.class),
+                mock(MnaEvaluationAgeRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),

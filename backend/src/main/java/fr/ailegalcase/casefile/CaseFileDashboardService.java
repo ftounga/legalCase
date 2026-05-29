@@ -124,6 +124,8 @@ public class CaseFileDashboardService {
     private final CarteResidentRepository carteResidentRepo;
     // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours (FR)
     private final AnefProcedureRepository anefProcedureRepo;
+    // SF-214-27 : F-IM-38 MNA évaluation d'âge (FR)
+    private final MnaEvaluationAgeRepository mnaEvaluationAgeRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -275,6 +277,7 @@ public class CaseFileDashboardService {
                                      VictimeTraiteRepository victimeTraiteRepo,
                                      CarteResidentRepository carteResidentRepo,
                                      AnefProcedureRepository anefProcedureRepo,
+                                     MnaEvaluationAgeRepository mnaEvaluationAgeRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -409,6 +412,7 @@ public class CaseFileDashboardService {
         this.victimeTraiteRepo = victimeTraiteRepo;
         this.carteResidentRepo = carteResidentRepo;
         this.anefProcedureRepo = anefProcedureRepo;
+        this.mnaEvaluationAgeRepo = mnaEvaluationAgeRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -617,6 +621,7 @@ public class CaseFileDashboardService {
         // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
         addSafely(tiles, "F-IM-36-carte-resident-l4261-fr", caseFileId, () -> tileFromCarteResidentAnalysis(caseFileId));
         addSafely(tiles, "F-IM-37-anef-procedure-fr", caseFileId, () -> tileFromAnefProcedureAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-38-mna-evaluation-age-fr", caseFileId, () -> tileFromMnaEvaluationAgeAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1916,6 +1921,45 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "OQTF catégorie L. 611-1",
                         r.categorieL611() != null ? r.categorieL611().name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-27 — F-IM-38 MNA évaluation d'âge (Cciv 375/388 ; CE 25/07/2013
+     * n° 371334 ; L. 425-3 CESEDA). Tuile informative : rappelle le statut de la
+     * procédure d'évaluation d'âge et l'échéance de saisine du juge des enfants.
+     * Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code ALERT} si recours JE urgent (refus ASE)</li>
+     *   <li>{@code WARNING} si examen osseux à contester</li>
+     *   <li>{@code OK} si minorité reconnue / pris en charge</li>
+     * </ul>
+     */
+    private DashboardTile tileFromMnaEvaluationAgeAnalysis(UUID caseFileId) {
+        return mnaEvaluationAgeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), MnaEvaluationAgeResult.class);
+                String statut = r.statut() != null ? r.statut().name() : null;
+                String secondary = r.dateEcheanceSaisineJE() != null
+                        ? "Saisine JE avant le " + r.dateEcheanceSaisineJE()
+                        : "Âge déclaré : " + r.ageDeclare() + " ans";
+                String alert = switch (statut == null ? "" : statut) {
+                    case "RECOURS_JE_URGENT" -> "ALERT";
+                    case "EXAMEN_OSSEUX_CONTESTE", "EN_ATTENTE_EVALUATION" -> "WARNING";
+                    case "PRIS_EN_CHARGE" -> "OK";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-38-mna-evaluation-age-fr",
+                        "DELAI",
+                        "MNA évaluation d'âge",
+                        statut != null ? statut : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {
