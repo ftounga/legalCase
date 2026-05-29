@@ -2127,6 +2127,15 @@ public record CaseAnalysisResponse(
     static final Set<String> PDV_RCC_TYPE_DISPOSITIF_CODES = Set.of("RCC", "PDV");
 
     /**
+     * SF-214-41 : codes de motif de retrait de titre pour fraude (F-IM-45)
+     * — alignés sur l'enum {@code RetraitTitreFraudeMotifEnum} et le prompt
+     * IMMIGRATION PART3. Un code hors whitelist renvoyé par le LLM est ramené
+     * à {@code null} par {@code normalizeEnumCode()}.
+     */
+    static final Set<String> RETRAIT_TITRE_FRAUDE_MOTIF_CODES =
+            Set.of("MARIAGE_GRIS", "FAUSSES_DECLARATIONS", "FRAUDE_DOCUMENTAIRE", "PERTE_CONDITIONS");
+
+    /**
      * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
      * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
      * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
@@ -2679,7 +2688,28 @@ public record CaseAnalysisResponse(
              * SF-214-37 : durée de l'ITF prononcée, en années entières (> 0). Sert au
              * pré-remplissage de l'outil F-IM-43. Null si non extractible ou dossier BE.
              */
-            Integer itfJudiciaireDureeAnnees) {
+            Integer itfJudiciaireDureeAnnees,
+            // === SF-214-41 — F-IM-45 Retrait de titre pour fraude L. 412-7 (FRANCE UNIQUEMENT, false/null pour BE) ===
+            /**
+             * SF-214-41 : flag pivot — true si les pièces évoquent une décision de
+             * retrait de titre de séjour pour fraude (mentions « retrait de titre »,
+             * « fraude », « mariage blanc », « mariage gris », « fausses déclarations »,
+             * « L.412-7 »). Pivot pour la visibility rule CONTEXTUAL de F-IM-45
+             * (trigger {@code retrait_titre_fraude_detecte}). Dossiers BE : toujours false.
+             */
+            boolean retraitTitreFraudeDetecte,
+            /**
+             * SF-214-41 : date de la décision de retrait au format YYYY-MM-DD (non
+             * future) — point de départ du délai de recours de 2 mois devant le TA.
+             * Sert au pré-remplissage de l'outil F-IM-45. Null si non extractible ou dossier BE.
+             */
+            String retraitTitreDateRetrait,
+            /**
+             * SF-214-41 : motif du retrait — whitelist {@link #RETRAIT_TITRE_FRAUDE_MOTIF_CODES}
+             * (MARIAGE_GRIS / FAUSSES_DECLARATIONS / FRAUDE_DOCUMENTAIRE / PERTE_CONDITIONS).
+             * Sert au pré-remplissage de l'outil F-IM-45. Null si non extractible ou dossier BE.
+             */
+            String retraitTitreMotif) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2809,7 +2839,11 @@ public record CaseAnalysisResponse(
                     .assignationDateNotification(assignationDateNotification)
                     // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR
                     .itfJudiciaireDateCondamnation(itfJudiciaireDateCondamnation)
-                    .itfJudiciaireDureeAnnees(itfJudiciaireDureeAnnees);
+                    .itfJudiciaireDureeAnnees(itfJudiciaireDureeAnnees)
+                    // SF-214-41 : F-IM-45 Retrait de titre pour fraude L. 412-7 FR
+                    .retraitTitreFraudeDetecte(retraitTitreFraudeDetecte)
+                    .retraitTitreDateRetrait(retraitTitreDateRetrait)
+                    .retraitTitreMotif(retraitTitreMotif);
         }
 
         public static final class Builder {
@@ -2959,6 +2993,10 @@ public record CaseAnalysisResponse(
             // SF-214-37 : F-IM-43 ITF judiciaire FR
             private String itfJudiciaireDateCondamnation;
             private Integer itfJudiciaireDureeAnnees;
+            // SF-214-41 : F-IM-45 Retrait de titre pour fraude L. 412-7 FR
+            private boolean retraitTitreFraudeDetecte;
+            private String retraitTitreDateRetrait;
+            private String retraitTitreMotif;
 
             private Builder() {}
 
@@ -3096,6 +3134,9 @@ public record CaseAnalysisResponse(
             public Builder assignationDateNotification(String v) { this.assignationDateNotification = v; return this; }
             public Builder itfJudiciaireDateCondamnation(String v) { this.itfJudiciaireDateCondamnation = v; return this; }
             public Builder itfJudiciaireDureeAnnees(Integer v) { this.itfJudiciaireDureeAnnees = v; return this; }
+            public Builder retraitTitreFraudeDetecte(boolean v) { this.retraitTitreFraudeDetecte = v; return this; }
+            public Builder retraitTitreDateRetrait(String v) { this.retraitTitreDateRetrait = v; return this; }
+            public Builder retraitTitreMotif(String v) { this.retraitTitreMotif = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3197,7 +3238,11 @@ public record CaseAnalysisResponse(
                         assignationDateNotification,
                         // SF-214-37 : F-IM-43 ITF judiciaire FR
                         itfJudiciaireDateCondamnation,
-                        itfJudiciaireDureeAnnees);
+                        itfJudiciaireDureeAnnees,
+                        // SF-214-41 : F-IM-45 Retrait de titre pour fraude L. 412-7 FR
+                        retraitTitreFraudeDetecte,
+                        retraitTitreDateRetrait,
+                        retraitTitreMotif);
             }
         }
     }
@@ -6365,6 +6410,19 @@ public record CaseAnalysisResponse(
                 && assignationDateNotificationRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
             assignationDateNotification = assignationDateNotificationRaw;
         }
+        // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 FR — 1 flag pivot
+        // + 2 champs de pré-fill (FR uniquement). Date de retrait ISO non future ;
+        // motif whitelisté (4 codes), ramené à null hors whitelist.
+        boolean retraitTitreFraudeDetecte = booleanOrFalse(root, "retrait_titre_fraude_detecte");
+        String retraitTitreDateRetraitRaw = textOrNull(root, "retrait_titre_date_retrait");
+        String retraitTitreDateRetrait = null;
+        if (retraitTitreDateRetraitRaw != null
+                && retraitTitreDateRetraitRaw.matches("\\d{4}-\\d{2}-\\d{2}")
+                && retraitTitreDateRetraitRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
+            retraitTitreDateRetrait = retraitTitreDateRetraitRaw;
+        }
+        String retraitTitreMotif = normalizeEnumCode(
+                textOrNull(root, "retrait_titre_motif"), RETRAIT_TITRE_FRAUDE_MOTIF_CODES);
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -6481,7 +6539,11 @@ public record CaseAnalysisResponse(
                 && assignationDateNotification == null
                 // SF-214-37 : F-IM-43 ITF judiciaire C. pén. 131-30 FR (2 champs IA, flag pivot réutilisé)
                 && itfJudiciaireDateCondamnation == null
-                && itfJudiciaireDureeAnnees == null) return null;
+                && itfJudiciaireDureeAnnees == null
+                // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 FR (1 flag pivot + 2 champs IA)
+                && !retraitTitreFraudeDetecte
+                && retraitTitreDateRetrait == null
+                && retraitTitreMotif == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6626,6 +6688,10 @@ public record CaseAnalysisResponse(
                 // SF-214-37 : F-IM-43 ITF judiciaire C. pén. 131-30 FR
                 .itfJudiciaireDateCondamnation(itfJudiciaireDateCondamnation)
                 .itfJudiciaireDureeAnnees(itfJudiciaireDureeAnnees)
+                // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 FR
+                .retraitTitreFraudeDetecte(retraitTitreFraudeDetecte)
+                .retraitTitreDateRetrait(retraitTitreDateRetrait)
+                .retraitTitreMotif(retraitTitreMotif)
                 .build();
     }
 

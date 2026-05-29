@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="487-seed-retrait-titre-fraude-visibility" author="legalcase">
+        <comment>
+            SF-214-41 -- seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Retrait de titre pour fraude L. 412-7"
+            (F-IM-45-retrait-titre-fraude-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte qu'une décision de retrait de titre pour fraude a
+            été notifiée à l'étranger -- nouveau flag pivot
+            `retrait_titre_fraude_detecte` = true. Mentions repérées par
+            LegalDomainPromptBuilder : "retrait de titre", "fraude", "mariage blanc",
+            "mariage gris", "fausses déclarations", "L.412-7". En l'absence de retrait
+            détecté, l'outil n'est pas visible. priority 45 -- après F-IM-44 séjour
+            UE/EEE/Suisse (CONTEXTUAL priority 44).
+
+            Source juridique : L. 412-7 CESEDA (retrait pour fraude, ex-L. 313-5) ;
+            L. 411-5 CESEDA (contradictoire préalable) ; CE 15 juillet 2004 n° 258040 ;
+            CE 23 octobre 2009 n° 317866.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 cote service.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolée,
+            l'entree TOOL_REGISTRY frontend pour F-IM-45-retrait-titre-fraude-fr
+            est livree dans la PR frontend SF-214-42 (mergee juste apres). Les
+            tests DecisionToolVisibilityIntegrityIT / DashboardTileToolIdIntegrityIT
+            repassent verts une fois la PR frontend mergee sur master.
+
+            UUID namespace F-214 : f2140041-0000-0000-0000-214000000002.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140041-0000-0000-0000-214000000002', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-45-retrait-titre-fraude-fr', 'CONTEXTUAL', 'retrait_titre_fraude_detecte', 'true', 45);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140041-0000-0000-0000-214000000002';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

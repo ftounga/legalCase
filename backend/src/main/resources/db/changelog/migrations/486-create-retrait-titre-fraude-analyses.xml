@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="486-create-retrait-titre-fraude-analyses" author="legalcase">
+        <comment>
+            SF-214-41 -- table `retrait_titre_fraude_analyses` pour l'outil décisionnel
+            "Retrait de titre pour fraude L. 412-7" (F-IM-45-retrait-titre-fraude-fr, FRANCE).
+
+            Outil single-country FR : analyse la validité d'une décision de retrait de
+            titre de séjour pour fraude (mariage gris, fausses déclarations, fraude
+            documentaire, perte des conditions), vérifie le respect de la procédure
+            contradictoire préalable obligatoire (L. 411-5 CESEDA), identifie les vices
+            de procédure et les moyens de contestation au fond selon le motif, et calcule
+            le délai de recours devant le tribunal administratif (2 mois). Persiste
+            l'analyse 1:1 par dossier.
+
+            Source juridique : L. 412-7 CESEDA (retrait pour fraude, ex-L. 313-5) ;
+            L. 411-5 CESEDA (contradictoire préalable) ; CE 15 juillet 2004 n° 258040
+            (mariage gris) ; CE 23 octobre 2009 n° 317866 (documentation frauduleuse).
+
+            UUID namespace F-214 : f2140041-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="retrait_titre_fraude_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_retrait_titre_fraude_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_retrait" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_retrait" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mise_en_demeure_prealable" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_mise_en_demeure" type="DATE"/>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="retrait_titre_fraude_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
