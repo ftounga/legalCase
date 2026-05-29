@@ -1,0 +1,218 @@
+<section class="cce-section">
+  <header class="cce-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cce-eu-body">
+    <mat-icon class="cce-icon">gavel</mat-icon>
+    <span class="cce-title">RECOURS CCE EXTRÊME URGENCE 5J (BE)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="cce-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cce-eu-body" class="cce-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="cce-banner cce-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="cce-banner-content">
+            <div class="cce-banner-title">Outil Belgique uniquement</div>
+            <div class="cce-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. Le recours en
+              extrême urgence devant le Conseil du Contentieux des Étrangers (Loi
+              15/12/1980, art. 39/82) ne s'applique qu'en Belgique. Pour la France,
+              voir les outils de recours TA / référé-liberté.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="cce-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="cce-form" (ngSubmit)="analyze()">
+              <div class="cce-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de l'acte exécutoire</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-acte-input"
+                         [ngModel]="dateActeExecutoire()"
+                         (ngModelChange)="onDateActeChange($event)"
+                         name="dateActeExecutoire" />
+                </mat-form-field>
+                @if (provenanceDateActe() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (dateActeAlert(); as alert) {
+                  <span class="cce-coherence-badge coherence-warning"
+                        data-testid="coherence-date-acte"
+                        [attr.title]="alert.reason"
+                        [attr.aria-label]="'Incohérence détectée (' + alert.expectedDisplay + ')'">
+                    <mat-icon>warning</mat-icon> Incohérence détectée ({{ alert.expectedDisplay }})
+                  </span>
+                }
+              </div>
+
+              <div class="cce-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type d'acte exécutoire</mat-label>
+                  <mat-select required
+                              [ngModel]="typeActe()"
+                              (ngModelChange)="onTypeActeChange($event)"
+                              name="typeActe">
+                    @for (opt of typesActe; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceTypeActe() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="cce-field-wrap cce-field-wrap--full">
+                <mat-checkbox
+                    data-testid="recours-forme-checkbox"
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="onRecoursFormeChange($event)"
+                    name="recoursForme">
+                  Un recours en extrême urgence a déjà été formé
+                </mat-checkbox>
+              </div>
+
+              @if (recoursForme()) {
+                <div class="cce-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de dépôt du recours</mat-label>
+                    <input matInput type="date" required
+                           data-testid="date-recours-input"
+                           [ngModel]="dateRecours()"
+                           (ngModelChange)="onDateRecoursChange($event)"
+                           name="dateRecours" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="cce-hint">
+                Délai : {{ delaiJoursOuvrables }} jours OUVRABLES à compter de la
+                notification de l'acte exécutoire (Loi 15/12/1980, art. 39/82 —
+                procédure d'extrême urgence).
+              </div>
+
+              <div class="cce-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="cce-result">
+              @if (isUrgenceAbsolue(result()!.statut)) {
+                <div class="cce-banner cce-banner--critical cce-action-banner" role="alert"
+                     data-testid="bandeau-critique">
+                  <mat-icon>priority_high</mat-icon>
+                  <div class="cce-banner-content">
+                    <div class="cce-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                    <div class="cce-banner-sub cce-action-text" data-testid="action-immediate">
+                      {{ result()!.actionImmediate || 'Action immédiate requise — le délai est critique ou expiré.' }}
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div [class]="statutBannerClass(result()!.statut)" role="status">
+                  <mat-icon>{{ statutIcon(result()!.statut) }}</mat-icon>
+                  <div class="cce-banner-content">
+                    <div class="cce-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                    <div class="cce-banner-sub">
+                      Date limite du recours :
+                      <span class="cce-date-mono" data-testid="date-limite">{{ formatDateFr(result()!.dateLimiteRecours) }}</span>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <div class="cce-jours-block">
+                <span [class]="joursRestantsClass(result()!.joursOuvrablesRestants)" data-testid="jours-restants">
+                  {{ result()!.joursOuvrablesRestants }}
+                </span>
+                <span class="cce-jours-label">jours ouvrables BE</span>
+              </div>
+
+              <div class="cce-breakdown-line">
+                <span class="cce-bd-label">Date limite du recours</span>
+                <span class="cce-date-mono" data-testid="date-limite-detail">{{ formatDateFr(result()!.dateLimiteRecours) }}</span>
+              </div>
+
+              @if (result()!.audienceEstimee) {
+                <div class="cce-audience-box" role="note" data-testid="audience-box">
+                  <mat-icon>event</mat-icon>
+                  <div>
+                    <div class="cce-memoire-title">Audience CCE estimée</div>
+                    <div class="cce-memoire-text">
+                      Audience CCE estimée le
+                      <span class="cce-date-mono" data-testid="audience-date">{{ formatDateFr(result()!.audienceEstimee) }}</span>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <ul class="cce-breakdown">
+                <li>
+                  <span class="cce-bd-label">Acte exécutoire</span>
+                  <span class="cce-bd-value cce-bd-value--mono">{{ formatDateFr(result()!.dateActeExecutoire) }}</span>
+                </li>
+                <li>
+                  <span class="cce-bd-label">Type d'acte</span>
+                  <span class="cce-bd-value">{{ typeActeLabel(result()!.typeActe) }}</span>
+                </li>
+                <li>
+                  <span class="cce-bd-label">Recours déjà formé</span>
+                  <span class="cce-bd-value">{{ result()!.recoursForme ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.recoursForme && result()!.dateRecours) {
+                  <li>
+                    <span class="cce-bd-label">Date du recours</span>
+                    <span class="cce-bd-value cce-bd-value--mono">{{ formatDateFr(result()!.dateRecours) }}</span>
+                  </li>
+                }
+              </ul>
+
+              <div class="cce-meta">
+                @if (result()!.baseJuridique) {
+                  <span class="cce-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
