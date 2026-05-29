@@ -71,6 +71,8 @@ import { NaturalisationRecoursTjSectionComponent } from '../naturalisation-recou
 import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recours-ta-section/naturalisation-recours-ta-section.component';
 // SF-214-34 : composant complet F-IM-41-appel-caa-cassation-ce-fr — appel CAA / cassation CE (FR, calculateur délai 1 mois / 15 j OQTF + filtre pourvoi CE).
 import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-section/appel-caa-cassation-section.component';
+// SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
+import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1639,6 +1641,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-41-appel-caa-cassation-ce-fr', {
         displayLabel: 'Appel CAA / cassation CE (FR)',
         component: AppelCaaCassationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-36 : composant complet F-IM-42-assignation-residence-fr —
+      // assignation à résidence (FR). FR uniquement, ALWAYS_ON. Analyseur de
+      // validité / délais (CESEDA) : statut EN_COURS/EXPIRATION_PROCHE/EXPIRE +
+      // échéance assignation + durée totale autorisée + renouvellement possible +
+      // motifs de contestation + recours TA possible (délai 48 h). Pré-fill IA 1
+      // champ (dateNotificationAssignation depuis assignationDateNotification) via
+      // static getPrefillCount + AssignationResidencePrefillRules. Bridge échéance
+      // F-69 (label « Échéance assignation à résidence », statut EN_COURS).
+      ['F-IM-42-assignation-residence-fr', {
+        displayLabel: 'Assignation à résidence (FR)',
+        component: AssignationResidenceSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4908,6 +4928,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // date du jugement TA → échéance appel CAA + jours restants + CAA compétente
     // + filtre pourvoi CE. Bridge échéance F-69. Cohérent avec F-IM-40 (DELAIS).
     ['F-IM-41-appel-caa-cassation-ce-fr', 'DELAIS'],
+    // SF-214-36 : F-IM-42-assignation-residence-fr assignation à résidence (FR).
+    // Thème VALIDITE — analyseur de validité de la mesure (statut de validité de
+    // l'assignation : en cours / expiration proche / expirée) + motifs de
+    // contestation + recours TA. Bridge échéance F-69 (statut EN_COURS).
+    ['F-IM-42-assignation-residence-fr', 'VALIDITE'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).
