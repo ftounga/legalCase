@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b82179cc-406a-4e90-88b5-9b4897b512ef" author="legalcase">
+        <comment>
+            SF-215-15 : table dédiée à l'outil décisionnel "Recours CCE extrême urgence 5j BE"
+            (F-IM-32-cce-extreme-urgence-5j-be, BELGIQUE — fondement : Loi du 15 décembre 1980 sur
+            l'accès au territoire, le séjour, l'établissement et l'éloignement des étrangers,
+            art. 39/82 §4 al. 2-3 + loi du 15/09/2006 portant création du Conseil du Contentieux
+            des Étrangers (CCE) + AR 11/06/2018.
+
+            CCE = Conseil du Contentieux des Étrangers (juridiction administrative belge en
+            droit des étrangers) — AUCUN rapport avec un dispositif de crédit à la consommation.
+
+            L'outil calcule (en jours OUVRABLES belges — pas calendaires, distinction critique
+            avec F-IM-31 recours en annulation 30 jours calendaires) :
+            - dateLimiteRecours = dateActeExecutoire + 5 jours OUVRABLES (BelgianBusinessDaysCalculator) ;
+            - joursOuvrablesRestants = jours ouvrables entre today et dateLimiteRecours (0 si expiré) ;
+            - statut 4 états : DISPONIBLE (&gt; 2 j ouvrables), CRITIQUE (1-2 j), EXPIRE (≤ 0 j),
+              RECOURS_FORME (recours déjà introduit) ;
+            - audienceEstimee = dateLimiteRecours + 2 jours ouvrables (audience CCE sous 48h) ;
+            - actionImmediate : message d'action urgente si CRITIQUE ou EXPIRE.
+
+            Outil single-country BELGIQUE — distinct du recours en annulation 30 jours calendaires
+            (F-IM-31, SF-215-13) et du calculateur Annexe 13 OQT (F-IM-08).
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-215-13).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (442-seed-cce-extreme-urgence-be-visibility.xml) est livrée dans la MÊME PR que cette
+            table.
+        </comment>
+
+        <createTable tableName="cce_extreme_urgence_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_cce_extreme_urgence_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_acte_executoire" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_acte" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_forme" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_recours" type="date"/>
+            <column name="statut" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="cce_extreme_urgence_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_cce_extreme_urgence_be_case_file"/>
+
+        <createIndex tableName="cce_extreme_urgence_be_analyses"
+                     indexName="idx_cce_extreme_urgence_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="cce_extreme_urgence_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

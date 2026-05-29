@@ -2467,7 +2467,12 @@ public record CaseAnalysisResponse(
             /** SF-215-13 : date de notification de la décision OE/CGRA YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
             String recoursCceDateNotification,
             /** SF-215-13 : type de décision contestée — whitelist {@link #CCE_TYPE_DECISION_CODES} (7 codes). Null si non extractible ou dossier FR. */
-            String recoursCceTypeDecision) {
+            String recoursCceTypeDecision,
+            // === SF-215-15 — F-IM-32 Recours CCE extrême urgence 5j ouvrables BE (BELGIQUE UNIQUEMENT, null pour FR) ===
+            /** SF-215-15 : date de l'acte exécutoire imminent (OQT exécutoire, transfert Dublin) YYYY-MM-DD. Null si non extractible ou dossier FR. */
+            String recoursExtremeUrgenceDateActe,
+            /** SF-215-15 : type d'acte exécutoire — whitelist {@link #CCE_EXTREME_URGENCE_TYPE_ACTE_CODES} (5 codes). Null si non extractible ou dossier FR. */
+            String recoursExtremeUrgenceTypeActe) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2578,7 +2583,10 @@ public record CaseAnalysisResponse(
                     // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE
                     .recoursCceEnvisage(recoursCceEnvisage)
                     .recoursCceDateNotification(recoursCceDateNotification)
-                    .recoursCceTypeDecision(recoursCceTypeDecision);
+                    .recoursCceTypeDecision(recoursCceTypeDecision)
+                    // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
+                    .recoursExtremeUrgenceDateActe(recoursExtremeUrgenceDateActe)
+                    .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe);
         }
 
         public static final class Builder {
@@ -2683,6 +2691,9 @@ public record CaseAnalysisResponse(
             private boolean recoursCceEnvisage;
             private String recoursCceDateNotification;
             private String recoursCceTypeDecision;
+            // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
+            private String recoursExtremeUrgenceDateActe;
+            private String recoursExtremeUrgenceTypeActe;
 
             private Builder() {}
 
@@ -2786,6 +2797,9 @@ public record CaseAnalysisResponse(
             public Builder recoursCceEnvisage(boolean v) { this.recoursCceEnvisage = v; return this; }
             public Builder recoursCceDateNotification(String v) { this.recoursCceDateNotification = v; return this; }
             public Builder recoursCceTypeDecision(String v) { this.recoursCceTypeDecision = v; return this; }
+            // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
+            public Builder recoursExtremeUrgenceDateActe(String v) { this.recoursExtremeUrgenceDateActe = v; return this; }
+            public Builder recoursExtremeUrgenceTypeActe(String v) { this.recoursExtremeUrgenceTypeActe = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2839,7 +2853,10 @@ public record CaseAnalysisResponse(
                         // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE
                         recoursCceEnvisage,
                         recoursCceDateNotification,
-                        recoursCceTypeDecision);
+                        recoursCceTypeDecision,
+                        // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE
+                        recoursExtremeUrgenceDateActe,
+                        recoursExtremeUrgenceTypeActe);
             }
         }
     }
@@ -2976,6 +2993,12 @@ public record CaseAnalysisResponse(
     static final Set<String> CCE_TYPE_DECISION_CODES = Set.of(
             "REFUS_TITRE", "REFUS_REGROUPEMENT", "REFUS_9BIS", "REFUS_9TER",
             "OQT_ANNEXE13", "DECISION_CGRA", "AUTRE"
+    );
+
+    /** SF-215-15 : whitelist (5 valeurs) du type d'acte exécutoire pour F-IM-32 (recours CCE extrême urgence). */
+    static final Set<String> CCE_EXTREME_URGENCE_TYPE_ACTE_CODES = Set.of(
+            "OQT_EXECUTE", "TRANSFERT_DUBLIN", "REFUS_ACCES_TERRITOIRE",
+            "EXPULSION_IMMEDIATE", "AUTRE"
     );
 
     /** SF-246-20 : borne max revenus mensuels nets regroupant belge (plausibilité). */
@@ -5880,6 +5903,15 @@ public record CaseAnalysisResponse(
                 ? recoursCceDateNotificationRaw : null;
         String recoursCceTypeDecision = normalizeEnumCode(
                 textOrNull(root, "recours_cce_type_decision"), CCE_TYPE_DECISION_CODES);
+        // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE — 2 champs IA réels.
+        // recoursForme / dateRecours sont aspirationnels (actions procédurales non extractibles).
+        // L'acte exécutoire peut être daté dans le futur (rapatriement programmé) : pas de borne haute « non future » ici.
+        String recoursExtremeUrgenceDateActeRaw = textOrNull(root, "recours_extreme_urgence_date_acte");
+        String recoursExtremeUrgenceDateActe = (recoursExtremeUrgenceDateActeRaw != null
+                && recoursExtremeUrgenceDateActeRaw.matches(ISO_DATE_SF214))
+                ? recoursExtremeUrgenceDateActeRaw : null;
+        String recoursExtremeUrgenceTypeActe = normalizeEnumCode(
+                textOrNull(root, "recours_extreme_urgence_type_acte"), CCE_EXTREME_URGENCE_TYPE_ACTE_CODES);
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -5934,7 +5966,10 @@ public record CaseAnalysisResponse(
                 // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE (flag + 2 champs IA, nullables)
                 && !recoursCceEnvisage
                 && recoursCceDateNotification == null
-                && recoursCceTypeDecision == null) return null;
+                && recoursCceTypeDecision == null
+                // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE (2 champs IA, nullables)
+                && recoursExtremeUrgenceDateActe == null
+                && recoursExtremeUrgenceTypeActe == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6044,6 +6079,9 @@ public record CaseAnalysisResponse(
                 .recoursCceEnvisage(recoursCceEnvisage)
                 .recoursCceDateNotification(recoursCceDateNotification)
                 .recoursCceTypeDecision(recoursCceTypeDecision)
+                // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE — 2 champs pré-fill réels
+                .recoursExtremeUrgenceDateActe(recoursExtremeUrgenceDateActe)
+                .recoursExtremeUrgenceTypeActe(recoursExtremeUrgenceTypeActe)
                 .build();
     }
 

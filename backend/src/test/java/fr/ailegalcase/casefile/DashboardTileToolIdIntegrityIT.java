@@ -436,6 +436,13 @@ class DashboardTileToolIdIntegrityIT {
             // Outil BE frontend autosuffisant sans tile DashboardTile —
             // pattern uniforme F-215 P2 Immigration BE.
             "F-IM-31-cce-annulation-30j-be",
+            // SF-215-15 (2026-05-29) : F-IM-32-cce-extreme-urgence-5j-be —
+            // calculateur de délai du recours en EXTRÊME URGENCE devant le CCE
+            // (art. 39/82 §4 al. 2-3 Loi 15/12/1980, 5 jours OUVRABLES). Seed
+            // visibility livrée dans la PR backend SF-215-15. Outil BE frontend
+            // autosuffisant sans tile DashboardTile — pattern uniforme F-215 P2
+            // Immigration BE.
+            "F-IM-32-cce-extreme-urgence-5j-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
             // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs
