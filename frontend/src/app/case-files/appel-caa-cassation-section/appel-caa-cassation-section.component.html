@@ -1,0 +1,206 @@
+<section class="acc-section">
+  <header class="acc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="acc-body">
+    <mat-icon class="acc-icon">gavel</mat-icon>
+    <span class="acc-title">APPEL CAA / CASSATION CE (FR)</span>
+    @if (result()) {
+      <span class="acc-chip"
+            [class.acc-chip--success]="result()!.statut === 'APPEL_POSSIBLE'"
+            [class.acc-chip--warning]="result()!.statut === 'URGENT'"
+            [class.acc-chip--danger]="result()!.statut === 'PRESCRIT'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="acc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="acc-body" class="acc-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="acc-banner acc-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="acc-banner-content">
+            <div class="acc-banner-title">Appel CAA / cassation CE — procédure française uniquement</div>
+            <div class="acc-banner-sub">
+              L'appel devant la cour administrative d'appel et le pourvoi en
+              cassation devant le Conseil d'État relèvent du contentieux
+              administratif français et n'ont pas d'équivalent en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="acc-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="acc-form" (ngSubmit)="analyze()">
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du jugement du TA</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateJugementTA()"
+                         (ngModelChange)="onDateJugementChange($event)"
+                         name="dateJugementTA" />
+                  <mat-hint>Point de départ du délai d'appel (1 mois, ou 15 j en OQTF)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateJugement() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Sens du jugement du TA</mat-label>
+                  <mat-select [ngModel]="typeDecisionTA()"
+                              (ngModelChange)="onTypeDecisionChange($event)"
+                              name="typeDecisionTA">
+                    <mat-option value="REJET">Rejet de la requête</mat-option>
+                    <mat-option value="ANNULATION">Annulation</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de contentieux</mat-label>
+                  <mat-select [ngModel]="typeContentieux()"
+                              (ngModelChange)="onTypeContentieuxChange($event)"
+                              name="typeContentieux">
+                    <mat-option value="OQTF">OQTF</mat-option>
+                    <mat-option value="REFUS_TITRE">Refus de titre de séjour</mat-option>
+                    <mat-option value="EXPULSION">Expulsion</mat-option>
+                    <mat-option value="AUTRE">Autre contentieux</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="acc-field-wrap acc-checkbox-wrap">
+                <mat-checkbox [ngModel]="delaiSpecialOQTF()"
+                              (ngModelChange)="onDelaiSpecialChange($event)"
+                              name="delaiSpecialOQTF">
+                  Appliquer le délai spécial OQTF (15 jours)
+                </mat-checkbox>
+              </div>
+
+              <div class="acc-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai d'appel</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="acc-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="acc-banner-content">
+                  <div class="acc-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="acc-jours-restants">
+                    <span class="acc-jours-big"
+                          [class.acc-jours-big--danger]="result()!.joursRestants < 0">
+                      {{ result()!.joursRestants }}
+                    </span>
+                    <span class="acc-jours-label">jour(s) restant(s)</span>
+                  </div>
+                </div>
+              </div>
+
+              <ul class="acc-breakdown">
+                <li>
+                  <span class="acc-bd-label">Date du jugement du TA</span>
+                  <span class="acc-bd-value">{{ result()!.dateJugementTA }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Échéance de l'appel CAA</span>
+                  <span class="acc-bd-value acc-bd-value--echeance"
+                        [class.acc-bd-value--echeance-urgent]="result()!.statut === 'URGENT'">
+                    {{ result()!.dateEcheanceAppelCaa }}
+                  </span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Cour administrative d'appel compétente</span>
+                  <span class="acc-bd-value acc-bd-value--cour">{{ result()!.courAppelCompetente }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Sens du jugement</span>
+                  <span class="acc-bd-value">{{ typeDecisionLabel(result()!.typeDecisionTA) }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Type de contentieux</span>
+                  <span class="acc-bd-value">{{ typeContentieuxLabel(result()!.typeContentieux) }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Délai du pourvoi en cassation (CE)</span>
+                  <span class="acc-bd-value">{{ result()!.delaiCassationCeMois }} mois</span>
+                </li>
+              </ul>
+
+              @if (result()!.filtrePourvoisCassation) {
+                <div class="acc-banner acc-banner--info" role="note" data-testid="filtre-pourvoi-banner">
+                  <mat-icon>info_outline</mat-icon>
+                  <div class="acc-banner-content">
+                    <div class="acc-banner-title">Pourvoi en cassation soumis au filtre d'admission</div>
+                    <div class="acc-banner-sub">
+                      En matière d'OQTF, le pourvoi en cassation devant le Conseil
+                      d'État est soumis à la procédure préalable d'admission
+                      (art. L. 821-2 du code de justice administrative).
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.motifsAppelPossibles && result()!.motifsAppelPossibles.length > 0) {
+                <div class="acc-motifs-block" role="note">
+                  <div class="acc-motifs-title">Motifs d'appel possibles</div>
+                  <ul class="acc-motifs-list">
+                    @for (motif of result()!.motifsAppelPossibles; track motif) {
+                      <li>{{ motif }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (deadlineCreated()) {
+                <div class="acc-deadline-note" role="note">
+                  <mat-icon>event</mat-icon>
+                  <span>Échéance « Appel CAA contentieux étrangers » ajoutée aux échéances du dossier.</span>
+                </div>
+              }
+
+              <div class="acc-meta">
+                <div class="acc-bases">
+                  <span class="acc-meta-base">CJA / CESEDA — appel CAA (délai 1 mois, 15 j en OQTF) · pourvoi CE</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

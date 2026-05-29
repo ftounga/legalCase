@@ -69,6 +69,8 @@ import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vl
 import { NaturalisationRecoursTjSectionComponent } from '../naturalisation-recours-tj-section/naturalisation-recours-tj-section.component';
 // SF-214-32 : composant complet F-IM-40-naturalisation-recours-ta-fr — recours TA Nantes naturalisation (FR, calculateur délai 2 mois).
 import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recours-ta-section/naturalisation-recours-ta-section.component';
+// SF-214-34 : composant complet F-IM-41-appel-caa-cassation-ce-fr — appel CAA / cassation CE (FR, calculateur délai 1 mois / 15 j OQTF + filtre pourvoi CE).
+import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-section/appel-caa-cassation-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1617,6 +1619,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-40-naturalisation-recours-ta-fr', {
         displayLabel: 'Recours TA Nantes naturalisation (FR)',
         component: NaturalisationRecoursTaSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-34 : composant complet F-IM-41-appel-caa-cassation-ce-fr — appel
+      // CAA / cassation CE (FR). FR uniquement, ALWAYS_ON. Calculateur de délai
+      // d'appel devant la cour administrative d'appel contre un jugement de TA en
+      // contentieux des étrangers (délai 1 mois, ou 15 j en OQTF) : statut
+      // APPEL_POSSIBLE/URGENT/PRESCRIT + échéance appel CAA + jours restants +
+      // CAA compétente + motifs d'appel possibles + filtre des pourvois en
+      // cassation (CE, L.821-2 CJA pour l'OQTF) + délai du pourvoi en cassation.
+      // Pré-fill IA 1 champ (dateJugementTA depuis recoursDateJugementTA) via
+      // static getPrefillCount + AppelCaaCassationPrefillRules. Bridge échéance
+      // F-69 (label « Appel CAA contentieux étrangers »).
+      ['F-IM-41-appel-caa-cassation-ce-fr', {
+        displayLabel: 'Appel CAA / cassation CE (FR)',
+        component: AppelCaaCassationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4881,6 +4903,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // jours restants + TA de Nantes). Bridge échéance F-69. Cohérent avec
     // F-IM-39 (DELAIS).
     ['F-IM-40-naturalisation-recours-ta-fr', 'DELAIS'],
+    // SF-214-34 : F-IM-41-appel-caa-cassation-ce-fr appel CAA / cassation CE (FR).
+    // Thème DELAIS — calculateur de délai d'appel (1 mois, ou 15 j en OQTF) :
+    // date du jugement TA → échéance appel CAA + jours restants + CAA compétente
+    // + filtre pourvoi CE. Bridge échéance F-69. Cohérent avec F-IM-40 (DELAIS).
+    ['F-IM-41-appel-caa-cassation-ce-fr', 'DELAIS'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).
