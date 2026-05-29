@@ -73,6 +73,8 @@ import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recou
 import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-section/appel-caa-cassation-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
+// SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
+import { ItfJudiciaireSectionComponent } from '../itf-judiciaire-section/itf-judiciaire-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1659,6 +1661,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-42-assignation-residence-fr', {
         displayLabel: 'Assignation à résidence (FR)',
         component: AssignationResidenceSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire
+      // (FR). FR uniquement, ALWAYS_ON. Analyseur de validité / délais (Code
+      // pénal, art. 131-30 et s.) : statut APPEL_POSSIBLE / RELEVE_POSSIBLE /
+      // EN_COURS_PURGE / RECOURS_PRESCRIT + échéance du relevé + voies de recours
+      // (délais) + conditions du relevé + encadré bleu distinction ITF (judiciaire)
+      // vs IRTF (administrative). Pré-fill IA 2 champs (dateCondamnation depuis
+      // itfJudiciaireDateCondamnation, dureeITFAnnees depuis itfJudiciaireDureeAnnees)
+      // via static getPrefillCount + ItfJudiciairePrefillRules. Bridge échéance
+      // F-69 (label « Recours pénal ITF », statut APPEL_POSSIBLE).
+      ['F-IM-43-itf-judiciaire-fr', {
+        displayLabel: 'ITF judiciaire (FR)',
+        component: ItfJudiciaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4933,6 +4954,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // l'assignation : en cours / expiration proche / expirée) + motifs de
     // contestation + recours TA. Bridge échéance F-69 (statut EN_COURS).
     ['F-IM-42-assignation-residence-fr', 'VALIDITE'],
+    // SF-214-38 : F-IM-43-itf-judiciaire-fr ITF judiciaire (FR).
+    // Thème VALIDITE — analyseur de validité / voie de recours de la peine d'ITF
+    // (statut de la voie de recours pénale + conditions du relevé + distinction
+    // ITF judiciaire vs IRTF administrative). Bridge échéance F-69 (statut
+    // APPEL_POSSIBLE).
+    ['F-IM-43-itf-judiciaire-fr', 'VALIDITE'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).

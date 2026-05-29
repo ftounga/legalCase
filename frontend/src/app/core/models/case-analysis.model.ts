@@ -1736,6 +1736,19 @@ export interface ImmigrationExtractedData {
    */
   assignationResidenceDetectee?: boolean | null;
   assignationDateNotification?: string | null;
+
+  /**
+   * SF-214-38 — Pré-fill / contexte outil F-IM-43-itf-judiciaire-fr
+   * « ITF judiciaire » (interdiction du territoire français prononcée par le
+   * juge pénal, art. 131-30 et s. du Code pénal). FRANCE uniquement — dossier
+   * BE : null. Tous nullables.
+   *
+   * `itfJudiciaireDateCondamnation` : date ISO YYYY-MM-DD de la condamnation
+   *   pénale prononçant l'ITF (→ dateCondamnation, point de départ des délais).
+   * `itfJudiciaireDureeAnnees` : durée de l'ITF en années (→ dureeITFAnnees).
+   */
+  itfJudiciaireDateCondamnation?: string | null;
+  itfJudiciaireDureeAnnees?: number | null;
 }
 
 export interface CaseAnalysisVersionSummary {
