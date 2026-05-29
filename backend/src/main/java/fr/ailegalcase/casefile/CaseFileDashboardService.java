@@ -132,6 +132,8 @@ public class CaseFileDashboardService {
     private final NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo;
     // SF-214-33 : F-IM-41 appel CAA / cassation CE délais (FR)
     private final AppelCaaCassationRepository appelCaaCassationRepo;
+    // SF-214-35 : F-IM-42 assignation à résidence L. 731-1 (FR)
+    private final AssignationResidenceRepository assignationResidenceRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -287,6 +289,7 @@ public class CaseFileDashboardService {
                                      NaturalisationRecoursTjRepository naturalisationRecoursTjRepo,
                                      NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo,
                                      AppelCaaCassationRepository appelCaaCassationRepo,
+                                     AssignationResidenceRepository assignationResidenceRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -425,6 +428,7 @@ public class CaseFileDashboardService {
         this.naturalisationRecoursTjRepo = naturalisationRecoursTjRepo;
         this.naturalisationRecoursTaNantesRepo = naturalisationRecoursTaNantesRepo;
         this.appelCaaCassationRepo = appelCaaCassationRepo;
+        this.assignationResidenceRepo = assignationResidenceRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -639,6 +643,7 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-40-naturalisation-recours-ta-fr", caseFileId, () -> tileFromNaturalisationRecoursTaNantesAnalysis(caseFileId));
         // SF-214-33 : F-IM-41 appel CAA / cassation CE délais (CJA, FR)
         addSafely(tiles, "F-IM-41-appel-caa-cassation-ce-fr", caseFileId, () -> tileFromAppelCaaCassationAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-42-assignation-residence-fr", caseFileId, () -> tileFromAssignationResidenceAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2086,6 +2091,43 @@ public class CaseFileDashboardService {
                         "F-IM-41-appel-caa-cassation-ce-fr",
                         "DELAI",
                         "Appel CAA / cassation CE",
+                        statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-35 — F-IM-42 assignation à résidence (L. 731-1 CESEDA). Tuile DELAI :
+     * rappelle l'échéance de la mesure (durée notifiée à compter de la notification,
+     * plafond légal 135 j) et son statut. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code ALERT} si EXPIRE (échéance dépassée)</li>
+     *   <li>{@code WARNING} si EXPIRATION_PROCHE (&lt; 15 j)</li>
+     *   <li>{@code OK} si EN_COURS</li>
+     * </ul>
+     */
+    private DashboardTile tileFromAssignationResidenceAnalysis(UUID caseFileId) {
+        return assignationResidenceRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AssignationResidenceResult.class);
+                AssignationResidenceStatut statut = r.statut();
+                String secondary = r.dateEcheanceAssignation() != null
+                        ? "Échéance assignation : " + r.dateEcheanceAssignation()
+                        : null;
+                String alert = switch (statut == null ? AssignationResidenceStatut.EN_COURS : statut) {
+                    case EXPIRE -> "ALERT";
+                    case EXPIRATION_PROCHE -> "WARNING";
+                    case EN_COURS -> "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-42-assignation-residence-fr",
+                        "DELAI",
+                        "Assignation à résidence",
                         statut != null ? statut.name() : "—",
                         secondary,
                         alert);

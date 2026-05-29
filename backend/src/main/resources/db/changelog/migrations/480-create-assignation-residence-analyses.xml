@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="480-create-assignation-residence-analyses" author="legalcase">
+        <comment>
+            SF-214-35 -- table `assignation_residence_analyses` pour l'outil décisionnel
+            "Assignation à résidence L. 731-1" (F-IM-42-assignation-residence-fr, FRANCE).
+
+            Outil single-country FR : analyse la validité d'une mesure d'assignation
+            à résidence (alternative à la rétention administrative), calcule la durée
+            maximale légale (45 jours renouvelable 2 fois, soit 135 jours, L. 731-1
+            CESEDA) et génère les moyens de contestation devant le tribunal
+            administratif (recours dans les 48 h). Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : L. 731-1 CESEDA (assignation à résidence, durée) ;
+            L. 732-1 et s. CESEDA (obligations de présentation) ; L. 733-1 et s.
+            CESEDA (recours devant le TA) ; CE 13 mars 2006 n° 286669.
+
+            UUID namespace F-214 : f2140021-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="assignation_residence_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_assignation_residence_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_notification_assignation" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_assignation_jours" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_assignation" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obligations_presentation" type="TEXT"/>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="assignation_residence_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
