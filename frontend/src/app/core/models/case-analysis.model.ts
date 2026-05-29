@@ -1596,6 +1596,27 @@ export interface ImmigrationExtractedData {
   menaAge?: number | null;
   menaDateArrivee?: string | null;
   menaDureeScolaire?: number | null;
+  /**
+   * SF-214-05 / SF-214-06 — Pré-fill outil F-IM-27-vpf-liens-personnels-l42323-fr
+   * « Vie privée et familiale — liens personnels L.423-23 CESEDA (FR) » — scoring
+   * d'éligibilité au titre VPF (durée de résidence, attaches familiales, intégration).
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   *
+   * `viePriveeFamilialeDetectee` : signal global (flag CONTEXTUAL) — les pièces
+   *   évoquent une demande de titre « vie privée et familiale » L.423-23.
+   * `vpfNiveauIntegration` : niveau d'intégration estimé par le pipeline IA —
+   *   whitelist FORT / MOYEN / FAIBLE (→ niveauIntegration).
+   * Note : la durée de résidence est pré-remplie via `aesDureePresenceMois`,
+   *   la minorité à l'entrée via `clientMineurDetecte`, et la présence d'enfants
+   *   en France est déduite de `aesDureeScolaritePlusAncienEnfantAnnees > 0`.
+   */
+  viePriveeFamilialeDetectee?: boolean | null;
+  vpfNiveauIntegration?: 'FORT' | 'MOYEN' | 'FAIBLE' | null;
+  /**
+   * SF-214-06 — true si le pipeline IA détecte que le client est entré en France
+   * mineur (→ entreeEnFranceMineur de l'outil VPF liens personnels). FR : nullable.
+   */
+  clientMineurDetecte?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {
