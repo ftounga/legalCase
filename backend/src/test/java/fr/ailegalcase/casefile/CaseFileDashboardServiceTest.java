@@ -106,6 +106,8 @@ class CaseFileDashboardServiceTest {
     private OfpraIntroductionRepository ofpraIntroductionRepo;
     // SF-214-19 : F-IM-34 AJ CNDA éligibilité & délais loi 91-647 / L. 532-4 CESEDA (FR)
     private AjCndaRepository ajCndaRepo;
+    // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR)
+    private VictimeTraiteRepository victimeTraiteRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -240,6 +242,7 @@ class CaseFileDashboardServiceTest {
         recepisseAttestationRepo = mock(RecepisseAttestationRepository.class);
         ofpraIntroductionRepo = mock(OfpraIntroductionRepository.class);
         ajCndaRepo = mock(AjCndaRepository.class);
+        victimeTraiteRepo = mock(VictimeTraiteRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -465,6 +468,7 @@ class CaseFileDashboardServiceTest {
                 recepisseAttestationRepo,
                 ofpraIntroductionRepo,
                 ajCndaRepo,
+                victimeTraiteRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

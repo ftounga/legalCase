@@ -118,6 +118,8 @@ public class CaseFileDashboardService {
     private final OfpraIntroductionRepository ofpraIntroductionRepo;
     // SF-214-19 : F-IM-34 AJ CNDA éligibilité & délais loi 91-647 / L. 532-4 CESEDA (FR)
     private final AjCndaRepository ajCndaRepo;
+    // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR)
+    private final VictimeTraiteRepository victimeTraiteRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -266,6 +268,7 @@ public class CaseFileDashboardService {
                                      RecepisseAttestationRepository recepisseAttestationRepo,
                                      OfpraIntroductionRepository ofpraIntroductionRepo,
                                      AjCndaRepository ajCndaRepo,
+                                     VictimeTraiteRepository victimeTraiteRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -397,6 +400,7 @@ public class CaseFileDashboardService {
         this.recepisseAttestationRepo = recepisseAttestationRepo;
         this.ofpraIntroductionRepo = ofpraIntroductionRepo;
         this.ajCndaRepo = ajCndaRepo;
+        this.victimeTraiteRepo = victimeTraiteRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -600,6 +604,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-33-ofpra-introduction-fr", caseFileId, () -> tileFromOfpraIntroductionAnalysis(caseFileId));
         // SF-214-19 : F-IM-34 AJ CNDA éligibilité & délais loi 91-647 / L. 532-4 CESEDA (FR)
         addSafely(tiles, "F-IM-34-aj-cnda-fr", caseFileId, () -> tileFromAjCndaAnalysis(caseFileId));
+        // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR)
+        addSafely(tiles, "F-IM-35-victime-traite-l4251-fr", caseFileId, () -> tileFromVictimeTraiteAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1985,6 +1991,56 @@ public class CaseFileDashboardService {
                         "F-IM-32-recepisse-attestation-fr",
                         "VALIDITE",
                         "Récépissé vs attestation R.311-4/6",
+                        principal,
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-21 — F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR).
+     * Verdict d'éligibilité en valeur principale ; mesure de protection clé ou
+     * critère manquant en valeur secondaire ; alertLevel ALERT si la victime est en
+     * danger (présence de l'auteur sans plainte), WARNING si éligibilité sous réserve
+     * ou identification en cours, OK si éligibilité probable, sinon (non éligible) WARNING.
+     */
+    private DashboardTile tileFromVictimeTraiteAnalysis(UUID caseFileId) {
+        return victimeTraiteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), VictimeTraiteResult.class);
+                String verdict = r.verdict();
+                String principal = switch (verdict) {
+                    case VictimeTraiteAnalyzer.VERDICT_ELIGIBLE_PROBABLE ->
+                            "Éligible — APS 6 mois L. 425-1 (travail)";
+                    case VictimeTraiteAnalyzer.VERDICT_ELIGIBLE_SOUS_RESERVE_PLAINTE ->
+                            "Éligible sous réserve de plainte";
+                    case VictimeTraiteAnalyzer.VERDICT_EN_COURS_IDENTIFICATION ->
+                            "Identification de la victime en cours";
+                    default -> "Critères L. 425-1 non remplis";
+                };
+                String secondary = r.risqueVictimeEnDanger()
+                        ? "Mise en sécurité prioritaire (Ac.Sé / 115)"
+                        : (r.mesuresProtection().isEmpty()
+                                ? "Aucune mesure de protection ouverte"
+                                : r.mesuresProtection().get(0));
+                String alert;
+                if (r.risqueVictimeEnDanger()) {
+                    alert = "ALERT";
+                } else if (VictimeTraiteAnalyzer.VERDICT_ELIGIBLE_PROBABLE.equals(verdict)) {
+                    alert = "OK";
+                } else if (VictimeTraiteAnalyzer.VERDICT_ELIGIBLE_SOUS_RESERVE_PLAINTE.equals(verdict)
+                        || VictimeTraiteAnalyzer.VERDICT_EN_COURS_IDENTIFICATION.equals(verdict)) {
+                    alert = "WARNING";
+                } else {
+                    alert = "WARNING";
+                }
+                return new DashboardTile(
+                        "F-IM-35-victime-traite-l4251-fr",
+                        "DIAGNOSTIC",
+                        "Victime traite L. 425-1",
                         principal,
                         secondary,
                         alert);
