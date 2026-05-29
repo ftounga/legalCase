@@ -77,6 +77,8 @@ import { OfpraIntroductionSectionComponent } from '../ofpra-introduction-section
 import { AjCndaSectionComponent } from '../aj-cnda-section/aj-cnda-section.component';
 // SF-214-22 : composant complet F-IM-35-victime-traite-l4251-fr — protection victime de traite L. 425-1 (FR, alerte sécurité si victime en danger).
 import { VictimeTraiteSectionComponent } from '../victime-traite-section/victime-traite-section.component';
+// SF-214-24 : composant complet F-IM-36-carte-resident-l4261-fr — carte de résident L. 426-1 (FR, checklist critères + atouts).
+import { CarteResidentSectionComponent } from '../carte-resident-section/carte-resident-section.component';
 // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
 import { AesPresenceProuveeSectionComponent } from '../aes-presence-prouvee-section/aes-presence-prouvee-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
@@ -1673,6 +1675,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-35-victime-traite-l4251-fr', {
         displayLabel: 'Victime traite L.425-1 (FR)',
         component: VictimeTraiteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-24 : composant complet F-IM-36-carte-resident-l4261-fr — carte de
+      // résident de dix ans de l'article L. 426-1 du CESEDA (FR). FR uniquement
+      // (régime distinct en BE). Évalue l'éligibilité (durée de séjour régulier,
+      // intégration républicaine, ressources, condamnations pénales graves),
+      // affiche la checklist des critères non remplis (chipsCriteresNonRemplis)
+      // et la liste des atouts du dossier. Pré-fill IA 2 champs
+      // (dureeSejourRegulierAnnees depuis aesDureePresenceMois ÷ 12,
+      // ressourcesMensuellesNettes depuis carteResidentRessources) via static
+      // getPrefillCount + CarteResidentPrefillRules.
+      ['F-IM-36-carte-resident-l4261-fr', {
+        displayLabel: 'Carte de résident L.426-1 (FR)',
+        component: CarteResidentSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4793,6 +4814,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // thème VALIDITE, analyseur d'éligibilité (scoring) à la carte de séjour
     // « vie privée et familiale » + alerte sécurité si victime en danger.
     ['F-IM-35-victime-traite-l4251-fr', 'VALIDITE'],
+    // SF-214-24 : F-IM-36-carte-resident-l4261-fr carte de résident L. 426-1 (FR)
+    // — thème VALIDITE, analyseur d'éligibilité (scoring) à la carte de résident
+    // de dix ans + checklist critères non remplis + atouts.
+    ['F-IM-36-carte-resident-l4261-fr', 'VALIDITE'],
     // SF-214-12 : F-IM-30-aes-presence-prouvee-fr AES présence prouvée (FR).
     // Thème DIAGNOSTIC — l'outil agrège des périodes de présence justifiées par
     // pièce et restitue un diagnostic d'éligibilité aux 4 voies AES (famille 5 ans,
