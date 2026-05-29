@@ -1350,6 +1350,18 @@ export interface ImmigrationExtractedData {
   eloiDureePresenceIrreguliereMois?: number | null;
   eloiMotifMenace?: string | null;
   /**
+   * SF-214-18 : pré-fill outil OFPRA introduction Immigration FR (F-IM-33).
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   * `procedureAsileDetectee` : flag détection d'une procédure d'asile dans le
+   *   dossier (visibility CONTEXTUAL de l'outil OFPRA introduction).
+   * `gudaPassageEffectue` : indice de passage au guichet unique (GUDA) extrait
+   *   des documents (attestation de demande d'asile).
+   * `aesDateEntreeFrance` (déjà déclaré ci-dessus) sert de pré-fill pour la date
+   *   d'arrivée en France.
+   */
+  procedureAsileDetectee?: boolean | null;
+  gudaPassageEffectue?: boolean | null;
+  /**
    * SF-246-20 : pré-fill lot Immigration BE — 4 outils belgian-9bis / 9ter / 40bis / 40ter.
    * BELGIQUE UNIQUEMENT — null pour dossiers FRANCE. Tous nullables.
    * `be9bisDateEntreeBelgique` : date d'entrée en Belgique YYYY-MM-DD (art. 9bis, Annexe 26 / passeport), non future.
