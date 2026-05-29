@@ -158,23 +158,13 @@ public final class Annexe13BeCalculator {
     }
 
     /**
-     * Ajoute {@code n} jours ouvrables belges à une date (au sens de
-     * {@link BelgianBusinessDaysCalculator#isBusinessDay(LocalDate)}). Le jour {@code start} est
-     * exclu. Le résultat est le n-ième jour ouvrable strict après {@code start}.
+     * Ajoute {@code n} jours ouvrables belges à une date. Délègue à
+     * {@link BelgianBusinessDaysCalculator#addBusinessDays(LocalDate, int)}
+     * (source unique du calendrier ouvrable belge — SF-215-15). Le jour
+     * {@code start} est exclu.
      */
     static LocalDate addBusinessDays(LocalDate start, int n) {
-        if (n <= 0) {
-            return start;
-        }
-        LocalDate cursor = start;
-        int remaining = n;
-        while (remaining > 0) {
-            cursor = cursor.plusDays(1);
-            if (BelgianBusinessDaysCalculator.isBusinessDay(cursor)) {
-                remaining--;
-            }
-        }
-        return cursor;
+        return BelgianBusinessDaysCalculator.addBusinessDays(start, n);
     }
 
     private static void validateInputs(LocalDate dateNotificationAnnexe13,

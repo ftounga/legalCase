@@ -62,6 +62,35 @@ public final class BelgianBusinessDaysCalculator {
     }
 
     /**
+     * Ajoute {@code n} jours ouvrables belges à une date. Le jour {@code start}
+     * est <b>exclu</b> : le résultat est le n-ième jour ouvrable strict après
+     * {@code start} (au sens de {@link #isBusinessDay(LocalDate)}).
+     *
+     * <p>Utilisé par les délais procéduraux comptés en jours ouvrables — recours
+     * en extrême urgence CCE (5 jours ouvrables, F-IM-32 / SF-215-15) et recours
+     * Annexe 13 (F-IM-08).
+     *
+     * @throws IllegalArgumentException si {@code start} est nul.
+     */
+    public static LocalDate addBusinessDays(LocalDate start, int n) {
+        if (start == null) {
+            throw new IllegalArgumentException("La date 'start' est requise");
+        }
+        if (n <= 0) {
+            return start;
+        }
+        LocalDate cursor = start;
+        int remaining = n;
+        while (remaining > 0) {
+            cursor = cursor.plusDays(1);
+            if (isBusinessDay(cursor)) {
+                remaining--;
+            }
+        }
+        return cursor;
+    }
+
+    /**
      * Indique si une date donnée est un jour ouvrable belge.
      * Exclut samedi, dimanche et jours fériés.
      */

@@ -293,6 +293,10 @@ public class DecisionToolVisibilityService {
         // SF-215-11 : F-IM-30 AESM + tutelle MENA BE — flag pivot CONTEXTUAL Immigration BE.
         // Mineurs uniquement (gate ageActuel < 18 dans le calculator).
         addBooleanFlagIfTrue(detected, immigrationNode, "mineur_non_accompagne_be_detecte");
+        // SF-215-13 : F-IM-31 Recours CCE annulation 30j BE — flag pivot CONTEXTUAL Immigration BE.
+        addBooleanFlagIfTrue(detected, immigrationNode, "recours_cce_envisage");
+        // SF-215-15 : F-IM-32 Recours CCE extrême urgence 5j ouvrables BE — flag pivot CONTEXTUAL Immigration BE.
+        addBooleanFlagIfTrue(detected, immigrationNode, "recours_cce_extreme_urgence");
 
         // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
         // les règles CONTEXTUAL conditionnées à un régime national bilatéral
