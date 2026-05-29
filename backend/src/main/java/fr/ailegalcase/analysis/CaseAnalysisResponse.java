@@ -2648,7 +2648,23 @@ public record CaseAnalysisResponse(
              * YYYY-MM-DD (non future) — point de départ du délai d'appel devant la CAA.
              * Sert au pré-remplissage de l'outil F-IM-41. Null si non extractible ou dossier BE.
              */
-            String recoursDateJugementTA) {
+            String recoursDateJugementTA,
+            // === SF-214-35 — F-IM-42 Assignation à résidence L. 731-1 (FRANCE UNIQUEMENT, false/null pour BE) ===
+            /**
+             * SF-214-35 : flag pivot — true si les pièces évoquent une mesure
+             * d'assignation à résidence (alternative à la rétention administrative)
+             * notifiée à l'étranger (mentions « assignation à résidence », « L.731-1 »,
+             * « pointage gendarmerie », « obligation présentation », « assigné à
+             * résidence »). Pivot pour la visibility rule CONTEXTUAL de F-IM-42
+             * (trigger {@code assignation_residence_detectee}). Dossiers BE : toujours false.
+             */
+            boolean assignationResidenceDetectee,
+            /**
+             * SF-214-35 : date de notification de l'assignation à résidence au format
+             * YYYY-MM-DD (non future) — point de départ de la durée d'assignation.
+             * Sert au pré-remplissage de l'outil F-IM-42. Null si non extractible ou dossier BE.
+             */
+            String assignationDateNotification) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2772,7 +2788,10 @@ public record CaseAnalysisResponse(
                     .ptUkraineNationalite(ptUkraineNationalite)
                     .regroupementFamilialEnvisage(regroupementFamilialEnvisage)
                     .regroupementRessourcesMensuelles(regroupementRessourcesMensuelles)
-                    .regroupementType(regroupementType);
+                    .regroupementType(regroupementType)
+                    // SF-214-35 : F-IM-42 Assignation à résidence L. 731-1 FR
+                    .assignationResidenceDetectee(assignationResidenceDetectee)
+                    .assignationDateNotification(assignationDateNotification);
         }
 
         public static final class Builder {
@@ -2916,6 +2935,9 @@ public record CaseAnalysisResponse(
             private String naturalisationDateRefus;
             private boolean recoursEnvisageDetecte;
             private String recoursDateJugementTA;
+            // SF-214-35 : F-IM-42 Assignation à résidence L. 731-1 FR
+            private boolean assignationResidenceDetectee;
+            private String assignationDateNotification;
 
             private Builder() {}
 
@@ -3049,6 +3071,8 @@ public record CaseAnalysisResponse(
             public Builder naturalisationDateRefus(String v) { this.naturalisationDateRefus = v; return this; }
             public Builder recoursEnvisageDetecte(boolean v) { this.recoursEnvisageDetecte = v; return this; }
             public Builder recoursDateJugementTA(String v) { this.recoursDateJugementTA = v; return this; }
+            public Builder assignationResidenceDetectee(boolean v) { this.assignationResidenceDetectee = v; return this; }
+            public Builder assignationDateNotification(String v) { this.assignationDateNotification = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3145,7 +3169,9 @@ public record CaseAnalysisResponse(
                         naturalisationDateRefus,
                         // SF-214-33 : F-IM-41 appel CAA / cassation CE délais FR
                         recoursEnvisageDetecte,
-                        recoursDateJugementTA);
+                        recoursDateJugementTA,
+                        assignationResidenceDetectee,
+                        assignationDateNotification);
             }
         }
     }
@@ -6303,6 +6329,16 @@ public record CaseAnalysisResponse(
                 && recoursDateJugementTARaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
             recoursDateJugementTA = recoursDateJugementTARaw;
         }
+        // SF-214-35 : F-IM-42 assignation à résidence L. 731-1 FR — 1 flag pivot
+        // + 1 champ de pré-fill (FR uniquement). Date de notification ISO non future.
+        boolean assignationResidenceDetectee = booleanOrFalse(root, "assignation_residence_detectee");
+        String assignationDateNotificationRaw = textOrNull(root, "assignation_date_notification");
+        String assignationDateNotification = null;
+        if (assignationDateNotificationRaw != null
+                && assignationDateNotificationRaw.matches("\\d{4}-\\d{2}-\\d{2}")
+                && assignationDateNotificationRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
+            assignationDateNotification = assignationDateNotificationRaw;
+        }
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6398,7 +6434,10 @@ public record CaseAnalysisResponse(
                 && naturalisationDateRefus == null
                 // SF-214-33 : F-IM-41 appel CAA / cassation CE délais FR (1 flag pivot + 1 champ IA)
                 && !recoursEnvisageDetecte
-                && recoursDateJugementTA == null) return null;
+                && recoursDateJugementTA == null
+                // SF-214-35 : F-IM-42 assignation à résidence L. 731-1 FR (1 flag pivot + 1 champ IA)
+                && !assignationResidenceDetectee
+                && assignationDateNotification == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6538,6 +6577,8 @@ public record CaseAnalysisResponse(
                 .naturalisationDateRefus(naturalisationDateRefus)
                 .recoursEnvisageDetecte(recoursEnvisageDetecte)
                 .recoursDateJugementTA(recoursDateJugementTA)
+                .assignationResidenceDetectee(assignationResidenceDetectee)
+                .assignationDateNotification(assignationDateNotification)
                 .build();
     }
 

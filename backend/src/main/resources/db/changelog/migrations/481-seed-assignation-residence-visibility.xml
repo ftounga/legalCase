@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="481-seed-assignation-residence-visibility" author="legalcase">
+        <comment>
+            SF-214-35 -- seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Assignation à résidence L. 731-1"
+            (F-IM-42-assignation-residence-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte qu'une mesure d'assignation à résidence a été
+            notifiée à l'étranger -- nouveau flag pivot
+            `assignation_residence_detectee` = true. Mentions repérées par
+            LegalDomainPromptBuilder : "assignation à résidence", "assigné à
+            résidence", "L.731-1", "pointage gendarmerie", "obligation de
+            présentation". En l'absence d'assignation détectée, l'outil n'est pas
+            visible. priority 42 -- après F-IM-41 appel CAA / cassation CE
+            (CONTEXTUAL priority 41).
+
+            Source juridique : L. 731-1 CESEDA (assignation à résidence, 135 j max) ;
+            L. 732-1 et s. CESEDA (obligations) ; L. 733-1 et s. CESEDA (recours TA).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 cote service.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolée,
+            l'entrée TOOL_REGISTRY frontend pour F-IM-42-assignation-residence-fr
+            est livrée dans la PR frontend SF-214-36 (mergée juste après). Les
+            tests DecisionToolVisibilityIntegrityIT / DashboardTileToolIdIntegrityIT
+            repassent verts une fois la PR frontend mergée sur master.
+
+            UUID namespace F-214 : f2140021-0000-0000-0000-214000000002.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140021-0000-0000-0000-214000000002', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-42-assignation-residence-fr', 'CONTEXTUAL', 'assignation_residence_detectee', 'true', 42);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140021-0000-0000-0000-214000000002';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

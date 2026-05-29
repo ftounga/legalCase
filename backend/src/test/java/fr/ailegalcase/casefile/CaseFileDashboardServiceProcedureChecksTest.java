@@ -105,6 +105,7 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(NaturalisationRecoursTjRepository.class),
                 mock(NaturalisationRecoursTaNantesRepository.class),
                 mock(AppelCaaCassationRepository.class),
+                mock(AssignationResidenceRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
