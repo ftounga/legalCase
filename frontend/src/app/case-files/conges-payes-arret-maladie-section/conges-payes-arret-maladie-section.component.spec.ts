@@ -77,7 +77,13 @@ describe('CongesPayesArretMaladieSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    // F-JU-03 SF-JU-03-100 : le bloc <app-tool-jurisprudence-citations> émet un
+    // GET citations dès qu'un résultat est rendu (hors standalone). On le flush
+    // avant verify() pour ne pas faire échouer les tests de rendu de résultat.
+    httpMock.match((r) => r.url.includes('jurisprudence-citations')).forEach((r) => r.flush([]));
+    httpMock.verify();
+  });
 
   // ---------------------------------------------------------------------------
   // Chargement (GET)
