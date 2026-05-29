@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="488-create-autorisation-travail-employeur-analyses" author="legalcase">
+        <comment>
+            SF-214-43 — table `autorisation_travail_employeur_analyses` pour l'outil
+            décisionnel "Autorisation de travail employeur"
+            (F-IM-46-autorisation-travail-employeur-fr, FRANCE).
+
+            Outil single-country FR : analyse les obligations de l'employeur
+            souhaitant recruter un travailleur étranger hors UE (autorisation de
+            travail préalable, L. 5221-1 Code du travail). Détermine si une
+            autorisation est requise selon la nationalité du candidat, liste les
+            obligations de demande, le délai d'instruction OFII (2 mois,
+            R. 5221-20) et le délai de recours en cas de refus. Persiste l'analyse
+            1:1 par dossier. Complementaire a F-IM-07 (cote etranger).
+
+            Source juridique : L. 5221-1 a L. 5221-12 Code du travail ;
+            R. 5221-1 a R. 5221-44 Code du travail ; R. 5221-20 (delai 2 mois) ;
+            L. 421-1 CESEDA.
+
+            UUID namespace F-214 : f2140043-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="autorisation_travail_employeur_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_autorisation_travail_employeur_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="type_contrat" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="poste_proposes" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nationalite_candidat" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_contrat_mois" type="INTEGER"/>
+            <column name="refus_autorisation" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_refus_autorisation" type="DATE"/>
+            <column name="statut" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="autorisation_travail_employeur_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

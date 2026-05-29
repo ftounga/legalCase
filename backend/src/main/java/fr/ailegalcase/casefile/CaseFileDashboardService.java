@@ -140,6 +140,8 @@ public class CaseFileDashboardService {
     private final UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo;
     // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 (FR)
     private final RetraitTitreFraudeRepository retraitTitreFraudeRepo;
+    // SF-214-43 : F-IM-46 autorisation de travail employeur L. 5221-1 (FR)
+    private final AutorisationTravailEmployeurRepository autorisationTravailEmployeurRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -299,6 +301,7 @@ public class CaseFileDashboardService {
                                      ItfJudiciaireRepository itfJudiciaireRepo,
                                      UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo,
                                      RetraitTitreFraudeRepository retraitTitreFraudeRepo,
+                                     AutorisationTravailEmployeurRepository autorisationTravailEmployeurRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -441,6 +444,7 @@ public class CaseFileDashboardService {
         this.itfJudiciaireRepo = itfJudiciaireRepo;
         this.ueEeeSuisseSejourRepo = ueEeeSuisseSejourRepo;
         this.retraitTitreFraudeRepo = retraitTitreFraudeRepo;
+        this.autorisationTravailEmployeurRepo = autorisationTravailEmployeurRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -662,6 +666,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-44-ue-eee-suisse-sejour-fr", caseFileId, () -> tileFromUeEeeSuisseSejourAnalysis(caseFileId));
         // SF-214-41 : F-IM-45 retrait de titre pour fraude (L. 412-7 CESEDA) FR
         addSafely(tiles, "F-IM-45-retrait-titre-fraude-fr", caseFileId, () -> tileFromRetraitTitreFraudeAnalysis(caseFileId));
+        // SF-214-43 : F-IM-46 autorisation de travail employeur (L. 5221-1 Code du travail) FR
+        addSafely(tiles, "F-IM-46-autorisation-travail-employeur-fr", caseFileId, () -> tileFromAutorisationTravailEmployeurAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2184,6 +2190,52 @@ public class CaseFileDashboardService {
                         "F-IM-45-retrait-titre-fraude-fr",
                         "DELAI",
                         "Retrait de titre pour fraude",
+                        statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-43 — F-IM-46 autorisation de travail employeur (L. 5221-1 Code du travail).
+     * Tuile DEMARCHES : rappelle si une autorisation de travail est requise pour le
+     * candidat et l'etat du recours en cas de refus. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si autorisation non requise ou recours encore ouvert</li>
+     *   <li>{@code WARNING} si une autorisation prealable est requise</li>
+     *   <li>{@code ALERT} si le delai de recours contre un refus est prescrit</li>
+     * </ul>
+     */
+    private DashboardTile tileFromAutorisationTravailEmployeurAnalysis(UUID caseFileId) {
+        return autorisationTravailEmployeurRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(),
+                        AutorisationTravailEmployeurResult.class);
+                AutorisationTravailEmployeurStatut statut = r.statut();
+                AutorisationTravailEmployeurStatut effectif = statut == null
+                        ? AutorisationTravailEmployeurStatut.AUTORISATION_REQUISE
+                        : statut;
+                String secondary = switch (effectif) {
+                    case AUTORISATION_NON_REQUISE -> "Aucune autorisation de travail (UE/EEE/Suisse)";
+                    case AUTORISATION_REQUISE -> "Autorisation de travail prealable requise";
+                    case RECOURS_POSSIBLE -> r.delaiRecoursTa() != null
+                            ? "Delai recours TA : " + r.delaiRecoursTa()
+                            : "Recours contre le refus ouvert";
+                    case RECOURS_PRESCRIT -> "Delai de recours contre le refus depasse";
+                };
+                String alert = switch (effectif) {
+                    case AUTORISATION_NON_REQUISE, RECOURS_POSSIBLE -> "OK";
+                    case AUTORISATION_REQUISE -> "WARNING";
+                    case RECOURS_PRESCRIT -> "ALERT";
+                };
+                return new DashboardTile(
+                        "F-IM-46-autorisation-travail-employeur-fr",
+                        "DEMARCHES",
+                        "Autorisation de travail employeur",
                         statut != null ? statut.name() : "—",
                         secondary,
                         alert);
