@@ -106,6 +106,8 @@ public class CaseFileDashboardService {
     private final VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo;
     // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 CESEDA (FR)
     private final VlsTsValidationRepository vlsTsValidationRepo;
+    // SF-214-09 : F-IM-29 OQTF catégories L.611-1 CESEDA (FR)
+    private final OqtfCategoriesRepository oqtfCategoriesRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -248,6 +250,7 @@ public class CaseFileDashboardService {
                                      RegroupementFamilialRepository regroupementFamilialRepo,
                                      VpfLiensPersonnelsRepository vpfLiensPersonnelsRepo,
                                      VlsTsValidationRepository vlsTsValidationRepo,
+                                     OqtfCategoriesRepository oqtfCategoriesRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -373,6 +376,7 @@ public class CaseFileDashboardService {
         this.regroupementFamilialRepo = regroupementFamilialRepo;
         this.vpfLiensPersonnelsRepo = vpfLiensPersonnelsRepo;
         this.vlsTsValidationRepo = vlsTsValidationRepo;
+        this.oqtfCategoriesRepo = oqtfCategoriesRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -565,6 +569,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-27-vpf-liens-personnels-l42323-fr", caseFileId, () -> tileFromVpfLiensPersonnelsAnalysis(caseFileId));
         // SF-214-07 : F-IM-28 validation VLS-TS OFII 3 mois R. 311-3 CESEDA (FR)
         addSafely(tiles, "F-IM-28-vls-ts-validation-ofii-fr", caseFileId, () -> tileFromVlsTsValidationAnalysis(caseFileId));
+        // SF-214-09 : F-IM-29 OQTF catégories L.611-1 CESEDA (FR)
+        addSafely(tiles, "F-IM-29-oqtf-categories-l6111-fr", caseFileId, () -> tileFromOqtfCategoriesAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1769,6 +1775,38 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "VPF liens personnels L.423-23",
                         verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-09 — F-IM-29 OQTF catégories L. 611-1 CESEDA (1° à 7°). Tuile
+     * informative : rappelle la catégorie identifiée et le délai de recours
+     * applicable. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code ALERT} si OQTF sans délai (fenêtre courte 48 h, catégories 6° / 7°)</li>
+     *   <li>{@code WARNING} sinon (délai 30 j à ne pas laisser courir)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromOqtfCategoriesAnalysis(UUID caseFileId) {
+        return oqtfCategoriesRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), OqtfCategoriesResult.class);
+                boolean sansDelai = r.delaiRecoursHeures() != null;
+                String secondary = sansDelai
+                        ? "Recours 48 h (L. 614-1)"
+                        : "Recours 30 j (L. 614-5)";
+                String alert = sansDelai ? "ALERT" : "WARNING";
+                return new DashboardTile(
+                        "F-IM-29-oqtf-categories-l6111-fr",
+                        "VALIDITE",
+                        "OQTF catégorie L. 611-1",
+                        r.categorieL611() != null ? r.categorieL611().name() : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {
