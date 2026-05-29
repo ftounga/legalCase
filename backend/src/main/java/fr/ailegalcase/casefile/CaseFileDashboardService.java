@@ -128,6 +128,8 @@ public class CaseFileDashboardService {
     private final MnaEvaluationAgeRepository mnaEvaluationAgeRepo;
     // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité (FR)
     private final NaturalisationRecoursTjRepository naturalisationRecoursTjRepo;
+    // SF-214-31 : F-IM-40 recours TA Nantes refus naturalisation par décret (FR)
+    private final NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -281,6 +283,7 @@ public class CaseFileDashboardService {
                                      AnefProcedureRepository anefProcedureRepo,
                                      MnaEvaluationAgeRepository mnaEvaluationAgeRepo,
                                      NaturalisationRecoursTjRepository naturalisationRecoursTjRepo,
+                                     NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -417,6 +420,7 @@ public class CaseFileDashboardService {
         this.anefProcedureRepo = anefProcedureRepo;
         this.mnaEvaluationAgeRepo = mnaEvaluationAgeRepo;
         this.naturalisationRecoursTjRepo = naturalisationRecoursTjRepo;
+        this.naturalisationRecoursTaNantesRepo = naturalisationRecoursTaNantesRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -628,6 +632,7 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-38-mna-evaluation-age-fr", caseFileId, () -> tileFromMnaEvaluationAgeAnalysis(caseFileId));
         // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité (Cciv 26-3, FR)
         addSafely(tiles, "F-IM-39-naturalisation-recours-tj-fr", caseFileId, () -> tileFromNaturalisationRecoursTjAnalysis(caseFileId));
+        addSafely(tiles, "F-IM-40-naturalisation-recours-ta-fr", caseFileId, () -> tileFromNaturalisationRecoursTaNantesAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2001,6 +2006,43 @@ public class CaseFileDashboardService {
                         "F-IM-39-naturalisation-recours-tj-fr",
                         "DELAI",
                         "Recours TJ naturalisation",
+                        statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-31 — F-IM-40 recours TA Nantes refus de naturalisation par décret
+     * (CJA L. 213-1, délai 2 mois ; Cciv 21-15). Tuile DELAI : rappelle l'échéance
+     * du recours pour excès de pouvoir et son statut. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code ALERT} si PRESCRIT (délai de 2 mois dépassé)</li>
+     *   <li>{@code WARNING} si URGENT (joursRestants ≤ 15)</li>
+     *   <li>{@code OK} si RECOURS_POSSIBLE</li>
+     * </ul>
+     */
+    private DashboardTile tileFromNaturalisationRecoursTaNantesAnalysis(UUID caseFileId) {
+        return naturalisationRecoursTaNantesRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), NaturalisationRecoursTaNantesResult.class);
+                NaturalisationRecoursTaNantesStatut statut = r.statut();
+                String secondary = r.dateEcheanceRecoursTa() != null
+                        ? "Échéance recours TA Nantes : " + r.dateEcheanceRecoursTa()
+                        : null;
+                String alert = switch (statut == null ? NaturalisationRecoursTaNantesStatut.RECOURS_POSSIBLE : statut) {
+                    case PRESCRIT -> "ALERT";
+                    case URGENT -> "WARNING";
+                    case RECOURS_POSSIBLE -> "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-40-naturalisation-recours-ta-fr",
+                        "DELAI",
+                        "Recours TA Nantes naturalisation",
                         statut != null ? statut.name() : "—",
                         secondary,
                         alert);

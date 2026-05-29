@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="477-seed-naturalisation-recours-ta-visibility" author="legalcase">
+        <comment>
+            SF-214-31 -- seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Recours TA Nantes refus de naturalisation par décret"
+            (F-IM-40-naturalisation-recours-ta-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte une démarche de naturalisation -- trigger
+            `naturalisation_envisagee_detectee` = true (flag existant F-201,
+            réutilisé tel quel, sans nouveau flag pivot). Mentions repérées par
+            LegalDomainPromptBuilder : "naturalisation par décret", "refus de
+            naturalisation", "décret", "TA de Nantes", "Cciv 21-15". En l'absence
+            de naturalisation détectée, l'outil n'est pas visible.
+            priority 40 -- après F-IM-39 recours TJ déclaration (priority 39).
+
+            Source juridique : Cciv 21-15 ; CJA L. 213-1 ; CJA R. 312-4.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 cote service.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolée,
+            l'entrée TOOL_REGISTRY frontend pour F-IM-40-naturalisation-recours-ta-fr
+            est livrée dans la PR frontend SF-214-32 (mergée juste après). Les
+            tests DecisionToolVisibilityIntegrityIT / DashboardTileToolIdIntegrityIT
+            repassent verts une fois la PR frontend mergée sur master.
+
+            UUID namespace F-214 : f214001e-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f214001e-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-40-naturalisation-recours-ta-fr', 'CONTEXTUAL', 'naturalisation_envisagee_detectee', 'true', 40);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f214001e-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
