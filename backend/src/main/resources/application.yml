@@ -260,6 +260,13 @@ aws:
     max-rasterized-pages: ${AWS_TEXTRACT_MAX_RASTERIZED_PAGES:200}
     max-rasterized-size-mb: ${AWS_TEXTRACT_MAX_RASTERIZED_SIZE_MB:50}
 
+# SF-215-19 (F-IM-34) : protection temporaire Ukraine BE
+protection:
+  temporaire:
+    ukraine:
+      # date-fin PT Ukraine à mettre à jour annuellement (prolongation directive 2001/55/CE)
+      date-fin: ${PROTECTION_TEMPORAIRE_UKRAINE_DATE_FIN:2027-03-04}
+
 server:
   port: 8080
 

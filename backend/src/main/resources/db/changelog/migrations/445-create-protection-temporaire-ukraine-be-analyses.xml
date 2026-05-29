@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c8ca4ab7-b2ff-414a-826a-460e7c608c45" author="legalcase">
+        <comment>
+            SF-215-19 : table dédiée à l'outil décisionnel "Protection temporaire Ukraine BE"
+            (F-IM-34-protection-temporaire-ukraine-be, BELGIQUE) — fondement : directive
+            2001/55/CE (protection temporaire en cas d'afflux massif), décision d'exécution UE
+            2022/382 du Conseil du 04/03/2022 (personnes déplacées d'Ukraine), prolongée
+            annuellement (toujours active 2026) ; transposition belge : Loi du 15/12/1980
+            art. 57/29 et suivants.
+
+            Outil de type INFORMATION + CHECKLIST + CALCUL DE DURÉE (pas de délai de recours) :
+            - eligible = (nationaliteUkrainienne OU apatridesUkraine OU membreFamilleProtege)
+              ET residenceUkraineAvant24Fev2022 ;
+            - dureeProtectionRestante = jours entre today et dateFinProtection (paramètre
+              protection.temporaire.ukraine.date-fin, défaut 2027-03-04 — À METTRE À JOUR
+              annuellement au gré des prolongations de la directive) ;
+            - prochainRenouvellement = dureeProtectionRestante &lt; 90 jours ;
+            - droitTravail immédiat sans single permit (art. 57/29) ;
+            - droitsAides (CPAS, logement, enseignement, soins) ;
+            - cheminProcedure (présentation OE → annexe 35 → inscription commune → droits activés).
+
+            Outil single-country BELGIQUE — distinct de la protection subsidiaire art. 48/4
+            (F-221) et de la demande de protection internationale CGRA.
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-215-17).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (446-seed-protection-temporaire-ukraine-be-visibility.xml) est livrée dans la
+            MÊME PR que cette table.
+        </comment>
+
+        <createTable tableName="protection_temporaire_ukraine_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pt_ukraine_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_arrivee" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nationalite_ukrainienne" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="residence_ukraine_avant_24fev2022" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="apatrides_ukraine" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="membre_famille_protege" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="titre_sejour_be" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eligible" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_protection" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_protection_restante" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="protection_temporaire_ukraine_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_pt_ukraine_be_case_file"/>
+
+        <createIndex tableName="protection_temporaire_ukraine_be_analyses"
+                     indexName="idx_pt_ukraine_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="protection_temporaire_ukraine_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
