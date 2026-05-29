@@ -73,6 +73,8 @@ import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-
 import { RecepisseAttestationSectionComponent } from '../recepisse-attestation-section/recepisse-attestation-section.component';
 // SF-214-18 : composant complet F-IM-33-ofpra-introduction-fr — OFPRA introduction (FR, échéance + stepper 5 étapes + risque procédure accélérée).
 import { OfpraIntroductionSectionComponent } from '../ofpra-introduction-section/ofpra-introduction-section.component';
+// SF-214-26 : composant complet F-IM-37-anef-procedure-fr — ANEF procédure / pannes (FR, guide pas-à-pas + recours panne téléservice).
+import { AnefProcedureSectionComponent } from '../anef-procedure-section/anef-procedure-section.component';
 // SF-214-20 : composant complet F-IM-34-aj-cnda-fr — aide juridictionnelle CNDA (FR, ressources + délais, bridge échéance F-69).
 import { AjCndaSectionComponent } from '../aj-cnda-section/aj-cnda-section.component';
 // SF-214-22 : composant complet F-IM-35-victime-traite-l4251-fr — protection victime de traite L. 425-1 (FR, alerte sécurité si victime en danger).
@@ -1639,6 +1641,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-33-ofpra-introduction-fr', {
         displayLabel: 'OFPRA introduction (FR)',
         component: OfpraIntroductionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-26 : composant complet F-IM-37-anef-procedure-fr — ANEF procédure /
+      // pannes (FR). FR uniquement. Guide pas-à-pas de la dématérialisation ANEF :
+      // détecte une panne du téléservice et le risque d'expiration du titre, affiche
+      // soit les étapes standard, soit les étapes alternatives de recours (dépôt
+      // papier préfecture, référé) en cas de panne, et donne le délai de recours pour
+      // faute. Pré-fill IA 2 champs (dateExpirationTitre + typeTitreConcerne depuis
+      // typeTitreSejour) via static getPrefillCount + AnefProcedurePrefillRules.
+      ['F-IM-37-anef-procedure-fr', {
+        displayLabel: 'ANEF procédure / pannes (FR)',
+        component: AnefProcedureSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4806,6 +4825,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-214-18 : F-IM-33-ofpra-introduction-fr OFPRA introduction (FR) — checklist
     // procédure (stepper 5 étapes + pièces requises) → thème DOCUMENTS.
     ['F-IM-33-ofpra-introduction-fr', 'DOCUMENTS'],
+    // SF-214-26 : F-IM-37-anef-procedure-fr ANEF procédure / pannes (FR) — guide + recours.
+    ['F-IM-37-anef-procedure-fr', 'DOCUMENTS'],
     // SF-214-20 : F-IM-34-aj-cnda-fr aide juridictionnelle CNDA (FR) — thème DELAIS,
     // calculateur de délais (recours CNDA 1 mois réduit en accélérée + échéance
     // dépôt AJ) avec bridge échéance F-69. Cohérent avec F-IM-28 (DELAIS).

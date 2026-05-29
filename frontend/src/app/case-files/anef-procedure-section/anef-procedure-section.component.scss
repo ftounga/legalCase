@@ -1,0 +1,108 @@
+/* SF-214-26 — Outil ANEF procédure / pannes (FR). Pattern miroir OFPRA introduction. */
+@import '../../simulators/standalone-banner';
+
+.anef-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.anef-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.anef-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.anef-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.anef-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-navy, #1a375f);
+  font-weight: 600; font-size: 12px;
+  &--inline  { margin-left: 8px; }
+  &--normal  { background: rgba(34, 120, 60, 0.16); color: #1c7a36; }
+  &--urgent  { background: rgba(176, 32, 32, 0.14); color: #9a1c1c; }
+  &--panne   { background: rgba(224, 138, 0, 0.16); color: #b06d00; }
+  &--recours { background: rgba(26, 55, 95, 0.12); color: var(--ds-navy, #1a375f); }
+}
+
+.anef-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.anef-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.anef-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.anef-form {
+  display: flex; flex-direction: column; gap: 12px;
+  mat-form-field { width: 100%; }
+}
+.anef-field-wrap { display: flex; flex-direction: column; gap: 4px; mat-form-field { width: 100%; } }
+.anef-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.anef-result { display: flex; flex-direction: column; gap: 12px; }
+
+.anef-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info    { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--warning { border-left-color: #e08a00; background: rgba(224, 138, 0, 0.12); mat-icon { color: #b06d00; } }
+}
+
+.anef-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.anef-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.anef-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.45; }
+
+.anef-mono { font-family: 'JetBrains Mono', 'Menlo', monospace; font-weight: 700; color: var(--ds-text-primary, #1a2330); }
+
+.anef-stepper { display: flex; flex-direction: column; gap: 8px; }
+.anef-stepper-label {
+  font-size: 11px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.anef-steps {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 0;
+}
+.anef-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0; position: relative;
+  & + .anef-step { border-top: 1px solid var(--ds-border, #e6e1d4); }
+}
+.anef-step-num {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--ds-navy, #1a375f); color: #fff;
+  font-size: 12px; font-weight: 700;
+}
+.anef-step-text { font-size: 13px; color: var(--ds-text-primary, #1a2330); line-height: 1.45; padding-top: 2px; }
+
+.anef-recours { display: flex; flex-direction: column; gap: 6px; }
+.anef-recours-label {
+  font-size: 11px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.anef-recours-value { font-size: 15px; }
+
+.anef-empty { font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic; }
+
+.anef-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.anef-meta-base {
+  font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--ds-accent-gold, #c9a54b); }
+}
