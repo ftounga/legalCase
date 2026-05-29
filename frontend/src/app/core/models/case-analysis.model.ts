@@ -1668,6 +1668,18 @@ export interface ImmigrationExtractedData {
    * Sert de pré-fill (datePlainte) pour l'outil F-IM-35. FR uniquement : nullable.
    */
   tehDatePlainte?: string | null;
+  /**
+   * SF-214-24 — true si le pipeline IA détecte un projet de demande de carte de
+   * résident de dix ans (flag de contexte CONTEXTUAL pour l'outil F-IM-36).
+   * FR uniquement : nullable.
+   */
+  carteResidentEnvisagee?: boolean | null;
+  /**
+   * SF-214-24 — ressources mensuelles nettes (€) détectées par le pipeline IA,
+   * pré-fill de l'outil carte de résident F-IM-36 (ressourcesMensuellesNettes).
+   * FR uniquement : nullable.
+   */
+  carteResidentRessources?: number | null;
 }
 
 export interface CaseAnalysisVersionSummary {

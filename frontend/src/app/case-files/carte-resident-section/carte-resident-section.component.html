@@ -1,0 +1,159 @@
+<section class="cr-section">
+  <header class="cr-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cr-body">
+    <mat-icon class="cr-icon">badge</mat-icon>
+    <span class="cr-title">CARTE DE RÉSIDENT L. 426-1 (FR)</span>
+    @if (result()) {
+      <span class="cr-chip" [ngClass]="verdictClass(result()!.verdict)">{{ verdictLabel(result()!.verdict) }}</span>
+    }
+    <mat-icon class="cr-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cr-body" class="cr-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="cr-banner cr-banner--info" role="note" data-testid="be-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="cr-banner-content">
+            <div class="cr-banner-title">Carte de résident — procédure française uniquement</div>
+            <div class="cr-banner-sub">
+              La carte de résident de dix ans de l'article L. 426-1 du CESEDA
+              relève du droit français. La Belgique dispose d'un régime distinct
+              (établissement / séjour de longue durée).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="cr-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="cr-form" (ngSubmit)="analyze()">
+              <div class="cr-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée de séjour régulier (années)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="dureeSejourRegulierAnnees()"
+                         (ngModelChange)="onDureeChange($event)"
+                         name="dureeSejourRegulierAnnees"
+                         data-testid="duree-sejour" />
+                </mat-form-field>
+                @if (provenanceDuree() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="cr-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Niveau d'intégration républicaine</mat-label>
+                  <mat-select [ngModel]="niveauIntegration()"
+                              (ngModelChange)="onNiveauChange($event)"
+                              name="niveauIntegration"
+                              data-testid="niveau-integration">
+                    @for (opt of niveauxIntegration; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="cr-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ressources mensuelles nettes (€)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="ressourcesMensuellesNettes()"
+                         (ngModelChange)="onRessourcesChange($event)"
+                         name="ressourcesMensuellesNettes"
+                         data-testid="ressources" />
+                </mat-form-field>
+                @if (provenanceRessources() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="cr-field-wrap">
+                <mat-checkbox [ngModel]="condamnationsPenalesGraves()"
+                              (ngModelChange)="onCondamnationsChange($event)"
+                              name="condamnationsPenalesGraves"
+                              data-testid="condamnations">
+                  Condamnations pénales graves connues
+                </mat-checkbox>
+              </div>
+
+              <div class="cr-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="cr-result">
+              <div class="cr-banner cr-banner--neutral" role="status">
+                <mat-icon>badge</mat-icon>
+                <div class="cr-banner-content">
+                  <div class="cr-banner-title">
+                    Verdict : <span class="cr-chip" [ngClass]="verdictClass(result()!.verdict)" data-testid="verdict-chip">{{ verdictLabel(result()!.verdict) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.chipsCriteresNonRemplis?.length) {
+                <div class="cr-criteres">
+                  <div class="cr-criteres-label">Critères non remplis</div>
+                  <div class="cr-chips" data-testid="criteres-non-remplis">
+                    @for (crit of result()!.chipsCriteresNonRemplis; track crit) {
+                      <span class="cr-chip cr-chip--missing">{{ crit }}</span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="cr-atouts">
+                <div class="cr-atouts-label">Atouts du dossier</div>
+                @if (result()!.atouts?.length) {
+                  <ul class="cr-atouts-list" data-testid="atouts">
+                    @for (atout of result()!.atouts; track atout) {
+                      <li class="cr-atouts-item">{{ atout }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <div class="cr-empty">Aucun atout particulier identifié.</div>
+                }
+              </div>
+
+              <div class="cr-meta">
+                <span class="cr-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
