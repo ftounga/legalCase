@@ -130,6 +130,8 @@ public class CaseFileDashboardService {
     private final NaturalisationRecoursTjRepository naturalisationRecoursTjRepo;
     // SF-214-31 : F-IM-40 recours TA Nantes refus naturalisation par décret (FR)
     private final NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo;
+    // SF-214-33 : F-IM-41 appel CAA / cassation CE délais (FR)
+    private final AppelCaaCassationRepository appelCaaCassationRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -284,6 +286,7 @@ public class CaseFileDashboardService {
                                      MnaEvaluationAgeRepository mnaEvaluationAgeRepo,
                                      NaturalisationRecoursTjRepository naturalisationRecoursTjRepo,
                                      NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo,
+                                     AppelCaaCassationRepository appelCaaCassationRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -421,6 +424,7 @@ public class CaseFileDashboardService {
         this.mnaEvaluationAgeRepo = mnaEvaluationAgeRepo;
         this.naturalisationRecoursTjRepo = naturalisationRecoursTjRepo;
         this.naturalisationRecoursTaNantesRepo = naturalisationRecoursTaNantesRepo;
+        this.appelCaaCassationRepo = appelCaaCassationRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -633,6 +637,8 @@ public class CaseFileDashboardService {
         // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité (Cciv 26-3, FR)
         addSafely(tiles, "F-IM-39-naturalisation-recours-tj-fr", caseFileId, () -> tileFromNaturalisationRecoursTjAnalysis(caseFileId));
         addSafely(tiles, "F-IM-40-naturalisation-recours-ta-fr", caseFileId, () -> tileFromNaturalisationRecoursTaNantesAnalysis(caseFileId));
+        // SF-214-33 : F-IM-41 appel CAA / cassation CE délais (CJA, FR)
+        addSafely(tiles, "F-IM-41-appel-caa-cassation-ce-fr", caseFileId, () -> tileFromAppelCaaCassationAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2043,6 +2049,43 @@ public class CaseFileDashboardService {
                         "F-IM-40-naturalisation-recours-ta-fr",
                         "DELAI",
                         "Recours TA Nantes naturalisation",
+                        statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-33 — F-IM-41 appel CAA / cassation CE délais (CJA L. 811-1 / R. 811-2 ;
+     * L. 821-1 / R. 821-1). Tuile DELAI : rappelle l'échéance d'appel devant la CAA
+     * et le statut associé. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code ALERT} si le délai d'appel est PRESCRIT</li>
+     *   <li>{@code WARNING} si URGENT (≤ 15 jours)</li>
+     *   <li>{@code OK} si APPEL_POSSIBLE</li>
+     * </ul>
+     */
+    private DashboardTile tileFromAppelCaaCassationAnalysis(UUID caseFileId) {
+        return appelCaaCassationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AppelCaaCassationResult.class);
+                AppelCaaCassationStatut statut = r.statut();
+                String secondary = r.dateEcheanceAppelCaa() != null
+                        ? "Échéance appel CAA : " + r.dateEcheanceAppelCaa()
+                        : null;
+                String alert = switch (statut == null ? AppelCaaCassationStatut.APPEL_POSSIBLE : statut) {
+                    case PRESCRIT -> "ALERT";
+                    case URGENT -> "WARNING";
+                    case APPEL_POSSIBLE -> "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-41-appel-caa-cassation-ce-fr",
+                        "DELAI",
+                        "Appel CAA / cassation CE",
                         statut != null ? statut.name() : "—",
                         secondary,
                         alert);

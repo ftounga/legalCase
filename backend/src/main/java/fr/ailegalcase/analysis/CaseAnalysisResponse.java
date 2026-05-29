@@ -2632,7 +2632,23 @@ public record CaseAnalysisResponse(
              * (non future) — point de départ du délai de recours de 6 mois (Cciv 26-3). Null
              * si non extractible ou dossier BE.
              */
-            String naturalisationDateRefus) {
+            String naturalisationDateRefus,
+            // === SF-214-33 — F-IM-41 Appel CAA / cassation CE délais (FRANCE UNIQUEMENT, false/null pour BE) ===
+            /**
+             * SF-214-33 : flag pivot — true si les pièces évoquent qu'un recours en
+             * appel devant la CAA ou un pourvoi en cassation devant le CE est envisagé
+             * après un jugement du tribunal administratif en contentieux des étrangers
+             * (mentions « jugement », « décision TA », « appel », « CAA », « pourvoi en
+             * cassation », « CE »). Pivot pour la visibility rule CONTEXTUAL de F-IM-41
+             * (trigger {@code recours_envisage_detecte}). Dossiers BE : toujours false.
+             */
+            boolean recoursEnvisageDetecte,
+            /**
+             * SF-214-33 : date du jugement du tribunal administratif au format
+             * YYYY-MM-DD (non future) — point de départ du délai d'appel devant la CAA.
+             * Sert au pré-remplissage de l'outil F-IM-41. Null si non extractible ou dossier BE.
+             */
+            String recoursDateJugementTA) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2898,6 +2914,8 @@ public record CaseAnalysisResponse(
             // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité FR
             private String naturalisationVoie;
             private String naturalisationDateRefus;
+            private boolean recoursEnvisageDetecte;
+            private String recoursDateJugementTA;
 
             private Builder() {}
 
@@ -3029,6 +3047,8 @@ public record CaseAnalysisResponse(
             public Builder mnaExamenOsseuxOrdonne(boolean v) { this.mnaExamenOsseuxOrdonne = v; return this; }
             public Builder naturalisationVoie(String v) { this.naturalisationVoie = v; return this; }
             public Builder naturalisationDateRefus(String v) { this.naturalisationDateRefus = v; return this; }
+            public Builder recoursEnvisageDetecte(boolean v) { this.recoursEnvisageDetecte = v; return this; }
+            public Builder recoursDateJugementTA(String v) { this.recoursDateJugementTA = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3122,7 +3142,10 @@ public record CaseAnalysisResponse(
                         mnaExamenOsseuxOrdonne,
                         // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité FR
                         naturalisationVoie,
-                        naturalisationDateRefus);
+                        naturalisationDateRefus,
+                        // SF-214-33 : F-IM-41 appel CAA / cassation CE délais FR
+                        recoursEnvisageDetecte,
+                        recoursDateJugementTA);
             }
         }
     }
@@ -6270,6 +6293,16 @@ public record CaseAnalysisResponse(
                 && naturalisationDateRefusRaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
             naturalisationDateRefus = naturalisationDateRefusRaw;
         }
+        // SF-214-33 : F-IM-41 appel CAA / cassation CE délais FR — 1 flag pivot
+        // + 1 champ de pré-fill (FR uniquement). Date du jugement TA ISO non future.
+        boolean recoursEnvisageDetecte = booleanOrFalse(root, "recours_envisage_detecte");
+        String recoursDateJugementTARaw = textOrNull(root, "recours_date_jugement_ta");
+        String recoursDateJugementTA = null;
+        if (recoursDateJugementTARaw != null
+                && recoursDateJugementTARaw.matches("\\d{4}-\\d{2}-\\d{2}")
+                && recoursDateJugementTARaw.compareTo(java.time.LocalDate.now().toString()) <= 0) {
+            recoursDateJugementTA = recoursDateJugementTARaw;
+        }
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6362,7 +6395,10 @@ public record CaseAnalysisResponse(
                 && !mnaExamenOsseuxOrdonne
                 // SF-214-29 : F-IM-39 recours TJ refus déclaration de nationalité FR (2 champs IA, nullables)
                 && naturalisationVoie == null
-                && naturalisationDateRefus == null) return null;
+                && naturalisationDateRefus == null
+                // SF-214-33 : F-IM-41 appel CAA / cassation CE délais FR (1 flag pivot + 1 champ IA)
+                && !recoursEnvisageDetecte
+                && recoursDateJugementTA == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6500,6 +6536,8 @@ public record CaseAnalysisResponse(
                 .mnaExamenOsseuxOrdonne(mnaExamenOsseuxOrdonne)
                 .naturalisationVoie(naturalisationVoie)
                 .naturalisationDateRefus(naturalisationDateRefus)
+                .recoursEnvisageDetecte(recoursEnvisageDetecte)
+                .recoursDateJugementTA(recoursDateJugementTA)
                 .build();
     }
 

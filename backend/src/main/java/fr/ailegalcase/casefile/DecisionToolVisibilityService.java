@@ -313,6 +313,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "carte_resident_envisagee");
         // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "anef_panne_detectee");
+        // SF-214-33 : F-IM-41 appel CAA / cassation CE délais FR — flag pivot CONTEXTUAL Immigration FR.
+        addBooleanFlagIfTrue(detected, immigrationNode, "recours_envisage_detecte");
         // SF-214-11 : F-IM-30 AES calcul présence prouvée FR — flag pivot DÉRIVÉ.
         // L'outil de calcul de présence est transversal aux 4 voies AES : il se déclenche
         // dès qu'au moins une des 4 voies AES est détectée. Le flag pivot
