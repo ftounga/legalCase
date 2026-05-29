@@ -61,6 +61,8 @@ import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l425
 import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
 // SF-214-04 : composant complet F-IM-26 regroupement familial L.434-1+ CESEDA (FR).
 import { RegroupementFamilialSectionComponent } from '../regroupement-familial-section/regroupement-familial-section.component';
+// SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
+import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
@@ -1522,6 +1524,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-26-regroupement-familial-fr', {
         displayLabel: 'Regroupement familial (FR)',
         component: RegroupementFamilialSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF
+      // liens personnels L.423-23 CESEDA (FR). FR uniquement. Scoring 0-100 +
+      // 4 verdicts (ELIGIBLE_PROBABLE / ELIGIBLE_SOUS_RESERVE / NON_ELIGIBLE /
+      // DOSSIER_A_CONSOLIDER). Pré-fill IA 4 champs (durée résidence, minorité à
+      // l'entrée, enfants en France, niveau d'intégration) via static getPrefillCount
+      // + VpfLiensPersonnelsPrefillRules.
+      ['F-IM-27-vpf-liens-personnels-l42323-fr', {
+        displayLabel: 'VPF liens personnels L.423-23 (FR)',
+        component: VpfLiensPersonnelsSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4591,6 +4609,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-214-04 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR) — analyseur
     // d'éligibilité (ressources SMIC + surface habitable). Thème VALIDITE.
     ['F-IM-26-regroupement-familial-fr', 'VALIDITE'],
+    // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
+    // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
+    // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.
+    ['F-IM-27-vpf-liens-personnels-l42323-fr', 'VALIDITE'],
     // SF-215-02 : F-IM-25-single-permit-be permis unique BE (travail+séjour).
     // Thème DELAIS (calcul date limite dépôt = dateFinPermit - 60j + 4 statuts
     // de renouvellement). Aligné sur les autres outils Immigration BE-only
