@@ -100,6 +100,8 @@ public class CaseFileDashboardService {
     private final ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
     private final EtrangerMaladeRepository etrangerMaladeRepo;
+    // SF-214-03 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR)
+    private final RegroupementFamilialRepository regroupementFamilialRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -239,6 +241,7 @@ public class CaseFileDashboardService {
                                      PriseActeRuptureRepository priseActeRuptureRepo,
                                      ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo,
                                      EtrangerMaladeRepository etrangerMaladeRepo,
+                                     RegroupementFamilialRepository regroupementFamilialRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -361,6 +364,7 @@ public class CaseFileDashboardService {
         this.priseActeRuptureRepo = priseActeRuptureRepo;
         this.resiliationJudiciaireCphRepo = resiliationJudiciaireCphRepo;
         this.etrangerMaladeRepo = etrangerMaladeRepo;
+        this.regroupementFamilialRepo = regroupementFamilialRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -547,6 +551,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-24-victime-violences-l4256-fr", caseFileId, () -> tileFromVictimeViolencesL4256Analysis(caseFileId));
         // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
         addSafely(tiles, "F-IM-25-etranger-malade-l4259-fr", caseFileId, () -> tileFromEtrangerMaladeAnalysis(caseFileId));
+        // SF-214-03 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR)
+        addSafely(tiles, "F-IM-26-regroupement-familial-fr", caseFileId, () -> tileFromRegroupementFamilialAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1686,6 +1692,38 @@ public class CaseFileDashboardService {
                         "F-IM-25-etranger-malade-l4259-fr",
                         "VALIDITE",
                         "Étranger malade L.425-9",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-03 — F-IM-26 regroupement familial L.434-1+ CESEDA (FR). Expose le
+     * verdict d'éligibilité ; seuils chiffrés (ressources/surface requises) en
+     * valeur secondaire ; alertLevel mappé sur la sémantique du verdict.
+     */
+    private DashboardTile tileFromRegroupementFamilialAnalysis(UUID caseFileId) {
+        return regroupementFamilialRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RegroupementFamilialResult.class);
+                String verdict = r.verdict();
+                String secondary = String.format(
+                        "Ressources requises : %.2f € — Surface requise : %d m²",
+                        r.ressourcesRequises(), r.surfaceRequise());
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "ELIGIBLE" -> "OK";
+                    case "ELIGIBLE_SOUS_RESERVE" -> "WARNING";
+                    case "NON_ELIGIBLE_DELAI", "NON_ELIGIBLE_RESSOURCES", "NON_ELIGIBLE_LOGEMENT" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-26-regroupement-familial-fr",
+                        "VALIDITE",
+                        "Regroupement familial L.434-1",
                         verdict != null ? verdict : "—",
                         secondary,
                         alert);
