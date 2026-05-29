@@ -1651,6 +1651,23 @@ export interface ImmigrationExtractedData {
    * F-IM-32 (récépissé vs attestation). FR uniquement : nullable.
    */
   recepisseOuAttestationType?: 'RECEPISSE' | 'ATTESTATION_PROLONGATION' | 'INCONNU' | null;
+  /**
+   * SF-214-22 — true si le pipeline IA détecte un profil de victime de traite
+   * des êtres humains / proxénétisme (flag de contexte pour l'outil F-IM-35).
+   * FR uniquement : nullable.
+   */
+  victimeTraiteDetectee?: boolean | null;
+  /**
+   * SF-214-22 — true si une plainte / un témoignage contre l'auteur de la
+   * traite est détecté. Sert de pré-fill (plainteDeposee) pour l'outil F-IM-35.
+   * FR uniquement : nullable.
+   */
+  tehPlainteDeposee?: boolean | null;
+  /**
+   * SF-214-22 — date ISO YYYY-MM-DD de la plainte / du témoignage détecté.
+   * Sert de pré-fill (datePlainte) pour l'outil F-IM-35. FR uniquement : nullable.
+   */
+  tehDatePlainte?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
