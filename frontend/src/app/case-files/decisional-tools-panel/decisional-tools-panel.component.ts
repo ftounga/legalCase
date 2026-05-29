@@ -73,6 +73,8 @@ import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-
 import { RecepisseAttestationSectionComponent } from '../recepisse-attestation-section/recepisse-attestation-section.component';
 // SF-214-18 : composant complet F-IM-33-ofpra-introduction-fr — OFPRA introduction (FR, échéance + stepper 5 étapes + risque procédure accélérée).
 import { OfpraIntroductionSectionComponent } from '../ofpra-introduction-section/ofpra-introduction-section.component';
+// SF-214-20 : composant complet F-IM-34-aj-cnda-fr — aide juridictionnelle CNDA (FR, ressources + délais, bridge échéance F-69).
+import { AjCndaSectionComponent } from '../aj-cnda-section/aj-cnda-section.component';
 // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
 import { AesPresenceProuveeSectionComponent } from '../aes-presence-prouvee-section/aes-presence-prouvee-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
@@ -1633,6 +1635,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-33-ofpra-introduction-fr', {
         displayLabel: 'OFPRA introduction (FR)',
         component: OfpraIntroductionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-20 : composant complet F-IM-34-aj-cnda-fr — aide juridictionnelle
+      // CNDA (FR). FR uniquement. Vérifie l'éligibilité ressources, calcule
+      // l'échéance du recours CNDA (1 mois, réduit en procédure accélérée) et
+      // l'échéance de dépôt de la demande d'AJ + liste les pièces. Statut
+      // AJ_A_DEMANDER/AJ_DEPOSEE/HORS_DELAI_AJ/NON_ELIGIBLE_RESSOURCES. Pré-fill
+      // IA 1 champ (dateDecisionOFPRA depuis asileDateDecisionAnterieure) via
+      // static getPrefillCount + AjCndaPrefillRules. Bridge échéance F-69
+      // (« Demande AJ CNDA » si statut AJ_A_DEMANDER).
+      ['F-IM-34-aj-cnda-fr', {
+        displayLabel: 'AJ CNDA (FR)',
+        component: AjCndaSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4745,6 +4765,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-214-18 : F-IM-33-ofpra-introduction-fr OFPRA introduction (FR) — checklist
     // procédure (stepper 5 étapes + pièces requises) → thème DOCUMENTS.
     ['F-IM-33-ofpra-introduction-fr', 'DOCUMENTS'],
+    // SF-214-20 : F-IM-34-aj-cnda-fr aide juridictionnelle CNDA (FR) — thème DELAIS,
+    // calculateur de délais (recours CNDA 1 mois réduit en accélérée + échéance
+    // dépôt AJ) avec bridge échéance F-69. Cohérent avec F-IM-28 (DELAIS).
+    ['F-IM-34-aj-cnda-fr', 'DELAIS'],
     // SF-214-12 : F-IM-30-aes-presence-prouvee-fr AES présence prouvée (FR).
     // Thème DIAGNOSTIC — l'outil agrège des périodes de présence justifiées par
     // pièce et restitue un diagnostic d'éligibilité aux 4 voies AES (famille 5 ans,
