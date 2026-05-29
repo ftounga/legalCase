@@ -77,6 +77,8 @@ import { OfpraIntroductionSectionComponent } from '../ofpra-introduction-section
 import { AnefProcedureSectionComponent } from '../anef-procedure-section/anef-procedure-section.component';
 // SF-214-20 : composant complet F-IM-34-aj-cnda-fr — aide juridictionnelle CNDA (FR, ressources + délais, bridge échéance F-69).
 import { AjCndaSectionComponent } from '../aj-cnda-section/aj-cnda-section.component';
+// SF-214-28 : composant complet F-IM-38-mna-evaluation-age-fr — MNA évaluation âge / recours JE (FR, stepper procédure ASE + contestation osseux, bridge échéance F-69).
+import { MnaEvaluationAgeSectionComponent } from '../mna-evaluation-age-section/mna-evaluation-age-section.component';
 // SF-214-22 : composant complet F-IM-35-victime-traite-l4251-fr — protection victime de traite L. 425-1 (FR, alerte sécurité si victime en danger).
 import { VictimeTraiteSectionComponent } from '../victime-traite-section/victime-traite-section.component';
 // SF-214-24 : composant complet F-IM-36-carte-resident-l4261-fr — carte de résident L. 426-1 (FR, checklist critères + atouts).
@@ -1676,6 +1678,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-34-aj-cnda-fr', {
         displayLabel: 'AJ CNDA (FR)',
         component: AjCndaSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-28 : composant complet F-IM-38-mna-evaluation-age-fr — MNA
+      // évaluation de l'âge / recours juge des enfants (FR). FR uniquement
+      // (l'évaluation de la minorité par l'ASE, la contestation des examens
+      // osseux art. 388 c. civ. et le recours JE relèvent du droit français).
+      // Détermine le statut de la situation, calcule l'échéance de saisine du
+      // JE (bridge échéance F-69 si RECOURS_JE_URGENT, label « Saisine juge des
+      // enfants MNA »), expose le stepper procédure ASE, les arguments de
+      // contestation de l'examen osseux et les droits attachés. Pré-fill IA
+      // 1 champ (dateNaissanceDeclaree depuis mineursDateNaissance) via static
+      // getPrefillCount + MnaEvaluationAgePrefillRules.
+      ['F-IM-38-mna-evaluation-age-fr', {
+        displayLabel: 'MNA évaluation âge (FR)',
+        component: MnaEvaluationAgeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4831,6 +4853,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // calculateur de délais (recours CNDA 1 mois réduit en accélérée + échéance
     // dépôt AJ) avec bridge échéance F-69. Cohérent avec F-IM-28 (DELAIS).
     ['F-IM-34-aj-cnda-fr', 'DELAIS'],
+    // SF-214-28 : F-IM-38-mna-evaluation-age-fr MNA évaluation âge / recours JE (FR)
+    // — thème VALIDITE, analyseur de la qualité de mineur isolé (statut + droits
+    // attachés + contestation examen osseux + procédure ASE/JE) avec bridge
+    // échéance F-69 sur la saisine du juge des enfants si RECOURS_JE_URGENT.
+    ['F-IM-38-mna-evaluation-age-fr', 'VALIDITE'],
     // SF-214-22 : F-IM-35-victime-traite-l4251-fr victime de traite L. 425-1 (FR) —
     // thème VALIDITE, analyseur d'éligibilité (scoring) à la carte de séjour
     // « vie privée et familiale » + alerte sécurité si victime en danger.

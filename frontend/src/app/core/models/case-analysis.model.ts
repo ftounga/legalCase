@@ -1354,6 +1354,15 @@ export interface ImmigrationExtractedData {
   eloiDureePresenceIrreguliereMois?: number | null;
   eloiMotifMenace?: string | null;
   /**
+   * SF-214-28 : pré-fill outil MNA évaluation âge / recours JE Immigration FR
+   * (F-IM-38-mna-evaluation-age-fr). FRANCE uniquement — dossier BE : null.
+   * `mnaEvaluationRefusee` : l'ASE a refusé l'évaluation / la prise en charge du mineur isolé.
+   * `mnaExamenOsseuxOrdonne` : un examen osseux a été ordonné dans le cadre de l'évaluation de l'âge.
+   * (la date de naissance déclarée réutilise `mineursDateNaissance` existant.)
+   */
+  mnaEvaluationRefusee?: boolean | null;
+  mnaExamenOsseuxOrdonne?: boolean | null;
+  /**
    * SF-214-18 : pré-fill outil OFPRA introduction Immigration FR (F-IM-33).
    * FRANCE uniquement — dossier BE : null. Tous nullables.
    * `procedureAsileDetectee` : flag détection d'une procédure d'asile dans le
