@@ -63,6 +63,9 @@ import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etran
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
 import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-section/regroupement-10ter-be-section.component';
+// SF-215-14 : composant complet F-IM-31-cce-annulation-30j-be (Immigration BE, recours CCE annulation 30j).
+// CCE = Conseil du Contentieux des Étrangers (droit des étrangers belge).
+import { CceAnnulationBeSectionComponent } from '../cce-annulation-be-section/cce-annulation-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -1529,6 +1532,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-26-regroupement-10ter-be', {
         displayLabel: 'Regroupement familial 10ter (BE)',
         component: Regroupement10terBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-14 : composant complet F-IM-31-cce-annulation-30j-be — recours en
+      // ANNULATION devant le CCE (Conseil du Contentieux des Étrangers). BELGIQUE
+      // uniquement, CONTEXTUAL via flag `recours_cce_envisage`. Calculateur de
+      // délai (30 jours calendaires, Loi 15/12/1980 art. 39/2 §2 et 39/57 §1er).
+      // Pré-fill IA RÉEL 2 champs (dateNotificationDecision, typeDecision) via
+      // static getPrefillCount + CceAnnulationBePrefillRules. Les 2 champs
+      // recoursForme (checkbox) + dateRecours (date conditionnelle) sont
+      // aspirationnels — `PREFILL_COUNT_ALWAYS_ZERO`. Badge statut 4 états
+      // (DISPONIBLE vert / URGENT orange / EXPIRE rouge / RECOURS_FORME bleu) +
+      // lien croisé vers F-IM-32 (extrême urgence) si URGENT/EXPIRE.
+      ['F-IM-31-cce-annulation-30j-be', {
+        displayLabel: 'Recours CCE annulation 30j (BE)',
+        component: CceAnnulationBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4493,6 +4516,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Aligné sur F-IM-14-40ter-familial-belge-be et les autres scoring BE
     // (visibility CONTEXTUAL via flag `regroupement_10ter_detecte`).
     ['F-IM-26-regroupement-10ter-be', 'VALIDITE'],
+    // SF-215-14 : F-IM-31-cce-annulation-30j-be recours CCE annulation (BE).
+    // Thème DELAIS — calculateur de délai (30j calendaires, date limite +
+    // jours restants + statut DISPONIBLE/URGENT/EXPIRE/RECOURS_FORME). Aligné
+    // sur F-IM-08-annexe13-be et les autres calculateurs de délais CCE/CESEDA.
+    ['F-IM-31-cce-annulation-30j-be', 'DELAIS'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

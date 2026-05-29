@@ -1414,6 +1414,23 @@ export interface ImmigrationExtractedData {
   be10terRevenusMensuels?: number | null;
   be10terDureeSejour?: number | null;
   /**
+   * SF-215-13 / SF-215-14 — Pré-fill outil F-IM-31-cce-annulation-30j-be
+   * « Recours CCE annulation 30j (BE) » — Loi 15/12/1980 art. 39/2 §2 et
+   * 39/57 §1er (délai de droit commun 30 jours calendaires).
+   * ⚠️ CCE = Conseil du Contentieux des Étrangers (droit des étrangers belge),
+   * PAS la Centrale des Crédits. BELGIQUE uniquement — dossier FR : null.
+   *
+   * `recoursCceEnvisage`        : flag CONTEXTUAL — un recours CCE est envisagé.
+   * `recoursCceDateNotification`: date de notification de la décision attaquée
+   *   (ISO yyyy-MM-dd) — champ pré-fill RÉEL.
+   * `recoursCceTypeDecision`    : type de décision attaquée — whitelist
+   *   REFUS_TITRE / REFUS_REGROUPEMENT / REFUS_9BIS / REFUS_9TER /
+   *   OQT_ANNEXE13 / DECISION_CGRA / AUTRE — champ pré-fill RÉEL.
+   */
+  recoursCceEnvisage?: boolean | null;
+  recoursCceDateNotification?: string | null;
+  recoursCceTypeDecision?: 'REFUS_TITRE' | 'REFUS_REGROUPEMENT' | 'REFUS_9BIS' | 'REFUS_9TER' | 'OQT_ANNEXE13' | 'DECISION_CGRA' | 'AUTRE' | null;
+  /**
    * SF-215-05 / SF-215-06 — Pré-fill outil F-IM-27-regroupement-10bis-be
    * « Regroupement familial art. 10bis (BE) » — Loi 15/12/1980 art. 10bis,
    * AR 17/05/2007 (seuil ressources 120 % RIS). À la différence de l'art.
