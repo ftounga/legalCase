@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="478-create-appel-caa-cassation-analyses" author="legalcase">
+        <comment>
+            SF-214-33 — table `appel_caa_cassation_analyses` pour l'outil décisionnel
+            "Appel CAA / cassation CE délais" (F-IM-41-appel-caa-cassation-ce-fr, FRANCE).
+
+            Outil single-country FR : calcule le délai d'appel devant la Cour
+            administrative d'appel (1 mois de droit commun, ou 15 jours en OQTF
+            sans délai de départ volontaire) et rappelle le délai de cassation
+            devant le Conseil d'État (2 mois, art. R. 821-1 CJA) ainsi que le filtre
+            d'admission des pourvois en matière d'OQTF (art. L. 821-2 CJA). Persiste
+            l'analyse 1:1 par dossier.
+
+            Source juridique : CJA L. 811-1 / R. 811-2 (appel CAA) ; CJA L. 821-1 /
+            R. 821-1 (cassation CE) ; CJA L. 821-2 (admission des pourvois) ;
+            CESEDA L. 614-6 et s. (délais spéciaux du contentieux de l'éloignement).
+
+            UUID namespace F-214 : f214001f-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="appel_caa_cassation_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_appel_caa_cassation_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_jugement_ta" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_decision_ta" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_contentieux" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delai_special_oqtf" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="appel_caa_cassation_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

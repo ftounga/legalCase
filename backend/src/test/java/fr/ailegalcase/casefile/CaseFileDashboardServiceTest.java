@@ -118,6 +118,8 @@ class CaseFileDashboardServiceTest {
     private NaturalisationRecoursTjRepository naturalisationRecoursTjRepo;
     // SF-214-31 : F-IM-40 recours TA Nantes refus naturalisation par décret (FR)
     private NaturalisationRecoursTaNantesRepository naturalisationRecoursTaNantesRepo;
+    // SF-214-33 : F-IM-41 appel CAA / cassation CE délais (FR)
+    private AppelCaaCassationRepository appelCaaCassationRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -258,6 +260,7 @@ class CaseFileDashboardServiceTest {
         mnaEvaluationAgeRepo = mock(MnaEvaluationAgeRepository.class);
         naturalisationRecoursTjRepo = mock(NaturalisationRecoursTjRepository.class);
         naturalisationRecoursTaNantesRepo = mock(NaturalisationRecoursTaNantesRepository.class);
+        appelCaaCassationRepo = mock(AppelCaaCassationRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -489,6 +492,7 @@ class CaseFileDashboardServiceTest {
                 mnaEvaluationAgeRepo,
                 naturalisationRecoursTjRepo,
                 naturalisationRecoursTaNantesRepo,
+                appelCaaCassationRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

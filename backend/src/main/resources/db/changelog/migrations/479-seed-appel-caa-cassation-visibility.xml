@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="479-seed-appel-caa-cassation-visibility" author="legalcase">
+        <comment>
+            SF-214-33 -- seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Appel CAA / cassation CE délais"
+            (F-IM-41-appel-caa-cassation-ce-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte qu'un recours en appel ou en cassation est
+            envisagé après un jugement du tribunal administratif -- nouveau flag
+            pivot `recours_envisage_detecte` = true. Mentions repérées par
+            LegalDomainPromptBuilder : "jugement", "décision TA", "appel", "CAA",
+            "pourvoi en cassation", "CE". En l'absence de recours détecté, l'outil
+            n'est pas visible. priority 41 -- après F-IM-40 recours TA Nantes
+            naturalisation (priority 40).
+
+            Source juridique : CJA L. 811-1 / R. 811-2 (appel CAA) ; CJA L. 821-1 /
+            R. 821-1 (cassation CE) ; CJA L. 821-2 (admission des pourvois) ;
+            CESEDA L. 614-6 et s. (délais spéciaux du contentieux de l'éloignement).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 cote service.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolée,
+            l'entrée TOOL_REGISTRY frontend pour F-IM-41-appel-caa-cassation-ce-fr
+            est livrée dans la PR frontend SF-214-34 (mergée juste après). Les
+            tests DecisionToolVisibilityIntegrityIT / DashboardTileToolIdIntegrityIT
+            repassent verts une fois la PR frontend mergée sur master.
+
+            UUID namespace F-214 : f2140020-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140020-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-41-appel-caa-cassation-ce-fr', 'CONTEXTUAL', 'recours_envisage_detecte', 'true', 41);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140020-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

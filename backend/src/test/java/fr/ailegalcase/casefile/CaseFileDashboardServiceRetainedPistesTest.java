@@ -101,6 +101,7 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(MnaEvaluationAgeRepository.class),
                 mock(NaturalisationRecoursTjRepository.class),
                 mock(NaturalisationRecoursTaNantesRepository.class),
+                mock(AppelCaaCassationRepository.class),
                 mock(LicenciementFauteGraveLourdRepository.class),
                 mock(JldRetentionRepository.class),
                 mock(DublinRecoursRepository.class),
