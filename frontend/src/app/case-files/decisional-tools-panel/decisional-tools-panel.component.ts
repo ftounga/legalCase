@@ -75,6 +75,8 @@ import { RecepisseAttestationSectionComponent } from '../recepisse-attestation-s
 import { OfpraIntroductionSectionComponent } from '../ofpra-introduction-section/ofpra-introduction-section.component';
 // SF-214-20 : composant complet F-IM-34-aj-cnda-fr — aide juridictionnelle CNDA (FR, ressources + délais, bridge échéance F-69).
 import { AjCndaSectionComponent } from '../aj-cnda-section/aj-cnda-section.component';
+// SF-214-22 : composant complet F-IM-35-victime-traite-l4251-fr — protection victime de traite L. 425-1 (FR, alerte sécurité si victime en danger).
+import { VictimeTraiteSectionComponent } from '../victime-traite-section/victime-traite-section.component';
 // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
 import { AesPresenceProuveeSectionComponent } from '../aes-presence-prouvee-section/aes-presence-prouvee-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
@@ -1653,6 +1655,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-34-aj-cnda-fr', {
         displayLabel: 'AJ CNDA (FR)',
         component: AjCndaSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-22 : composant complet F-IM-35-victime-traite-l4251-fr — protection
+      // victime de traite des êtres humains L. 425-1 (FR). FR uniquement (régime
+      // distinct en BE). Évalue l'éligibilité à la carte de séjour « vie privée
+      // et familiale » L. 425-1 pour la victime ayant porté plainte / témoigné,
+      // liste les mesures de protection et alerte par une bannière ROUGE sur le
+      // risque immédiat pour la sécurité (risqueVictimeEnDanger). Pré-fill IA
+      // 2 champs (plainteDeposee depuis tehPlainteDeposee, datePlainte depuis
+      // tehDatePlainte) via static getPrefillCount + VictimeTraitePrefillRules.
+      ['F-IM-35-victime-traite-l4251-fr', {
+        displayLabel: 'Victime traite L.425-1 (FR)',
+        component: VictimeTraiteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4769,6 +4789,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // calculateur de délais (recours CNDA 1 mois réduit en accélérée + échéance
     // dépôt AJ) avec bridge échéance F-69. Cohérent avec F-IM-28 (DELAIS).
     ['F-IM-34-aj-cnda-fr', 'DELAIS'],
+    // SF-214-22 : F-IM-35-victime-traite-l4251-fr victime de traite L. 425-1 (FR) —
+    // thème VALIDITE, analyseur d'éligibilité (scoring) à la carte de séjour
+    // « vie privée et familiale » + alerte sécurité si victime en danger.
+    ['F-IM-35-victime-traite-l4251-fr', 'VALIDITE'],
     // SF-214-12 : F-IM-30-aes-presence-prouvee-fr AES présence prouvée (FR).
     // Thème DIAGNOSTIC — l'outil agrège des périodes de présence justifiées par
     // pièce et restitue un diagnostic d'éligibilité aux 4 voies AES (famille 5 ans,

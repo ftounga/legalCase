@@ -1,0 +1,91 @@
+/* SF-214-22 — Outil victime de traite L. 425-1 (FR). Pattern miroir récépissé vs attestation. */
+@import '../../simulators/standalone-banner';
+
+.vt-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.vt-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.vt-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.vt-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.vt-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  &--ok       { background: rgba(32, 128, 64, 0.12); color: #156135; }
+  &--warning  { background: rgba(224, 138, 0, 0.16); color: #b06d00; }
+  &--ko       { background: rgba(176, 32, 32, 0.12); color: #9a1c1c; }
+  &--neutral  { background: rgba(26, 35, 48, 0.08); color: var(--ds-text-secondary, #6a7485); }
+  &--missing  { background: rgba(176, 32, 32, 0.10); color: #9a1c1c; }
+}
+
+.vt-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.vt-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.vt-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.vt-form {
+  display: flex; flex-direction: column; gap: 12px;
+  mat-form-field { width: 100%; }
+}
+.vt-field-wrap { display: flex; flex-direction: column; gap: 4px; mat-form-field { width: 100%; } }
+.vt-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.vt-result { display: flex; flex-direction: column; gap: 12px; }
+
+.vt-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info    { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--neutral { border-left-color: var(--ds-text-secondary, #6a7485); background: rgba(26, 35, 48, 0.04); mat-icon { color: var(--ds-text-secondary, #6a7485); } }
+  &--danger  { border-left-color: #b02020; background: rgba(176, 32, 32, 0.12); mat-icon { color: #9a1c1c; } }
+}
+
+.vt-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.vt-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.vt-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.45; }
+
+.vt-criteres { display: flex; flex-direction: column; gap: 6px; }
+.vt-criteres-label, .vt-mesures-label {
+  font-size: 11px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.vt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.vt-mesures { display: flex; flex-direction: column; gap: 6px; }
+.vt-mesures-list {
+  margin: 0; padding-left: 20px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.vt-mesures-item { font-size: 13px; color: var(--ds-text-primary, #1a2330); line-height: 1.45; }
+.vt-empty { font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic; }
+
+.vt-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vt-meta-base {
+  font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--ds-accent-gold, #c9a54b); }
+}
