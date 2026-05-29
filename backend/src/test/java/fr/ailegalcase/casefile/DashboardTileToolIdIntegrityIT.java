@@ -443,6 +443,14 @@ class DashboardTileToolIdIntegrityIT {
             // autosuffisant sans tile DashboardTile — pattern uniforme F-215 P2
             // Immigration BE.
             "F-IM-32-cce-extreme-urgence-5j-be",
+            // SF-215-17 (2026-05-29) : F-IM-33-annexe13quinquies-ie-be —
+            // calculateur de l'Annexe 13quinquies (OQT + interdiction d'entrée
+            // art. 74/11 Loi 15/12/1980, durée 3/5/8 ans + recours annulation
+            // CCE 30j calendaires + conditions de levée art. 74/12). Seed
+            // visibility livrée dans la PR backend SF-215-17. Outil BE frontend
+            // autosuffisant sans tile DashboardTile — pattern uniforme F-215 P2
+            // Immigration BE. Entrée TOOL_REGISTRY frontend par SF-215-18.
+            "F-IM-33-annexe13quinquies-ie-be",
             // SF-219-05 (2026-05-28) : outplacement-be-general-30sem — backend
             // (PR #1387) Loi 05/09/2001 art. 11 + AR 21/10/2007. Régime
             // général de l'outplacement obligatoire pour les travailleurs

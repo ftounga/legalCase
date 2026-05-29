@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="5941035c-9983-4f76-abec-6102442434ac" author="legalcase">
+        <comment>
+            SF-215-17 : seed visibility pour l'outil décisionnel "Annexe 13quinquies OQT +
+            interdiction d'entrée BE" (F-IM-33-annexe13quinquies-ie-be).
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte une interdiction d'entrée
+            (Annexe 13quinquies, art. 74/11), via le flag pivot `interdiction_entree_be_detectee`
+            extrait depuis le prompt IMMIGRATION_INSTRUCTION (mentions « annexe 13quinquies »,
+            « interdiction d'entrée », « art. 74/11 », OQT assorti d'une interdiction).
+
+            Priority 208 — à la suite des outils immigration BE existants (200 single-permit,
+            201 regroupement-10ter, 202 regroupement-10bis, 203 naturalisation-12bis,
+            204 naturalisation-conjoint-belge, 205 aesm-mena, 206 cce-annulation-30j,
+            207 cce-extreme-urgence-5j) pour cohérence d'ordre dans la liste de visibility
+            CONTEXTUAL Immigration BE.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) sera ajoutée
+            par SF-215-18 (frontend). F-IM-33-annexe13quinquies-ie-be est ajouté à
+            KNOWN_NO_DASHBOARD_TILE_IDS de DashboardTileToolIdIntegrityIT dans cette même PR
+            backend (pattern uniforme F-215 P2 Immigration BE — outil BE sans tile DashboardTile
+            dédié).
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                '5941035c-9983-4f76-abec-6102442434ad',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-33-annexe13quinquies-ie-be',
+                'CONTEXTUAL',
+                'interdiction_entree_be_detectee',
+                'true',
+                208
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = '5941035c-9983-4f76-abec-6102442434ad';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
