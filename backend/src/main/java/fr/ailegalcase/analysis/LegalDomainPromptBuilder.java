@@ -1059,7 +1059,7 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART16)
                     .concat(TRAVAIL_INSTRUCTION_PART17);
 
-    private static final String IMMIGRATION_INSTRUCTION = """
+    private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
             ========== RÈGLE CRITIQUE DE CLASSIFICATION — À APPLIQUER EN PREMIER ==========
             Identifier le MÉCANISME FACTUEL (pièce signée / décision notifiée),
@@ -1148,6 +1148,13 @@ public final class LegalDomainPromptBuilder {
             "dublin_motif_transfert" : motif juridique du transfert Dublin — CLASSER OBLIGATOIREMENT dans l'une de ces 5 valeurs EXACTES : "DEMANDE_ASILE_AUTRE_ETAT" (demande d'asile antérieure dans un autre État membre, art. 13 Règl. 604/2013), "VISA_DELIVRE_AUTRE_ETAT" (visa délivré par un autre État membre, art. 12), "ENTREE_IRREGULIERE_AUTRE_ETAT" (entrée irrégulière par un autre État membre, art. 13 al. 1), "MEMBRE_FAMILLE_AUTRE_ETAT" (membre de famille dans un autre État membre, art. 8-11), "AUTRE" (autre motif Dublin identifiable mais non couvert par les 4 catégories). "AUTRE" n'est PAS une valeur de doute : utiliser UNIQUEMENT si le motif Dublin est identifié mais ne rentre dans aucune des 4 catégories. Si le motif Dublin n'est pas identifiable avec certitude, laisser null. Null pour tout dossier non-Dublin ou belge.
             "crrv_type_visa" : type de visa refusé faisant l'objet du recours CRRV (Commission de recours contre les refus de visa, CESEDA L.312-1 à L.312-3) — CLASSER dans l'une de ces 5 valeurs EXACTES : "COURT_SEJOUR" (visa Schengen court séjour ≤ 90 j, art. L.312-1), "LONG_SEJOUR" (visa national long séjour > 3 mois, D.312-3), "REGROUPEMENT_FAMILIAL" (visa regroupement familial, art. R.211-19+), "ETUDIANT" (visa étudiant D ≥ 3 mois), "AUTRE" (autre type de visa identifié mais non couvert). "AUTRE" n'est PAS une valeur de doute : utiliser null si le type de visa n'est pas identifiable avec certitude dans la décision de refus. Null pour tout dossier non-CRRV ou belge.
             "crrv_motif_refus" : motif du refus de visa tel qu'il est formulé dans la décision de refus CRRV, en texte libre (≤ 500 caractères). Citer le motif exact ou résumer fidèlement la motivation administrative (ex. "Ressources insuffisantes pour la durée du séjour", "Intention de retour non établie", "Documents manquants"). Null si aucune décision de refus de visa n'est présente dans les pièces ou si le motif n'est pas lisible. Dossier belge : null.
+            """;
+
+    /**
+     * SF-214-33 : suite de {@link #IMMIGRATION_INSTRUCTION_PART1}. Scindé pour rester
+     * sous la limite de 64 Ko du constant pool UTF-8 du format de classe Java.
+     */
+    private static final String IMMIGRATION_INSTRUCTION_PART2 = """
             SF-246-18 — 7 champs IA FRANCE UNIQUEMENT pour pré-fill des outils AES (aes-etudiant L.435-3, aes-famille L.435-1, aes-humanitaire L.435-2, aes-metiers-tension L.435-4). Tous ces champs DOIVENT rester null pour un dossier immigration BELGIQUE. Le bar est : TENTER l'extraction dès qu'un indice documentaire existe ; null uniquement si l'information est ABSENTE des pièces — ne pas mettre null pour "doute" si la valeur est lisible.
             "aes_date_entree_france" : date d'entrée en France du requérant au format YYYY-MM-DD, telle qu'elle figure sur le passeport (tampon / visa d'entrée) ou sur un premier titre de séjour. Ne JAMAIS renvoyer une date future. Ne JAMAIS confondre avec "date_depot_procedure" (date de dépôt de la demande). Null si non détectable dans les pièces ou dossier belge.
             "aes_annees_scolarite_consecutives" : nombre ENTIER d'années d'études consécutives effectuées en France, extrait des certificats de scolarité ou attestations universitaires présentés au dossier. Doit refléter la continuité : si une interruption scolaire est mentionnée, ne compter que la période la plus récente ininterrompue. Entier ≥ 0. Null si non déterminable ou dossier belge.
@@ -1242,6 +1249,14 @@ public final class LegalDomainPromptBuilder {
             "anef_panne_detectee" : booléen — true UNIQUEMENT si le dossier comporte des indices factuels d'une panne, d'une indisponibilité ou d'une impossibilité de dépôt sur la plateforme ANEF. Indices à repérer : « ANEF en panne », « site indisponible », « connexion impossible », « erreur ANEF », « plateforme étrangers », « impossible de déposer en ligne », « bug ANEF ». False par défaut. Pour un dossier belge : toujours false.
             "mna_evaluation_refusee" : booléen — FRANCE UNIQUEMENT. true UNIQUEMENT si le dossier évoque un refus d'évaluation ou de prise en charge par l'ASE d'un mineur non accompagné, ou la nécessité de saisir le juge des enfants. Indices à repérer : « évaluation ASE », « refus de prise en charge », « refus ASE », « mineur non accompagné », « MNA », « juge des enfants », « saisine du juge des enfants », « ordonnance de placement provisoire ». False par défaut. Pour un dossier belge : toujours false.
             "mna_examen_osseux_ordonne" : booléen — FRANCE UNIQUEMENT. true UNIQUEMENT si le dossier évoque qu'un examen osseux a été ordonné ou réalisé dans le cadre de la détermination de l'âge d'un mineur non accompagné. Indices à repérer : « examen osseux », « test osseux », « radiographie du poignet », « détermination de l'âge », « expertise osseuse », « méthode Greulich-Pyle ». False par défaut. Pour un dossier belge : toujours false.
+            """;
+
+    /**
+     * SF-214-33 : suite de {@link #IMMIGRATION_INSTRUCTION_PART1}. Le bloc immigration a
+     * été scindé en deux constantes concaténées pour rester sous la limite de 64 Ko du
+     * constant pool UTF-8 (CONSTANT_Utf8) imposée par le format de classe Java.
+     */
+    private static final String IMMIGRATION_INSTRUCTION_PART3 = """
 
             SF-214-29 — F-IM-39 recours TJ refus de déclaration de nationalité (FRANCE UNIQUEMENT). 2 champs de pré-fill pour l'outil décisionnel calculant le délai de recours de 6 mois devant le tribunal judiciaire contre un refus de déclaration de nationalité française (Cciv 26-3). Procédure CIVILE, distincte du recours décret devant le TA de Nantes. Indices généraux à repérer : « déclaration de nationalité », « refus d'enregistrement », « naturalisation par mariage », « Cciv 26-3 », « refus de déclaration », « contestation de nationalité ». Pour un dossier belge : toujours null.
             "naturalisation_voie" : chaîne ou null — FRANCE UNIQUEMENT. Voie de déclaration de nationalité visée par le refus, parmi EXACTEMENT : "MARIAGE" (nationalité par mariage avec un(e) Français(e), Cciv 21-2), "ASCENDANT" (par ascendance / possession d'état, Cciv 21-13), "MINEUR_22_1" (nationalité du mineur, Cciv 22-1). null si non identifiable. Pour un dossier belge : toujours null.
@@ -1251,6 +1266,11 @@ public final class LegalDomainPromptBuilder {
             "recours_envisage_detecte" : booléen — FRANCE UNIQUEMENT. true UNIQUEMENT si le dossier comporte des indices factuels qu'un recours en appel devant la CAA ou un pourvoi en cassation devant le Conseil d'État est envisagé après un jugement du tribunal administratif en contentieux des étrangers. Indices à repérer : « jugement », « décision TA », « jugement du tribunal administratif », « appel », « CAA », « cour administrative d'appel », « pourvoi en cassation », « CE », « Conseil d'État ». False par défaut. Pour un dossier belge : toujours false.
             "recours_date_jugement_ta" : chaîne YYYY-MM-DD ou null — FRANCE UNIQUEMENT. Date de notification du jugement du tribunal administratif (point de départ du délai d'appel devant la CAA). null si non identifiable. Pour un dossier belge : toujours null.
             """;
+
+    private static final String IMMIGRATION_INSTRUCTION =
+            IMMIGRATION_INSTRUCTION_PART1
+                    .concat(IMMIGRATION_INSTRUCTION_PART2)
+                    .concat(IMMIGRATION_INSTRUCTION_PART3);
 
 
     private LegalDomainPromptBuilder() {}
