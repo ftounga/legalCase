@@ -1522,6 +1522,87 @@ Migration : 439-create-cce-annulation-be-analyses.xml (+ 440-seed-cce-annulation
 
 ---
 
+## cce_extreme_urgence_be_analyses
+
+F-215 SF-215-15 — analyse de l'outil décisionnel « Recours CCE extrême urgence 5 jours BE » (`F-IM-32-cce-extreme-urgence-5j-be`, BELGIQUE). Calculateur de délais du recours en extrême urgence devant le **Conseil du Contentieux des Étrangers** (art. 39/82 §4 al. 2-3 Loi du 15/12/1980) — 5 jours **ouvrables** (réutilise `BelgianBusinessDaysCalculator`). 1:1 avec un dossier.
+
+```
+cce_extreme_urgence_be_analyses
+  id                    UUID PK
+  case_file_id          UUID FK → case_files(id)  UNIQUE
+  date_acte_executoire  DATE NOT NULL
+  type_acte             VARCHAR(30) NOT NULL  -- enum 5 valeurs (OQT_EXECUTE … AUTRE)
+  recours_forme         BOOLEAN NOT NULL
+  date_recours          DATE                  -- nullable
+  statut                VARCHAR(20) NOT NULL  -- DISPONIBLE / CRITIQUE / EXPIRE / RECOURS_FORME
+  country               VARCHAR(20) NOT NULL DEFAULT 'BELGIQUE'
+  result_data           TEXT NOT NULL         -- JSON : inputs + résultat (dateLimiteRecours, joursOuvrablesRestants, audienceEstimee, actionImmediate)
+  created_at            TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at            TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes : uq_cce_extreme_urgence_be_case_file (case_file_id). Index : idx_cce_extreme_urgence_be_case_file.
+
+Migration : 441-create-cce-extreme-urgence-be-analyses.xml (+ 442-seed-cce-extreme-urgence-be-visibility.xml — visibility CONTEXTUAL `recours_cce_extreme_urgence=true` priority 207)
+
+---
+
+## annexe13quinquies_be_analyses
+
+F-215 SF-215-17 — analyse de l'outil décisionnel « Annexe 13quinquies OQT + interdiction d'entrée BE » (`F-IM-33-annexe13quinquies-ie-be`, BELGIQUE). Calcule la durée de l'interdiction d'entrée (3/5/8 ans selon motif, art. 74/11 §2 Loi du 15/12/1980), la date de levée précoce (2/3 du délai, art. 74/12) et le délai de recours en annulation (30 jours calendaires). 1:1 avec un dossier. Distinct de `annexe13_be_analyses` (Annexe 13 simple sans IE).
+
+```
+annexe13quinquies_be_analyses
+  id                         UUID PK
+  case_file_id               UUID FK → case_files(id)  UNIQUE
+  date_notification_annexe   DATE NOT NULL
+  motif_interdiction_entree  VARCHAR(30) NOT NULL  -- enum 5 valeurs (SEJOUR_IRREGULIER … DECISION_JUDICIAIRE)
+  precedent_sejour           BOOLEAN NOT NULL
+  duree_interdiction         INTEGER NOT NULL      -- années (3/5/8)
+  recours_forme              BOOLEAN NOT NULL
+  date_recours               DATE                  -- nullable
+  statut                     VARCHAR(20) NOT NULL  -- DISPONIBLE / URGENT / EXPIRE / FORME
+  country                    VARCHAR(20) NOT NULL DEFAULT 'BELGIQUE'
+  result_data                TEXT NOT NULL         -- JSON : inputs + résultat (dateFinInterdiction, datePossibleLevePrecoce, dateLimiteRecoursAnnulation, conditionsLevee)
+  created_at                 TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                 TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes : uq_annexe13quinquies_be_case_file (case_file_id). Index : idx_annexe13quinquies_be_case_file.
+
+Migration : 443-create-annexe13quinquies-be-analyses.xml (+ 444-seed-annexe13quinquies-be-visibility.xml — visibility CONTEXTUAL `interdiction_entree_be_detectee=true` priority 208)
+
+---
+
+## protection_temporaire_ukraine_be_analyses
+
+F-215 SF-215-19 — analyse de l'outil décisionnel « Protection temporaire Ukraine BE » (`F-IM-34-protection-temporaire-ukraine-be`, BELGIQUE). Évalue l'éligibilité (directive 2001/55/CE + décision UE 2022/382), la durée de protection restante (`date_fin_protection` paramétrable `protection.temporaire.ukraine.date-fin`, défaut `2027-03-04` à actualiser annuellement) et les droits associés (travail immédiat sans single permit art. 57/29 Loi du 15/12/1980, CPAS, logement, enseignement). 1:1 avec un dossier.
+
+```
+protection_temporaire_ukraine_be_analyses
+  id                                  UUID PK
+  case_file_id                        UUID FK → case_files(id)  UNIQUE
+  date_arrivee                        DATE NOT NULL
+  nationalite_ukrainienne             BOOLEAN NOT NULL
+  residence_ukraine_avant_24fev2022   BOOLEAN NOT NULL
+  apatrides_ukraine                   BOOLEAN               -- nullable
+  membre_famille_protege              BOOLEAN               -- nullable
+  titre_sejour_be                     VARCHAR(30) NOT NULL  -- enum 5 valeurs (AUCUN … TITRE_AUTRE)
+  eligible                            BOOLEAN NOT NULL
+  date_fin_protection                 DATE NOT NULL
+  duree_protection_restante           BIGINT NOT NULL       -- jours restants
+  country                             VARCHAR(20) NOT NULL DEFAULT 'BELGIQUE'
+  result_data                         TEXT NOT NULL         -- JSON : inputs + résultat (droitsTravail, droitsAides, cheminProcedure, prochainRenouvellement)
+  created_at                          TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                          TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes : uq_protection_temporaire_ukraine_be_case_file (case_file_id). Index : idx_protection_temporaire_ukraine_be_case_file.
+
+Migration : 445-create-protection-temporaire-ukraine-be-analyses.xml (+ 446-seed-protection-temporaire-ukraine-be-visibility.xml — visibility CONTEXTUAL `protection_temporaire_ukraine_detectee=true` priority 209)
+
+---
+
 ## contribution_alimentaire_enfants_be_analyses
 
 F-217 SF-217-06 — analyse de l'outil décisionnel « contribution alimentaire pour enfants BE » (méthode Renard, Code civil belge art. 203 / 203bis), 1:1 avec un dossier. Stocke les entrées de l'avocat et le résultat calculé (estimation indicative) sous forme JSON TEXT.
