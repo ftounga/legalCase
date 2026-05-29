@@ -1691,6 +1691,21 @@ export interface ImmigrationExtractedData {
    * FR uniquement : nullable.
    */
   carteResidentRessources?: number | null;
+  /**
+   * SF-214-30 — Pré-fill outil F-IM-39-naturalisation-recours-tj-fr « Recours TJ
+   * naturalisation » (recours juridictionnel devant le tribunal judiciaire contre
+   * un refus d'enregistrement / une contestation de nationalité, délai 6 mois).
+   * FRANCE uniquement — dossier BE : null. Tous nullables.
+   *
+   * `naturalisationVoie` : voie de la déclaration de nationalité détectée par le
+   *   pipeline IA — whitelist MARIAGE / ASCENDANT / MINEUR_22_1 (→ voieNaturalisation).
+   * `naturalisationDateRefus` : date ISO YYYY-MM-DD du refus d'enregistrement ou
+   *   de la contestation (→ dateRefusDeclaration, point de départ du délai 6 mois).
+   * Note : le type de refus (refus d'enregistrement vs contestation de
+   *   nationalité) reste une qualification juridique laissée à l'avocat.
+   */
+  naturalisationVoie?: 'MARIAGE' | 'ASCENDANT' | 'MINEUR_22_1' | null;
+  naturalisationDateRefus?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

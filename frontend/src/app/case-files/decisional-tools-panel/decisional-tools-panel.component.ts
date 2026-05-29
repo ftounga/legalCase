@@ -65,6 +65,8 @@ import { RegroupementFamilialSectionComponent } from '../regroupement-familial-s
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
 import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vls-ts-validation-section.component';
+// SF-214-30 : composant complet F-IM-39-naturalisation-recours-tj-fr — recours TJ naturalisation (FR, calculateur délai 6 mois).
+import { NaturalisationRecoursTjSectionComponent } from '../naturalisation-recours-tj-section/naturalisation-recours-tj-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1577,6 +1579,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-28-vls-ts-validation-ofii-fr', {
         displayLabel: 'Validation VLS-TS OFII (FR)',
         component: VlsTsValidationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-30 : composant complet F-IM-39-naturalisation-recours-tj-fr —
+      // recours TJ naturalisation (FR). FR uniquement, ALWAYS_ON. Calculateur de
+      // délai 6 mois (C. civ. art. 26-3, 26-4) : statut RECOURS_POSSIBLE/URGENT/
+      // PRESCRIT + échéance recours judiciaire + jours restants + tribunal
+      // compétent + motifs de recours + bases juridiques. Pré-fill IA 2 champs
+      // (voieNaturalisation, dateRefusDeclaration) via static getPrefillCount +
+      // NaturalisationRecoursTjPrefillRules. Bridge échéance F-69.
+      ['F-IM-39-naturalisation-recours-tj-fr', {
+        displayLabel: 'Recours TJ naturalisation (FR)',
+        component: NaturalisationRecoursTjSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4830,6 +4849,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // procédure de recours si expiré). FR uniquement, ALWAYS_ON. Aligné sur
     // F-IM-25-single-permit-be et les autres calculateurs de délais Immigration.
     ['F-IM-28-vls-ts-validation-ofii-fr', 'DELAIS'],
+    // SF-214-30 : F-IM-39-naturalisation-recours-tj-fr recours TJ naturalisation
+    // (FR). Thème DELAIS — calculateur de délai (6 mois C. civ. art. 26-3/26-4 :
+    // date du refus → échéance recours judiciaire + jours restants + tribunal
+    // compétent). Bridge échéance F-69. Cohérent avec F-IM-28 (DELAIS).
+    ['F-IM-39-naturalisation-recours-tj-fr', 'DELAIS'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).
