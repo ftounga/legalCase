@@ -59,6 +59,8 @@ import { CrrvRefusVisaSectionComponent } from '../crrv-refus-visa-section/crrv-r
 import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l4256-section/victime-violences-l4256-section.component';
 // SF-214-02 : composant complet F-IM-25 étranger malade L.425-9 CESEDA (FR).
 import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
+// SF-214-04 : composant complet F-IM-26 regroupement familial L.434-1+ CESEDA (FR).
+import { RegroupementFamilialSectionComponent } from '../regroupement-familial-section/regroupement-familial-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
@@ -1507,6 +1509,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-25-etranger-malade-l4259-fr', {
         displayLabel: 'Étranger malade — L.425-9 (FR)',
         component: EtrangerMaladeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-04 : composant complet F-IM-26 regroupement familial L.434-1+ CESEDA (FR).
+      // FR uniquement. Pré-fill IA 3 champs (durée séjour, ressources, type)
+      // via static getPrefillCount + RegroupementFamilialPrefillRules.
+      ['F-IM-26-regroupement-familial-fr', {
+        displayLabel: 'Regroupement familial (FR)',
+        component: RegroupementFamilialSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4573,6 +4588,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR) — analyseur d'éligibilité.
     // Thème VALIDITE (analyse d'éligibilité protection médicale, CONTEXTUAL FR).
     ['F-IM-25-etranger-malade-l4259-fr', 'VALIDITE'],
+    // SF-214-04 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR) — analyseur
+    // d'éligibilité (ressources SMIC + surface habitable). Thème VALIDITE.
+    ['F-IM-26-regroupement-familial-fr', 'VALIDITE'],
     // SF-215-02 : F-IM-25-single-permit-be permis unique BE (travail+séjour).
     // Thème DELAIS (calcul date limite dépôt = dateFinPermit - 60j + 4 statuts
     // de renouvellement). Aligné sur les autres outils Immigration BE-only

@@ -1414,6 +1414,22 @@ export interface ImmigrationExtractedData {
   be10terRevenusMensuels?: number | null;
   be10terDureeSejour?: number | null;
   /**
+   * SF-214-03 / SF-214-04 — Pré-fill outil F-IM-26-regroupement-familial-fr
+   * « Regroupement familial L.434-1+ CESEDA (FR) » — ressources SMIC + surface
+   * habitable. FRANCE uniquement — dossier BE : null. Tous nullables.
+   *
+   * `regroupementFamilialEnvisage` : true si les pièces évoquent une demande de
+   *   regroupement familial (signal global, pas un champ saisissable).
+   * `regroupementRessourcesMensuelles` : ressources mensuelles nettes du
+   *   regroupant en € (double, → ressourcesMensuellesNettes).
+   * `regroupementType` : type de regroupement — whitelist
+   *   CONJOINT / ENFANT_MINEUR / AUTRE (→ typeRegroupement).
+   * Note : la durée de séjour régulier est pré-remplie via `aesDureePresenceMois`.
+   */
+  regroupementFamilialEnvisage?: boolean | null;
+  regroupementRessourcesMensuelles?: number | null;
+  regroupementType?: 'CONJOINT' | 'ENFANT_MINEUR' | 'AUTRE' | null;
+  /**
    * SF-215-13 / SF-215-14 — Pré-fill outil F-IM-31-cce-annulation-30j-be
    * « Recours CCE annulation 30j (BE) » — Loi 15/12/1980 art. 39/2 §2 et
    * 39/57 §1er (délai de droit commun 30 jours calendaires).
