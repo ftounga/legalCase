@@ -39,6 +39,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { CongesPayesArretMaladieSectionPrefillRules } from './conges-payes-arret-maladie-section-prefill-rules';
+import { ToolJurisprudenceCitationsComponent } from '../../shared/tool-jurisprudence-citations/tool-jurisprudence-citations.component';
 
 /**
  * SF-206-04 : champs F-IA-03 audités par l'outil F-DT-75.
@@ -85,6 +86,7 @@ const F96_CODE_SALARIE_EN_POSTE = 'DT75_SALARIE_EN_POSTE';
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ToolJurisprudenceCitationsComponent,
   ],
   templateUrl: './conges-payes-arret-maladie-section.component.html',
   styleUrl: './conges-payes-arret-maladie-section.component.scss',
@@ -124,6 +126,11 @@ export class CongesPayesArretMaladieSectionComponent implements OnInit, OnChange
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
   /** Mode simulateur autonome (hors dossier) — coupe F-IA-03 + refresh. */
   @Input() standaloneMode = false;
+
+  // F-JU-03 SF-JU-03-100 — citations jurisprudentielles F-JU-01 (instrumentation
+  // résiduelle : outil ajouté après la vague F-JU-03). toolId == clé TOOL_REGISTRY.
+  protected readonly toolIdForJurisprudence = 'F-DT-75-conges-payes-arret-maladie';
+  protected readonly brancheActiveForJurisprudence = 'default';
 
   // Snapshots signal des inputs IA pour réactivité des `computed`.
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
