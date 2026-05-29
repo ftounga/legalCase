@@ -128,6 +128,8 @@ class CaseFileDashboardServiceTest {
     private UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo;
     // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 (FR)
     private RetraitTitreFraudeRepository retraitTitreFraudeRepo;
+    // SF-214-43 : F-IM-46 autorisation de travail employeur L. 5221-1 (FR)
+    private AutorisationTravailEmployeurRepository autorisationTravailEmployeurRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -273,6 +275,7 @@ class CaseFileDashboardServiceTest {
         itfJudiciaireRepo = mock(ItfJudiciaireRepository.class);
         ueEeeSuisseSejourRepo = mock(UeEeeSuisseSejourRepository.class);
         retraitTitreFraudeRepo = mock(RetraitTitreFraudeRepository.class);
+        autorisationTravailEmployeurRepo = mock(AutorisationTravailEmployeurRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -509,6 +512,7 @@ class CaseFileDashboardServiceTest {
                 itfJudiciaireRepo,
                 ueEeeSuisseSejourRepo,
                 retraitTitreFraudeRepo,
+                autorisationTravailEmployeurRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,
