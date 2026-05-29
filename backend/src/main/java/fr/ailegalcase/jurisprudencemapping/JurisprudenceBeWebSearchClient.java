@@ -33,10 +33,15 @@ import java.util.List;
 public class JurisprudenceBeWebSearchClient {
 
     private static final Logger log = LoggerFactory.getLogger(JurisprudenceBeWebSearchClient.class);
-    /** Limite haute du nombre d'appels web_search par recherche (coût LLM). */
-    private static final int MAX_WEB_SEARCHES = 5;
-    /** Limite output Claude (budget tokens raisonnable pour ~10 arrêts retournés). */
-    private static final int MAX_TOKENS = 2000;
+    /** Limite haute du nombre d'appels web_search par recherche (coût/latence). */
+    private static final int MAX_WEB_SEARCHES = 3;
+    /**
+     * Budget output Claude. SF-JU-04-03 : relevé de 2000 → 12000. Avec l'outil
+     * web_search, les blocs {@code web_search_result} comptent dans {@code max_tokens} ;
+     * 2000 étaient épuisés AVANT l'émission du JSON {@code {arrets:[…]}} →
+     * {@code stop_reason=max_tokens} → JSON tronqué → parse fail → 0 arrêt.
+     */
+    private static final int MAX_TOKENS = 12000;
 
     private static final String SYSTEM_PROMPT = """
             Tu es un juriste senior spécialisé en droit belge.
@@ -51,8 +56,11 @@ public class JurisprudenceBeWebSearchClient {
             - https://www.cass.be (Cour de cassation belge, si accessible)
 
             Approche : effectue UNE OU DEUX recherches web ciblées sur le sujet.
-            Sélectionne ensuite jusqu'à 5 arrêts pertinents, en priorité ceux qui
+            Sélectionne ensuite jusqu'à 3 arrêts pertinents, en priorité ceux qui
             posent un principe applicable au mot-clé.
+
+            Le champ "chapeau" doit faire AU PLUS 600 caractères (principe posé,
+            condensé) — ne recopie pas l'arrêt en entier.
 
             RÈGLE DE FORMAT ABSOLUE — non négociable :
             Ta réponse DOIT être un objet JSON unique commençant par « { » et
@@ -111,7 +119,7 @@ public class JurisprudenceBeWebSearchClient {
                 Limite : maximum %d arrêts les plus structurants.
                 Cherche sur juportal.be / cour de cassation BE / cour constitutionnelle BE
                 puis retourne le JSON structuré conforme au schéma système.
-                """.formatted(query, startInclusive, endExclusive, Math.max(1, Math.min(limit, 5)));
+                """.formatted(query, startInclusive, endExclusive, Math.max(1, Math.min(limit, 3)));
 
         AnthropicResult result;
         try {

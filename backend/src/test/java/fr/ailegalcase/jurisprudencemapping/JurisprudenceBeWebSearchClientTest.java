@@ -13,6 +13,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,6 +80,20 @@ class JurisprudenceBeWebSearchClientTest {
         assertThat(result.get(0).juridiction()).contains("Cour de cassation");
         assertThat(result.get(0).judilibreId()).startsWith("be-");
         assertThat(result.get(1).numeroPourvoi()).isEqualTo("Y.001.N");
+    }
+
+    // SF-JU-04-03 — verrouille le fix : budget max_tokens suffisant pour que le
+    // JSON ne soit pas tronqué par les blocs web_search_result, et web_search borné.
+    @Test
+    void fetchArretsByKeyword_passesAdequateTokenBudgetAndBoundedWebSearches() {
+        when(anthropic.analyzeWithWebSearch(any(AiCallContext.class), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new AnthropicResult("{\"arrets\":[]}", "claude-sonnet", 50, 20, "end_turn"));
+
+        client.fetchArretsByKeyword("clause de non-concurrence BE",
+                LocalDate.of(2014, 1, 1), LocalDate.now(), 3);
+
+        // maxTokens=12000 (≫ 2000 qui tronquait) et maxWebSearches=3.
+        verify(anthropic).analyzeWithWebSearch(any(AiCallContext.class), any(), any(), eq(12000), eq(3));
     }
 
     @Test
