@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="468-create-carte-resident-analyses" author="legalcase">
+        <comment>
+            SF-214-23 — table `carte_resident_analyses` pour l'outil décisionnel
+            "Carte de résident 10 ans L. 426-1 CESEDA" (F-IM-36-carte-resident-l4261-fr, FRANCE).
+
+            Outil single-country FR : analyse l'éligibilité à la carte de résident
+            10 ans (≥ 5 ans de séjour régulier L. 426-1, intégration républicaine
+            niveau MOYEN ou FORT, ressources ≥ SMIC net mensuel). Une condamnation
+            pénale grave rend la demande irrecevable. Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : L. 426-1 à L. 426-12 CESEDA ; R. 426-1 à R. 426-6 ;
+            loi 26/01/2024 (renforcement des exigences d'intégration).
+
+            UUID namespace F-214 : f2140016-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="carte_resident_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_carte_resident_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="duree_sejour_regulier_annees" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="types_titres_anterieurs" type="VARCHAR(500)"/>
+            <column name="niveau_integration" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ressources_mensuelles_nettes" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condamnations_penales_graves" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="carte_resident_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

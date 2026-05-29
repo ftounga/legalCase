@@ -120,6 +120,8 @@ public class CaseFileDashboardService {
     private final AjCndaRepository ajCndaRepo;
     // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR)
     private final VictimeTraiteRepository victimeTraiteRepo;
+    // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
+    private final CarteResidentRepository carteResidentRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -269,6 +271,7 @@ public class CaseFileDashboardService {
                                      OfpraIntroductionRepository ofpraIntroductionRepo,
                                      AjCndaRepository ajCndaRepo,
                                      VictimeTraiteRepository victimeTraiteRepo,
+                                     CarteResidentRepository carteResidentRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -401,6 +404,7 @@ public class CaseFileDashboardService {
         this.ofpraIntroductionRepo = ofpraIntroductionRepo;
         this.ajCndaRepo = ajCndaRepo;
         this.victimeTraiteRepo = victimeTraiteRepo;
+        this.carteResidentRepo = carteResidentRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -606,6 +610,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-34-aj-cnda-fr", caseFileId, () -> tileFromAjCndaAnalysis(caseFileId));
         // SF-214-21 : F-IM-35 victime de la traite des êtres humains L. 425-1 CESEDA (FR)
         addSafely(tiles, "F-IM-35-victime-traite-l4251-fr", caseFileId, () -> tileFromVictimeTraiteAnalysis(caseFileId));
+        // SF-214-23 : F-IM-36 carte de résident 10 ans L. 426-1 CESEDA (FR)
+        addSafely(tiles, "F-IM-36-carte-resident-l4261-fr", caseFileId, () -> tileFromCarteResidentAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1777,6 +1783,38 @@ public class CaseFileDashboardService {
                         "F-IM-26-regroupement-familial-fr",
                         "VALIDITE",
                         "Regroupement familial L.434-1",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-23 — F-IM-36 Carte de résident 10 ans L.426-1 CESEDA (FR).
+     * Expose le verdict d'éligibilité ; SMIC net de référence en valeur
+     * secondaire ; alertLevel mappé sur la sémantique du verdict.
+     */
+    private DashboardTile tileFromCarteResidentAnalysis(UUID caseFileId) {
+        return carteResidentRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), CarteResidentResult.class);
+                String verdict = r.verdict();
+                String secondary = String.format(
+                        "SMIC net de référence : %.2f €", r.smicMensuelNetReference());
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "ELIGIBLE" -> "OK";
+                    case "ELIGIBLE_SOUS_RESERVE" -> "WARNING";
+                    case "NON_ELIGIBLE_DELAI", "NON_ELIGIBLE_INTEGRATION",
+                         "NON_ELIGIBLE_RESSOURCES", "INADMISSIBLE" -> "ALERT";
+                    default -> null;
+                };
+                return new DashboardTile(
+                        "F-IM-36-carte-resident-l4261-fr",
+                        "VALIDITE",
+                        "Carte de résident L.426-1",
                         verdict != null ? verdict : "—",
                         secondary,
                         alert);
