@@ -8,7 +8,7 @@
     <changeSet id="465-seed-aj-cnda-visibility" author="legalcase">
         <comment>
             SF-214-19 — seed `decision_tool_visibility_rules` pour l'outil
-            décisionnel "AJ CNDA — éligibilité & délais"
+            décisionnel "AJ CNDA — éligibilité et délais"
             (F-IM-34-aj-cnda-fr, FRANCE uniquement).
 
             Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil réutilise le flag

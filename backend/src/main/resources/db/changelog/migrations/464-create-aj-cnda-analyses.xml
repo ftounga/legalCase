@@ -8,7 +8,7 @@
     <changeSet id="464-create-aj-cnda-analyses" author="legalcase">
         <comment>
             SF-214-19 — table `aj_cnda_analyses` pour l'outil décisionnel
-            "AJ CNDA — éligibilité & délais" (F-IM-34-aj-cnda-fr, FRANCE).
+            "AJ CNDA — éligibilité et délais" (F-IM-34-aj-cnda-fr, FRANCE).
 
             Outil single-country FR : vérifie l'éligibilité à l'aide
             juridictionnelle (AJ) devant la Cour nationale du droit d'asile (CNDA)
