@@ -1313,8 +1313,11 @@ export interface ImmigrationExtractedData {
    * `aesMotifHumanitaire` : code motif humanitaire (6 valeurs).
    * `aesMoisActiviteSalariee` : mois salariat dans les 24 derniers mois (0–24).
    * `aesCodeMetier` : code ROME ou libellé métier en tension.
+   * `aesCalculPresenceDeclenche` : flag d'activation de l'outil AES présence
+   *   prouvée (F-IM-30) — visibility CONTEXTUAL (SF-214-11).
    */
   aesDateEntreeFrance?: string | null;
+  aesCalculPresenceDeclenche?: boolean | null;
   aesDureePresenceMois?: number | null;
   aesAnneesScolariteConsecutives?: number | null;
   aesNiveauEtudes?: string | null;

@@ -67,6 +67,8 @@ import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-sect
 import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vls-ts-validation-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
 import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-categories-section.component';
+// SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
+import { AesPresenceProuveeSectionComponent } from '../aes-presence-prouvee-section/aes-presence-prouvee-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
 import { SinglePermitBeSectionComponent } from '../single-permit-be-section/single-permit-be-section.component';
 // SF-215-04 : composant complet F-IM-26-regroupement-10ter-be (Immigration BE, regroupement familial art. 10ter).
@@ -1574,6 +1576,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-29-oqtf-categories-l6111-fr', {
         displayLabel: 'OQTF catégories L.611-1 (FR)',
         component: OqtfCategoriesSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence
+      // prouvée (FR). FR uniquement, CONTEXTUAL via flag aesCalculPresenceDeclenche.
+      // Saisie dynamique de périodes {debut, fin, typePiece} → total d'années
+      // prouvées + 4 voies AES (famille/humanitaire/étudiant/métiers tension) +
+      // gaps + recommandations de pièces. Pré-fill IA 1 ligne (aesDateEntreeFrance
+      // → période initiale) via static getPrefillCount + AesPresenceProuveePrefillRules.
+      ['F-IM-30-aes-presence-prouvee-fr', {
+        displayLabel: 'AES présence prouvée (FR)',
+        component: AesPresenceProuveeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4659,6 +4677,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // métier « contentieux OQTF » de la mini-spec se rattache au thème VALIDITE,
     // seul ThemeKey disponible pour les analyseurs de validité/qualification).
     ['F-IM-29-oqtf-categories-l6111-fr', 'VALIDITE'],
+    // SF-214-12 : F-IM-30-aes-presence-prouvee-fr AES présence prouvée (FR).
+    // Thème DIAGNOSTIC — l'outil agrège des périodes de présence justifiées par
+    // pièce et restitue un diagnostic d'éligibilité aux 4 voies AES (famille 5 ans,
+    // humanitaire 10 ans, étudiant 3 ans, métiers en tension 3 ans) + gaps +
+    // recommandations de pièces. FR uniquement, CONTEXTUAL (flag aesCalculPresenceDeclenche).
+    ['F-IM-30-aes-presence-prouvee-fr', 'DIAGNOSTIC'],
     // SF-215-02 : F-IM-25-single-permit-be permis unique BE (travail+séjour).
     // Thème DELAIS (calcul date limite dépôt = dateFinPermit - 60j + 4 statuts
     // de renouvellement). Aligné sur les autres outils Immigration BE-only
