@@ -1,0 +1,201 @@
+<section class="acc-section">
+  <header class="acc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="acc-body">
+    <mat-icon class="acc-icon">gpp_bad</mat-icon>
+    <span class="acc-title">RETRAIT TITRE POUR FRAUDE (FR)</span>
+    @if (result()) {
+      <span class="acc-chip"
+            [class.acc-chip--success]="result()!.statut === 'RECOURS_POSSIBLE'"
+            [class.acc-chip--warning]="result()!.statut === 'URGENT'"
+            [class.acc-chip--danger]="result()!.statut === 'PRESCRIT'">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="acc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="acc-body" class="acc-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="acc-banner acc-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="acc-banner-content">
+            <div class="acc-banner-title">Retrait de titre pour fraude — procédure française uniquement</div>
+            <div class="acc-banner-sub">
+              Le retrait d'un titre de séjour pour fraude et le recours associé
+              devant le tribunal administratif relèvent du CESEDA et n'ont pas
+              d'équivalent en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="acc-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="acc-form" (ngSubmit)="analyze()">
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la décision de retrait</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateRetrait()"
+                         (ngModelChange)="onDateRetraitChange($event)"
+                         name="dateRetrait" />
+                  <mat-hint>Point de départ du délai de recours devant le TA</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateRetrait() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif du retrait</mat-label>
+                  <mat-select [ngModel]="motifRetrait()"
+                              (ngModelChange)="onMotifRetraitChange($event)"
+                              name="motifRetrait">
+                    <mat-option value="MARIAGE_GRIS">Mariage gris / de complaisance</mat-option>
+                    <mat-option value="FAUSSES_DECLARATIONS">Fausses déclarations</mat-option>
+                    <mat-option value="FRAUDE_DOCUMENTAIRE">Fraude documentaire</mat-option>
+                    <mat-option value="PERTE_CONDITIONS">Perte des conditions de délivrance</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifRetrait() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="acc-field-wrap acc-checkbox-wrap">
+                <mat-checkbox [ngModel]="miseEnDemeurePrealable()"
+                              (ngModelChange)="onMiseEnDemeureChange($event)"
+                              name="miseEnDemeurePrealable">
+                  Une mise en demeure / procédure contradictoire préalable a été notifiée
+                </mat-checkbox>
+              </div>
+
+              @if (miseEnDemeurePrealable()) {
+                <div class="acc-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de la mise en demeure (optionnel)</mat-label>
+                    <input matInput type="date"
+                           [ngModel]="dateMiseEnDemeure()"
+                           (ngModelChange)="onDateMiseEnDemeureChange($event)"
+                           name="dateMiseEnDemeure" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="acc-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le retrait</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="acc-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="acc-banner-content">
+                  <div class="acc-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="acc-banner-sub">
+                    Délai de recours devant le TA :
+                    <span class="acc-delai-recours"
+                          [class.acc-delai-recours--urgent]="result()!.statut === 'URGENT'"
+                          [class.acc-delai-recours--prescrit]="result()!.statut === 'PRESCRIT'">
+                      {{ result()!.delaiRecoursTA }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.vicesDeProcedure && result()!.vicesDeProcedure.length > 0) {
+                <div class="acc-vices-block" role="note" data-testid="vices-procedure-block">
+                  <div class="acc-vices-title">
+                    <mat-icon>report_problem</mat-icon> Vices de procédure relevés
+                  </div>
+                  <ul class="acc-vices-list">
+                    @for (vice of result()!.vicesDeProcedure; track vice) {
+                      <li>{{ vice }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.motifsContestation && result()!.motifsContestation.length > 0) {
+                <div class="acc-motifs-block" role="note">
+                  <div class="acc-motifs-title">Motifs de contestation</div>
+                  <ul class="acc-motifs-list">
+                    @for (motif of result()!.motifsContestation; track motif) {
+                      <li>{{ motif }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="acc-breakdown">
+                <li>
+                  <span class="acc-bd-label">Date de la décision de retrait</span>
+                  <span class="acc-bd-value">{{ result()!.dateRetrait }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Délai du recours devant le TA</span>
+                  <span class="acc-bd-value acc-bd-value--delai"
+                        [class.acc-bd-value--delai-urgent]="result()!.statut === 'URGENT'">
+                    {{ result()!.delaiRecoursTA }}
+                  </span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Motif du retrait</span>
+                  <span class="acc-bd-value">{{ motifLabel(result()!.motifRetrait) }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Mise en demeure préalable</span>
+                  <span class="acc-bd-value">{{ result()!.miseEnDemeurePrealable ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              @if (deadlineCreated()) {
+                <div class="acc-deadline-note" role="note">
+                  <mat-icon>event</mat-icon>
+                  <span>Échéance « Recours TA retrait titre » ajoutée aux échéances du dossier.</span>
+                </div>
+              }
+
+              <div class="acc-meta">
+                <div class="acc-bases">
+                  <span class="acc-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

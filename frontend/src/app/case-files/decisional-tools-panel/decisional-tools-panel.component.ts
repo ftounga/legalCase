@@ -77,6 +77,8 @@ import { AssignationResidenceSectionComponent } from '../assignation-residence-s
 import { ItfJudiciaireSectionComponent } from '../itf-judiciaire-section/itf-judiciaire-section.component';
 // SF-214-40 : composant complet F-IM-44-ue-eee-suisse-sejour-fr — séjour UE/EEE/Suisse (FR, analyseur de droits + encadré membre de famille non-UE).
 import { UeEeeSuisseSejourSectionComponent } from '../ue-eee-suisse-sejour-section/ue-eee-suisse-sejour-section.component';
+// SF-214-42 : composant complet F-IM-45-retrait-titre-fraude-fr — retrait titre pour fraude (FR, analyseur validité + vices de procédure + bridge échéance F-69).
+import { RetraitTitreFraudeSectionComponent } from '../retrait-titre-fraude-section/retrait-titre-fraude-section.component';
 // SF-214-14 : composant complet F-IM-31-renouvellement-delai-depot-fr — renouvellement délai dépôt (FR, calculateur délai optimal/impératif).
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
@@ -1701,6 +1703,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-44-ue-eee-suisse-sejour-fr', {
         displayLabel: 'Séjour UE/EEE/Suisse (FR)',
         component: UeEeeSuisseSejourSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-42 : composant complet F-IM-45-retrait-titre-fraude-fr — retrait
+      // de titre pour fraude (FR). FR uniquement, ALWAYS_ON. Analyseur de validité
+      // (CESEDA) : statut du recours RECOURS_POSSIBLE/URGENT/PRESCRIT + vices de
+      // procédure (encadré orange si non vide) + motifs de contestation + délai du
+      // recours devant le TA + base juridique. Pré-fill IA 2 champs (dateRetrait
+      // depuis retraitTitreDateRetrait, motifRetrait depuis retraitTitreMotif) via
+      // static getPrefillCount + RetraitTitreFraudePrefillRules. Bridge échéance
+      // F-69 (label « Recours TA retrait titre », statut RECOURS_POSSIBLE / URGENT).
+      ['F-IM-45-retrait-titre-fraude-fr', {
+        displayLabel: 'Retrait titre pour fraude (FR)',
+        component: RetraitTitreFraudeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4986,6 +5006,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (directive 2004/38/CE) : droit automatique 3 mois + droit permanent > 5 ans
     // + titre obtenu + encadré membre de famille non-UE. Pas de bridge échéance.
     ['F-IM-44-ue-eee-suisse-sejour-fr', 'VALIDITE'],
+    // SF-214-42 : F-IM-45-retrait-titre-fraude-fr retrait titre pour fraude (FR).
+    // Thème VALIDITE — analyseur de validité de la décision de retrait (vices de
+    // procédure + motifs de contestation au fond) + délai du recours TA. Bridge
+    // échéance F-69 (statut RECOURS_POSSIBLE / URGENT). Cohérent avec F-IM-42/43.
+    ['F-IM-45-retrait-titre-fraude-fr', 'VALIDITE'],
     // SF-214-14 : F-IM-31-renouvellement-delai-depot-fr renouvellement délai dépôt (FR).
     // Thème DELAIS — calculateur de délai (date optimale + date impérative de dépôt
     // de la demande de renouvellement de titre + statut + jours restants).

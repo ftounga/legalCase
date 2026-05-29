@@ -1749,6 +1749,22 @@ export interface ImmigrationExtractedData {
    */
   itfJudiciaireDateCondamnation?: string | null;
   itfJudiciaireDureeAnnees?: number | null;
+  /**
+   * SF-214-42 — Pré-fill / contexte outil F-IM-45-retrait-titre-fraude-fr
+   * « Retrait de titre pour fraude » (retrait d'un titre de séjour obtenu par
+   * fraude — mariage gris, fausses déclarations, fraude documentaire — ou suite
+   * à la perte des conditions de délivrance, CESEDA). FRANCE uniquement —
+   * dossier BE : null. Tous nullables.
+   *
+   * `retraitTitreFraudeDetecte` : signal global de détection d'une décision de
+   *   retrait de titre pour fraude (visibility CONTEXTUAL de l'outil).
+   * `retraitTitreDateRetrait` : date ISO YYYY-MM-DD de la décision de retrait
+   *   (→ dateRetrait, point de départ du délai de recours TA).
+   * `retraitTitreMotif` : motif du retrait (→ motifRetrait).
+   */
+  retraitTitreFraudeDetecte?: boolean | null;
+  retraitTitreDateRetrait?: string | null;
+  retraitTitreMotif?: 'MARIAGE_GRIS' | 'FAUSSES_DECLARATIONS' | 'FRAUDE_DOCUMENTAIRE' | 'PERTE_CONDITIONS' | null;
 }
 
 export interface CaseAnalysisVersionSummary {
