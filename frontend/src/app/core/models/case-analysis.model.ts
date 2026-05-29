@@ -1431,6 +1431,23 @@ export interface ImmigrationExtractedData {
   recoursCceDateNotification?: string | null;
   recoursCceTypeDecision?: 'REFUS_TITRE' | 'REFUS_REGROUPEMENT' | 'REFUS_9BIS' | 'REFUS_9TER' | 'OQT_ANNEXE13' | 'DECISION_CGRA' | 'AUTRE' | null;
   /**
+   * SF-215-15 / SF-215-16 — Pré-fill outil F-IM-32-cce-extreme-urgence-5j-be
+   * « Recours CCE extrême urgence 5j (BE) » — Loi 15/12/1980 art. 39/82
+   * (5 jours OUVRABLES à compter de l'acte exécutoire). Cas d'urgence absolue.
+   * ⚠️ CCE = Conseil du Contentieux des Étrangers. BELGIQUE uniquement — FR : null.
+   *
+   * `recoursCceExtremeUrgence`        : flag CONTEXTUAL — un recours en extrême
+   *   urgence est pertinent (acte exécutoire imminent).
+   * `recoursExtremeUrgenceDateActe`   : date de l'acte exécutoire attaqué
+   *   (ISO yyyy-MM-dd) — champ pré-fill RÉEL.
+   * `recoursExtremeUrgenceTypeActe`   : type d'acte exécutoire — whitelist
+   *   OQT_EXECUTE / TRANSFERT_DUBLIN / REFUS_ACCES_TERRITOIRE /
+   *   EXPULSION_IMMEDIATE / AUTRE — champ pré-fill RÉEL.
+   */
+  recoursCceExtremeUrgence?: boolean | null;
+  recoursExtremeUrgenceDateActe?: string | null;
+  recoursExtremeUrgenceTypeActe?: 'OQT_EXECUTE' | 'TRANSFERT_DUBLIN' | 'REFUS_ACCES_TERRITOIRE' | 'EXPULSION_IMMEDIATE' | 'AUTRE' | null;
+  /**
    * SF-215-05 / SF-215-06 — Pré-fill outil F-IM-27-regroupement-10bis-be
    * « Regroupement familial art. 10bis (BE) » — Loi 15/12/1980 art. 10bis,
    * AR 17/05/2007 (seuil ressources 120 % RIS). À la différence de l'art.

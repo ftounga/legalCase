@@ -66,6 +66,8 @@ import { Regroupement10terBeSectionComponent } from '../regroupement-10ter-be-se
 // SF-215-14 : composant complet F-IM-31-cce-annulation-30j-be (Immigration BE, recours CCE annulation 30j).
 // CCE = Conseil du Contentieux des Étrangers (droit des étrangers belge).
 import { CceAnnulationBeSectionComponent } from '../cce-annulation-be-section/cce-annulation-be-section.component';
+// SF-215-16 : composant complet F-IM-32-cce-extreme-urgence-5j-be (Immigration BE, recours CCE extrême urgence 5j ouvrables).
+import { CceExtremeUrgenceBeSectionComponent } from '../cce-extreme-urgence-be-section/cce-extreme-urgence-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -1552,6 +1554,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-31-cce-annulation-30j-be', {
         displayLabel: 'Recours CCE annulation 30j (BE)',
         component: CceAnnulationBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-215-16 : composant complet F-IM-32-cce-extreme-urgence-5j-be — recours en
+      // EXTRÊME URGENCE devant le CCE (Conseil du Contentieux des Étrangers). BELGIQUE
+      // uniquement, CONTEXTUAL via flag `recours_cce_extreme_urgence`. Calculateur de
+      // délai (5 jours OUVRABLES, Loi 15/12/1980 art. 39/82). Cas d'urgence absolue —
+      // bandeau rouge proéminent + actionImmediate si CRITIQUE/EXPIRE. Pré-fill IA RÉEL
+      // 2 champs (dateActeExecutoire, typeActe) via static getPrefillCount +
+      // CceExtremeUrgenceBePrefillRules. Les 2 champs recoursForme (checkbox) +
+      // dateRecours (date conditionnelle) sont aspirationnels (jamais comptés).
+      ['F-IM-32-cce-extreme-urgence-5j-be', {
+        displayLabel: 'Recours CCE extrême urgence 5j (BE)',
+        component: CceExtremeUrgenceBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4521,6 +4541,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // jours restants + statut DISPONIBLE/URGENT/EXPIRE/RECOURS_FORME). Aligné
     // sur F-IM-08-annexe13-be et les autres calculateurs de délais CCE/CESEDA.
     ['F-IM-31-cce-annulation-30j-be', 'DELAIS'],
+    // SF-215-16 : F-IM-32-cce-extreme-urgence-5j-be recours CCE extrême urgence (BE).
+    // Thème DELAIS — calculateur de délai (5j OUVRABLES, date limite + jours
+    // ouvrables restants + statut DISPONIBLE/CRITIQUE/EXPIRE/RECOURS_FORME +
+    // audience estimée). Aligné sur F-IM-31-cce-annulation-30j-be et les autres
+    // calculateurs de délais CCE/CESEDA.
+    ['F-IM-32-cce-extreme-urgence-5j-be', 'DELAIS'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).
