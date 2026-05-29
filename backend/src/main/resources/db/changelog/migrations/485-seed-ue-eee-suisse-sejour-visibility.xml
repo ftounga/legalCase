@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="485-seed-ue-eee-suisse-sejour-visibility" author="legalcase">
+        <comment>
+            SF-214-39 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Séjour UE/EEE/Suisse"
+            (F-IM-44-ue-eee-suisse-sejour-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte un ressortissant citoyen de l'Union, de l'EEE ou
+            de Suisse — trigger `nationalite_ue` = true (flag booléen existant,
+            extrait par LegalDomainPromptBuilder, lu par
+            DecisionToolVisibilityService.addBooleanFlagIfTrue depuis
+            immigration_extracted_data). Aucun nouveau flag requis.
+            priority 44 — apres F-IM-43 ITF judiciaire (priority 43).
+
+            Source juridique : Directive 2004/38/CE ; L. 233-1 a L. 234-12 CESEDA ;
+            R. 233-1 a R. 234-10.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -> 400 cote service.
+
+            UUID namespace F-214 : f2140027-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2140027-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-44-ue-eee-suisse-sejour-fr', 'CONTEXTUAL', 'nationalite_ue', 'true', 44);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2140027-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

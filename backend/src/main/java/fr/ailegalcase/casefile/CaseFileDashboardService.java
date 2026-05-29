@@ -136,6 +136,8 @@ public class CaseFileDashboardService {
     private final AssignationResidenceRepository assignationResidenceRepo;
     // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) (FR)
     private final ItfJudiciaireRepository itfJudiciaireRepo;
+    // SF-214-39 : F-IM-44 séjour UE/EEE/Suisse (directive 2004/38, L. 233-1+ CESEDA) (FR)
+    private final UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -293,6 +295,7 @@ public class CaseFileDashboardService {
                                      AppelCaaCassationRepository appelCaaCassationRepo,
                                      AssignationResidenceRepository assignationResidenceRepo,
                                      ItfJudiciaireRepository itfJudiciaireRepo,
+                                     UeEeeSuisseSejourRepository ueEeeSuisseSejourRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -433,6 +436,7 @@ public class CaseFileDashboardService {
         this.appelCaaCassationRepo = appelCaaCassationRepo;
         this.assignationResidenceRepo = assignationResidenceRepo;
         this.itfJudiciaireRepo = itfJudiciaireRepo;
+        this.ueEeeSuisseSejourRepo = ueEeeSuisseSejourRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -650,6 +654,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-42-assignation-residence-fr", caseFileId, () -> tileFromAssignationResidenceAnalysis(caseFileId));
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR
         addSafely(tiles, "F-IM-43-itf-judiciaire-fr", caseFileId, () -> tileFromItfJudiciaireAnalysis(caseFileId));
+        // SF-214-39 : F-IM-44 séjour UE/EEE/Suisse (directive 2004/38, L. 233-1+ CESEDA) FR
+        addSafely(tiles, "F-IM-44-ue-eee-suisse-sejour-fr", caseFileId, () -> tileFromUeEeeSuisseSejourAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -2173,6 +2179,49 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "ITF judiciaire",
                         statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-39 — F-IM-44 séjour UE/EEE/Suisse (directive 2004/38, L. 233-1+
+     * CESEDA). Tuile de type VALIDITE : expose le titre attendu en valeur
+     * principale et le statut du droit de séjour (automatique 3 mois / permanent)
+     * en valeur secondaire. Outil FRANCE uniquement.
+     *
+     * <ul>
+     *   <li>{@code OK} si droit permanent (≥ 5 ans) acquis</li>
+     *   <li>{@code WARNING} si carte « membre de famille » obligatoire à constituer</li>
+     *   <li>sinon pas d'alerte (droit de séjour automatique / sous conditions)</li>
+     * </ul>
+     */
+    private DashboardTile tileFromUeEeeSuisseSejourAnalysis(UUID caseFileId) {
+        return ueEeeSuisseSejourRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), UeEeeSuisseSejourResult.class);
+                String titre = r.titreObtenu() != null ? r.titreObtenu() : "—";
+                String secondary = r.droitSejourPlus5Ans()
+                        ? "Droit de séjour permanent acquis (art. 16)"
+                        : (r.droitSejourAutomatique3Mois()
+                            ? "Droit de séjour automatique 3 mois (art. 6)"
+                            : "Droit de séjour sous conditions (art. 7)");
+                String alert;
+                if (r.droitSejourPlus5Ans()) {
+                    alert = "OK";
+                } else if (r.membreFamilleNonUE()) {
+                    alert = "WARNING";
+                } else {
+                    alert = null;
+                }
+                return new DashboardTile(
+                        "F-IM-44-ue-eee-suisse-sejour-fr",
+                        "VALIDITE",
+                        "Séjour UE/EEE/Suisse",
+                        titre,
                         secondary,
                         alert);
             } catch (Exception ex) {
