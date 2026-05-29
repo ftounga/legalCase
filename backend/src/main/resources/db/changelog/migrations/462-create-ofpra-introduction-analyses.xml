@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="462-create-ofpra-introduction-analyses" author="legalcase">
+        <comment>
+            SF-214-17 — table `ofpra_introduction_analyses` pour l'outil décisionnel
+            "Demande OFPRA introduction (GUDA/ADA)" (F-IM-33-ofpra-introduction-fr, FRANCE).
+
+            Outil single-country FR : guide la procédure d'introduction de la
+            demande d'asile à l'OFPRA via le GUDA (guichet unique demande d'asile)
+            et l'ADA (allocation demandeur d'asile). Calcule le délai d'introduction
+            de 90 jours à compter de l'arrivée en France (art. R. 521-1 et s.
+            CESEDA), les étapes à prendre, les pièces requises et le risque de
+            procédure accélérée (pays sûr, L. 531-24). Persiste l'analyse 1:1
+            par dossier.
+
+            Source juridique : L. 521-1 à L. 521-15 CESEDA ; L. 521-7 CESEDA (ADA) ;
+            R. 521-1 à R. 521-14 CESEDA ; L. 531-24 et s. CESEDA ; CE 5 juillet 2013
+            n° 370099.
+
+            UUID namespace F-214 : f2140012-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="ofpra_introduction_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_ofpra_introduction_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_arrivee_en_france" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="passage_guda_effectue" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_passage_guda" type="DATE"/>
+            <column name="ada_requise" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pays_origine" type="VARCHAR(120)"/>
+            <column name="statut_delai" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="ofpra_introduction_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

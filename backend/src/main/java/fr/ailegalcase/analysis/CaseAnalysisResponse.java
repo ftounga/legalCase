@@ -2539,7 +2539,18 @@ public record CaseAnalysisResponse(
              * RECEPISSE/ATTESTATION_PROLONGATION/INCONNU. Null si non extractible ou
              * dossier BE. La date d'expiration est réutilisée via {@code dateExpirationTitre}.
              */
-            String recepisseOuAttestationType) {
+            String recepisseOuAttestationType,
+            // === SF-214-17 — F-IM-33 Demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FRANCE UNIQUEMENT, false pour BE) ===
+            /**
+             * SF-214-17 : true si les pièces indiquent que le passage au GUDA (guichet
+             * unique demande d'asile) a déjà été effectué (mentions « GUDA », « guichet
+             * unique », « passage préfecture asile », « enregistrement de la demande
+             * d'asile », attestation de demande d'asile), false sinon. La date d'arrivée
+             * en France est réutilisée via {@code aesDateEntreeFrance}. L'outil reste
+             * visible via le trigger {@code procedure_asile_detectee} (F-201). Dossiers
+             * BE : toujours false.
+             */
+            boolean gudaPassageEffectue) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2786,6 +2797,8 @@ public record CaseAnalysisResponse(
             // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 FR
             private boolean recouvrementTitreEnCours;
             private String recepisseOuAttestationType;
+            // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ FR
+            private boolean gudaPassageEffectue;
 
             private Builder() {}
 
@@ -2905,6 +2918,7 @@ public record CaseAnalysisResponse(
             public Builder vlsTsValidationOFIIEffectuee(Boolean v) { this.vlsTsValidationOFIIEffectuee = v; return this; }
             public Builder recouvrementTitreEnCours(boolean v) { this.recouvrementTitreEnCours = v; return this; }
             public Builder recepisseOuAttestationType(String v) { this.recepisseOuAttestationType = v; return this; }
+            public Builder gudaPassageEffectue(boolean v) { this.gudaPassageEffectue = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2980,7 +2994,9 @@ public record CaseAnalysisResponse(
                         vlsTsValidationOFIIEffectuee,
                         // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation FR
                         recouvrementTitreEnCours,
-                        recepisseOuAttestationType);
+                        recepisseOuAttestationType,
+                        // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA FR
+                        gudaPassageEffectue);
             }
         }
     }
@@ -6083,6 +6099,9 @@ public record CaseAnalysisResponse(
         boolean recouvrementTitreEnCours = booleanOrFalse(root, "recouvrement_titre_en_cours");
         String recepisseOuAttestationType = normalizeEnumCode(textOrNull(root, "recepisse_ou_attestation_type"),
                 java.util.Set.of("RECEPISSE", "ATTESTATION_PROLONGATION", "INCONNU"));
+        // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ FR — 1 flag pré-fill (FR uniquement).
+        // Date d'arrivée réutilisée via aesDateEntreeFrance ; visibilité via procedure_asile_detectee (F-201).
+        boolean gudaPassageEffectue = booleanOrFalse(root, "guda_passage_effectue");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6158,7 +6177,9 @@ public record CaseAnalysisResponse(
                 && vlsTsValidationOFIIEffectuee == null
                 // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation FR (1 flag + 1 champ IA)
                 && !recouvrementTitreEnCours
-                && recepisseOuAttestationType == null) return null;
+                && recepisseOuAttestationType == null
+                // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA FR (1 flag pré-fill)
+                && !gudaPassageEffectue) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6284,6 +6305,7 @@ public record CaseAnalysisResponse(
                 .vlsTsValidationOFIIEffectuee(vlsTsValidationOFIIEffectuee)
                 .recouvrementTitreEnCours(recouvrementTitreEnCours)
                 .recepisseOuAttestationType(recepisseOuAttestationType)
+                .gudaPassageEffectue(gudaPassageEffectue)
                 .build();
     }
 

@@ -114,6 +114,8 @@ public class CaseFileDashboardService {
     private final RenouvellementDelaiRepository renouvellementDelaiRepo;
     // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 CESEDA (FR)
     private final RecepisseAttestationRepository recepisseAttestationRepo;
+    // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FR)
+    private final OfpraIntroductionRepository ofpraIntroductionRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -260,6 +262,7 @@ public class CaseFileDashboardService {
                                      AesPresenceProuveeRepository aesPresenceProuveeRepo,
                                      RenouvellementDelaiRepository renouvellementDelaiRepo,
                                      RecepisseAttestationRepository recepisseAttestationRepo,
+                                     OfpraIntroductionRepository ofpraIntroductionRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -389,6 +392,7 @@ public class CaseFileDashboardService {
         this.aesPresenceProuveeRepo = aesPresenceProuveeRepo;
         this.renouvellementDelaiRepo = renouvellementDelaiRepo;
         this.recepisseAttestationRepo = recepisseAttestationRepo;
+        this.ofpraIntroductionRepo = ofpraIntroductionRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -588,6 +592,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-31-renouvellement-delai-depot-fr", caseFileId, () -> tileFromRenouvellementDelaiAnalysis(caseFileId));
         // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 CESEDA (FR)
         addSafely(tiles, "F-IM-32-recepisse-attestation-fr", caseFileId, () -> tileFromRecepisseAttestationAnalysis(caseFileId));
+        // SF-214-17 : F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FR)
+        addSafely(tiles, "F-IM-33-ofpra-introduction-fr", caseFileId, () -> tileFromOfpraIntroductionAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1974,6 +1980,41 @@ public class CaseFileDashboardService {
                         "VALIDITE",
                         "Récépissé vs attestation R.311-4/6",
                         principal,
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-17 — F-IM-33 demande OFPRA introduction GUDA/ADA R. 521-1+ CESEDA (FR).
+     * Statut du délai d'introduction (90 j) en valeur principale ; jours restants
+     * en valeur secondaire ; alertLevel ALERT si le délai est expiré, WARNING si
+     * urgent (≤ 21 j) ou si un risque de procédure accélérée (pays sûr) est détecté,
+     * OK sinon.
+     */
+    private DashboardTile tileFromOfpraIntroductionAnalysis(UUID caseFileId) {
+        return ofpraIntroductionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), OfpraIntroductionResult.class);
+                OfpraIntroductionStatut statut = r.statutDelai();
+                OfpraIntroductionStatut effectif =
+                        statut == null ? OfpraIntroductionStatut.A_DEPOSER : statut;
+                String secondary = effectif == OfpraIntroductionStatut.EXPIRE
+                        ? "Délai des 90 j. dépassé"
+                        : r.joursRestantsIntroduction() + " j. avant l'échéance des 90 j.";
+                String alert = switch (effectif) {
+                    case EXPIRE -> "ALERT";
+                    case URGENT -> "WARNING";
+                    case A_DEPOSER -> r.procedureAccelereeRisque() ? "WARNING" : "OK";
+                };
+                return new DashboardTile(
+                        "F-IM-33-ofpra-introduction-fr",
+                        "DELAIS",
+                        "Introduction OFPRA (GUDA/ADA)",
+                        effectif.name(),
                         secondary,
                         alert);
             } catch (Exception ex) {
