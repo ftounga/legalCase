@@ -88,6 +88,8 @@ class CaseFileDashboardServiceTest {
     private ResiliationJudiciaireCphRepository resiliationJudiciaireCphRepo;
     // SF-214-01 : F-IM-25 étranger malade L.425-9 CESEDA (FR)
     private EtrangerMaladeRepository etrangerMaladeRepo;
+    // SF-214-03 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR)
+    private RegroupementFamilialRepository regroupementFamilialRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -213,6 +215,7 @@ class CaseFileDashboardServiceTest {
         priseActeRuptureRepo = mock(PriseActeRuptureRepository.class);
         resiliationJudiciaireCphRepo = mock(ResiliationJudiciaireCphRepository.class);
         etrangerMaladeRepo = mock(EtrangerMaladeRepository.class);
+        regroupementFamilialRepo = mock(RegroupementFamilialRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -429,6 +432,7 @@ class CaseFileDashboardServiceTest {
                 priseActeRuptureRepo,
                 resiliationJudiciaireCphRepo,
                 etrangerMaladeRepo,
+                regroupementFamilialRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

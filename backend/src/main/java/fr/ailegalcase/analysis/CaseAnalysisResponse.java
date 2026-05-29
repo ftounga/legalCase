@@ -2482,7 +2482,20 @@ public record CaseAnalysisResponse(
             /** SF-215-19 : date d'arrivée en Belgique / première demande de protection temporaire YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
             String ptUkraineDateArrivee,
             /** SF-215-19 : true si le bénéficiaire est de nationalité ukrainienne. Null si non extractible ou dossier FR. */
-            Boolean ptUkraineNationalite) {
+            Boolean ptUkraineNationalite,
+            // === SF-214-03 — F-IM-26 Regroupement familial L. 434-1+ CESEDA (FRANCE UNIQUEMENT, null/false pour BE) ===
+            /**
+             * SF-214-03 : true si les pièces évoquent un regroupement familial envisagé
+             * (mentions « regroupement familial », « OFII », « membre de famille »,
+             * « rejoindre en France », « visa long séjour famille »). Pivot pour la
+             * visibility rule CONTEXTUAL de F-IM-26 (trigger {@code regroupement_familial_envisage}).
+             * Dossiers BE : toujours false.
+             */
+            boolean regroupementFamilialEnvisage,
+            /** SF-214-03 : ressources mensuelles nettes du regroupant en € (> 0, hors APL/RSA/alloc). Null si non extractible ou dossier BE. */
+            Double regroupementRessourcesMensuelles,
+            /** SF-214-03 : type de regroupement — whitelist CONJOINT/ENFANT_MINEUR/AUTRE. Null si non extractible ou dossier BE. */
+            String regroupementType) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2601,7 +2614,10 @@ public record CaseAnalysisResponse(
                     .interdictionEntreeMotif(interdictionEntreeMotif)
                     // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
                     .ptUkraineDateArrivee(ptUkraineDateArrivee)
-                    .ptUkraineNationalite(ptUkraineNationalite);
+                    .ptUkraineNationalite(ptUkraineNationalite)
+                    .regroupementFamilialEnvisage(regroupementFamilialEnvisage)
+                    .regroupementRessourcesMensuelles(regroupementRessourcesMensuelles)
+                    .regroupementType(regroupementType);
         }
 
         public static final class Builder {
@@ -2714,6 +2730,9 @@ public record CaseAnalysisResponse(
             // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
             private String ptUkraineDateArrivee;
             private Boolean ptUkraineNationalite;
+            private boolean regroupementFamilialEnvisage;
+            private Double regroupementRessourcesMensuelles;
+            private String regroupementType;
 
             private Builder() {}
 
@@ -2825,6 +2844,9 @@ public record CaseAnalysisResponse(
             // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
             public Builder ptUkraineDateArrivee(String v) { this.ptUkraineDateArrivee = v; return this; }
             public Builder ptUkraineNationalite(Boolean v) { this.ptUkraineNationalite = v; return this; }
+            public Builder regroupementFamilialEnvisage(boolean v) { this.regroupementFamilialEnvisage = v; return this; }
+            public Builder regroupementRessourcesMensuelles(Double v) { this.regroupementRessourcesMensuelles = v; return this; }
+            public Builder regroupementType(String v) { this.regroupementType = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2886,7 +2908,11 @@ public record CaseAnalysisResponse(
                         interdictionEntreeMotif,
                         // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE
                         ptUkraineDateArrivee,
-                        ptUkraineNationalite);
+                        ptUkraineNationalite,
+                        // SF-214-03 : F-IM-26 Regroupement familial FR
+                        regroupementFamilialEnvisage,
+                        regroupementRessourcesMensuelles,
+                        regroupementType);
             }
         }
     }
@@ -5969,6 +5995,14 @@ public record CaseAnalysisResponse(
                 && ptUkraineDateArriveeRaw.compareTo(java.time.LocalDate.now().toString()) <= 0)
                 ? ptUkraineDateArriveeRaw : null;
         Boolean ptUkraineNationalite = booleanOrNull(root, "pt_ukraine_nationalite");
+        // SF-214-03 : F-IM-26 Regroupement familial FR — 1 flag pivot + 2 champs pré-fill (FR uniquement).
+        boolean regroupementFamilialEnvisage = booleanOrFalse(root, "regroupement_familial_envisage");
+        Double regroupementRessourcesMensuellesRaw = doubleOrNull(root, "regroupement_ressources_mensuelles");
+        Double regroupementRessourcesMensuelles = (regroupementRessourcesMensuellesRaw != null
+                && regroupementRessourcesMensuellesRaw > 0)
+                ? regroupementRessourcesMensuellesRaw : null;
+        String regroupementType = normalizeEnumCode(textOrNull(root, "regroupement_type"),
+                java.util.Set.of("CONJOINT", "ENFANT_MINEUR", "AUTRE"));
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6032,7 +6066,11 @@ public record CaseAnalysisResponse(
                 && interdictionEntreeMotif == null
                 // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE (2 champs IA, nullables)
                 && ptUkraineDateArrivee == null
-                && ptUkraineNationalite == null) return null;
+                && ptUkraineNationalite == null
+                // SF-214-03 : F-IM-26 Regroupement familial FR (1 flag + 2 champs IA)
+                && !regroupementFamilialEnvisage
+                && regroupementRessourcesMensuelles == null
+                && regroupementType == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6150,6 +6188,9 @@ public record CaseAnalysisResponse(
                 // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE — 2 champs pré-fill réels
                 .ptUkraineDateArrivee(ptUkraineDateArrivee)
                 .ptUkraineNationalite(ptUkraineNationalite)
+                .regroupementFamilialEnvisage(regroupementFamilialEnvisage)
+                .regroupementRessourcesMensuelles(regroupementRessourcesMensuelles)
+                .regroupementType(regroupementType)
                 .build();
     }
 

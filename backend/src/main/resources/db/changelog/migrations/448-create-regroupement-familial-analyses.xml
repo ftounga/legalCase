@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="448-create-regroupement-familial-analyses" author="legalcase">
+        <comment>
+            SF-214-03 — table `regroupement_familial_analyses` pour l'outil décisionnel
+            "Regroupement familial L. 434-1+ CESEDA" (F-IM-26-regroupement-familial-fr, FRANCE).
+
+            Outil single-country FR : analyse l'éligibilité au regroupement familial
+            (durée de séjour régulier ≥ 18 mois R. 434-4, ressources ≥ SMIC net mensuel
+            pondéré R. 434-30, surface habitable minimale R. 434-20). Persiste l'analyse
+            1:1 par dossier.
+
+            Source juridique : L. 434-1 à L. 434-13 CESEDA ; R. 434-4 ; R. 434-20 ;
+            R. 434-30 ; CE 22 mars 2010 n° 301750 (exclusion APL/RSA des ressources).
+
+            UUID namespace F-214 : f2140003-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="regroupement_familial_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_regroupement_familial_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="duree_sejour_regulier_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ressources_mensuelles_nettes" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="taille_logement_m2" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_personnes_foyer" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_regroupement" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="membres_famille_a_regrouper" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="regroupement_familial_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
