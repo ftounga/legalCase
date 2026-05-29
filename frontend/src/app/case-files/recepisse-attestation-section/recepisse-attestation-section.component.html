@@ -1,0 +1,180 @@
+<section class="rac-section">
+  <header class="rac-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rac-body">
+    <mat-icon class="rac-icon">badge</mat-icon>
+    <span class="rac-title">RÉCÉPISSÉ VS ATTESTATION (FR)</span>
+    @if (result()) {
+      <span class="rac-chip rac-chip--info">{{ typeLabel(result()!.typeDocument) }}</span>
+    }
+    <mat-icon class="rac-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rac-body" class="rac-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="rac-banner rac-banner--info" role="note" data-testid="be-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rac-banner-content">
+            <div class="rac-banner-title">Récépissé / attestation — procédure française uniquement</div>
+            <div class="rac-banner-sub">
+              Le récépissé de demande de titre et l'attestation de prolongation
+              d'instruction sont propres au droit français. Pour la Belgique, voir
+              les outils annexe 15 / prolongation d'instruction (BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rac-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="rac-form" (ngSubmit)="analyze()">
+              <div class="rac-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de document</mat-label>
+                  <mat-select required
+                              [ngModel]="typeDocument()"
+                              (ngModelChange)="onTypeChange($event)"
+                              name="typeDocument">
+                    @for (opt of typeDocumentOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Récépissé ou attestation de prolongation d'instruction</mat-hint>
+                </mat-form-field>
+                @if (provenanceType() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rac-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de délivrance</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateDelivrance()"
+                         (ngModelChange)="onDelivranceChange($event)"
+                         name="dateDelivrance" />
+                </mat-form-field>
+              </div>
+
+              <div class="rac-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'expiration</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateExpiration()"
+                         (ngModelChange)="onExpirationChange($event)"
+                         name="dateExpiration" />
+                </mat-form-field>
+                @if (provenanceExpiration() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rac-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser les droits</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rac-result">
+              <div class="rac-banner rac-banner--success" role="status">
+                <mat-icon>badge</mat-icon>
+                <div class="rac-banner-content">
+                  <div class="rac-banner-title">{{ typeLabel(result()!.typeDocument) }}</div>
+                  <div class="rac-banner-sub">
+                    Du {{ result()!.dateDelivrance | date:'dd/MM/yyyy' }}
+                    au {{ result()!.dateExpiration | date:'dd/MM/yyyy' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="rac-badges">
+                <span class="rac-badge"
+                      [class.rac-badge--ok]="result()!.droitSejour"
+                      [class.rac-badge--ko]="!result()!.droitSejour"
+                      data-testid="badge-sejour">
+                  <mat-icon>{{ result()!.droitSejour ? 'check_circle' : 'cancel' }}</mat-icon>
+                  Droit au séjour {{ result()!.droitSejour ? 'maintenu' : 'non maintenu' }}
+                </span>
+                <span class="rac-badge"
+                      [class.rac-badge--ok]="result()!.droitTravail"
+                      [class.rac-badge--ko]="!result()!.droitTravail"
+                      data-testid="badge-travail">
+                  <mat-icon>{{ result()!.droitTravail ? 'check_circle' : 'cancel' }}</mat-icon>
+                  Droit au travail {{ result()!.droitTravail ? 'autorisé' : 'non autorisé' }}
+                </span>
+              </div>
+
+              <ul class="rac-breakdown">
+                <li>
+                  <span class="rac-bd-label">Durée de validité</span>
+                  <span class="rac-bd-value rac-mono">{{ result()!.dureeValiditeJours }} jours</span>
+                </li>
+              </ul>
+
+              @if (result()!.risqueEmployeur) {
+                <div class="rac-banner rac-banner--warning" role="alert" data-testid="risque-employeur">
+                  <mat-icon>warning_amber</mat-icon>
+                  <div class="rac-banner-content">
+                    <div class="rac-banner-title">Risque employeur — vérifier l'autorisation de travail</div>
+                    <div class="rac-banner-sub">
+                      L'attestation de prolongation d'instruction n'ouvre pas
+                      systématiquement le droit au travail. L'employeur qui maintient
+                      l'emploi sans autorisation s'expose aux sanctions de l'article
+                      L. 8253-1 du Code du travail (emploi d'étranger non autorisé à
+                      travailler).
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <div class="rac-reco">
+                <div class="rac-reco-label">Recommandations</div>
+                @if (result()!.recommandations?.length) {
+                  <ul class="rac-reco-list">
+                    @for (reco of result()!.recommandations; track reco) {
+                      <li class="rac-reco-item">{{ reco }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <div class="rac-empty">Aucune recommandation spécifique.</div>
+                }
+              </div>
+
+              <div class="rac-meta">
+                <span class="rac-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

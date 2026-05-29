@@ -69,6 +69,8 @@ import { VlsTsValidationSectionComponent } from '../vls-ts-validation-section/vl
 import { RenouvellementDelaiSectionComponent } from '../renouvellement-delai-section/renouvellement-delai-section.component';
 // SF-214-10 : composant complet F-IM-29-oqtf-categories-l6111-fr — OQTF catégories L.611-1 (FR, moyens de défense).
 import { OqtfCategoriesSectionComponent } from '../oqtf-categories-section/oqtf-categories-section.component';
+// SF-214-16 : composant complet F-IM-32-recepisse-attestation-fr — récépissé vs attestation (FR, analyseur droits séjour/travail + risque employeur).
+import { RecepisseAttestationSectionComponent } from '../recepisse-attestation-section/recepisse-attestation-section.component';
 // SF-214-12 : composant complet F-IM-30-aes-presence-prouvee-fr — AES présence prouvée (FR, calcul périodes + 4 voies).
 import { AesPresenceProuveeSectionComponent } from '../aes-presence-prouvee-section/aes-presence-prouvee-section.component';
 // SF-215-02 : composant complet F-IM-25-single-permit-be permis unique BE (travail+séjour, BELGIQUE).
@@ -1595,6 +1597,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-29-oqtf-categories-l6111-fr', {
         displayLabel: 'OQTF catégories L.611-1 (FR)',
         component: OqtfCategoriesSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-214-16 : composant complet F-IM-32-recepisse-attestation-fr — récépissé
+      // vs attestation (FR). FR uniquement. Distingue les droits attachés au
+      // récépissé de demande de titre de ceux de l'attestation de prolongation
+      // d'instruction (droit au séjour / droit au travail / durée de validité) et
+      // alerte sur le risque employeur (sanctions L. 8253-1) si attestation.
+      // Pré-fill IA 2 champs (dateExpiration depuis dateExpirationTitre,
+      // typeDocument depuis recepisseOuAttestationType) via static getPrefillCount
+      // + RecepisseAttestationPrefillRules.
+      ['F-IM-32-recepisse-attestation-fr', {
+        displayLabel: 'Récépissé vs attestation (FR)',
+        component: RecepisseAttestationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -4700,6 +4720,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // métier « contentieux OQTF » de la mini-spec se rattache au thème VALIDITE,
     // seul ThemeKey disponible pour les analyseurs de validité/qualification).
     ['F-IM-29-oqtf-categories-l6111-fr', 'VALIDITE'],
+    // SF-214-16 : F-IM-32-recepisse-attestation-fr récépissé vs attestation (FR).
+    // Thème VALIDITE — analyseur des droits (séjour / travail / durée de validité)
+    // attachés au récépissé ou à l'attestation de prolongation d'instruction.
+    ['F-IM-32-recepisse-attestation-fr', 'VALIDITE'],
     // SF-214-12 : F-IM-30-aes-presence-prouvee-fr AES présence prouvée (FR).
     // Thème DIAGNOSTIC — l'outil agrège des périodes de présence justifiées par
     // pièce et restitue un diagnostic d'éligibilité aux 4 voies AES (famille 5 ans,

@@ -1,0 +1,103 @@
+/* SF-214-16 — Outil récépissé vs attestation (FR). Pattern miroir OQTF catégories. */
+@import '../../simulators/standalone-banner';
+
+.rac-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.rac-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.rac-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.rac-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.rac-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  &--info { background: rgba(26, 55, 95, 0.10); color: var(--ds-navy, #1a375f); }
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+.rac-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.rac-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.rac-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.rac-form {
+  display: flex; flex-direction: column; gap: 12px;
+  mat-form-field { width: 100%; }
+}
+.rac-field-wrap { display: flex; flex-direction: column; gap: 4px; mat-form-field { width: 100%; } }
+.rac-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.rac-result { display: flex; flex-direction: column; gap: 12px; }
+
+.rac-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info    { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--success { border-left-color: #208040; background: rgba(32, 128, 64, 0.10); mat-icon { color: #156135; } }
+  &--warning { border-left-color: #e08a00; background: rgba(224, 138, 0, 0.12); mat-icon { color: #b06d00; } }
+}
+
+.rac-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.rac-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.rac-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.45; }
+
+.rac-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.rac-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 16px;
+  font-weight: 600; font-size: 13px;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &--ok { background: rgba(32, 128, 64, 0.12); color: #156135; }
+  &--ko { background: rgba(176, 32, 32, 0.12); color: #9a1c1c; }
+}
+
+.rac-breakdown {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  li { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 4px; background: rgba(26, 35, 48, 0.03); }
+}
+.rac-bd-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.rac-bd-value { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); text-align: right; }
+.rac-mono { font-family: 'JetBrains Mono', 'Menlo', monospace; }
+
+.rac-reco { display: flex; flex-direction: column; gap: 6px; }
+.rac-reco-label {
+  font-size: 11px; font-weight: 600; color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.rac-reco-list {
+  margin: 0; padding-left: 20px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.rac-reco-item { font-size: 13px; color: var(--ds-text-primary, #1a2330); line-height: 1.45; }
+.rac-empty { font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic; }
+
+.rac-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rac-meta-base {
+  font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--ds-accent-gold, #c9a54b); }
+}

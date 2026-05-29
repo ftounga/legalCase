@@ -1626,6 +1626,17 @@ export interface ImmigrationExtractedData {
    * La date d'entrée en France est pré-remplie depuis `aesDateEntreeFrance`.
    */
   vlsTsValidationOFIIEffectuee?: boolean | null;
+  /**
+   * SF-214-16 — true si le pipeline IA détecte qu'un recouvrement / renouvellement
+   * de titre est en cours (récépissé ou attestation de prolongation détecté). FR
+   * uniquement : nullable. Sert de flag de contexte pour l'outil F-IM-32.
+   */
+  recouvrementTitreEnCours?: boolean | null;
+  /**
+   * SF-214-16 — type de document de séjour détecté pour pré-fill de l'outil
+   * F-IM-32 (récépissé vs attestation). FR uniquement : nullable.
+   */
+  recepisseOuAttestationType?: 'RECEPISSE' | 'ATTESTATION_PROLONGATION' | 'INCONNU' | null;
 }
 
 export interface CaseAnalysisVersionSummary {
