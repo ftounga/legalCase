@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="476-create-naturalisation-recours-ta-analyses" author="legalcase">
+        <comment>
+            SF-214-31 -- table `naturalisation_recours_ta_analyses` pour l'outil
+            décisionnel "Recours TA Nantes refus de naturalisation par décret"
+            (F-IM-40-naturalisation-recours-ta-fr, FRANCE).
+
+            Outil single-country FR : calcule le délai de recours pour excès de
+            pouvoir devant le Tribunal administratif de Nantes contre un refus de
+            naturalisation par décret -- 2 mois à compter de la notification
+            (CJA L. 213-1 ; Cciv 21-15). Le TA de Nantes a compétence exclusive
+            nationale (CJA R. 312-4). Procédure ADMINISTRATIVE, distincte du
+            recours TJ refus de déclaration de nationalité (SF-214-29, juridiction
+            civile). Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : Cciv 21-15 ; CJA L. 213-1 ; CJA R. 312-4.
+
+            UUID namespace F-214 : f214001d-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="naturalisation_recours_ta_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_naturalisation_recours_ta_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_refus_decret" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_prerequis" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="naturalisation_recours_ta_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
