@@ -100,6 +100,8 @@ class CaseFileDashboardServiceTest {
     private AesPresenceProuveeRepository aesPresenceProuveeRepo;
     // SF-214-13 : F-IM-31 renouvellement délai de dépôt 2 mois avant R. 433-1 CESEDA (FR)
     private RenouvellementDelaiRepository renouvellementDelaiRepo;
+    // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 CESEDA (FR)
+    private RecepisseAttestationRepository recepisseAttestationRepo;
     // SF-212-01 : F-DT-36 licenciement faute grave/lourde (FR)
     private LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private JldRetentionRepository jldRetentionRepo;
@@ -231,6 +233,7 @@ class CaseFileDashboardServiceTest {
         oqtfCategoriesRepo = mock(OqtfCategoriesRepository.class);
         aesPresenceProuveeRepo = mock(AesPresenceProuveeRepository.class);
         renouvellementDelaiRepo = mock(RenouvellementDelaiRepository.class);
+        recepisseAttestationRepo = mock(RecepisseAttestationRepository.class);
         licenciementFauteGraveLourdRepo = mock(LicenciementFauteGraveLourdRepository.class);
         jldRetentionRepo = mock(JldRetentionRepository.class);
         dublinRecoursRepo = mock(DublinRecoursRepository.class);
@@ -453,6 +456,7 @@ class CaseFileDashboardServiceTest {
                 oqtfCategoriesRepo,
                 aesPresenceProuveeRepo,
                 renouvellementDelaiRepo,
+                recepisseAttestationRepo,
                 licenciementFauteGraveLourdRepo,
                 jldRetentionRepo, dublinRecoursRepo, crrvRefusVisaRepo,
                 victimeViolencesL4256Repo,

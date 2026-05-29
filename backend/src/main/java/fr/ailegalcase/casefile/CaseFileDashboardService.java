@@ -112,6 +112,8 @@ public class CaseFileDashboardService {
     private final AesPresenceProuveeRepository aesPresenceProuveeRepo;
     // SF-214-13 : F-IM-31 renouvellement délai de dépôt 2 mois avant R. 433-1 CESEDA (FR)
     private final RenouvellementDelaiRepository renouvellementDelaiRepo;
+    // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 CESEDA (FR)
+    private final RecepisseAttestationRepository recepisseAttestationRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -257,6 +259,7 @@ public class CaseFileDashboardService {
                                      OqtfCategoriesRepository oqtfCategoriesRepo,
                                      AesPresenceProuveeRepository aesPresenceProuveeRepo,
                                      RenouvellementDelaiRepository renouvellementDelaiRepo,
+                                     RecepisseAttestationRepository recepisseAttestationRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -385,6 +388,7 @@ public class CaseFileDashboardService {
         this.oqtfCategoriesRepo = oqtfCategoriesRepo;
         this.aesPresenceProuveeRepo = aesPresenceProuveeRepo;
         this.renouvellementDelaiRepo = renouvellementDelaiRepo;
+        this.recepisseAttestationRepo = recepisseAttestationRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -582,6 +586,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, "F-IM-30-aes-presence-prouvee-fr", caseFileId, () -> tileFromAesPresenceProuveeAnalysis(caseFileId));
         // SF-214-13 : F-IM-31 renouvellement délai de dépôt 2 mois avant R. 433-1 CESEDA (FR)
         addSafely(tiles, "F-IM-31-renouvellement-delai-depot-fr", caseFileId, () -> tileFromRenouvellementDelaiAnalysis(caseFileId));
+        // SF-214-15 : F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 CESEDA (FR)
+        addSafely(tiles, "F-IM-32-recepisse-attestation-fr", caseFileId, () -> tileFromRecepisseAttestationAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1930,6 +1936,44 @@ public class CaseFileDashboardService {
                         "DELAIS",
                         "Renouvellement — délai de dépôt",
                         effectif.name(),
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /**
+     * SF-214-15 — F-IM-32 récépissé vs attestation de prolongation R. 311-4/R. 311-6 CESEDA (FR).
+     * Expose le droit au travail en valeur principale ; durée de validité en valeur
+     * secondaire ; alertLevel ALERT si l'attestation de prolongation expose l'employeur
+     * (risque L. 8253-1), WARNING si le type est indéterminé, OK pour un récépissé.
+     */
+    private DashboardTile tileFromRecepisseAttestationAnalysis(UUID caseFileId) {
+        return recepisseAttestationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RecepisseAttestationResult.class);
+                String type = r.typeDocument();
+                String principal = r.droitTravail()
+                        ? "Séjour + travail autorisés"
+                        : "Séjour autorisé — travail NON autorisé";
+                String secondary = r.dureeValiditeJours() != null
+                        ? "Validité : " + r.dureeValiditeJours() + " j."
+                        : "Durée de validité non déterminée";
+                String alert;
+                if (r.risqueEmployeur()) {
+                    alert = "ALERT";
+                } else if (RecepisseAttestationAnalyzer.TYPE_INCONNU.equals(type)) {
+                    alert = "WARNING";
+                } else {
+                    alert = "OK";
+                }
+                return new DashboardTile(
+                        "F-IM-32-recepisse-attestation-fr",
+                        "VALIDITE",
+                        "Récépissé vs attestation R.311-4/6",
+                        principal,
                         secondary,
                         alert);
             } catch (Exception ex) {
