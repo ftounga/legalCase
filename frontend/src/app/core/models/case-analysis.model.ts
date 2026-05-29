@@ -1239,6 +1239,8 @@ export interface ImmigrationExtractedData {
   typeProcedureDetectee?: string | null;
   dateDepotProcedure?: string | null;
   typeTitreSejourCode?: string | null;
+  /** SF-214-26 (F-IM-37) : panne ANEF détectée par l'analyse (téléservice indisponible). */
+  anefPanneDetectee?: boolean | null;
   nationaliteUe?: boolean | null;
   typeRecoursCode?: string | null;
   dateNotificationDecisionContestee?: string | null;
