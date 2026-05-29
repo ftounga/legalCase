@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="484-create-ue-eee-suisse-sejour-analyses" author="legalcase">
+        <comment>
+            SF-214-39 — table `ue_eee_suisse_sejour_analyses` pour l'outil décisionnel
+            "Séjour UE/EEE/Suisse" (F-IM-44-ue-eee-suisse-sejour-fr, FRANCE).
+
+            Outil single-country FR : analyse le droit au séjour des citoyens
+            UE/EEE/Suisse et des membres de leur famille en application de la
+            directive 2004/38/CE (transposée L. 233-1+ CESEDA). Régime distinct du
+            CESEDA "pays tiers" : droit de séjour automatique 3 mois (art. 6),
+            droit au-delà de 3 mois sous conditions (art. 7), droit permanent après
+            60 mois (art. 16). Carte de séjour "membre de famille de citoyen de
+            l'Union" obligatoire pour le membre ressortissant d'un pays tiers
+            (art. 10). Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : Directive 2004/38/CE ; L. 233-1 a L. 234-12 CESEDA ;
+            R. 233-1 a R. 234-10 ; CE 6 nov. 2015 n° 385654 ;
+            CJUE 21 juill. 2011 C-325/09 Dias.
+
+            UUID namespace F-214 : f2140026-0000-0000-0000-214000000001.
+        </comment>
+
+        <createTable tableName="ue_eee_suisse_sejour_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_ue_eee_suisse_sejour_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="nationalite" type="VARCHAR(255)"/>
+            <column name="est_citoyen_ue" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="membre_famille_non_ue" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_sejour_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="activite_professionnelle" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="ue_eee_suisse_sejour_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
