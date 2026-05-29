@@ -2495,7 +2495,19 @@ public record CaseAnalysisResponse(
             /** SF-214-03 : ressources mensuelles nettes du regroupant en € (> 0, hors APL/RSA/alloc). Null si non extractible ou dossier BE. */
             Double regroupementRessourcesMensuelles,
             /** SF-214-03 : type de regroupement — whitelist CONJOINT/ENFANT_MINEUR/AUTRE. Null si non extractible ou dossier BE. */
-            String regroupementType) {
+            String regroupementType,
+            // === SF-214-05 — F-IM-27 VPF liens personnels et familiaux L. 423-23 CESEDA (FRANCE UNIQUEMENT, null/false pour BE) ===
+            /**
+             * SF-214-05 : true si les pièces évoquent une demande de titre « vie privée
+             * et familiale » L. 423-23 CESEDA (mentions « vie privée et familiale »,
+             * « L.423-23 », « 7° », « liens personnels et familiaux en France »,
+             * « atteinte disproportionnée », « article 8 CEDH », « ancienneté de résidence »).
+             * Pivot pour la visibility rule CONTEXTUAL de F-IM-27 (trigger
+             * {@code vie_privee_familiale_detectee}). Dossiers BE : toujours false.
+             */
+            boolean viePriveeFamilialeDetectee,
+            /** SF-214-05 : niveau d'intégration du requérant — whitelist FORT/MOYEN/FAIBLE. Null si non extractible ou dossier BE. */
+            String vpfNiveauIntegration) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2733,6 +2745,9 @@ public record CaseAnalysisResponse(
             private boolean regroupementFamilialEnvisage;
             private Double regroupementRessourcesMensuelles;
             private String regroupementType;
+            // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR
+            private boolean viePriveeFamilialeDetectee;
+            private String vpfNiveauIntegration;
 
             private Builder() {}
 
@@ -2847,6 +2862,8 @@ public record CaseAnalysisResponse(
             public Builder regroupementFamilialEnvisage(boolean v) { this.regroupementFamilialEnvisage = v; return this; }
             public Builder regroupementRessourcesMensuelles(Double v) { this.regroupementRessourcesMensuelles = v; return this; }
             public Builder regroupementType(String v) { this.regroupementType = v; return this; }
+            public Builder viePriveeFamilialeDetectee(boolean v) { this.viePriveeFamilialeDetectee = v; return this; }
+            public Builder vpfNiveauIntegration(String v) { this.vpfNiveauIntegration = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -2912,7 +2929,10 @@ public record CaseAnalysisResponse(
                         // SF-214-03 : F-IM-26 Regroupement familial FR
                         regroupementFamilialEnvisage,
                         regroupementRessourcesMensuelles,
-                        regroupementType);
+                        regroupementType,
+                        // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR
+                        viePriveeFamilialeDetectee,
+                        vpfNiveauIntegration);
             }
         }
     }
@@ -6003,6 +6023,10 @@ public record CaseAnalysisResponse(
                 ? regroupementRessourcesMensuellesRaw : null;
         String regroupementType = normalizeEnumCode(textOrNull(root, "regroupement_type"),
                 java.util.Set.of("CONJOINT", "ENFANT_MINEUR", "AUTRE"));
+        // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR — 1 flag pivot + 1 champ pré-fill (FR uniquement).
+        boolean viePriveeFamilialeDetectee = booleanOrFalse(root, "vie_privee_familiale_detectee");
+        String vpfNiveauIntegration = normalizeEnumCode(textOrNull(root, "vpf_niveau_integration"),
+                java.util.Set.of("FORT", "MOYEN", "FAIBLE"));
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6070,7 +6094,10 @@ public record CaseAnalysisResponse(
                 // SF-214-03 : F-IM-26 Regroupement familial FR (1 flag + 2 champs IA)
                 && !regroupementFamilialEnvisage
                 && regroupementRessourcesMensuelles == null
-                && regroupementType == null) return null;
+                && regroupementType == null
+                // SF-214-05 : F-IM-27 VPF liens personnels L. 423-23 FR (1 flag + 1 champ IA)
+                && !viePriveeFamilialeDetectee
+                && vpfNiveauIntegration == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6191,6 +6218,8 @@ public record CaseAnalysisResponse(
                 .regroupementFamilialEnvisage(regroupementFamilialEnvisage)
                 .regroupementRessourcesMensuelles(regroupementRessourcesMensuelles)
                 .regroupementType(regroupementType)
+                .viePriveeFamilialeDetectee(viePriveeFamilialeDetectee)
+                .vpfNiveauIntegration(vpfNiveauIntegration)
                 .build();
     }
 

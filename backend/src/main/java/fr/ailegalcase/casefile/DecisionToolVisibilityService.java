@@ -303,6 +303,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "protection_temporaire_ukraine_detectee");
         // SF-214-03 : F-IM-26 Regroupement familial FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_familial_envisage");
+        // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 FR — flag pivot CONTEXTUAL Immigration FR.
+        addBooleanFlagIfTrue(detected, immigrationNode, "vie_privee_familiale_detectee");
 
         // F-235 : nationalite (texte libre normalisé titlecase) — consommée par
         // les règles CONTEXTUAL conditionnées à un régime national bilatéral
