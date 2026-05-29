@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="473-seed-mna-evaluation-age-visibility" author="legalcase">
+        <comment>
+            SF-214-27 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "MNA évaluation d'âge" (F-IM-38-mna-evaluation-age-fr,
+            FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que si
+            le pipeline IA détecte un client mineur — trigger
+            `client_mineur_detecte` = true (flag existant F-201, réutilisé tel
+            quel, sans nouveau flag pivot). Mentions repérées par
+            LegalDomainPromptBuilder : "MNA", "mineur non accompagné", "mineur
+            isolé", "ASE", "évaluation ASE", "examen osseux", "refus de prise en
+            charge", "juge des enfants". En l'absence de mineur détecté, l'outil
+            n'est pas visible.
+            priority 38 — après F-IM-37 ANEF procédure (priority 37).
+
+            Source juridique : Cciv 375 et 388 ; circulaire Taubira du
+            31 mai 2013 ; arrêté du 17 novembre 2016 ; CE 25 juillet 2013
+            n° 371334 ; L. 425-3 CESEDA.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            -- 400 cote service.
+
+            UUID namespace F-214 : f214001a-0000-0000-0000-214000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f214001a-0000-0000-0000-214000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-38-mna-evaluation-age-fr', 'CONTEXTUAL', 'client_mineur_detecte', 'true', 38);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f214001a-0000-0000-0000-214000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

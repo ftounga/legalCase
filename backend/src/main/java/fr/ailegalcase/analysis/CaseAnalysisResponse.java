@@ -2600,7 +2600,25 @@ public record CaseAnalysisResponse(
              * de titre et la date d'expiration sont dérivés de {@code typeTitreSejour}
              * et {@code dateExpirationTitre} déjà extraits. Dossiers BE : toujours false.
              */
-            boolean anefPanneDetectee) {
+            boolean anefPanneDetectee,
+            /**
+             * SF-214-27 : flag de pré-fill — true si les pièces évoquent un refus
+             * d'évaluation / de prise en charge par l'ASE d'un mineur non accompagné
+             * (mentions « évaluation ASE », « refus de prise en charge », « juge des
+             * enfants », « MNA », « mineur non accompagné »). Sert au pré-remplissage
+             * de l'outil F-IM-38 (MNA évaluation d'âge) ; la visibilité reste pilotée
+             * par le flag existant {@code clientMineurDetecte} (F-201). Dossiers BE :
+             * toujours false.
+             */
+            boolean mnaEvaluationRefusee,
+            /**
+             * SF-214-27 : flag de pré-fill — true si les pièces évoquent qu'un examen
+             * osseux a été ordonné dans le cadre de l'évaluation d'âge d'un mineur non
+             * accompagné (mentions « examen osseux », « test osseux », « radiographie
+             * du poignet », « détermination de l'âge »). Sert au pré-remplissage de
+             * l'outil F-IM-38. Dossiers BE : toujours false.
+             */
+            boolean mnaExamenOsseuxOrdonne) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -2860,6 +2878,9 @@ public record CaseAnalysisResponse(
             private Double carteResidentRessources;
             // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR
             private boolean anefPanneDetectee;
+            // SF-214-27 : F-IM-38 MNA évaluation d'âge FR
+            private boolean mnaEvaluationRefusee;
+            private boolean mnaExamenOsseuxOrdonne;
 
             private Builder() {}
 
@@ -2987,6 +3008,8 @@ public record CaseAnalysisResponse(
             public Builder carteResidentEnvisagee(boolean v) { this.carteResidentEnvisagee = v; return this; }
             public Builder carteResidentRessources(Double v) { this.carteResidentRessources = v; return this; }
             public Builder anefPanneDetectee(boolean v) { this.anefPanneDetectee = v; return this; }
+            public Builder mnaEvaluationRefusee(boolean v) { this.mnaEvaluationRefusee = v; return this; }
+            public Builder mnaExamenOsseuxOrdonne(boolean v) { this.mnaExamenOsseuxOrdonne = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3074,7 +3097,10 @@ public record CaseAnalysisResponse(
                         carteResidentEnvisagee,
                         carteResidentRessources,
                         // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR
-                        anefPanneDetectee);
+                        anefPanneDetectee,
+                        // SF-214-27 : F-IM-38 MNA évaluation d'âge FR
+                        mnaEvaluationRefusee,
+                        mnaExamenOsseuxOrdonne);
             }
         }
     }
@@ -6196,6 +6222,11 @@ public record CaseAnalysisResponse(
         // (FR uniquement). Type de titre et date d'expiration dérivés des champs
         // typeTitreSejour / dateExpirationTitre déjà extraits.
         boolean anefPanneDetectee = booleanOrFalse(root, "anef_panne_detectee");
+        // SF-214-27 : F-IM-38 MNA évaluation d'âge FR — 2 flags de pré-fill
+        // (FR uniquement). La date de naissance est dérivée de mineurs_date_naissance
+        // et la visibilité du flag existant client_mineur_detecte (F-201).
+        boolean mnaEvaluationRefusee = booleanOrFalse(root, "mna_evaluation_refusee");
+        boolean mnaExamenOsseuxOrdonne = booleanOrFalse(root, "mna_examen_osseux_ordonne");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
                 && recoursCode == null && dateNotif == null
@@ -6282,7 +6313,10 @@ public record CaseAnalysisResponse(
                 && !carteResidentEnvisagee
                 && carteResidentRessources == null
                 // SF-214-25 : F-IM-37 ANEF procédure / pannes / recours FR (1 flag pivot)
-                && !anefPanneDetectee) return null;
+                && !anefPanneDetectee
+                // SF-214-27 : F-IM-38 MNA évaluation d'âge FR (2 flags de pré-fill)
+                && !mnaEvaluationRefusee
+                && !mnaExamenOsseuxOrdonne) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -6416,6 +6450,8 @@ public record CaseAnalysisResponse(
                 .carteResidentEnvisagee(carteResidentEnvisagee)
                 .carteResidentRessources(carteResidentRessources)
                 .anefPanneDetectee(anefPanneDetectee)
+                .mnaEvaluationRefusee(mnaEvaluationRefusee)
+                .mnaExamenOsseuxOrdonne(mnaExamenOsseuxOrdonne)
                 .build();
     }
 
