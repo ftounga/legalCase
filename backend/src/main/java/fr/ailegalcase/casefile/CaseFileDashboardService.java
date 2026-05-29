@@ -110,6 +110,8 @@ public class CaseFileDashboardService {
     private final OqtfCategoriesRepository oqtfCategoriesRepo;
     // SF-214-11 : F-IM-30 AES calcul présence prouvée L.435-1/L.435-3 CESEDA (FR)
     private final AesPresenceProuveeRepository aesPresenceProuveeRepo;
+    // SF-214-13 : F-IM-31 renouvellement délai de dépôt 2 mois avant R. 433-1 CESEDA (FR)
+    private final RenouvellementDelaiRepository renouvellementDelaiRepo;
     // SF-212-01 : F-DT-36-licenciement-faute-grave-lourde qualification disciplinaire (FR)
     private final LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo;
     private final JldRetentionRepository jldRetentionRepo;
@@ -254,6 +256,7 @@ public class CaseFileDashboardService {
                                      VlsTsValidationRepository vlsTsValidationRepo,
                                      OqtfCategoriesRepository oqtfCategoriesRepo,
                                      AesPresenceProuveeRepository aesPresenceProuveeRepo,
+                                     RenouvellementDelaiRepository renouvellementDelaiRepo,
                                      LicenciementFauteGraveLourdRepository licenciementFauteGraveLourdRepo,
                                      JldRetentionRepository jldRetentionRepo,
                                      DublinRecoursRepository dublinRecoursRepo,
@@ -381,6 +384,7 @@ public class CaseFileDashboardService {
         this.vlsTsValidationRepo = vlsTsValidationRepo;
         this.oqtfCategoriesRepo = oqtfCategoriesRepo;
         this.aesPresenceProuveeRepo = aesPresenceProuveeRepo;
+        this.renouvellementDelaiRepo = renouvellementDelaiRepo;
         this.licenciementFauteGraveLourdRepo = licenciementFauteGraveLourdRepo;
         this.jldRetentionRepo = jldRetentionRepo;
         this.dublinRecoursRepo = dublinRecoursRepo;
@@ -576,6 +580,8 @@ public class CaseFileDashboardService {
         // SF-214-09 : F-IM-29 OQTF catégories L.611-1 CESEDA (FR)
         addSafely(tiles, "F-IM-29-oqtf-categories-l6111-fr", caseFileId, () -> tileFromOqtfCategoriesAnalysis(caseFileId));
         addSafely(tiles, "F-IM-30-aes-presence-prouvee-fr", caseFileId, () -> tileFromAesPresenceProuveeAnalysis(caseFileId));
+        // SF-214-13 : F-IM-31 renouvellement délai de dépôt 2 mois avant R. 433-1 CESEDA (FR)
+        addSafely(tiles, "F-IM-31-renouvellement-delai-depot-fr", caseFileId, () -> tileFromRenouvellementDelaiAnalysis(caseFileId));
         addSafely(tiles, "acceptation-renonciation-succession", caseFileId, () -> tileFromAcceptationRenonciationSuccessionAnalysis(caseFileId));
         addSafely(tiles, "autorite-parentale-be", caseFileId, () -> tileFromAutoriteParentaleBeAnalysis(caseFileId));
         addSafely(tiles, "contribution-alimentaire-enfants-be", caseFileId, () -> tileFromContributionAlimentaireEnfantsBeAnalysis(caseFileId));
@@ -1888,6 +1894,42 @@ public class CaseFileDashboardService {
                         "DELAIS",
                         "Validation VLS-TS OFII",
                         statut != null ? statut.name() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** SF-214-13 — F-IM-31 délai de dépôt du renouvellement du titre (R. 433-1 CESEDA, FR). */
+    private DashboardTile tileFromRenouvellementDelaiAnalysis(UUID caseFileId) {
+        return renouvellementDelaiRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RenouvellementDelaiResult.class);
+                RenouvellementDelaiStatut statut = r.statut();
+                RenouvellementDelaiStatut effectif =
+                        statut == null ? RenouvellementDelaiStatut.A_DEPOSER : statut;
+                String secondary = switch (effectif) {
+                    case DEPOSE -> r.alerteRetard()
+                            ? "Dépôt effectué hors délai"
+                            : "Demande de renouvellement déposée";
+                    case EXPIRE -> "Titre expiré sans dépôt";
+                    default -> r.joursRestantsAvantOptimal() != null
+                            ? r.joursRestantsAvantOptimal() + " j. avant la date optimale de dépôt"
+                            : "Échéance non déterminée";
+                };
+                String alert = switch (effectif) {
+                    case EN_AVANCE, DEPOSE -> "OK";
+                    case A_DEPOSER -> "OK";
+                    case A_DEPOSER_URGENT -> "WARNING";
+                    case EXPIRE -> "ALERT";
+                };
+                return new DashboardTile(
+                        "F-IM-31-renouvellement-delai-depot-fr",
+                        "DELAIS",
+                        "Renouvellement — délai de dépôt",
+                        effectif.name(),
                         secondary,
                         alert);
             } catch (Exception ex) {
