@@ -1,0 +1,238 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">engineering</mat-icon>
+    <span class="is-title">LICENCIEMENT CDI DE CHANTIER (FR)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdictGlobal)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdictGlobal) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">CDI de chantier — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Le contrat de chantier ou d'opération (art. L.1223-8 et L.1223-9 du
+              Code du travail français) et la rupture à la fin du chantier
+              (art. L.1236-8 CT) reposent sur un régime propre au droit du travail
+              français : ce régime n'a pas d'équivalent direct en droit du travail
+              belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Conditions du recours au CDI de chantier et fin du chantier (art. L.1223-8 et s. CT).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée (début du contrat)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateEntree()"
+                         (ngModelChange)="onDateEntreeChange($event)"
+                         name="dateEntree"
+                         data-testid="date-entree-input" />
+                </mat-form-field>
+                @if (provenanceDateEntree() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-entree"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la rupture (notification)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRupture()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateRupture"
+                         data-testid="date-rupture-input" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-rupture"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Fondement du recours</mat-label>
+                  <mat-select [ngModel]="fondementRecours()"
+                              (ngModelChange)="onFondementChange($event)"
+                              name="fondementRecours"
+                              data-testid="fondement-select">
+                    @for (opt of fondementOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Secteur</mat-label>
+                  <mat-select [ngModel]="secteur()"
+                              (ngModelChange)="onSecteurChange($event)"
+                              name="secteur"
+                              data-testid="secteur-select">
+                    @for (opt of secteurOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceSecteur() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-secteur"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Salaire mensuel moyen (€)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="salaireMensuelMoyen()"
+                         (ngModelChange)="onSalaireChange($event)"
+                         name="salaireMensuelMoyen"
+                         data-testid="salaire-input" />
+                </mat-form-field>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="chantierAcheve()"
+                              (ngModelChange)="onChantierAcheveChange($event)"
+                              name="chantierAcheve"
+                              data-testid="chantier-acheve">
+                  Le chantier / l'opération est achevé
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="reclassementAutreChantierPropose()"
+                              (ngModelChange)="onReclassementChange($event)"
+                              name="reclassementAutreChantierPropose"
+                              data-testid="reclassement-checkbox">
+                  Poursuite proposée sur un autre chantier
+                </mat-checkbox>
+              </div>
+
+              <div class="is-note is-note--annual" role="note" data-testid="ccn-note">
+                <mat-icon>info_outline</mat-icon>
+                <span>Indemnité estimée au barème légal R.1234-2 — vérifier CCN BTP/ingénierie plus favorable.</span>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le licenciement pour fin de chantier</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.verdictGlobal)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictGlobal) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ verdictLabel(result()!.verdictGlobal) }}</div>
+                  <div class="is-banner-sub">{{ result()!.motifRecours }}</div>
+                </div>
+              </div>
+
+              <!-- Badges validité recours + qualification du motif -->
+              <div class="is-badges">
+                <span [class]="recoursChipClass(result()!.recoursValide)" data-testid="recours-chip">
+                  {{ recoursLabel(result()!.recoursValide) }}
+                </span>
+                <span [class]="motifChipClass(result()!.motifLicenciement)" data-testid="motif-chip">
+                  {{ motifLabel(result()!.motifLicenciement) }}
+                </span>
+              </div>
+
+              <!-- Indemnité de licenciement (JetBrains Mono) -->
+              <div class="is-figure">
+                <span class="is-figure-label">Indemnité de licenciement</span>
+                <span class="is-figure-value" data-testid="indemnite-value">{{ result()!.indemniteLicenciement | number:'1.2-2' }} €</span>
+              </div>
+
+              <!-- Rappel procédure de droit commun -->
+              @if (result()!.procedureRequise) {
+                <div class="is-note" role="note" data-testid="procedure-note">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>Procédure de licenciement de droit commun requise (entretien préalable, notification).</span>
+                </div>
+              }
+
+              <!-- Encadré requalification si recours invalide -->
+              @if (recoursInvalide()) {
+                <div class="is-figure is-figure--alert" role="note" data-testid="requalification-box">
+                  <span class="is-figure-label">
+                    Risque de requalification en CDI de droit commun (art. L.1223-8 CT) :
+                    aucun accord de branche étendu ni usage constant n'est invoqué.
+                  </span>
+                </div>
+              }
+
+              <!-- Rappel CCN plus favorable -->
+              <div class="is-note is-note--annual" role="note" data-testid="ccn-result-note">
+                <mat-icon>info_outline</mat-icon>
+                <span>Indemnité estimée au barème légal R.1234-2 — vérifier CCN BTP/ingénierie plus favorable.</span>
+              </div>
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

@@ -366,6 +366,20 @@ export interface TravailExtractedData {
    * FR-only. Déclenche l'apparition de F-DT-110 (n'est PAS un champ de formulaire).
    */
   apprentissageRuptureDetectee?: boolean | null;
+  /**
+   * SF-218-26 : secteur du CDI de chantier / d'opération détecté par l'IA, pour
+   * pré-fill F-DT-37-licenciement-cdi-chantier (FR uniquement). Aligné sur l'enum
+   * backend {@code SecteurChantier} (BTP / INGENIERIE / AUTRE).
+   */
+  cdiChantierSecteur?: 'BTP' | 'INGENIERIE' | 'AUTRE' | null;
+  /**
+   * SF-218-26 : flag de visibilité CONTEXTUAL — true si l'IA détecte un CDI de
+   * chantier / d'opération (mentions « CDI de chantier », « contrat de chantier »,
+   * « contrat d'opération », « fin de chantier », « BTP », « ingénierie »,
+   * « licenciement pour fin de chantier »). FR-only. Déclenche l'apparition de
+   * F-DT-37 (n'est PAS un champ de formulaire).
+   */
+  cdiChantierDetecte?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */
