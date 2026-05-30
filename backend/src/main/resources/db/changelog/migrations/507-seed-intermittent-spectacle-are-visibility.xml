@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="7a107301-d2c5-4bef-a843-134cd72623ac" author="legalcase">
+        <comment>
+            SF-218-17 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Intermittent du spectacle — ouverture des droits ARE"
+            (F-DT-106-intermittent-spectacle-are, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte un
+            statut d'intermittent du spectacle (mentions « intermittent du
+            spectacle », « annexe 8 », « annexe 10 », « cachet », « 507 heures »,
+            « artiste du spectacle », « technicien audiovisuel », « France Travail
+            spectacle »). Flag pivot `statut_intermittent_detecte` = true.
+            trigger_field = 'statut_intermittent_detecte',
+            trigger_value = 'true'. priority 81 — prochaine valeur libre pour le
+            couple (DROIT_DU_TRAVAIL, FRANCE) apres le seed CONTEXTUAL FR le plus
+            recent (F-DT-105 statut journaliste = 80).
+
+            Source juridique : reglement d'assurance chomage Unedic, annexe 8
+            (ouvriers et techniciens du spectacle) et annexe 10 (artistes du
+            spectacle) ; condition d'affiliation de 507 heures sur 12 mois.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-106-intermittent-spectacle-are
+            est livree dans la PR frontend SF-218-18 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('7a107301-d2c5-4bef-a843-134cd72623ac', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-106-intermittent-spectacle-are', 'CONTEXTUAL', 'statut_intermittent_detecte', 'true', 81);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '7a107301-d2c5-4bef-a843-134cd72623ac';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

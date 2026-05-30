@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="73e7b253-267d-498f-bf96-29ccec222038" author="legalcase">
+        <comment>
+            SF-218-17 — table `intermittent_spectacle_are_analyses` pour l'outil
+            decisionnel "Intermittent du spectacle — ouverture des droits ARE"
+            (F-DT-106-intermittent-spectacle-are, FRANCE).
+
+            Outil single-country FR : analyse l'ouverture des droits a
+            l'allocation d'aide au retour a l'emploi (ARE) d'un intermittent du
+            spectacle relevant des annexes 8 (techniciens) et 10 (artistes) du
+            reglement Unedic. Verifie le seuil d'affiliation de 507 heures sur la
+            periode de reference de 12 mois precedant la fin du dernier contrat.
+            Convertit les cachets (annexe 10 : 1 cachet = 12 heures), ecrete les
+            heures d'enseignement assimilees au plafond, additionne le total
+            d'heures retenues et le compare au seuil. Calcule les heures
+            manquantes ou excedentaires, la date d'anniversaire du reexamen
+            annuel (dateFinContrat + 12 mois) et le verdict d'ouverture.
+            Verdict : OUVERTS / NON_OUVERTS / A_VERIFIER (dans la marge de plus
+            ou moins 10 h du seuil). Persiste l'analyse 1:1 par dossier (upsert).
+
+            Source juridique : reglement d'assurance chomage Unedic, annexe 8
+            (ouvriers et techniciens du spectacle) et annexe 10 (artistes du
+            spectacle) ; condition d'affiliation de 507 heures sur 12 mois.
+        </comment>
+
+        <createTable tableName="intermittent_spectacle_are_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_intermittent_spectacle_are_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="annexe" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_contrat" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_travaillees_12_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_cachets" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_formation_retenues" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_totales_retenues" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_manquantes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_excedentaires" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_prochain_examen" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ouverture_droits" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="intermittent_spectacle_are_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

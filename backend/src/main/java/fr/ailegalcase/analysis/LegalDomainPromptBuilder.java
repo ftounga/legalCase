@@ -1145,6 +1145,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-17 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `statut_intermittent_detecte` et du champ `intermittent_annexe` pour
+     * pré-fill de l'outil F-DT-106 (intermittent du spectacle — ouverture des
+     * droits ARE : seuil 507 h / 12 mois, annexes 8 et 10 Unedic,
+     * FRANCE UNIQUEMENT).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART26 = """
+              SF-218-17 — Flag `statut_intermittent_detecte` et champ `intermittent_annexe` (FRANCE UNIQUEMENT).
+              "statut_intermittent_detecte" : booléen — true uniquement si les pièces révèlent un statut d'INTERMITTENT DU SPECTACLE relevant de l'assurance chômage (règlement Unedic, annexes 8 et 10) : mention « intermittent du spectacle », « annexe 8 », « annexe 10 », « cachet », « 507 heures », « artiste du spectacle », « technicien du spectacle », « technicien audiovisuel », « production cinématographique », « France Travail spectacle », « ouverture de droits ARE intermittent », « CDD d'usage spectacle ». False par défaut. Pertinent pour F-DT-106.
+              "intermittent_annexe" : chaîne ou null. Annexe Unedic applicable, l'une des 2 valeurs exactes (null si non déterminable) : "ANNEXE_8_TECHNICIENS" (ouvriers et techniciens du spectacle, de l'audiovisuel, du cinéma — réalisateurs, monteurs, ingénieurs du son, etc.) ou "ANNEXE_10_ARTISTES" (artistes du spectacle rémunérés au cachet — comédiens, musiciens, danseurs, etc.). null si l'annexe n'est pas lisible.
+              Pour un dossier travail BELGIQUE, laisser `statut_intermittent_detecte` à false et `intermittent_annexe` à null (l'indemnisation chômage des artistes / techniciens du spectacle relève d'un régime distinct en droit belge, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1175,7 +1189,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART22)
                     .concat(TRAVAIL_INSTRUCTION_PART23)
                     .concat(TRAVAIL_INSTRUCTION_PART24)
-                    .concat(TRAVAIL_INSTRUCTION_PART25);
+                    .concat(TRAVAIL_INSTRUCTION_PART25)
+                    .concat(TRAVAIL_INSTRUCTION_PART26);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
