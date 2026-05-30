@@ -154,6 +154,7 @@ import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licen
 import { LicenciementNulDetectionSectionComponent } from '../licenciement-nul-detection-section/licenciement-nul-detection-section.component';
 import { ProcedureNulliteLicenciementSectionComponent } from '../procedure-nullite-licenciement-section/procedure-nullite-licenciement-section.component';
 import { AbandonPostePresomptionDemissionSectionComponent } from '../abandon-poste-presomption-demission-section/abandon-poste-presomption-demission-section.component';
+import { VrpIndemniteClienteleSectionComponent } from '../vrp-indemnite-clientele-section/vrp-indemnite-clientele-section.component';
 import { CongesPayesArretMaladieSectionComponent } from '../conges-payes-arret-maladie-section/conges-payes-arret-maladie-section.component';
 import { PriseActeRuptureSectionComponent } from '../prise-acte-rupture-section/prise-acte-rupture-section.component';
 // SF-212-02 : outil F-DT-36 licenciement pour faute grave / faute lourde (FR uniquement).
@@ -927,6 +928,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-163 SF-163-02b — propage le flag standalone (default false).
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      ['F-DT-104-vrp-indemnite-clientele', {
+        displayLabel: 'VRP : préavis et indemnité de clientèle (FR)',
+        component: VrpIndemniteClienteleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-218-12 : pré-fill IA réel (dateEntree, dateRupture, commissions
+          // annuelles moyennes — FR uniquement). Validation F-IA-03 sur les 2
+          // dates croisables (DATE_ENTREE, DATE_RUPTURE) via F-96 / questions IA.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
           // F-163 SF-163-02b — propage le flag standalone (default false).
           standaloneMode: ctx.standaloneMode ?? false,
         }),
@@ -4937,6 +4954,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // L.3141-5-1 CT, loi 22/04/2024). Groupe F-169 « Rappels et indemnités
     // salariales » — c'est un rappel de droits, pas une rupture.
     ['F-DT-75-conges-payes-arret-maladie', 'INDEMNITES'],
+    // SF-218-12 : VRP — indemnité de clientèle + préavis spécifique + option
+    // la plus favorable. Calculateur de montant d'indemnité (cohérent avec les
+    // autres outils INDEMNITES). FR-only (statut VRP statutaire, L.7311-1 s.).
+    ['F-DT-104-vrp-indemnite-clientele', 'INDEMNITES'],
     ['F-DT-28-avantages-conventionnels-be', 'INDEMNITES'],
     ['F-DT-31-transaction', 'INDEMNITES'],
     ['F-DT-35-contestation-are-fr', 'INDEMNITES'],
