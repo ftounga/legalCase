@@ -282,6 +282,20 @@ export interface TravailExtractedData {
    * FR-only. Déclenche l'apparition de F-DT-108 (n'est PAS un champ de formulaire).
    */
   particulierEmployeurDetecte?: boolean | null;
+  /**
+   * SF-218-16 : détention de la carte d'identité de journaliste professionnel
+   * (CCIJP) détectée par l'IA, pour pré-fill F-DT-105-journaliste-statut (FR
+   * uniquement). Présomption de la qualité de journaliste professionnel.
+   */
+  journalisteCartePresse?: boolean | null;
+  /**
+   * SF-218-16 : flag de visibilité CONTEXTUAL — true si l'IA détecte un statut
+   * de journaliste professionnel (mentions « journaliste », « carte de presse »,
+   * « clause de cession », « clause de conscience », « rédaction », « organe de
+   * presse », « pigiste »). FR-only. Déclenche l'apparition de F-DT-105
+   * (n'est PAS un champ de formulaire).
+   */
+  statutJournalisteDetecte?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */

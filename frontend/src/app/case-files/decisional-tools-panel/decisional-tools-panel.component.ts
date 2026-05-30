@@ -81,6 +81,8 @@ import { ExecutionJugementCphSectionComponent } from '../execution-jugement-cph-
 import { SaisieRemunerationSectionComponent } from '../saisie-remuneration-section/saisie-remuneration-section.component';
 // SF-218-14 : composant complet F-DT-108-particulier-employeur-cesu — particulier employeur (CESU) préavis + indemnité de licenciement / rupture (Travail FR, CCN salariés du particulier employeur IDCC 3239 + CCN assistants maternels indemnité de rupture 1/80).
 import { ParticulierEmployeurCesuSectionComponent } from '../particulier-employeur-cesu-section/particulier-employeur-cesu-section.component';
+// SF-218-16 : composant complet F-DT-105-journaliste-statut — statut du journaliste professionnel : clauses de cession / conscience + indemnité de congédiement + commission arbitrale (Travail FR, art. L.7111-1 et s. CT).
+import { JournalisteStatutSectionComponent } from '../journaliste-statut-section/journaliste-statut-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1789,6 +1791,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-108-particulier-employeur-cesu', {
         displayLabel: 'Particulier employeur / CESU (FR)',
         component: ParticulierEmployeurCesuSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-16 : composant complet F-DT-105-journaliste-statut — statut du
+      // journaliste professionnel (art. L.7111-1 et s. CT) lors d'une rupture
+      // (Travail FR). FR uniquement, CONTEXTUAL (flag statutJournalisteDetecte).
+      // Qualifie le statut (présomption via carte de presse CCIJP), la validité
+      // de la clause de cession (cession du titre, L.7112-5 1°) ou de conscience
+      // (changement d'orientation, L.7112-5 2°/3°), l'indemnité de congédiement
+      // spécifique (1 mois/année, L.7112-3) et le renvoi à la commission
+      // arbitrale paritaire (L.7112-4) au-delà de 15 ans d'ancienneté → verdict
+      // RUPTURE_ASSIMILEE_LICENCIEMENT / INDEMNITE_DUE / COMMISSION_ARBITRALE /
+      // INDEMNITE_NON_DUE + badge statut, badge validité clause + motif, montant
+      // indemnité et encart commission arbitrale. Pré-fill IA 3 champs
+      // (dateEntree, dateRupture, carteIdentiteProfessionnelle) via static
+      // getPrefillCount + JournalisteStatutPrefillRules.
+      ['F-DT-105-journaliste-statut', {
+        displayLabel: 'Statut journaliste (FR)',
+        component: JournalisteStatutSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5207,6 +5232,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // licenciement / rupture + préavis conventionnel), cohérent avec les autres
     // outils d'indemnités du domaine Travail.
     ['F-DT-108-particulier-employeur-cesu', 'INDEMNITES'],
+    // SF-218-16 : F-DT-105-journaliste-statut statut du journaliste professionnel
+    // (Travail FR). Thème VALIDITE — analyseur de validité de la clause de
+    // cession / conscience invoquée + qualification du statut (CONFIRME /
+    // A_QUALIFIER), cohérent avec les autres analyseurs de validité / statut.
+    ['F-DT-105-journaliste-statut', 'VALIDITE'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
