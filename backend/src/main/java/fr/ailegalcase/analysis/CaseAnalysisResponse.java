@@ -700,7 +700,17 @@ public record CaseAnalysisResponse(
             // discrimination collective + intention d'action de groupe (mentions
             // « action de groupe », « discrimination systémique », « plusieurs salariés »,
             // « organisation syndicale / association »). FR-only, default false.
-            boolean actionGroupeDiscriminationEnvisagee) {
+            boolean actionGroupeDiscriminationEnvisagee,
+            // SF-218-13 : flag pivot CONTEXTUAL — déclenche F-DT-108 particulier
+            // employeur / CESU (FR). true uniquement si les pièces révèlent un
+            // employeur particulier (mentions « CESU », « garde d'enfants »,
+            // « assistant maternel », « employé de maison », « PAJEMPLOI »,
+            // « particulier employeur »). FR-only, default false. Régime BE distinct.
+            boolean particulierEmployeurDetecte,
+            // SF-218-13 : catégorie d'emploi détectée pour pré-fill de l'outil
+            // F-DT-108 (SALARIE_PARTICULIER_EMPLOYEUR | ASSISTANT_MATERNEL,
+            // nullable) — pilote la CCN applicable. null si non détectable. FR-only.
+            String cesuCategorieEmploye) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1259,7 +1269,13 @@ public record CaseAnalysisResponse(
                     .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage)
                     // SF-218-07 — saisie sur rémunération (FR)
                     .nombrePersonnesACharge(nombrePersonnesACharge)
-                    .saisieRemunerationDetectee(saisieRemunerationDetectee);
+                    .saisieRemunerationDetectee(saisieRemunerationDetectee)
+                    // SF-218-09 — action de groupe en discrimination (FR)
+                    .dateMiseEnDemeureDiscrimination(dateMiseEnDemeureDiscrimination)
+                    .actionGroupeDiscriminationEnvisagee(actionGroupeDiscriminationEnvisagee)
+                    // SF-218-13 — particulier employeur / CESU (FR)
+                    .particulierEmployeurDetecte(particulierEmployeurDetecte)
+                    .cesuCategorieEmploye(cesuCategorieEmploye);
         }
 
         public static final class Builder {
@@ -1557,6 +1573,9 @@ public record CaseAnalysisResponse(
             // SF-218-09 — action de groupe en discrimination (FR)
             private String dateMiseEnDemeureDiscrimination;
             private boolean actionGroupeDiscriminationEnvisagee;
+            // SF-218-13 — particulier employeur / CESU (FR)
+            private boolean particulierEmployeurDetecte;
+            private String cesuCategorieEmploye;
 
             private Builder() {}
 
@@ -1853,6 +1872,9 @@ public record CaseAnalysisResponse(
             // SF-218-09 — action de groupe en discrimination (FRANCE uniquement).
             public Builder dateMiseEnDemeureDiscrimination(String v) { this.dateMiseEnDemeureDiscrimination = v; return this; }
             public Builder actionGroupeDiscriminationEnvisagee(boolean v) { this.actionGroupeDiscriminationEnvisagee = v; return this; }
+            // SF-218-13 — particulier employeur / CESU (FRANCE uniquement).
+            public Builder particulierEmployeurDetecte(boolean v) { this.particulierEmployeurDetecte = v; return this; }
+            public Builder cesuCategorieEmploye(String v) { this.cesuCategorieEmploye = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2042,7 +2064,10 @@ public record CaseAnalysisResponse(
                         saisieRemunerationDetectee,
                         // SF-218-09 — action de groupe en discrimination (FR)
                         dateMiseEnDemeureDiscrimination,
-                        actionGroupeDiscriminationEnvisagee);
+                        actionGroupeDiscriminationEnvisagee,
+                        // SF-218-13 — particulier employeur / CESU (FR)
+                        particulierEmployeurDetecte,
+                        cesuCategorieEmploye);
             }
         }
     }
@@ -5519,6 +5544,10 @@ public record CaseAnalysisResponse(
                     // SF-218-09 : flag pivot CONTEXTUAL + champ — déclenche F-DT-90 action de groupe en discrimination (FR).
                     .actionGroupeDiscriminationEnvisagee(booleanOrFalse(node, "action_groupe_discrimination_envisagee"))
                     .dateMiseEnDemeureDiscrimination(isoDateOrNull(node, "date_mise_en_demeure_discrimination"))
+                    // SF-218-13 : flag pivot CONTEXTUAL + champ — déclenche F-DT-108 particulier employeur / CESU (FR).
+                    .particulierEmployeurDetecte(booleanOrFalse(node, "particulier_employeur_detecte"))
+                    .cesuCategorieEmploye(whitelistedOrNull(stringOrNull(node, "cesu_categorie_employe"),
+                            "SALARIE_PARTICULIER_EMPLOYEUR", "ASSISTANT_MATERNEL"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

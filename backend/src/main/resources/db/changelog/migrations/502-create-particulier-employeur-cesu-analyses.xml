@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="7c3e9a14-2b6d-4f81-9e02-5a4d8c1f3b67" author="legalcase">
+        <comment>
+            SF-218-13 — table `particulier_employeur_cesu_analyses` pour l'outil
+            decisionnel "Particulier employeur / CESU"
+            (F-DT-108-particulier-employeur-cesu, FRANCE).
+
+            Outil single-country FR : calcule le préavis conventionnel et
+            l'indemnité de licenciement d'un salarie du particulier employeur
+            (CESU : garde d'enfants, employé de maison) ou d'un assistant
+            maternel, selon la CCN applicable. Préavis par tranche d'ancienneté
+            (moins de 6 mois : 1 semaine ; 6 mois a moins de 2 ans : 1 mois ;
+            2 ans et plus : 2 mois). Indemnité bi-régime : CCN salaries du
+            particulier employeur 2021 (1/4 de mois par an les 10 premieres
+            annees, 1/3 au-dela) ou indemnite de rupture assistant maternel
+            (1/80 du total des salaires nets perçus depuis le 1er jour).
+            Verdict : RUPTURE_REGULIERE / RUPTURE_A_SECURISER /
+            INDEMNITE_NON_DUE. Persiste l'analyse 1:1 par dossier (upsert).
+
+            Source juridique : CCN salaries du particulier employeur (IDCC 3239,
+            2021) ; CCN assistants maternels du particulier employeur ;
+            art. L. 7221-1 et s. Code du travail (employes de maison) ;
+            art. L. 423-1 et s. CASF (assistant maternel).
+        </comment>
+
+        <createTable tableName="particulier_employeur_cesu_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_particulier_employeur_cesu_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_entree" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="categorie_employe" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cause_rupture" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_moyen" type="DECIMAL(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_preavis_jours" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="indemnite_licenciement" type="DECIMAL(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eligibilite_indemnite" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="particulier_employeur_cesu_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
