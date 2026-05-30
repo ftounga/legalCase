@@ -1159,6 +1159,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-19 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `statut_cadre_dirigeant_detecte` et du champ booléen
+     * `cadre_participation_direction` pour pré-fill de l'outil F-DT-107 (cadre
+     * dirigeant — qualification : 3 critères cumulatifs L.3111-2 CT, exclusion
+     * des règles de durée du travail, FRANCE UNIQUEMENT).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART27 = """
+              SF-218-19 — Flag `statut_cadre_dirigeant_detecte` et champ `cadre_participation_direction` (FRANCE UNIQUEMENT).
+              "statut_cadre_dirigeant_detecte" : booléen — true uniquement si les pièces révèlent des signaux de CADRE DIRIGEANT au sens de l'art. L.3111-2 du code du travail ou un litige sur cette qualification : mention « cadre dirigeant », « forfait sans référence horaire », « comité de direction », « COMEX », « membre du directoire », « directeur général délégué », « grande indépendance dans l'organisation de son temps », ou un « rappel d'heures supplémentaires » réclamé par / contre un cadre de très haut niveau dont l'employeur conteste l'éligibilité aux règles de durée du travail. False par défaut. Pertinent pour F-DT-107.
+              "cadre_participation_direction" : booléen — true uniquement si les pièces établissent une PARTICIPATION EFFECTIVE À LA DIRECTION de l'entreprise (élément déterminant exigé par la jurisprudence Cass. soc. post-2012 pour confirmer la qualification de cadre dirigeant) : participation au comité de direction / directoire, pouvoir de décision sur la stratégie de l'entreprise, association aux orientations majeures. False par défaut (notamment si la participation effective à la direction n'est pas démontrée par les pièces).
+              Pour un dossier travail BELGIQUE, laisser `statut_cadre_dirigeant_detecte` à false et `cadre_participation_direction` à false (la notion de cadre dirigeant de l'art. L.3111-2 CT relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1190,7 +1204,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART23)
                     .concat(TRAVAIL_INSTRUCTION_PART24)
                     .concat(TRAVAIL_INSTRUCTION_PART25)
-                    .concat(TRAVAIL_INSTRUCTION_PART26);
+                    .concat(TRAVAIL_INSTRUCTION_PART26)
+                    .concat(TRAVAIL_INSTRUCTION_PART27);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

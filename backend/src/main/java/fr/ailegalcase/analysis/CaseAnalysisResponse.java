@@ -660,16 +660,14 @@ public record CaseAnalysisResponse(
             // SF-218-03 : flag F-205 pivot — déclenche F-DT-88 exécution du jugement CPH (FR).
             // true si jugement CPH favorable + difficulté d'exécution / AGS. FR-only, default false.
             boolean executionJugementCphEnvisagee,
-            // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de
-            // clientèle (FR). true uniquement si les pièces révèlent un statut de VRP
-            // statutaire (mentions « VRP », « voyageur représentant placier »,
-            // « représentant de commerce », « indemnité de clientèle », « carte de
-            // représentant », commissions). FR-only, default false. Régime BE distinct.
-            boolean vrpStatutDetecte,
-            // SF-218-11 : moyenne annuelle des commissions du VRP des 3 dernières
-            // années (assiette de l'indemnité de clientèle, art. L. 7313-13 CT).
-            // Pré-fill de F-DT-104. null si non documentée. FR-only.
-            java.math.BigDecimal vrpCommissionsAnnuelles,
+            // SF-218-11 : sous-objet pré-fill IA pour l'outil F-DT-104 (VRP
+            // indemnité de clientèle, FR). Consolidé en un seul composant
+            // (@JsonUnwrapped) par SF-218-19 pour libérer un paramètre du
+            // constructeur canonical (plafond JVM 255) et financer le nouveau
+            // sous-objet CadreDirigeantDetail. JSON HTTP plat préservé (clés
+            // `vrp_statut_detecte` et `vrp_commissions_annuelles` inchangées).
+            // Voir VrpStatutDetail.
+            @JsonUnwrapped VrpStatutDetail vrpStatutDetail,
             // SF-218-05 : date de notification de l'arrêt de la Cour d'appel (ISO
             // YYYY-MM-DD, nullable). Pré-fill de l'outil F-DT-87 (pourvoi cassation
             // sociale, FR) : fait courir le délai de pourvoi de 2 mois (art. 612 CPC).
@@ -718,7 +716,12 @@ public record CaseAnalysisResponse(
             // Regroupé en un seul composant (@JsonUnwrapped) pour rester sous la
             // limite de paramètres du constructeur canonical du record. Voir
             // IntermittentSpectacleDetail.
-            @JsonUnwrapped IntermittentSpectacleDetail intermittentSpectacleDetail) {
+            @JsonUnwrapped IntermittentSpectacleDetail intermittentSpectacleDetail,
+            // SF-218-19 : sous-objet pré-fill IA pour l'outil F-DT-107 (cadre
+            // dirigeant — qualification, FR). Regroupé en un seul composant
+            // (@JsonUnwrapped) pour rester sous la limite de paramètres du
+            // constructeur canonical du record. Voir CadreDirigeantDetail.
+            @JsonUnwrapped CadreDirigeantDetail cadreDirigeantDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1042,6 +1045,55 @@ public record CaseAnalysisResponse(
                 String intermittentAnnexe
         ) {}
 
+        /**
+         * SF-218-19 : sous-objet pré-fill IA pour l'outil F-DT-107 (cadre
+         * dirigeant — qualification, FRANCE UNIQUEMENT — art. L.3111-2 CT ;
+         * Cass. soc.). Regroupe le flag pivot CONTEXTUAL et l'indice de
+         * participation effective à la direction de l'entreprise en un seul
+         * composant {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code statut_cadre_dirigeant_detecte} et
+         * {@code cadre_participation_direction}) afin de ne pas dépasser la limite
+         * de paramètres du constructeur canonical de
+         * {@link TravailExtractedData}.
+         *
+         * @param statutCadreDirigeantDetecte flag pivot — true si les pièces
+         *        révèlent des signaux de cadre dirigeant ou un litige sur la
+         *        qualification (mentions « cadre dirigeant », « forfait sans
+         *        référence horaire », « comité de direction », « COMEX »,
+         *        « membre du directoire », « rappel d'heures supplémentaires »
+         *        contre un cadre de haut niveau). FR-only, default false.
+         * @param cadreParticipationDirection true si la participation effective à
+         *        la direction de l'entreprise est établie (élément déterminant de
+         *        la jurisprudence post-2012). FR-only, default false.
+         */
+        public record CadreDirigeantDetail(
+                boolean statutCadreDirigeantDetecte,
+                boolean cadreParticipationDirection
+        ) {}
+
+        /**
+         * SF-218-11 (consolidé par SF-218-19) : sous-objet pré-fill IA pour
+         * l'outil F-DT-104 (VRP — indemnité de clientèle, FRANCE UNIQUEMENT —
+         * art. L. 7311-1 et s. CT). Regroupe le flag pivot CONTEXTUAL et la
+         * moyenne annuelle des commissions en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code vrp_statut_detecte} et {@code vrp_commissions_annuelles},
+         * contrat externe inchangé) afin de ne pas dépasser la limite de
+         * paramètres du constructeur canonical de {@link TravailExtractedData}.
+         *
+         * @param vrpStatutDetecte flag pivot — true si les pièces révèlent un
+         *        statut de VRP statutaire (mentions « VRP », « voyageur
+         *        représentant placier », « représentant de commerce »,
+         *        « indemnité de clientèle », commissions). FR-only, default false.
+         * @param vrpCommissionsAnnuelles moyenne annuelle des commissions du VRP
+         *        des 3 dernières années (assiette de l'indemnité de clientèle,
+         *        art. L. 7313-13 CT). null si non documentée. FR-only.
+         */
+        public record VrpStatutDetail(
+                boolean vrpStatutDetecte,
+                java.math.BigDecimal vrpCommissionsAnnuelles
+        ) {}
+
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -1337,9 +1389,8 @@ public record CaseAnalysisResponse(
                     .montantCondamnationCph(montantCondamnationCph)
                     .situationEmployeurDetectee(situationEmployeurDetectee)
                     .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
-                    // SF-218-11 — VRP indemnité de clientèle (FR)
-                    .vrpStatutDetecte(vrpStatutDetecte)
-                    .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles)
+                    // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
+                    .vrpStatutDetail(vrpStatutDetail)
                     // SF-218-05 — pourvoi cassation sociale (FR)
                     .dateNotificationArretAppel(dateNotificationArretAppel)
                     .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage)
@@ -1354,7 +1405,9 @@ public record CaseAnalysisResponse(
                     // SF-218-15 — statut journaliste professionnel (FR)
                     .journalisteStatutDetail(journalisteStatutDetail)
                     // SF-218-17 — intermittent du spectacle / ARE (FR)
-                    .intermittentSpectacleDetail(intermittentSpectacleDetail);
+                    .intermittentSpectacleDetail(intermittentSpectacleDetail)
+                    // SF-218-19 — cadre dirigeant / qualification (FR)
+                    .cadreDirigeantDetail(cadreDirigeantDetail);
         }
 
         public static final class Builder {
@@ -1640,9 +1693,8 @@ public record CaseAnalysisResponse(
             private Double montantCondamnationCph;
             private String situationEmployeurDetectee;
             private boolean executionJugementCphEnvisagee;
-            // SF-218-11 — VRP indemnité de clientèle (FR)
-            private boolean vrpStatutDetecte;
-            private java.math.BigDecimal vrpCommissionsAnnuelles;
+            // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
+            private VrpStatutDetail vrpStatutDetail;
             // SF-218-05 — pourvoi cassation sociale (FR)
             private String dateNotificationArretAppel;
             private boolean pourvoiCassationSocEnvisage;
@@ -1658,6 +1710,8 @@ public record CaseAnalysisResponse(
             private JournalisteStatutDetail journalisteStatutDetail;
             // SF-218-17 — intermittent du spectacle / ARE (FR)
             private IntermittentSpectacleDetail intermittentSpectacleDetail;
+            // SF-218-19 — cadre dirigeant / qualification (FR)
+            private CadreDirigeantDetail cadreDirigeantDetail;
 
             private Builder() {}
 
@@ -1942,9 +1996,8 @@ public record CaseAnalysisResponse(
             public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
             public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
             public Builder executionJugementCphEnvisagee(boolean v) { this.executionJugementCphEnvisagee = v; return this; }
-            // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement).
-            public Builder vrpStatutDetecte(boolean v) { this.vrpStatutDetecte = v; return this; }
-            public Builder vrpCommissionsAnnuelles(java.math.BigDecimal v) { this.vrpCommissionsAnnuelles = v; return this; }
+            // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement) — consolidé SF-218-19.
+            public Builder vrpStatutDetail(VrpStatutDetail v) { this.vrpStatutDetail = v; return this; }
             // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
             public Builder dateNotificationArretAppel(String v) { this.dateNotificationArretAppel = v; return this; }
             public Builder pourvoiCassationSocEnvisage(boolean v) { this.pourvoiCassationSocEnvisage = v; return this; }
@@ -1960,6 +2013,8 @@ public record CaseAnalysisResponse(
             public Builder journalisteStatutDetail(JournalisteStatutDetail v) { this.journalisteStatutDetail = v; return this; }
             // SF-218-17 — intermittent du spectacle / ouverture droits ARE (FRANCE uniquement).
             public Builder intermittentSpectacleDetail(IntermittentSpectacleDetail v) { this.intermittentSpectacleDetail = v; return this; }
+            // SF-218-19 — cadre dirigeant / qualification (FRANCE uniquement).
+            public Builder cadreDirigeantDetail(CadreDirigeantDetail v) { this.cadreDirigeantDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2138,9 +2193,8 @@ public record CaseAnalysisResponse(
                         montantCondamnationCph,
                         situationEmployeurDetectee,
                         executionJugementCphEnvisagee,
-                        // SF-218-11 — VRP indemnité de clientèle (FR)
-                        vrpStatutDetecte,
-                        vrpCommissionsAnnuelles,
+                        // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
+                        vrpStatutDetail,
                         // SF-218-05 — pourvoi cassation sociale (FR)
                         dateNotificationArretAppel,
                         pourvoiCassationSocEnvisage,
@@ -2155,7 +2209,9 @@ public record CaseAnalysisResponse(
                         // SF-218-15 — statut journaliste professionnel (FR)
                         journalisteStatutDetail,
                         // SF-218-17 — intermittent du spectacle / ARE (FR)
-                        intermittentSpectacleDetail);
+                        intermittentSpectacleDetail,
+                        // SF-218-19 — cadre dirigeant / qualification (FR)
+                        cadreDirigeantDetail);
             }
         }
     }
@@ -5620,9 +5676,10 @@ public record CaseAnalysisResponse(
                     .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
                     .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
                     .situationEmployeurDetectee(stringOrNull(node, "situation_employeur_detectee"))
-                    // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle (FR).
-                    .vrpStatutDetecte(booleanOrFalse(node, "vrp_statut_detecte"))
-                    .vrpCommissionsAnnuelles(bigDecimalOrNull(node, "vrp_commissions_annuelles"))
+                    // SF-218-11 : flag pivot CONTEXTUAL + champ — déclenche F-DT-104 VRP indemnité de clientèle (FR). Consolidé SF-218-19.
+                    .vrpStatutDetail(new TravailExtractedData.VrpStatutDetail(
+                            booleanOrFalse(node, "vrp_statut_detecte"),
+                            bigDecimalOrNull(node, "vrp_commissions_annuelles")))
                     // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale (FR).
                     .pourvoiCassationSocEnvisage(booleanOrFalse(node, "pourvoi_cassation_soc_envisage"))
                     .dateNotificationArretAppel(isoDateOrNull(node, "date_notification_arret_appel"))
@@ -5646,6 +5703,10 @@ public record CaseAnalysisResponse(
                             booleanOrFalse(node, "statut_intermittent_detecte"),
                             whitelistedOrNull(stringOrNull(node, "intermittent_annexe"),
                                     "ANNEXE_8_TECHNICIENS", "ANNEXE_10_ARTISTES")))
+                    // SF-218-19 : flag pivot CONTEXTUAL + champ — déclenche F-DT-107 cadre dirigeant / qualification (FR).
+                    .cadreDirigeantDetail(new TravailExtractedData.CadreDirigeantDetail(
+                            booleanOrFalse(node, "statut_cadre_dirigeant_detecte"),
+                            booleanOrFalse(node, "cadre_participation_direction")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
