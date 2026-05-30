@@ -1138,6 +1138,20 @@ export interface TravailExtractedData {
   rpeGrossesseDeclareePostRupture?: boolean | null;
   /** Date ISO YYYY-MM-DD de notification de la grossesse à l'employeur (L.1225-5). */
   rpeDateNotificationGrossesse?: string | null;
+  /**
+   * SF-218-02 : 2 champs IA Travail FR pour l'outil « Appel CPH devant la Cour
+   * d'appel » (F-DT-86-appel-cph-cour-appel). Tous deux nullables — restent
+   * `null` pour un dossier Travail BE (voie de recours propre au droit français).
+   *
+   * - `dateNotificationJugement` : date ISO YYYY-MM-DD de notification du
+   *   jugement du conseil de prud'hommes (point de départ du délai d'appel d'1
+   *   mois, art. 538 CPC). Pré-fill du champ éponyme de F-DT-86.
+   * - `appelCphEnvisage` : `true` si le dossier comporte un jugement prud'homal
+   *   notifié dont l'appel est envisageable (flag de visibilité contextuelle de
+   *   l'outil F-DT-86). Noms identiques côté backend.
+   */
+  dateNotificationJugement?: string | null;
+  appelCphEnvisage?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

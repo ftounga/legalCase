@@ -1,0 +1,231 @@
+<section class="acc-section">
+  <header class="acc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="acc-body">
+    <mat-icon class="acc-icon">gavel</mat-icon>
+    <span class="acc-title">APPEL CPH — COUR D'APPEL (FR)</span>
+    @if (result()) {
+      <span class="acc-chip"
+            [class.acc-chip--success]="result()!.verdict === 'DELAI_OUVERT'"
+            [class.acc-chip--warning]="result()!.verdict === 'DELAI_URGENT'"
+            [class.acc-chip--danger]="result()!.verdict === 'DELAI_EXPIRE'"
+            [class.acc-chip--navy]="result()!.verdict === 'VOIE_FERMEE'">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="acc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="acc-body" class="acc-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="acc-banner acc-banner--info" role="note" data-testid="gate-fr">
+          <mat-icon>info_outline</mat-icon>
+          <div class="acc-banner-content">
+            <div class="acc-banner-title">Appel CPH — procédure française uniquement</div>
+            <div class="acc-banner-sub">
+              L'appel d'un jugement du conseil de prud'hommes devant la chambre
+              sociale de la cour d'appel (art. 538 CPC ; R. 1461-1 et s. du Code
+              du travail) est une voie de recours propre au droit français et n'a
+              pas d'équivalent direct en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="acc-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="acc-form" (ngSubmit)="analyze()">
+              @if (alertsSummary().total > 0) {
+                <div class="coherence-summary" data-testid="coherence-summary">
+                  <mat-icon>warning</mat-icon>
+                  <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+                </div>
+              }
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification du jugement</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateNotificationJugement()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationJugement" />
+                  <mat-hint>Point de départ du délai d'appel d'1 mois (art. 538 CPC)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        data-testid="coherence-badge"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="reasonFor('DATE_NOTIFICATION')"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> Incohérence détectée
+                  </span>
+                }
+              </div>
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Partie appelante</mat-label>
+                  <mat-select [ngModel]="partieAppelante()"
+                              (ngModelChange)="onPartieAppelanteChange($event)"
+                              name="partieAppelante">
+                    <mat-option value="SALARIE">Salarié</mat-option>
+                    <mat-option value="EMPLOYEUR">Employeur</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Mode de notification</mat-label>
+                  <mat-select [ngModel]="modeNotification()"
+                              (ngModelChange)="onModeNotificationChange($event)"
+                              name="modeNotification">
+                    <mat-option value="SIGNIFICATION">Signification par huissier</mat-option>
+                    <mat-option value="LRAR">Lettre recommandée AR</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="acc-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Représentation constituée</mat-label>
+                  <mat-select [ngModel]="representationConstituee()"
+                              (ngModelChange)="onRepresentationChange($event)"
+                              name="representationConstituee">
+                    <mat-option value="AVOCAT">Avocat</mat-option>
+                    <mat-option value="DEFENSEUR_SYNDICAL">Défenseur syndical</mat-option>
+                    <mat-option value="AUCUNE">Aucune</mat-option>
+                  </mat-select>
+                  <mat-hint>L'appel en matière prud'homale impose une représentation</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="acc-field-wrap acc-checkbox-wrap">
+                <label class="acc-checkbox">
+                  <input type="checkbox"
+                         [ngModel]="jugementEnDernierRessort()"
+                         (ngModelChange)="onJugementEnDernierRessortChange($event)"
+                         name="jugementEnDernierRessort" />
+                  <span>Jugement rendu en premier et dernier ressort</span>
+                </label>
+              </div>
+
+              <div class="acc-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai d'appel</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="acc-result">
+              <div [class]="verdictClass(result()!.verdict)" role="status" data-testid="verdict-banner">
+                <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+                <div class="acc-banner-content">
+                  <div class="acc-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <div class="acc-jours-restants">
+                    <span class="acc-jours-label">Date limite d'appel</span>
+                    <span class="acc-jours-big"
+                          [class.acc-jours-big--danger]="result()!.verdict === 'DELAI_EXPIRE'">
+                      {{ result()!.dateLimiteAppel }}
+                    </span>
+                  </div>
+                  <div class="acc-jours-restants">
+                    <span class="acc-jours-label">Jours restants</span>
+                    <span class="acc-jours-big"
+                          [class.acc-jours-big--danger]="result()!.verdict === 'DELAI_EXPIRE'">
+                      {{ result()!.joursRestants }}
+                    </span>
+                  </div>
+                  @if (result()!.verdict === 'VOIE_FERMEE') {
+                    <div class="acc-banner-sub" data-testid="voie-fermee-link">
+                      Jugement rendu en premier et dernier ressort : la voie de
+                      l'appel est fermée. Seul le <strong>pourvoi en cassation</strong>
+                      (chambre sociale de la Cour de cassation) est ouvert — voir
+                      l'outil <strong>« Pourvoi en cassation sociale »</strong> (F-DT-87).
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="acc-breakdown">
+                <li>
+                  <span class="acc-bd-label">Date de notification</span>
+                  <span class="acc-bd-value">{{ result()!.dateNotificationJugement }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Partie appelante</span>
+                  <span class="acc-bd-value">{{ result()!.partieAppelante === 'SALARIE' ? 'Salarié' : 'Employeur' }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Mode de notification</span>
+                  <span class="acc-bd-value">{{ result()!.modeNotification === 'SIGNIFICATION' ? 'Signification' : 'LRAR' }}</span>
+                </li>
+                <li>
+                  <span class="acc-bd-label">Représentation</span>
+                  <span class="acc-bd-value">{{ result()!.representationConstituee }}</span>
+                </li>
+              </ul>
+
+              @if (result()!.checklist && result()!.checklist.length > 0) {
+                <div class="acc-motifs-block" role="note" data-testid="checklist-block">
+                  <div class="acc-motifs-title">Formalités de l'appel</div>
+                  <ul class="acc-checklist">
+                    @for (item of result()!.checklist; track item.libelle) {
+                      <li [class.acc-checklist-item--bloquant]="itemBloquant(item)"
+                          [attr.data-testid]="itemBloquant(item) ? 'checklist-bloquant' : 'checklist-item'">
+                        <mat-icon class="acc-checklist-icon">
+                          {{ itemBloquant(item) ? 'error' : (item.obligatoire ? 'priority_high' : 'check') }}
+                        </mat-icon>
+                        <span class="acc-checklist-text">
+                          {{ item.libelle }}
+                          @if (item.obligatoire) { <span class="acc-checklist-tag">obligatoire</span> }
+                        </span>
+                        <span class="acc-checklist-base">{{ item.baseJuridique }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <div class="acc-meta">
+                <div class="acc-bases">
+                  <span class="acc-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

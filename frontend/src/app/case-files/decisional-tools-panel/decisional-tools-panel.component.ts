@@ -75,6 +75,8 @@ import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-sectio
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
 import { ItfJudiciaireSectionComponent } from '../itf-judiciaire-section/itf-judiciaire-section.component';
+// SF-218-02 : composant complet F-DT-86-appel-cph-cour-appel — appel CPH devant la cour d'appel (Travail FR, calculateur délai d'appel 1 mois + checklist formalités).
+import { AppelCphSectionComponent } from '../appel-cph-section/appel-cph-section.component';
 // SF-214-40 : composant complet F-IM-44-ue-eee-suisse-sejour-fr — séjour UE/EEE/Suisse (FR, analyseur de droits + encadré membre de famille non-UE).
 import { UeEeeSuisseSejourSectionComponent } from '../ue-eee-suisse-sejour-section/ue-eee-suisse-sejour-section.component';
 // SF-214-42 : composant complet F-IM-45-retrait-titre-fraude-fr — retrait titre pour fraude (FR, analyseur validité + vices de procédure + bridge échéance F-69).
@@ -1690,6 +1692,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-02 : composant complet F-DT-86-appel-cph-cour-appel — appel CPH
+      // devant la cour d'appel (Travail FR). FR uniquement. Calculateur du délai
+      // d'appel d'1 mois (art. 538 CPC ; R. 1461-1 et s. C. trav.) + verdict de
+      // recevabilité DELAI_OUVERT / DELAI_URGENT / DELAI_EXPIRE / VOIE_FERMEE
+      // (lien F-DT-87 si jugement en dernier ressort) + checklist des formalités
+      // d'appel social (items obligatoires mis en avant si représentation AUCUNE).
+      // Pré-fill IA 1 champ (dateNotificationJugement depuis
+      // TravailExtractedData.dateNotificationJugement) via static getPrefillCount +
+      // AppelCphPrefillRules. Validation F-IA-03 (CoherenceAlertBuilder + popover)
+      // sur la date de notification croisée IA / checklist procédurale F-96.
+      ['F-DT-86-appel-cph-cour-appel', {
+        displayLabel: "Appel CPH — cour d'appel (FR)",
+        component: AppelCphSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
@@ -5011,6 +5034,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // date du jugement TA → échéance appel CAA + jours restants + CAA compétente
     // + filtre pourvoi CE. Bridge échéance F-69. Cohérent avec F-IM-40 (DELAIS).
     ['F-IM-41-appel-caa-cassation-ce-fr', 'DELAIS'],
+    // SF-218-02 : F-DT-86-appel-cph-cour-appel appel CPH cour d'appel (Travail FR).
+    // Thème DELAIS « Délais & procédure » — calculateur du délai d'appel d'1 mois
+    // + verdict de recevabilité (le groupe « contentieux » de la mini-spec
+    // correspond au libellé fonctionnel ; l'enum technique du panel est DELAIS).
+    ['F-DT-86-appel-cph-cour-appel', 'DELAIS'],
     // SF-214-36 : F-IM-42-assignation-residence-fr assignation à résidence (FR).
     // Thème VALIDITE — analyseur de validité de la mesure (statut de validité de
     // l'assignation : en cours / expiration proche / expirée) + motifs de
