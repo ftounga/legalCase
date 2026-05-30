@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="3f1c0a4d-7b2e-4c9a-9d11-5a6e0b2f3c81" author="legalcase">
+        <comment>
+            SF-218-21 — table `stagiaire_gratification_analyses` pour l'outil
+            decisionnel "Stagiaire — gratification / requalification"
+            (F-DT-109-stagiaire-gratification-requalification, FRANCE).
+
+            Outil single-country FR : verifie le seuil de gratification minimale
+            obligatoire du stage en milieu professionnel (au-dela de 2 mois /
+            44 jours de presence, art. L.124-6 + D.124-6 du code de l'education),
+            calcule la gratification minimale due (15 pourcent du plafond horaire
+            de la Securite sociale, taux a actualiser annuellement) et le rappel
+            exigible (du moins verse). Apprecie le risque de requalification du
+            stage en contrat de travail / CDI (poste de travail permanent,
+            missions hors projet pedagogique, depassement de la duree maximale de
+            6 mois / 924 h, art. L.124-5 et L.124-8). Determine le verdict global
+            (STAGE_CONFORME / RAPPEL_GRATIFICATION / REQUALIFICATION_PROBABLE) et
+            le niveau de risque (FAIBLE / MODERE / ELEVE). Persiste l'analyse 1:1
+            par dossier (upsert).
+
+            Source juridique : art. L.124-1 et s. du code de l'education ;
+            art. L.124-6 + D.124-6 (gratification) ; art. L.124-5 (duree maximale
+            6 mois) ; art. L.124-8 (poste permanent, requalification).
+        </comment>
+
+        <createTable tableName="stagiaire_gratification_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_stagiaire_gratification_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_debut_stage" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_stage" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_jours_presence" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="seuil_atteint" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="gratification_obligatoire" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="gratification_minimale_due" type="DECIMAL(15,2)"/>
+            <column name="rappel_gratification" type="DECIMAL(15,2)"/>
+            <column name="depassement_duree_max" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_requalification" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_global" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="stagiaire_gratification_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

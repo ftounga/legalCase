@@ -1173,6 +1173,21 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-21 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `stage_detecte` et des champs `date_debut_stage` / `date_fin_stage` pour
+     * pré-fill de l'outil F-DT-109 (stagiaire — gratification minimale /
+     * requalification en CDI : art. L.124-1 et s. du code de l'éducation,
+     * FRANCE UNIQUEMENT).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART28 = """
+              SF-218-21 — Flag `stage_detecte` et champs `date_debut_stage` / `date_fin_stage` (FRANCE UNIQUEMENT).
+              "stage_detecte" : booléen — true uniquement si les pièces révèlent un STAGE EN MILIEU PROFESSIONNEL au sens de l'art. L.124-1 et s. du code de l'éducation : mention « convention de stage », « stagiaire », « gratification de stage », « établissement d'enseignement », « tuteur de stage », « PFMP » (période de formation en milieu professionnel), « école », « université » dans le cadre d'une scolarité. False par défaut. Pertinent pour F-DT-109.
+              "date_debut_stage" : date ISO (yyyy-MM-dd) — date de début du stage telle qu'elle figure dans la convention de stage. null si non documentée.
+              "date_fin_stage" : date ISO (yyyy-MM-dd) — date de fin du stage telle qu'elle figure dans la convention de stage. null si non documentée.
+              Pour un dossier travail BELGIQUE, laisser `stage_detecte` à false et les deux dates à null (le régime de la gratification de stage de l'art. L.124-6 du code de l'éducation relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1205,7 +1220,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART24)
                     .concat(TRAVAIL_INSTRUCTION_PART25)
                     .concat(TRAVAIL_INSTRUCTION_PART26)
-                    .concat(TRAVAIL_INSTRUCTION_PART27);
+                    .concat(TRAVAIL_INSTRUCTION_PART27)
+                    .concat(TRAVAIL_INSTRUCTION_PART28);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

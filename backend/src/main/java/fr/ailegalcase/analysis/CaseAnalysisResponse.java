@@ -677,16 +677,14 @@ public record CaseAnalysisResponse(
             // sociale (FR). true uniquement si arrêt de Cour d'appel défavorable rendu +
             // intention de pourvoi en cassation. FR-only, default false. Régime BE distinct.
             boolean pourvoiCassationSocEnvisage,
-            // SF-218-07 : nombre de personnes à charge du salarié saisi (Integer ≥ 0,
-            // nullable). Pré-fill de l'outil F-DT-89 (saisie sur rémunération, FR) :
-            // majore les seuils de tranche de la quotité saisissable (R. 3252-3 CT).
-            // null si non documenté. Régime BE distinct.
-            Integer nombrePersonnesACharge,
-            // SF-218-07 : flag pivot CONTEXTUAL — déclenche F-DT-89 saisie sur
-            // rémunération (FR). true uniquement si les pièces révèlent une procédure de
-            // saisie sur salaire (mentions « saisie sur salaire », « quotité saisissable »,
-            // « titre exécutoire », « commissaire de justice »). FR-only, default false.
-            boolean saisieRemunerationDetectee,
+            // SF-218-07 (consolidé SF-218-21) : flag pivot CONTEXTUAL F-DT-89
+            // (saisie sur rémunération, FR) + nombre de personnes à charge,
+            // regroupés en un seul composant (@JsonUnwrapped) pour libérer un slot
+            // du constructeur canonical (limite JVM 255 slots). JSON HTTP plat
+            // préservé (clés `saisie_remuneration_detectee` et
+            // `nombre_personnes_a_charge` inchangées). Voir
+            // SaisieRemunerationPrefillDetail.
+            @JsonUnwrapped SaisieRemunerationPrefillDetail saisieRemunerationPrefillDetail,
             // SF-218-09 : date de la mise en demeure adressée à l'employeur de faire
             // cesser une discrimination collective (ISO yyyy-MM-dd, nullable). Pré-fill
             // de l'outil F-DT-90 (action de groupe en discrimination, FR) : amorce le
@@ -721,7 +719,12 @@ public record CaseAnalysisResponse(
             // dirigeant — qualification, FR). Regroupé en un seul composant
             // (@JsonUnwrapped) pour rester sous la limite de paramètres du
             // constructeur canonical du record. Voir CadreDirigeantDetail.
-            @JsonUnwrapped CadreDirigeantDetail cadreDirigeantDetail) {
+            @JsonUnwrapped CadreDirigeantDetail cadreDirigeantDetail,
+            // SF-218-21 : sous-objet pré-fill IA pour l'outil F-DT-109 (stagiaire
+            // — gratification / requalification, FR). Regroupé en un seul
+            // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
+            // du constructeur canonical du record. Voir StagiaireDetail.
+            @JsonUnwrapped StagiaireDetail stagiaireDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1072,6 +1075,54 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-21 : sous-objet pré-fill IA pour l'outil F-DT-109 (stagiaire —
+         * gratification minimale / requalification en CDI, FRANCE UNIQUEMENT —
+         * art. L.124-1 et s. du code de l'éducation). Regroupe le flag pivot
+         * CONTEXTUAL et les deux dates de stage extraites en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code stage_detecte}, {@code date_debut_stage} et
+         * {@code date_fin_stage}) afin de ne pas dépasser la limite de paramètres
+         * du constructeur canonical de {@link TravailExtractedData}.
+         *
+         * @param stageDetecte flag pivot — true si les pièces révèlent un stage
+         *        en milieu professionnel (mentions « convention de stage »,
+         *        « stagiaire », « gratification », « établissement
+         *        d'enseignement », « tuteur de stage », « PFMP », « école »).
+         *        FR-only, default false.
+         * @param dateDebutStage date de début du stage au format ISO (yyyy-MM-dd),
+         *        null si non documentée. FR-only.
+         * @param dateFinStage date de fin du stage au format ISO (yyyy-MM-dd),
+         *        null si non documentée. FR-only.
+         */
+        public record StagiaireDetail(
+                boolean stageDetecte,
+                String dateDebutStage,
+                String dateFinStage
+        ) {}
+
+        /**
+         * SF-218-21 (consolidation des champs SF-218-07) : sous-objet pré-fill IA
+         * pour l'outil F-DT-89 (saisie sur rémunération, FRANCE UNIQUEMENT —
+         * art. R. 3252-3 CT). Regroupe le flag pivot CONTEXTUAL et le nombre de
+         * personnes à charge en un seul composant {@code @JsonUnwrapped} (aplati
+         * en JSON sous les clés {@code saisie_remuneration_detectee} et
+         * {@code nombre_personnes_a_charge}, contrat externe inchangé) afin de
+         * libérer un slot du constructeur canonical de
+         * {@link TravailExtractedData} (limite JVM des 255 slots).
+         *
+         * @param saisieRemunerationDetectee flag pivot — true si les pièces
+         *        révèlent une procédure de saisie sur salaire. FR-only, default
+         *        false.
+         * @param nombrePersonnesACharge nombre de personnes à charge du salarié
+         *        saisi (≥ 0), majorant les seuils de la quotité saisissable. null
+         *        si non documenté. FR-only.
+         */
+        public record SaisieRemunerationPrefillDetail(
+                boolean saisieRemunerationDetectee,
+                Integer nombrePersonnesACharge
+        ) {}
+
+        /**
          * SF-218-11 (consolidé par SF-218-19) : sous-objet pré-fill IA pour
          * l'outil F-DT-104 (VRP — indemnité de clientèle, FRANCE UNIQUEMENT —
          * art. L. 7311-1 et s. CT). Regroupe le flag pivot CONTEXTUAL et la
@@ -1395,8 +1446,7 @@ public record CaseAnalysisResponse(
                     .dateNotificationArretAppel(dateNotificationArretAppel)
                     .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage)
                     // SF-218-07 — saisie sur rémunération (FR)
-                    .nombrePersonnesACharge(nombrePersonnesACharge)
-                    .saisieRemunerationDetectee(saisieRemunerationDetectee)
+                    .saisieRemunerationPrefillDetail(saisieRemunerationPrefillDetail)
                     // SF-218-09 — action de groupe en discrimination (FR)
                     .dateMiseEnDemeureDiscrimination(dateMiseEnDemeureDiscrimination)
                     .actionGroupeDiscriminationEnvisagee(actionGroupeDiscriminationEnvisagee)
@@ -1407,7 +1457,8 @@ public record CaseAnalysisResponse(
                     // SF-218-17 — intermittent du spectacle / ARE (FR)
                     .intermittentSpectacleDetail(intermittentSpectacleDetail)
                     // SF-218-19 — cadre dirigeant / qualification (FR)
-                    .cadreDirigeantDetail(cadreDirigeantDetail);
+                    .cadreDirigeantDetail(cadreDirigeantDetail)
+                    .stagiaireDetail(stagiaireDetail);
         }
 
         public static final class Builder {
@@ -1698,9 +1749,8 @@ public record CaseAnalysisResponse(
             // SF-218-05 — pourvoi cassation sociale (FR)
             private String dateNotificationArretAppel;
             private boolean pourvoiCassationSocEnvisage;
-            // SF-218-07 — saisie sur rémunération (FR)
-            private Integer nombrePersonnesACharge;
-            private boolean saisieRemunerationDetectee;
+            // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FR), sous-record IA.
+            private SaisieRemunerationPrefillDetail saisieRemunerationPrefillDetail;
             // SF-218-09 — action de groupe en discrimination (FR)
             private String dateMiseEnDemeureDiscrimination;
             private boolean actionGroupeDiscriminationEnvisagee;
@@ -1712,6 +1762,8 @@ public record CaseAnalysisResponse(
             private IntermittentSpectacleDetail intermittentSpectacleDetail;
             // SF-218-19 — cadre dirigeant / qualification (FR)
             private CadreDirigeantDetail cadreDirigeantDetail;
+            // SF-218-21 — stagiaire_detail (FRANCE uniquement) — sous-record IA F-DT-109.
+            private StagiaireDetail stagiaireDetail;
 
             private Builder() {}
 
@@ -2001,9 +2053,8 @@ public record CaseAnalysisResponse(
             // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
             public Builder dateNotificationArretAppel(String v) { this.dateNotificationArretAppel = v; return this; }
             public Builder pourvoiCassationSocEnvisage(boolean v) { this.pourvoiCassationSocEnvisage = v; return this; }
-            // SF-218-07 — saisie sur rémunération (FRANCE uniquement).
-            public Builder nombrePersonnesACharge(Integer v) { this.nombrePersonnesACharge = v; return this; }
-            public Builder saisieRemunerationDetectee(boolean v) { this.saisieRemunerationDetectee = v; return this; }
+            // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FRANCE uniquement) — sous-record IA.
+            public Builder saisieRemunerationPrefillDetail(SaisieRemunerationPrefillDetail v) { this.saisieRemunerationPrefillDetail = v; return this; }
             // SF-218-09 — action de groupe en discrimination (FRANCE uniquement).
             public Builder dateMiseEnDemeureDiscrimination(String v) { this.dateMiseEnDemeureDiscrimination = v; return this; }
             public Builder actionGroupeDiscriminationEnvisagee(boolean v) { this.actionGroupeDiscriminationEnvisagee = v; return this; }
@@ -2015,6 +2066,8 @@ public record CaseAnalysisResponse(
             public Builder intermittentSpectacleDetail(IntermittentSpectacleDetail v) { this.intermittentSpectacleDetail = v; return this; }
             // SF-218-19 — cadre dirigeant / qualification (FRANCE uniquement).
             public Builder cadreDirigeantDetail(CadreDirigeantDetail v) { this.cadreDirigeantDetail = v; return this; }
+            // SF-218-21 — stagiaire_detail (FRANCE uniquement) — sous-record IA F-DT-109.
+            public Builder stagiaireDetail(StagiaireDetail v) { this.stagiaireDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2198,9 +2251,8 @@ public record CaseAnalysisResponse(
                         // SF-218-05 — pourvoi cassation sociale (FR)
                         dateNotificationArretAppel,
                         pourvoiCassationSocEnvisage,
-                        // SF-218-07 — saisie sur rémunération (FR)
-                        nombrePersonnesACharge,
-                        saisieRemunerationDetectee,
+                        // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FR)
+                        saisieRemunerationPrefillDetail,
                         // SF-218-09 — action de groupe en discrimination (FR)
                         dateMiseEnDemeureDiscrimination,
                         actionGroupeDiscriminationEnvisagee,
@@ -2211,7 +2263,9 @@ public record CaseAnalysisResponse(
                         // SF-218-17 — intermittent du spectacle / ARE (FR)
                         intermittentSpectacleDetail,
                         // SF-218-19 — cadre dirigeant / qualification (FR)
-                        cadreDirigeantDetail);
+                        cadreDirigeantDetail,
+                        // SF-218-21 — stagiaire / gratification / requalification (FR)
+                        stagiaireDetail);
             }
         }
     }
@@ -5683,9 +5737,10 @@ public record CaseAnalysisResponse(
                     // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale (FR).
                     .pourvoiCassationSocEnvisage(booleanOrFalse(node, "pourvoi_cassation_soc_envisage"))
                     .dateNotificationArretAppel(isoDateOrNull(node, "date_notification_arret_appel"))
-                    // SF-218-07 : flag pivot CONTEXTUAL + champ — déclenche F-DT-89 saisie sur rémunération (FR).
-                    .saisieRemunerationDetectee(booleanOrFalse(node, "saisie_remuneration_detectee"))
-                    .nombrePersonnesACharge(nonNegativeIntOrNull(node, "nombre_personnes_a_charge"))
+                    // SF-218-07 (consolidé SF-218-21) : flag pivot CONTEXTUAL + champ — déclenche F-DT-89 saisie sur rémunération (FR).
+                    .saisieRemunerationPrefillDetail(new TravailExtractedData.SaisieRemunerationPrefillDetail(
+                            booleanOrFalse(node, "saisie_remuneration_detectee"),
+                            nonNegativeIntOrNull(node, "nombre_personnes_a_charge")))
                     // SF-218-09 : flag pivot CONTEXTUAL + champ — déclenche F-DT-90 action de groupe en discrimination (FR).
                     .actionGroupeDiscriminationEnvisagee(booleanOrFalse(node, "action_groupe_discrimination_envisagee"))
                     .dateMiseEnDemeureDiscrimination(isoDateOrNull(node, "date_mise_en_demeure_discrimination"))
@@ -5707,6 +5762,11 @@ public record CaseAnalysisResponse(
                     .cadreDirigeantDetail(new TravailExtractedData.CadreDirigeantDetail(
                             booleanOrFalse(node, "statut_cadre_dirigeant_detecte"),
                             booleanOrFalse(node, "cadre_participation_direction")))
+                    // SF-218-21 : flag pivot CONTEXTUAL + champs — déclenche F-DT-109 stagiaire / gratification / requalification (FR).
+                    .stagiaireDetail(new TravailExtractedData.StagiaireDetail(
+                            booleanOrFalse(node, "stage_detecte"),
+                            isoDateOrNull(node, "date_debut_stage"),
+                            isoDateOrNull(node, "date_fin_stage")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

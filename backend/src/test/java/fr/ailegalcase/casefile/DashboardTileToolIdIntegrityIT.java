@@ -1041,7 +1041,14 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-107-cadre-dirigeant-statut"
+            "F-DT-107-cadre-dirigeant-statut",
+            // SF-218-21 : outil F-DT-109 stagiaire — gratification minimale /
+            // requalification en CDI (art. L.124-1 et s. code de l'éducation,
+            // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-22 à
+            // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
+            // (pattern uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-109-stagiaire-gratification-requalification"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
