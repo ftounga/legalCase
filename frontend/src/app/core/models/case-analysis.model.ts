@@ -1176,6 +1176,15 @@ export interface TravailExtractedData {
   dateNotificationArretAppel?: string | null;
   /** SF-218-06 : flag F-205 — déclenche F-DT-87 pourvoi cassation soc (FR). True si arrêt de Cour d'appel défavorable + intention de pourvoi. FLAG de visibilité (pas un champ du formulaire). */
   pourvoiCassationSocEnvisage?: boolean | null;
+  // SF-218-08 : 2 champs IA pour l'outil F-DT-89 saisie sur rémunération
+  // (quotité saisissable, Travail FR uniquement, nullables). Le barème par
+  // tranches (R. 3252-2) et la majoration par personne à charge (R. 3252-3)
+  // relèvent du droit français. Régime BE distinct — ces champs restent null
+  // pour un dossier travail belge.
+  /** SF-218-08 : nombre de personnes à charge du débiteur saisi (majore les seuils du barème R. 3252-3 — pré-fill nombrePersonnesACharge F-DT-89). */
+  nombrePersonnesACharge?: number | null;
+  /** SF-218-08 : flag F-205 — déclenche F-DT-89 saisie sur rémunération (FR). True si mention « saisie sur salaire », « quotité saisissable », « titre exécutoire », « commissaire de justice ». FLAG de visibilité (pas un champ du formulaire). */
+  saisieRemunerationDetectee?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

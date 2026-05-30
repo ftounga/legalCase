@@ -77,6 +77,8 @@ import { AppelCphSectionComponent } from '../appel-cph-section/appel-cph-section
 import { PourvoiCassationSocSectionComponent } from '../pourvoi-cassation-soc-section/pourvoi-cassation-soc-section.component';
 // SF-218-04 : composant complet F-DT-88-execution-jugement-cph — exécution forcée jugement CPH + relais garantie AGS (Travail FR, checklist exécution + détecteur AGS).
 import { ExecutionJugementCphSectionComponent } from '../execution-jugement-cph-section/execution-jugement-cph-section.component';
+// SF-218-08 : composant complet F-DT-89-saisie-arret-remuneration — saisie sur rémunération (quotité saisissable, Travail FR, barème par tranches R. 3252-2 + personnes à charge + fraction insaisissable RSA).
+import { SaisieRemunerationSectionComponent } from '../saisie-remuneration-section/saisie-remuneration-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
@@ -1739,6 +1741,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-88-execution-jugement-cph', {
         displayLabel: 'Exécution jugement CPH / AGS (FR)',
         component: ExecutionJugementCphSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-08 : composant complet F-DT-89-saisie-arret-remuneration — saisie sur
+      // rémunération (quotité saisissable, Travail FR). FR uniquement, CONTEXTUAL
+      // (flag saisieRemunerationDetectee). Calculateur de la quotité mensuelle
+      // saisissable selon le barème annuel par tranches (R. 3252-2 Code travail),
+      // avec correction pour personnes à charge (R. 3252-3) et fraction absolument
+      // insaisissable (montant forfaitaire RSA, L. 3252-3) : verdict SAISISSABLE /
+      // INSAISISSABLE / ALIMENTAIRE_PAIEMENT_DIRECT + quotité saisissable mensuelle,
+      // montant laissé au salarié, nombre de mois de recouvrement, détail par tranche
+      // et mention « barème à actualiser annuellement ». Pré-fill IA 2 champs
+      // (remunerationNetteMensuelle depuis salaireBrutMensuel — proxy brut→net signalé,
+      // nombrePersonnesACharge) via static getPrefillCount + SaisieRemunerationPrefillRules.
+      // Outil frère post-jugement de l'exécution CPH (F-DT-88, SF-218-04).
+      ['F-DT-89-saisie-arret-remuneration', {
+        displayLabel: 'Saisie sur rémunération (FR)',
+        component: SaisieRemunerationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5124,6 +5148,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (exécution provisoire art. 514 CPC ; R. 1454-28 CPC + relais garantie AGS
     // L. 3253-6 et s.). Cohérent avec l'outil frère appel CPH F-DT-86 (DELAIS).
     ['F-DT-88-execution-jugement-cph', 'DELAIS'],
+    // SF-218-08 : F-DT-89-saisie-arret-remuneration saisie sur rémunération
+    // (Travail FR). Thème INDEMNITES — calculateur de montant (quotité saisissable
+    // mensuelle par tranches R. 3252-2, montant laissé au salarié, fraction
+    // insaisissable RSA, nombre de mois de recouvrement). Cohérent avec les autres
+    // calculateurs de montants (F-DT-07, F-DT-09, F-DT-12…).
+    ['F-DT-89-saisie-arret-remuneration', 'INDEMNITES'],
     // SF-214-36 : F-IM-42-assignation-residence-fr assignation à résidence (FR).
     // Thème VALIDITE — analyseur de validité de la mesure (statut de validité de
     // l'assignation : en cours / expiration proche / expirée) + motifs de
