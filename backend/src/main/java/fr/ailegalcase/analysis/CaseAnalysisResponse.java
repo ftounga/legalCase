@@ -724,7 +724,14 @@ public record CaseAnalysisResponse(
             // — gratification / requalification, FR). Regroupé en un seul
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // du constructeur canonical du record. Voir StagiaireDetail.
-            @JsonUnwrapped StagiaireDetail stagiaireDetail) {
+            @JsonUnwrapped StagiaireDetail stagiaireDetail,
+            // SF-218-23 : sous-objet pré-fill IA pour l'outil F-DT-110
+            // (apprentissage — validité de la rupture, FR). Regroupe le flag
+            // pivot CONTEXTUAL et le motif de rupture extrait en un seul
+            // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
+            // (plafond JVM 255) du constructeur canonical du record. Voir
+            // ApprentissageDetail.
+            @JsonUnwrapped ApprentissageDetail apprentissageDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1098,6 +1105,32 @@ public record CaseAnalysisResponse(
                 boolean stageDetecte,
                 String dateDebutStage,
                 String dateFinStage
+        ) {}
+
+        /**
+         * SF-218-23 : sous-objet pré-fill IA pour l'outil F-DT-110
+         * (apprentissage — validité de la rupture du contrat, FRANCE UNIQUEMENT
+         * — art. L.6222-18 et s. CT). Regroupe le flag pivot CONTEXTUAL et le
+         * motif de rupture extrait en un seul composant {@code @JsonUnwrapped}
+         * (aplati en JSON sous les clés {@code apprentissage_rupture_detectee} et
+         * {@code apprentissage_motif_rupture}) afin de ne pas dépasser la limite
+         * de paramètres (plafond JVM 255) du constructeur canonical de
+         * {@link TravailExtractedData}. Les dates de rupture réutilisent les
+         * champs existants {@code dateEntree} / {@code dateRupture}.
+         *
+         * @param apprentissageRuptureDetectee flag pivot — true si les pièces
+         *        révèlent une rupture de contrat d'apprentissage (mentions
+         *        « contrat d'apprentissage », « apprenti », « CFA », « maître
+         *        d'apprentissage », « rupture apprentissage », « 45 jours »).
+         *        FR-only, default false.
+         * @param apprentissageMotifRupture motif de rupture invoqué (valeurs
+         *        whitelistées : ACCORD_PARTIES, FAUTE_GRAVE, FORCE_MAJEURE,
+         *        INAPTITUDE, EXCLUSION_DEFINITIVE_CFA, SANS_MOTIF), null si non
+         *        documenté. FR-only.
+         */
+        public record ApprentissageDetail(
+                boolean apprentissageRuptureDetectee,
+                String apprentissageMotifRupture
         ) {}
 
         /**
@@ -5767,6 +5800,12 @@ public record CaseAnalysisResponse(
                             booleanOrFalse(node, "stage_detecte"),
                             isoDateOrNull(node, "date_debut_stage"),
                             isoDateOrNull(node, "date_fin_stage")))
+                    // SF-218-23 : flag pivot CONTEXTUAL + champ — déclenche F-DT-110 apprentissage / validité de la rupture (FR).
+                    .apprentissageDetail(new TravailExtractedData.ApprentissageDetail(
+                            booleanOrFalse(node, "apprentissage_rupture_detectee"),
+                            whitelistedOrNull(stringOrNull(node, "apprentissage_motif_rupture"),
+                                    "ACCORD_PARTIES", "FAUTE_GRAVE", "FORCE_MAJEURE", "INAPTITUDE",
+                                    "EXCLUSION_DEFINITIVE_CFA", "SANS_MOTIF")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

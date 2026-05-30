@@ -1048,7 +1048,14 @@ class DashboardTileToolIdIntegrityIT {
             // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend
             // (pattern uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-109-stagiaire-gratification-requalification"
+            "F-DT-109-stagiaire-gratification-requalification",
+            // SF-218-23 : outil F-DT-110 apprentissage — validité de la rupture
+            // (art. L.6222-18 et s. CT, FR-only, CONTEXTUAL) — pas de tuile
+            // dashboard. Frontend SF-218-24 à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-110-apprentissage-rupture"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

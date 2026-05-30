@@ -1188,6 +1188,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-23 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `apprentissage_rupture_detectee` et du champ `apprentissage_motif_rupture`
+     * pour pré-fill de l'outil F-DT-110 (apprentissage — validité de la rupture :
+     * art. L.6222-18 et s. CT, FRANCE UNIQUEMENT). Les dates de rupture
+     * réutilisent les champs existants `date_entree` / `date_rupture`.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART29 = """
+              SF-218-23 — Flag `apprentissage_rupture_detectee` et champ `apprentissage_motif_rupture` (FRANCE UNIQUEMENT).
+              "apprentissage_rupture_detectee" : booléen — true uniquement si les pièces révèlent une RUPTURE DE CONTRAT D'APPRENTISSAGE au sens de l'art. L.6222-18 et s. du code du travail : mention « contrat d'apprentissage », « apprenti », « CFA » (centre de formation des apprentis), « maître d'apprentissage », « rupture du contrat d'apprentissage », « 45 premiers jours », « période initiale de l'apprentissage ». False par défaut. Pertinent pour F-DT-110.
+              "apprentissage_motif_rupture" : énum parmi { "ACCORD_PARTIES", "FAUTE_GRAVE", "FORCE_MAJEURE", "INAPTITUDE", "EXCLUSION_DEFINITIVE_CFA", "SANS_MOTIF" } — motif invoqué pour la rupture. "ACCORD_PARTIES" si rupture d'un commun accord écrit ; "FAUTE_GRAVE" si faute grave de l'apprenti ; "FORCE_MAJEURE" si événement de force majeure ; "INAPTITUDE" si inaptitude médicale constatée par le médecin du travail (L.6222-18-1) ; "EXCLUSION_DEFINITIVE_CFA" si exclusion définitive du CFA (L.6222-21) ; "SANS_MOTIF" si aucun motif n'est invoqué. null si non documenté. Pour les dates, réutiliser `date_entree` (début du contrat) et `date_rupture`.
+              Pour un dossier travail BELGIQUE, laisser `apprentissage_rupture_detectee` à false et `apprentissage_motif_rupture` à null (le régime de l'apprentissage des art. L.6222-18 et s. du code du travail relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1221,7 +1235,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART25)
                     .concat(TRAVAIL_INSTRUCTION_PART26)
                     .concat(TRAVAIL_INSTRUCTION_PART27)
-                    .concat(TRAVAIL_INSTRUCTION_PART28);
+                    .concat(TRAVAIL_INSTRUCTION_PART28)
+                    .concat(TRAVAIL_INSTRUCTION_PART29);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
