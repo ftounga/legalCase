@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +43,11 @@ public class JurisprudenceBeWebSearchClient {
      * {@code stop_reason=max_tokens} → JSON tronqué → parse fail → 0 arrêt.
      */
     private static final int MAX_TOKENS = 12000;
+
+    /** SF-JU-04-04 — n° de rôle belge : ex. S.10.0044.F, C.18.0294.F, S.20.0019.N. */
+    private static final Pattern BE_ROLE = Pattern.compile("[A-Z]\\.\\d{2}\\.\\d{3,4}\\.[FN]");
+    /** SF-JU-04-04 — n° de la Cour constitutionnelle belge : ex. 121/2013, 38/2026. */
+    private static final Pattern BE_CONST = Pattern.compile("\\b\\d{1,3}/\\d{4}\\b");
 
     private static final String SYSTEM_PROMPT = """
             Tu es un juriste senior spécialisé en droit belge.
@@ -177,6 +183,15 @@ public class JurisprudenceBeWebSearchClient {
             if (ref == null || ref.isBlank()) {
                 return null;
             }
+            // SF-JU-04-04 — garde-fou anti-hallucination : web_search renvoie
+            // parfois des citations fabriquées (mauvaise chambre, lien vers une
+            // page de recherche, n° de rôle bidon). On ne garde que les arrêts
+            // crédibles (lien non-recherche + n° de rôle BE ou n° Cour const).
+            if (!isCredibleBeArret(numero, lien)) {
+                log.warn("F-JU-04 — arrêt BE rejeté (garde-fou anti-hallucination) "
+                        + "numero='{}' lien='{}' query='{}'", numero, lien, queryForLog);
+                return null;
+            }
             LocalDate date = (dateStr == null || dateStr.isBlank()) ? null : LocalDate.parse(dateStr);
             // Synthèse d'un id stable côté BE pour Claude evaluator
             // (JUPORTAL n'a pas d'id équivalent JUDILIBRE — on dérive de ECLI ou ref).
@@ -187,6 +202,25 @@ public class JurisprudenceBeWebSearchClient {
                     queryForLog, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * SF-JU-04-04 — filtre anti-hallucination des arrêts BE issus de web_search.
+     * Accepte uniquement si le lien n'est pas une page de recherche ET si le
+     * numéro est un n° de rôle belge ou un n° de Cour constitutionnelle.
+     */
+    static boolean isCredibleBeArret(String numero, String lien) {
+        if (lien == null || lien.isBlank()) {
+            return false;
+        }
+        String l = lien.toLowerCase();
+        if (l.contains("/recherche/") || l.contains("query=") || l.contains("/search")) {
+            return false;
+        }
+        if (numero == null || numero.isBlank()) {
+            return false;
+        }
+        return BE_ROLE.matcher(numero).find() || BE_CONST.matcher(numero).find();
     }
 
     private String extractJson(String text) {
