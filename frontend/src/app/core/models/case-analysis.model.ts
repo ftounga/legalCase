@@ -327,6 +327,25 @@ export interface TravailExtractedData {
    * F-DT-107 (n'est PAS un champ de formulaire).
    */
   statutCadreDirigeantDetecte?: boolean | null;
+  /**
+   * SF-218-22 : date de début du stage détectée par l'IA dans la convention de
+   * stage (ISO YYYY-MM-DD), pour pré-fill F-DT-109-stagiaire-gratification-
+   * requalification (FR uniquement).
+   */
+  dateDebutStage?: string | null;
+  /**
+   * SF-218-22 : date de fin du stage détectée par l'IA (ISO YYYY-MM-DD), pour
+   * pré-fill F-DT-109-stagiaire-gratification-requalification (FR uniquement).
+   */
+  dateFinStage?: string | null;
+  /**
+   * SF-218-22 : flag de visibilité CONTEXTUAL — true si l'IA détecte un stage
+   * en milieu professionnel (mentions « convention de stage », « stagiaire »,
+   * « gratification », « établissement d'enseignement », « tuteur de stage »,
+   * « PFMP », « école »). FR-only. Déclenche l'apparition de F-DT-109 (n'est PAS
+   * un champ de formulaire).
+   */
+  stageDetecte?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */

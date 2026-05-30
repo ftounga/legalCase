@@ -87,6 +87,8 @@ import { JournalisteStatutSectionComponent } from '../journaliste-statut-section
 import { IntermittentSpectacleAreSectionComponent } from '../intermittent-spectacle-are-section/intermittent-spectacle-are-section.component';
 // SF-218-20 : composant complet F-DT-107-cadre-dirigeant-statut — qualification du cadre dirigeant (3 critères cumulatifs L.3111-2 CT), exclusion durée du travail + risque rappel d'heures supp (Travail FR).
 import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-section/cadre-dirigeant-statut-section.component';
+// SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
+import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1862,6 +1864,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-107-cadre-dirigeant-statut', {
         displayLabel: 'Statut cadre dirigeant (FR)',
         component: CadreDirigeantStatutSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-
+      // requalification — stage en milieu professionnel (Travail FR). FR
+      // uniquement, CONTEXTUAL (flag stageDetecte). Vérifie le seuil de
+      // déclenchement et calcule la gratification minimale obligatoire
+      // (art. L.124-6 + D.124-6 = 15 % du plafond horaire SS, au-delà de 2 mois /
+      // 44 jours), et apprécie le risque de requalification du stage en CDI
+      // (art. L.124-5 durée max 6 mois ; L.124-8 poste permanent / missions hors
+      // projet pédagogique) → verdict STAGE_CONFORME / RAPPEL_GRATIFICATION /
+      // REQUALIFICATION_PROBABLE, risque FAIBLE / MODERE / ELEVE + motifs.
+      // Pré-fill IA 2 champs (dateDebutStage, dateFinStage) via static
+      // getPrefillCount + StagiaireGratificationPrefillRules.
+      ['F-DT-109-stagiaire-gratification-requalification', {
+        displayLabel: 'Stagiaire gratification (FR)',
+        component: StagiaireGratificationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5296,6 +5319,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // multi-critères (art. L.3111-2 CT) déterminant l'exclusion ou non des règles
     // de durée du travail, cohérent avec les autres analyseurs de statut / validité.
     ['F-DT-107-cadre-dirigeant-statut', 'VALIDITE'],
+    // SF-218-22 : F-DT-109-stagiaire-gratification-requalification gratification
+    // minimale du stagiaire + risque de requalification en CDI (Travail FR).
+    // Thème INDEMNITES — l'outil calcule un montant de gratification due / rappel
+    // (calculateur de montant), cohérent avec les autres outils de calcul de
+    // rappel de salaire / indemnités.
+    ['F-DT-109-stagiaire-gratification-requalification', 'INDEMNITES'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
