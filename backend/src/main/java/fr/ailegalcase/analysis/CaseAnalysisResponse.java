@@ -710,7 +710,12 @@ public record CaseAnalysisResponse(
             // SF-218-13 : catégorie d'emploi détectée pour pré-fill de l'outil
             // F-DT-108 (SALARIE_PARTICULIER_EMPLOYEUR | ASSISTANT_MATERNEL,
             // nullable) — pilote la CCN applicable. null si non détectable. FR-only.
-            String cesuCategorieEmploye) {
+            String cesuCategorieEmploye,
+            // SF-218-15 : sous-objet pré-fill IA pour l'outil F-DT-105 (statut
+            // journaliste professionnel, FR). Regroupé en un seul composant
+            // (@JsonUnwrapped) pour rester sous la limite de paramètres du
+            // constructeur canonical du record. Voir JournalisteStatutDetail.
+            @JsonUnwrapped JournalisteStatutDetail journalisteStatutDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -964,6 +969,28 @@ public record CaseAnalysisResponse(
                 Integer conciliationCphAncienneteMois,
                 Double conciliationCphSalaire,
                 Double conciliationCphMontantDemandes
+        ) {}
+
+        /**
+         * SF-218-15 : sous-objet pré-fill IA pour l'outil F-DT-105 (statut
+         * journaliste professionnel, FRANCE UNIQUEMENT — art. L.7111-1 et s. CT).
+         * Regroupe le flag pivot CONTEXTUAL et la détention de la carte de presse
+         * en un seul composant {@code @JsonUnwrapped} (aplati en JSON sous les
+         * clés {@code statut_journaliste_detecte} et {@code journaliste_carte_presse})
+         * afin de ne pas dépasser la limite de paramètres du constructeur
+         * canonical de {@link TravailExtractedData}.
+         *
+         * @param statutJournalisteDetecte flag pivot — true si les pièces révèlent
+         *        un statut de journaliste professionnel (mentions « journaliste »,
+         *        « carte de presse », « clause de cession / conscience »,
+         *        « rédaction », « organe de presse », « pigiste »). FR-only.
+         * @param journalisteCartePresse true si la détention de la carte
+         *        d'identité de journaliste professionnel (CCIJP) est établie —
+         *        présomption de la qualité de journaliste. FR-only.
+         */
+        public record JournalisteStatutDetail(
+                boolean statutJournalisteDetecte,
+                boolean journalisteCartePresse
         ) {}
 
 
@@ -1275,7 +1302,9 @@ public record CaseAnalysisResponse(
                     .actionGroupeDiscriminationEnvisagee(actionGroupeDiscriminationEnvisagee)
                     // SF-218-13 — particulier employeur / CESU (FR)
                     .particulierEmployeurDetecte(particulierEmployeurDetecte)
-                    .cesuCategorieEmploye(cesuCategorieEmploye);
+                    .cesuCategorieEmploye(cesuCategorieEmploye)
+                    // SF-218-15 — statut journaliste professionnel (FR)
+                    .journalisteStatutDetail(journalisteStatutDetail);
         }
 
         public static final class Builder {
@@ -1576,6 +1605,8 @@ public record CaseAnalysisResponse(
             // SF-218-13 — particulier employeur / CESU (FR)
             private boolean particulierEmployeurDetecte;
             private String cesuCategorieEmploye;
+            // SF-218-15 — statut journaliste professionnel (FR)
+            private JournalisteStatutDetail journalisteStatutDetail;
 
             private Builder() {}
 
@@ -1875,6 +1906,8 @@ public record CaseAnalysisResponse(
             // SF-218-13 — particulier employeur / CESU (FRANCE uniquement).
             public Builder particulierEmployeurDetecte(boolean v) { this.particulierEmployeurDetecte = v; return this; }
             public Builder cesuCategorieEmploye(String v) { this.cesuCategorieEmploye = v; return this; }
+            // SF-218-15 — statut journaliste professionnel (FRANCE uniquement).
+            public Builder journalisteStatutDetail(JournalisteStatutDetail v) { this.journalisteStatutDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2067,7 +2100,9 @@ public record CaseAnalysisResponse(
                         actionGroupeDiscriminationEnvisagee,
                         // SF-218-13 — particulier employeur / CESU (FR)
                         particulierEmployeurDetecte,
-                        cesuCategorieEmploye);
+                        cesuCategorieEmploye,
+                        // SF-218-15 — statut journaliste professionnel (FR)
+                        journalisteStatutDetail);
             }
         }
     }
@@ -5548,6 +5583,10 @@ public record CaseAnalysisResponse(
                     .particulierEmployeurDetecte(booleanOrFalse(node, "particulier_employeur_detecte"))
                     .cesuCategorieEmploye(whitelistedOrNull(stringOrNull(node, "cesu_categorie_employe"),
                             "SALARIE_PARTICULIER_EMPLOYEUR", "ASSISTANT_MATERNEL"))
+                    // SF-218-15 : flag pivot CONTEXTUAL + champ — déclenche F-DT-105 statut journaliste (FR).
+                    .journalisteStatutDetail(new TravailExtractedData.JournalisteStatutDetail(
+                            booleanOrFalse(node, "statut_journaliste_detecte"),
+                            booleanOrFalse(node, "journaliste_carte_presse")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

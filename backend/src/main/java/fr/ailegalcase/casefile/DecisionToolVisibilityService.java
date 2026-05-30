@@ -267,6 +267,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "vrp_statut_detecte");
         // SF-218-13 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-108 particulier employeur / CESU.
         addBooleanFlagIfTrue(detected, travailNode, "particulier_employeur_detecte");
+        // SF-218-15 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-105 statut journaliste professionnel.
+        addBooleanFlagIfTrue(detected, travailNode, "statut_journaliste_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");
