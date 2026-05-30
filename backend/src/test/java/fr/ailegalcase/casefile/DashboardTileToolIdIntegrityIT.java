@@ -979,6 +979,17 @@ class DashboardTileToolIdIntegrityIT {
             // F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-87-pourvoi-cassation-soc",
+            // SF-218-07 (2026-05-30) : F-DT-89 saisie sur rémunération FR — backend
+            // (présente PR). Calcule la quotité saisissable d'une rémunération selon
+            // le barème annuel par tranches (art. R. 3252-2 CT : fractions 1/20, 1/10,
+            // 1/5, 1/4, 1/3, 2/3, totalité), avec majoration des seuils par personne à
+            // charge (art. R. 3252-3 CT) et fraction absolument insaisissable égale au
+            // montant forfaitaire RSA (art. L. 3252-3 CT). Verdict : SAISISSABLE /
+            // INSAISISSABLE / ALIMENTAIRE_PAIEMENT_DIRECT. Outil standalone restitué
+            // via GET du snapshot, pas de tuile dashboard. Frontend SF-218-08 à venir.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-89-saisie-arret-remuneration",
             // SF-218-11 (2026-05-30) : F-DT-104 VRP indemnité de clientèle FR —
             // backend (présente PR). Rupture du contrat d'un VRP statutaire
             // (art. L.7311-1 et s. CT) : préavis VRP (art. L.7313-9 CT : 1/2/3

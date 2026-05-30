@@ -678,7 +678,17 @@ public record CaseAnalysisResponse(
             // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation
             // sociale (FR). true uniquement si arrêt de Cour d'appel défavorable rendu +
             // intention de pourvoi en cassation. FR-only, default false. Régime BE distinct.
-            boolean pourvoiCassationSocEnvisage) {
+            boolean pourvoiCassationSocEnvisage,
+            // SF-218-07 : nombre de personnes à charge du salarié saisi (Integer ≥ 0,
+            // nullable). Pré-fill de l'outil F-DT-89 (saisie sur rémunération, FR) :
+            // majore les seuils de tranche de la quotité saisissable (R. 3252-3 CT).
+            // null si non documenté. Régime BE distinct.
+            Integer nombrePersonnesACharge,
+            // SF-218-07 : flag pivot CONTEXTUAL — déclenche F-DT-89 saisie sur
+            // rémunération (FR). true uniquement si les pièces révèlent une procédure de
+            // saisie sur salaire (mentions « saisie sur salaire », « quotité saisissable »,
+            // « titre exécutoire », « commissaire de justice »). FR-only, default false.
+            boolean saisieRemunerationDetectee) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1234,7 +1244,10 @@ public record CaseAnalysisResponse(
                     .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles)
                     // SF-218-05 — pourvoi cassation sociale (FR)
                     .dateNotificationArretAppel(dateNotificationArretAppel)
-                    .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage);
+                    .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage)
+                    // SF-218-07 — saisie sur rémunération (FR)
+                    .nombrePersonnesACharge(nombrePersonnesACharge)
+                    .saisieRemunerationDetectee(saisieRemunerationDetectee);
         }
 
         public static final class Builder {
@@ -1526,6 +1539,9 @@ public record CaseAnalysisResponse(
             // SF-218-05 — pourvoi cassation sociale (FR)
             private String dateNotificationArretAppel;
             private boolean pourvoiCassationSocEnvisage;
+            // SF-218-07 — saisie sur rémunération (FR)
+            private Integer nombrePersonnesACharge;
+            private boolean saisieRemunerationDetectee;
 
             private Builder() {}
 
@@ -1816,6 +1832,9 @@ public record CaseAnalysisResponse(
             // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
             public Builder dateNotificationArretAppel(String v) { this.dateNotificationArretAppel = v; return this; }
             public Builder pourvoiCassationSocEnvisage(boolean v) { this.pourvoiCassationSocEnvisage = v; return this; }
+            // SF-218-07 — saisie sur rémunération (FRANCE uniquement).
+            public Builder nombrePersonnesACharge(Integer v) { this.nombrePersonnesACharge = v; return this; }
+            public Builder saisieRemunerationDetectee(boolean v) { this.saisieRemunerationDetectee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1999,7 +2018,10 @@ public record CaseAnalysisResponse(
                         vrpCommissionsAnnuelles,
                         // SF-218-05 — pourvoi cassation sociale (FR)
                         dateNotificationArretAppel,
-                        pourvoiCassationSocEnvisage);
+                        pourvoiCassationSocEnvisage,
+                        // SF-218-07 — saisie sur rémunération (FR)
+                        nombrePersonnesACharge,
+                        saisieRemunerationDetectee);
             }
         }
     }
@@ -5470,6 +5492,9 @@ public record CaseAnalysisResponse(
                     // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale (FR).
                     .pourvoiCassationSocEnvisage(booleanOrFalse(node, "pourvoi_cassation_soc_envisage"))
                     .dateNotificationArretAppel(isoDateOrNull(node, "date_notification_arret_appel"))
+                    // SF-218-07 : flag pivot CONTEXTUAL + champ — déclenche F-DT-89 saisie sur rémunération (FR).
+                    .saisieRemunerationDetectee(booleanOrFalse(node, "saisie_remuneration_detectee"))
+                    .nombrePersonnesACharge(nonNegativeIntOrNull(node, "nombre_personnes_a_charge"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
