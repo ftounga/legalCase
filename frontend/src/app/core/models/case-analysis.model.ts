@@ -1146,6 +1146,17 @@ export interface TravailExtractedData {
   dateNotificationJugement?: string | null;
   /** SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR). True si jugement prud'homal + intention d'appel. */
   appelCphEnvisage?: boolean | null;
+  // SF-218-04 : 3 champs IA pour l'outil F-DT-88 exécution du jugement CPH / AGS
+  // (Travail FR uniquement, nullables). Exécution forcée d'un jugement prud'homal
+  // (art. 514 CPC ; R. 1454-28 CPC) et relais garantie AGS quand l'employeur est en
+  // procédure collective (L. 3253-6 et s.). Régime BE distinct — ces champs restent
+  // null pour un dossier travail belge.
+  /** SF-218-04 : montant total des condamnations prononcées par le jugement CPH (pré-fill montantCondamnation F-DT-88). */
+  montantCondamnationCph?: number | null;
+  /** SF-218-04 : situation détectée de l'employeur (IN_BONIS | REDRESSEMENT | LIQUIDATION) — pré-fill situationEmployeur F-DT-88. */
+  situationEmployeurDetectee?: 'IN_BONIS' | 'REDRESSEMENT' | 'LIQUIDATION' | null;
+  /** SF-218-04 : flag F-205 — déclenche F-DT-88 exécution jugement CPH / AGS (FR). True si jugement CPH favorable + difficulté d'exécution / procédure collective. */
+  executionJugementCphEnvisagee?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

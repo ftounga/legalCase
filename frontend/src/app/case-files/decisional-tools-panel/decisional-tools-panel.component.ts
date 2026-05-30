@@ -73,6 +73,8 @@ import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recou
 import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-section/appel-caa-cassation-section.component';
 // SF-218-02 : composant complet F-DT-86-appel-cph-cour-appel — appel CPH cour d'appel (Travail FR, calculateur délai d'appel 1 mois + checklist formalités + renvoi pourvoi F-DT-87).
 import { AppelCphSectionComponent } from '../appel-cph-section/appel-cph-section.component';
+// SF-218-04 : composant complet F-DT-88-execution-jugement-cph — exécution forcée jugement CPH + relais garantie AGS (Travail FR, checklist exécution + détecteur AGS).
+import { ExecutionJugementCphSectionComponent } from '../execution-jugement-cph-section/execution-jugement-cph-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
@@ -1674,6 +1676,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-86-appel-cph-cour-appel', {
         displayLabel: "Appel CPH cour d'appel (FR)",
         component: AppelCphSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-04 : composant complet F-DT-88-execution-jugement-cph — exécution
+      // forcée d'un jugement du Conseil de prud'hommes (Travail FR). FR uniquement,
+      // CONTEXTUAL (flag executionJugementCphEnvisagee). Checklist d'exécution forcée
+      // (signification, exécution provisoire de droit des créances salariales
+      // R. 1454-28 CPC / art. 514 CPC, commandement de payer, mandatement huissier)
+      // + détecteur de relais garantie AGS lorsque l'employeur est en redressement /
+      // liquidation judiciaire (L. 3253-6 et s. Code travail) : verdict
+      // EXECUTION_DIRECTE / RELAIS_AGS / BLOQUE_INFO_MANQUANTE + bloc AGS (plafonds
+      // de garantie, mention barème à actualiser annuellement, démarches CGEA).
+      // Pré-fill IA 2 champs (montantCondamnation depuis montantCondamnationCph,
+      // situationEmployeur depuis situationEmployeurDetectee) via static
+      // getPrefillCount + ExecutionJugementCphPrefillRules. Outil frère post-jugement
+      // de l'appel CPH (F-DT-86, SF-218-02).
+      ['F-DT-88-execution-jugement-cph', {
+        displayLabel: 'Exécution jugement CPH / AGS (FR)',
+        component: ExecutionJugementCphSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5043,6 +5068,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // si voie fermée. Bridge échéance F-69. Cohérent avec les autres calculateurs
     // de délais de recours (F-IM-41).
     ['F-DT-86-appel-cph-cour-appel', 'DELAIS'],
+    // SF-218-04 : F-DT-88-execution-jugement-cph exécution forcée jugement CPH / AGS
+    // (Travail FR). Thème DELAIS — phase post-jugement de la procédure prud'homale
+    // (exécution provisoire art. 514 CPC ; R. 1454-28 CPC + relais garantie AGS
+    // L. 3253-6 et s.). Cohérent avec l'outil frère appel CPH F-DT-86 (DELAIS).
+    ['F-DT-88-execution-jugement-cph', 'DELAIS'],
     // SF-214-36 : F-IM-42-assignation-residence-fr assignation à résidence (FR).
     // Thème VALIDITE — analyseur de validité de la mesure (statut de validité de
     // l'assignation : en cours / expiration proche / expirée) + motifs de
