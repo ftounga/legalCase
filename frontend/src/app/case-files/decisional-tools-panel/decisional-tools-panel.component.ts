@@ -73,6 +73,8 @@ import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recou
 import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-section/appel-caa-cassation-section.component';
 // SF-218-02 : composant complet F-DT-86-appel-cph-cour-appel — appel CPH cour d'appel (Travail FR, calculateur délai d'appel 1 mois + checklist formalités + renvoi pourvoi F-DT-87).
 import { AppelCphSectionComponent } from '../appel-cph-section/appel-cph-section.component';
+// SF-218-06 : composant complet F-DT-87-pourvoi-cassation-soc — pourvoi en cassation chambre sociale (Travail FR, cas d'ouverture + délai 2 mois + risque non-admission NPC + verdict opportunité).
+import { PourvoiCassationSocSectionComponent } from '../pourvoi-cassation-soc-section/pourvoi-cassation-soc-section.component';
 // SF-218-04 : composant complet F-DT-88-execution-jugement-cph — exécution forcée jugement CPH + relais garantie AGS (Travail FR, checklist exécution + détecteur AGS).
 import { ExecutionJugementCphSectionComponent } from '../execution-jugement-cph-section/execution-jugement-cph-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1693,6 +1695,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-86-appel-cph-cour-appel', {
         displayLabel: 'Appel CPH cour d\'appel (FR)',
         component: AppelCphSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-06 : composant complet F-DT-87-pourvoi-cassation-soc — pourvoi en
+      // cassation chambre sociale (Travail FR). FR uniquement, CONTEXTUAL (flag
+      // pourvoiCassationSocEnvisage). Analyse des 7 cas d'ouverture (art. 604 CPC,
+      // avec force probatoire), calcul du délai de pourvoi de 2 mois (art. 612 CPC :
+      // date limite + jours restants + verdict délai), scoring du risque de
+      // non-admission (filtre NPC, art. 1014 CPC) et verdict global d'opportunité
+      // (POURVOI_RECOMMANDE/POURVOI_RISQUE/POURVOI_DECONSEILLE/DELAI_EXPIRE) +
+      // item bloquant représentation par avocat aux Conseils (art. 973 CPC).
+      // Pré-fill IA 1 champ (dateNotificationArret depuis TravailExtractedData)
+      // via static getPrefillCount + PourvoiCassationSocPrefillRules. Complète le
+      // backend SF-218-05.
+      ['F-DT-87-pourvoi-cassation-soc', {
+        displayLabel: 'Pourvoi cassation sociale (FR)',
+        component: PourvoiCassationSocSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5089,6 +5112,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // si voie fermée. Bridge échéance F-69. Cohérent avec les autres calculateurs
     // de délais de recours (F-IM-41).
     ['F-DT-86-appel-cph-cour-appel', 'DELAIS'],
+    // SF-218-06 : F-DT-87-pourvoi-cassation-soc pourvoi en cassation chambre
+    // sociale (Travail FR). Thème DELAIS — calculateur du délai de pourvoi de
+    // 2 mois (art. 612 CPC) : notification de l'arrêt CA → date limite de pourvoi
+    // + jours restants + verdict délai, en plus de l'analyse des cas d'ouverture
+    // et du risque de non-admission (NPC). Cohérent avec l'outil frère appel CPH
+    // F-DT-86 (DELAIS) — étape suivante de la procédure prud'homale.
+    ['F-DT-87-pourvoi-cassation-soc', 'DELAIS'],
     // SF-218-04 : F-DT-88-execution-jugement-cph exécution forcée jugement CPH / AGS
     // (Travail FR). Thème DELAIS — phase post-jugement de la procédure prud'homale
     // (exécution provisoire art. 514 CPC ; R. 1454-28 CPC + relais garantie AGS

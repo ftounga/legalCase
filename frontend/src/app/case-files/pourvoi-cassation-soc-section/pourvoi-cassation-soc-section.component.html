@@ -1,0 +1,196 @@
+<section class="pcs-section">
+  <header class="pcs-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pcs-body">
+    <mat-icon class="pcs-icon">gavel</mat-icon>
+    <span class="pcs-title">POURVOI CASSATION SOCIALE (FR)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdict)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="pcs-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pcs-body" class="pcs-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="pcs-banner pcs-banner--info" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pcs-banner-content">
+            <div class="pcs-banner-title">Pourvoi en cassation sociale — procédure française uniquement</div>
+            <div class="pcs-banner-sub">
+              Le pourvoi en cassation d'un arrêt de la chambre sociale de la Cour
+              d'appel devant la Cour de cassation (art. 612 CPC ; art. 973 CPC ;
+              art. 1014 CPC) relève de la procédure civile française et n'a pas
+              d'équivalent direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pcs-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="pcs-form" (ngSubmit)="analyze()">
+              <div class="pcs-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de l'arrêt de la Cour d'appel</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateNotificationArret()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationArret" />
+                  <mat-hint>Point de départ du délai de pourvoi de 2 mois (art. 612 CPC)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateNotificationArret() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pcs-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Cas d'ouverture invoqués (art. 604 CPC)</mat-label>
+                  <mat-select multiple
+                              [ngModel]="casOuverture()"
+                              (ngModelChange)="onCasOuvertureChange($event)"
+                              name="casOuverture"
+                              data-testid="cas-ouverture-select">
+                    @for (opt of casOuvertureOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Au moins un cas d'ouverture doit être invoqué</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="pcs-field-wrap pcs-checkbox-wrap">
+                <mat-checkbox [ngModel]="representationAvocatCassation()"
+                              (ngModelChange)="onRepresentationChange($event)"
+                              name="representationAvocatCassation">
+                  Avocat aux Conseils constitué (représentation obligatoire, art. 973 CPC)
+                </mat-checkbox>
+              </div>
+
+              <div class="pcs-field-wrap pcs-checkbox-wrap">
+                <mat-checkbox [ngModel]="moyenSerieuxIdentifie()"
+                              (ngModelChange)="onMoyenSerieuxChange($event)"
+                              name="moyenSerieuxIdentifie">
+                  Moyen sérieux identifié (anti-filtre NPC, art. 1014 CPC)
+                </mat-checkbox>
+              </div>
+
+              <div class="pcs-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le pourvoi</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pcs-result">
+              <div [class]="bannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdict) }}</mat-icon>
+                <div class="pcs-banner-content">
+                  <div class="pcs-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <span [class]="risqueBadgeClass(result()!.risqueNonAdmission)" data-testid="risque-badge">
+                    {{ risqueLabel(result()!.risqueNonAdmission) }}
+                  </span>
+                  @if (showJoursRestants(result()!.verdict)) {
+                    <div class="pcs-jours-restants">
+                      <span class="pcs-jours-big"
+                            [class.pcs-jours-big--danger]="result()!.joursRestants < 0"
+                            data-testid="jours-restants">
+                        {{ result()!.joursRestants }}
+                      </span>
+                      <span class="pcs-jours-label">jour(s) restant(s)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="pcs-breakdown">
+                <li>
+                  <span class="pcs-bd-label">Date de notification de l'arrêt</span>
+                  <span class="pcs-bd-value">{{ result()!.dateNotificationArret }}</span>
+                </li>
+                <li>
+                  <span class="pcs-bd-label">Date limite pour former le pourvoi</span>
+                  <span class="pcs-bd-value pcs-bd-value--echeance"
+                        [class.pcs-bd-value--echeance-urgent]="result()!.verdictDelai === 'DELAI_URGENT'"
+                        data-testid="date-limite-pourvoi">
+                    {{ result()!.dateLimitePourvoi }}
+                  </span>
+                </li>
+                <li>
+                  <span class="pcs-bd-label">Verdict délai</span>
+                  <span class="pcs-bd-value">{{ verdictDelaiLabel(result()!.verdictDelai) }}</span>
+                </li>
+              </ul>
+
+              @if (result()!.casOuvertureAnalyses && result()!.casOuvertureAnalyses.length > 0) {
+                <div class="pcs-cas-block" role="note" data-testid="cas-analyses-block">
+                  <div class="pcs-cas-title">Cas d'ouverture analysés</div>
+                  <ul class="pcs-cas-list">
+                    @for (c of result()!.casOuvertureAnalyses; track c.cas) {
+                      <li class="pcs-cas-item">
+                        <div class="pcs-cas-content">
+                          <span class="pcs-cas-libelle">{{ c.libelle }}</span>
+                          @if (c.baseJuridique) {
+                            <span class="pcs-cas-base">{{ c.baseJuridique }}</span>
+                          }
+                        </div>
+                        <span [class]="forceProbatoireClass(c.forceProbatoire)">
+                          {{ forceProbatoireLabel(c.forceProbatoire) }}
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.itemBloquantRepresentation) {
+                <div class="pcs-banner pcs-banner--danger" role="alert" data-testid="bloquant-representation">
+                  <mat-icon>error</mat-icon>
+                  <div class="pcs-banner-content">
+                    <div class="pcs-banner-title">Représentation par avocat aux Conseils requise</div>
+                    <div class="pcs-banner-sub">{{ result()!.itemBloquantRepresentation }}</div>
+                  </div>
+                </div>
+              }
+
+              <div class="pcs-meta">
+                <div class="pcs-bases">
+                  <span class="pcs-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
