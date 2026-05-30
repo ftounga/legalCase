@@ -2234,6 +2234,33 @@ Migration : 450-create-vpf-liens-personnels-analyses.xml (+ 451-seed-vpf-liens-p
 
 ---
 
+## vrp_indemnite_clientele_analyses
+
+F-218 SF-218-11 (F-218b) — analyse de l'outil décisionnel « VRP : statut, préavis et indemnité de clientèle » (`F-DT-104-vrp-indemnite-clientele`, FRANCE). Pour la rupture d'un VRP statutaire (art. L.7311-1 et s. CT) : préavis spécifique (L.7313-9, 1/2/3 mois selon ancienneté), éligibilité à l'indemnité de clientèle (L.7313-13), fourchette estimée (indicative — évaluation souveraine du juge), et comparaison non-cumul avec l'indemnité légale de licenciement (option la plus favorable). 1:1 avec un dossier.
+
+```
+vrp_indemnite_clientele_analyses
+  id                              UUID PK
+  case_file_id                    UUID FK → case_files(id)  UNIQUE
+  date_entree                     DATE NOT NULL
+  date_rupture                    DATE NOT NULL
+  cause_rupture                   VARCHAR(40) NOT NULL  -- enum 6 valeurs (LICENCIEMENT_CAUSE_REELLE … RUPTURE_CONVENTIONNELLE)
+  type_vrp                        VARCHAR(20) NOT NULL  -- EXCLUSIF / MULTICARTES
+  commissions_annuelles_moyennes  NUMERIC NOT NULL
+  salaire_mensuel_moyen           NUMERIC NOT NULL
+  clientele_developpee            BOOLEAN NOT NULL
+  country                         VARCHAR(20) NOT NULL DEFAULT 'FRANCE'
+  result_data                     TEXT NOT NULL         -- JSON : inputs + résultat (dureePreavisMois, eligibiliteClientele, indemniteClienteleMin/Max, indemniteLegaleLicenciement, optionRecommandee, baseJuridique)
+  created_at                      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at                      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes : uq_vrp_indemnite_clientele_case_file (case_file_id) — une seule analyse par dossier.
+
+Migration : 492-create-vrp-indemnite-clientele-analyses.xml (+ 493-seed-vrp-indemnite-clientele-visibility.xml — visibility CONTEXTUAL `vrp_statut_detecte=true` priority 113)
+
+---
+
 ## jurisprudence_checks
 
 F-179 — vérifications de la jurisprudence citée dans les documents uploadés d'un dossier (typiquement les conclusions adverses). Une ligne = une référence jurisprudentielle détectée, vérifiée par Claude Sonnet quant à son existence réelle et à la fidélité de la position alléguée. Produite en post-traitement de `CaseAnalysisService`.

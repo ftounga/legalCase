@@ -963,7 +963,19 @@ class DashboardTileToolIdIntegrityIT {
             // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-88-execution-jugement-cph"
+            "F-DT-88-execution-jugement-cph",
+            // SF-218-11 (2026-05-30) : F-DT-104 VRP indemnité de clientèle FR —
+            // backend (présente PR). Rupture du contrat d'un VRP statutaire
+            // (art. L.7311-1 et s. CT) : préavis VRP (art. L.7313-9 CT : 1/2/3
+            // mois), éligibilité à l'indemnité de clientèle (art. L.7313-13 CT :
+            // DUE / NON_DUE), estimation indicative (fourchette 1 à 2 années de
+            // commissions), indemnité légale comparée (art. R.1234-2 CT) et option
+            // la plus favorable (non-cumul : INDEMNITE_CLIENTELE / INDEMNITE_LEGALE).
+            // Outil standalone restitué via GET du snapshot, pas de tuile dashboard.
+            // Frontend SF-218-12 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès
+            // le backend (pattern uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-104-vrp-indemnite-clientele"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

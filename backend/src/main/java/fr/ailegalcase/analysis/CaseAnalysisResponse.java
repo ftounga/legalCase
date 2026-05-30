@@ -659,7 +659,17 @@ public record CaseAnalysisResponse(
             String situationEmployeurDetectee,
             // SF-218-03 : flag F-205 pivot — déclenche F-DT-88 exécution du jugement CPH (FR).
             // true si jugement CPH favorable + difficulté d'exécution / AGS. FR-only, default false.
-            boolean executionJugementCphEnvisagee) {
+            boolean executionJugementCphEnvisagee,
+            // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de
+            // clientèle (FR). true uniquement si les pièces révèlent un statut de VRP
+            // statutaire (mentions « VRP », « voyageur représentant placier »,
+            // « représentant de commerce », « indemnité de clientèle », « carte de
+            // représentant », commissions). FR-only, default false. Régime BE distinct.
+            boolean vrpStatutDetecte,
+            // SF-218-11 : moyenne annuelle des commissions du VRP des 3 dernières
+            // années (assiette de l'indemnité de clientèle, art. L. 7313-13 CT).
+            // Pré-fill de F-DT-104. null si non documentée. FR-only.
+            java.math.BigDecimal vrpCommissionsAnnuelles) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1209,7 +1219,10 @@ public record CaseAnalysisResponse(
                     // SF-218-03 — exécution du jugement CPH / AGS (FR)
                     .montantCondamnationCph(montantCondamnationCph)
                     .situationEmployeurDetectee(situationEmployeurDetectee)
-                    .executionJugementCphEnvisagee(executionJugementCphEnvisagee);
+                    .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
+                    // SF-218-11 — VRP indemnité de clientèle (FR)
+                    .vrpStatutDetecte(vrpStatutDetecte)
+                    .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles);
         }
 
         public static final class Builder {
@@ -1495,6 +1508,9 @@ public record CaseAnalysisResponse(
             private Double montantCondamnationCph;
             private String situationEmployeurDetectee;
             private boolean executionJugementCphEnvisagee;
+            // SF-218-11 — VRP indemnité de clientèle (FR)
+            private boolean vrpStatutDetecte;
+            private java.math.BigDecimal vrpCommissionsAnnuelles;
 
             private Builder() {}
 
@@ -1779,6 +1795,9 @@ public record CaseAnalysisResponse(
             public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
             public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
             public Builder executionJugementCphEnvisagee(boolean v) { this.executionJugementCphEnvisagee = v; return this; }
+            // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement).
+            public Builder vrpStatutDetecte(boolean v) { this.vrpStatutDetecte = v; return this; }
+            public Builder vrpCommissionsAnnuelles(java.math.BigDecimal v) { this.vrpCommissionsAnnuelles = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1956,7 +1975,10 @@ public record CaseAnalysisResponse(
                         // SF-218-03 — exécution du jugement CPH / AGS (FR)
                         montantCondamnationCph,
                         situationEmployeurDetectee,
-                        executionJugementCphEnvisagee);
+                        executionJugementCphEnvisagee,
+                        // SF-218-11 — VRP indemnité de clientèle (FR)
+                        vrpStatutDetecte,
+                        vrpCommissionsAnnuelles);
             }
         }
     }
@@ -5421,6 +5443,9 @@ public record CaseAnalysisResponse(
                     .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
                     .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
                     .situationEmployeurDetectee(stringOrNull(node, "situation_employeur_detectee"))
+                    // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle (FR).
+                    .vrpStatutDetecte(booleanOrFalse(node, "vrp_statut_detecte"))
+                    .vrpCommissionsAnnuelles(bigDecimalOrNull(node, "vrp_commissions_annuelles"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

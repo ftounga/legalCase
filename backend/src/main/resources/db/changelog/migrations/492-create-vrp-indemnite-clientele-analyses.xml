@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a159929d-e5ac-478b-ae07-f20e94d65c77" author="legalcase">
+        <comment>
+            SF-218-11 — table `vrp_indemnite_clientele_analyses` pour l'outil
+            decisionnel "VRP — indemnite de clientele"
+            (F-DT-104-vrp-indemnite-clientele, FRANCE).
+
+            Outil single-country FR : analyse la rupture du contrat d'un VRP
+            statutaire (voyageur representant placier, art. L.7311-1 et s. CT).
+            Calcule le preavis VRP specifique (art. L.7313-9 CT : 1 / 2 / 3 mois
+            selon anciennete), l'eligibilite a l'indemnite de clientele
+            (art. L.7313-13 CT : DUE / NON_DUE + motif), une estimation indicative
+            de l'indemnite de clientele (fourchette 1 a 2 annees de commissions),
+            l'indemnite legale de licenciement comparee (art. R.1234-2 CT) et
+            l'option la plus favorable au titre de la regle de non-cumul
+            (INDEMNITE_CLIENTELE / INDEMNITE_LEGALE). Persiste l'analyse 1:1 par
+            dossier (upsert).
+
+            Source juridique : L. 7311-1 a L. 7313-18 CT ; L. 7313-13 CT (indemnite
+            de clientele) ; L. 7313-9 CT (preavis VRP) ; L. 7313-11 CT (commissions
+            de retour) ; R. 1234-2 CT (indemnite legale comparee).
+        </comment>
+
+        <createTable tableName="vrp_indemnite_clientele_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_vrp_indemnite_clientele_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_entree" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cause_rupture" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_vrp" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="commissions_annuelles_moyennes" type="DECIMAL(19,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_moyen" type="DECIMAL(19,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="clientele_developpee" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_preavis_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eligibilite_clientele" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="option_recommandee" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="vrp_indemnite_clientele_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
