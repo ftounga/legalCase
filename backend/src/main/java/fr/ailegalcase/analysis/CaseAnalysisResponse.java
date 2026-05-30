@@ -688,7 +688,19 @@ public record CaseAnalysisResponse(
             // rémunération (FR). true uniquement si les pièces révèlent une procédure de
             // saisie sur salaire (mentions « saisie sur salaire », « quotité saisissable »,
             // « titre exécutoire », « commissaire de justice »). FR-only, default false.
-            boolean saisieRemunerationDetectee) {
+            boolean saisieRemunerationDetectee,
+            // SF-218-09 : date de la mise en demeure adressée à l'employeur de faire
+            // cesser une discrimination collective (ISO yyyy-MM-dd, nullable). Pré-fill
+            // de l'outil F-DT-90 (action de groupe en discrimination, FR) : amorce le
+            // calcul du délai de carence de 6 mois (L. 1134-9 CT). null si non
+            // documenté. Régime BE distinct.
+            String dateMiseEnDemeureDiscrimination,
+            // SF-218-09 : flag pivot CONTEXTUAL — déclenche F-DT-90 action de groupe en
+            // discrimination (FR). true uniquement si les pièces révèlent une
+            // discrimination collective + intention d'action de groupe (mentions
+            // « action de groupe », « discrimination systémique », « plusieurs salariés »,
+            // « organisation syndicale / association »). FR-only, default false.
+            boolean actionGroupeDiscriminationEnvisagee) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1542,6 +1554,9 @@ public record CaseAnalysisResponse(
             // SF-218-07 — saisie sur rémunération (FR)
             private Integer nombrePersonnesACharge;
             private boolean saisieRemunerationDetectee;
+            // SF-218-09 — action de groupe en discrimination (FR)
+            private String dateMiseEnDemeureDiscrimination;
+            private boolean actionGroupeDiscriminationEnvisagee;
 
             private Builder() {}
 
@@ -1835,6 +1850,9 @@ public record CaseAnalysisResponse(
             // SF-218-07 — saisie sur rémunération (FRANCE uniquement).
             public Builder nombrePersonnesACharge(Integer v) { this.nombrePersonnesACharge = v; return this; }
             public Builder saisieRemunerationDetectee(boolean v) { this.saisieRemunerationDetectee = v; return this; }
+            // SF-218-09 — action de groupe en discrimination (FRANCE uniquement).
+            public Builder dateMiseEnDemeureDiscrimination(String v) { this.dateMiseEnDemeureDiscrimination = v; return this; }
+            public Builder actionGroupeDiscriminationEnvisagee(boolean v) { this.actionGroupeDiscriminationEnvisagee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2021,7 +2039,10 @@ public record CaseAnalysisResponse(
                         pourvoiCassationSocEnvisage,
                         // SF-218-07 — saisie sur rémunération (FR)
                         nombrePersonnesACharge,
-                        saisieRemunerationDetectee);
+                        saisieRemunerationDetectee,
+                        // SF-218-09 — action de groupe en discrimination (FR)
+                        dateMiseEnDemeureDiscrimination,
+                        actionGroupeDiscriminationEnvisagee);
             }
         }
     }
@@ -5495,6 +5516,9 @@ public record CaseAnalysisResponse(
                     // SF-218-07 : flag pivot CONTEXTUAL + champ — déclenche F-DT-89 saisie sur rémunération (FR).
                     .saisieRemunerationDetectee(booleanOrFalse(node, "saisie_remuneration_detectee"))
                     .nombrePersonnesACharge(nonNegativeIntOrNull(node, "nombre_personnes_a_charge"))
+                    // SF-218-09 : flag pivot CONTEXTUAL + champ — déclenche F-DT-90 action de groupe en discrimination (FR).
+                    .actionGroupeDiscriminationEnvisagee(booleanOrFalse(node, "action_groupe_discrimination_envisagee"))
+                    .dateMiseEnDemeureDiscrimination(isoDateOrNull(node, "date_mise_en_demeure_discrimination"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

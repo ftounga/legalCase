@@ -1001,7 +1001,20 @@ class DashboardTileToolIdIntegrityIT {
             // Frontend SF-218-12 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès
             // le backend (pattern uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-104-vrp-indemnite-clientele"
+            "F-DT-104-vrp-indemnite-clientele",
+            // SF-218-09 (2026-05-30) : F-DT-90 action de groupe en discrimination FR —
+            // backend (présente PR). Analyse la recevabilité d'une action de groupe en
+            // discrimination au travail (contentieux collectif, loi J21 du 18/11/2016,
+            // art. L. 1134-7 à L. 1134-10 CT) : qualité à agir (syndicat représentatif /
+            // association déclarée depuis ≥ 5 ans, L. 1134-7), mise en demeure préalable
+            // + délai de carence de 6 mois avant saisine (L. 1134-9 :
+            // dateRecevabiliteSaisine = mise en demeure + 6 mois), pluralité de situations
+            // similaires. Verdict : RECEVABLE / PREMATURE / IRRECEVABLE_QUALITE /
+            // INFO_MANQUANTE. Outil standalone restitué via GET du snapshot, pas de tuile
+            // dashboard. Frontend SF-218-10 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-90-action-groupe-discrimination"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

@@ -261,6 +261,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "pourvoi_cassation_soc_envisage");
         // SF-218-07 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-89 saisie sur rémunération.
         addBooleanFlagIfTrue(detected, travailNode, "saisie_remuneration_detectee");
+        // SF-218-09 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-90 action de groupe en discrimination.
+        addBooleanFlagIfTrue(detected, travailNode, "action_groupe_discrimination_envisagee");
         // SF-218-11 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle.
         addBooleanFlagIfTrue(detected, travailNode, "vrp_statut_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="19111ba9-005a-4880-afe3-d96a834e3fd2" author="legalcase">
+        <comment>
+            SF-218-09 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Action de groupe en discrimination"
+            (F-DT-90-action-groupe-discrimination, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 3), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte une
+            discrimination collective + intention d'action de groupe (flag pivot
+            `action_groupe_discrimination_envisagee` = true). trigger_field =
+            'action_groupe_discrimination_envisagee', trigger_value = 'true'.
+            priority 78 — prochaine valeur libre apres les seeds CONTEXTUAL
+            FR/TRAVAIL existants (max actuel 77, saisie_remuneration_detectee
+            F-DT-89).
+
+            Source juridique : L. 1134-7 a L. 1134-10 Code travail ; L. 1132-1 CT ;
+            loi J21 du 18/11/2016.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-90-action-groupe-discrimination
+            est livree dans la PR frontend SF-218-10 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('19111ba9-005a-4880-afe3-d96a834e3fd2', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-90-action-groupe-discrimination', 'CONTEXTUAL', 'action_groupe_discrimination_envisagee', 'true', 78);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '19111ba9-005a-4880-afe3-d96a834e3fd2';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

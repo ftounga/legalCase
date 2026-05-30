@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b8f979dd-c4cd-4273-bbf0-3f3fd12bc703" author="legalcase">
+        <comment>
+            SF-218-09 — table `action_groupe_discrimination_analyses` pour l'outil
+            decisionnel "Action de groupe en discrimination"
+            (F-DT-90-action-groupe-discrimination, FRANCE).
+
+            Outil single-country FR : analyse la recevabilite d'une action de
+            groupe en discrimination au travail (contentieux collectif, loi J21
+            du 18/11/2016, art. L. 1134-7 a L. 1134-10 Code travail). Apprecie la
+            qualite a agir (syndicat representatif ou association declaree depuis
+            au moins 5 ans luttant contre les discriminations, L. 1134-7), la mise
+            en demeure prealable de l'employeur et le delai de carence de 6 mois
+            avant saisine (L. 1134-9 : date_recevabilite_saisine = mise en demeure
+            + 6 mois), et la pluralite de personnes placees dans une situation
+            similaire. Verdict : RECEVABLE / PREMATURE / IRRECEVABLE_QUALITE /
+            INFO_MANQUANTE. Persiste l'analyse 1:1 par dossier.
+
+            Source juridique : L. 1134-7 a L. 1134-10 Code travail ; L. 1132-1 CT
+            (criteres de discrimination prohibes) ; loi J21 du 18/11/2016.
+        </comment>
+
+        <createTable tableName="action_groupe_discrimination_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_action_groupe_discrimination_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="type_organisation" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_discrimination" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_personnes_concernees" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="objet_action" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_mise_en_demeure" type="DATE"/>
+            <column name="qualite_a_agir" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pluralite_etablie" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_recevabilite_saisine" type="DATE"/>
+            <column name="delai_carence_respecte" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="action_groupe_discrimination_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

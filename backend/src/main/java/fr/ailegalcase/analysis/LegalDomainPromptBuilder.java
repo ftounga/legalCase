@@ -1102,6 +1102,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-09 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `action_groupe_discrimination_envisagee` et du champ
+     * `date_mise_en_demeure_discrimination` pour pré-fill de l'outil F-DT-90
+     * (action de groupe en discrimination au travail, FRANCE UNIQUEMENT —
+     * art. L. 1134-7 à L. 1134-10 Code travail).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART23 = """
+              SF-218-09 — Flag `action_groupe_discrimination_envisagee` et champ `date_mise_en_demeure_discrimination` (FRANCE UNIQUEMENT).
+              "action_groupe_discrimination_envisagee" : booléen — true uniquement si les pièces révèlent une DISCRIMINATION COLLECTIVE au travail accompagnée d'une intention d'ACTION DE GROUPE : mention « action de groupe », « discrimination systémique », « discrimination collective », « plusieurs salariés / candidats placés dans une situation similaire », intervention d'une « organisation syndicale » ou d'une « association » luttant contre les discriminations en vue d'agir. NE PAS confondre avec un contentieux individuel de discrimination (un seul salarié). False par défaut. Pertinent pour F-DT-90.
+              "date_mise_en_demeure_discrimination" : date ISO yyyy-MM-dd ou null. Date de la mise en demeure écrite adressée à l'employeur de faire cesser le manquement (discrimination collective), point de départ du délai de carence de 6 mois avant saisine (art. L. 1134-9 Code travail). Extractible d'une lettre de mise en demeure, d'un courrier d'une organisation syndicale / association. null si non documentée.
+              Pour un dossier travail BELGIQUE, laisser `action_groupe_discrimination_envisagee` à false et `date_mise_en_demeure_discrimination` à null (l'action de groupe en discrimination relève d'un régime distinct en droit belge — loi du 30/07/2018 et droit anti-discrimination belge, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1129,7 +1143,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART19)
                     .concat(TRAVAIL_INSTRUCTION_PART20)
                     .concat(TRAVAIL_INSTRUCTION_PART21)
-                    .concat(TRAVAIL_INSTRUCTION_PART22);
+                    .concat(TRAVAIL_INSTRUCTION_PART22)
+                    .concat(TRAVAIL_INSTRUCTION_PART23);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
