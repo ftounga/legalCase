@@ -705,6 +705,16 @@ export interface TravailExtractedData {
   /** True si reprise ou justification effectivement intervenue dans le délai. */
   abandonPosteRepriseDansDelai?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-218-12 — régime VRP statutaire (FRANCE uniquement)
+  // Pré-fill F-DT-104 (VRP : préavis et indemnité de clientèle) + flag pivot
+  // CONTEXTUAL. Nullables — restent `null` pour un dossier Travail BE (statut
+  // VRP franco-français, art. L.7311-1 et s. CT).
+  // -------------------------------------------------------------------------
+  /** Moyenne annuelle des commissions des 3 dernières années (assiette indemnité de clientèle, L.7313-13). */
+  vrpCommissionsAnnuelles?: number | null;
+  /** Flag pivot CONTEXTUAL : true quand l'IA détecte un statut VRP (mentions « VRP », « représentant de commerce », commissions, carte de représentant). */
+  vrpStatutDetecte?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-03 — sous-objet `conges_payes_arret_maladie_detail` (FRANCE only)
   // Pré-fill F-DT-75 (congés payés acquis pendant arrêt maladie).
   // Tous nullables — restent `null` pour un dossier Travail BE (régime

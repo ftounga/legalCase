@@ -1,0 +1,233 @@
+<section class="vrp-section">
+  <header class="vrp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="vrp-body">
+    <mat-icon class="vrp-icon">badge</mat-icon>
+    <span class="vrp-title">VRP : PRÉAVIS ET INDEMNITÉ DE CLIENTÈLE</span>
+    @if (result()) {
+      <span class="vrp-chip-summary"
+            [class.vrp-chip-summary--ok]="result()!.eligibiliteClientele === 'DUE'"
+            [class.vrp-chip-summary--ko]="result()!.eligibiliteClientele === 'NON_DUE'">
+        {{ result()!.eligibiliteClientele === 'DUE' ? 'Clientèle due' : 'Clientèle non due' }} · préavis {{ result()!.dureePreavisMois }} mois
+      </span>
+    }
+    <mat-icon class="vrp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="vrp-body" class="vrp-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="vrp-country-banner" data-testid="vrp-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (statut VRP statutaire — voyageur représentant placier, art. L.7311-1 et s. C. trav.). Aucun équivalent direct en droit belge.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="vrp-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="vrp-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse du dossier</span>
+            </div>
+          }
+
+          <form class="vrp-form" (ngSubmit)="calculate()">
+            <!-- Bloc rupture VRP -->
+            <div class="vrp-block vrp-full">
+              <span class="vrp-block-label">Rupture du contrat VRP</span>
+
+              <div class="vrp-field-with-alert">
+                <mat-form-field appearance="outline" class="vrp-inline-field">
+                  <mat-label>Date d'entrée (début du contrat)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateEntree()"
+                         (ngModelChange)="onDateEntreeChange($event)"
+                         name="dateEntree" />
+                </mat-form-field>
+                @if (provenanceDateEntree() === 'IA') {
+                  <span class="vrp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_ENTREE; as alert) {
+                  <span class="vrp-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="vrp-field-with-alert">
+                <mat-form-field appearance="outline" class="vrp-inline-field">
+                  <mat-label>Date de rupture (notification)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRupture()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateRupture" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="vrp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_RUPTURE; as alert) {
+                  <span class="vrp-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="vrp-inline-field">
+                <mat-label>Cause de la rupture</mat-label>
+                <mat-select
+                    [ngModel]="causeRupture()"
+                    (ngModelChange)="onCauseRuptureChange($event)"
+                    name="causeRupture">
+                  @for (opt of causeRuptureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="vrp-inline-field">
+                <mat-label>Type de VRP</mat-label>
+                <mat-select
+                    [ngModel]="typeVrp()"
+                    (ngModelChange)="onTypeVrpChange($event)"
+                    name="typeVrp">
+                  @for (opt of typeVrpOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc assiette / clientèle -->
+            <div class="vrp-block vrp-full">
+              <span class="vrp-block-label">Assiette de calcul et clientèle</span>
+
+              <div class="vrp-field-with-alert">
+                <mat-form-field appearance="outline" class="vrp-inline-field">
+                  <mat-label>Commissions annuelles moyennes (3 dernières années, €)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="commissionsAnnuellesMoyennes()"
+                         (ngModelChange)="onCommissionsChange($event)"
+                         name="commissionsAnnuellesMoyennes" />
+                </mat-form-field>
+                @if (provenanceCommissions() === 'IA') {
+                  <span class="vrp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <mat-form-field appearance="outline" class="vrp-inline-field">
+                <mat-label>Salaire mensuel moyen (€) — comparaison indemnité légale</mat-label>
+                <input matInput type="number" min="0"
+                       [ngModel]="salaireMensuelMoyen()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelMoyen" />
+              </mat-form-field>
+
+              <div class="vrp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="clienteleDeveloppee()"
+                    (ngModelChange)="onClienteleDeveloppeeChange($event)"
+                    name="clienteleDeveloppee">
+                  Le VRP a créé, développé ou accru la clientèle (condition L.7313-13)
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="vrp-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la rupture VRP</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="vrp-result">
+            <!-- Bannière éligibilité — rouge réservé à NON_DUE -->
+            <div [class]="eligibiliteBannerClass(result()!.eligibiliteClientele)">
+              <mat-icon>{{ eligibiliteBannerIcon(result()!.eligibiliteClientele) }}</mat-icon>
+              <span>{{ eligibiliteBannerLabel(result()!.eligibiliteClientele) }}</span>
+            </div>
+
+            @if (result()!.eligibiliteClientele === 'NON_DUE' && result()!.motifNonDue) {
+              <div class="vrp-non-due-motif" data-testid="vrp-motif-non-due">
+                <mat-icon>info_outline</mat-icon>
+                <span>{{ result()!.motifNonDue }}</span>
+              </div>
+            }
+
+            <!-- Préavis VRP spécifique -->
+            <div class="vrp-metric-block">
+              <span class="vrp-metric-label">Préavis VRP (L.7313-9)</span>
+              <span class="vrp-metric-value">{{ result()!.dureePreavisMois }} mois</span>
+            </div>
+
+            <!-- Fourchette indemnité de clientèle -->
+            <div class="vrp-metric-block">
+              <span class="vrp-metric-label">Indemnité de clientèle estimée (fourchette)</span>
+              <span class="vrp-metric-value" data-testid="vrp-fourchette-clientele">
+                {{ result()!.indemniteClienteleMin | number:'1.0-0' }} € – {{ result()!.indemniteClienteleMax | number:'1.0-0' }} €
+              </span>
+              <span class="vrp-metric-disclaimer">
+                Estimation indicative — évaluation souveraine du juge (préjudice réel).
+              </span>
+            </div>
+
+            <!-- Indemnité légale de licenciement comparée -->
+            <div class="vrp-metric-block">
+              <span class="vrp-metric-label">Indemnité légale de licenciement comparée (R.1234-2)</span>
+              <span class="vrp-metric-value">{{ result()!.indemniteLegaleLicenciement | number:'1.0-0' }} €</span>
+            </div>
+
+            <!-- Encart option recommandée + rappel non-cumul -->
+            <div class="vrp-option-block" data-testid="vrp-option-recommandee">
+              <mat-icon>recommend</mat-icon>
+              <div class="vrp-option-content">
+                <span class="vrp-option-label">Option la plus favorable</span>
+                <span class="vrp-option-value">{{ optionRecommandeeLabel(result()!.optionRecommandee) }}</span>
+                <span class="vrp-option-note">
+                  Rappel : l'indemnité de clientèle <strong>ne se cumule pas</strong> avec l'indemnité légale de licenciement — le VRP perçoit la plus élevée (jurisprudence constante Cass. soc.). Recommandation à confirmer par l'avocat.
+                </span>
+              </div>
+            </div>
+
+            <!-- Base juridique -->
+            <div class="vrp-bases-block">
+              <span class="vrp-bases-label">Base juridique</span>
+              <span class="vrp-base-chip">{{ result()!.baseJuridique }}</span>
+            </div>
+
+            <!-- Bannière gate FR -->
+            <div class="vrp-fr-banner" data-testid="vrp-fr-banner">
+              <mat-icon>flag</mat-icon>
+              <span>Régime VRP statutaire — France uniquement (art. L.7311-1 et s. C. trav.).</span>
+            </div>
+
+            <div class="vrp-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
