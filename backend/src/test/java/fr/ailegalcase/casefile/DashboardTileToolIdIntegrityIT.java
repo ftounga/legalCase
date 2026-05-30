@@ -1020,7 +1020,14 @@ class DashboardTileToolIdIntegrityIT {
             // dashboard. Frontend SF-218-14 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 / F-218 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-DT-108-particulier-employeur-cesu"
+            "F-DT-108-particulier-employeur-cesu",
+            // SF-218-15 : outil F-DT-105 statut journaliste professionnel (clause
+            // de cession / conscience, indemnité de congédiement, commission
+            // arbitrale, FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend
+            // SF-218-16 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
+            // backend (pattern uniforme F-213 / F-219 / F-218 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-105-journaliste-statut"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

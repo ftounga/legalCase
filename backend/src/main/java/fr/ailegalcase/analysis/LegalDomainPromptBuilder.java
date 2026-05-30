@@ -1131,6 +1131,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-15 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `statut_journaliste_detecte` et du champ `journaliste_carte_presse` pour
+     * pré-fill de l'outil F-DT-105 (statut journaliste professionnel : clause de
+     * cession / conscience, indemnité de congédiement, commission arbitrale,
+     * FRANCE UNIQUEMENT — art. L.7111-1 à L.7113-12 CT).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART25 = """
+              SF-218-15 — Flags `statut_journaliste_detecte` et `journaliste_carte_presse` (FRANCE UNIQUEMENT).
+              "statut_journaliste_detecte" : booléen — true uniquement si les pièces révèlent un statut de JOURNALISTE PROFESSIONNEL (art. L.7111-1 et s. CT) : mention « journaliste », « journaliste professionnel », « carte de presse », « carte d'identité de journaliste », « CCIJP », « clause de cession », « clause de conscience », « rédaction », « organe de presse », « entreprise de presse », « pigiste », « rédacteur ». False par défaut. Pertinent pour F-DT-105.
+              "journaliste_carte_presse" : booléen — true si les pièces établissent la détention par le salarié de la carte d'identité de journaliste professionnel (carte de presse délivrée par la CCIJP), qui fonde une présomption de la qualité de journaliste professionnel. False par défaut (statut à qualifier autrement).
+              Pour un dossier travail BELGIQUE, laisser `statut_journaliste_detecte` à false et `journaliste_carte_presse` à false (le statut du journaliste relève d'un régime distinct en droit belge, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1160,7 +1174,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART21)
                     .concat(TRAVAIL_INSTRUCTION_PART22)
                     .concat(TRAVAIL_INSTRUCTION_PART23)
-                    .concat(TRAVAIL_INSTRUCTION_PART24);
+                    .concat(TRAVAIL_INSTRUCTION_PART24)
+                    .concat(TRAVAIL_INSTRUCTION_PART25);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
