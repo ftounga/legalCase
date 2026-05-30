@@ -83,6 +83,8 @@ import { SaisieRemunerationSectionComponent } from '../saisie-remuneration-secti
 import { ParticulierEmployeurCesuSectionComponent } from '../particulier-employeur-cesu-section/particulier-employeur-cesu-section.component';
 // SF-218-16 : composant complet F-DT-105-journaliste-statut — statut du journaliste professionnel : clauses de cession / conscience + indemnité de congédiement + commission arbitrale (Travail FR, art. L.7111-1 et s. CT).
 import { JournalisteStatutSectionComponent } from '../journaliste-statut-section/journaliste-statut-section.component';
+// SF-218-18 : composant complet F-DT-106-intermittent-spectacle-are — intermittent du spectacle : ouverture des droits ARE (annexes 8/10), seuil 507 h sur 12 mois (Travail FR, règlement Unedic).
+import { IntermittentSpectacleAreSectionComponent } from '../intermittent-spectacle-are-section/intermittent-spectacle-are-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1814,6 +1816,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-105-journaliste-statut', {
         displayLabel: 'Statut journaliste (FR)',
         component: JournalisteStatutSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-18 : composant complet F-DT-106-intermittent-spectacle-are —
+      // intermittent du spectacle : ouverture des droits ARE (annexes 8/10)
+      // (Travail FR). FR uniquement, CONTEXTUAL (flag statutIntermittentDetecte).
+      // Vérifie la condition d'affiliation de 507 h sur les 12 mois précédant la
+      // fin du contrat (règlement Unedic), convertit les cachets artistiques
+      // (annexe 10 : 1 cachet = 12 h), écrête les heures de formation
+      // assimilables → verdict d'ouverture des droits OUVERTS / NON_OUVERTS,
+      // statut DROITS_OUVERTS / DROITS_NON_OUVERTS / A_VERIFIER (marge ± 10 h),
+      // déficit (heures manquantes) / excédent (heures excédentaires), barre de
+      // progression vers 507 h et date de réexamen annuel (fin + 12 mois).
+      // Pré-fill IA 2 champs (dateFinContrat, annexe) via static getPrefillCount
+      // + IntermittentSpectacleArePrefillRules.
+      ['F-DT-106-intermittent-spectacle-are', {
+        displayLabel: 'Intermittent spectacle ARE (FR)',
+        component: IntermittentSpectacleAreSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5237,6 +5261,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // cession / conscience invoquée + qualification du statut (CONFIRME /
     // A_QUALIFIER), cohérent avec les autres analyseurs de validité / statut.
     ['F-DT-105-journaliste-statut', 'VALIDITE'],
+    // SF-218-18 : F-DT-106-intermittent-spectacle-are intermittent du spectacle :
+    // ouverture des droits ARE (annexes 8/10) (Travail FR). Thème DIAGNOSTIC —
+    // l'outil diagnostique la situation du salarié au regard de la condition
+    // d'affiliation (507 h sur 12 mois) et détermine l'ouverture ou non des
+    // droits ARE, cohérent avec les autres outils de diagnostic de situation.
+    ['F-DT-106-intermittent-spectacle-are', 'DIAGNOSTIC'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
