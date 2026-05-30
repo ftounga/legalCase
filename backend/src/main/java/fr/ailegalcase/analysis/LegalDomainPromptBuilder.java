@@ -1035,6 +1035,19 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-01 : 18e part du prompt TRAVAIL — flag F-205 `appel_cph_envisage`
+     * et champ `date_notification_jugement` pour pré-fill de l'outil F-DT-86
+     * (appel d'un jugement CPH devant la chambre sociale de la Cour d'appel,
+     * FRANCE UNIQUEMENT — art. 538 CPC ; R. 1461-1 CPC).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART18 = """
+              SF-218-01 — Flag F-205 `appel_cph_envisage` et champ `date_notification_jugement` (FRANCE UNIQUEMENT).
+              "appel_cph_envisage" : booléen — true uniquement si les pièces évoquent un JUGEMENT du Conseil de Prud'hommes DÉJÀ RENDU et une intention ou un délai d'APPEL en cours : mention « jugement prud'homal », « jugement du Conseil de prud'hommes », « jugement du CPH », « notification du jugement », « signification du jugement », « interjeter appel », « déclaration d'appel », « chambre sociale de la Cour d'appel », « appel du jugement », date de jugement prud'homal présente. NE PAS confondre avec la phase de conciliation (conciliation_cph_envisagee, qui précède le jugement) ni avec la saisine de première instance. False par défaut. Pertinent pour F-DT-86.
+              "date_notification_jugement" : chaîne ISO YYYY-MM-DD ou null. Date à laquelle le jugement du CPH a été notifié à la partie (signification par commissaire de justice ou notification LRAR par le greffe) — c'est le POINT DE DÉPART du délai d'appel d'un mois (art. 538 CPC ; R. 1461-1 CPC). Extractible de l'acte de signification, de l'accusé de réception LRAR ou de la mention de notification sur le jugement. NE PAS confondre avec la date du jugement lui-même (date de prononcé) : la notification est postérieure ou concomitante. null si non documentée dans les pièces ou si aucun jugement CPH n'est rendu.
+              Pour un dossier travail BELGIQUE, laisser `appel_cph_envisage` à false et `date_notification_jugement` à null (la voie d'appel d'un jugement du tribunal du travail belge relève d'un régime distinct — Code judiciaire belge, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1057,7 +1070,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART14)
                     .concat(TRAVAIL_INSTRUCTION_PART15)
                     .concat(TRAVAIL_INSTRUCTION_PART16)
-                    .concat(TRAVAIL_INSTRUCTION_PART17);
+                    .concat(TRAVAIL_INSTRUCTION_PART17)
+                    .concat(TRAVAIL_INSTRUCTION_PART18);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

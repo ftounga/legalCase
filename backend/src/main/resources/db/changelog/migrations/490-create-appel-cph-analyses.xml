@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c78ac57b-04ab-4996-997a-d700c8ebee8e" author="legalcase">
+        <comment>
+            SF-218-01 — table `appel_cph_analyses` pour l'outil decisionnel
+            "Appel CPH cour d'appel" (F-DT-86-appel-cph-cour-appel, FRANCE).
+
+            Outil single-country FR : analyse l'appel d'un jugement du Conseil
+            de prud'hommes devant la chambre sociale de la Cour d'appel. Calcule
+            le delai d'appel d'un mois (art. 538 CPC ; R. 1461-1 CPC), le verdict
+            de recevabilite (DELAI_OUVERT / DELAI_URGENT / DELAI_EXPIRE /
+            VOIE_FERMEE) et la checklist des formalites de l'appel social
+            (declaration d'appel RPVA, chefs de jugement critiques art. 901 CPC,
+            representation obligatoire R. 1461-2 CPC, procedure orale art. 946
+            CPC, constitution intime). Persiste l'analyse 1:1 par dossier.
+
+            Relation F-DT-87 : si jugement_en_dernier_ressort = true, la voie
+            d'appel est fermee et l'outil renvoie vers le pourvoi en cassation
+            sociale (F-DT-87). Outils complementaires, non redondants.
+
+            Source juridique : R. 1461-1 et s. CPC ; art. 538 CPC ; art. 901 CPC ;
+            art. 946 CPC ; R. 1461-2 CPC ; R. 1462-1 CPC.
+        </comment>
+
+        <createTable tableName="appel_cph_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_appel_cph_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_notification_jugement" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="partie_appelante" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mode_notification" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="representation_constituee" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jugement_en_dernier_ressort" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_limite_appel" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="appel_cph_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

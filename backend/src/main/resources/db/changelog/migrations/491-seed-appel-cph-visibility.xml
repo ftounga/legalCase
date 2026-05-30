@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="17a85921-28f8-4e81-857d-c251b12bbbca" author="legalcase">
+        <comment>
+            SF-218-01 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Appel CPH cour d'appel"
+            (F-DT-86-appel-cph-cour-appel, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 3), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte un
+            jugement CPH rendu + intention de faire appel (flag pivot
+            `appel_cph_envisage` = true). trigger_field = 'appel_cph_envisage',
+            trigger_value = 'true'. priority 74 — prochaine valeur libre apres
+            les seeds CONTEXTUAL FR/TRAVAIL existants (max actuel 73,
+            conge_maternite_paternite_detecte).
+
+            Source juridique : R. 1461-1 et s. CPC ; art. 538 CPC ; art. 901 CPC ;
+            R. 1461-2 CPC ; art. 946 CPC ; R. 1462-1 CPC.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-86-appel-cph-cour-appel est
+            livree dans la PR frontend SF-218-02 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('17a85921-28f8-4e81-857d-c251b12bbbca', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-86-appel-cph-cour-appel', 'CONTEXTUAL', 'appel_cph_envisage', 'true', 74);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '17a85921-28f8-4e81-857d-c251b12bbbca';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
