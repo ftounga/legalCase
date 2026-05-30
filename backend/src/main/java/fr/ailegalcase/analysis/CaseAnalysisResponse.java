@@ -660,16 +660,14 @@ public record CaseAnalysisResponse(
             // SF-218-03 : flag F-205 pivot — déclenche F-DT-88 exécution du jugement CPH (FR).
             // true si jugement CPH favorable + difficulté d'exécution / AGS. FR-only, default false.
             boolean executionJugementCphEnvisagee,
-            // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de
-            // clientèle (FR). true uniquement si les pièces révèlent un statut de VRP
-            // statutaire (mentions « VRP », « voyageur représentant placier »,
-            // « représentant de commerce », « indemnité de clientèle », « carte de
-            // représentant », commissions). FR-only, default false. Régime BE distinct.
-            boolean vrpStatutDetecte,
-            // SF-218-11 : moyenne annuelle des commissions du VRP des 3 dernières
-            // années (assiette de l'indemnité de clientèle, art. L. 7313-13 CT).
-            // Pré-fill de F-DT-104. null si non documentée. FR-only.
-            java.math.BigDecimal vrpCommissionsAnnuelles,
+            // SF-218-11 : sous-objet pré-fill IA pour l'outil F-DT-104 (VRP
+            // indemnité de clientèle, FR). Consolidé en un seul composant
+            // (@JsonUnwrapped) par SF-218-19 pour libérer un paramètre du
+            // constructeur canonical (plafond JVM 255) et financer le nouveau
+            // sous-objet CadreDirigeantDetail. JSON HTTP plat préservé (clés
+            // `vrp_statut_detecte` et `vrp_commissions_annuelles` inchangées).
+            // Voir VrpStatutDetail.
+            @JsonUnwrapped VrpStatutDetail vrpStatutDetail,
             // SF-218-05 : date de notification de l'arrêt de la Cour d'appel (ISO
             // YYYY-MM-DD, nullable). Pré-fill de l'outil F-DT-87 (pourvoi cassation
             // sociale, FR) : fait courir le délai de pourvoi de 2 mois (art. 612 CPC).
@@ -1073,6 +1071,29 @@ public record CaseAnalysisResponse(
                 boolean cadreParticipationDirection
         ) {}
 
+        /**
+         * SF-218-11 (consolidé par SF-218-19) : sous-objet pré-fill IA pour
+         * l'outil F-DT-104 (VRP — indemnité de clientèle, FRANCE UNIQUEMENT —
+         * art. L. 7311-1 et s. CT). Regroupe le flag pivot CONTEXTUAL et la
+         * moyenne annuelle des commissions en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code vrp_statut_detecte} et {@code vrp_commissions_annuelles},
+         * contrat externe inchangé) afin de ne pas dépasser la limite de
+         * paramètres du constructeur canonical de {@link TravailExtractedData}.
+         *
+         * @param vrpStatutDetecte flag pivot — true si les pièces révèlent un
+         *        statut de VRP statutaire (mentions « VRP », « voyageur
+         *        représentant placier », « représentant de commerce »,
+         *        « indemnité de clientèle », commissions). FR-only, default false.
+         * @param vrpCommissionsAnnuelles moyenne annuelle des commissions du VRP
+         *        des 3 dernières années (assiette de l'indemnité de clientèle,
+         *        art. L. 7313-13 CT). null si non documentée. FR-only.
+         */
+        public record VrpStatutDetail(
+                boolean vrpStatutDetecte,
+                java.math.BigDecimal vrpCommissionsAnnuelles
+        ) {}
+
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -1368,9 +1389,8 @@ public record CaseAnalysisResponse(
                     .montantCondamnationCph(montantCondamnationCph)
                     .situationEmployeurDetectee(situationEmployeurDetectee)
                     .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
-                    // SF-218-11 — VRP indemnité de clientèle (FR)
-                    .vrpStatutDetecte(vrpStatutDetecte)
-                    .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles)
+                    // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
+                    .vrpStatutDetail(vrpStatutDetail)
                     // SF-218-05 — pourvoi cassation sociale (FR)
                     .dateNotificationArretAppel(dateNotificationArretAppel)
                     .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage)
@@ -1673,9 +1693,8 @@ public record CaseAnalysisResponse(
             private Double montantCondamnationCph;
             private String situationEmployeurDetectee;
             private boolean executionJugementCphEnvisagee;
-            // SF-218-11 — VRP indemnité de clientèle (FR)
-            private boolean vrpStatutDetecte;
-            private java.math.BigDecimal vrpCommissionsAnnuelles;
+            // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
+            private VrpStatutDetail vrpStatutDetail;
             // SF-218-05 — pourvoi cassation sociale (FR)
             private String dateNotificationArretAppel;
             private boolean pourvoiCassationSocEnvisage;
@@ -1977,9 +1996,8 @@ public record CaseAnalysisResponse(
             public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
             public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
             public Builder executionJugementCphEnvisagee(boolean v) { this.executionJugementCphEnvisagee = v; return this; }
-            // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement).
-            public Builder vrpStatutDetecte(boolean v) { this.vrpStatutDetecte = v; return this; }
-            public Builder vrpCommissionsAnnuelles(java.math.BigDecimal v) { this.vrpCommissionsAnnuelles = v; return this; }
+            // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement) — consolidé SF-218-19.
+            public Builder vrpStatutDetail(VrpStatutDetail v) { this.vrpStatutDetail = v; return this; }
             // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
             public Builder dateNotificationArretAppel(String v) { this.dateNotificationArretAppel = v; return this; }
             public Builder pourvoiCassationSocEnvisage(boolean v) { this.pourvoiCassationSocEnvisage = v; return this; }
@@ -2175,9 +2193,8 @@ public record CaseAnalysisResponse(
                         montantCondamnationCph,
                         situationEmployeurDetectee,
                         executionJugementCphEnvisagee,
-                        // SF-218-11 — VRP indemnité de clientèle (FR)
-                        vrpStatutDetecte,
-                        vrpCommissionsAnnuelles,
+                        // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
+                        vrpStatutDetail,
                         // SF-218-05 — pourvoi cassation sociale (FR)
                         dateNotificationArretAppel,
                         pourvoiCassationSocEnvisage,
@@ -5659,9 +5676,10 @@ public record CaseAnalysisResponse(
                     .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
                     .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
                     .situationEmployeurDetectee(stringOrNull(node, "situation_employeur_detectee"))
-                    // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle (FR).
-                    .vrpStatutDetecte(booleanOrFalse(node, "vrp_statut_detecte"))
-                    .vrpCommissionsAnnuelles(bigDecimalOrNull(node, "vrp_commissions_annuelles"))
+                    // SF-218-11 : flag pivot CONTEXTUAL + champ — déclenche F-DT-104 VRP indemnité de clientèle (FR). Consolidé SF-218-19.
+                    .vrpStatutDetail(new TravailExtractedData.VrpStatutDetail(
+                            booleanOrFalse(node, "vrp_statut_detecte"),
+                            bigDecimalOrNull(node, "vrp_commissions_annuelles")))
                     // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale (FR).
                     .pourvoiCassationSocEnvisage(booleanOrFalse(node, "pourvoi_cassation_soc_envisage"))
                     .dateNotificationArretAppel(isoDateOrNull(node, "date_notification_arret_appel"))
