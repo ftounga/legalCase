@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="e88e8670-5b73-47dc-a683-cbac55e6a237" author="legalcase">
+        <comment>
+            SF-218-23 — table `apprentissage_rupture_analyses` pour l'outil
+            decisionnel "Apprentissage — validite de la rupture"
+            (F-DT-110-apprentissage-rupture, FRANCE).
+
+            Outil single-country FR : apprecie la validite de la rupture du
+            contrat d'apprentissage (regime hybride, art. L.6222-18 et s. CT).
+            Distingue la rupture libre durant les 45 premiers jours de formation
+            pratique en entreprise (sans motif, forme ecrite requise) de la
+            rupture au-dela, limitee a l'accord ecrit des parties, la faute grave
+            (procedure de licenciement depuis la reforme 2018), la force majeure,
+            l'inaptitude medicale (art. L.6222-18-1) et l'exclusion definitive du
+            CFA (art. L.6222-21). Calcule la periode (DANS_45_PREMIERS_JOURS /
+            APRES_45_JOURS), la validite (VALIDE / NON_VALIDE / A_SECURISER), les
+            consequences (saisine CPH, dommages-interets, procedure de
+            licenciement) et le verdict global (RUPTURE_REGULIERE /
+            RUPTURE_IRREGULIERE / RUPTURE_A_SECURISER). Persiste l'analyse 1:1
+            par dossier (upsert).
+
+            Source juridique : art. L.6222-18 ; L.6222-18-1 (inaptitude) ;
+            L.6222-21 (exclusion CFA) ; L.6222-23 (poursuite formation).
+        </comment>
+
+        <createTable tableName="apprentissage_rupture_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_apprentissage_rupture_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_debut_contrat" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="auteur_rupture" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_rupture" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jours_depuis_debut" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="periode" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dans_periode_libre" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="validite" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_global" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="apprentissage_rupture_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
