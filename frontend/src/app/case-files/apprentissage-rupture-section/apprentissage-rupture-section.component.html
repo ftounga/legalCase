@@ -1,0 +1,222 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">school</mat-icon>
+    <span class="is-title">RUPTURE APPRENTISSAGE (FR)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdictGlobal)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdictGlobal) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Apprentissage — régime français uniquement</div>
+            <div class="is-banner-sub">
+              La rupture du contrat d'apprentissage (délai de 45 jours, motifs
+              limités après ce délai) repose sur les art. L.6222-18 et s. du Code
+              du travail français : ce régime n'a pas d'équivalent direct en droit
+              du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Période et motif de la rupture du contrat d'apprentissage (art. L.6222-18 et s. CT).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de début du contrat d'apprentissage</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDebutContrat()"
+                         (ngModelChange)="onDateDebutChange($event)"
+                         name="dateDebutContrat"
+                         data-testid="date-debut-input" />
+                </mat-form-field>
+                @if (provenanceDateDebut() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-debut"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la rupture</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRupture()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateRupture"
+                         data-testid="date-rupture-input" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-rupture"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Auteur de la rupture</mat-label>
+                  <mat-select [ngModel]="auteurRupture()"
+                              (ngModelChange)="onAuteurChange($event)"
+                              name="auteurRupture"
+                              data-testid="auteur-select">
+                    @for (opt of auteurOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif invoqué</mat-label>
+                  <mat-select [ngModel]="motifRupture()"
+                              (ngModelChange)="onMotifChange($event)"
+                              name="motifRupture"
+                              data-testid="motif-select">
+                    @for (opt of motifOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotif() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-motif"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="apprentiMajeur()"
+                              (ngModelChange)="onApprentiMajeurChange($event)"
+                              name="apprentiMajeur"
+                              data-testid="apprenti-majeur">
+                  Apprenti majeur
+                </mat-checkbox>
+              </div>
+
+              <div class="is-note is-note--annual" role="note" data-testid="seuil-note">
+                <mat-icon>info_outline</mat-icon>
+                <span>Seuil des 45 jours de formation pratique en entreprise (art. L.6222-18) : rupture libre en deçà, motifs limités au-delà.</span>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la validité de la rupture</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.verdictGlobal)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictGlobal) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ verdictLabel(result()!.verdictGlobal) }}</div>
+                  <div class="is-banner-sub">{{ result()!.motif }}</div>
+                </div>
+              </div>
+
+              <!-- Badges période + validité du motif -->
+              <div class="is-badges">
+                <span [class]="periodeChipClass(result()!.periode)" data-testid="periode-chip">
+                  {{ periodeLabel(result()!.periode) }}
+                </span>
+                <span [class]="validiteChipClass(result()!.validite)" data-testid="validite-chip">
+                  {{ validiteLabel(result()!.validite) }}
+                </span>
+              </div>
+
+              <!-- Jours écoulés depuis le début du contrat (JetBrains Mono) -->
+              <div class="is-figure">
+                <span class="is-figure-label">Jours écoulés depuis le début du contrat</span>
+                <span class="is-figure-value" data-testid="jours-value">{{ result()!.joursDepuisDebut }} j</span>
+              </div>
+
+              <!-- Conséquences procédurales -->
+              @if (result()!.consequences && result()!.consequences.length > 0) {
+                <ul class="is-criteres" data-testid="consequences-list">
+                  @for (conseq of result()!.consequences; track conseq) {
+                    <li class="is-critere is-critere--ko">
+                      <mat-icon class="is-critere-icon">priority_high</mat-icon>
+                      <div class="is-critere-content">
+                        <span class="is-critere-label">{{ conseq }}</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <!-- Encadré saisine du conseil de prud'hommes si rupture irrégulière -->
+              @if (ruptureIrreguliere()) {
+                <div class="is-cph-box" role="note" data-testid="cph-box">
+                  <mat-icon>gavel</mat-icon>
+                  <div class="is-cph-content">
+                    <div class="is-cph-title">Saisine du conseil de prud'hommes</div>
+                    <div class="is-cph-sub">
+                      La rupture étant irrégulière, l'apprenti peut saisir le
+                      conseil de prud'hommes pour obtenir des dommages-intérêts
+                      (art. L.6222-18 et s. CT).
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
