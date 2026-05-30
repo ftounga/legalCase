@@ -1014,7 +1014,13 @@ class DashboardTileToolIdIntegrityIT {
             // dashboard. Frontend SF-218-10 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-90-action-groupe-discrimination"
+            "F-DT-90-action-groupe-discrimination",
+            // SF-218-13 : outil F-DT-108 particulier employeur / CESU (préavis +
+            // indemnité de licenciement, FR-only, CONTEXTUAL) — pas de tuile
+            // dashboard. Frontend SF-218-14 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 / F-218 vagues, cf.
+            // CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-108-particulier-employeur-cesu"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

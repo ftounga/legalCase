@@ -265,6 +265,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "action_groupe_discrimination_envisagee");
         // SF-218-11 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle.
         addBooleanFlagIfTrue(detected, travailNode, "vrp_statut_detecte");
+        // SF-218-13 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-108 particulier employeur / CESU.
+        addBooleanFlagIfTrue(detected, travailNode, "particulier_employeur_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");

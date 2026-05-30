@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="8d4f0b25-3c7e-4a92-8f13-6b5e9d2a4c78" author="legalcase">
+        <comment>
+            SF-218-13 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Particulier employeur / CESU"
+            (F-DT-108-particulier-employeur-cesu, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte un
+            employeur particulier (mentions « CESU », « garde d'enfants »,
+            « assistant maternel », « employe de maison », « PAJEMPLOI »,
+            « particulier employeur »). Flag pivot
+            `particulier_employeur_detecte` = true.
+            trigger_field = 'particulier_employeur_detecte',
+            trigger_value = 'true'. priority 79 — prochaine valeur libre pour le
+            couple (DROIT_DU_TRAVAIL, FRANCE) apres les seeds CONTEXTUAL FR
+            existants (max actuel 78, action_groupe_discrimination F-DT-90 ;
+            saisie_remuneration F-DT-89 = 77).
+
+            Source juridique : CCN salaries du particulier employeur (IDCC 3239,
+            2021) ; CCN assistants maternels ; art. L. 7221-1 et s. Code du
+            travail ; art. L. 423-1 et s. CASF.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-108-particulier-employeur-cesu
+            est livree dans la PR frontend SF-218-14 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('8d4f0b25-3c7e-4a92-8f13-6b5e9d2a4c78', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-108-particulier-employeur-cesu', 'CONTEXTUAL', 'particulier_employeur_detecte', 'true', 79);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '8d4f0b25-3c7e-4a92-8f13-6b5e9d2a4c78';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1116,6 +1116,21 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-13 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `particulier_employeur_detecte` et du champ `cesu_categorie_employe`
+     * pour pré-fill de l'outil F-DT-108 (particulier employeur / CESU :
+     * préavis + indemnité de licenciement, FRANCE UNIQUEMENT — CCN salariés
+     * du particulier employeur 2021 ; CCN assistants maternels ; L. 7221-1 CT ;
+     * L. 423-1 CASF).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART24 = """
+              SF-218-13 — Flag `particulier_employeur_detecte` et champ `cesu_categorie_employe` (FRANCE UNIQUEMENT).
+              "particulier_employeur_detecte" : booléen — true uniquement si les pièces révèlent un EMPLOYEUR PARTICULIER (et non une entreprise / personne morale) employant un salarié à domicile : mention « CESU », « chèque emploi service universel », « PAJEMPLOI », « particulier employeur », « garde d'enfants à domicile », « assistant maternel », « assistante maternelle », « employé de maison », « gens de maison », « femme de ménage à domicile », « CCN du particulier employeur ». NE PAS confondre avec un employeur classique (entreprise, association). False par défaut. Pertinent pour F-DT-108.
+              "cesu_categorie_employe" : chaîne ou null. Catégorie du salarié du particulier employeur, l'une des 2 valeurs exactes (null si non déterminable) : "SALARIE_PARTICULIER_EMPLOYEUR" (employé de maison, garde d'enfants — CCN salariés du particulier employeur 2021) ou "ASSISTANT_MATERNEL" (assistant·e maternel·le agréé·e accueillant l'enfant à son domicile — CCN assistants maternels, art. L. 423-1 et s. CASF). Choisir "ASSISTANT_MATERNEL" dès qu'apparaît la mention « assistant maternel / assistante maternelle » ou « retrait de l'enfant ». null si la catégorie n'est pas lisible.
+              Pour un dossier travail BELGIQUE, laisser `particulier_employeur_detecte` à false et `cesu_categorie_employe` à null (l'emploi de travailleurs domestiques par un particulier relève d'un régime distinct en droit belge, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1144,7 +1159,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART20)
                     .concat(TRAVAIL_INSTRUCTION_PART21)
                     .concat(TRAVAIL_INSTRUCTION_PART22)
-                    .concat(TRAVAIL_INSTRUCTION_PART23);
+                    .concat(TRAVAIL_INSTRUCTION_PART23)
+                    .concat(TRAVAIL_INSTRUCTION_PART24);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
