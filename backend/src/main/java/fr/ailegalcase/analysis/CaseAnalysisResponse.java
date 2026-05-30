@@ -668,15 +668,14 @@ public record CaseAnalysisResponse(
             // `vrp_statut_detecte` et `vrp_commissions_annuelles` inchangées).
             // Voir VrpStatutDetail.
             @JsonUnwrapped VrpStatutDetail vrpStatutDetail,
-            // SF-218-05 : date de notification de l'arrêt de la Cour d'appel (ISO
-            // YYYY-MM-DD, nullable). Pré-fill de l'outil F-DT-87 (pourvoi cassation
-            // sociale, FR) : fait courir le délai de pourvoi de 2 mois (art. 612 CPC).
-            // null si non détectable. Régime BE distinct.
-            String dateNotificationArretAppel,
-            // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation
-            // sociale (FR). true uniquement si arrêt de Cour d'appel défavorable rendu +
-            // intention de pourvoi en cassation. FR-only, default false. Régime BE distinct.
-            boolean pourvoiCassationSocEnvisage,
+            // SF-218-05 (consolidé SF-218-23) : flag pivot CONTEXTUAL F-DT-87
+            // (pourvoi cassation sociale, FR) + date de notification de l'arrêt
+            // d'appel, regroupés en un seul composant (@JsonUnwrapped) pour
+            // libérer un slot du constructeur canonical (limite JVM 255 slots) et
+            // financer le nouveau sous-objet ApprentissageDetail (F-DT-110).
+            // JSON HTTP plat préservé (clés `pourvoi_cassation_soc_envisage` et
+            // `date_notification_arret_appel` inchangées). Voir PourvoiCassationDetail.
+            @JsonUnwrapped PourvoiCassationDetail pourvoiCassationDetail,
             // SF-218-07 (consolidé SF-218-21) : flag pivot CONTEXTUAL F-DT-89
             // (saisie sur rémunération, FR) + nombre de personnes à charge,
             // regroupés en un seul composant (@JsonUnwrapped) pour libérer un slot
@@ -1134,6 +1133,29 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-05 (consolidé par SF-218-23) : sous-objet pré-fill IA pour
+         * l'outil F-DT-87 (pourvoi en cassation sociale, FRANCE UNIQUEMENT —
+         * art. 612 CPC). Regroupe le flag pivot CONTEXTUAL et la date de
+         * notification de l'arrêt d'appel en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code pourvoi_cassation_soc_envisage} et
+         * {@code date_notification_arret_appel}, contrat externe inchangé) afin
+         * de libérer un slot du constructeur canonical de
+         * {@link TravailExtractedData} (limite JVM des 255 slots).
+         *
+         * @param pourvoiCassationSocEnvisage flag pivot — true si un arrêt de
+         *        cour d'appel défavorable est rendu et un pourvoi en cassation
+         *        est envisagé. FR-only, default false.
+         * @param dateNotificationArretAppel date ISO (yyyy-MM-dd) de notification
+         *        de l'arrêt d'appel (point de départ du délai de pourvoi de 2
+         *        mois, art. 612 CPC), null si non documentée. FR-only.
+         */
+        public record PourvoiCassationDetail(
+                boolean pourvoiCassationSocEnvisage,
+                String dateNotificationArretAppel
+        ) {}
+
+        /**
          * SF-218-21 (consolidation des champs SF-218-07) : sous-objet pré-fill IA
          * pour l'outil F-DT-89 (saisie sur rémunération, FRANCE UNIQUEMENT —
          * art. R. 3252-3 CT). Regroupe le flag pivot CONTEXTUAL et le nombre de
@@ -1475,9 +1497,8 @@ public record CaseAnalysisResponse(
                     .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
                     // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
                     .vrpStatutDetail(vrpStatutDetail)
-                    // SF-218-05 — pourvoi cassation sociale (FR)
-                    .dateNotificationArretAppel(dateNotificationArretAppel)
-                    .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage)
+                    // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23
+                    .pourvoiCassationDetail(pourvoiCassationDetail)
                     // SF-218-07 — saisie sur rémunération (FR)
                     .saisieRemunerationPrefillDetail(saisieRemunerationPrefillDetail)
                     // SF-218-09 — action de groupe en discrimination (FR)
@@ -1779,9 +1800,8 @@ public record CaseAnalysisResponse(
             private boolean executionJugementCphEnvisagee;
             // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
             private VrpStatutDetail vrpStatutDetail;
-            // SF-218-05 — pourvoi cassation sociale (FR)
-            private String dateNotificationArretAppel;
-            private boolean pourvoiCassationSocEnvisage;
+            // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23
+            private PourvoiCassationDetail pourvoiCassationDetail;
             // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FR), sous-record IA.
             private SaisieRemunerationPrefillDetail saisieRemunerationPrefillDetail;
             // SF-218-09 — action de groupe en discrimination (FR)
@@ -1797,6 +1817,8 @@ public record CaseAnalysisResponse(
             private CadreDirigeantDetail cadreDirigeantDetail;
             // SF-218-21 — stagiaire_detail (FRANCE uniquement) — sous-record IA F-DT-109.
             private StagiaireDetail stagiaireDetail;
+            // SF-218-23 — apprentissage_detail (FRANCE uniquement) — sous-record IA F-DT-110.
+            private ApprentissageDetail apprentissageDetail;
 
             private Builder() {}
 
@@ -2084,8 +2106,8 @@ public record CaseAnalysisResponse(
             // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement) — consolidé SF-218-19.
             public Builder vrpStatutDetail(VrpStatutDetail v) { this.vrpStatutDetail = v; return this; }
             // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
-            public Builder dateNotificationArretAppel(String v) { this.dateNotificationArretAppel = v; return this; }
-            public Builder pourvoiCassationSocEnvisage(boolean v) { this.pourvoiCassationSocEnvisage = v; return this; }
+            // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23.
+            public Builder pourvoiCassationDetail(PourvoiCassationDetail v) { this.pourvoiCassationDetail = v; return this; }
             // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FRANCE uniquement) — sous-record IA.
             public Builder saisieRemunerationPrefillDetail(SaisieRemunerationPrefillDetail v) { this.saisieRemunerationPrefillDetail = v; return this; }
             // SF-218-09 — action de groupe en discrimination (FRANCE uniquement).
@@ -2101,6 +2123,8 @@ public record CaseAnalysisResponse(
             public Builder cadreDirigeantDetail(CadreDirigeantDetail v) { this.cadreDirigeantDetail = v; return this; }
             // SF-218-21 — stagiaire_detail (FRANCE uniquement) — sous-record IA F-DT-109.
             public Builder stagiaireDetail(StagiaireDetail v) { this.stagiaireDetail = v; return this; }
+            // SF-218-23 — apprentissage_detail (FRANCE uniquement) — sous-record IA F-DT-110.
+            public Builder apprentissageDetail(ApprentissageDetail v) { this.apprentissageDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2281,9 +2305,8 @@ public record CaseAnalysisResponse(
                         executionJugementCphEnvisagee,
                         // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
                         vrpStatutDetail,
-                        // SF-218-05 — pourvoi cassation sociale (FR)
-                        dateNotificationArretAppel,
-                        pourvoiCassationSocEnvisage,
+                        // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23
+                        pourvoiCassationDetail,
                         // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FR)
                         saisieRemunerationPrefillDetail,
                         // SF-218-09 — action de groupe en discrimination (FR)
@@ -2298,7 +2321,9 @@ public record CaseAnalysisResponse(
                         // SF-218-19 — cadre dirigeant / qualification (FR)
                         cadreDirigeantDetail,
                         // SF-218-21 — stagiaire / gratification / requalification (FR)
-                        stagiaireDetail);
+                        stagiaireDetail,
+                        // SF-218-23 — apprentissage / validité de la rupture (FR)
+                        apprentissageDetail);
             }
         }
     }
@@ -5768,8 +5793,10 @@ public record CaseAnalysisResponse(
                             booleanOrFalse(node, "vrp_statut_detecte"),
                             bigDecimalOrNull(node, "vrp_commissions_annuelles")))
                     // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale (FR).
-                    .pourvoiCassationSocEnvisage(booleanOrFalse(node, "pourvoi_cassation_soc_envisage"))
-                    .dateNotificationArretAppel(isoDateOrNull(node, "date_notification_arret_appel"))
+                    // SF-218-05 (consolidé SF-218-23) : flag pivot CONTEXTUAL + champ — déclenche F-DT-87 pourvoi cassation sociale (FR).
+                    .pourvoiCassationDetail(new TravailExtractedData.PourvoiCassationDetail(
+                            booleanOrFalse(node, "pourvoi_cassation_soc_envisage"),
+                            isoDateOrNull(node, "date_notification_arret_appel")))
                     // SF-218-07 (consolidé SF-218-21) : flag pivot CONTEXTUAL + champ — déclenche F-DT-89 saisie sur rémunération (FR).
                     .saisieRemunerationPrefillDetail(new TravailExtractedData.SaisieRemunerationPrefillDetail(
                             booleanOrFalse(node, "saisie_remuneration_detectee"),
