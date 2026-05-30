@@ -1,0 +1,238 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">school</mat-icon>
+    <span class="is-title">STAGIAIRE GRATIFICATION (FR)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdictGlobal)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdictGlobal) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Stagiaire — régime français uniquement</div>
+            <div class="is-banner-sub">
+              La gratification minimale obligatoire des stages et la
+              requalification du stage en contrat de travail reposent sur les
+              art. L.124-1 et s. du Code de l'éducation français : ce régime n'a
+              pas d'équivalent direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Période de stage et indices d'irrégularité (art. L.124-1 et s. Code de l'éducation).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de début du stage</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDebutStage()"
+                         (ngModelChange)="onDateDebutChange($event)"
+                         name="dateDebutStage"
+                         data-testid="date-debut-input" />
+                </mat-form-field>
+                @if (provenanceDateDebut() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-debut"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de fin du stage</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateFinStage()"
+                         (ngModelChange)="onDateFinChange($event)"
+                         name="dateFinStage"
+                         data-testid="date-fin-input" />
+                </mat-form-field>
+                @if (provenanceDateFin() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-fin"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Jours de présence effective</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="nombreJoursPresence()"
+                         (ngModelChange)="onNombreJoursChange($event)"
+                         name="nombreJoursPresence"
+                         data-testid="jours-presence-input" />
+                  <mat-hint>1 jour = 7 h ; règle des 22 jours/mois</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Gratification mensuelle versée (€)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="gratificationMensuelleVersee()"
+                         (ngModelChange)="onGratificationVerseeChange($event)"
+                         name="gratificationMensuelleVersee"
+                         data-testid="gratification-versee-input" />
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Taux horaire conventionnel (€, optionnel)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="tauxHoraireConventionnel()"
+                         (ngModelChange)="onTauxConventionnelChange($event)"
+                         name="tauxHoraireConventionnel"
+                         data-testid="taux-conventionnel-input" />
+                  <mat-hint>Si la CCN est plus favorable que le minimum légal</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-check-wrap is-check-wrap--indice">
+                <mat-checkbox [ngModel]="missionsHorsProjetPedagogique()"
+                              (ngModelChange)="onMissionsHorsProjetChange($event)"
+                              name="missionsHorsProjetPedagogique"
+                              data-testid="missions-hors-projet">
+                  Missions exécutées hors du projet pédagogique
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="posteTravailPermanent()"
+                              (ngModelChange)="onPosteTravailPermanentChange($event)"
+                              name="posteTravailPermanent"
+                              data-testid="poste-permanent">
+                  Occupation d'un poste de travail permanent (art. L.124-8)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-note is-note--annual" role="note" data-testid="annual-note">
+                <mat-icon>update</mat-icon>
+                <span>Taux de gratification (15 % du plafond horaire SS) et plafond de la Sécurité sociale à actualiser annuellement.</span>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la gratification et le risque de requalification</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.verdictGlobal)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictGlobal) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ verdictLabel(result()!.verdictGlobal) }}</div>
+                  <div class="is-banner-sub">
+                    {{ result()!.gratificationObligatoire ? 'Gratification minimale obligatoire (seuil atteint).' : 'Gratification non obligatoire (seuil non atteint).' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badges gratification obligatoire / risque requalification -->
+              <div class="is-badges">
+                <span [class]="gratificationChipClass(result()!.gratificationObligatoire)" data-testid="gratification-obligatoire-chip">
+                  {{ result()!.gratificationObligatoire ? 'Gratification obligatoire' : 'Gratification non obligatoire' }}
+                </span>
+                @if (result()!.seuilAtteint) {
+                  <span class="is-chip is-chip--neutral" data-testid="seuil-chip">Seuil atteint</span>
+                }
+                <span [class]="risqueChipClass(result()!.risqueRequalification)" data-testid="risque-chip">
+                  {{ risqueLabel(result()!.risqueRequalification) }}
+                </span>
+              </div>
+
+              <!-- Montants : gratification due / versée / rappel (JetBrains Mono) -->
+              <div class="is-figure">
+                <span class="is-figure-label">Gratification minimale due</span>
+                <span class="is-figure-value" data-testid="gratification-due-value">{{ result()!.gratificationMinimaleDue }} €</span>
+              </div>
+              <div class="is-figure">
+                <span class="is-figure-label">Gratification versée</span>
+                <span class="is-figure-value" data-testid="gratification-versee-value">{{ result()!.gratificationMensuelleVersee ?? 0 }} €</span>
+              </div>
+              <div class="is-figure" [class.is-figure--alert]="rappelDu()">
+                <span class="is-figure-label">Rappel de gratification</span>
+                <span class="is-figure-value" [class.is-figure-value--danger]="rappelDu()" data-testid="rappel-value">{{ result()!.rappelGratification }} €</span>
+              </div>
+
+              <!-- Motifs du risque de requalification -->
+              @if (result()!.motifs && result()!.motifs.length > 0) {
+                <ul class="is-criteres" data-testid="motifs-list">
+                  @for (motif of result()!.motifs; track motif) {
+                    <li class="is-critere is-critere--ko">
+                      <mat-icon class="is-critere-icon">priority_high</mat-icon>
+                      <div class="is-critere-content">
+                        <span class="is-critere-label">{{ motif }}</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-note" role="note" data-testid="annual-note-result">
+                <mat-icon>update</mat-icon>
+                <span>Taux de gratification (15 % du plafond horaire SS) et plafond SS à actualiser annuellement.</span>
+              </div>
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
