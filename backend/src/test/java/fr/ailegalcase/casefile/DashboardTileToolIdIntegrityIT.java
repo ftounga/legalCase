@@ -936,7 +936,21 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
             // F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "interruption-carriere-soins-parental"
+            "interruption-carriere-soins-parental",
+            // SF-218-01 (2026-05-30) : F-DT-86 appel CPH cour d'appel FR —
+            // backend (présente PR). Appel d'un jugement du Conseil de
+            // prud'hommes devant la chambre sociale de la Cour d'appel
+            // (art. 538 CPC ; R. 1461-1 CPC) : délai d'appel d'un mois,
+            // verdict de recevabilité (DELAI_OUVERT / DELAI_URGENT /
+            // DELAI_EXPIRE / VOIE_FERMEE) et checklist des formalités de
+            // l'appel social (déclaration RPVA, chefs critiqués art. 901,
+            // représentation obligatoire R. 1461-2, procédure orale art. 946,
+            // constitution intimé). Outil standalone restitué via GET du
+            // snapshot, pas de tuile dashboard. Frontend SF-218-02 à venir.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-86-appel-cph-cour-appel"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

@@ -253,6 +253,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "temps_partiel_requalification_envisagee");
         // SF-212-37 : nouveau flag F-205 — déclenche F-DT-84 conciliation CPH BCA.
         addBooleanFlagIfTrue(detected, travailNode, "conciliation_cph_envisagee");
+        // SF-218-01 : nouveau flag F-205 — déclenche F-DT-86 appel CPH cour d'appel.
+        addBooleanFlagIfTrue(detected, travailNode, "appel_cph_envisage");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");

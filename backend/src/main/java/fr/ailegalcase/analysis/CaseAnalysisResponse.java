@@ -642,7 +642,15 @@ public record CaseAnalysisResponse(
             // SF-212-37 : sous-objet IA pour pré-fill F-DT-84 conciliation CPH BCA (FR).
             // 3 champs (ancienneté mois, salaire mensuel brut, montant demandes).
             // Sub-flag de conciliationCphEnvisagee. @JsonUnwrapped — JSON HTTP plat préservé.
-            @JsonUnwrapped ConciliationCphDetail conciliationCphDetail) {
+            @JsonUnwrapped ConciliationCphDetail conciliationCphDetail,
+            // SF-218-01 : date de notification du jugement CPH (ISO YYYY-MM-DD, nullable).
+            // Pré-fill de l'outil F-DT-86 (appel CPH cour d'appel, FR) : fait courir le
+            // délai d'appel d'un mois (art. 538 CPC ; R. 1461-1 CPC). null si non détectable.
+            String dateNotificationJugement,
+            // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
+            // true uniquement si les pièces évoquent un jugement prud'homal rendu + une
+            // intention d'interjeter appel. FR-only, default false. Régime BE distinct.
+            boolean appelCphEnvisage) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1185,7 +1193,10 @@ public record CaseAnalysisResponse(
                     .tempsPartielRequalificationDetail(tempsPartielRequalificationDetail)
                     // SF-212-37 — conciliation CPH BCA (FR)
                     .conciliationCphEnvisagee(conciliationCphEnvisagee)
-                    .conciliationCphDetail(conciliationCphDetail);
+                    .conciliationCphDetail(conciliationCphDetail)
+                    // SF-218-01 — appel CPH cour d'appel (FR)
+                    .dateNotificationJugement(dateNotificationJugement)
+                    .appelCphEnvisage(appelCphEnvisage);
         }
 
         public static final class Builder {
@@ -1464,6 +1475,9 @@ public record CaseAnalysisResponse(
             // SF-212-37 — flag F-205 + sous-record conciliation CPH BCA (FR uniquement)
             private boolean conciliationCphEnvisagee;
             private ConciliationCphDetail conciliationCphDetail;
+            // SF-218-01 — appel CPH cour d'appel (FR)
+            private String dateNotificationJugement;
+            private boolean appelCphEnvisage;
 
             private Builder() {}
 
@@ -1741,6 +1755,9 @@ public record CaseAnalysisResponse(
             public Builder conciliationCphEnvisagee(boolean v) { this.conciliationCphEnvisagee = v; return this; }
             // SF-212-37 — conciliation_cph_detail (FRANCE uniquement) — sous-record IA.
             public Builder conciliationCphDetail(ConciliationCphDetail v) { this.conciliationCphDetail = v; return this; }
+            // SF-218-01 — appel CPH cour d'appel (FRANCE uniquement).
+            public Builder dateNotificationJugement(String v) { this.dateNotificationJugement = v; return this; }
+            public Builder appelCphEnvisage(boolean v) { this.appelCphEnvisage = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1912,7 +1929,9 @@ public record CaseAnalysisResponse(
                         tempsPartielRequalificationDetail,
                         // SF-212-37 — conciliation CPH BCA (FR)
                         conciliationCphEnvisagee,
-                        conciliationCphDetail);
+                        conciliationCphDetail,
+                        dateNotificationJugement,
+                        appelCphEnvisage);
             }
         }
     }
@@ -5370,6 +5389,9 @@ public record CaseAnalysisResponse(
                     .electionCseDetectee(booleanOrFalse(node, "election_cse_detectee"))
                     // SF-212-33 : flag F-205 — déclenche F-DT-49 temps partiel — requalification.
                     .tempsPartielRequalificationEnvisagee(booleanOrFalse(node, "temps_partiel_requalification_envisagee"))
+                    // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
+                    .appelCphEnvisage(booleanOrFalse(node, "appel_cph_envisage"))
+                    .dateNotificationJugement(isoDateOrNull(node, "date_notification_jugement"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
