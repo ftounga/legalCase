@@ -296,6 +296,21 @@ export interface TravailExtractedData {
    * (n'est PAS un champ de formulaire).
    */
   statutJournalisteDetecte?: boolean | null;
+  /**
+   * SF-218-18 : annexe du régime intermittent du spectacle détectée par l'IA,
+   * pour pré-fill F-DT-106-intermittent-spectacle-are (FR uniquement) —
+   * ANNEXE_8_TECHNICIENS (techniciens) ou ANNEXE_10_ARTISTES (artistes).
+   */
+  intermittentAnnexe?: 'ANNEXE_8_TECHNICIENS' | 'ANNEXE_10_ARTISTES' | null;
+  /**
+   * SF-218-18 : flag de visibilité CONTEXTUAL — true si l'IA détecte un statut
+   * d'intermittent du spectacle (mentions « intermittent du spectacle »,
+   * « annexe 8 », « annexe 10 », « cachet », « 507 heures », « artiste du
+   * spectacle », « technicien audiovisuel », « France Travail spectacle »).
+   * FR-only. Déclenche l'apparition de F-DT-106 (n'est PAS un champ de
+   * formulaire).
+   */
+  statutIntermittentDetecte?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */

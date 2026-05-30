@@ -1,0 +1,237 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">theater_comedy</mat-icon>
+    <span class="is-title">INTERMITTENT SPECTACLE ARE (FR)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)" data-testid="statut-chip">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Intermittent du spectacle — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Le régime des intermittents du spectacle (annexes 8 et 10 du
+              règlement d'assurance chômage Unedic) et la condition d'affiliation
+              de 507 heures sur 12 mois relèvent du droit français et n'ont pas
+              d'équivalent direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Annexe applicable</mat-label>
+                  <mat-select [ngModel]="annexe()"
+                              (ngModelChange)="onAnnexeChange($event)"
+                              name="annexe"
+                              data-testid="annexe-select">
+                    <mat-option value="ANNEXE_8_TECHNICIENS">Annexe 8 — techniciens</mat-option>
+                    <mat-option value="ANNEXE_10_ARTISTES">Annexe 10 — artistes</mat-option>
+                  </mat-select>
+                  <mat-hint>L'annexe 10 convertit les cachets en heures (1 cachet = 12 h)</mat-hint>
+                </mat-form-field>
+                @if (provenanceAnnexe() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-annexe"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de fin du dernier contrat</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateFinContrat()"
+                         (ngModelChange)="onDateFinContratChange($event)"
+                         name="dateFinContrat" />
+                  <mat-hint>Point de départ de la recherche de droits (période de référence 12 mois)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateFinContrat() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-fin"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Heures travaillées sur 12 mois</mat-label>
+                  <input matInput type="number" min="0" step="1" required
+                         [ngModel]="heuresTravaillees12Mois()"
+                         (ngModelChange)="onHeuresTravailleesChange($event)"
+                         name="heuresTravaillees12Mois"
+                         data-testid="heures-travaillees-input" />
+                  <mat-hint>Heures déclarées sur la période de référence</mat-hint>
+                </mat-form-field>
+              </div>
+
+              @if (isAnnexe10()) {
+                <div class="is-field-wrap" data-testid="cachets-field">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nombre de cachets (artistiques)</mat-label>
+                    <input matInput type="number" min="0" step="1"
+                           [ngModel]="nombreCachets()"
+                           (ngModelChange)="onNombreCachetsChange($event)"
+                           name="nombreCachets"
+                           data-testid="nombre-cachets-input" />
+                    <mat-hint>1 cachet = 12 heures (annexe 10)</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Heures de formation / enseignement dispensées</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="heuresFormationDispensees()"
+                         (ngModelChange)="onHeuresFormationChange($event)"
+                         name="heuresFormationDispensees" />
+                  <mat-hint>Heures assimilables, écrêtées au plafond Unedic</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Barre de progression vers le seuil 507 h (estimation locale) -->
+              <div class="is-progress" data-testid="progress-form">
+                <div class="is-progress-head">
+                  <span class="is-progress-label">Total estimé</span>
+                  <span class="is-progress-value">{{ totalHeuresEstime() }} h / {{ SEUIL_HEURES }} h</span>
+                </div>
+                <div class="is-progress-track" role="progressbar"
+                     [attr.aria-valuenow]="totalHeuresEstime()" aria-valuemin="0" [attr.aria-valuemax]="SEUIL_HEURES">
+                  <div class="is-progress-fill" [style.width.%]="progressionPct()"></div>
+                </div>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'ouverture des droits ARE</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="is-banner-sub">
+                    {{ annexeLabel(result()!.annexe) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badges ouverture des droits -->
+              <div class="is-badges">
+                <span [class]="ouvertureChipClass(result()!.ouvertureDroits)" data-testid="ouverture-chip">
+                  {{ ouvertureLabel(result()!.ouvertureDroits) }}
+                </span>
+              </div>
+
+              <!-- Barre de progression vers le seuil 507 h (résultat) -->
+              <div class="is-progress" data-testid="progress-result">
+                <div class="is-progress-head">
+                  <span class="is-progress-label">Heures retenues</span>
+                  <span class="is-progress-value" data-testid="heures-totales">{{ result()!.heuresTotalesRetenues }} h / {{ result()!.seuilHeures }} h</span>
+                </div>
+                <div class="is-progress-track" role="progressbar"
+                     [attr.aria-valuenow]="result()!.heuresTotalesRetenues" aria-valuemin="0" [attr.aria-valuemax]="result()!.seuilHeures">
+                  <div class="is-progress-fill" [class.is-progress-fill--ok]="result()!.ouvertureDroits === 'OUVERTS'"
+                       [style.width.%]="resultProgressionPct(result()!)"></div>
+                </div>
+              </div>
+
+              <!-- Chiffres clés — heures en JetBrains Mono -->
+              <div class="is-figures">
+                @if (result()!.ouvertureDroits === 'OUVERTS') {
+                  <div class="is-figure is-figure--ok">
+                    <span class="is-figure-label">Heures excédentaires</span>
+                    <span class="is-figure-value is-figure-value--ok" data-testid="heures-excedentaires">+{{ result()!.heuresExcedentaires }} h</span>
+                  </div>
+                } @else {
+                  <div class="is-figure is-figure--ko">
+                    <span class="is-figure-label">Heures manquantes</span>
+                    <span class="is-figure-value is-figure-value--ko" data-testid="heures-manquantes">−{{ result()!.heuresManquantes }} h</span>
+                  </div>
+                }
+                @if (result()!.annexe === 'ANNEXE_10_ARTISTES') {
+                  <div class="is-figure">
+                    <span class="is-figure-label">Conversion cachets ({{ result()!.nombreCachets }} × 12 h)</span>
+                    <span class="is-figure-value" data-testid="heures-cachets">{{ result()!.heuresCachets }} h</span>
+                  </div>
+                }
+                @if (result()!.heuresFormationRetenues > 0) {
+                  <div class="is-figure">
+                    <span class="is-figure-label">Formation retenue (écrêtée)</span>
+                    <span class="is-figure-value" data-testid="heures-formation">{{ result()!.heuresFormationRetenues }} h</span>
+                  </div>
+                }
+                <div class="is-figure">
+                  <span class="is-figure-label">Prochain réexamen</span>
+                  <span class="is-figure-value" data-testid="date-prochain-examen">{{ result()!.dateProchainExamen }}</span>
+                </div>
+              </div>
+
+              <div class="is-note" role="note" data-testid="actualisation-note">
+                <mat-icon>info_outline</mat-icon>
+                <span>Seuil et plafonds Unedic à actualiser à chaque convention — vérification finale auprès de France Travail.</span>
+              </div>
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
