@@ -1,0 +1,216 @@
+<section class="agd-section">
+  <header class="agd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="agd-body">
+    <mat-icon class="agd-icon">groups</mat-icon>
+    <span class="agd-title">ACTION DE GROUPE DISCRIMINATION (FR)</span>
+    @if (result()) {
+      <span [class]="chipClass(result()!.verdict)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="agd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="agd-body" class="agd-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="agd-banner agd-banner--neutral" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="agd-banner-content">
+            <div class="agd-banner-title">Action de groupe discrimination — procédure française uniquement</div>
+            <div class="agd-banner-sub">
+              L'action de groupe en discrimination au travail (loi J21 du
+              18/11/2016, L. 1134-7 à L. 1134-10 Code du travail), la mise en
+              demeure préalable et le délai de carence de 6 mois relèvent du
+              droit français et n'ont pas d'équivalent direct en droit du
+              travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="agd-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="agd-form" (ngSubmit)="analyze()">
+              <div class="agd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type d'organisation demanderesse</mat-label>
+                  <mat-select [ngModel]="typeOrganisation()"
+                              (ngModelChange)="onTypeOrganisationChange($event)"
+                              name="typeOrganisation" required>
+                    @for (opt of typeOrganisationOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Qualité à agir (L. 1134-7)</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="agd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de discrimination</mat-label>
+                  <mat-select [ngModel]="motifDiscrimination()"
+                              (ngModelChange)="onMotifChange($event)"
+                              name="motifDiscrimination" required>
+                    @for (opt of motifOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Critère prohibé invoqué (L. 1132-1)</mat-hint>
+                </mat-form-field>
+                @if (provenanceMotifDiscrimination() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-motif"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="agd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la mise en demeure de l'employeur</mat-label>
+                  <input matInput type="date" [max]="todayIso"
+                         [ngModel]="dateMiseEnDemeure()"
+                         (ngModelChange)="onDateMiseEnDemeureChange($event)"
+                         name="dateMiseEnDemeure" />
+                  <mat-hint>Point de départ du délai de carence de 6 mois (L. 1134-9)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateMiseEnDemeure() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="agd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nombre de personnes concernées</mat-label>
+                  <input matInput type="number" min="1" step="1" required
+                         [ngModel]="nombrePersonnesConcernees()"
+                         (ngModelChange)="onNombrePersonnesChange($event)"
+                         name="nombrePersonnesConcernees" />
+                  <mat-hint>Pluralité de personnes en situation similaire</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="agd-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Objet de l'action</mat-label>
+                  <mat-select [ngModel]="objetAction()"
+                              (ngModelChange)="onObjetChange($event)"
+                              name="objetAction">
+                    @for (opt of objetOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Cessation et/ou réparation (L. 1134-8)</mat-hint>
+                </mat-form-field>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="agd-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="agd-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="agd-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la recevabilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="agd-result">
+              <div [class]="bannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdict) }}</mat-icon>
+                <div class="agd-banner-content">
+                  <div class="agd-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <div class="agd-banner-sub">
+                    {{ result()!.nombrePersonnesConcernees }} personne(s) concernée(s)
+                    @if (!result()!.qualiteAAgir) {
+                      · organisation non habilitée
+                    }
+                    @if (!result()!.pluraliteEtablie) {
+                      · pluralité non établie
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Délai de carence / recevabilité de la saisine — JetBrains Mono -->
+              <div class="agd-figures">
+                @if (result()!.dateRecevabiliteSaisine) {
+                  <div class="agd-figure agd-figure--primary">
+                    <span class="agd-figure-label">Saisine recevable à partir du (mise en demeure + 6 mois)</span>
+                    <span class="agd-figure-value agd-figure-value--strong" data-testid="date-recevabilite">{{ result()!.dateRecevabiliteSaisine }}</span>
+                  </div>
+                  <div class="agd-figure">
+                    <span class="agd-figure-label">Délai de carence de 6 mois respecté</span>
+                    <span class="agd-figure-value" data-testid="delai-carence">{{ result()!.delaiCarenceRespecte ? 'Oui' : 'Non — délai en cours' }}</span>
+                  </div>
+                } @else {
+                  <div class="agd-figure">
+                    <span class="agd-figure-label">Saisine recevable à partir du</span>
+                    <span class="agd-figure-value" data-testid="date-recevabilite">— (mise en demeure non renseignée)</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Checklist procédurale -->
+              @if (result()!.checklist && result()!.checklist.length > 0) {
+                <div class="agd-checklist-block" data-testid="checklist-block">
+                  <div class="agd-checklist-title">Checklist procédurale (L. 1134-7 à L. 1134-10)</div>
+                  <ul class="agd-checklist">
+                    @for (item of result()!.checklist; track item.libelle) {
+                      <li class="agd-checklist-item" [class.agd-checklist-item--bloquant]="item.bloquant" data-testid="checklist-item">
+                        <mat-icon>{{ item.bloquant ? 'error_outline' : (item.obligatoire ? 'check_circle_outline' : 'radio_button_unchecked') }}</mat-icon>
+                        <span class="agd-checklist-libelle">
+                          {{ item.libelle }}
+                          @if (item.obligatoire) { <span class="agd-checklist-tag">obligatoire</span> }
+                        </span>
+                        <span class="agd-checklist-base">{{ item.baseJuridique }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <div class="agd-meta">
+                <div class="agd-bases">
+                  <span class="agd-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

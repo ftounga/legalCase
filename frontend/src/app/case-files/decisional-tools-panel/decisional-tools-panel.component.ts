@@ -79,6 +79,8 @@ import { PourvoiCassationSocSectionComponent } from '../pourvoi-cassation-soc-se
 import { ExecutionJugementCphSectionComponent } from '../execution-jugement-cph-section/execution-jugement-cph-section.component';
 // SF-218-08 : composant complet F-DT-89-saisie-arret-remuneration — saisie sur rémunération (quotité saisissable, Travail FR, barème par tranches R. 3252-2 + personnes à charge + fraction insaisissable RSA).
 import { SaisieRemunerationSectionComponent } from '../saisie-remuneration-section/saisie-remuneration-section.component';
+// SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
+import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
@@ -1763,6 +1765,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-89-saisie-arret-remuneration', {
         displayLabel: 'Saisie sur rémunération (FR)',
         component: SaisieRemunerationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination —
+      // action de groupe en discrimination (recevabilité, Travail FR). FR
+      // uniquement, CONTEXTUAL (flag actionGroupeDiscriminationEnvisagee).
+      // Analyse la recevabilité d'une action de groupe en discrimination au
+      // travail (loi J21 du 18/11/2016, L. 1134-7 à L. 1134-10) : qualité de
+      // l'organisation habilitée (syndicat représentatif / association déclarée
+      // ≥ 5 ans), mise en demeure préalable + délai de carence de 6 mois
+      // (L. 1134-9), pluralité de situations similaires → verdict RECEVABLE /
+      // PREMATURE / IRRECEVABLE_QUALITE / INFO_MANQUANTE + date de recevabilité
+      // de la saisine + checklist procédurale. Pré-fill IA 2 champs
+      // (motifDiscrimination, dateMiseEnDemeure) via static getPrefillCount +
+      // ActionGroupeDiscriminationPrefillRules.
+      ['F-DT-90-action-groupe-discrimination', {
+        displayLabel: 'Action de groupe discrimination (FR)',
+        component: ActionGroupeDiscriminationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5154,6 +5178,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // insaisissable RSA, nombre de mois de recouvrement). Cohérent avec les autres
     // calculateurs de montants (F-DT-07, F-DT-09, F-DT-12…).
     ['F-DT-89-saisie-arret-remuneration', 'INDEMNITES'],
+    // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
+    // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
+    ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
     // SF-214-36 : F-IM-42-assignation-residence-fr assignation à résidence (FR).
     // Thème VALIDITE — analyseur de validité de la mesure (statut de validité de
     // l'assignation : en cours / expiration proche / expirée) + motifs de
