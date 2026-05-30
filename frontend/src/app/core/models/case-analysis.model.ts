@@ -346,6 +346,26 @@ export interface TravailExtractedData {
    * un champ de formulaire).
    */
   stageDetecte?: boolean | null;
+  /**
+   * SF-218-24 : motif de rupture du contrat d'apprentissage détecté par l'IA,
+   * pour pré-fill F-DT-110-apprentissage-rupture (FR uniquement). Aligné sur
+   * l'enum backend {@code MotifRupture}.
+   */
+  apprentissageMotifRupture?:
+    | 'ACCORD_PARTIES'
+    | 'FAUTE_GRAVE'
+    | 'FORCE_MAJEURE'
+    | 'INAPTITUDE'
+    | 'EXCLUSION_DEFINITIVE_CFA'
+    | 'SANS_MOTIF'
+    | null;
+  /**
+   * SF-218-24 : flag de visibilité CONTEXTUAL — true si l'IA détecte une rupture
+   * de contrat d'apprentissage (mentions « contrat d'apprentissage », « apprenti »,
+   * « CFA », « maître d'apprentissage », « rupture apprentissage », « 45 jours »).
+   * FR-only. Déclenche l'apparition de F-DT-110 (n'est PAS un champ de formulaire).
+   */
+  apprentissageRuptureDetectee?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */

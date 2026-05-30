@@ -89,6 +89,8 @@ import { IntermittentSpectacleAreSectionComponent } from '../intermittent-specta
 import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-section/cadre-dirigeant-statut-section.component';
 // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
+// SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
+import { ApprentissageRuptureSectionComponent } from '../apprentissage-rupture-section/apprentissage-rupture-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1885,6 +1887,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-109-stagiaire-gratification-requalification', {
         displayLabel: 'Stagiaire gratification (FR)',
         component: StagiaireGratificationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité
+      // de la rupture du contrat d'apprentissage (Travail FR). FR uniquement,
+      // CONTEXTUAL (flag apprentissageRuptureDetectee). Régime hybride
+      // (art. L.6222-18 et s. CT) : distingue la rupture dans les 45 premiers
+      // jours (libre, sans motif) de la rupture après ce délai (motifs limités :
+      // accord écrit, faute grave, force majeure, inaptitude, exclusion CFA),
+      // qualifie le motif (VALIDE / NON_VALIDE / A_SECURISER) → verdict global
+      // RUPTURE_REGULIERE / RUPTURE_IRREGULIERE / RUPTURE_A_SECURISER + conséquences
+      // (saisine CPH, procédure de licenciement). Pré-fill IA 3 champs
+      // (dateDebutContrat, dateRupture, motifRupture) via static getPrefillCount +
+      // ApprentissageRupturePrefillRules.
+      ['F-DT-110-apprentissage-rupture', {
+        displayLabel: 'Rupture apprentissage (FR)',
+        component: ApprentissageRuptureSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5325,6 +5348,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // (calculateur de montant), cohérent avec les autres outils de calcul de
     // rappel de salaire / indemnités.
     ['F-DT-109-stagiaire-gratification-requalification', 'INDEMNITES'],
+    // SF-218-24 : F-DT-110-apprentissage-rupture validité de la rupture du contrat
+    // d'apprentissage (Travail FR). Thème VALIDITE — analyseur de validité de la
+    // rupture (verdict RUPTURE_REGULIERE / RUPTURE_IRREGULIERE / RUPTURE_A_SECURISER),
+    // cohérent avec les autres analyseurs de validité de rupture (F-DT-08,
+    // F-DT-38, F-DT-10).
+    ['F-DT-110-apprentissage-rupture', 'VALIDITE'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
