@@ -1691,7 +1691,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // Bridge échéance F-69 (label « Appel CPH cour d'appel »). Cette entrée
       // répare DecisionToolVisibilityIntegrityIT (seed SF-218-01 sans pendant FE).
       ['F-DT-86-appel-cph-cour-appel', {
-        displayLabel: "Appel CPH cour d'appel (FR)",
+        displayLabel: 'Appel CPH cour d\'appel (FR)',
         component: AppelCphSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
