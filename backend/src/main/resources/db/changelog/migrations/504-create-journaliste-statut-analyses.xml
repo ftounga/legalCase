@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a1f6c930-5d27-4e83-9b14-7c2e8a3d6f01" author="legalcase">
+        <comment>
+            SF-218-15 — table `journaliste_statut_analyses` pour l'outil
+            decisionnel "Statut journaliste professionnel"
+            (F-DT-105-journaliste-statut, FRANCE).
+
+            Outil single-country FR : analyse le regime du journaliste
+            professionnel (art. L.7111-1 et s. CT) lors d'une rupture. Qualifie
+            le statut (carte de presse CCIJP), la validite de la clause de
+            cession (cession ou cessation de publication du titre, L.7112-5 1°)
+            ou de conscience (changement notable de l'orientation du journal,
+            L.7112-5 2°/3°), calcule l'indemnite de congediement (1 mois de
+            salaire par annee ou fraction d'annee d'anciennete, plafonnee a
+            15 mois — L.7112-3) et signale la commission arbitrale paritaire
+            (anciennete superieure a 15 ans ou faute grave / fautes repetees —
+            L.7112-4). Verdict : RUPTURE_ASSIMILEE_LICENCIEMENT / INDEMNITE_DUE /
+            COMMISSION_ARBITRALE / INDEMNITE_NON_DUE. Persiste l'analyse 1:1 par
+            dossier (upsert).
+
+            Source juridique : art. L.7111-1 a L.7113-12 Code du travail ;
+            L.7112-3 (indemnite de congediement) ; L.7112-4 (commission
+            arbitrale) ; L.7112-5 (clauses de cession et de conscience).
+        </comment>
+
+        <createTable tableName="journaliste_statut_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_journaliste_statut_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_entree" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_rupture" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_moyen" type="DECIMAL(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="carte_identite_professionnelle" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="anciennete_annees" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut_journaliste" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="clause_valide" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="indemnite_congediement" type="DECIMAL(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="commission_arbitrale_requise" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_global" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="journaliste_statut_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
