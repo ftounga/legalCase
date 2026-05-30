@@ -1027,7 +1027,14 @@ class DashboardTileToolIdIntegrityIT {
             // SF-218-16 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
             // backend (pattern uniforme F-213 / F-219 / F-218 vagues, cf.
             // CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-DT-105-journaliste-statut"
+            "F-DT-105-journaliste-statut",
+            // SF-218-17 : outil F-DT-106 intermittent du spectacle — ouverture
+            // des droits ARE (seuil 507 h / 12 mois, annexes 8 et 10 Unedic,
+            // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-18 à
+            // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-106-intermittent-spectacle-are"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

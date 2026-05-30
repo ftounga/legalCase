@@ -715,7 +715,13 @@ public record CaseAnalysisResponse(
             // journaliste professionnel, FR). Regroupé en un seul composant
             // (@JsonUnwrapped) pour rester sous la limite de paramètres du
             // constructeur canonical du record. Voir JournalisteStatutDetail.
-            @JsonUnwrapped JournalisteStatutDetail journalisteStatutDetail) {
+            @JsonUnwrapped JournalisteStatutDetail journalisteStatutDetail,
+            // SF-218-17 : sous-objet pré-fill IA pour l'outil F-DT-106
+            // (intermittent du spectacle — ouverture des droits ARE, FR).
+            // Regroupé en un seul composant (@JsonUnwrapped) pour rester sous la
+            // limite de paramètres du constructeur canonical du record. Voir
+            // IntermittentSpectacleDetail.
+            @JsonUnwrapped IntermittentSpectacleDetail intermittentSpectacleDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -991,6 +997,30 @@ public record CaseAnalysisResponse(
         public record JournalisteStatutDetail(
                 boolean statutJournalisteDetecte,
                 boolean journalisteCartePresse
+        ) {}
+
+        /**
+         * SF-218-17 : sous-objet pré-fill IA pour l'outil F-DT-106 (intermittent
+         * du spectacle — ouverture des droits ARE, FRANCE UNIQUEMENT — règlement
+         * d'assurance chômage Unedic, annexes 8 et 10 ; condition d'affiliation de
+         * 507 h / 12 mois). Regroupe le flag pivot CONTEXTUAL et l'annexe détectée
+         * en un seul composant {@code @JsonUnwrapped} (aplati en JSON sous les
+         * clés {@code statut_intermittent_detecte} et {@code intermittent_annexe})
+         * afin de ne pas dépasser la limite de paramètres du constructeur
+         * canonical de {@link TravailExtractedData}.
+         *
+         * @param statutIntermittentDetecte flag pivot — true si les pièces
+         *        révèlent un statut d'intermittent du spectacle (mentions
+         *        « intermittent du spectacle », « annexe 8 », « annexe 10 »,
+         *        « cachet », « 507 heures », « artiste du spectacle »,
+         *        « technicien audiovisuel », « France Travail spectacle »). FR-only.
+         * @param intermittentAnnexe annexe Unedic détectée, l'une des valeurs
+         *        exactes {@code ANNEXE_8_TECHNICIENS} | {@code ANNEXE_10_ARTISTES},
+         *        ou null si non déterminable. FR-only.
+         */
+        public record IntermittentSpectacleDetail(
+                boolean statutIntermittentDetecte,
+                String intermittentAnnexe
         ) {}
 
 
@@ -1304,7 +1334,9 @@ public record CaseAnalysisResponse(
                     .particulierEmployeurDetecte(particulierEmployeurDetecte)
                     .cesuCategorieEmploye(cesuCategorieEmploye)
                     // SF-218-15 — statut journaliste professionnel (FR)
-                    .journalisteStatutDetail(journalisteStatutDetail);
+                    .journalisteStatutDetail(journalisteStatutDetail)
+                    // SF-218-17 — intermittent du spectacle / ARE (FR)
+                    .intermittentSpectacleDetail(intermittentSpectacleDetail);
         }
 
         public static final class Builder {
@@ -1607,6 +1639,8 @@ public record CaseAnalysisResponse(
             private String cesuCategorieEmploye;
             // SF-218-15 — statut journaliste professionnel (FR)
             private JournalisteStatutDetail journalisteStatutDetail;
+            // SF-218-17 — intermittent du spectacle / ARE (FR)
+            private IntermittentSpectacleDetail intermittentSpectacleDetail;
 
             private Builder() {}
 
@@ -1908,6 +1942,8 @@ public record CaseAnalysisResponse(
             public Builder cesuCategorieEmploye(String v) { this.cesuCategorieEmploye = v; return this; }
             // SF-218-15 — statut journaliste professionnel (FRANCE uniquement).
             public Builder journalisteStatutDetail(JournalisteStatutDetail v) { this.journalisteStatutDetail = v; return this; }
+            // SF-218-17 — intermittent du spectacle / ouverture droits ARE (FRANCE uniquement).
+            public Builder intermittentSpectacleDetail(IntermittentSpectacleDetail v) { this.intermittentSpectacleDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2102,7 +2138,9 @@ public record CaseAnalysisResponse(
                         particulierEmployeurDetecte,
                         cesuCategorieEmploye,
                         // SF-218-15 — statut journaliste professionnel (FR)
-                        journalisteStatutDetail);
+                        journalisteStatutDetail,
+                        // SF-218-17 — intermittent du spectacle / ARE (FR)
+                        intermittentSpectacleDetail);
             }
         }
     }
@@ -5587,6 +5625,11 @@ public record CaseAnalysisResponse(
                     .journalisteStatutDetail(new TravailExtractedData.JournalisteStatutDetail(
                             booleanOrFalse(node, "statut_journaliste_detecte"),
                             booleanOrFalse(node, "journaliste_carte_presse")))
+                    // SF-218-17 : flag pivot CONTEXTUAL + champ — déclenche F-DT-106 intermittent du spectacle / ARE (FR).
+                    .intermittentSpectacleDetail(new TravailExtractedData.IntermittentSpectacleDetail(
+                            booleanOrFalse(node, "statut_intermittent_detecte"),
+                            whitelistedOrNull(stringOrNull(node, "intermittent_annexe"),
+                                    "ANNEXE_8_TECHNICIENS", "ANNEXE_10_ARTISTES")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
