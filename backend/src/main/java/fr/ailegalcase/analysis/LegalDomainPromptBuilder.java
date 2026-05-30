@@ -1089,6 +1089,19 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-07 : 22e part du prompt TRAVAIL — flag pivot
+     * `saisie_remuneration_detectee` et champ `nombre_personnes_a_charge` pour
+     * pré-fill de l'outil F-DT-89 (saisie sur rémunération / quotité saisissable,
+     * FRANCE UNIQUEMENT — R. 3252-2 ; R. 3252-3 ; L. 3252-3 Code travail).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART22 = """
+              SF-218-07 — Flag `saisie_remuneration_detectee` et champ `nombre_personnes_a_charge` (FRANCE UNIQUEMENT).
+              "saisie_remuneration_detectee" : booléen — true uniquement si les pièces évoquent une procédure de SAISIE SUR RÉMUNÉRATION (saisie des sommes dues à titre de salaire) : mention « saisie sur salaire », « saisie des rémunérations », « quotité saisissable », « part saisissable du salaire », « titre exécutoire » accompagnant un recouvrement sur salaire, « commissaire de justice » mandaté pour saisir une rémunération, « acte de saisie des rémunérations », « cession de rémunération ». NE PAS confondre avec l'exécution générale du jugement (execution_jugement_cph_envisagee) ni avec la saisie-attribution bancaire. False par défaut. Pertinent pour F-DT-89.
+              "nombre_personnes_a_charge" : entier ≥ 0 ou null. Nombre de personnes à charge du salarié saisi (conjoint sans ressources, enfants à charge, ascendants à charge) — chaque personne à charge MAJORE les seuils de tranche du barème de la quotité saisissable (art. R. 3252-3 Code travail), donc réduit la part saisissable. Extractible des pièces déclaratives, avis d'imposition, attestations de charge. null si non documenté.
+              Pour un dossier travail BELGIQUE, laisser `saisie_remuneration_detectee` à false et `nombre_personnes_a_charge` à null (la saisie / cession sur rémunération belge relève d'un régime distinct — Code judiciaire belge, art. 1409 et s., hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1115,7 +1128,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART18)
                     .concat(TRAVAIL_INSTRUCTION_PART19)
                     .concat(TRAVAIL_INSTRUCTION_PART20)
-                    .concat(TRAVAIL_INSTRUCTION_PART21);
+                    .concat(TRAVAIL_INSTRUCTION_PART21)
+                    .concat(TRAVAIL_INSTRUCTION_PART22);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
