@@ -650,7 +650,17 @@ public record CaseAnalysisResponse(
             // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
             // true uniquement si les pièces évoquent un jugement prud'homal rendu + une
             // intention d'interjeter appel. FR-only, default false. Régime BE distinct.
-            boolean appelCphEnvisage) {
+            boolean appelCphEnvisage,
+            // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de
+            // clientèle (FR). true uniquement si les pièces révèlent un statut de VRP
+            // statutaire (mentions « VRP », « voyageur représentant placier »,
+            // « représentant de commerce », « indemnité de clientèle », « carte de
+            // représentant », commissions). FR-only, default false. Régime BE distinct.
+            boolean vrpStatutDetecte,
+            // SF-218-11 : moyenne annuelle des commissions du VRP des 3 dernières
+            // années (assiette de l'indemnité de clientèle, art. L. 7313-13 CT).
+            // Pré-fill de F-DT-104. null si non documentée. FR-only.
+            java.math.BigDecimal vrpCommissionsAnnuelles) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1196,7 +1206,10 @@ public record CaseAnalysisResponse(
                     .conciliationCphDetail(conciliationCphDetail)
                     // SF-218-01 — appel CPH cour d'appel (FR)
                     .dateNotificationJugement(dateNotificationJugement)
-                    .appelCphEnvisage(appelCphEnvisage);
+                    .appelCphEnvisage(appelCphEnvisage)
+                    // SF-218-11 — VRP indemnité de clientèle (FR)
+                    .vrpStatutDetecte(vrpStatutDetecte)
+                    .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles);
         }
 
         public static final class Builder {
@@ -1478,6 +1491,9 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FR)
             private String dateNotificationJugement;
             private boolean appelCphEnvisage;
+            // SF-218-11 — VRP indemnité de clientèle (FR)
+            private boolean vrpStatutDetecte;
+            private java.math.BigDecimal vrpCommissionsAnnuelles;
 
             private Builder() {}
 
@@ -1758,6 +1774,9 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FRANCE uniquement).
             public Builder dateNotificationJugement(String v) { this.dateNotificationJugement = v; return this; }
             public Builder appelCphEnvisage(boolean v) { this.appelCphEnvisage = v; return this; }
+            // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement).
+            public Builder vrpStatutDetecte(boolean v) { this.vrpStatutDetecte = v; return this; }
+            public Builder vrpCommissionsAnnuelles(java.math.BigDecimal v) { this.vrpCommissionsAnnuelles = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1931,7 +1950,10 @@ public record CaseAnalysisResponse(
                         conciliationCphEnvisagee,
                         conciliationCphDetail,
                         dateNotificationJugement,
-                        appelCphEnvisage);
+                        appelCphEnvisage,
+                        // SF-218-11 — VRP indemnité de clientèle (FR)
+                        vrpStatutDetecte,
+                        vrpCommissionsAnnuelles);
             }
         }
     }
@@ -5392,6 +5414,9 @@ public record CaseAnalysisResponse(
                     // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
                     .appelCphEnvisage(booleanOrFalse(node, "appel_cph_envisage"))
                     .dateNotificationJugement(isoDateOrNull(node, "date_notification_jugement"))
+                    // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle (FR).
+                    .vrpStatutDetecte(booleanOrFalse(node, "vrp_statut_detecte"))
+                    .vrpCommissionsAnnuelles(bigDecimalOrNull(node, "vrp_commissions_annuelles"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

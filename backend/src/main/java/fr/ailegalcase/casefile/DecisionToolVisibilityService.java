@@ -255,6 +255,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "conciliation_cph_envisagee");
         // SF-218-01 : nouveau flag F-205 — déclenche F-DT-86 appel CPH cour d'appel.
         addBooleanFlagIfTrue(detected, travailNode, "appel_cph_envisage");
+        // SF-218-11 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle.
+        addBooleanFlagIfTrue(detected, travailNode, "vrp_statut_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");
