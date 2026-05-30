@@ -1138,6 +1138,14 @@ export interface TravailExtractedData {
   rpeGrossesseDeclareePostRupture?: boolean | null;
   /** Date ISO YYYY-MM-DD de notification de la grossesse à l'employeur (L.1225-5). */
   rpeDateNotificationGrossesse?: string | null;
+  // SF-218-01 : 2 champs IA pour pré-fill F-DT-86 appel CPH cour d'appel
+  // (Travail FR uniquement, nullables). Le délai d'appel d'un mois (art. 538 CPC ;
+  // R. 1461-1 CPC) court à compter de la notification du jugement CPH. Régime BE
+  // distinct — ces champs restent null pour un dossier travail belge.
+  /** SF-218-01 : date ISO YYYY-MM-DD de notification du jugement CPH (point de départ du délai d'appel). */
+  dateNotificationJugement?: string | null;
+  /** SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR). True si jugement prud'homal + intention d'appel. */
+  appelCphEnvisage?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

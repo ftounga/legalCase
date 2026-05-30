@@ -1,0 +1,242 @@
+<section class="acph-section">
+  <header class="acph-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="acph-body">
+    <mat-icon class="acph-icon">gavel</mat-icon>
+    <span class="acph-title">APPEL CPH COUR D'APPEL (FR)</span>
+    @if (result()) {
+      <span class="acph-chip"
+            [class.acph-chip--success]="result()!.verdict === 'DELAI_OUVERT'"
+            [class.acph-chip--warning]="result()!.verdict === 'DELAI_URGENT'"
+            [class.acph-chip--danger]="result()!.verdict === 'DELAI_EXPIRE'"
+            [class.acph-chip--neutral]="result()!.verdict === 'VOIE_FERMEE'"
+            data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="acph-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="acph-body" class="acph-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="acph-banner acph-banner--info" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="acph-banner-content">
+            <div class="acph-banner-title">Appel CPH cour d'appel — procédure française uniquement</div>
+            <div class="acph-banner-sub">
+              L'appel d'un jugement du Conseil de prud'hommes devant la chambre
+              sociale de la Cour d'appel (art. 538 CPC ; R. 1461-1 CPC) relève de
+              la procédure civile française et n'a pas d'équivalent direct en
+              droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="acph-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="acph-form" (ngSubmit)="analyze()">
+              <div class="acph-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification du jugement CPH</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateNotificationJugement()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationJugement" />
+                  <mat-hint>Point de départ du délai d'appel d'un mois (art. 538 CPC)</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="acph-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Partie appelante</mat-label>
+                  <mat-select [ngModel]="partieAppelante()"
+                              (ngModelChange)="onPartieAppelanteChange($event)"
+                              name="partieAppelante">
+                    <mat-option value="SALARIE">Salarié</mat-option>
+                    <mat-option value="EMPLOYEUR">Employeur</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="acph-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Mode de notification</mat-label>
+                  <mat-select [ngModel]="modeNotification()"
+                              (ngModelChange)="onModeNotificationChange($event)"
+                              name="modeNotification">
+                    <mat-option value="SIGNIFICATION">Signification (commissaire de justice)</mat-option>
+                    <mat-option value="LRAR">Notification LRAR (greffe)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="acph-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Représentation constituée</mat-label>
+                  <mat-select [ngModel]="representationConstituee()"
+                              (ngModelChange)="onRepresentationChange($event)"
+                              name="representationConstituee">
+                    <mat-option value="AVOCAT">Avocat</mat-option>
+                    <mat-option value="DEFENSEUR_SYNDICAL">Défenseur syndical</mat-option>
+                    <mat-option value="AUCUNE">Aucune représentation constituée</mat-option>
+                  </mat-select>
+                  <mat-hint>La représentation est obligatoire en appel (R. 1461-2 CPC)</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="acph-field-wrap acph-checkbox-wrap">
+                <mat-checkbox [ngModel]="jugementEnDernierRessort()"
+                              (ngModelChange)="onDernierRessortChange($event)"
+                              name="jugementEnDernierRessort">
+                  Jugement rendu en dernier ressort (taux de compétence atteint, R. 1462-1 CPC)
+                </mat-checkbox>
+              </div>
+
+              <div class="acph-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai d'appel</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="acph-result">
+              <div [class]="bannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdict) }}</mat-icon>
+                <div class="acph-banner-content">
+                  <div class="acph-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  @if (showJoursRestants(result()!.verdict)) {
+                    <div class="acph-jours-restants">
+                      <span class="acph-jours-big"
+                            [class.acph-jours-big--danger]="result()!.joursRestants < 0"
+                            data-testid="jours-restants">
+                        {{ result()!.joursRestants }}
+                      </span>
+                      <span class="acph-jours-label">jour(s) restant(s)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="acph-breakdown">
+                <li>
+                  <span class="acph-bd-label">Date de notification du jugement</span>
+                  <span class="acph-bd-value">{{ result()!.dateNotificationJugement }}</span>
+                </li>
+                @if (showJoursRestants(result()!.verdict)) {
+                  <li>
+                    <span class="acph-bd-label">Date limite pour interjeter appel</span>
+                    <span class="acph-bd-value acph-bd-value--echeance"
+                          [class.acph-bd-value--echeance-urgent]="result()!.verdict === 'DELAI_URGENT'"
+                          data-testid="date-limite-appel">
+                      {{ result()!.dateLimiteAppel }}
+                    </span>
+                  </li>
+                }
+                <li>
+                  <span class="acph-bd-label">Partie appelante</span>
+                  <span class="acph-bd-value">{{ partieAppelanteLabel(result()!.partieAppelante) }}</span>
+                </li>
+                <li>
+                  <span class="acph-bd-label">Mode de notification</span>
+                  <span class="acph-bd-value">{{ modeNotificationLabel(result()!.modeNotification) }}</span>
+                </li>
+                <li>
+                  <span class="acph-bd-label">Représentation constituée</span>
+                  <span class="acph-bd-value">{{ representationLabel(result()!.representationConstituee) }}</span>
+                </li>
+              </ul>
+
+              @if (result()!.checklist && result()!.checklist.length > 0) {
+                <div class="acph-checklist-block" role="note" data-testid="checklist-block">
+                  <div class="acph-checklist-title">Formalités de l'appel social</div>
+                  <ul class="acph-checklist-list">
+                    @for (item of result()!.checklist; track item.libelle) {
+                      <li class="acph-checklist-item"
+                          [class.acph-checklist-item--bloquant]="item.bloquant">
+                        <mat-icon class="acph-checklist-icon">
+                          {{ item.bloquant ? 'error' : (item.obligatoire ? 'check_circle' : 'radio_button_unchecked') }}
+                        </mat-icon>
+                        <div class="acph-checklist-content">
+                          <span class="acph-checklist-libelle">{{ item.libelle }}</span>
+                          @if (item.baseJuridique) {
+                            <span class="acph-checklist-base">{{ item.baseJuridique }}</span>
+                          }
+                        </div>
+                        @if (item.obligatoire) {
+                          <span class="acph-checklist-tag">obligatoire</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (showPourvoiLink(result())) {
+                <div class="acph-banner acph-banner--info" role="note" data-testid="pourvoi-link-banner">
+                  <mat-icon>info_outline</mat-icon>
+                  <div class="acph-banner-content">
+                    <div class="acph-banner-title">Voie ouverte : pourvoi en cassation</div>
+                    <div class="acph-banner-sub">
+                      @if (result()!.renvoiPourvoiCassation) {
+                        {{ result()!.renvoiPourvoiCassation }}
+                      } @else {
+                        Le jugement étant rendu en dernier ressort, la voie d'appel
+                        est fermée : seul un pourvoi en cassation devant la chambre
+                        sociale de la Cour de cassation est ouvert.
+                      }
+                      <span class="acph-pourvoi-tool">Voir l'outil « Pourvoi en cassation sociale » (F-DT-87).</span>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (deadlineCreated()) {
+                <div class="acph-deadline-note" role="note">
+                  <mat-icon>event</mat-icon>
+                  <span>Échéance « Appel CPH cour d'appel » ajoutée aux échéances du dossier.</span>
+                </div>
+              }
+
+              <div class="acph-meta">
+                <div class="acph-bases">
+                  <span class="acph-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

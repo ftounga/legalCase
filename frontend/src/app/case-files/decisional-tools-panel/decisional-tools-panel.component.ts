@@ -71,6 +71,8 @@ import { NaturalisationRecoursTjSectionComponent } from '../naturalisation-recou
 import { NaturalisationRecoursTaSectionComponent } from '../naturalisation-recours-ta-section/naturalisation-recours-ta-section.component';
 // SF-214-34 : composant complet F-IM-41-appel-caa-cassation-ce-fr — appel CAA / cassation CE (FR, calculateur délai 1 mois / 15 j OQTF + filtre pourvoi CE).
 import { AppelCaaCassationSectionComponent } from '../appel-caa-cassation-section/appel-caa-cassation-section.component';
+// SF-218-02 : composant complet F-DT-86-appel-cph-cour-appel — appel CPH cour d'appel (Travail FR, calculateur délai d'appel 1 mois + checklist formalités + renvoi pourvoi F-DT-87).
+import { AppelCphSectionComponent } from '../appel-cph-section/appel-cph-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
 import { AssignationResidenceSectionComponent } from '../assignation-residence-section/assignation-residence-section.component';
 // SF-214-38 : composant complet F-IM-43-itf-judiciaire-fr — ITF judiciaire (FR, analyseur validité/délais + encadré ITF vs IRTF + bridge échéance F-69).
@@ -1653,6 +1655,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-02 : composant complet F-DT-86-appel-cph-cour-appel — appel CPH
+      // cour d'appel (Travail FR). FR uniquement, ALWAYS_ON. Calculateur du délai
+      // d'appel d'un mois (art. 538 CPC ; R. 1461-1 CPC) contre un jugement du
+      // Conseil de prud'hommes devant la chambre sociale de la Cour d'appel :
+      // verdict DELAI_OUVERT/DELAI_URGENT/DELAI_EXPIRE/VOIE_FERMEE + date limite
+      // d'appel + jours restants + checklist des formalités de l'appel social
+      // (déclaration RPVA, chefs critiqués art. 901 CPC, représentation
+      // obligatoire R. 1461-2 CPC) + renvoi vers le pourvoi en cassation (F-DT-87)
+      // lorsque la voie d'appel est fermée (jugement en dernier ressort,
+      // R. 1462-1 CPC). Pré-fill IA 1 champ (dateNotificationJugement depuis
+      // TravailExtractedData) via static getPrefillCount + AppelCphPrefillRules.
+      // Bridge échéance F-69 (label « Appel CPH cour d'appel »). Cette entrée
+      // répare DecisionToolVisibilityIntegrityIT (seed SF-218-01 sans pendant FE).
+      ['F-DT-86-appel-cph-cour-appel', {
+        displayLabel: "Appel CPH cour d'appel (FR)",
+        component: AppelCphSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
@@ -5011,6 +5036,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // date du jugement TA → échéance appel CAA + jours restants + CAA compétente
     // + filtre pourvoi CE. Bridge échéance F-69. Cohérent avec F-IM-40 (DELAIS).
     ['F-IM-41-appel-caa-cassation-ce-fr', 'DELAIS'],
+    // SF-218-02 : F-DT-86-appel-cph-cour-appel appel CPH cour d'appel (Travail
+    // FR). Thème DELAIS — calculateur du délai d'appel d'un mois (art. 538 CPC ;
+    // R. 1461-1 CPC) : notification du jugement CPH → date limite d'appel + jours
+    // restants + verdict (4 états) + checklist formalités + renvoi pourvoi F-DT-87
+    // si voie fermée. Bridge échéance F-69. Cohérent avec les autres calculateurs
+    // de délais de recours (F-IM-41).
+    ['F-DT-86-appel-cph-cour-appel', 'DELAIS'],
     // SF-214-36 : F-IM-42-assignation-residence-fr assignation à résidence (FR).
     // Thème VALIDITE — analyseur de validité de la mesure (statut de validité de
     // l'assignation : en cours / expiration proche / expirée) + motifs de
