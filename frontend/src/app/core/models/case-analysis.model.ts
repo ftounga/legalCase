@@ -269,6 +269,19 @@ export interface TravailExtractedData {
   poste?: string | null;
   motifLicenciement?: string | null;
   dateLicenciement?: string | null;
+  /**
+   * SF-218-14 : catégorie d'employé du particulier employeur (CESU) détectée
+   * par l'IA, pour pré-fill F-DT-108 (FR uniquement). Aligné sur l'enum backend
+   * `CategorieEmploye`.
+   */
+  cesuCategorieEmploye?: 'SALARIE_PARTICULIER_EMPLOYEUR' | 'ASSISTANT_MATERNEL' | null;
+  /**
+   * SF-218-14 : flag de visibilité CONTEXTUAL — true si l'IA détecte un
+   * employeur particulier (mentions « CESU », « garde d'enfants », « assistant
+   * maternel », « employé de maison », « PAJEMPLOI », « particulier employeur »).
+   * FR-only. Déclenche l'apparition de F-DT-108 (n'est PAS un champ de formulaire).
+   */
+  particulierEmployeurDetecte?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */

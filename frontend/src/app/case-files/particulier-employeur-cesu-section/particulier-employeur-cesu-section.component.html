@@ -1,0 +1,207 @@
+<section class="pec-section">
+  <header class="pec-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pec-body">
+    <mat-icon class="pec-icon">home</mat-icon>
+    <span class="pec-title">PARTICULIER EMPLOYEUR / CESU (FR)</span>
+    @if (result()) {
+      <span [class]="chipClass(result()!.verdictGlobal)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdictGlobal) }}
+      </span>
+    }
+    <mat-icon class="pec-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pec-body" class="pec-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="pec-banner pec-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pec-banner-content">
+            <div class="pec-banner-title">Particulier employeur / CESU — régime français uniquement</div>
+            <div class="pec-banner-sub">
+              La CCN des salariés du particulier employeur (IDCC 3239, 2021), la
+              CCN des assistants maternels (indemnité de rupture 1/80) et le
+              statut des employés de maison (art. L. 7221-1 et s. CT) /
+              assistants maternels (art. L. 423-1 et s. CASF) relèvent du droit
+              français et n'ont pas d'équivalent direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pec-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="pec-form" (ngSubmit)="analyze()">
+              <div class="pec-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée (début du contrat)</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateEntree()"
+                         (ngModelChange)="onDateEntreeChange($event)"
+                         name="dateEntree" />
+                </mat-form-field>
+                @if (provenanceDateEntree() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-entree"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pec-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de rupture (notification)</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateRupture()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateRupture" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-rupture"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pec-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Catégorie d'employé</mat-label>
+                  <mat-select [ngModel]="categorieEmploye()"
+                              (ngModelChange)="onCategorieChange($event)"
+                              name="categorieEmploye"
+                              data-testid="categorie-select">
+                    <mat-option value="SALARIE_PARTICULIER_EMPLOYEUR">Salarié du particulier employeur</mat-option>
+                    <mat-option value="ASSISTANT_MATERNEL">Assistant maternel</mat-option>
+                  </mat-select>
+                  <mat-hint>Pilote la CCN applicable</mat-hint>
+                </mat-form-field>
+                @if (provenanceCategorie() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-categorie"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pec-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Cause de la rupture</mat-label>
+                  <mat-select [ngModel]="causeRupture()"
+                              (ngModelChange)="onCauseChange($event)"
+                              name="causeRupture"
+                              data-testid="cause-select">
+                    <mat-option value="LICENCIEMENT_MOTIF_PERSONNEL">Licenciement (motif personnel)</mat-option>
+                    <mat-option value="RETRAIT_ENFANT" [disabled]="retraitEnfantDisabled()" data-testid="option-retrait-enfant">
+                      Retrait de l'enfant (assistant maternel)
+                    </mat-option>
+                    <mat-option value="FAUTE_GRAVE">Faute grave</mat-option>
+                    <mat-option value="FORCE_MAJEURE">Force majeure</mat-option>
+                    <mat-option value="DEPART_RETRAITE">Départ à la retraite</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="pec-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Salaire mensuel moyen (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01" required
+                         [ngModel]="salaireMensuelMoyen()"
+                         (ngModelChange)="onSalaireChange($event)"
+                         name="salaireMensuelMoyen" />
+                  <mat-hint>Moyenne des 12 (ou 3) derniers mois — base de l'indemnité</mat-hint>
+                </mat-form-field>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="pec-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="pec-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="pec-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer préavis et indemnité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pec-result">
+              <div [class]="bannerClass(result()!.verdictGlobal)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictGlobal) }}</mat-icon>
+                <div class="pec-banner-content">
+                  <div class="pec-banner-title">{{ verdictLabel(result()!.verdictGlobal) }}</div>
+                  <div class="pec-banner-sub">
+                    {{ categorieLabel(result()!.categorieEmploye) }}
+                    · {{ causeLabel(result()!.causeRupture) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chiffres clés — proéminents, JetBrains Mono -->
+              <div class="pec-figures">
+                <div class="pec-figure">
+                  <span class="pec-figure-label">Préavis conventionnel</span>
+                  <span class="pec-figure-value" data-testid="preavis-libelle">{{ result()!.dureePreavisLibelle }}</span>
+                </div>
+                <div class="pec-figure pec-figure--primary">
+                  <span class="pec-figure-label">Indemnité de licenciement / rupture</span>
+                  <span class="pec-figure-value pec-figure-value--strong" data-testid="indemnite-licenciement">{{ result()!.indemniteLicenciement }} €</span>
+                </div>
+              </div>
+
+              <!-- Éligibilité + méthode -->
+              <div class="pec-eligibilite">
+                <span [class]="eligibiliteChipClass(result()!.eligibiliteIndemnite)" data-testid="eligibilite-chip">
+                  {{ eligibiliteLabel(result()!.eligibiliteIndemnite) }}
+                </span>
+                @if (result()!.eligibiliteIndemnite === 'NON_DUE' && result()!.motifNonDue) {
+                  <span class="pec-motif" data-testid="motif-non-due">{{ result()!.motifNonDue }}</span>
+                }
+              </div>
+
+              <div class="pec-methode" data-testid="methode-calcul">
+                <mat-icon>calculate</mat-icon>
+                <span>{{ methodeLabel(result()!.methodeCalcul) }}</span>
+              </div>
+
+              <div class="pec-bareme-note" data-testid="bareme-note">
+                <mat-icon>schedule</mat-icon>
+                <span>Barème CCN à actualiser annuellement (avenant salaires).</span>
+              </div>
+
+              <div class="pec-meta">
+                <div class="pec-bases">
+                  <span class="pec-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

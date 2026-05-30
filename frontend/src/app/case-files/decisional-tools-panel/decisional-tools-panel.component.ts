@@ -79,6 +79,8 @@ import { PourvoiCassationSocSectionComponent } from '../pourvoi-cassation-soc-se
 import { ExecutionJugementCphSectionComponent } from '../execution-jugement-cph-section/execution-jugement-cph-section.component';
 // SF-218-08 : composant complet F-DT-89-saisie-arret-remuneration — saisie sur rémunération (quotité saisissable, Travail FR, barème par tranches R. 3252-2 + personnes à charge + fraction insaisissable RSA).
 import { SaisieRemunerationSectionComponent } from '../saisie-remuneration-section/saisie-remuneration-section.component';
+// SF-218-14 : composant complet F-DT-108-particulier-employeur-cesu — particulier employeur (CESU) préavis + indemnité de licenciement / rupture (Travail FR, CCN salariés du particulier employeur IDCC 3239 + CCN assistants maternels indemnité de rupture 1/80).
+import { ParticulierEmployeurCesuSectionComponent } from '../particulier-employeur-cesu-section/particulier-employeur-cesu-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1765,6 +1767,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-89-saisie-arret-remuneration', {
         displayLabel: 'Saisie sur rémunération (FR)',
         component: SaisieRemunerationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-14 : composant complet F-DT-108-particulier-employeur-cesu — particulier
+      // employeur (CESU) : préavis et indemnité de licenciement / rupture (Travail FR).
+      // FR uniquement, CONTEXTUAL (flag particulierEmployeurDetecte). Applique le régime
+      // conventionnel propre du salarié du particulier employeur (CESU : garde d'enfants,
+      // employé de maison, assistant maternel), distinct du droit commun : préavis
+      // conventionnel selon l'ancienneté + indemnité de licenciement selon la CCN des
+      // salariés du particulier employeur (IDCC 3239, 2021) ou indemnité de rupture
+      // assistant maternel (1/80 des salaires nets) → verdict RUPTURE_REGULIERE /
+      // RUPTURE_A_SECURISER / INDEMNITE_NON_DUE + préavis, éligibilité DUE/NON_DUE,
+      // montant indemnité, méthode de calcul et mention « barème CCN à actualiser
+      // annuellement ». Pré-fill IA 3 champs (dateEntree, dateRupture, categorieEmploye)
+      // via static getPrefillCount + ParticulierEmployeurCesuPrefillRules.
+      ['F-DT-108-particulier-employeur-cesu', {
+        displayLabel: 'Particulier employeur / CESU (FR)',
+        component: ParticulierEmployeurCesuSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5178,6 +5202,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // insaisissable RSA, nombre de mois de recouvrement). Cohérent avec les autres
     // calculateurs de montants (F-DT-07, F-DT-09, F-DT-12…).
     ['F-DT-89-saisie-arret-remuneration', 'INDEMNITES'],
+    // SF-218-14 : F-DT-108-particulier-employeur-cesu particulier employeur (CESU)
+    // (Travail FR). Thème INDEMNITES — calculateur de montant (indemnité de
+    // licenciement / rupture + préavis conventionnel), cohérent avec les autres
+    // outils d'indemnités du domaine Travail.
+    ['F-DT-108-particulier-employeur-cesu', 'INDEMNITES'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
