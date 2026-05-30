@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2514483c-1c02-4fd4-8934-3d3b49a00c40" author="legalcase">
+        <comment>
+            SF-218-11 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "VRP — indemnite de clientele"
+            (F-DT-104-vrp-indemnite-clientele, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 3), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte un
+            statut VRP dans le dossier (flag pivot `vrp_statut_detecte` = true).
+            trigger_field = 'vrp_statut_detecte', trigger_value = 'true'.
+
+            priority 113 — prochaine valeur libre au-dessus du max global actuel
+            des seeds decision_tool_visibility_rules (112). NB : la consigne brief
+            "reprendre la valeur libre apres appel CPH (74)" pointait sur 75, mais
+            75 est deja occupee (228-seed-f211-famille-be) et le max global a
+            depuis ete porte a 112 par les seeds BE F-219 ; 113 est la premiere
+            valeur reellement libre. La priority n'est qu'un tie-breaker d'ordre
+            d'affichage du panneau, sans contrainte d'unicite SQL.
+
+            Source juridique : L. 7311-1 et s. CT (statut VRP) ; L. 7313-13 CT
+            (indemnite de clientele) ; L. 7313-9 CT (preavis VRP) ; R. 1234-2 CT
+            (indemnite legale comparee).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-104-vrp-indemnite-clientele
+            est livree dans la PR frontend SF-218-12 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('2514483c-1c02-4fd4-8934-3d3b49a00c40', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-104-vrp-indemnite-clientele', 'CONTEXTUAL', 'vrp_statut_detecte', 'true', 113);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '2514483c-1c02-4fd4-8934-3d3b49a00c40';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

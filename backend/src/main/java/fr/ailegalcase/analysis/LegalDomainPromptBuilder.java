@@ -1048,6 +1048,19 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-11 : 19e part du prompt TRAVAIL — flag pivot `vrp_statut_detecte`
+     * et champ `vrp_commissions_annuelles` pour pré-fill de l'outil F-DT-104
+     * (VRP — statut, préavis et indemnité de clientèle, FRANCE UNIQUEMENT —
+     * art. L.7311-1 et s. CT ; L.7313-13 CT).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART19 = """
+              SF-218-11 — Flag `vrp_statut_detecte` et champ `vrp_commissions_annuelles` (FRANCE UNIQUEMENT).
+              "vrp_statut_detecte" : booléen — true uniquement si les pièces révèlent un statut de VRP STATUTAIRE (voyageur représentant placier, art. L. 7311-1 et s. CT) : mention « VRP », « voyageur représentant placier », « voyageur de commerce », « représentant de commerce », « représentant statutaire », « carte de représentant », « indemnité de clientèle », « commissions sur ventes / sur le chiffre d'affaires », contrat de représentation exclusive ou multicartes, rémunération principalement ou exclusivement à la commission. NE PAS confondre avec un simple commercial salarié de droit commun (sans statut VRP) ni avec un agent commercial indépendant (mandataire — Code de commerce, hors périmètre). False par défaut. Pertinent pour F-DT-104.
+              "vrp_commissions_annuelles" : nombre décimal (montant en euros) ou null. Moyenne annuelle des commissions perçues par le VRP au cours des 3 dernières années — assiette de l'indemnité de clientèle (art. L. 7313-13 CT). Extractible des bulletins de paie, des relevés de commissions ou du contrat. À défaut de moyenne sur 3 ans, retenir la meilleure estimation annuelle documentée. null si non documentée dans les pièces.
+              Pour un dossier travail BELGIQUE, laisser `vrp_statut_detecte` à false et `vrp_commissions_annuelles` à null (le régime du représentant de commerce belge — Loi du 03/07/1978, titre IV — relève d'un régime distinct, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1071,7 +1084,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART15)
                     .concat(TRAVAIL_INSTRUCTION_PART16)
                     .concat(TRAVAIL_INSTRUCTION_PART17)
-                    .concat(TRAVAIL_INSTRUCTION_PART18);
+                    .concat(TRAVAIL_INSTRUCTION_PART18)
+                    .concat(TRAVAIL_INSTRUCTION_PART19);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
