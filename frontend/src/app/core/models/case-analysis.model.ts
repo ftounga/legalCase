@@ -1167,6 +1167,15 @@ export interface TravailExtractedData {
   situationEmployeurDetectee?: 'IN_BONIS' | 'REDRESSEMENT' | 'LIQUIDATION' | null;
   /** SF-218-04 : flag F-205 — déclenche F-DT-88 exécution jugement CPH / AGS (FR). True si jugement CPH favorable + difficulté d'exécution / procédure collective. */
   executionJugementCphEnvisagee?: boolean | null;
+  // SF-218-06 : 2 champs IA pour l'outil F-DT-87 pourvoi en cassation chambre
+  // sociale (Travail FR uniquement, nullables). Le délai de pourvoi de 2 mois
+  // (art. 612 CPC) court à compter de la notification de l'arrêt de la Cour
+  // d'appel. Régime BE distinct — ces champs restent null pour un dossier
+  // travail belge.
+  /** SF-218-06 : date ISO YYYY-MM-DD de notification de l'arrêt de la Cour d'appel (point de départ du délai de pourvoi de 2 mois, art. 612 CPC — pré-fill dateNotificationArret F-DT-87). */
+  dateNotificationArretAppel?: string | null;
+  /** SF-218-06 : flag F-205 — déclenche F-DT-87 pourvoi cassation soc (FR). True si arrêt de Cour d'appel défavorable + intention de pourvoi. FLAG de visibilité (pas un champ du formulaire). */
+  pourvoiCassationSocEnvisage?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

@@ -1,0 +1,125 @@
+/* SF-218-06 — bannière standalone partagée */
+@import '../../simulators/standalone-banner';
+
+.pcs-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.pcs-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.pcs-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.pcs-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.pcs-chip {
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  /* POURVOI_RECOMMANDE = vert, POURVOI_RISQUE = orange, POURVOI_DECONSEILLE = navy plein, DELAI_EXPIRE = rouge plein */
+  &--success { background: rgba(32, 128, 64, 0.14); color: #156135; }
+  &--warning { background: rgba(214, 122, 16, 0.16); color: #8a5410; }
+  &--navy { background: var(--ds-navy, #1a375f); color: #ffffff; }
+  &--danger { background: #c02424; color: #ffffff; }
+}
+
+.pcs-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.pcs-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.pcs-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.pcs-form {
+  display: flex; flex-direction: column; gap: 4px;
+  mat-form-field { width: 100%; }
+}
+.pcs-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+.pcs-result { display: flex; flex-direction: column; gap: 12px; }
+
+.pcs-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--warning { border-left-color: #d67a10; background: rgba(214, 122, 16, 0.12); mat-icon { color: #8a5410; } .pcs-banner-title { color: #8a5410; } }
+  &--danger { border-left-color: #c02424; background: rgba(192, 36, 36, 0.16); mat-icon { color: #9a1c1c; } .pcs-banner-title { color: #9a1c1c; } }
+  &--success { border-left-color: #208040; background: rgba(32, 128, 64, 0.10); mat-icon { color: #156135; } }
+  &--navy { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.10); mat-icon { color: var(--ds-navy, #1a375f); } .pcs-banner-title { color: var(--ds-navy, #1a375f); } }
+}
+
+.pcs-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.pcs-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.pcs-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+
+/* Badge risque de non-admission (filtre NPC, art. 1014 CPC). */
+.pcs-risque {
+  align-self: flex-start; padding: 2px 8px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  &--danger { background: #c02424; color: #ffffff; }
+  &--warning { background: rgba(214, 122, 16, 0.18); color: #8a5410; }
+  &--success { background: rgba(32, 128, 64, 0.14); color: #156135; }
+}
+
+.pcs-jours-restants { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+.pcs-jours-big {
+  font-size: 32px; font-weight: 700; color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  &--danger { color: #c02424; }
+}
+.pcs-jours-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+
+.pcs-breakdown {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  li { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 4px; background: rgba(26, 35, 48, 0.03); }
+}
+.pcs-bd-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.pcs-bd-value { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); font-family: 'JetBrains Mono', 'Menlo', monospace; }
+.pcs-bd-value--echeance { color: var(--ds-text-primary, #1a2330); }
+.pcs-bd-value--echeance-urgent { color: #d67a10; font-weight: 800; }
+
+/* Cas d'ouverture analysés + force probatoire. */
+.pcs-cas-block {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.05);
+}
+.pcs-cas-title { font-weight: 700; font-size: 13px; color: var(--ds-navy, #1a375f); text-transform: uppercase; letter-spacing: 0.05em; }
+.pcs-cas-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.pcs-cas-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.pcs-cas-content { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.pcs-cas-libelle { font-size: 13px; color: var(--ds-text-primary, #1a2330); line-height: 1.4; }
+.pcs-cas-base { font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic; font-family: 'JetBrains Mono', 'Menlo', monospace; }
+
+.pcs-force {
+  font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 8px;
+  align-self: flex-start; white-space: nowrap;
+  background: rgba(26, 55, 95, 0.08); color: var(--ds-text-secondary, #6a7485);
+  &--strong { background: rgba(32, 128, 64, 0.14); color: #156135; }
+  &--medium { background: rgba(214, 122, 16, 0.16); color: #8a5410; }
+  &--weak { background: rgba(192, 36, 36, 0.14); color: #9a1c1c; }
+}
+
+.pcs-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pcs-meta-base { font-size: 13px; color: var(--ds-text-secondary, #6a7485); font-style: italic; font-family: 'JetBrains Mono', 'Menlo', monospace; }
+
+.pcs-field-wrap { display: flex; flex-direction: column; gap: 4px; mat-form-field { width: 100%; } }
+.pcs-checkbox-wrap { padding: 4px 0 8px; }
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485); font-style: italic;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: var(--ds-accent-gold, #c9a54b); }
+}
