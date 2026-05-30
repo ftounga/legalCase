@@ -244,9 +244,9 @@ describe('ParticulierEmployeurCesuSectionComponent', () => {
   // --- result rendering : montants + régime + verdict ---
 
   it('renders préavis, indemnité montant and méthode (CONVENTIONNEL_PE)', () => {
-    component.ngOnInit();
+    component.forceExpanded = true;
+    fixture.detectChanges();
     httpMock.expectOne(BASE_URL).flush(reguliereResponse());
-    component.collapsed.set(false);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="preavis-libelle"]')!.textContent).toContain('2 mois');
@@ -258,9 +258,9 @@ describe('ParticulierEmployeurCesuSectionComponent', () => {
   });
 
   it('renders assmat régime (INDEMNITE_RUPTURE_ASSMAT 1/80)', () => {
-    component.ngOnInit();
+    component.forceExpanded = true;
+    fixture.detectChanges();
     httpMock.expectOne(BASE_URL).flush(assmatResponse());
-    component.collapsed.set(false);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="methode-calcul"]')!.textContent).toContain('1/80');
@@ -268,9 +268,9 @@ describe('ParticulierEmployeurCesuSectionComponent', () => {
   });
 
   it('renders NON_DUE chip (danger) with motif when faute grave', () => {
-    component.ngOnInit();
+    component.forceExpanded = true;
+    fixture.detectChanges();
     httpMock.expectOne(BASE_URL).flush(nonDueResponse());
-    component.collapsed.set(false);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const chip = el.querySelector('[data-testid="eligibilite-chip"]')!;
