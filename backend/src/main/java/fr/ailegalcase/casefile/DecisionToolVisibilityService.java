@@ -273,6 +273,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "statut_intermittent_detecte");
         // SF-218-19 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-107 cadre dirigeant / qualification.
         addBooleanFlagIfTrue(detected, travailNode, "statut_cadre_dirigeant_detecte");
+        // SF-218-21 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-109 stagiaire / gratification / requalification.
+        addBooleanFlagIfTrue(detected, travailNode, "stage_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");

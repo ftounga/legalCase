@@ -721,7 +721,12 @@ public record CaseAnalysisResponse(
             // dirigeant — qualification, FR). Regroupé en un seul composant
             // (@JsonUnwrapped) pour rester sous la limite de paramètres du
             // constructeur canonical du record. Voir CadreDirigeantDetail.
-            @JsonUnwrapped CadreDirigeantDetail cadreDirigeantDetail) {
+            @JsonUnwrapped CadreDirigeantDetail cadreDirigeantDetail,
+            // SF-218-21 : sous-objet pré-fill IA pour l'outil F-DT-109 (stagiaire
+            // — gratification / requalification, FR). Regroupé en un seul
+            // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
+            // du constructeur canonical du record. Voir StagiaireDetail.
+            @JsonUnwrapped StagiaireDetail stagiaireDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1072,6 +1077,32 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-21 : sous-objet pré-fill IA pour l'outil F-DT-109 (stagiaire —
+         * gratification minimale / requalification en CDI, FRANCE UNIQUEMENT —
+         * art. L.124-1 et s. du code de l'éducation). Regroupe le flag pivot
+         * CONTEXTUAL et les deux dates de stage extraites en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code stage_detecte}, {@code date_debut_stage} et
+         * {@code date_fin_stage}) afin de ne pas dépasser la limite de paramètres
+         * du constructeur canonical de {@link TravailExtractedData}.
+         *
+         * @param stageDetecte flag pivot — true si les pièces révèlent un stage
+         *        en milieu professionnel (mentions « convention de stage »,
+         *        « stagiaire », « gratification », « établissement
+         *        d'enseignement », « tuteur de stage », « PFMP », « école »).
+         *        FR-only, default false.
+         * @param dateDebutStage date de début du stage au format ISO (yyyy-MM-dd),
+         *        null si non documentée. FR-only.
+         * @param dateFinStage date de fin du stage au format ISO (yyyy-MM-dd),
+         *        null si non documentée. FR-only.
+         */
+        public record StagiaireDetail(
+                boolean stageDetecte,
+                String dateDebutStage,
+                String dateFinStage
+        ) {}
+
+        /**
          * SF-218-11 (consolidé par SF-218-19) : sous-objet pré-fill IA pour
          * l'outil F-DT-104 (VRP — indemnité de clientèle, FRANCE UNIQUEMENT —
          * art. L. 7311-1 et s. CT). Regroupe le flag pivot CONTEXTUAL et la
@@ -1407,7 +1438,8 @@ public record CaseAnalysisResponse(
                     // SF-218-17 — intermittent du spectacle / ARE (FR)
                     .intermittentSpectacleDetail(intermittentSpectacleDetail)
                     // SF-218-19 — cadre dirigeant / qualification (FR)
-                    .cadreDirigeantDetail(cadreDirigeantDetail);
+                    .cadreDirigeantDetail(cadreDirigeantDetail)
+                    .stagiaireDetail(stagiaireDetail);
         }
 
         public static final class Builder {
@@ -1712,6 +1744,8 @@ public record CaseAnalysisResponse(
             private IntermittentSpectacleDetail intermittentSpectacleDetail;
             // SF-218-19 — cadre dirigeant / qualification (FR)
             private CadreDirigeantDetail cadreDirigeantDetail;
+            // SF-218-21 — stagiaire_detail (FRANCE uniquement) — sous-record IA F-DT-109.
+            private StagiaireDetail stagiaireDetail;
 
             private Builder() {}
 
@@ -2015,6 +2049,8 @@ public record CaseAnalysisResponse(
             public Builder intermittentSpectacleDetail(IntermittentSpectacleDetail v) { this.intermittentSpectacleDetail = v; return this; }
             // SF-218-19 — cadre dirigeant / qualification (FRANCE uniquement).
             public Builder cadreDirigeantDetail(CadreDirigeantDetail v) { this.cadreDirigeantDetail = v; return this; }
+            // SF-218-21 — stagiaire_detail (FRANCE uniquement) — sous-record IA F-DT-109.
+            public Builder stagiaireDetail(StagiaireDetail v) { this.stagiaireDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2211,7 +2247,9 @@ public record CaseAnalysisResponse(
                         // SF-218-17 — intermittent du spectacle / ARE (FR)
                         intermittentSpectacleDetail,
                         // SF-218-19 — cadre dirigeant / qualification (FR)
-                        cadreDirigeantDetail);
+                        cadreDirigeantDetail,
+                        // SF-218-21 — stagiaire / gratification / requalification (FR)
+                        stagiaireDetail);
             }
         }
     }
@@ -5707,6 +5745,11 @@ public record CaseAnalysisResponse(
                     .cadreDirigeantDetail(new TravailExtractedData.CadreDirigeantDetail(
                             booleanOrFalse(node, "statut_cadre_dirigeant_detecte"),
                             booleanOrFalse(node, "cadre_participation_direction")))
+                    // SF-218-21 : flag pivot CONTEXTUAL + champs — déclenche F-DT-109 stagiaire / gratification / requalification (FR).
+                    .stagiaireDetail(new TravailExtractedData.StagiaireDetail(
+                            booleanOrFalse(node, "stage_detecte"),
+                            isoDateOrNull(node, "date_debut_stage"),
+                            isoDateOrNull(node, "date_fin_stage")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
