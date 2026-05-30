@@ -964,6 +964,21 @@ class DashboardTileToolIdIntegrityIT {
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-88-execution-jugement-cph",
+            // SF-218-05 (2026-05-30) : F-DT-87 pourvoi en cassation sociale FR
+            // — backend (présente PR). Pourvoi en cassation devant la chambre
+            // sociale de la Cour de cassation (art. 612 CPC : délai 2 mois ;
+            // art. 604 CPC : cas d'ouverture ; art. 1014 CPC : filtre de
+            // non-admission). Calcule le délai depuis la notification de
+            // l'arrêt, score la force probatoire des cas d'ouverture et évalue
+            // le risque de non-admission (ELEVE / MODERE / FAIBLE). Verdict
+            // POURVOI_RECOMMANDE / POURVOI_RISQUE / POURVOI_DECONSEILLE /
+            // DELAI_EXPIRE. Représentation par avocat aux Conseils obligatoire
+            // (art. 973 CPC). Outil standalone restitué via GET du snapshot,
+            // pas de tuile dashboard. Frontend SF-218-06 à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-87-pourvoi-cassation-soc",
             // SF-218-11 (2026-05-30) : F-DT-104 VRP indemnité de clientèle FR —
             // backend (présente PR). Rupture du contrat d'un VRP statutaire
             // (art. L.7311-1 et s. CT) : préavis VRP (art. L.7313-9 CT : 1/2/3

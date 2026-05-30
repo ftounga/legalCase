@@ -1076,6 +1076,19 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-05 : 21e part du prompt TRAVAIL — flag pivot
+     * `pourvoi_cassation_soc_envisage` et champ `date_notification_arret_appel`
+     * pour pré-fill de l'outil F-DT-87 (pourvoi en cassation devant la chambre
+     * sociale, FRANCE UNIQUEMENT — art. 612 CPC ; art. 604 CPC ; art. 1014 CPC).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART21 = """
+              SF-218-05 — Flag `pourvoi_cassation_soc_envisage` et champ `date_notification_arret_appel` (FRANCE UNIQUEMENT).
+              "pourvoi_cassation_soc_envisage" : booléen — true uniquement si les pièces évoquent un ARRÊT de la Cour d'appel (chambre sociale) DÉJÀ RENDU, DÉFAVORABLE, ET une intention ou une réflexion de POURVOI EN CASSATION : mention « arrêt de la Cour d'appel », « chambre sociale de la Cour d'appel », « pourvoi en cassation », « Cour de cassation », « avocat aux Conseils », « avocat au Conseil d'État et à la Cour de cassation », « moyen de cassation », « mémoire ampliatif », « notification de l'arrêt ». NE PAS confondre avec la voie d'APPEL (appel_cph_envisage, qui attaque le jugement de première instance) ni avec l'exécution (execution_jugement_cph_envisagee). False par défaut. Pertinent pour F-DT-87.
+              "date_notification_arret_appel" : chaîne ISO YYYY-MM-DD ou null. Date à laquelle l'arrêt de la Cour d'appel a été notifié à la partie (signification par commissaire de justice ou notification du greffe) — c'est le POINT DE DÉPART du délai de pourvoi de 2 mois (art. 612 CPC). Extractible de l'acte de signification, de l'accusé de réception ou de la mention de notification sur l'arrêt. NE PAS confondre avec la date de l'arrêt lui-même (date de prononcé) : la notification est postérieure ou concomitante. NE PAS confondre avec `date_notification_jugement` (notification du jugement de première instance, F-DT-86). null si non documentée ou si aucun arrêt d'appel n'est rendu.
+              Pour un dossier travail BELGIQUE, laisser `pourvoi_cassation_soc_envisage` à false et `date_notification_arret_appel` à null (le pourvoi en cassation devant la Cour de cassation belge relève d'un régime distinct — Code judiciaire belge, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1101,7 +1114,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART17)
                     .concat(TRAVAIL_INSTRUCTION_PART18)
                     .concat(TRAVAIL_INSTRUCTION_PART19)
-                    .concat(TRAVAIL_INSTRUCTION_PART20);
+                    .concat(TRAVAIL_INSTRUCTION_PART20)
+                    .concat(TRAVAIL_INSTRUCTION_PART21);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
