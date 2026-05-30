@@ -718,7 +718,12 @@ public record CaseAnalysisResponse(
             // Regroupé en un seul composant (@JsonUnwrapped) pour rester sous la
             // limite de paramètres du constructeur canonical du record. Voir
             // IntermittentSpectacleDetail.
-            @JsonUnwrapped IntermittentSpectacleDetail intermittentSpectacleDetail) {
+            @JsonUnwrapped IntermittentSpectacleDetail intermittentSpectacleDetail,
+            // SF-218-19 : sous-objet pré-fill IA pour l'outil F-DT-107 (cadre
+            // dirigeant — qualification, FR). Regroupé en un seul composant
+            // (@JsonUnwrapped) pour rester sous la limite de paramètres du
+            // constructeur canonical du record. Voir CadreDirigeantDetail.
+            @JsonUnwrapped CadreDirigeantDetail cadreDirigeantDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1042,6 +1047,32 @@ public record CaseAnalysisResponse(
                 String intermittentAnnexe
         ) {}
 
+        /**
+         * SF-218-19 : sous-objet pré-fill IA pour l'outil F-DT-107 (cadre
+         * dirigeant — qualification, FRANCE UNIQUEMENT — art. L.3111-2 CT ;
+         * Cass. soc.). Regroupe le flag pivot CONTEXTUAL et l'indice de
+         * participation effective à la direction de l'entreprise en un seul
+         * composant {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code statut_cadre_dirigeant_detecte} et
+         * {@code cadre_participation_direction}) afin de ne pas dépasser la limite
+         * de paramètres du constructeur canonical de
+         * {@link TravailExtractedData}.
+         *
+         * @param statutCadreDirigeantDetecte flag pivot — true si les pièces
+         *        révèlent des signaux de cadre dirigeant ou un litige sur la
+         *        qualification (mentions « cadre dirigeant », « forfait sans
+         *        référence horaire », « comité de direction », « COMEX »,
+         *        « membre du directoire », « rappel d'heures supplémentaires »
+         *        contre un cadre de haut niveau). FR-only, default false.
+         * @param cadreParticipationDirection true si la participation effective à
+         *        la direction de l'entreprise est établie (élément déterminant de
+         *        la jurisprudence post-2012). FR-only, default false.
+         */
+        public record CadreDirigeantDetail(
+                boolean statutCadreDirigeantDetecte,
+                boolean cadreParticipationDirection
+        ) {}
+
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link TravailExtractedData}.
@@ -1354,7 +1385,9 @@ public record CaseAnalysisResponse(
                     // SF-218-15 — statut journaliste professionnel (FR)
                     .journalisteStatutDetail(journalisteStatutDetail)
                     // SF-218-17 — intermittent du spectacle / ARE (FR)
-                    .intermittentSpectacleDetail(intermittentSpectacleDetail);
+                    .intermittentSpectacleDetail(intermittentSpectacleDetail)
+                    // SF-218-19 — cadre dirigeant / qualification (FR)
+                    .cadreDirigeantDetail(cadreDirigeantDetail);
         }
 
         public static final class Builder {
@@ -1658,6 +1691,8 @@ public record CaseAnalysisResponse(
             private JournalisteStatutDetail journalisteStatutDetail;
             // SF-218-17 — intermittent du spectacle / ARE (FR)
             private IntermittentSpectacleDetail intermittentSpectacleDetail;
+            // SF-218-19 — cadre dirigeant / qualification (FR)
+            private CadreDirigeantDetail cadreDirigeantDetail;
 
             private Builder() {}
 
@@ -1960,6 +1995,8 @@ public record CaseAnalysisResponse(
             public Builder journalisteStatutDetail(JournalisteStatutDetail v) { this.journalisteStatutDetail = v; return this; }
             // SF-218-17 — intermittent du spectacle / ouverture droits ARE (FRANCE uniquement).
             public Builder intermittentSpectacleDetail(IntermittentSpectacleDetail v) { this.intermittentSpectacleDetail = v; return this; }
+            // SF-218-19 — cadre dirigeant / qualification (FRANCE uniquement).
+            public Builder cadreDirigeantDetail(CadreDirigeantDetail v) { this.cadreDirigeantDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2155,7 +2192,9 @@ public record CaseAnalysisResponse(
                         // SF-218-15 — statut journaliste professionnel (FR)
                         journalisteStatutDetail,
                         // SF-218-17 — intermittent du spectacle / ARE (FR)
-                        intermittentSpectacleDetail);
+                        intermittentSpectacleDetail,
+                        // SF-218-19 — cadre dirigeant / qualification (FR)
+                        cadreDirigeantDetail);
             }
         }
     }
@@ -5646,6 +5685,10 @@ public record CaseAnalysisResponse(
                             booleanOrFalse(node, "statut_intermittent_detecte"),
                             whitelistedOrNull(stringOrNull(node, "intermittent_annexe"),
                                     "ANNEXE_8_TECHNICIENS", "ANNEXE_10_ARTISTES")))
+                    // SF-218-19 : flag pivot CONTEXTUAL + champ — déclenche F-DT-107 cadre dirigeant / qualification (FR).
+                    .cadreDirigeantDetail(new TravailExtractedData.CadreDirigeantDetail(
+                            booleanOrFalse(node, "statut_cadre_dirigeant_detecte"),
+                            booleanOrFalse(node, "cadre_participation_direction")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="8481eeab-c2e3-44af-adf1-7679b10a28ad" author="legalcase">
+        <comment>
+            SF-218-19 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Cadre dirigeant — qualification"
+            (F-DT-107-cadre-dirigeant-statut, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 3), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de cadre dirigeant ou un litige sur la qualification
+            (mentions « cadre dirigeant », « forfait sans reference horaire »,
+            « comite de direction », « COMEX », « membre du directoire »,
+            « rappel d'heures supplementaires » contre un cadre de haut niveau).
+            Flag pivot `statut_cadre_dirigeant_detecte` = true.
+            trigger_field = 'statut_cadre_dirigeant_detecte',
+            trigger_value = 'true'. priority 82 — prochaine valeur libre pour le
+            couple (DROIT_DU_TRAVAIL, FRANCE) apres le seed CONTEXTUAL FR le plus
+            recent (F-DT-106 intermittent du spectacle = 81).
+
+            Source juridique : art. L.3111-2 CT (3 criteres cumulatifs) ;
+            Cass. soc. (participation effective a la direction de l'entreprise).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-107-cadre-dirigeant-statut
+            est livree dans la PR frontend SF-218-20 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('8481eeab-c2e3-44af-adf1-7679b10a28ad', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-107-cadre-dirigeant-statut', 'CONTEXTUAL', 'statut_cadre_dirigeant_detecte', 'true', 82);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '8481eeab-c2e3-44af-adf1-7679b10a28ad';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

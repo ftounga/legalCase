@@ -1034,7 +1034,14 @@ class DashboardTileToolIdIntegrityIT {
             // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-106-intermittent-spectacle-are"
+            "F-DT-106-intermittent-spectacle-are",
+            // SF-218-19 : outil F-DT-107 cadre dirigeant — qualification
+            // (3 critères cumulatifs L.3111-2 CT, FR-only, CONTEXTUAL) — pas de
+            // tuile dashboard. Frontend SF-218-20 à venir. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
+            // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-107-cadre-dirigeant-statut"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

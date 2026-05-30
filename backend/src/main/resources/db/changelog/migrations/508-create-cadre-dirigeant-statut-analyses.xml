@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b2916c02-2d1d-44a1-b5ed-622068efaeab" author="legalcase">
+        <comment>
+            SF-218-19 — table `cadre_dirigeant_statut_analyses` pour l'outil
+            decisionnel "Cadre dirigeant — qualification"
+            (F-DT-107-cadre-dirigeant-statut, FRANCE).
+
+            Outil single-country FR : analyse la qualification de cadre dirigeant
+            au sens de l'art. L.3111-2 du code du travail. Verifie les 3 criteres
+            cumulatifs (grande independance dans l'organisation de l'emploi du
+            temps ; habilitation a prendre des decisions de facon largement
+            autonome ; remuneration dans les niveaux les plus eleves de
+            l'entreprise) et compte le nombre de criteres remplis (0 a 3).
+            Applique l'exigence jurisprudentielle d'une participation effective a
+            la direction de l'entreprise (Cass. soc. post-2012). Determine la
+            qualification (CADRE_DIRIGEANT / CADRE_DIRIGEANT_FRAGILE /
+            NON_CADRE_DIRIGEANT), l'exclusion des regles de duree du travail
+            (EXCLU / NON_EXCLU) et le risque de rappel d'heures supplementaires
+            (FAIBLE / MODERE / ELEVE). Persiste l'analyse 1:1 par dossier
+            (upsert).
+
+            Source juridique : art. L.3111-2 CT (3 criteres cumulatifs) ;
+            Cass. soc. (participation effective a la direction de l'entreprise).
+            Le cadre dirigeant est exclu des dispositions sur la duree du travail,
+            le repos et les jours feries (sauf conges payes).
+        </comment>
+
+        <createTable tableName="cadre_dirigeant_statut_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_cadre_dirigeant_statut_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="independance_emploi_du_temps" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="autonomie_decision" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remuneration_parmi_plus_elevees" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="participation_direction_entreprise" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="niveau_remuneration_constate" type="DECIMAL(15,2)"/>
+            <column name="criteres_remplis" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="qualification" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="exclusion_duree_travail" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_rappel_heures_supp" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="cadre_dirigeant_statut_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
