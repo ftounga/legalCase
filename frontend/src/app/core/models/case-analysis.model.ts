@@ -1054,6 +1054,18 @@ export interface TravailExtractedData {
   /** SF-212-37 — flag F-205 déclenchant F-DT-84 conciliation CPH BCA (FRANCE only). F-212 19/19. */
   conciliationCphEnvisagee?: boolean | null;
   // -------------------------------------------------------------------------
+  // SF-218-01 — F-DT-86 Appel CPH devant la Cour d'appel (FRANCE only).
+  // R. 1461-1 et s. CPC ; art. 538 CPC (délai d'appel 1 mois). Champs nullables
+  // — restent `null` pour un dossier Travail BE (la voie d'appel social FR avec
+  // procédure orale + représentation obligatoire avocat/défenseur syndical est
+  // un mécanisme franco-français). Projetés à plat via @JsonUnwrapped côté
+  // backend.
+  // -------------------------------------------------------------------------
+  /** Date de notification du jugement CPH (ISO `YYYY-MM-DD`) — point de départ du délai d'appel (art. 538 CPC). */
+  dateNotificationJugement?: string | null;
+  /** Flag CONTEXTUAL pivot : l'IA a détecté un jugement CPH rendu + intention de faire appel. Déclenche F-DT-86 (FRANCE only). */
+  appelCphEnvisage?: boolean | null;
+  // -------------------------------------------------------------------------
   // SF-206-07 — sous-objet `resiliation_judiciaire_detail` (FRANCE only)
   // Pré-fill F-DT-40 (résiliation judiciaire du contrat aux torts de l'employeur).
   // Tous nullables — restent `null` pour un dossier Travail BE (la résiliation

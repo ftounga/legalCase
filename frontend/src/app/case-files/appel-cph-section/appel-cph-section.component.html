@@ -1,0 +1,210 @@
+<section class="appel-section">
+  <header class="appel-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="appel-body">
+    <mat-icon class="appel-icon">gavel</mat-icon>
+    <span class="appel-title">APPEL CPH — COUR D'APPEL</span>
+    @if (result()) {
+      <span class="appel-chip-summary {{ statutChipClass(result()!.statut) }}" data-testid="appel-chip-summary">
+        <mat-icon>{{ statutIcon(result()!.statut) }}</mat-icon>
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="appel-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="appel-body" class="appel-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="appel-country-banner" data-testid="appel-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil réservé au droit du travail français (appel des décisions prud'homales — R. 1461-1 et s. CPC, art. 538 CPC délai d'appel d'un mois, procédure orale art. 946 CPC, représentation obligatoire avocat / défenseur syndical R. 1461-2 CPC). La Belgique dispose d'un régime distinct (appel devant la cour du travail, Code judiciaire belge).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="appel-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="appel-form" (ngSubmit)="calculate()">
+            <!-- Bloc 1 — Point de départ du délai -->
+            <div class="appel-block appel-full">
+              <span class="appel-block-label">Notification du jugement (point de départ — art. 538 CPC)</span>
+
+              <mat-form-field appearance="outline" class="appel-inline-field">
+                <mat-label>Date de notification du jugement</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateNotificationJugement()"
+                       (ngModelChange)="onDateNotificationChange($event)"
+                       name="dateNotificationJugement"
+                       data-testid="appel-input-date">
+                <mat-hint>Date de signification (huissier) ou de réception de la LRAR du greffe</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateNotification() === 'IA') {
+                <span class="appel-provenance-note" data-testid="appel-provenance-date">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+
+              <mat-form-field appearance="outline" class="appel-inline-field">
+                <mat-label>Mode de notification</mat-label>
+                <mat-select [ngModel]="modeNotification()"
+                            (ngModelChange)="onModeChange($event)"
+                            name="modeNotification"
+                            data-testid="appel-select-mode">
+                  @for (opt of modeOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 2 — Partie appelante & représentation -->
+            <div class="appel-block appel-full">
+              <span class="appel-block-label">Partie appelante & représentation (R. 1461-2 CPC)</span>
+
+              <mat-form-field appearance="outline" class="appel-inline-field">
+                <mat-label>Partie qui interjette appel</mat-label>
+                <mat-select [ngModel]="partieAppelante()"
+                            (ngModelChange)="onPartieChange($event)"
+                            name="partieAppelante"
+                            data-testid="appel-select-partie">
+                  @for (opt of partieOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="appel-inline-field">
+                <mat-label>Représentation constituée</mat-label>
+                <mat-select [ngModel]="representationConstituee()"
+                            (ngModelChange)="onRepresentationChange($event)"
+                            name="representationConstituee"
+                            data-testid="appel-select-representation">
+                  @for (opt of representationOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+                <mat-hint>Représentation obligatoire en appel social (R. 1461-2 CPC)</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Bloc 3 — Taux de compétence -->
+            <div class="appel-block appel-full">
+              <mat-checkbox [ngModel]="jugementEnDernierRessort()"
+                            (ngModelChange)="onDernierRessortChange($event)"
+                            name="jugementEnDernierRessort"
+                            data-testid="appel-check-dernier-ressort">
+                Jugement rendu en dernier ressort (taux de compétence — R. 1462-1 CPC)
+              </mat-checkbox>
+              <span class="appel-hint-inline">Si coché, l'appel est fermé : seul le pourvoi en cassation est ouvert.</span>
+            </div>
+
+            <div class="appel-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()"
+                      data-testid="appel-btn-calculer">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser le délai d'appel</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="appel-result">
+            <!-- Verdict — chip statut + échéance -->
+            <div class="appel-verdict-banner {{ statutChipClass(result()!.statut) }}" data-testid="appel-verdict-banner">
+              <mat-icon class="appel-verdict-icon">{{ statutIcon(result()!.statut) }}</mat-icon>
+              <div class="appel-verdict-content">
+                <span class="appel-verdict-label" data-testid="appel-verdict-label">{{ statutLabel(result()!.statut) }}</span>
+                @if (result()!.statut !== 'VOIE_FERMEE') {
+                  <span class="appel-echeance" data-testid="appel-echeance">
+                    Échéance d'appel : {{ formatDate(result()!.dateEcheanceAppel) }}
+                  </span>
+                  <span class="appel-jours" data-testid="appel-jours">
+                    {{ result()!.joursRestants }} jour(s) restant(s)
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Lien croisé pourvoi F-DT-87 si voie d'appel fermée -->
+            @if (showPourvoiLink()) {
+              <div class="appel-pourvoi-link" data-testid="appel-pourvoi-link">
+                <mat-icon>arrow_forward</mat-icon>
+                <span>
+                  Jugement en dernier ressort : la voie d'appel est fermée (R. 1462-1 CPC).
+                  Seul le <strong>pourvoi en cassation</strong> est ouvert — voir l'outil
+                  <code>{{ POURVOI_TOOL_ID }}</code> (pourvoi en cassation, chambre sociale).
+                </span>
+              </div>
+            }
+
+            <!-- Checklist des formalités d'appel social -->
+            @if (result()!.checklistFormalites?.length) {
+              <div class="appel-checklist-block">
+                <span class="appel-checklist-label">Formalités d'appel social ({{ result()!.checklistFormalites.length }})</span>
+                <ul class="appel-checklist-list" data-testid="appel-checklist-list">
+                  @for (item of result()!.checklistFormalites; track checklistTrackKey($index, item)) {
+                    <li class="appel-checklist-item"
+                        [class.appel-checklist-bloquant]="item.bloquant"
+                        data-testid="appel-checklist-item">
+                      <mat-icon class="appel-check-icon">
+                        {{ item.bloquant ? 'error' : (item.obligatoire ? 'check_circle_outline' : 'radio_button_unchecked') }}
+                      </mat-icon>
+                      <span class="appel-checklist-text">
+                        <span [innerHTML]="item.libelle | legalCitations"></span>
+                        @if (item.obligatoire) {
+                          <span class="appel-badge-obligatoire">Obligatoire</span>
+                        }
+                        <span class="appel-checklist-base">{{ item.baseJuridique }}</span>
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <!-- Base juridique -->
+            @if (result()!.baseJuridique) {
+              <div class="appel-base-block">
+                <span class="appel-base-label">Base juridique</span>
+                <span class="appel-base-value" data-testid="appel-base-juridique">{{ result()!.baseJuridique }}</span>
+              </div>
+            }
+
+            @if (result()!.basesJuridiques?.length) {
+              <div class="appel-bases-grid">
+                @for (base of result()!.basesJuridiques; track base) {
+                  <span class="appel-base-chip">{{ base }}</span>
+                }
+              </div>
+            }
+
+            <div class="appel-meta">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="appel-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

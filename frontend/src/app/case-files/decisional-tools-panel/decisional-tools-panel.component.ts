@@ -190,6 +190,8 @@ import { ElectionsCseConformiteSectionComponent } from '../elections-cse-conform
 import { TempsPartielRequalificationSectionComponent } from '../temps-partiel-requalification-section/temps-partiel-requalification-section.component';
 // SF-212-38 : outil F-DT-84 conciliation CPH — Bureau de Conciliation et d'Orientation (BCO) (FR uniquement). F-212 19/19.
 import { ConciliationCphBcaSectionComponent } from '../conciliation-cph-bca-section/conciliation-cph-bca-section.component';
+// SF-218-02 : outil F-DT-86 appel CPH devant la Cour d'appel (FR uniquement). F-218a Procédure CPH avancée.
+import { AppelCphSectionComponent } from '../appel-cph-section/appel-cph-section.component';
 // SF-212-18 : outil F-DT-43 rupture anticipée du CDD (FR uniquement).
 import { RuptureAnticipeeCddSectionComponent } from '../rupture-anticipee-cdd-section/rupture-anticipee-cdd-section.component';
 import { ResiliationJudiciaireCphSectionComponent } from '../resiliation-judiciaire-cph-section/resiliation-judiciaire-cph-section.component';
@@ -1161,6 +1163,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-84-conciliation-cph-bca', {
         displayLabel: 'Conciliation CPH — BCO (FR)',
         component: ConciliationCphBcaSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-02 : F-DT-86 appel CPH devant la Cour d'appel (FR) — calculateur
+      // de délai d'appel (1 mois, art. 538 CPC) + checklist formalités d'appel
+      // social + renvoi pourvoi F-DT-87 si dernier ressort. F-218a.
+      ['F-DT-86-appel-cph-cour-appel', {
+        displayLabel: "Appel CPH cour d'appel (FR)",
+        component: AppelCphSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5511,6 +5526,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-49-temps-partiel-requalification', 'DIAGNOSTIC'],
     // SF-212-38 : F-DT-84 — conciliation CPH BCA (Bureau de Conciliation et d'Orientation). F-212 19/19.
     ['F-DT-84-conciliation-cph-bca', 'DIAGNOSTIC'],
+    // SF-218-02 : F-DT-86 appel CPH cour d'appel (FR) — calculateur de délai
+    // d'appel (1 mois art. 538 CPC). Thème DELAIS, cohérent avec les autres
+    // calculateurs de délai de recours (F-IM-41, F-DT-03).
+    ['F-DT-86-appel-cph-cour-appel', 'DELAIS'],
     // SF-212-18 : F-DT-43 — rupture anticipée du CDD.
     ['F-DT-43-rupture-anticipee-cdd', 'DIAGNOSTIC'],
     // SF-212-22 : F-DT-41 — démission validité équivoque.
