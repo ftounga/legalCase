@@ -650,7 +650,16 @@ public record CaseAnalysisResponse(
             // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
             // true uniquement si les pièces évoquent un jugement prud'homal rendu + une
             // intention d'interjeter appel. FR-only, default false. Régime BE distinct.
-            boolean appelCphEnvisage) {
+            boolean appelCphEnvisage,
+            // SF-218-03 : montant total des condamnations CPH en faveur du salarié (€,
+            // nullable). Pré-fill de l'outil F-DT-88 (exécution du jugement CPH, FR).
+            Double montantCondamnationCph,
+            // SF-218-03 : proxy de la situation de l'employeur débiteur détectée par l'IA
+            // (IN_BONIS / REDRESSEMENT / LIQUIDATION, nullable). Oriente le relais AGS.
+            String situationEmployeurDetectee,
+            // SF-218-03 : flag F-205 pivot — déclenche F-DT-88 exécution du jugement CPH (FR).
+            // true si jugement CPH favorable + difficulté d'exécution / AGS. FR-only, default false.
+            boolean executionJugementCphEnvisagee) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1196,7 +1205,11 @@ public record CaseAnalysisResponse(
                     .conciliationCphDetail(conciliationCphDetail)
                     // SF-218-01 — appel CPH cour d'appel (FR)
                     .dateNotificationJugement(dateNotificationJugement)
-                    .appelCphEnvisage(appelCphEnvisage);
+                    .appelCphEnvisage(appelCphEnvisage)
+                    // SF-218-03 — exécution du jugement CPH / AGS (FR)
+                    .montantCondamnationCph(montantCondamnationCph)
+                    .situationEmployeurDetectee(situationEmployeurDetectee)
+                    .executionJugementCphEnvisagee(executionJugementCphEnvisagee);
         }
 
         public static final class Builder {
@@ -1478,6 +1491,10 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FR)
             private String dateNotificationJugement;
             private boolean appelCphEnvisage;
+            // SF-218-03 — exécution du jugement CPH / AGS (FR)
+            private Double montantCondamnationCph;
+            private String situationEmployeurDetectee;
+            private boolean executionJugementCphEnvisagee;
 
             private Builder() {}
 
@@ -1758,6 +1775,10 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FRANCE uniquement).
             public Builder dateNotificationJugement(String v) { this.dateNotificationJugement = v; return this; }
             public Builder appelCphEnvisage(boolean v) { this.appelCphEnvisage = v; return this; }
+            // SF-218-03 — exécution du jugement CPH / AGS (FRANCE uniquement).
+            public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
+            public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
+            public Builder executionJugementCphEnvisagee(boolean v) { this.executionJugementCphEnvisagee = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1931,7 +1952,11 @@ public record CaseAnalysisResponse(
                         conciliationCphEnvisagee,
                         conciliationCphDetail,
                         dateNotificationJugement,
-                        appelCphEnvisage);
+                        appelCphEnvisage,
+                        // SF-218-03 — exécution du jugement CPH / AGS (FR)
+                        montantCondamnationCph,
+                        situationEmployeurDetectee,
+                        executionJugementCphEnvisagee);
             }
         }
     }
@@ -5392,6 +5417,10 @@ public record CaseAnalysisResponse(
                     // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
                     .appelCphEnvisage(booleanOrFalse(node, "appel_cph_envisage"))
                     .dateNotificationJugement(isoDateOrNull(node, "date_notification_jugement"))
+                    // SF-218-03 : flag F-205 + champs — déclenche F-DT-88 exécution jugement CPH / AGS (FR).
+                    .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
+                    .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
+                    .situationEmployeurDetectee(stringOrNull(node, "situation_employeur_detectee"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

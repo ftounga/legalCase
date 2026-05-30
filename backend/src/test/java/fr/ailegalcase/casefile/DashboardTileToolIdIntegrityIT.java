@@ -950,7 +950,20 @@ class DashboardTileToolIdIntegrityIT {
             // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-86-appel-cph-cour-appel"
+            "F-DT-86-appel-cph-cour-appel",
+            // SF-218-03 (2026-05-30) : F-DT-88 exécution du jugement CPH / AGS
+            // FR — backend (présente PR). Exécution forcée d'un jugement du
+            // Conseil de prud'hommes (art. 514 CPC ; R. 1454-28 CPC) : checklist
+            // des démarches d'exécution (signification, commandement, huissier,
+            // mesures conservatoires) et détection de la garantie AGS si
+            // employeur en redressement / liquidation judiciaire (L. 3253-6 et
+            // s. Code travail). Verdict EXECUTION_DIRECTE / RELAIS_AGS /
+            // BLOQUE_INFO_MANQUANTE. Outil standalone restitué via GET du
+            // snapshot, pas de tuile dashboard. Frontend SF-218-04 à venir.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-88-execution-jugement-cph"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
