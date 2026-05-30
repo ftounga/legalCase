@@ -311,6 +311,22 @@ export interface TravailExtractedData {
    * formulaire).
    */
   statutIntermittentDetecte?: boolean | null;
+  /**
+   * SF-218-20 : participation effective à la direction de l'entreprise détectée
+   * par l'IA, pour pré-fill F-DT-107-cadre-dirigeant-statut (FR uniquement) —
+   * indice complémentaire exigé par la jurisprudence post-2012 (Cass. soc.)
+   * pour confirmer la qualification de cadre dirigeant (art. L.3111-2 CT).
+   */
+  cadreParticipationDirection?: boolean | null;
+  /**
+   * SF-218-20 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de cadre dirigeant ou un litige sur la qualification (mentions « cadre
+   * dirigeant », « forfait sans référence horaire », « comité de direction »,
+   * « COMEX », « membre du directoire », « rappel d'heures supplémentaires »
+   * contre un cadre de haut niveau). FR-only. Déclenche l'apparition de
+   * F-DT-107 (n'est PAS un champ de formulaire).
+   */
+  statutCadreDirigeantDetecte?: boolean | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */

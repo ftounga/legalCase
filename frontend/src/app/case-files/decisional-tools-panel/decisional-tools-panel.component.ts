@@ -85,6 +85,8 @@ import { ParticulierEmployeurCesuSectionComponent } from '../particulier-employe
 import { JournalisteStatutSectionComponent } from '../journaliste-statut-section/journaliste-statut-section.component';
 // SF-218-18 : composant complet F-DT-106-intermittent-spectacle-are — intermittent du spectacle : ouverture des droits ARE (annexes 8/10), seuil 507 h sur 12 mois (Travail FR, règlement Unedic).
 import { IntermittentSpectacleAreSectionComponent } from '../intermittent-spectacle-are-section/intermittent-spectacle-are-section.component';
+// SF-218-20 : composant complet F-DT-107-cadre-dirigeant-statut — qualification du cadre dirigeant (3 critères cumulatifs L.3111-2 CT), exclusion durée du travail + risque rappel d'heures supp (Travail FR).
+import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-section/cadre-dirigeant-statut-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1838,6 +1840,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-106-intermittent-spectacle-are', {
         displayLabel: 'Intermittent spectacle ARE (FR)',
         component: IntermittentSpectacleAreSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-20 : composant complet F-DT-107-cadre-dirigeant-statut —
+      // qualification du cadre dirigeant (Travail FR). FR uniquement,
+      // CONTEXTUAL (flag statutCadreDirigeantDetecte). Vérifie les 3 critères
+      // cumulatifs de l'art. L.3111-2 CT (indépendance dans l'organisation de
+      // l'emploi du temps ; autonomie décisionnelle ; rémunération parmi les
+      // plus élevées) + l'indice de participation effective à la direction
+      // (Cass. soc. post-2012) → qualification CADRE_DIRIGEANT /
+      // CADRE_DIRIGEANT_FRAGILE / NON_CADRE_DIRIGEANT, exclusion (ou non) des
+      // règles de durée du travail et niveau de risque de rappel d'heures
+      // supplémentaires FAIBLE / MODERE / ELEVE. Pré-fill IA 2 champs
+      // (participationDirectionEntreprise, niveauRemunerationConstate) via
+      // static getPrefillCount + CadreDirigeantStatutPrefillRules.
+      ['F-DT-107-cadre-dirigeant-statut', {
+        displayLabel: 'Statut cadre dirigeant (FR)',
+        component: CadreDirigeantStatutSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5267,6 +5291,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // d'affiliation (507 h sur 12 mois) et détermine l'ouverture ou non des
     // droits ARE, cohérent avec les autres outils de diagnostic de situation.
     ['F-DT-106-intermittent-spectacle-are', 'DIAGNOSTIC'],
+    // SF-218-20 : F-DT-107-cadre-dirigeant-statut qualification du cadre dirigeant
+    // (Travail FR). Thème VALIDITE — analyseur de validité de la qualification
+    // multi-critères (art. L.3111-2 CT) déterminant l'exclusion ou non des règles
+    // de durée du travail, cohérent avec les autres analyseurs de statut / validité.
+    ['F-DT-107-cadre-dirigeant-statut', 'VALIDITE'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],

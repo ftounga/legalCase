@@ -1,0 +1,205 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">workspace_premium</mat-icon>
+    <span class="is-title">STATUT CADRE DIRIGEANT (FR)</span>
+    @if (result()) {
+      <span [class]="qualificationChipClass(result()!.qualification)" data-testid="qualification-chip">
+        {{ qualificationLabel(result()!.qualification) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Cadre dirigeant — régime français uniquement</div>
+            <div class="is-banner-sub">
+              La qualification de cadre dirigeant et l'exclusion des règles de
+              durée du travail reposent sur l'art. L.3111-2 du Code du travail
+              français et la jurisprudence de la Cour de cassation : ce régime
+              n'a pas d'équivalent direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Trois critères cumulatifs (art. L.3111-2 CT) — les trois doivent être réunis pour qualifier le cadre dirigeant.</span>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="independanceEmploiDuTemps()"
+                              (ngModelChange)="onIndependanceChange($event)"
+                              name="independanceEmploiDuTemps"
+                              data-testid="critere-independance">
+                  Critère 1 — Grande indépendance dans l'organisation de son emploi du temps
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="autonomieDecision()"
+                              (ngModelChange)="onAutonomieChange($event)"
+                              name="autonomieDecision"
+                              data-testid="critere-autonomie">
+                  Critère 2 — Habilité à prendre des décisions de façon largement autonome
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="remunerationParmiPlusElevees()"
+                              (ngModelChange)="onRemunerationParmiPlusEleveesChange($event)"
+                              name="remunerationParmiPlusElevees"
+                              data-testid="critere-remuneration">
+                  Critère 3 — Rémunération parmi les plus élevées de l'entreprise
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap is-check-wrap--indice">
+                <mat-checkbox [ngModel]="participationDirectionEntreprise()"
+                              (ngModelChange)="onParticipationChange($event)"
+                              name="participationDirectionEntreprise"
+                              data-testid="participation-direction">
+                  Indice complémentaire — Participation effective à la direction de l'entreprise (Cass. soc.)
+                </mat-checkbox>
+                @if (provenanceParticipation() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-participation"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Rémunération mensuelle constatée (€, optionnel)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="niveauRemunerationConstate()"
+                         (ngModelChange)="onNiveauRemunerationChange($event)"
+                         name="niveauRemunerationConstate"
+                         data-testid="niveau-remuneration-input" />
+                  <mat-hint>Élément de preuve du critère 3 (non décisif seul)</mat-hint>
+                </mat-form-field>
+                @if (provenanceNiveauRemuneration() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-niveau"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <!-- Comptage local des critères cumulatifs -->
+              <div class="is-count" data-testid="count-form">
+                <span class="is-count-label">Critères réunis</span>
+                <span class="is-count-value">{{ criteresRemplisLocal() }}/3</span>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le statut de cadre dirigeant</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.qualification)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.qualification) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ qualificationLabel(result()!.qualification) }}</div>
+                  <div class="is-banner-sub">
+                    {{ exclusionLabel(result()!.exclusionDureeTravail) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badges qualification / exclusion / risque -->
+              <div class="is-badges">
+                <span [class]="exclusionChipClass(result()!.exclusionDureeTravail)" data-testid="exclusion-chip">
+                  {{ exclusionLabel(result()!.exclusionDureeTravail) }}
+                </span>
+                <span [class]="risqueChipClass(result()!.risqueRappelHeuresSupp)" data-testid="risque-chip">
+                  {{ risqueLabel(result()!.risqueRappelHeuresSupp) }}
+                </span>
+                <span class="is-count-value" data-testid="criteres-remplis">{{ result()!.criteresRemplis }}/3 critères</span>
+              </div>
+
+              <!-- Détail des 3 critères cumulatifs avec coche / croix -->
+              <ul class="is-criteres" data-testid="criteres-list">
+                @for (critere of result()!.criteres; track critere.critere) {
+                  <li class="is-critere" [class.is-critere--ok]="critere.rempli" [class.is-critere--ko]="!critere.rempli">
+                    <mat-icon class="is-critere-icon">{{ critere.rempli ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <div class="is-critere-content">
+                      <span class="is-critere-label">{{ critere.critere }}</span>
+                      @if (critere.commentaire) {
+                        <span class="is-critere-comment">{{ critere.commentaire }}</span>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.niveauRemunerationConstate != null) {
+                <div class="is-figure">
+                  <span class="is-figure-label">Rémunération mensuelle constatée</span>
+                  <span class="is-figure-value" data-testid="niveau-remuneration-result">{{ result()!.niveauRemunerationConstate }} €</span>
+                </div>
+              }
+
+              <!-- Note explicative du risque de rappel d'heures supplémentaires -->
+              <div class="is-note" role="note" data-testid="risque-note">
+                <mat-icon>info_outline</mat-icon>
+                <span>{{ risqueNote(result()!.risqueRappelHeuresSupp) }}</span>
+              </div>
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
