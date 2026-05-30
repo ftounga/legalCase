@@ -1,0 +1,234 @@
+<section class="js-section">
+  <header class="js-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="js-body">
+    <mat-icon class="js-icon">newspaper</mat-icon>
+    <span class="js-title">STATUT JOURNALISTE (FR)</span>
+    @if (result()) {
+      <span [class]="chipClass(result()!.verdictGlobal)" data-testid="verdict-chip">
+        {{ verdictLabel(result()!.verdictGlobal) }}
+      </span>
+    }
+    <mat-icon class="js-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="js-body" class="js-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="js-banner js-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="js-banner-content">
+            <div class="js-banner-title">Statut journaliste — régime français uniquement</div>
+            <div class="js-banner-sub">
+              Le statut du journaliste professionnel (art. L.7111-1 et s. CT), la
+              clause de cession et la clause de conscience (L.7112-5), l'indemnité
+              de congédiement (L.7112-3) et la commission arbitrale paritaire
+              (L.7112-4) relèvent du droit français et n'ont pas d'équivalent
+              direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="js-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="js-form" (ngSubmit)="analyze()">
+              <div class="js-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée (début du contrat)</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateEntree()"
+                         (ngModelChange)="onDateEntreeChange($event)"
+                         name="dateEntree" />
+                </mat-form-field>
+                @if (provenanceDateEntree() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-entree"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="js-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de rupture (notification)</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateRupture()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateRupture" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date-rupture"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="js-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de rupture invoquée</mat-label>
+                  <mat-select [ngModel]="typeRupture()"
+                              (ngModelChange)="onTypeRuptureChange($event)"
+                              name="typeRupture"
+                              data-testid="type-rupture-select">
+                    <mat-option value="LICENCIEMENT">Licenciement</mat-option>
+                    <mat-option value="CLAUSE_CESSION">Clause de cession (cession du titre)</mat-option>
+                    <mat-option value="CLAUSE_CONSCIENCE">Clause de conscience (changement d'orientation)</mat-option>
+                    <mat-option value="DEMISSION">Démission</mat-option>
+                    <mat-option value="FAUTE_GRAVE">Faute grave</mat-option>
+                  </mat-select>
+                  <mat-hint>Détermine la validité de la clause et le droit à indemnité</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="js-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Salaire mensuel moyen (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01" required
+                         [ngModel]="salaireMensuelMoyen()"
+                         (ngModelChange)="onSalaireChange($event)"
+                         name="salaireMensuelMoyen" />
+                  <mat-hint>Base de l'indemnité de congédiement (1 mois/année)</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="js-checks">
+                <div class="js-check-wrap">
+                  <mat-checkbox [ngModel]="carteIdentiteProfessionnelle()"
+                                (ngModelChange)="onCarteChange($event)"
+                                name="carteIdentiteProfessionnelle"
+                                data-testid="carte-checkbox">
+                    Carte d'identité de journaliste professionnel (CCIJP)
+                  </mat-checkbox>
+                  @if (provenanceCarte() === 'IA') {
+                    <span class="provenance-note" data-testid="provenance-carte"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                  }
+                </div>
+
+                <div class="js-check-wrap">
+                  <mat-checkbox [ngModel]="cessionTitreConstatee()"
+                                (ngModelChange)="onCessionChange($event)"
+                                name="cessionTitreConstatee"
+                                data-testid="cession-checkbox">
+                    Cession ou cessation de publication du titre constatée
+                  </mat-checkbox>
+                </div>
+
+                <div class="js-check-wrap">
+                  <mat-checkbox [ngModel]="changementOrientationConstate()"
+                                (ngModelChange)="onChangementOrientationChange($event)"
+                                name="changementOrientationConstate"
+                                data-testid="orientation-checkbox">
+                    Changement notable du caractère / orientation du journal constaté
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="js-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="js-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="js-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le statut et l'indemnité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="js-result">
+              <div [class]="bannerClass(result()!.verdictGlobal)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictGlobal) }}</mat-icon>
+                <div class="js-banner-content">
+                  <div class="js-banner-title">{{ verdictLabel(result()!.verdictGlobal) }}</div>
+                  <div class="js-banner-sub">
+                    {{ typeRuptureLabel(result()!.typeRupture) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badges statut + validité de clause -->
+              <div class="js-badges">
+                <span [class]="statutChipClass(result()!.statutJournaliste)" data-testid="statut-chip">
+                  {{ statutLabel(result()!.statutJournaliste) }}
+                </span>
+                <span [class]="clauseChipClass(result()!.clauseValide)" data-testid="clause-chip">
+                  {{ clauseLabel(result()!.clauseValide) }}
+                </span>
+              </div>
+
+              @if (result()!.motif) {
+                <div class="js-motif" data-testid="clause-motif">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>{{ result()!.motif }}</span>
+                </div>
+              }
+
+              <!-- Indemnité de congédiement — JetBrains Mono -->
+              <div class="js-figures">
+                <div class="js-figure">
+                  <span class="js-figure-label">Ancienneté</span>
+                  <span class="js-figure-value" data-testid="anciennete">{{ result()!.ancienneteAnnees }} an(s)</span>
+                </div>
+                <div class="js-figure js-figure--primary">
+                  <span class="js-figure-label">Indemnité de congédiement (L.7112-3)</span>
+                  <span class="js-figure-value js-figure-value--strong" data-testid="indemnite-congediement">{{ result()!.indemniteCongediement }} €</span>
+                </div>
+              </div>
+
+              <!-- Encart commission arbitrale si ancienneté > 15 ans -->
+              @if (result()!.commissionArbitraleRequise) {
+                <div class="js-commission" role="note" data-testid="commission-arbitrale">
+                  <mat-icon>gavel</mat-icon>
+                  <div class="js-commission-content">
+                    <div class="js-commission-title">Commission arbitrale paritaire (art. L.7112-4)</div>
+                    <div class="js-commission-sub">
+                      Le montant ci-dessus est plafonné à 15 mois ; au-delà
+                      (ancienneté > 15 ans ou faute grave / fautes répétées), la
+                      fixation de l'indemnité relève de la <strong>compétence
+                      exclusive de la commission arbitrale</strong>, qui statue
+                      souverainement.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <div class="js-meta">
+                <div class="js-bases">
+                  <span class="js-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
