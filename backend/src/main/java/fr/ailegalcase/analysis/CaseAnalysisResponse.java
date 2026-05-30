@@ -701,16 +701,13 @@ public record CaseAnalysisResponse(
             // « action de groupe », « discrimination systémique », « plusieurs salariés »,
             // « organisation syndicale / association »). FR-only, default false.
             boolean actionGroupeDiscriminationEnvisagee,
-            // SF-218-13 : flag pivot CONTEXTUAL — déclenche F-DT-108 particulier
-            // employeur / CESU (FR). true uniquement si les pièces révèlent un
-            // employeur particulier (mentions « CESU », « garde d'enfants »,
-            // « assistant maternel », « employé de maison », « PAJEMPLOI »,
-            // « particulier employeur »). FR-only, default false. Régime BE distinct.
-            boolean particulierEmployeurDetecte,
-            // SF-218-13 : catégorie d'emploi détectée pour pré-fill de l'outil
-            // F-DT-108 (SALARIE_PARTICULIER_EMPLOYEUR | ASSISTANT_MATERNEL,
-            // nullable) — pilote la CCN applicable. null si non détectable. FR-only.
-            String cesuCategorieEmploye,
+            // SF-218-13 : sous-objet pré-fill IA pour l'outil F-DT-108 (particulier
+            // employeur / CESU, FR). Regroupé en un seul composant (@JsonUnwrapped)
+            // pour rester sous la limite de paramètres du constructeur canonical du
+            // record — JSON HTTP plat préservé (clés `particulier_employeur_detecte`
+            // et `cesu_categorie_employe` inchangées). Voir ParticulierEmployeurDetail.
+            // Consolidé par SF-218-17 (pattern F-256).
+            @JsonUnwrapped ParticulierEmployeurDetail particulierEmployeurDetail,
             // SF-218-15 : sous-objet pré-fill IA pour l'outil F-DT-105 (statut
             // journaliste professionnel, FR). Regroupé en un seul composant
             // (@JsonUnwrapped) pour rester sous la limite de paramètres du
@@ -997,6 +994,28 @@ public record CaseAnalysisResponse(
         public record JournalisteStatutDetail(
                 boolean statutJournalisteDetecte,
                 boolean journalisteCartePresse
+        ) {}
+
+        /**
+         * SF-218-13 (consolidé par SF-218-17, pattern F-256) : sous-objet pré-fill
+         * IA pour l'outil F-DT-108 (particulier employeur / CESU, FRANCE
+         * UNIQUEMENT). Regroupe le flag pivot CONTEXTUAL et la catégorie d'emploi
+         * en un seul composant {@code @JsonUnwrapped} (aplati en JSON sous les
+         * clés {@code particulier_employeur_detecte} et {@code cesu_categorie_employe},
+         * contrat externe inchangé) afin de ne pas dépasser la limite de
+         * paramètres du constructeur canonical de {@link TravailExtractedData}.
+         *
+         * @param particulierEmployeurDetecte flag pivot — true si les pièces
+         *        révèlent un employeur particulier (mentions « CESU », « garde
+         *        d'enfants », « assistant maternel », « employé de maison »,
+         *        « PAJEMPLOI », « particulier employeur »). FR-only, default false.
+         * @param cesuCategorieEmploye catégorie d'emploi détectée
+         *        (SALARIE_PARTICULIER_EMPLOYEUR | ASSISTANT_MATERNEL, nullable) —
+         *        pilote la CCN applicable. null si non détectable. FR-only.
+         */
+        public record ParticulierEmployeurDetail(
+                boolean particulierEmployeurDetecte,
+                String cesuCategorieEmploye
         ) {}
 
         /**
@@ -1331,8 +1350,7 @@ public record CaseAnalysisResponse(
                     .dateMiseEnDemeureDiscrimination(dateMiseEnDemeureDiscrimination)
                     .actionGroupeDiscriminationEnvisagee(actionGroupeDiscriminationEnvisagee)
                     // SF-218-13 — particulier employeur / CESU (FR)
-                    .particulierEmployeurDetecte(particulierEmployeurDetecte)
-                    .cesuCategorieEmploye(cesuCategorieEmploye)
+                    .particulierEmployeurDetail(particulierEmployeurDetail)
                     // SF-218-15 — statut journaliste professionnel (FR)
                     .journalisteStatutDetail(journalisteStatutDetail)
                     // SF-218-17 — intermittent du spectacle / ARE (FR)
@@ -1635,8 +1653,7 @@ public record CaseAnalysisResponse(
             private String dateMiseEnDemeureDiscrimination;
             private boolean actionGroupeDiscriminationEnvisagee;
             // SF-218-13 — particulier employeur / CESU (FR)
-            private boolean particulierEmployeurDetecte;
-            private String cesuCategorieEmploye;
+            private ParticulierEmployeurDetail particulierEmployeurDetail;
             // SF-218-15 — statut journaliste professionnel (FR)
             private JournalisteStatutDetail journalisteStatutDetail;
             // SF-218-17 — intermittent du spectacle / ARE (FR)
@@ -1937,9 +1954,8 @@ public record CaseAnalysisResponse(
             // SF-218-09 — action de groupe en discrimination (FRANCE uniquement).
             public Builder dateMiseEnDemeureDiscrimination(String v) { this.dateMiseEnDemeureDiscrimination = v; return this; }
             public Builder actionGroupeDiscriminationEnvisagee(boolean v) { this.actionGroupeDiscriminationEnvisagee = v; return this; }
-            // SF-218-13 — particulier employeur / CESU (FRANCE uniquement).
-            public Builder particulierEmployeurDetecte(boolean v) { this.particulierEmployeurDetecte = v; return this; }
-            public Builder cesuCategorieEmploye(String v) { this.cesuCategorieEmploye = v; return this; }
+            // SF-218-13 — particulier employeur / CESU (FRANCE uniquement) — consolidé SF-218-17.
+            public Builder particulierEmployeurDetail(ParticulierEmployeurDetail v) { this.particulierEmployeurDetail = v; return this; }
             // SF-218-15 — statut journaliste professionnel (FRANCE uniquement).
             public Builder journalisteStatutDetail(JournalisteStatutDetail v) { this.journalisteStatutDetail = v; return this; }
             // SF-218-17 — intermittent du spectacle / ouverture droits ARE (FRANCE uniquement).
@@ -2135,8 +2151,7 @@ public record CaseAnalysisResponse(
                         dateMiseEnDemeureDiscrimination,
                         actionGroupeDiscriminationEnvisagee,
                         // SF-218-13 — particulier employeur / CESU (FR)
-                        particulierEmployeurDetecte,
-                        cesuCategorieEmploye,
+                        particulierEmployeurDetail,
                         // SF-218-15 — statut journaliste professionnel (FR)
                         journalisteStatutDetail,
                         // SF-218-17 — intermittent du spectacle / ARE (FR)
@@ -5618,9 +5633,10 @@ public record CaseAnalysisResponse(
                     .actionGroupeDiscriminationEnvisagee(booleanOrFalse(node, "action_groupe_discrimination_envisagee"))
                     .dateMiseEnDemeureDiscrimination(isoDateOrNull(node, "date_mise_en_demeure_discrimination"))
                     // SF-218-13 : flag pivot CONTEXTUAL + champ — déclenche F-DT-108 particulier employeur / CESU (FR).
-                    .particulierEmployeurDetecte(booleanOrFalse(node, "particulier_employeur_detecte"))
-                    .cesuCategorieEmploye(whitelistedOrNull(stringOrNull(node, "cesu_categorie_employe"),
-                            "SALARIE_PARTICULIER_EMPLOYEUR", "ASSISTANT_MATERNEL"))
+                    .particulierEmployeurDetail(new TravailExtractedData.ParticulierEmployeurDetail(
+                            booleanOrFalse(node, "particulier_employeur_detecte"),
+                            whitelistedOrNull(stringOrNull(node, "cesu_categorie_employe"),
+                                    "SALARIE_PARTICULIER_EMPLOYEUR", "ASSISTANT_MATERNEL")))
                     // SF-218-15 : flag pivot CONTEXTUAL + champ — déclenche F-DT-105 statut journaliste (FR).
                     .journalisteStatutDetail(new TravailExtractedData.JournalisteStatutDetail(
                             booleanOrFalse(node, "statut_journaliste_detecte"),
