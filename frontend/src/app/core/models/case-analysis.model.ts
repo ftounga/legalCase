@@ -1185,6 +1185,17 @@ export interface TravailExtractedData {
   nombrePersonnesACharge?: number | null;
   /** SF-218-08 : flag F-205 — déclenche F-DT-89 saisie sur rémunération (FR). True si mention « saisie sur salaire », « quotité saisissable », « titre exécutoire », « commissaire de justice ». FLAG de visibilité (pas un champ du formulaire). */
   saisieRemunerationDetectee?: boolean | null;
+  // SF-218-10 : 3 champs IA pour l'outil F-DT-90 action de groupe en discrimination
+  // (recevabilité, Travail FR uniquement, nullables). L'action de groupe en
+  // discrimination (L. 1134-7 et s., loi J21 du 18/11/2016) relève du droit
+  // français — ces champs restent null pour un dossier travail belge.
+  /** SF-218-10 : date de la mise en demeure de l'employeur préalable à l'action de groupe (YYYY-MM-DD — pré-fill dateMiseEnDemeure F-DT-90, point de départ du délai de carence de 6 mois L. 1134-9). */
+  dateMiseEnDemeureDiscrimination?: string | null;
+  /** SF-218-10 : motif de discrimination pressenti parmi les critères L. 1132-1 (best-effort — pré-fill motifDiscrimination F-DT-90). */
+  motifDiscrimination?: 'ORIGINE' | 'SEXE' | 'AGE' | 'HANDICAP' | 'ETAT_SANTE'
+    | 'GROSSESSE' | 'ACTIVITE_SYNDICALE' | 'RELIGION' | 'ORIENTATION_SEXUELLE' | 'AUTRE' | null;
+  /** SF-218-10 : flag F-205 — déclenche F-DT-90 action de groupe discrimination (FR). True si mention « action de groupe », « discrimination systémique », « plusieurs salariés », « organisation syndicale / association ». FLAG de visibilité (pas un champ du formulaire). */
+  actionGroupeDiscriminationEnvisagee?: boolean | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
