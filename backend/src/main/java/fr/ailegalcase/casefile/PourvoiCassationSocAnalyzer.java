@@ -210,8 +210,10 @@ public final class PourvoiCassationSocAnalyzer {
         if (casOuverture == null || casOuverture.isEmpty()) {
             throw new IllegalArgumentException("casOuverture doit contenir au moins un cas d'ouverture");
         }
-        if (casOuverture.contains(null)) {
-            throw new IllegalArgumentException("casOuverture contient une valeur inconnue");
+        for (PourvoiCassationSocCasOuverture cas : casOuverture) {
+            if (cas == null) {
+                throw new IllegalArgumentException("casOuverture contient une valeur inconnue");
+            }
         }
     }
 }

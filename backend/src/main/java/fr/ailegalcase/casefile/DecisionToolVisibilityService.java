@@ -257,6 +257,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "appel_cph_envisage");
         // SF-218-03 : nouveau flag F-205 — déclenche F-DT-88 exécution du jugement CPH / AGS.
         addBooleanFlagIfTrue(detected, travailNode, "execution_jugement_cph_envisagee");
+        // SF-218-05 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale.
+        addBooleanFlagIfTrue(detected, travailNode, "pourvoi_cassation_soc_envisage");
         // SF-218-11 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle.
         addBooleanFlagIfTrue(detected, travailNode, "vrp_statut_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");

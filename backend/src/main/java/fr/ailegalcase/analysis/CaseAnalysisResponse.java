@@ -669,7 +669,16 @@ public record CaseAnalysisResponse(
             // SF-218-11 : moyenne annuelle des commissions du VRP des 3 dernières
             // années (assiette de l'indemnité de clientèle, art. L. 7313-13 CT).
             // Pré-fill de F-DT-104. null si non documentée. FR-only.
-            java.math.BigDecimal vrpCommissionsAnnuelles) {
+            java.math.BigDecimal vrpCommissionsAnnuelles,
+            // SF-218-05 : date de notification de l'arrêt de la Cour d'appel (ISO
+            // YYYY-MM-DD, nullable). Pré-fill de l'outil F-DT-87 (pourvoi cassation
+            // sociale, FR) : fait courir le délai de pourvoi de 2 mois (art. 612 CPC).
+            // null si non détectable. Régime BE distinct.
+            String dateNotificationArretAppel,
+            // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation
+            // sociale (FR). true uniquement si arrêt de Cour d'appel défavorable rendu +
+            // intention de pourvoi en cassation. FR-only, default false. Régime BE distinct.
+            boolean pourvoiCassationSocEnvisage) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1222,7 +1231,10 @@ public record CaseAnalysisResponse(
                     .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
                     // SF-218-11 — VRP indemnité de clientèle (FR)
                     .vrpStatutDetecte(vrpStatutDetecte)
-                    .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles);
+                    .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles)
+                    // SF-218-05 — pourvoi cassation sociale (FR)
+                    .dateNotificationArretAppel(dateNotificationArretAppel)
+                    .pourvoiCassationSocEnvisage(pourvoiCassationSocEnvisage);
         }
 
         public static final class Builder {
@@ -1511,6 +1523,9 @@ public record CaseAnalysisResponse(
             // SF-218-11 — VRP indemnité de clientèle (FR)
             private boolean vrpStatutDetecte;
             private java.math.BigDecimal vrpCommissionsAnnuelles;
+            // SF-218-05 — pourvoi cassation sociale (FR)
+            private String dateNotificationArretAppel;
+            private boolean pourvoiCassationSocEnvisage;
 
             private Builder() {}
 
@@ -1798,6 +1813,9 @@ public record CaseAnalysisResponse(
             // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement).
             public Builder vrpStatutDetecte(boolean v) { this.vrpStatutDetecte = v; return this; }
             public Builder vrpCommissionsAnnuelles(java.math.BigDecimal v) { this.vrpCommissionsAnnuelles = v; return this; }
+            // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
+            public Builder dateNotificationArretAppel(String v) { this.dateNotificationArretAppel = v; return this; }
+            public Builder pourvoiCassationSocEnvisage(boolean v) { this.pourvoiCassationSocEnvisage = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -1978,7 +1996,10 @@ public record CaseAnalysisResponse(
                         executionJugementCphEnvisagee,
                         // SF-218-11 — VRP indemnité de clientèle (FR)
                         vrpStatutDetecte,
-                        vrpCommissionsAnnuelles);
+                        vrpCommissionsAnnuelles,
+                        // SF-218-05 — pourvoi cassation sociale (FR)
+                        dateNotificationArretAppel,
+                        pourvoiCassationSocEnvisage);
             }
         }
     }
@@ -5446,6 +5467,9 @@ public record CaseAnalysisResponse(
                     // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle (FR).
                     .vrpStatutDetecte(booleanOrFalse(node, "vrp_statut_detecte"))
                     .vrpCommissionsAnnuelles(bigDecimalOrNull(node, "vrp_commissions_annuelles"))
+                    // SF-218-05 : flag pivot CONTEXTUAL — déclenche F-DT-87 pourvoi cassation sociale (FR).
+                    .pourvoiCassationSocEnvisage(booleanOrFalse(node, "pourvoi_cassation_soc_envisage"))
+                    .dateNotificationArretAppel(isoDateOrNull(node, "date_notification_arret_appel"))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
