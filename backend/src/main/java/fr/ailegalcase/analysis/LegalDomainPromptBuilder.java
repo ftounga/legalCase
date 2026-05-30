@@ -1048,12 +1048,27 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
-     * SF-218-11 : 19e part du prompt TRAVAIL — flag pivot `vrp_statut_detecte`
+     * SF-218-03 : 19e part du prompt TRAVAIL — flag F-205
+     * `execution_jugement_cph_envisagee` + champs `montant_condamnation_cph` et
+     * `situation_employeur_detectee` pour pré-fill de l'outil F-DT-88 (exécution
+     * forcée d'un jugement CPH / garantie AGS, FRANCE UNIQUEMENT — art. 514 CPC ;
+     * R. 1454-28 CPC ; L. 3253-6 et s. Code travail).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART19 = """
+              SF-218-03 — Flag F-205 `execution_jugement_cph_envisagee` et champs `montant_condamnation_cph` / `situation_employeur_detectee` (FRANCE UNIQUEMENT).
+              "execution_jugement_cph_envisagee" : booléen — true uniquement si les pièces évoquent un JUGEMENT du Conseil de Prud'hommes FAVORABLE au salarié DÉJÀ RENDU ET une difficulté ou démarche d'EXÉCUTION : mention « exécution du jugement », « exécution forcée », « commissaire de justice / huissier », « commandement de payer », « saisie », « employeur en redressement / liquidation judiciaire », « procédure collective », « AGS », « CGEA », « mandataire / liquidateur judiciaire ». NE PAS confondre avec la voie d'APPEL (appel_cph_envisage, contestation du jugement) ni avec la phase de conciliation (conciliation_cph_envisagee, antérieure au jugement). False par défaut. Pertinent pour F-DT-88.
+              "montant_condamnation_cph" : nombre décimal (€) ou null — montant total des condamnations prononcées par le jugement CPH en faveur du salarié (somme des chefs de condamnation : indemnités + dommages-intérêts + rappels de salaire). Extractible du dispositif du jugement. Strictement positif, attendu entre 100 et 1 000 000 ; hors plage → null. null si aucun jugement CPH chiffré n'est documenté.
+              "situation_employeur_detectee" : chaîne EXACTEMENT parmi {"IN_BONIS", "REDRESSEMENT", "LIQUIDATION"} ou null — situation de l'employeur débiteur au regard d'une éventuelle procédure collective. "REDRESSEMENT" si redressement judiciaire mentionné, "LIQUIDATION" si liquidation judiciaire mentionnée, "IN_BONIS" si l'employeur est explicitement in bonis (aucune procédure collective). null si la situation n'est pas documentée. Détermine le relais par la garantie AGS (REDRESSEMENT / LIQUIDATION).
+              Pour un dossier travail BELGIQUE, laisser `execution_jugement_cph_envisagee` à false, `montant_condamnation_cph` à null et `situation_employeur_detectee` à null (l'exécution d'un jugement du tribunal du travail belge et la garantie du Fonds de fermeture des entreprises relèvent d'un régime distinct — hors périmètre de cet outil FR).
+            """;
+
+    /**
+     * SF-218-11 : 20e part du prompt TRAVAIL — flag pivot `vrp_statut_detecte`
      * et champ `vrp_commissions_annuelles` pour pré-fill de l'outil F-DT-104
      * (VRP — statut, préavis et indemnité de clientèle, FRANCE UNIQUEMENT —
      * art. L.7311-1 et s. CT ; L.7313-13 CT).
      */
-    private static final String TRAVAIL_INSTRUCTION_PART19 = """
+    private static final String TRAVAIL_INSTRUCTION_PART20 = """
               SF-218-11 — Flag `vrp_statut_detecte` et champ `vrp_commissions_annuelles` (FRANCE UNIQUEMENT).
               "vrp_statut_detecte" : booléen — true uniquement si les pièces révèlent un statut de VRP STATUTAIRE (voyageur représentant placier, art. L. 7311-1 et s. CT) : mention « VRP », « voyageur représentant placier », « voyageur de commerce », « représentant de commerce », « représentant statutaire », « carte de représentant », « indemnité de clientèle », « commissions sur ventes / sur le chiffre d'affaires », contrat de représentation exclusive ou multicartes, rémunération principalement ou exclusivement à la commission. NE PAS confondre avec un simple commercial salarié de droit commun (sans statut VRP) ni avec un agent commercial indépendant (mandataire — Code de commerce, hors périmètre). False par défaut. Pertinent pour F-DT-104.
               "vrp_commissions_annuelles" : nombre décimal (montant en euros) ou null. Moyenne annuelle des commissions perçues par le VRP au cours des 3 dernières années — assiette de l'indemnité de clientèle (art. L. 7313-13 CT). Extractible des bulletins de paie, des relevés de commissions ou du contrat. À défaut de moyenne sur 3 ans, retenir la meilleure estimation annuelle documentée. null si non documentée dans les pièces.
@@ -1085,7 +1100,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART16)
                     .concat(TRAVAIL_INSTRUCTION_PART17)
                     .concat(TRAVAIL_INSTRUCTION_PART18)
-                    .concat(TRAVAIL_INSTRUCTION_PART19);
+                    .concat(TRAVAIL_INSTRUCTION_PART19)
+                    .concat(TRAVAIL_INSTRUCTION_PART20);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

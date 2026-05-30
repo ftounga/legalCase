@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="9f49a80e-ae44-4799-ac3a-db747eede12d" author="legalcase">
+        <comment>
+            SF-218-03 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Exécution du jugement CPH"
+            (F-DT-88-execution-jugement-cph, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 3), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte un
+            jugement CPH favorable + difficulte d'execution (mention
+            « execution », « huissier », « redressement / liquidation
+            employeur », « AGS / CGEA »). Flag pivot
+            `execution_jugement_cph_envisagee` = true.
+            trigger_field = 'execution_jugement_cph_envisagee',
+            trigger_value = 'true'. priority 75 — prochaine valeur libre apres
+            les seeds CONTEXTUAL FR/TRAVAIL existants (max actuel 74,
+            appel_cph_envisage F-DT-86).
+
+            Source juridique : art. 514 CPC ; R. 1454-28 CPC ; L. 3253-6 a
+            L. 3253-21 Code travail.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour F-DT-88-execution-jugement-cph est
+            livree dans la PR frontend SF-218-04 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('9f49a80e-ae44-4799-ac3a-db747eede12d', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-88-execution-jugement-cph', 'CONTEXTUAL', 'execution_jugement_cph_envisagee', 'true', 75);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '9f49a80e-ae44-4799-ac3a-db747eede12d';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

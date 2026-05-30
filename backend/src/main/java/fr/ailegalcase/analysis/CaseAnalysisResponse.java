@@ -651,6 +651,15 @@ public record CaseAnalysisResponse(
             // true uniquement si les pièces évoquent un jugement prud'homal rendu + une
             // intention d'interjeter appel. FR-only, default false. Régime BE distinct.
             boolean appelCphEnvisage,
+            // SF-218-03 : montant total des condamnations CPH en faveur du salarié (€,
+            // nullable). Pré-fill de l'outil F-DT-88 (exécution du jugement CPH, FR).
+            Double montantCondamnationCph,
+            // SF-218-03 : proxy de la situation de l'employeur débiteur détectée par l'IA
+            // (IN_BONIS / REDRESSEMENT / LIQUIDATION, nullable). Oriente le relais AGS.
+            String situationEmployeurDetectee,
+            // SF-218-03 : flag F-205 pivot — déclenche F-DT-88 exécution du jugement CPH (FR).
+            // true si jugement CPH favorable + difficulté d'exécution / AGS. FR-only, default false.
+            boolean executionJugementCphEnvisagee,
             // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de
             // clientèle (FR). true uniquement si les pièces révèlent un statut de VRP
             // statutaire (mentions « VRP », « voyageur représentant placier »,
@@ -1207,6 +1216,10 @@ public record CaseAnalysisResponse(
                     // SF-218-01 — appel CPH cour d'appel (FR)
                     .dateNotificationJugement(dateNotificationJugement)
                     .appelCphEnvisage(appelCphEnvisage)
+                    // SF-218-03 — exécution du jugement CPH / AGS (FR)
+                    .montantCondamnationCph(montantCondamnationCph)
+                    .situationEmployeurDetectee(situationEmployeurDetectee)
+                    .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
                     // SF-218-11 — VRP indemnité de clientèle (FR)
                     .vrpStatutDetecte(vrpStatutDetecte)
                     .vrpCommissionsAnnuelles(vrpCommissionsAnnuelles);
@@ -1491,6 +1504,10 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FR)
             private String dateNotificationJugement;
             private boolean appelCphEnvisage;
+            // SF-218-03 — exécution du jugement CPH / AGS (FR)
+            private Double montantCondamnationCph;
+            private String situationEmployeurDetectee;
+            private boolean executionJugementCphEnvisagee;
             // SF-218-11 — VRP indemnité de clientèle (FR)
             private boolean vrpStatutDetecte;
             private java.math.BigDecimal vrpCommissionsAnnuelles;
@@ -1774,6 +1791,10 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FRANCE uniquement).
             public Builder dateNotificationJugement(String v) { this.dateNotificationJugement = v; return this; }
             public Builder appelCphEnvisage(boolean v) { this.appelCphEnvisage = v; return this; }
+            // SF-218-03 — exécution du jugement CPH / AGS (FRANCE uniquement).
+            public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
+            public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
+            public Builder executionJugementCphEnvisagee(boolean v) { this.executionJugementCphEnvisagee = v; return this; }
             // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement).
             public Builder vrpStatutDetecte(boolean v) { this.vrpStatutDetecte = v; return this; }
             public Builder vrpCommissionsAnnuelles(java.math.BigDecimal v) { this.vrpCommissionsAnnuelles = v; return this; }
@@ -1951,6 +1972,10 @@ public record CaseAnalysisResponse(
                         conciliationCphDetail,
                         dateNotificationJugement,
                         appelCphEnvisage,
+                        // SF-218-03 — exécution du jugement CPH / AGS (FR)
+                        montantCondamnationCph,
+                        situationEmployeurDetectee,
+                        executionJugementCphEnvisagee,
                         // SF-218-11 — VRP indemnité de clientèle (FR)
                         vrpStatutDetecte,
                         vrpCommissionsAnnuelles);
@@ -5414,6 +5439,10 @@ public record CaseAnalysisResponse(
                     // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
                     .appelCphEnvisage(booleanOrFalse(node, "appel_cph_envisage"))
                     .dateNotificationJugement(isoDateOrNull(node, "date_notification_jugement"))
+                    // SF-218-03 : flag F-205 + champs — déclenche F-DT-88 exécution jugement CPH / AGS (FR).
+                    .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
+                    .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
+                    .situationEmployeurDetectee(stringOrNull(node, "situation_employeur_detectee"))
                     // SF-218-11 : flag pivot CONTEXTUAL — déclenche F-DT-104 VRP indemnité de clientèle (FR).
                     .vrpStatutDetecte(booleanOrFalse(node, "vrp_statut_detecte"))
                     .vrpCommissionsAnnuelles(bigDecimalOrNull(node, "vrp_commissions_annuelles"))
