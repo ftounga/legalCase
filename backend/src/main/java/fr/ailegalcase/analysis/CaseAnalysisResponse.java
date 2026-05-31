@@ -685,17 +685,13 @@ public record CaseAnalysisResponse(
             // SaisieRemunerationPrefillDetail.
             @JsonUnwrapped SaisieRemunerationPrefillDetail saisieRemunerationPrefillDetail,
             // SF-218-09 : date de la mise en demeure adressée à l'employeur de faire
-            // cesser une discrimination collective (ISO yyyy-MM-dd, nullable). Pré-fill
-            // de l'outil F-DT-90 (action de groupe en discrimination, FR) : amorce le
-            // calcul du délai de carence de 6 mois (L. 1134-9 CT). null si non
-            // documenté. Régime BE distinct.
-            String dateMiseEnDemeureDiscrimination,
-            // SF-218-09 : flag pivot CONTEXTUAL — déclenche F-DT-90 action de groupe en
-            // discrimination (FR). true uniquement si les pièces révèlent une
-            // discrimination collective + intention d'action de groupe (mentions
-            // « action de groupe », « discrimination systémique », « plusieurs salariés »,
-            // « organisation syndicale / association »). FR-only, default false.
-            boolean actionGroupeDiscriminationEnvisagee,
+            // SF-218-09 (consolidé SF-218-25) : sous-objet pré-fill IA pour l'outil F-DT-90
+            // (action de groupe en discrimination, FR). Regroupe le flag pivot CONTEXTUAL et
+            // la date de mise en demeure en un seul composant (@JsonUnwrapped) — JSON HTTP
+            // plat préservé (clés `action_groupe_discrimination_envisagee` et
+            // `date_mise_en_demeure_discrimination` inchangées) — afin de financer le
+            // nouveau sous-objet CdiChantierDetail (F-DT-37) sous le plafond JVM 255 params.
+            @JsonUnwrapped ActionGroupeDiscriminationDetail actionGroupeDiscriminationDetail,
             // SF-218-13 : sous-objet pré-fill IA pour l'outil F-DT-108 (particulier
             // employeur / CESU, FR). Regroupé en un seul composant (@JsonUnwrapped)
             // pour rester sous la limite de paramètres du constructeur canonical du
@@ -730,7 +726,13 @@ public record CaseAnalysisResponse(
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // (plafond JVM 255) du constructeur canonical du record. Voir
             // ApprentissageDetail.
-            @JsonUnwrapped ApprentissageDetail apprentissageDetail) {
+            @JsonUnwrapped ApprentissageDetail apprentissageDetail,
+            // SF-218-25 : sous-objet pré-fill IA pour l'outil F-DT-37 (licenciement
+            // CDI de chantier / d'opération, FR). Regroupe le flag pivot CONTEXTUAL et
+            // le secteur extrait en un seul composant (@JsonUnwrapped) pour rester sous
+            // la limite de paramètres (plafond JVM 255) du constructeur canonical du
+            // record. Voir CdiChantierDetail.
+            @JsonUnwrapped CdiChantierDetail cdiChantierDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1133,6 +1135,54 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-09 (consolidé SF-218-25) : sous-objet pré-fill IA pour l'outil
+         * F-DT-90 (action de groupe en discrimination, FRANCE UNIQUEMENT —
+         * art. L. 1134-7 et s. CT). Regroupe le flag pivot CONTEXTUAL et la date
+         * de mise en demeure en un seul composant {@code @JsonUnwrapped} (aplati
+         * en JSON sous les clés {@code action_groupe_discrimination_envisagee} et
+         * {@code date_mise_en_demeure_discrimination}, contrat externe inchangé)
+         * afin de libérer un slot du constructeur canonical de
+         * {@link TravailExtractedData} (plafond JVM des 255 slots).
+         *
+         * @param actionGroupeDiscriminationEnvisagee flag pivot — true si les
+         *        pièces révèlent une discrimination collective + intention
+         *        d'action de groupe. FR-only, default false.
+         * @param dateMiseEnDemeureDiscrimination date ISO (yyyy-MM-dd) de la mise
+         *        en demeure de cesser la discrimination collective (amorce le
+         *        délai de carence de 6 mois, L. 1134-9 CT). null si non documentée.
+         */
+        public record ActionGroupeDiscriminationDetail(
+                boolean actionGroupeDiscriminationEnvisagee,
+                String dateMiseEnDemeureDiscrimination
+        ) {}
+
+        /**
+         * SF-218-25 : sous-objet pré-fill IA pour l'outil F-DT-37 (licenciement
+         * pour fin de chantier / d'opération du CDI de chantier, FRANCE
+         * UNIQUEMENT — art. L.1223-8 et s. ; L.1236-8 CT). Regroupe le flag pivot
+         * CONTEXTUAL et le secteur extrait en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code cdi_chantier_detecte} et {@code cdi_chantier_secteur}, contrat
+         * externe inchangé) afin de ne pas dépasser la limite de paramètres
+         * (plafond JVM 255) du constructeur canonical de
+         * {@link TravailExtractedData}. Les dates réutilisent {@code dateEntree} /
+         * {@code dateRupture}.
+         *
+         * @param cdiChantierDetecte flag pivot — true si les pièces révèlent un
+         *        CDI de chantier / d'opération (mentions « CDI de chantier »,
+         *        « contrat de chantier », « contrat d'opération », « fin de
+         *        chantier », « BTP », « ingénierie », « licenciement pour fin de
+         *        chantier »). FR-only, default false.
+         * @param cdiChantierSecteur secteur d'activité extrait (valeurs
+         *        whitelistées : BTP, INGENIERIE, AUTRE), null si non documenté.
+         *        FR-only.
+         */
+        public record CdiChantierDetail(
+                boolean cdiChantierDetecte,
+                String cdiChantierSecteur
+        ) {}
+
+        /**
          * SF-218-05 (consolidé par SF-218-23) : sous-objet pré-fill IA pour
          * l'outil F-DT-87 (pourvoi en cassation sociale, FRANCE UNIQUEMENT —
          * art. 612 CPC). Regroupe le flag pivot CONTEXTUAL et la date de
@@ -1501,9 +1551,8 @@ public record CaseAnalysisResponse(
                     .pourvoiCassationDetail(pourvoiCassationDetail)
                     // SF-218-07 — saisie sur rémunération (FR)
                     .saisieRemunerationPrefillDetail(saisieRemunerationPrefillDetail)
-                    // SF-218-09 — action de groupe en discrimination (FR)
-                    .dateMiseEnDemeureDiscrimination(dateMiseEnDemeureDiscrimination)
-                    .actionGroupeDiscriminationEnvisagee(actionGroupeDiscriminationEnvisagee)
+                    // SF-218-09 — action de groupe en discrimination (FR) — consolidé SF-218-25
+                    .actionGroupeDiscriminationDetail(actionGroupeDiscriminationDetail)
                     // SF-218-13 — particulier employeur / CESU (FR)
                     .particulierEmployeurDetail(particulierEmployeurDetail)
                     // SF-218-15 — statut journaliste professionnel (FR)
@@ -1512,7 +1561,11 @@ public record CaseAnalysisResponse(
                     .intermittentSpectacleDetail(intermittentSpectacleDetail)
                     // SF-218-19 — cadre dirigeant / qualification (FR)
                     .cadreDirigeantDetail(cadreDirigeantDetail)
-                    .stagiaireDetail(stagiaireDetail);
+                    .stagiaireDetail(stagiaireDetail)
+                    // SF-218-23 — apprentissage / validité de la rupture (FR)
+                    .apprentissageDetail(apprentissageDetail)
+                    // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
+                    .cdiChantierDetail(cdiChantierDetail);
         }
 
         public static final class Builder {
@@ -1804,9 +1857,8 @@ public record CaseAnalysisResponse(
             private PourvoiCassationDetail pourvoiCassationDetail;
             // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FR), sous-record IA.
             private SaisieRemunerationPrefillDetail saisieRemunerationPrefillDetail;
-            // SF-218-09 — action de groupe en discrimination (FR)
-            private String dateMiseEnDemeureDiscrimination;
-            private boolean actionGroupeDiscriminationEnvisagee;
+            // SF-218-09 — action de groupe en discrimination (FR) — consolidé SF-218-25.
+            private ActionGroupeDiscriminationDetail actionGroupeDiscriminationDetail;
             // SF-218-13 — particulier employeur / CESU (FR)
             private ParticulierEmployeurDetail particulierEmployeurDetail;
             // SF-218-15 — statut journaliste professionnel (FR)
@@ -1819,6 +1871,8 @@ public record CaseAnalysisResponse(
             private StagiaireDetail stagiaireDetail;
             // SF-218-23 — apprentissage_detail (FRANCE uniquement) — sous-record IA F-DT-110.
             private ApprentissageDetail apprentissageDetail;
+            // SF-218-25 — cdi_chantier_detail (FRANCE uniquement) — sous-record IA F-DT-37.
+            private CdiChantierDetail cdiChantierDetail;
 
             private Builder() {}
 
@@ -2110,9 +2164,8 @@ public record CaseAnalysisResponse(
             public Builder pourvoiCassationDetail(PourvoiCassationDetail v) { this.pourvoiCassationDetail = v; return this; }
             // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FRANCE uniquement) — sous-record IA.
             public Builder saisieRemunerationPrefillDetail(SaisieRemunerationPrefillDetail v) { this.saisieRemunerationPrefillDetail = v; return this; }
-            // SF-218-09 — action de groupe en discrimination (FRANCE uniquement).
-            public Builder dateMiseEnDemeureDiscrimination(String v) { this.dateMiseEnDemeureDiscrimination = v; return this; }
-            public Builder actionGroupeDiscriminationEnvisagee(boolean v) { this.actionGroupeDiscriminationEnvisagee = v; return this; }
+            // SF-218-09 — action de groupe en discrimination (FRANCE uniquement) — consolidé SF-218-25.
+            public Builder actionGroupeDiscriminationDetail(ActionGroupeDiscriminationDetail v) { this.actionGroupeDiscriminationDetail = v; return this; }
             // SF-218-13 — particulier employeur / CESU (FRANCE uniquement) — consolidé SF-218-17.
             public Builder particulierEmployeurDetail(ParticulierEmployeurDetail v) { this.particulierEmployeurDetail = v; return this; }
             // SF-218-15 — statut journaliste professionnel (FRANCE uniquement).
@@ -2125,6 +2178,8 @@ public record CaseAnalysisResponse(
             public Builder stagiaireDetail(StagiaireDetail v) { this.stagiaireDetail = v; return this; }
             // SF-218-23 — apprentissage_detail (FRANCE uniquement) — sous-record IA F-DT-110.
             public Builder apprentissageDetail(ApprentissageDetail v) { this.apprentissageDetail = v; return this; }
+            // SF-218-25 — cdi_chantier_detail (FRANCE uniquement) — sous-record IA F-DT-37.
+            public Builder cdiChantierDetail(CdiChantierDetail v) { this.cdiChantierDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2309,9 +2364,8 @@ public record CaseAnalysisResponse(
                         pourvoiCassationDetail,
                         // SF-218-07 (consolidé SF-218-21) — saisie sur rémunération (FR)
                         saisieRemunerationPrefillDetail,
-                        // SF-218-09 — action de groupe en discrimination (FR)
-                        dateMiseEnDemeureDiscrimination,
-                        actionGroupeDiscriminationEnvisagee,
+                        // SF-218-09 — action de groupe en discrimination (FR) — consolidé SF-218-25
+                        actionGroupeDiscriminationDetail,
                         // SF-218-13 — particulier employeur / CESU (FR)
                         particulierEmployeurDetail,
                         // SF-218-15 — statut journaliste professionnel (FR)
@@ -2323,7 +2377,9 @@ public record CaseAnalysisResponse(
                         // SF-218-21 — stagiaire / gratification / requalification (FR)
                         stagiaireDetail,
                         // SF-218-23 — apprentissage / validité de la rupture (FR)
-                        apprentissageDetail);
+                        apprentissageDetail,
+                        // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
+                        cdiChantierDetail);
             }
         }
     }
@@ -5801,9 +5857,10 @@ public record CaseAnalysisResponse(
                     .saisieRemunerationPrefillDetail(new TravailExtractedData.SaisieRemunerationPrefillDetail(
                             booleanOrFalse(node, "saisie_remuneration_detectee"),
                             nonNegativeIntOrNull(node, "nombre_personnes_a_charge")))
-                    // SF-218-09 : flag pivot CONTEXTUAL + champ — déclenche F-DT-90 action de groupe en discrimination (FR).
-                    .actionGroupeDiscriminationEnvisagee(booleanOrFalse(node, "action_groupe_discrimination_envisagee"))
-                    .dateMiseEnDemeureDiscrimination(isoDateOrNull(node, "date_mise_en_demeure_discrimination"))
+                    // SF-218-09 (consolidé SF-218-25) : flag pivot CONTEXTUAL + champ — déclenche F-DT-90 action de groupe en discrimination (FR).
+                    .actionGroupeDiscriminationDetail(new TravailExtractedData.ActionGroupeDiscriminationDetail(
+                            booleanOrFalse(node, "action_groupe_discrimination_envisagee"),
+                            isoDateOrNull(node, "date_mise_en_demeure_discrimination")))
                     // SF-218-13 : flag pivot CONTEXTUAL + champ — déclenche F-DT-108 particulier employeur / CESU (FR).
                     .particulierEmployeurDetail(new TravailExtractedData.ParticulierEmployeurDetail(
                             booleanOrFalse(node, "particulier_employeur_detecte"),
@@ -5833,6 +5890,11 @@ public record CaseAnalysisResponse(
                             whitelistedOrNull(stringOrNull(node, "apprentissage_motif_rupture"),
                                     "ACCORD_PARTIES", "FAUTE_GRAVE", "FORCE_MAJEURE", "INAPTITUDE",
                                     "EXCLUSION_DEFINITIVE_CFA", "SANS_MOTIF")))
+                    // SF-218-25 : flag pivot CONTEXTUAL + champ — déclenche F-DT-37 licenciement CDI de chantier / d'opération (FR).
+                    .cdiChantierDetail(new TravailExtractedData.CdiChantierDetail(
+                            booleanOrFalse(node, "cdi_chantier_detecte"),
+                            whitelistedOrNull(stringOrNull(node, "cdi_chantier_secteur"),
+                                    "BTP", "INGENIERIE", "AUTRE")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

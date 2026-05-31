@@ -1202,6 +1202,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-25 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `cdi_chantier_detecte` et du champ `cdi_chantier_secteur` pour pré-fill de
+     * l'outil F-DT-37 (licenciement pour fin de chantier / d'opération du CDI de
+     * chantier : art. L.1223-8 et s. ; L.1236-8 CT, FRANCE UNIQUEMENT). Les dates
+     * réutilisent les champs existants `date_entree` / `date_rupture`.
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART30 = """
+              SF-218-25 — Flag `cdi_chantier_detecte` et champ `cdi_chantier_secteur` (FRANCE UNIQUEMENT).
+              "cdi_chantier_detecte" : booléen — true uniquement si les pièces révèlent un CDI DE CHANTIER OU D'OPÉRATION au sens des art. L.1223-8 et L.1223-9 du code du travail, ou un licenciement à la fin d'un tel contrat : mention « CDI de chantier », « contrat de chantier », « contrat d'opération », « fin de chantier », « licenciement pour fin de chantier », contexte « BTP » / « bâtiment » / « travaux publics » / « ingénierie » / « bureau d'études » avec engagement pour la durée d'un chantier ou d'une opération précise. NE PAS confondre avec un CDD à objet défini (régime distinct). False par défaut. Pertinent pour F-DT-37.
+              "cdi_chantier_secteur" : énum parmi { "BTP", "INGENIERIE", "AUTRE" } — secteur d'activité de l'employeur. "BTP" pour le bâtiment / travaux publics ; "INGENIERIE" pour l'ingénierie / bureaux d'études (convention Syntec) ; "AUTRE" si un autre secteur recourt au CDI de chantier par accord de branche étendu. null si non documenté. Pour les dates, réutiliser `date_entree` (début du contrat) et `date_rupture` (notification du licenciement).
+              Pour un dossier travail BELGIQUE, laisser `cdi_chantier_detecte` à false et `cdi_chantier_secteur` à null (le CDI de chantier des art. L.1223-8 et s. du code du travail relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1236,7 +1250,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART26)
                     .concat(TRAVAIL_INSTRUCTION_PART27)
                     .concat(TRAVAIL_INSTRUCTION_PART28)
-                    .concat(TRAVAIL_INSTRUCTION_PART29);
+                    .concat(TRAVAIL_INSTRUCTION_PART29)
+                    .concat(TRAVAIL_INSTRUCTION_PART30);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

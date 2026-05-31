@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f50dc4aa-a80c-4287-99f0-a0581ac5ed53" author="legalcase">
+        <comment>
+            SF-218-25 — table `cdi_chantier_analyses` pour l'outil decisionnel
+            "Licenciement CDI de chantier / d'operation"
+            (F-DT-37-licenciement-cdi-chantier, FRANCE).
+
+            Outil single-country FR : analyse le licenciement pour fin de
+            chantier / d'operation du CDI de chantier (art. L.1223-8 et L.1223-9
+            CT). Apprecie la validite du recours (accord de branche etendu ou
+            usage constant — secteurs BTP / ingenierie), qualifie le motif (fin
+            de chantier = cause reelle et serieuse, motif specifique
+            art. L.1236-8) et calcule l'indemnite de licenciement (art. R.1234-2 :
+            1/4 de mois par annee jusqu'a 10 ans + 1/3 au-dela). Verdict global
+            LICENCIEMENT_FONDE / LICENCIEMENT_A_SECURISER / RECOURS_INVALIDE.
+            Persiste l'analyse 1:1 par dossier (upsert).
+
+            Source juridique : art. L.1223-8 ; L.1223-9 (recours CDI de chantier) ;
+            L.1236-8 (rupture a la fin du chantier = motif specifique) ;
+            R.1234-2 (indemnite de licenciement) ; CCN BTP / ingenierie (Syntec).
+        </comment>
+
+        <createTable tableName="cdi_chantier_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_cdi_chantier_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="date_entree" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fondement_recours" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="secteur" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chantier_acheve" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_moyen" type="DECIMAL(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reclassement_autre_chantier_propose" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="anciennete_annees" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_valide" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_licenciement" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="indemnite_licenciement" type="DECIMAL(14,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_global" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="cdi_chantier_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

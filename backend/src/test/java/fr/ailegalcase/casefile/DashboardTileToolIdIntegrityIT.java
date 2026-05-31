@@ -1055,7 +1055,14 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-110-apprentissage-rupture"
+            "F-DT-110-apprentissage-rupture",
+            // SF-218-25 : outil F-DT-37 licenciement pour fin de chantier /
+            // d'opération du CDI de chantier (art. L.1223-8 et s. ; L.1236-8 CT,
+            // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-26 à
+            // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-37-licenciement-cdi-chantier"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
