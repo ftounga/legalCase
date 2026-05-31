@@ -91,6 +91,8 @@ import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
 import { ApprentissageRuptureSectionComponent } from '../apprentissage-rupture-section/apprentissage-rupture-section.component';
+// SF-218-26 : composant complet F-DT-37-licenciement-cdi-chantier — licenciement pour fin de chantier / d'opération (Travail FR).
+import { CdiChantierSectionComponent } from '../cdi-chantier-section/cdi-chantier-section.component';
 // SF-218-10 : composant complet F-DT-90-action-groupe-discrimination — action de groupe en discrimination (recevabilité, Travail FR, qualité L. 1134-7 + carence 6 mois L. 1134-9 + pluralité + checklist procédurale).
 import { ActionGroupeDiscriminationSectionComponent } from '../action-groupe-discrimination-section/action-groupe-discrimination-section.component';
 // SF-214-36 : composant complet F-IM-42-assignation-residence-fr — assignation à résidence (FR, analyseur validité/délais + bridge échéance F-69).
@@ -1908,6 +1910,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-110-apprentissage-rupture', {
         displayLabel: 'Rupture apprentissage (FR)',
         component: ApprentissageRuptureSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-26 : composant complet F-DT-37-licenciement-cdi-chantier —
+      // licenciement à la fin d'un CDI de chantier / d'opération (Travail FR). FR
+      // uniquement, CONTEXTUAL (flag cdiChantierDetecte). Régime des art. L.1223-8
+      // et L.1223-9 CT (recours subordonné à un accord de branche étendu ou un
+      // usage constant — BTP / ingénierie) : qualifie la validité du recours
+      // (recoursValide), le motif de fin de chantier (FIN_CHANTIER_CRS = cause
+      // réelle et sérieuse, art. L.1236-8 / MOTIF_NON_FONDE) et calcule
+      // l'indemnité de licenciement (art. R.1234-2) → verdict global
+      // LICENCIEMENT_FONDE / LICENCIEMENT_A_SECURISER / RECOURS_INVALIDE. Pré-fill
+      // IA 3 champs (dateEntree, dateRupture, secteur) via static getPrefillCount +
+      // CdiChantierPrefillRules.
+      ['F-DT-37-licenciement-cdi-chantier', {
+        displayLabel: 'Licenciement CDI de chantier (FR)',
+        component: CdiChantierSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5354,6 +5377,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // cohérent avec les autres analyseurs de validité de rupture (F-DT-08,
     // F-DT-38, F-DT-10).
     ['F-DT-110-apprentissage-rupture', 'VALIDITE'],
+    // SF-218-26 : F-DT-37-licenciement-cdi-chantier licenciement pour fin de
+    // chantier / d'opération (Travail FR). Thème VALIDITE — analyseur de validité
+    // du recours + qualification du motif (verdict LICENCIEMENT_FONDE /
+    // LICENCIEMENT_A_SECURISER / RECOURS_INVALIDE), cohérent avec les autres
+    // analyseurs de validité de licenciement (F-DT-08, F-DT-13, F-DT-36).
+    ['F-DT-37-licenciement-cdi-chantier', 'VALIDITE'],
     // SF-218-10 : F-DT-90-action-groupe-discrimination action de groupe en
     // discrimination (recevabilité : qualité L. 1134-7 + carence 6 mois L. 1134-9).
     ['F-DT-90-action-groupe-discrimination', 'VALIDITE'],
