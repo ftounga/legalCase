@@ -32,7 +32,10 @@ if printf '%s' "$cmd" | grep -qiE 'git +push' && printf '%s' "$cmd" | grep -qiE 
 fi
 
 # --- AVERTISSEMENT : gh pr merge ------------------------------------------------------------
-if printf '%s' "$cmd" | grep -qiE 'gh +pr +merge'; then
+# Heuristique anti-faux-positif : ne pas avertir si "gh pr merge" apparaît DANS un message de
+# commit / corps de PR (heredoc, -m, --body/--title, gh pr create) plutôt qu'en vraie commande.
+if printf '%s' "$cmd" | grep -qiE 'gh +pr +merge' \
+   && ! printf '%s' "$cmd" | grep -qiE '(pr +create|commit|[[:space:]]-m[[:space:]]|--body|--title|<<)'; then
   warn "Rappel pré-merge (mémoires feedback_pre_merge_endpoint_check + feedback_pre_merge_visibility_seed_check) : (1) si PR frontend, vérifier que les endpoints /api/v1/... consommés existent côté backend (master ou PR back ouverte) ; (2) si le backend INSERT/UPDATE decision_tool_visibility_rules, vérifier TOOL_REGISTRY frontend + KNOWN_FRONTEND_TOOL_IDS ; (3) gh pr checks <PR#> tous verts ; (4) review checklist affichée."
 fi
 
