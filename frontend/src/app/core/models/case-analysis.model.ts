@@ -328,6 +328,21 @@ export interface TravailExtractedData {
    */
   statutCadreDirigeantDetecte?: boolean | null;
   /**
+   * SF-218-28 : un signalement interne de harcèlement a été reçu, détecté par
+   * l'IA dans les pièces du dossier. Pré-fill du champ `signalementRecu` de
+   * F-DT-59-harcelement-procedure-interne (FR uniquement).
+   */
+  harcelementSignalementInterne?: boolean | null;
+  /**
+   * SF-218-28 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de procédure interne de traitement d'un signalement de harcèlement (mentions
+   * « signalement de harcèlement », « référent CSE harcèlement », « enquête
+   * interne », « alerte agissements sexistes », « obligation de prévention
+   * employeur »), distincts d'un litige de nullité de licenciement (F-DT-11).
+   * FR-only. Déclenche l'apparition de F-DT-59 (n'est PAS un champ de formulaire).
+   */
+  harcelementProcedureInterneDetectee?: boolean | null;
+  /**
    * SF-218-22 : date de début du stage détectée par l'IA dans la convention de
    * stage (ISO YYYY-MM-DD), pour pré-fill F-DT-109-stagiaire-gratification-
    * requalification (FR uniquement).
