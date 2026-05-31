@@ -26,8 +26,9 @@ if printf '%s' "$cmd" | grep -qiE '(insert|update|delete|truncate|alter|drop)[^;
 fi
 
 # --- AVERTISSEMENT : push --force sur master/main --------------------------------------------
-if printf '%s' "$cmd" | grep -qiE 'git +push' && printf '%s' "$cmd" | grep -qiE '(-f\b|--force)' \
-   && printf '%s' "$cmd" | grep -qiE '\b(origin +)?(master|main)\b'; then
+# Force ET master DANS LE MÊME statement git push (pas séparés par ; | &&) — évite de matcher
+# un "git worktree remove --force" + "git push <branche>" dans une commande composée.
+if printf '%s' "$cmd" | grep -qiE 'git +push[^;|&]*(--force|-f\b)[^;|&]*(master|main)|git +push[^;|&]*(master|main)[^;|&]*(--force|-f\b)'; then
   warn "⚠️ push --force sur master/main détecté. Vérifie que ce n'est pas une récupération destructive (cf. mémoire feedback_commit_master_recovery : préférer git branch -f sur un SHA). Repo multi-session — master bouge."
 fi
 
