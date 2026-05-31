@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6bbead4d-1ec3-402b-87a5-16b487e5563c" author="legalcase">
+        <comment>
+            SF-218-25 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Licenciement CDI de chantier / d'operation"
+            (F-DT-37-licenciement-cdi-chantier, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte un
+            CDI de chantier / d'operation (mentions « CDI de chantier », « contrat
+            de chantier », « contrat d'operation », « fin de chantier », « BTP »,
+            « ingenierie », « licenciement pour fin de chantier »). Flag pivot
+            `cdi_chantier_detecte` = true. trigger_field = 'cdi_chantier_detecte',
+            trigger_value = 'true'. priority 85 — prochaine valeur libre pour le
+            couple (DROIT_DU_TRAVAIL, FRANCE) apres le seed CONTEXTUAL FR le plus
+            recent (F-DT-110 apprentissage = 84).
+
+            Source juridique : art. L.1223-8 ; L.1223-9 (recours CDI de chantier) ;
+            L.1236-8 (motif specifique) ; R.1234-2 (indemnite).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour
+            F-DT-37-licenciement-cdi-chantier est livree dans la PR frontend
+            SF-218-26 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('6bbead4d-1ec3-402b-87a5-16b487e5563c', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-37-licenciement-cdi-chantier', 'CONTEXTUAL', 'cdi_chantier_detecte', 'true', 85);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '6bbead4d-1ec3-402b-87a5-16b487e5563c';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
