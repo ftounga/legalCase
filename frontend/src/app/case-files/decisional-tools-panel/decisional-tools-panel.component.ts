@@ -87,6 +87,8 @@ import { JournalisteStatutSectionComponent } from '../journaliste-statut-section
 import { IntermittentSpectacleAreSectionComponent } from '../intermittent-spectacle-are-section/intermittent-spectacle-are-section.component';
 // SF-218-20 : composant complet F-DT-107-cadre-dirigeant-statut — qualification du cadre dirigeant (3 critères cumulatifs L.3111-2 CT), exclusion durée du travail + risque rappel d'heures supp (Travail FR).
 import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-section/cadre-dirigeant-statut-section.component';
+// SF-218-28 : composant complet F-DT-59-harcelement-procedure-interne — conformité de la procédure interne de traitement d'un signalement de harcèlement côté employeur (L.1153-5-1, L.2314-1, L.1152-4 CT) (Travail FR).
+import { HarcelementProcedureInterneSectionComponent } from '../harcelement-procedure-interne-section/harcelement-procedure-interne-section.component';
 // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
@@ -1868,6 +1870,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-107-cadre-dirigeant-statut', {
         displayLabel: 'Statut cadre dirigeant (FR)',
         component: CadreDirigeantStatutSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-28 : composant complet F-DT-59-harcelement-procedure-interne —
+      // conformité de la procédure interne de traitement d'un signalement de
+      // harcèlement côté EMPLOYEUR (Travail FR). FR uniquement, CONTEXTUAL (flag
+      // harcelementProcedureInterneDetectee). Checklist de conformité (référent
+      // CSE harcèlement sexuel L.2314-1 ; référent employeur ≥ 250 L.1153-5-1 ;
+      // information / affichage L.1152-4 ; enquête contradictoire ; mesures
+      // conservatoires) + délai de réaction (OUI/LIMITE/NON) → verdict CONFORME /
+      // NON_CONFORME / CARENCE_GRAVE et risque de responsabilité de l'employeur
+      // FAIBLE / MODERE / ELEVE (obligation de sécurité L.4121-1). Distinct de
+      // F-DT-11 (nullité du licenciement). Pré-fill IA 2 champs (effectif,
+      // signalementRecu) via static getPrefillCount +
+      // HarcelementProcedureInternePrefillRules.
+      ['F-DT-59-harcelement-procedure-interne', {
+        displayLabel: 'Harcèlement procédure interne (FR)',
+        component: HarcelementProcedureInterneSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5365,6 +5389,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // multi-critères (art. L.3111-2 CT) déterminant l'exclusion ou non des règles
     // de durée du travail, cohérent avec les autres analyseurs de statut / validité.
     ['F-DT-107-cadre-dirigeant-statut', 'VALIDITE'],
+    // SF-218-28 : F-DT-59-harcelement-procedure-interne — checklist de conformité
+    // de la procédure interne employeur (référents, information, enquête, délai).
+    // Thème DIAGNOSTIC : diagnostic de la situation de conformité employeur,
+    // groupé avec les analyseurs de conformité / diagnostic.
+    ['F-DT-59-harcelement-procedure-interne', 'DIAGNOSTIC'],
     // SF-218-22 : F-DT-109-stagiaire-gratification-requalification gratification
     // minimale du stagiaire + risque de requalification en CDI (Travail FR).
     // Thème INDEMNITES — l'outil calcule un montant de gratification due / rappel
