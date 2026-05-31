@@ -643,14 +643,15 @@ public record CaseAnalysisResponse(
             // 3 champs (ancienneté mois, salaire mensuel brut, montant demandes).
             // Sub-flag de conciliationCphEnvisagee. @JsonUnwrapped — JSON HTTP plat préservé.
             @JsonUnwrapped ConciliationCphDetail conciliationCphDetail,
-            // SF-218-01 : date de notification du jugement CPH (ISO YYYY-MM-DD, nullable).
-            // Pré-fill de l'outil F-DT-86 (appel CPH cour d'appel, FR) : fait courir le
-            // délai d'appel d'un mois (art. 538 CPC ; R. 1461-1 CPC). null si non détectable.
-            String dateNotificationJugement,
-            // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
-            // true uniquement si les pièces évoquent un jugement prud'homal rendu + une
-            // intention d'interjeter appel. FR-only, default false. Régime BE distinct.
-            boolean appelCphEnvisage,
+            // SF-218-01 (consolidé SF-218-27) : sous-objet pré-fill IA pour l'outil
+            // F-DT-86 (appel CPH cour d'appel, FR). Regroupe le flag pivot
+            // `appel_cph_envisage` et la date de notification du jugement
+            // `date_notification_jugement` en un seul composant (@JsonUnwrapped) pour
+            // libérer un slot du constructeur canonical (limite JVM 255 slots) et
+            // financer le nouveau sous-objet HarcelementProcedureInterneDetail
+            // (F-DT-59). JSON HTTP plat préservé (clés inchangées). Voir
+            // AppelCphPrefillDetail.
+            @JsonUnwrapped AppelCphPrefillDetail appelCphPrefillDetail,
             // SF-218-03 : montant total des condamnations CPH en faveur du salarié (€,
             // nullable). Pré-fill de l'outil F-DT-88 (exécution du jugement CPH, FR).
             Double montantCondamnationCph,
@@ -732,7 +733,15 @@ public record CaseAnalysisResponse(
             // le secteur extrait en un seul composant (@JsonUnwrapped) pour rester sous
             // la limite de paramètres (plafond JVM 255) du constructeur canonical du
             // record. Voir CdiChantierDetail.
-            @JsonUnwrapped CdiChantierDetail cdiChantierDetail) {
+            @JsonUnwrapped CdiChantierDetail cdiChantierDetail,
+            // SF-218-27 : sous-objet pré-fill IA pour l'outil F-DT-59 (harcèlement
+            // — procédure interne de traitement d'un signalement, FR). Regroupe le
+            // flag pivot CONTEXTUAL `harcelement_procedure_interne_detectee` et le
+            // booléen `harcelement_signalement_interne` en un seul composant
+            // (@JsonUnwrapped) pour rester sous la limite de paramètres (plafond JVM
+            // 255) du constructeur canonical du record. Voir
+            // HarcelementProcedureInterneDetail.
+            @JsonUnwrapped HarcelementProcedureInterneDetail harcelementProcedureInterneDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1183,6 +1192,55 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-01 (consolidé par SF-218-27) : sous-objet pré-fill IA pour
+         * l'outil F-DT-86 (appel d'un jugement CPH devant la cour d'appel, FRANCE
+         * UNIQUEMENT — art. 538 CPC ; R. 1461-1 CPC). Regroupe le flag pivot
+         * CONTEXTUAL et la date de notification du jugement en un seul composant
+         * {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code appel_cph_envisage} et {@code date_notification_jugement},
+         * contrat externe inchangé) afin de libérer un slot du constructeur
+         * canonical de {@link TravailExtractedData} (plafond JVM des 255 slots).
+         *
+         * @param appelCphEnvisage flag pivot — true uniquement si les pièces
+         *        évoquent un jugement prud'homal rendu + une intention d'interjeter
+         *        appel. FR-only, default false. Régime BE distinct.
+         * @param dateNotificationJugement date ISO (yyyy-MM-dd) de notification du
+         *        jugement CPH (point de départ du délai d'appel d'un mois, art. 538
+         *        CPC ; R. 1461-1 CPC). null si non documentée.
+         */
+        public record AppelCphPrefillDetail(
+                boolean appelCphEnvisage,
+                String dateNotificationJugement
+        ) {}
+
+        /**
+         * SF-218-27 : sous-objet pré-fill IA pour l'outil F-DT-59 (harcèlement —
+         * procédure interne de traitement d'un signalement, FRANCE UNIQUEMENT —
+         * art. L.1153-5-1, L.2314-1, L.1152-4, L.4121-1 CT). Regroupe le flag pivot
+         * CONTEXTUAL et le booléen de réception d'un signalement en un seul
+         * composant {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code harcelement_procedure_interne_detectee} et
+         * {@code harcelement_signalement_interne}, contrat externe inchangé) afin
+         * de ne pas dépasser la limite de paramètres (plafond JVM 255) du
+         * constructeur canonical de {@link TravailExtractedData}. Distinct de
+         * F-DT-11 (nullité du licenciement consécutif au harcèlement).
+         *
+         * @param harcelementProcedureInterneDetectee flag pivot — true si les
+         *        pièces révèlent une procédure interne de signalement de
+         *        harcèlement (mentions « signalement de harcèlement », « référent
+         *        CSE harcèlement », « enquête interne », « alerte agissements
+         *        sexistes », « obligation de prévention employeur »). FR-only,
+         *        default false.
+         * @param harcelementSignalementInterne true si un signalement de
+         *        harcèlement a été reçu par l'employeur (pré-fill du champ
+         *        {@code signalementRecu} du formulaire). FR-only, default false.
+         */
+        public record HarcelementProcedureInterneDetail(
+                boolean harcelementProcedureInterneDetectee,
+                boolean harcelementSignalementInterne
+        ) {}
+
+        /**
          * SF-218-05 (consolidé par SF-218-23) : sous-objet pré-fill IA pour
          * l'outil F-DT-87 (pourvoi en cassation sociale, FRANCE UNIQUEMENT —
          * art. 612 CPC). Regroupe le flag pivot CONTEXTUAL et la date de
@@ -1538,9 +1596,8 @@ public record CaseAnalysisResponse(
                     // SF-212-37 — conciliation CPH BCA (FR)
                     .conciliationCphEnvisagee(conciliationCphEnvisagee)
                     .conciliationCphDetail(conciliationCphDetail)
-                    // SF-218-01 — appel CPH cour d'appel (FR)
-                    .dateNotificationJugement(dateNotificationJugement)
-                    .appelCphEnvisage(appelCphEnvisage)
+                    // SF-218-01 — appel CPH cour d'appel (FR) — consolidé SF-218-27
+                    .appelCphPrefillDetail(appelCphPrefillDetail)
                     // SF-218-03 — exécution du jugement CPH / AGS (FR)
                     .montantCondamnationCph(montantCondamnationCph)
                     .situationEmployeurDetectee(situationEmployeurDetectee)
@@ -1565,7 +1622,9 @@ public record CaseAnalysisResponse(
                     // SF-218-23 — apprentissage / validité de la rupture (FR)
                     .apprentissageDetail(apprentissageDetail)
                     // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
-                    .cdiChantierDetail(cdiChantierDetail);
+                    .cdiChantierDetail(cdiChantierDetail)
+                    // SF-218-27 — harcèlement / procédure interne de signalement (FR)
+                    .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail);
         }
 
         public static final class Builder {
@@ -1844,9 +1903,8 @@ public record CaseAnalysisResponse(
             // SF-212-37 — flag F-205 + sous-record conciliation CPH BCA (FR uniquement)
             private boolean conciliationCphEnvisagee;
             private ConciliationCphDetail conciliationCphDetail;
-            // SF-218-01 — appel CPH cour d'appel (FR)
-            private String dateNotificationJugement;
-            private boolean appelCphEnvisage;
+            // SF-218-01 — appel CPH cour d'appel (FR) — consolidé SF-218-27
+            private AppelCphPrefillDetail appelCphPrefillDetail;
             // SF-218-03 — exécution du jugement CPH / AGS (FR)
             private Double montantCondamnationCph;
             private String situationEmployeurDetectee;
@@ -1873,6 +1931,8 @@ public record CaseAnalysisResponse(
             private ApprentissageDetail apprentissageDetail;
             // SF-218-25 — cdi_chantier_detail (FRANCE uniquement) — sous-record IA F-DT-37.
             private CdiChantierDetail cdiChantierDetail;
+            // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
+            private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
 
             private Builder() {}
 
@@ -2151,8 +2211,7 @@ public record CaseAnalysisResponse(
             // SF-212-37 — conciliation_cph_detail (FRANCE uniquement) — sous-record IA.
             public Builder conciliationCphDetail(ConciliationCphDetail v) { this.conciliationCphDetail = v; return this; }
             // SF-218-01 — appel CPH cour d'appel (FRANCE uniquement).
-            public Builder dateNotificationJugement(String v) { this.dateNotificationJugement = v; return this; }
-            public Builder appelCphEnvisage(boolean v) { this.appelCphEnvisage = v; return this; }
+            public Builder appelCphPrefillDetail(AppelCphPrefillDetail v) { this.appelCphPrefillDetail = v; return this; }
             // SF-218-03 — exécution du jugement CPH / AGS (FRANCE uniquement).
             public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
             public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
@@ -2180,6 +2239,7 @@ public record CaseAnalysisResponse(
             public Builder apprentissageDetail(ApprentissageDetail v) { this.apprentissageDetail = v; return this; }
             // SF-218-25 — cdi_chantier_detail (FRANCE uniquement) — sous-record IA F-DT-37.
             public Builder cdiChantierDetail(CdiChantierDetail v) { this.cdiChantierDetail = v; return this; }
+            public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2352,8 +2412,8 @@ public record CaseAnalysisResponse(
                         // SF-212-37 — conciliation CPH BCA (FR)
                         conciliationCphEnvisagee,
                         conciliationCphDetail,
-                        dateNotificationJugement,
-                        appelCphEnvisage,
+                        // SF-218-01 — appel CPH cour d'appel (FR) — consolidé SF-218-27
+                        appelCphPrefillDetail,
                         // SF-218-03 — exécution du jugement CPH / AGS (FR)
                         montantCondamnationCph,
                         situationEmployeurDetectee,
@@ -2379,7 +2439,9 @@ public record CaseAnalysisResponse(
                         // SF-218-23 — apprentissage / validité de la rupture (FR)
                         apprentissageDetail,
                         // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
-                        cdiChantierDetail);
+                        cdiChantierDetail,
+                        // SF-218-27 — harcèlement / procédure interne de signalement (FR)
+                        harcelementProcedureInterneDetail);
             }
         }
     }
@@ -5837,9 +5899,10 @@ public record CaseAnalysisResponse(
                     .electionCseDetectee(booleanOrFalse(node, "election_cse_detectee"))
                     // SF-212-33 : flag F-205 — déclenche F-DT-49 temps partiel — requalification.
                     .tempsPartielRequalificationEnvisagee(booleanOrFalse(node, "temps_partiel_requalification_envisagee"))
-                    // SF-218-01 : flag F-205 — déclenche F-DT-86 appel CPH cour d'appel (FR).
-                    .appelCphEnvisage(booleanOrFalse(node, "appel_cph_envisage"))
-                    .dateNotificationJugement(isoDateOrNull(node, "date_notification_jugement"))
+                    // SF-218-01 (consolidé SF-218-27) : flag pivot + champ — déclenche F-DT-86 appel CPH cour d'appel (FR).
+                    .appelCphPrefillDetail(new TravailExtractedData.AppelCphPrefillDetail(
+                            booleanOrFalse(node, "appel_cph_envisage"),
+                            isoDateOrNull(node, "date_notification_jugement")))
                     // SF-218-03 : flag F-205 + champs — déclenche F-DT-88 exécution jugement CPH / AGS (FR).
                     .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
                     .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
@@ -5895,6 +5958,10 @@ public record CaseAnalysisResponse(
                             booleanOrFalse(node, "cdi_chantier_detecte"),
                             whitelistedOrNull(stringOrNull(node, "cdi_chantier_secteur"),
                                     "BTP", "INGENIERIE", "AUTRE")))
+                    // SF-218-27 : flag pivot CONTEXTUAL + champ — déclenche F-DT-59 harcèlement / procédure interne de signalement (FR).
+                    .harcelementProcedureInterneDetail(new TravailExtractedData.HarcelementProcedureInterneDetail(
+                            booleanOrFalse(node, "harcelement_procedure_interne_detectee"),
+                            booleanOrFalse(node, "harcelement_signalement_interne")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

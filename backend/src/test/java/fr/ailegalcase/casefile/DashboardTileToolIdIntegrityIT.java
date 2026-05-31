@@ -1062,7 +1062,14 @@ class DashboardTileToolIdIntegrityIT {
             // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
             // uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-37-licenciement-cdi-chantier"
+            "F-DT-37-licenciement-cdi-chantier",
+            // SF-218-27 : outil F-DT-59 harcèlement — procédure interne de
+            // traitement d'un signalement (art. L.1153-5-1, L.2314-1, L.1152-4,
+            // L.4121-1 CT, FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend
+            // SF-218-28 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le
+            // backend (pattern uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-59-harcelement-procedure-interne"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
