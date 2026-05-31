@@ -8,6 +8,8 @@ input="$(cat 2>/dev/null || true)"
 command -v jq >/dev/null 2>&1 || exit 0
 f="$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_response.filePath // empty' 2>/dev/null || true)"
 [ -z "$f" ] && exit 0
+# Ne jamais réagir sur l'outillage Claude lui-même ni les deps (ex. hooks/guard-*.sh contient "guard").
+case "$f" in */.claude/*|*/node_modules/*|*/.git/*) exit 0 ;; esac
 
 concern=""
 case "$f" in

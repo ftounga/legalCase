@@ -8,6 +8,7 @@ input="$(cat 2>/dev/null || true)"
 command -v jq >/dev/null 2>&1 || exit 0
 f="$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_response.filePath // empty' 2>/dev/null || true)"
 [ -z "$f" ] && exit 0
+case "$f" in */.claude/*|*/node_modules/*|*/.git/*) exit 0 ;; esac
 
 # Ne se déclenche que sur les fichiers du système décisionnel frontend.
 case "$f" in
