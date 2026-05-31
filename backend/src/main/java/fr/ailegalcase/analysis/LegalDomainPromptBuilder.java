@@ -1216,6 +1216,21 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-27 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `harcelement_procedure_interne_detectee` et du booléen
+     * `harcelement_signalement_interne` pour pré-fill de l'outil F-DT-59
+     * (harcèlement — procédure interne de traitement d'un signalement :
+     * art. L.1153-5-1, L.2314-1, L.1152-4, L.4121-1 CT, FRANCE UNIQUEMENT).
+     * Distinct de F-DT-11 (nullité du licenciement consécutif au harcèlement).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART31 = """
+              SF-218-27 — Flag `harcelement_procedure_interne_detectee` et booléen `harcelement_signalement_interne` (FRANCE UNIQUEMENT).
+              "harcelement_procedure_interne_detectee" : booléen — true uniquement si les pièces révèlent une PROCÉDURE INTERNE de traitement d'un SIGNALEMENT de harcèlement côté EMPLOYEUR (et non un litige de nullité de licenciement) : mention « signalement de harcèlement », « alerte harcèlement », « référent CSE harcèlement », « référent harcèlement sexuel », « enquête interne », « enquête contradictoire », « agissements sexistes », « obligation de prévention », « obligation de sécurité de l'employeur », « mesures conservatoires ». Pertinent pour apprécier la conformité de la réaction de l'employeur (désignation des référents, affichage, déclenchement et impartialité de l'enquête, délai de réaction). NE PAS confondre avec la nullité du licenciement consécutif au harcèlement (motif_nullite_pressenti / F-DT-11, situation distincte). False par défaut. Pertinent pour F-DT-59.
+              "harcelement_signalement_interne" : booléen — true uniquement si les pièces établissent qu'un signalement de harcèlement a effectivement été REÇU par l'employeur (lettre, mail, alerte au référent, compte rendu d'entretien, signalement au CSE). False par défaut. Pré-remplit le champ « signalement reçu » du formulaire F-DT-59.
+              Pour un dossier travail BELGIQUE, laisser `harcelement_procedure_interne_detectee` à false et `harcelement_signalement_interne` à false (la procédure interne de signalement des art. L.1153-5-1 et s. du code du travail relève du droit français, hors périmètre de cet outil FR ; le régime belge — loi du 4 août 1996 sur le bien-être, conseiller en prévention aspects psychosociaux — est distinct).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1251,7 +1266,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART27)
                     .concat(TRAVAIL_INSTRUCTION_PART28)
                     .concat(TRAVAIL_INSTRUCTION_PART29)
-                    .concat(TRAVAIL_INSTRUCTION_PART30);
+                    .concat(TRAVAIL_INSTRUCTION_PART30)
+                    .concat(TRAVAIL_INSTRUCTION_PART31);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

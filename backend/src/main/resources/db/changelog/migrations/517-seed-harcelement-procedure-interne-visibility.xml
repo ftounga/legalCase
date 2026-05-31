@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b7e2d9c4-3a15-4f86-9d72-6c0b8e1f5a23" author="legalcase">
+        <comment>
+            SF-218-27 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Harcelement — procedure interne de traitement d'un
+            signalement" (F-DT-59-harcelement-procedure-interne, FRANCE
+            uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de procedure interne de signalement (mentions « signalement de
+            harcelement », « referent CSE harcelement », « enquete interne »,
+            « alerte agissements sexistes », « obligation de prevention
+            employeur »), distincts d'un litige de nullite de licenciement
+            (F-DT-11). Flag pivot `harcelement_procedure_interne_detectee` = true.
+            trigger_field = 'harcelement_procedure_interne_detectee',
+            trigger_value = 'true'. priority 86 — prochaine valeur libre pour le
+            couple (DROIT_DU_TRAVAIL, FRANCE) apres le seed CONTEXTUAL FR le plus
+            recent (F-DT-37 CDI de chantier = 85).
+
+            Source juridique : art. L.1153-5-1 ; L.2314-1 ; L.1152-4 ; L.1153-5 ;
+            L.4121-1 CT.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour
+            F-DT-59-harcelement-procedure-interne est livree dans la PR frontend
+            SF-218-28 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('b7e2d9c4-3a15-4f86-9d72-6c0b8e1f5a23', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-59-harcelement-procedure-interne', 'CONTEXTUAL', 'harcelement_procedure_interne_detectee', 'true', 86);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'b7e2d9c4-3a15-4f86-9d72-6c0b8e1f5a23';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

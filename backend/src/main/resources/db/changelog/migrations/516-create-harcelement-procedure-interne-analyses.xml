@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="a3f1c7d2-9b64-4e58-8c11-2d7e6f0a4b91" author="legalcase">
+        <comment>
+            SF-218-27 — table `harcelement_procedure_interne_analyses` pour l'outil
+            decisionnel "Harcelement — procedure interne de traitement d'un
+            signalement" (F-DT-59-harcelement-procedure-interne, FRANCE).
+
+            Outil single-country FR : apprecie la conformite de la procedure
+            interne de traitement d'un signalement de harcelement cote employeur
+            (art. L.1153-5-1, L.2314-1, L.1152-4 CT). Checklist : referent CSE
+            harcelement sexuel (obligatoire des 11 salaries), referent employeur
+            (obligatoire des 250 salaries), information / affichage des salaries,
+            enquete interne contradictoire a reception d'un signalement, delai de
+            reaction raisonnable, mesures conservatoires. Verdict CONFORME /
+            NON_CONFORME / CARENCE_GRAVE ; CARENCE_GRAVE = manquement a
+            l'obligation de securite (L.4121-1) susceptible d'engager la
+            responsabilite de l'employeur. Persiste l'analyse 1:1 par dossier
+            (upsert). Outil distinct de F-DT-11 (nullite du licenciement).
+
+            Source juridique : art. L.1153-5-1 ; L.2314-1 ; L.1152-4 ; L.1153-5 ;
+            L.4121-1 CT.
+        </comment>
+
+        <createTable tableName="harcelement_procedure_interne_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_harcelement_proc_interne_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="effectif" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="signalement_recu" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delai_reaction_jours" type="INT"/>
+            <column name="delai_raisonnable" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="items_obligatoires_manquants" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_responsabilite_employeur" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="harcelement_procedure_interne_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
