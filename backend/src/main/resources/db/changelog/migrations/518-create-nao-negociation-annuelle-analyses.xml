@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c1d8e3f7-2a46-4b59-9e83-7f0a2b5d6c14" author="legalcase">
+        <comment>
+            SF-218-29 — table `nao_negociation_annuelle_analyses` pour l'outil
+            decisionnel "NAO — negociation annuelle obligatoire"
+            (F-DT-66-nao-negociation-annuelle, FRANCE).
+
+            Outil single-country FR : apprecie la conformite de la negociation
+            annuelle obligatoire dans les entreprises pourvues d'un delegue
+            syndical (art. L.2242-1 a L.2242-8 CT). Conditionnee a la presence
+            d'un DS (sinon NON_APPLICABLE). Checklist : bloc remuneration / temps
+            de travail / partage de la valeur (L.2242-15), bloc egalite pro F/H
+            et QVT (L.2242-17), periodicite respectee (annuelle, jusqu'a 48 mois
+            par accord de methode L.2242-11), PV de desaccord (obligatoire si la
+            negociation n'aboutit pas). Calculateur d'echeance : prochaine
+            echeance = derniere negociation + periodicite ; statut A_JOUR /
+            ECHEANCE_PROCHE / DEPASSEE. Verdict CONFORME / NON_CONFORME /
+            NON_APPLICABLE ; risque d'entrave ELEVE / MODERE / FAIBLE (delit
+            d'entrave L.2243-2, penalite egalite F/H). Persiste l'analyse 1:1 par
+            dossier (upsert). Outil distinct de F-DT-67 (validite d'un accord
+            d'entreprise) et de F-DT-101 (index egalite pro F/H).
+
+            Source juridique : art. L.2242-1 a L.2242-8 ; L.2242-11 ; L.2242-15 ;
+            L.2242-17 ; L.2243-2 CT.
+        </comment>
+
+        <createTable tableName="nao_negociation_annuelle_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_nao_negociation_annuelle_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="effectif" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delegue_syndical_present" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="applicable" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="periodicite_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_prochaine_echeance" type="DATE"/>
+            <column name="jours_avant_echeance" type="INT"/>
+            <column name="statut_echeance" type="VARCHAR(20)"/>
+            <column name="items_obligatoires_manquants" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_entrave" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="nao_negociation_annuelle_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

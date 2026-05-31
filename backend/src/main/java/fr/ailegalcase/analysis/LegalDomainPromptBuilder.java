@@ -1231,6 +1231,20 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-29 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `nao_detectee` et du booléen `delegue_syndical_present` pour pré-fill de
+     * l'outil F-DT-66 (NAO — négociation annuelle obligatoire : art. L.2242-1 à
+     * L.2242-8 CT, FRANCE UNIQUEMENT). Distinct de F-DT-67 (validité d'un accord
+     * d'entreprise) et F-DT-101 (index égalité professionnelle F/H).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART32 = """
+              SF-218-29 — Flag `nao_detectee` et booléen `delegue_syndical_present` (FRANCE UNIQUEMENT).
+              "nao_detectee" : booléen — true uniquement si les pièces révèlent une NÉGOCIATION ANNUELLE OBLIGATOIRE (NAO) au sens des art. L.2242-1 et s. du code du travail : mention « négociation annuelle obligatoire », « NAO », « négociation annuelle sur les salaires », « réunion de négociation salariale », « PV de désaccord », « procès-verbal de désaccord », « accord de méthode » sur la périodicité, « blocs de négociation » (rémunération / égalité professionnelle / QVT), dans un contexte d'entreprise pourvue d'un ou plusieurs délégués syndicaux. NE PAS confondre avec la validité d'un accord d'entreprise issu de la NAO (F-DT-67) ni avec l'index égalité professionnelle F/H (F-DT-101), situations distinctes. False par défaut. Pertinent pour F-DT-66.
+              "delegue_syndical_present" : booléen — true uniquement si les pièces établissent qu'au moins un délégué syndical est désigné dans l'entreprise (déclencheur de l'obligation de NAO, art. L.2242-1). False par défaut. Pré-remplit le champ « délégué syndical présent » du formulaire F-DT-66.
+              Pour un dossier travail BELGIQUE, laisser `nao_detectee` à false et `delegue_syndical_present` à false (la négociation annuelle obligatoire des art. L.2242-1 et s. du code du travail relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1267,7 +1281,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART28)
                     .concat(TRAVAIL_INSTRUCTION_PART29)
                     .concat(TRAVAIL_INSTRUCTION_PART30)
-                    .concat(TRAVAIL_INSTRUCTION_PART31);
+                    .concat(TRAVAIL_INSTRUCTION_PART31)
+                    .concat(TRAVAIL_INSTRUCTION_PART32);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 

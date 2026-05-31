@@ -741,7 +741,13 @@ public record CaseAnalysisResponse(
             // (@JsonUnwrapped) pour rester sous la limite de paramètres (plafond JVM
             // 255) du constructeur canonical du record. Voir
             // HarcelementProcedureInterneDetail.
-            @JsonUnwrapped HarcelementProcedureInterneDetail harcelementProcedureInterneDetail) {
+            @JsonUnwrapped HarcelementProcedureInterneDetail harcelementProcedureInterneDetail,
+            // SF-218-29 : sous-objet pré-fill IA pour l'outil F-DT-66 (NAO —
+            // négociation annuelle obligatoire, FR). Regroupe le flag pivot CONTEXTUAL
+            // `nao_detectee` et le booléen `delegue_syndical_present` en un seul
+            // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
+            // (plafond JVM 255) du constructeur canonical du record. Voir NaoDetail.
+            @JsonUnwrapped NaoDetail naoDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1241,6 +1247,31 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-29 — sous-objet pré-fill IA pour l'outil F-DT-66 (NAO — négociation
+         * annuelle obligatoire, FRANCE UNIQUEMENT — art. L.2242-1 à L.2242-8 CT).
+         * Regroupe le flag pivot CONTEXTUAL et la présence d'un délégué syndical en
+         * un seul composant {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code nao_detectee} et {@code delegue_syndical_present}, contrat externe
+         * inchangé) afin de ne pas dépasser la limite de paramètres (plafond JVM 255)
+         * du constructeur canonical de {@link TravailExtractedData}. Distinct de
+         * F-DT-67 (validité d'un accord d'entreprise) et F-DT-101 (index égalité F/H).
+         *
+         * @param naoDetectee flag pivot — true si les pièces révèlent une négociation
+         *        annuelle obligatoire (mentions « négociation annuelle obligatoire »,
+         *        « NAO », « PV de désaccord », « réunion de négociation salariale »,
+         *        « accord de méthode », « délégué syndical » dans un contexte de
+         *        négociation collective). FR-only, default false.
+         * @param delegueSyndicalPresent true si au moins un délégué syndical est
+         *        désigné (pré-fill du champ {@code delegueSyndicalPresent} du
+         *        formulaire F-DT-66, déclencheur de l'obligation). FR-only, default
+         *        false.
+         */
+        public record NaoDetail(
+                boolean naoDetectee,
+                boolean delegueSyndicalPresent
+        ) {}
+
+        /**
          * SF-218-05 (consolidé par SF-218-23) : sous-objet pré-fill IA pour
          * l'outil F-DT-87 (pourvoi en cassation sociale, FRANCE UNIQUEMENT —
          * art. 612 CPC). Regroupe le flag pivot CONTEXTUAL et la date de
@@ -1624,7 +1655,9 @@ public record CaseAnalysisResponse(
                     // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
                     .cdiChantierDetail(cdiChantierDetail)
                     // SF-218-27 — harcèlement / procédure interne de signalement (FR)
-                    .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail);
+                    .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail)
+                    // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
+                    .naoDetail(naoDetail);
         }
 
         public static final class Builder {
@@ -1933,6 +1966,7 @@ public record CaseAnalysisResponse(
             private CdiChantierDetail cdiChantierDetail;
             // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
             private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
+            private NaoDetail naoDetail;
 
             private Builder() {}
 
@@ -2240,6 +2274,8 @@ public record CaseAnalysisResponse(
             // SF-218-25 — cdi_chantier_detail (FRANCE uniquement) — sous-record IA F-DT-37.
             public Builder cdiChantierDetail(CdiChantierDetail v) { this.cdiChantierDetail = v; return this; }
             public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
+            // SF-218-29 — nao_detectee / delegue_syndical_present (FRANCE uniquement) — sous-record IA F-DT-66.
+            public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2441,7 +2477,9 @@ public record CaseAnalysisResponse(
                         // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
                         cdiChantierDetail,
                         // SF-218-27 — harcèlement / procédure interne de signalement (FR)
-                        harcelementProcedureInterneDetail);
+                        harcelementProcedureInterneDetail,
+                        // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
+                        naoDetail);
             }
         }
     }
@@ -5962,6 +6000,10 @@ public record CaseAnalysisResponse(
                     .harcelementProcedureInterneDetail(new TravailExtractedData.HarcelementProcedureInterneDetail(
                             booleanOrFalse(node, "harcelement_procedure_interne_detectee"),
                             booleanOrFalse(node, "harcelement_signalement_interne")))
+                    // SF-218-29 : flag pivot CONTEXTUAL + champ — déclenche F-DT-66 NAO / négociation annuelle obligatoire (FR).
+                    .naoDetail(new TravailExtractedData.NaoDetail(
+                            booleanOrFalse(node, "nao_detectee"),
+                            booleanOrFalse(node, "delegue_syndical_present")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
