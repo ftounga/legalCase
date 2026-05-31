@@ -89,6 +89,8 @@ import { IntermittentSpectacleAreSectionComponent } from '../intermittent-specta
 import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-section/cadre-dirigeant-statut-section.component';
 // SF-218-28 : composant complet F-DT-59-harcelement-procedure-interne — conformité de la procédure interne de traitement d'un signalement de harcèlement côté employeur (L.1153-5-1, L.2314-1, L.1152-4 CT) (Travail FR).
 import { HarcelementProcedureInterneSectionComponent } from '../harcelement-procedure-interne-section/harcelement-procedure-interne-section.component';
+// SF-218-30 : composant complet F-DT-66-nao-negociation-annuelle — conformité de la négociation annuelle obligatoire + calculateur d'échéance (L.2242-1 à L.2242-8 CT) (Travail FR).
+import { NaoNegociationAnnuelleSectionComponent } from '../nao-negociation-annuelle-section/nao-negociation-annuelle-section.component';
 // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
@@ -1892,6 +1894,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-59-harcelement-procedure-interne', {
         displayLabel: 'Harcèlement procédure interne (FR)',
         component: HarcelementProcedureInterneSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-30 : composant complet F-DT-66-nao-negociation-annuelle —
+      // conformité de la négociation annuelle obligatoire (NAO) côté EMPLOYEUR +
+      // calculateur d'échéance (Travail FR). FR uniquement, CONTEXTUAL (flag
+      // naoDetectee). Checklist de conformité (bloc rémunération L.2242-15 ; bloc
+      // égalité pro / QVT L.2242-17 ; périodicité respectée — annuelle ou ≤ 48
+      // mois avec accord de méthode L.2242-11 ; PV de désaccord L.2242-5) +
+      // calcul de la prochaine échéance (A_JOUR / ECHEANCE_PROCHE / DEPASSEE) →
+      // verdict CONFORME / NON_CONFORME / NON_APPLICABLE et risque d'entrave
+      // FAIBLE / MODERE / ELEVE (délit d'entrave L.2243-2, pénalité égalité F/H).
+      // Distinct de F-DT-67 (validité de l'accord issu de la NAO). Pré-fill IA 2
+      // champs (effectif, delegueSyndicalPresent) via static getPrefillCount +
+      // NaoNegociationAnnuellePrefillRules.
+      ['F-DT-66-nao-negociation-annuelle', {
+        displayLabel: 'NAO négociation annuelle (FR)',
+        component: NaoNegociationAnnuelleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5394,6 +5418,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Thème DIAGNOSTIC : diagnostic de la situation de conformité employeur,
     // groupé avec les analyseurs de conformité / diagnostic.
     ['F-DT-59-harcelement-procedure-interne', 'DIAGNOSTIC'],
+    // SF-218-30 : F-DT-66-nao-negociation-annuelle — checklist de conformité de
+    // la négociation annuelle obligatoire + calculateur d'échéance. Thème
+    // DIAGNOSTIC : diagnostic de la situation de conformité employeur (NAO).
+    ['F-DT-66-nao-negociation-annuelle', 'DIAGNOSTIC'],
     // SF-218-22 : F-DT-109-stagiaire-gratification-requalification gratification
     // minimale du stagiaire + risque de requalification en CDI (Travail FR).
     // Thème INDEMNITES — l'outil calcule un montant de gratification due / rappel
