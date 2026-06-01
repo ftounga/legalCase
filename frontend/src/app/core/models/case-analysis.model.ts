@@ -343,6 +343,22 @@ export interface TravailExtractedData {
    */
   harcelementProcedureInterneDetectee?: boolean | null;
   /**
+   * SF-218-30 : présence d'au moins un délégué syndical désigné dans
+   * l'entreprise, détectée par l'IA dans les pièces du dossier. Pré-fill du champ
+   * `delegueSyndicalPresent` de F-DT-66-nao-negociation-annuelle (déclencheur de
+   * l'obligation de négociation annuelle obligatoire, FR uniquement).
+   */
+  delegueSyndicalPresent?: boolean | null;
+  /**
+   * SF-218-30 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de négociation annuelle obligatoire (mentions « négociation annuelle
+   * obligatoire », « NAO », « PV de désaccord », « réunion de négociation
+   * salariale », « accord de méthode », « délégué syndical » dans un contexte de
+   * négociation collective). FR-only. Déclenche l'apparition de
+   * F-DT-66-nao-negociation-annuelle (n'est PAS un champ de formulaire).
+   */
+  naoDetectee?: boolean | null;
+  /**
    * SF-218-22 : date de début du stage détectée par l'IA dans la convention de
    * stage (ISO YYYY-MM-DD), pour pré-fill F-DT-109-stagiaire-gratification-
    * requalification (FR uniquement).
