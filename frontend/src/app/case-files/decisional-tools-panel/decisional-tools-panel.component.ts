@@ -91,6 +91,8 @@ import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-
 import { HarcelementProcedureInterneSectionComponent } from '../harcelement-procedure-interne-section/harcelement-procedure-interne-section.component';
 // SF-218-30 : composant complet F-DT-66-nao-negociation-annuelle — conformité de la négociation annuelle obligatoire + calculateur d'échéance (L.2242-1 à L.2242-8 CT) (Travail FR).
 import { NaoNegociationAnnuelleSectionComponent } from '../nao-negociation-annuelle-section/nao-negociation-annuelle-section.component';
+// SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
+import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
@@ -1916,6 +1918,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-66-nao-negociation-annuelle', {
         displayLabel: 'NAO négociation annuelle (FR)',
         component: NaoNegociationAnnuelleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection —
+      // analyseur de statut + protection (Travail FR). FR uniquement, CONTEXTUAL
+      // (flag delegationSyndicaleDetectee). Checklist de régularité de la
+      // désignation du délégué syndical (DS) ou du représentant de section
+      // syndicale (RSS) : effectif (DS ≥ 50, L.2143-3), représentativité de
+      // l'organisation désignante (DS représentatif / RSS non représentatif,
+      // L.2142-1-1), score personnel du candidat (DS ≥ 10 %, L.2143-3) → verdict
+      // REGULIERE / IRREGULIERE / A_VERIFIER ; statut de salarié protégé (OUI) +
+      // risque de nullité d'un licenciement prononcé sans autorisation préalable
+      // de l'inspecteur du travail (L.2411-3) → ELEVE / FAIBLE / SANS_OBJET
+      // (nullité + réintégration). Pré-fill IA 2 champs (effectif, typeMandat)
+      // via static getPrefillCount + DelegationSyndicalePrefillRules.
+      ['F-DT-69-delegation-syndicale-protection', {
+        displayLabel: 'Délégué syndical / RSS (FR)',
+        component: DelegationSyndicaleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5422,6 +5446,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // la négociation annuelle obligatoire + calculateur d'échéance. Thème
     // DIAGNOSTIC : diagnostic de la situation de conformité employeur (NAO).
     ['F-DT-66-nao-negociation-annuelle', 'DIAGNOSTIC'],
+    // SF-218-34 : F-DT-69-delegation-syndicale-protection — régularité de la
+    // désignation DS / RSS + statut protégé / risque de nullité du licenciement.
+    // Thème DIAGNOSTIC : diagnostic de statut + protection (analyseur de situation
+    // syndicale), groupé avec les analyseurs de statut / conformité.
+    ['F-DT-69-delegation-syndicale-protection', 'DIAGNOSTIC'],
     // SF-218-22 : F-DT-109-stagiaire-gratification-requalification gratification
     // minimale du stagiaire + risque de requalification en CDI (Travail FR).
     // Thème INDEMNITES — l'outil calcule un montant de gratification due / rappel
