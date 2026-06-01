@@ -1,0 +1,245 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">diversity_3</mat-icon>
+    <span class="is-title">DÉLÉGUÉ SYNDICAL / RSS (FR)</span>
+    @if (result()) {
+      <span [class]="statutDesignationChipClass(result()!.statutDesignation)" data-testid="statut-chip">
+        {{ statutDesignationLabel(result()!.statutDesignation) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Désignation syndicale — régime français uniquement</div>
+            <div class="is-banner-sub">
+              La désignation du délégué syndical (DS) et du représentant de
+              section syndicale (RSS), ainsi que le statut protecteur attaché
+              (autorisation préalable de l'inspecteur du travail), reposent sur les
+              art. L.2143-1 et s., L.2142-1-1, L.2143-3 et L.2411-3 du Code du
+              travail français : ce régime n'a pas d'équivalent direct en droit du
+              travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Régularité de la désignation (DS / RSS) et protection contre le licenciement (art. L.2143-1 et s., L.2411-3 CT).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de mandat</mat-label>
+                  <mat-select [ngModel]="typeMandat()"
+                              (ngModelChange)="onTypeMandatChange($event)"
+                              name="typeMandat"
+                              data-testid="type-mandat">
+                    <mat-option value="DELEGUE_SYNDICAL">Délégué syndical (DS)</mat-option>
+                    <mat-option value="RSS">Représentant de section syndicale (RSS)</mat-option>
+                  </mat-select>
+                  <mat-hint>Le RSS est désigné par un syndicat non représentatif</mat-hint>
+                </mat-form-field>
+                @if (provenanceTypeMandat() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-type-mandat"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Effectif de l'entreprise (nb salariés)</mat-label>
+                  <input matInput type="number" min="1" step="1"
+                         [ngModel]="effectif()"
+                         (ngModelChange)="onEffectifChange($event)"
+                         name="effectif"
+                         data-testid="effectif-input" />
+                  <mat-hint>Un délégué syndical suppose un effectif d'au moins 50 salariés (L.2143-3)</mat-hint>
+                </mat-form-field>
+                @if (provenanceEffectif() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-effectif"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="syndicatRepresentatif()"
+                              (ngModelChange)="onSyndicatRepresentatifChange($event)"
+                              name="syndicatRepresentatif"
+                              data-testid="syndicat-representatif">
+                  L'organisation désignante est représentative (≥ 10 % des suffrages au 1er tour CSE)
+                </mat-checkbox>
+              </div>
+
+              @if (isDs()) {
+                <div class="is-field-wrap" data-testid="score-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Score personnel du candidat (% des suffrages)</mat-label>
+                    <input matInput type="number" min="0" max="100" step="0.1"
+                           [ngModel]="pourcentageScorePersonnel()"
+                           (ngModelChange)="onScoreChange($event)"
+                           name="pourcentageScorePersonnel"
+                           data-testid="score-input" />
+                    <mat-hint>Le DS doit en principe avoir recueilli ≥ 10 % des suffrages (L.2143-3)</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de désignation (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDesignation()"
+                         (ngModelChange)="onDateDesignationChange($event)"
+                         name="dateDesignation"
+                         data-testid="date-designation-input" />
+                </mat-form-field>
+              </div>
+
+              <div class="is-check-wrap is-check-wrap--indice">
+                <mat-checkbox [ngModel]="licenciementEnvisage()"
+                              (ngModelChange)="onLicenciementEnvisageChange($event)"
+                              name="licenciementEnvisage"
+                              data-testid="licenciement-envisage">
+                  Un licenciement est envisagé / engagé (salarié protégé)
+                </mat-checkbox>
+              </div>
+
+              @if (licenciementEnvisage()) {
+                <div class="is-check-wrap" data-testid="autorisation-wrap">
+                  <mat-checkbox [ngModel]="autorisationInspecteurTravail()"
+                                (ngModelChange)="onAutorisationChange($event)"
+                                name="autorisationInspecteurTravail"
+                                data-testid="autorisation-inspecteur">
+                    L'autorisation préalable de l'inspecteur du travail a été obtenue (L.2411-3)
+                  </mat-checkbox>
+                </div>
+              }
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la désignation</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.statutDesignation)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statutDesignation) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ statutDesignationLabel(result()!.statutDesignation) }}</div>
+                  <div class="is-banner-sub">
+                    {{ typeMandatLabel(result()!.typeMandat) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Statut protégé + risque de nullité -->
+              <div class="is-badges">
+                <span class="is-chip is-chip--navy" data-testid="protege-chip">
+                  Salarié protégé : {{ result()!.statutProtege }}
+                </span>
+                <span [class]="risqueChipClass(result()!.risqueNulliteLicenciement)" data-testid="risque-chip">
+                  Nullité licenciement — {{ risqueLabel(result()!.risqueNulliteLicenciement) }}
+                </span>
+              </div>
+
+              <!-- Checklist de régularité avec coche / croix -->
+              <ul class="is-criteres" data-testid="checklist">
+                @for (item of result()!.checklist; track item.item) {
+                  <li class="is-critere" [class.is-critere--ok]="item.conforme" [class.is-critere--ko]="!item.conforme">
+                    <mat-icon class="is-critere-icon">{{ item.conforme ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <div class="is-critere-content">
+                      <span class="is-critere-label">{{ item.item }}</span>
+                      @if (item.commentaire) {
+                        <span class="is-critere-comment">{{ item.commentaire }}</span>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              <!-- Score personnel (DS) en JetBrains Mono -->
+              @if (result()!.typeMandat === 'DELEGUE_SYNDICAL' && result()!.pourcentageScorePersonnel != null) {
+                <div class="is-figure">
+                  <span class="is-figure-label">Score personnel du candidat</span>
+                  <span class="is-figure-value" data-testid="score-value">{{ result()!.pourcentageScorePersonnel }} %</span>
+                </div>
+              }
+
+              <!-- Note explicative — statut protecteur / nullité du licenciement -->
+              <div class="is-note" role="note" data-testid="protege-note">
+                <mat-icon>info_outline</mat-icon>
+                <span>{{ risqueNote(result()!.risqueNulliteLicenciement) }}</span>
+              </div>
+
+              <!-- Conséquences / points de vigilance -->
+              @if (result()!.consequences.length > 0) {
+                <div class="is-coherence" role="note" data-testid="consequences">
+                  @for (c of result()!.consequences; track c) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ c }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

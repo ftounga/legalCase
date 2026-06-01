@@ -359,6 +359,22 @@ export interface TravailExtractedData {
    */
   naoDetectee?: boolean | null;
   /**
+   * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
+   * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
+   * pour pré-fill du champ `typeMandat` de
+   * F-DT-69-delegation-syndicale-protection (FR uniquement).
+   */
+  mandatSyndicalType?: 'DELEGUE_SYNDICAL' | 'RSS' | null;
+  /**
+   * SF-218-34 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de désignation d'un délégué syndical (DS) ou d'un représentant de section
+   * syndicale (RSS) (mentions « délégué syndical », « RSS », « représentant de
+   * section syndicale », « désignation syndicale », « section syndicale »).
+   * FR-only. Déclenche l'apparition de F-DT-69-delegation-syndicale-protection
+   * (n'est PAS un champ de formulaire).
+   */
+  delegationSyndicaleDetectee?: boolean | null;
+  /**
    * SF-218-32 : % des suffrages exprimés au 1er tour des dernières élections
    * recueilli par les syndicats signataires d'un accord d'entreprise, détecté par
    * l'IA (∈ [0 ; 100]). Pré-fill du champ `pourcentageSuffragesSignataires` de
