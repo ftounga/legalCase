@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="31bb5e20-8f32-4c99-ad31-0b2c3d4e5f62" author="legalcase">
+        <comment>
+            SF-218-31 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Accord d'entreprise — validite"
+            (F-DT-67-accord-entreprise-validite, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 3), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux d'accord d'entreprise (mentions « accord d'entreprise »,
+            « accord collectif », « suffrages exprimes au 1er tour », « referendum
+            de validation », « denonciation d'accord », « avenant de revision »,
+            « syndicats signataires »). Flag pivot `accord_entreprise_detecte` =
+            true. trigger_field = 'accord_entreprise_detecte', trigger_value =
+            'true'. priority 88 — prochaine valeur libre pour le couple
+            (DROIT_DU_TRAVAIL, FRANCE) apres le seed CONTEXTUAL FR le plus recent
+            (F-DT-66 NAO = 87).
+
+            Source juridique : art. L.2232-12 ; L.2261-7 a L.2261-11 CT.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour
+            F-DT-67-accord-entreprise-validite est livree dans la PR frontend
+            SF-218-32 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('31bb5e20-8f32-4c99-ad31-0b2c3d4e5f62', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-67-accord-entreprise-validite', 'CONTEXTUAL', 'accord_entreprise_detecte', 'true', 88);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '31bb5e20-8f32-4c99-ad31-0b2c3d4e5f62';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

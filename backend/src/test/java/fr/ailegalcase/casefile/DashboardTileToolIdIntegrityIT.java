@@ -1083,7 +1083,20 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-100-reglement-interieur-validite"
+            "F-DT-100-reglement-interieur-validite",
+            // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
+            // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
+            // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à
+            // venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern
+            // uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-DT-69-delegation-syndicale-protection",
+            // SF-218-31 : outil F-DT-67 Accord d'entreprise — validité
+            // (art. L.2232-12 CT, FR-only, CONTEXTUAL) — pas de tuile dashboard.
+            // Frontend SF-218-32 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 / F-218 vagues,
+            // cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-67-accord-entreprise-validite"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
