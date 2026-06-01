@@ -359,6 +359,20 @@ export interface TravailExtractedData {
    */
   naoDetectee?: boolean | null;
   /**
+   * SF-218-36 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de règlement intérieur (mentions « règlement intérieur », « échelle des
+   * sanctions », « clause du règlement intérieur », « dépôt au greffe »,
+   * « consultation CSE règlement »). FR-only. Déclenche l'apparition de
+   * F-DT-100-reglement-interieur-validite (n'est PAS un champ de formulaire).
+   */
+  reglementInterieurDetecte?: boolean | null;
+  /**
+   * SF-218-36 : true si un règlement intérieur existe effectivement dans
+   * l'entreprise, détecté par l'IA dans les pièces du dossier. Pré-fill du champ
+   * `reglementExiste` de F-DT-100-reglement-interieur-validite (FR uniquement).
+   */
+  reglementInterieurPresent?: boolean | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de
