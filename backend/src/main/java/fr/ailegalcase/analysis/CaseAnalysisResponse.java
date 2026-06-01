@@ -652,15 +652,15 @@ public record CaseAnalysisResponse(
             // (F-DT-59). JSON HTTP plat préservé (clés inchangées). Voir
             // AppelCphPrefillDetail.
             @JsonUnwrapped AppelCphPrefillDetail appelCphPrefillDetail,
-            // SF-218-03 : montant total des condamnations CPH en faveur du salarié (€,
-            // nullable). Pré-fill de l'outil F-DT-88 (exécution du jugement CPH, FR).
-            Double montantCondamnationCph,
-            // SF-218-03 : proxy de la situation de l'employeur débiteur détectée par l'IA
-            // (IN_BONIS / REDRESSEMENT / LIQUIDATION, nullable). Oriente le relais AGS.
-            String situationEmployeurDetectee,
-            // SF-218-03 : flag F-205 pivot — déclenche F-DT-88 exécution du jugement CPH (FR).
-            // true si jugement CPH favorable + difficulté d'exécution / AGS. FR-only, default false.
-            boolean executionJugementCphEnvisagee,
+            // SF-218-03 : sous-objet pré-fill IA pour l'outil F-DT-88 (exécution du
+            // jugement CPH, FR). Regroupe le flag pivot F-205, le montant des
+            // condamnations et la situation de l'employeur débiteur en un seul
+            // composant (@JsonUnwrapped) — consolidé par SF-218-29 pour libérer
+            // deux slots du constructeur canonical (plafond JVM 255) et financer le
+            // nouveau sous-objet NaoDetail (F-DT-66). JSON HTTP plat préservé (clés
+            // `execution_jugement_cph_envisagee`, `montant_condamnation_cph` et
+            // `situation_employeur_detectee` inchangées). Voir ExecutionJugementCphDetail.
+            @JsonUnwrapped ExecutionJugementCphDetail executionJugementCphDetail,
             // SF-218-11 : sous-objet pré-fill IA pour l'outil F-DT-104 (VRP
             // indemnité de clientèle, FR). Consolidé en un seul composant
             // (@JsonUnwrapped) par SF-218-19 pour libérer un paramètre du
@@ -741,7 +741,13 @@ public record CaseAnalysisResponse(
             // (@JsonUnwrapped) pour rester sous la limite de paramètres (plafond JVM
             // 255) du constructeur canonical du record. Voir
             // HarcelementProcedureInterneDetail.
-            @JsonUnwrapped HarcelementProcedureInterneDetail harcelementProcedureInterneDetail) {
+            @JsonUnwrapped HarcelementProcedureInterneDetail harcelementProcedureInterneDetail,
+            // SF-218-29 : sous-objet pré-fill IA pour l'outil F-DT-66 (NAO —
+            // négociation annuelle obligatoire, FR). Regroupe le flag pivot CONTEXTUAL
+            // `nao_detectee` et le booléen `delegue_syndical_present` en un seul
+            // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
+            // (plafond JVM 255) du constructeur canonical du record. Voir NaoDetail.
+            @JsonUnwrapped NaoDetail naoDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1241,6 +1247,56 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-29 — sous-objet pré-fill IA pour l'outil F-DT-66 (NAO — négociation
+         * annuelle obligatoire, FRANCE UNIQUEMENT — art. L.2242-1 à L.2242-8 CT).
+         * Regroupe le flag pivot CONTEXTUAL et la présence d'un délégué syndical en
+         * un seul composant {@code @JsonUnwrapped} (aplati en JSON sous les clés
+         * {@code nao_detectee} et {@code delegue_syndical_present}, contrat externe
+         * inchangé) afin de ne pas dépasser la limite de paramètres (plafond JVM 255)
+         * du constructeur canonical de {@link TravailExtractedData}. Distinct de
+         * F-DT-67 (validité d'un accord d'entreprise) et F-DT-101 (index égalité F/H).
+         *
+         * @param naoDetectee flag pivot — true si les pièces révèlent une négociation
+         *        annuelle obligatoire (mentions « négociation annuelle obligatoire »,
+         *        « NAO », « PV de désaccord », « réunion de négociation salariale »,
+         *        « accord de méthode », « délégué syndical » dans un contexte de
+         *        négociation collective). FR-only, default false.
+         * @param delegueSyndicalPresent true si au moins un délégué syndical est
+         *        désigné (pré-fill du champ {@code delegueSyndicalPresent} du
+         *        formulaire F-DT-66, déclencheur de l'obligation). FR-only, default
+         *        false.
+         */
+        public record NaoDetail(
+                boolean naoDetectee,
+                boolean delegueSyndicalPresent
+        ) {}
+
+        /**
+         * SF-218-03 (consolidé par SF-218-29) — sous-objet pré-fill IA pour l'outil
+         * F-DT-88 (exécution du jugement CPH, FRANCE UNIQUEMENT — F-205). Regroupe le
+         * flag pivot, le montant des condamnations et la situation de l'employeur
+         * débiteur en un seul composant {@code @JsonUnwrapped} (aplati en JSON sous
+         * les clés {@code execution_jugement_cph_envisagee},
+         * {@code montant_condamnation_cph} et {@code situation_employeur_detectee},
+         * contrat externe inchangé) afin de libérer deux slots du constructeur
+         * canonical de {@link TravailExtractedData} (plafond JVM 255).
+         *
+         * @param executionJugementCphEnvisagee flag pivot — true si un jugement CPH
+         *        favorable est rendu et une difficulté / démarche d'exécution (ou un
+         *        relais AGS) est en cause. FR-only, default false.
+         * @param montantCondamnationCph montant total des condamnations CPH en faveur
+         *        du salarié (€, nullable).
+         * @param situationEmployeurDetectee situation de l'employeur débiteur
+         *        (IN_BONIS / REDRESSEMENT / LIQUIDATION, nullable) — oriente le relais
+         *        AGS.
+         */
+        public record ExecutionJugementCphDetail(
+                boolean executionJugementCphEnvisagee,
+                Double montantCondamnationCph,
+                String situationEmployeurDetectee
+        ) {}
+
+        /**
          * SF-218-05 (consolidé par SF-218-23) : sous-objet pré-fill IA pour
          * l'outil F-DT-87 (pourvoi en cassation sociale, FRANCE UNIQUEMENT —
          * art. 612 CPC). Regroupe le flag pivot CONTEXTUAL et la date de
@@ -1598,10 +1654,8 @@ public record CaseAnalysisResponse(
                     .conciliationCphDetail(conciliationCphDetail)
                     // SF-218-01 — appel CPH cour d'appel (FR) — consolidé SF-218-27
                     .appelCphPrefillDetail(appelCphPrefillDetail)
-                    // SF-218-03 — exécution du jugement CPH / AGS (FR)
-                    .montantCondamnationCph(montantCondamnationCph)
-                    .situationEmployeurDetectee(situationEmployeurDetectee)
-                    .executionJugementCphEnvisagee(executionJugementCphEnvisagee)
+                    // SF-218-03 — exécution du jugement CPH / AGS (FR) — consolidé SF-218-29
+                    .executionJugementCphDetail(executionJugementCphDetail)
                     // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
                     .vrpStatutDetail(vrpStatutDetail)
                     // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23
@@ -1624,7 +1678,9 @@ public record CaseAnalysisResponse(
                     // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
                     .cdiChantierDetail(cdiChantierDetail)
                     // SF-218-27 — harcèlement / procédure interne de signalement (FR)
-                    .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail);
+                    .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail)
+                    // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
+                    .naoDetail(naoDetail);
         }
 
         public static final class Builder {
@@ -1905,10 +1961,8 @@ public record CaseAnalysisResponse(
             private ConciliationCphDetail conciliationCphDetail;
             // SF-218-01 — appel CPH cour d'appel (FR) — consolidé SF-218-27
             private AppelCphPrefillDetail appelCphPrefillDetail;
-            // SF-218-03 — exécution du jugement CPH / AGS (FR)
-            private Double montantCondamnationCph;
-            private String situationEmployeurDetectee;
-            private boolean executionJugementCphEnvisagee;
+            // SF-218-03 — exécution du jugement CPH / AGS (FR) — consolidé SF-218-29
+            private ExecutionJugementCphDetail executionJugementCphDetail;
             // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
             private VrpStatutDetail vrpStatutDetail;
             // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23
@@ -1933,6 +1987,7 @@ public record CaseAnalysisResponse(
             private CdiChantierDetail cdiChantierDetail;
             // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
             private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
+            private NaoDetail naoDetail;
 
             private Builder() {}
 
@@ -2213,9 +2268,8 @@ public record CaseAnalysisResponse(
             // SF-218-01 — appel CPH cour d'appel (FRANCE uniquement).
             public Builder appelCphPrefillDetail(AppelCphPrefillDetail v) { this.appelCphPrefillDetail = v; return this; }
             // SF-218-03 — exécution du jugement CPH / AGS (FRANCE uniquement).
-            public Builder montantCondamnationCph(Double v) { this.montantCondamnationCph = v; return this; }
-            public Builder situationEmployeurDetectee(String v) { this.situationEmployeurDetectee = v; return this; }
-            public Builder executionJugementCphEnvisagee(boolean v) { this.executionJugementCphEnvisagee = v; return this; }
+            // SF-218-03 — execution_jugement_cph_envisagee / montant_condamnation_cph / situation_employeur_detectee (FRANCE uniquement) — sous-record IA F-DT-88, consolidé SF-218-29.
+            public Builder executionJugementCphDetail(ExecutionJugementCphDetail v) { this.executionJugementCphDetail = v; return this; }
             // SF-218-11 — VRP indemnité de clientèle (FRANCE uniquement) — consolidé SF-218-19.
             public Builder vrpStatutDetail(VrpStatutDetail v) { this.vrpStatutDetail = v; return this; }
             // SF-218-05 — pourvoi cassation sociale (FRANCE uniquement).
@@ -2240,6 +2294,8 @@ public record CaseAnalysisResponse(
             // SF-218-25 — cdi_chantier_detail (FRANCE uniquement) — sous-record IA F-DT-37.
             public Builder cdiChantierDetail(CdiChantierDetail v) { this.cdiChantierDetail = v; return this; }
             public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
+            // SF-218-29 — nao_detectee / delegue_syndical_present (FRANCE uniquement) — sous-record IA F-DT-66.
+            public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2414,10 +2470,8 @@ public record CaseAnalysisResponse(
                         conciliationCphDetail,
                         // SF-218-01 — appel CPH cour d'appel (FR) — consolidé SF-218-27
                         appelCphPrefillDetail,
-                        // SF-218-03 — exécution du jugement CPH / AGS (FR)
-                        montantCondamnationCph,
-                        situationEmployeurDetectee,
-                        executionJugementCphEnvisagee,
+                        // SF-218-03 — exécution du jugement CPH / AGS (FR) — consolidé SF-218-29
+                        executionJugementCphDetail,
                         // SF-218-11 — VRP indemnité de clientèle (FR) — consolidé SF-218-19
                         vrpStatutDetail,
                         // SF-218-05 — pourvoi cassation sociale (FR) — consolidé SF-218-23
@@ -2441,7 +2495,9 @@ public record CaseAnalysisResponse(
                         // SF-218-25 — licenciement CDI de chantier / d'opération (FR)
                         cdiChantierDetail,
                         // SF-218-27 — harcèlement / procédure interne de signalement (FR)
-                        harcelementProcedureInterneDetail);
+                        harcelementProcedureInterneDetail,
+                        // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
+                        naoDetail);
             }
         }
     }
@@ -5903,10 +5959,11 @@ public record CaseAnalysisResponse(
                     .appelCphPrefillDetail(new TravailExtractedData.AppelCphPrefillDetail(
                             booleanOrFalse(node, "appel_cph_envisage"),
                             isoDateOrNull(node, "date_notification_jugement")))
-                    // SF-218-03 : flag F-205 + champs — déclenche F-DT-88 exécution jugement CPH / AGS (FR).
-                    .executionJugementCphEnvisagee(booleanOrFalse(node, "execution_jugement_cph_envisagee"))
-                    .montantCondamnationCph(doubleOrNull(node, "montant_condamnation_cph"))
-                    .situationEmployeurDetectee(stringOrNull(node, "situation_employeur_detectee"))
+                    // SF-218-03 : flag F-205 + champs — déclenche F-DT-88 exécution jugement CPH / AGS (FR). Consolidé SF-218-29.
+                    .executionJugementCphDetail(new TravailExtractedData.ExecutionJugementCphDetail(
+                            booleanOrFalse(node, "execution_jugement_cph_envisagee"),
+                            doubleOrNull(node, "montant_condamnation_cph"),
+                            stringOrNull(node, "situation_employeur_detectee")))
                     // SF-218-11 : flag pivot CONTEXTUAL + champ — déclenche F-DT-104 VRP indemnité de clientèle (FR). Consolidé SF-218-19.
                     .vrpStatutDetail(new TravailExtractedData.VrpStatutDetail(
                             booleanOrFalse(node, "vrp_statut_detecte"),
@@ -5962,6 +6019,10 @@ public record CaseAnalysisResponse(
                     .harcelementProcedureInterneDetail(new TravailExtractedData.HarcelementProcedureInterneDetail(
                             booleanOrFalse(node, "harcelement_procedure_interne_detectee"),
                             booleanOrFalse(node, "harcelement_signalement_interne")))
+                    // SF-218-29 : flag pivot CONTEXTUAL + champ — déclenche F-DT-66 NAO / négociation annuelle obligatoire (FR).
+                    .naoDetail(new TravailExtractedData.NaoDetail(
+                            booleanOrFalse(node, "nao_detectee"),
+                            booleanOrFalse(node, "delegue_syndical_present")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
