@@ -747,7 +747,14 @@ public record CaseAnalysisResponse(
             // `nao_detectee` et le booléen `delegue_syndical_present` en un seul
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // (plafond JVM 255) du constructeur canonical du record. Voir NaoDetail.
-            @JsonUnwrapped NaoDetail naoDetail) {
+            @JsonUnwrapped NaoDetail naoDetail,
+            // SF-218-33 : sous-objet pré-fill IA pour l'outil F-DT-69 (délégué
+            // syndical / RSS : désignation et protection, FR). Regroupe le flag
+            // pivot CONTEXTUAL `delegation_syndicale_detectee` et l'énum
+            // `mandat_syndical_type` en un seul composant (@JsonUnwrapped) pour
+            // rester sous la limite de paramètres (plafond JVM 255) du
+            // constructeur canonical du record. Voir MandatSyndicalDetail.
+            @JsonUnwrapped MandatSyndicalDetail mandatSyndicalDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1272,6 +1279,31 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-33 — sous-objet pré-fill IA pour l'outil F-DT-69 (délégué syndical /
+         * RSS : désignation et protection, FRANCE UNIQUEMENT — art. L.2143-1 et s.,
+         * L.2142-1-1, L.2143-3, L.2411-3 CT). Regroupe le flag pivot CONTEXTUAL et le
+         * type de mandat détecté en un seul composant {@code @JsonUnwrapped} (aplati
+         * en JSON sous les clés {@code delegation_syndicale_detectee} et
+         * {@code mandat_syndical_type}, contrat externe inchangé) afin de ne pas
+         * dépasser la limite de paramètres (plafond JVM 255) du constructeur canonical
+         * de {@link TravailExtractedData}. Distinct de F-DT-30 (statut protégé RP
+         * général) et de F-DT-65 (élections CSE / représentativité).
+         *
+         * @param delegationSyndicaleDetectee flag pivot — true si les pièces révèlent
+         *        une délégation syndicale (mentions « délégué syndical », « DS »,
+         *        « représentant de section syndicale », « RSS », « désignation
+         *        syndicale », « monopole syndical », « salarié protégé syndical »,
+         *        « autorisation de l'inspecteur du travail »). FR-only, default false.
+         * @param mandatSyndicalType type de mandat détecté (DELEGUE_SYNDICAL / RSS,
+         *        nullable) — pré-remplit le champ « type de mandat » du formulaire
+         *        F-DT-69.
+         */
+        public record MandatSyndicalDetail(
+                boolean delegationSyndicaleDetectee,
+                String mandatSyndicalType
+        ) {}
+
+        /**
          * SF-218-03 (consolidé par SF-218-29) — sous-objet pré-fill IA pour l'outil
          * F-DT-88 (exécution du jugement CPH, FRANCE UNIQUEMENT — F-205). Regroupe le
          * flag pivot, le montant des condamnations et la situation de l'employeur
@@ -1680,7 +1712,9 @@ public record CaseAnalysisResponse(
                     // SF-218-27 — harcèlement / procédure interne de signalement (FR)
                     .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail)
                     // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
-                    .naoDetail(naoDetail);
+                    .naoDetail(naoDetail)
+                    // SF-218-33 — délégué syndical / RSS : désignation et protection (FR)
+                    .mandatSyndicalDetail(mandatSyndicalDetail);
         }
 
         public static final class Builder {
@@ -1988,6 +2022,8 @@ public record CaseAnalysisResponse(
             // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
             private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
             private NaoDetail naoDetail;
+            // SF-218-33 — delegation_syndicale_detectee / mandat_syndical_type (FRANCE uniquement) — sous-record IA F-DT-69.
+            private MandatSyndicalDetail mandatSyndicalDetail;
 
             private Builder() {}
 
@@ -2296,6 +2332,8 @@ public record CaseAnalysisResponse(
             public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
             // SF-218-29 — nao_detectee / delegue_syndical_present (FRANCE uniquement) — sous-record IA F-DT-66.
             public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
+            // SF-218-33 — delegation_syndicale_detectee / mandat_syndical_type (FRANCE uniquement) — sous-record IA F-DT-69.
+            public Builder mandatSyndicalDetail(MandatSyndicalDetail v) { this.mandatSyndicalDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2497,7 +2535,9 @@ public record CaseAnalysisResponse(
                         // SF-218-27 — harcèlement / procédure interne de signalement (FR)
                         harcelementProcedureInterneDetail,
                         // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
-                        naoDetail);
+                        naoDetail,
+                        // SF-218-33 — délégué syndical / RSS : désignation et protection (FR)
+                        mandatSyndicalDetail);
             }
         }
     }
@@ -6023,6 +6063,10 @@ public record CaseAnalysisResponse(
                     .naoDetail(new TravailExtractedData.NaoDetail(
                             booleanOrFalse(node, "nao_detectee"),
                             booleanOrFalse(node, "delegue_syndical_present")))
+                    // SF-218-33 : flag pivot CONTEXTUAL + champ — déclenche F-DT-69 délégué syndical / RSS : désignation et protection (FR).
+                    .mandatSyndicalDetail(new TravailExtractedData.MandatSyndicalDetail(
+                            booleanOrFalse(node, "delegation_syndicale_detectee"),
+                            stringOrNull(node, "mandat_syndical_type")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

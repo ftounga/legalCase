@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="33cc0d30-9a43-4daa-be33-0c3d4e5f6a73" author="legalcase">
+        <comment>
+            SF-218-33 — table `delegation_syndicale_analyses` pour l'outil
+            decisionnel "Delegue syndical / RSS : designation et protection"
+            (F-DT-69-delegation-syndicale-protection, FRANCE).
+
+            Outil single-country FR : apprecie la regularite de la designation
+            d'un delegue syndical (DS) ou d'un representant de section syndicale
+            (RSS) et la protection contre le licenciement (statut de salarie
+            protege, autorisation prealable de l'inspecteur du travail).
+            Checklist de designation : effectif suffisant (DS >= 50 salaries,
+            art. L.2143-3 ; RSS sans seuil, art. L.2142-1-1), organisation
+            representative (DS oui / RSS non), score personnel >= 10 % pour le DS
+            (L.2143-3). Verdict de designation REGULIERE / IRREGULIERE /
+            A_VERIFIER (DS sans score renseigne). Statut protege toujours OUI.
+            Risque de nullite du licenciement ELEVE (licenciement envisage sans
+            autorisation de l'inspecteur du travail = nullite + reintegration,
+            L.2411-3) / FAIBLE (avec autorisation) / SANS_OBJET (pas de
+            licenciement). Persiste l'analyse 1:1 par dossier (upsert). Outil
+            distinct de F-DT-30 (statut protege RP general) et de F-DT-65
+            (elections CSE / representativite).
+
+            Source juridique : art. L.2143-1 et suivants ; L.2142-1-1 ;
+            L.2143-3 ; L.2411-3 CT.
+        </comment>
+
+        <createTable tableName="delegation_syndicale_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_delegation_syndicale_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="effectif" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_mandat" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="syndicat_representatif" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pourcentage_score_personnel" type="DECIMAL(5,2)"/>
+            <column name="date_designation" type="DATE"/>
+            <column name="statut_designation" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut_protege" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="licenciement_envisage" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="autorisation_inspecteur_travail" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_nullite_licenciement" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="delegation_syndicale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
