@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="35ee0f50-bc65-4fcc-da35-0e5f6a7b8c95" author="legalcase">
+        <comment>
+            SF-218-35 — table `reglement_interieur_validite_analyses` pour l'outil
+            decisionnel "Reglement interieur — validite (contenu, consultation,
+            depot)" (F-DT-100-reglement-interieur-validite, FRANCE).
+
+            Outil single-country FR : apprecie la conformite et l'opposabilite
+            d'un reglement interieur (art. L.1311-1 a L.1322-4, L.1321-1 et s.
+            CT). Obligatoire des 50 salaries (art. L.1311-2) ; en deca et sans RI
+            existant → NON_REQUIS. Trois checklists : contenu obligatoire
+            (hygiene/securite L.1321-1 1°, discipline et echelle des sanctions
+            L.1321-1 2°, droits de la defense L.1321-1 3°, harcelement /
+            agissements sexistes L.1321-2), clauses interdites (atteinte aux
+            libertes non justifiee L.1321-3, sanction pecuniaire L.1331-2), et
+            procedure de mise en place (consultation CSE, transmission inspection
+            du travail, depot greffe CPH — L.1321-4). Verdict CONFORME /
+            NON_CONFORME / INOPPOSABLE / NON_REQUIS ; opposabilite OPPOSABLE /
+            INOPPOSABLE (INOPPOSABLE si procedure non respectee). Persiste
+            l'analyse 1:1 par dossier (upsert).
+
+            Source juridique : art. L.1311-1 a L.1322-4 ; L.1321-1 ; L.1321-2 ;
+            L.1321-3 ; L.1331-2 ; L.1321-4 CT.
+        </comment>
+
+        <createTable tableName="reglement_interieur_validite_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_reglement_interieur_validite_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="effectif" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reglement_existe" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="items_obligatoires_manquants" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="clauses_interdites_presentes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="opposabilite" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="reglement_interieur_validite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -283,6 +283,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "harcelement_procedure_interne_detectee");
         // SF-218-29 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-66 NAO / négociation annuelle obligatoire.
         addBooleanFlagIfTrue(detected, travailNode, "nao_detectee");
+        // SF-218-35 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-100 règlement intérieur / validité.
+        addBooleanFlagIfTrue(detected, travailNode, "reglement_interieur_detecte");
         // SF-218-33 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-69 délégué syndical / RSS : désignation et protection.
         addBooleanFlagIfTrue(detected, travailNode, "delegation_syndicale_detectee");
         // SF-218-31 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-67 accord d'entreprise / validité.

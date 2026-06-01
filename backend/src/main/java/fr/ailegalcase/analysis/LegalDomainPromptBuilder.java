@@ -1245,6 +1245,21 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-35 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `reglement_interieur_detecte` et du booléen `reglement_interieur_present`
+     * pour pré-fill de l'outil F-DT-100 (Règlement intérieur — validité : art.
+     * L.1311-1 à L.1322-4, L.1321-1 et s. CT, FRANCE UNIQUEMENT). Distinct de la
+     * validité d'une sanction disciplinaire fondée sur le RI et du régime du
+     * lanceur d'alerte (F-DT-61).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART35 = """
+              SF-218-35 — Flag `reglement_interieur_detecte` et booléen `reglement_interieur_present` (FRANCE UNIQUEMENT).
+              "reglement_interieur_detecte" : booléen — true uniquement si les pièces révèlent une question de RÈGLEMENT INTÉRIEUR au sens des art. L.1311-1 et s. du code du travail : mention « règlement intérieur », « échelle des sanctions », « clause du règlement intérieur », « dépôt au greffe » du règlement intérieur, « consultation du CSE sur le règlement intérieur », « sanction disciplinaire fondée sur le règlement intérieur ». NE PAS confondre avec la validité d'une sanction disciplinaire particulière ni avec le régime du lanceur d'alerte (F-DT-61), situations distinctes. False par défaut. Pertinent pour F-DT-100.
+              "reglement_interieur_present" : booléen — true uniquement si les pièces établissent qu'un règlement intérieur existe effectivement dans l'entreprise (texte produit, cité ou versé aux débats). False par défaut. Pré-remplit le champ « un règlement intérieur existe » du formulaire F-DT-100.
+              Pour un dossier travail BELGIQUE, laisser `reglement_interieur_detecte` à false et `reglement_interieur_present` à false (le régime du règlement intérieur des art. L.1311-1 et s. du code du travail relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * SF-218-33 — instruction pour la détection du flag pivot CONTEXTUAL
      * `delegation_syndicale_detectee` et de l'énum `mandat_syndical_type` pour
      * pré-fill de l'outil F-DT-69 (délégué syndical / RSS : désignation et
@@ -1314,7 +1329,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART31)
                     .concat(TRAVAIL_INSTRUCTION_PART32)
                     .concat(TRAVAIL_INSTRUCTION_PART33)
-                    .concat(TRAVAIL_INSTRUCTION_PART34);
+                    .concat(TRAVAIL_INSTRUCTION_PART34)
+                    .concat(TRAVAIL_INSTRUCTION_PART35);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
