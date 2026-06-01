@@ -1076,7 +1076,13 @@ class DashboardTileToolIdIntegrityIT {
             // KNOWN_NO_DASHBOARD_TILE_IDS dès le backend (pattern uniforme
             // F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-DT-66-nao-negociation-annuelle"
+            "F-DT-66-nao-negociation-annuelle",
+            // SF-218-31 : outil F-DT-67 Accord d'entreprise — validité
+            // (art. L.2232-12 CT, FR-only, CONTEXTUAL) — pas de tuile dashboard.
+            // Frontend SF-218-32 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
+            // dès le backend (pattern uniforme F-213 / F-219 / F-218 vagues,
+            // cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-67-accord-entreprise-validite"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

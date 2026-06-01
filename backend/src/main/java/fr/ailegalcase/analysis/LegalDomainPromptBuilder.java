@@ -1245,6 +1245,21 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-31 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `accord_entreprise_detecte`, du montant `accord_pourcentage_signataires` et de
+     * l'énum `accord_type_operation` pour pré-fill de l'outil F-DT-67 (Accord
+     * d'entreprise — validité : art. L.2232-12 CT, FRANCE UNIQUEMENT). Distinct de
+     * F-DT-66 (NAO — négociation annuelle obligatoire).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART33 = """
+              SF-218-31 — Flag `accord_entreprise_detecte`, montant `accord_pourcentage_signataires` et énum `accord_type_operation` (FRANCE UNIQUEMENT).
+              "accord_entreprise_detecte" : booléen — true uniquement si les pièces révèlent un ACCORD D'ENTREPRISE dont la VALIDITÉ (conditions de majorité, art. L.2232-12 du code du travail) est en cause : mention « accord d'entreprise », « accord collectif d'entreprise », « suffrages exprimés au 1er tour », « syndicats signataires », « référendum de validation », « consultation des salariés », « dénonciation d'accord », « avenant de révision ». NE PAS confondre avec la NAO — négociation annuelle obligatoire (F-DT-66) qui apprécie la conformité du processus de négociation, situation distincte. False par défaut. Pertinent pour F-DT-67.
+              "accord_pourcentage_signataires" : nombre décimal (0 à 100) — pourcentage des suffrages exprimés au 1er tour des dernières élections recueilli par les syndicats signataires de l'accord, si mentionné dans les pièces. null si non factualisable. Pré-remplit le champ « pourcentage des suffrages des signataires » du formulaire F-DT-67.
+              "accord_type_operation" : énum parmi CONCLUSION (conclusion d'un nouvel accord), REVISION (avenant de révision d'un accord existant), DENONCIATION (dénonciation d'un accord). Déterminer d'après la nature de l'acte décrit. null si non factualisable. Pré-remplit le champ « type d'opération » du formulaire F-DT-67.
+              Pour un dossier travail BELGIQUE, laisser `accord_entreprise_detecte` à false, `accord_pourcentage_signataires` à null et `accord_type_operation` à null (les conditions de validité des accords d'entreprise de l'art. L.2232-12 du code du travail relèvent du droit français, hors périmètre de cet outil FR ; le régime belge — conventions collectives de travail, loi du 5 décembre 1968 — est distinct).
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1282,7 +1297,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART29)
                     .concat(TRAVAIL_INSTRUCTION_PART30)
                     .concat(TRAVAIL_INSTRUCTION_PART31)
-                    .concat(TRAVAIL_INSTRUCTION_PART32);
+                    .concat(TRAVAIL_INSTRUCTION_PART32)
+                    .concat(TRAVAIL_INSTRUCTION_PART33);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
