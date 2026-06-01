@@ -1245,6 +1245,21 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218-33 — instruction pour la détection du flag pivot CONTEXTUAL
+     * `delegation_syndicale_detectee` et de l'énum `mandat_syndical_type` pour
+     * pré-fill de l'outil F-DT-69 (délégué syndical / RSS : désignation et
+     * protection — art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT, FRANCE
+     * UNIQUEMENT). Distinct de F-DT-30 (statut protégé RP général) et F-DT-65
+     * (élections CSE / représentativité).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART34 = """
+              SF-218-33 — Flag `delegation_syndicale_detectee` et énum `mandat_syndical_type` (FRANCE UNIQUEMENT).
+              "delegation_syndicale_detectee" : booléen — true uniquement si les pièces révèlent une DÉLÉGATION SYNDICALE au sens des art. L.2143-1 et s. du code du travail : mention « délégué syndical », « DS », « représentant de section syndicale », « RSS », « désignation syndicale », « monopole syndical », « salarié protégé syndical », « autorisation de l'inspecteur du travail » dans un contexte de désignation ou de protection d'un mandat syndical. NE PAS confondre avec le statut protégé d'un représentant du personnel en général (F-DT-30) ni avec les élections CSE / la représentativité syndicale (F-DT-65), situations distinctes. False par défaut. Pertinent pour F-DT-69.
+              "mandat_syndical_type" : chaîne — type de mandat syndical identifié : "DELEGUE_SYNDICAL" (délégué syndical désigné par une organisation représentative, art. L.2143-3) ou "RSS" (représentant de section syndicale désigné par un syndicat non représentatif, art. L.2142-1-1). null si non déterminable. Pré-remplit le champ « type de mandat » du formulaire F-DT-69.
+              Pour un dossier travail BELGIQUE, laisser `delegation_syndicale_detectee` à false et `mandat_syndical_type` à null (le régime du délégué syndical / RSS des art. L.2143-1 et s. du code du travail relève du droit français, hors périmètre de cet outil FR).
+            """;
+
+    /**
      * SF-218-31 — instruction pour la détection du flag pivot CONTEXTUAL
      * `accord_entreprise_detecte`, du montant `accord_pourcentage_signataires` et de
      * l'énum `accord_type_operation` pour pré-fill de l'outil F-DT-67 (Accord
@@ -1298,7 +1313,8 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART30)
                     .concat(TRAVAIL_INSTRUCTION_PART31)
                     .concat(TRAVAIL_INSTRUCTION_PART32)
-                    .concat(TRAVAIL_INSTRUCTION_PART33);
+                    .concat(TRAVAIL_INSTRUCTION_PART33)
+                    .concat(TRAVAIL_INSTRUCTION_PART34);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
