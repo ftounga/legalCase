@@ -429,8 +429,8 @@ describe('TransfertEntrepriseCct32bisSectionComponent', () => {
   });
 
   it('libellés identiteEconomique : 3 cas + null', () => {
-    expect(component.identiteEconomiqueLabel('PRESERVEE')).toContain('Préservée');
-    expect(component.identiteEconomiqueLabel('NON_PRESERVEE')).toContain('Non préservée');
+    expect(component.identiteEconomiqueLabel('PRESERVEE')).toContain('préservée');
+    expect(component.identiteEconomiqueLabel('NON_PRESERVEE')).toContain('non préservée');
     expect(component.identiteEconomiqueLabel('A_ANALYSER')).toContain('analyser');
     expect(component.identiteEconomiqueLabel(null)).toBe('—');
   });
