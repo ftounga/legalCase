@@ -747,7 +747,14 @@ public record CaseAnalysisResponse(
             // `nao_detectee` et le booléen `delegue_syndical_present` en un seul
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // (plafond JVM 255) du constructeur canonical du record. Voir NaoDetail.
-            @JsonUnwrapped NaoDetail naoDetail) {
+            @JsonUnwrapped NaoDetail naoDetail,
+            // SF-218-31 : sous-objet pré-fill IA pour l'outil F-DT-67 (Accord
+            // d'entreprise — validité, FR). Regroupe le flag pivot CONTEXTUAL
+            // `accord_entreprise_detecte`, le pourcentage de suffrages des
+            // signataires et le type d'opération en un seul composant
+            // (@JsonUnwrapped) pour rester sous la limite de paramètres (plafond
+            // JVM 255) du constructeur canonical du record. Voir AccordEntrepriseDetail.
+            @JsonUnwrapped AccordEntrepriseDetail accordEntrepriseDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1272,6 +1279,34 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-31 — sous-objet pré-fill IA pour l'outil F-DT-67 (Accord
+         * d'entreprise — validité, FRANCE UNIQUEMENT — art. L.2232-12 CT). Regroupe
+         * le flag pivot CONTEXTUAL, le pourcentage de suffrages des signataires et le
+         * type d'opération en un seul composant {@code @JsonUnwrapped} (aplati en JSON
+         * sous les clés {@code accord_entreprise_detecte},
+         * {@code accord_pourcentage_signataires} et {@code accord_type_operation},
+         * contrat externe inchangé) afin de ne pas dépasser la limite de paramètres
+         * (plafond JVM 255) du constructeur canonical de {@link TravailExtractedData}.
+         * Distinct de F-DT-66 (NAO — négociation annuelle obligatoire).
+         *
+         * @param accordEntrepriseDetecte flag pivot — true si les pièces révèlent un
+         *        accord d'entreprise (mentions « accord d'entreprise », « accord
+         *        collectif », « suffrages exprimés au 1er tour », « référendum de
+         *        validation », « dénonciation d'accord », « avenant de révision »,
+         *        « syndicats signataires »). FR-only, default false.
+         * @param accordPourcentageSignataires pourcentage des suffrages exprimés au
+         *        1er tour recueilli par les syndicats signataires (€/null) — pré-fill
+         *        du champ {@code pourcentageSuffragesSignataires} du formulaire F-DT-67.
+         * @param accordTypeOperation type d'opération détecté (CONCLUSION / REVISION /
+         *        DENONCIATION, nullable) — pré-fill du champ {@code typeOperation}.
+         */
+        public record AccordEntrepriseDetail(
+                boolean accordEntrepriseDetecte,
+                Double accordPourcentageSignataires,
+                String accordTypeOperation
+        ) {}
+
+        /**
          * SF-218-03 (consolidé par SF-218-29) — sous-objet pré-fill IA pour l'outil
          * F-DT-88 (exécution du jugement CPH, FRANCE UNIQUEMENT — F-205). Regroupe le
          * flag pivot, le montant des condamnations et la situation de l'employeur
@@ -1680,7 +1715,9 @@ public record CaseAnalysisResponse(
                     // SF-218-27 — harcèlement / procédure interne de signalement (FR)
                     .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail)
                     // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
-                    .naoDetail(naoDetail);
+                    .naoDetail(naoDetail)
+                    // SF-218-31 — accord d'entreprise / validité (FR)
+                    .accordEntrepriseDetail(accordEntrepriseDetail);
         }
 
         public static final class Builder {
@@ -1988,6 +2025,8 @@ public record CaseAnalysisResponse(
             // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
             private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
             private NaoDetail naoDetail;
+            // SF-218-31 — accord_entreprise_detail (FRANCE uniquement) — sous-record IA F-DT-67.
+            private AccordEntrepriseDetail accordEntrepriseDetail;
 
             private Builder() {}
 
@@ -2296,6 +2335,8 @@ public record CaseAnalysisResponse(
             public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
             // SF-218-29 — nao_detectee / delegue_syndical_present (FRANCE uniquement) — sous-record IA F-DT-66.
             public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
+            // SF-218-31 — accord_entreprise_detecte / accord_pourcentage_signataires / accord_type_operation (FRANCE uniquement) — sous-record IA F-DT-67.
+            public Builder accordEntrepriseDetail(AccordEntrepriseDetail v) { this.accordEntrepriseDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2497,7 +2538,9 @@ public record CaseAnalysisResponse(
                         // SF-218-27 — harcèlement / procédure interne de signalement (FR)
                         harcelementProcedureInterneDetail,
                         // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
-                        naoDetail);
+                        naoDetail,
+                        // SF-218-31 — accord d'entreprise / validité (FR)
+                        accordEntrepriseDetail);
             }
         }
     }
@@ -6023,6 +6066,12 @@ public record CaseAnalysisResponse(
                     .naoDetail(new TravailExtractedData.NaoDetail(
                             booleanOrFalse(node, "nao_detectee"),
                             booleanOrFalse(node, "delegue_syndical_present")))
+                    // SF-218-31 : flag pivot CONTEXTUAL + champs — déclenche F-DT-67 accord d'entreprise / validité (FR).
+                    .accordEntrepriseDetail(new TravailExtractedData.AccordEntrepriseDetail(
+                            booleanOrFalse(node, "accord_entreprise_detecte"),
+                            doubleOrNull(node, "accord_pourcentage_signataires"),
+                            whitelistedOrNull(stringOrNull(node, "accord_type_operation"),
+                                    "CONCLUSION", "REVISION", "DENONCIATION")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))

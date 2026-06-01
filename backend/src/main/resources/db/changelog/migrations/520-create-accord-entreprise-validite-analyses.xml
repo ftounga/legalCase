@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="31aa0c10-7e21-4b88-9c31-0a1b2c3d4e51" author="legalcase">
+        <comment>
+            SF-218-31 — table `accord_entreprise_validite_analyses` pour l'outil
+            decisionnel "Accord d'entreprise — validite"
+            (F-DT-67-accord-entreprise-validite, FRANCE).
+
+            Outil single-country FR : apprecie la validite d'un accord d'entreprise
+            au regard des conditions de majorite (art. L.2232-12 CT). Signature par
+            des syndicats representatifs ayant recueilli plus de 50 % des suffrages
+            exprimes au 1er tour des dernieres elections (MAJORITE_50), ou validation
+            par referendum des salaries si les signataires atteignent au moins 30 %
+            (REFERENDUM_30) ; sinon condition INSUFFISANTE. Verifie aussi les
+            conditions de revision (parties habilitees, L.2261-7 et s.) et de
+            denonciation (preavis 3 mois, survie 12 mois ; date_fin_survie =
+            date_denonciation + 3 mois + 12 mois). Verdict VALIDE /
+            VALIDE_SOUS_RESERVE (referendum) / NON_VALIDE. Persiste l'analyse 1:1 par
+            dossier (upsert). Outil distinct de F-DT-66 (NAO — negociation annuelle
+            obligatoire).
+
+            Source juridique : art. L.2232-12 ; L.2261-7 a L.2261-11 CT.
+        </comment>
+
+        <createTable tableName="accord_entreprise_validite_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_accord_entreprise_validite_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="pourcentage_suffrages_signataires" type="DECIMAL(5,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_operation" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="referendum_organise" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="referendum_approuve" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condition_majorite" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_denonciation" type="DATE"/>
+            <column name="date_fin_survie" type="DATE"/>
+            <column name="items_non_conformes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="accord_entreprise_validite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
