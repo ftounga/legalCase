@@ -1,0 +1,275 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">rule</mat-icon>
+    <span class="is-title">RÈGLEMENT INTÉRIEUR — VALIDITÉ (FR)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)" data-testid="statut-chip">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Règlement intérieur — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Le régime du règlement intérieur (contenu obligatoire, clauses
+              interdites, procédure de mise en place conditionnant l'opposabilité)
+              repose sur les art. L.1311-1 à L.1322-4 du Code du travail français :
+              ce régime n'a pas d'équivalent direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Validité et opposabilité du règlement intérieur (art. L.1311-1 à L.1322-4, L.1321-1 et s. CT).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Effectif de l'entreprise (nb salariés)</mat-label>
+                  <input matInput type="number" min="1" step="1"
+                         [ngModel]="effectif()"
+                         (ngModelChange)="onEffectifChange($event)"
+                         name="effectif"
+                         data-testid="effectif-input" />
+                  <mat-hint>Règlement intérieur obligatoire dès 50 salariés (L.1311-2)</mat-hint>
+                </mat-form-field>
+                @if (provenanceEffectif() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-effectif"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-check-wrap is-check-wrap--indice">
+                <mat-checkbox [ngModel]="reglementExiste()"
+                              (ngModelChange)="onReglementExisteChange($event)"
+                              name="reglementExiste"
+                              data-testid="reglement-existe">
+                  Un règlement intérieur existe dans l'entreprise
+                </mat-checkbox>
+                @if (provenanceReglementExiste() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-reglement-existe"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-fieldset-legend">Contenu obligatoire (L.1321-1 / L.1321-2)</div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="contenuHygieneSecurite()"
+                              (ngModelChange)="onContenuHygieneSecuriteChange($event)"
+                              name="contenuHygieneSecurite"
+                              data-testid="contenu-hygiene-securite">
+                  Mesures d'hygiène et de sécurité (L.1321-1 1°)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="contenuDiscipline()"
+                              (ngModelChange)="onContenuDisciplineChange($event)"
+                              name="contenuDiscipline"
+                              data-testid="contenu-discipline">
+                  Règles de discipline, nature et échelle des sanctions (L.1321-1 2°)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="contenuDroitsDefense()"
+                              (ngModelChange)="onContenuDroitsDefenseChange($event)"
+                              name="contenuDroitsDefense"
+                              data-testid="contenu-droits-defense">
+                  Dispositions relatives aux droits de la défense (L.1321-1 3°)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="contenuHarcelementAgissements()"
+                              (ngModelChange)="onContenuHarcelementAgissementsChange($event)"
+                              name="contenuHarcelementAgissements"
+                              data-testid="contenu-harcelement">
+                  Rappel harcèlement moral / sexuel et agissements sexistes (L.1321-2)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-fieldset-legend">Clauses interdites (L.1321-3 / L.1331-2)</div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="clauseAtteinteLibertesNonJustifiee()"
+                              (ngModelChange)="onClauseAtteinteLibertesChange($event)"
+                              name="clauseAtteinteLibertesNonJustifiee"
+                              data-testid="clause-atteinte-libertes">
+                  Clause portant atteinte aux libertés non justifiée / proportionnée (L.1321-3)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="clauseSanctionPecuniaire()"
+                              (ngModelChange)="onClauseSanctionPecuniaireChange($event)"
+                              name="clauseSanctionPecuniaire"
+                              data-testid="clause-sanction-pecuniaire">
+                  Clause de sanction pécuniaire (interdite, L.1331-2)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-fieldset-legend">Procédure de mise en place (L.1321-4)</div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="consultationCseRealisee()"
+                              (ngModelChange)="onConsultationCseChange($event)"
+                              name="consultationCseRealisee"
+                              data-testid="consultation-cse">
+                  Consultation du CSE réalisée avant mise en place (L.1321-4)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="transmissionInspectionTravail()"
+                              (ngModelChange)="onTransmissionInspectionChange($event)"
+                              name="transmissionInspectionTravail"
+                              data-testid="transmission-inspection">
+                  Transmission à l'inspection du travail (L.1321-4)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="depotGreffeCph()"
+                              (ngModelChange)="onDepotGreffeChange($event)"
+                              name="depotGreffeCph"
+                              data-testid="depot-greffe">
+                  Dépôt au greffe du conseil de prud'hommes (L.1321-4)
+                </mat-checkbox>
+              </div>
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le règlement intérieur</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="is-banner-sub">
+                    @if (result()!.statut === 'NON_REQUIS') {
+                      Effectif inférieur à 50 salariés et aucun règlement intérieur existant : l'établissement d'un RI est facultatif (art. L.1311-2 CT).
+                    } @else {
+                      {{ opposabiliteLabel(result()!.opposabilite) }}
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.statut !== 'NON_REQUIS') {
+                <!-- Badges opposabilité / compteurs -->
+                <div class="is-badges">
+                  <span [class]="opposabiliteChipClass(result()!.opposabilite)" data-testid="opposabilite-chip">
+                    {{ opposabiliteLabel(result()!.opposabilite) }}
+                  </span>
+                  <span class="is-count-value" data-testid="items-manquants">
+                    {{ result()!.itemsObligatoiresManquants }} contenu(s) obligatoire(s) manquant(s)
+                  </span>
+                  <span class="is-count-value" data-testid="clauses-interdites">
+                    {{ result()!.clausesInterditesPresentes }} clause(s) interdite(s) présente(s)
+                  </span>
+                </div>
+
+                <!-- Checklist : contenu obligatoire / clauses interdites / procédure -->
+                <ul class="is-criteres" data-testid="checklist">
+                  @for (item of result()!.checklist; track item.item) {
+                    <li class="is-critere" [class.is-critere--ok]="item.conforme" [class.is-critere--ko]="!item.conforme">
+                      <mat-icon class="is-critere-icon">{{ item.conforme ? 'check_circle' : 'cancel' }}</mat-icon>
+                      <div class="is-critere-content">
+                        <span class="is-critere-label">
+                          {{ item.item }}
+                          <span [class]="typeBadgeClass(item.type)" data-testid="badge-type">{{ typeBadgeLabel(item.type) }}</span>
+                        </span>
+                        @if (item.commentaire) {
+                          <span class="is-critere-comment">{{ item.commentaire }}</span>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+
+                <!-- Note explicative — opposabilité / procédure de mise en place -->
+                <div class="is-note" role="note" data-testid="opposabilite-note">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>{{ opposabiliteNote(result()!.opposabilite) }}</span>
+                </div>
+
+                <!-- Conséquences / points de vigilance -->
+                @if (result()!.consequences && result()!.consequences.length > 0) {
+                  <ul class="is-consequences" data-testid="consequences">
+                    @for (c of result()!.consequences; track c) {
+                      <li class="is-consequence-item">
+                        <mat-icon>arrow_right</mat-icon>
+                        <span>{{ c }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

@@ -91,6 +91,8 @@ import { CadreDirigeantStatutSectionComponent } from '../cadre-dirigeant-statut-
 import { HarcelementProcedureInterneSectionComponent } from '../harcelement-procedure-interne-section/harcelement-procedure-interne-section.component';
 // SF-218-30 : composant complet F-DT-66-nao-negociation-annuelle — conformité de la négociation annuelle obligatoire + calculateur d'échéance (L.2242-1 à L.2242-8 CT) (Travail FR).
 import { NaoNegociationAnnuelleSectionComponent } from '../nao-negociation-annuelle-section/nao-negociation-annuelle-section.component';
+// SF-218-36 : composant complet F-DT-100-reglement-interieur-validite — validité et opposabilité du règlement intérieur (L.1311-1 à L.1322-4, L.1321-1 et s. CT) (Travail FR).
+import { ReglementInterieurValiditeSectionComponent } from '../reglement-interieur-validite-section/reglement-interieur-validite-section.component';
 // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
@@ -1916,6 +1918,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-66-nao-negociation-annuelle', {
         displayLabel: 'NAO négociation annuelle (FR)',
         component: NaoNegociationAnnuelleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-36 : composant complet F-DT-100-reglement-interieur-validite —
+      // validité et opposabilité du règlement intérieur côté EMPLOYEUR (Travail
+      // FR). FR uniquement, CONTEXTUAL (flag reglementInterieurDetecte). Trois
+      // checklists : contenu obligatoire (hygiène/sécurité, discipline, droits de
+      // la défense, harcèlement — L.1321-1 / L.1321-2), clauses interdites
+      // (atteinte aux libertés non justifiée, sanction pécuniaire — L.1321-3 /
+      // L.1331-2 ; conforme = absence) et procédure de mise en place (consultation
+      // CSE, transmission inspection, dépôt greffe CPH — L.1321-4) → verdict
+      // CONFORME / NON_CONFORME / INOPPOSABLE / NON_REQUIS et opposabilité
+      // OPPOSABLE / INOPPOSABLE aux salariés. Distinct de la validité d'une
+      // sanction disciplinaire fondée sur le RI et du lanceur d'alerte (F-DT-61).
+      // Pré-fill IA 2 champs (effectif, reglementExiste) via static getPrefillCount
+      // + ReglementInterieurValiditePrefillRules.
+      ['F-DT-100-reglement-interieur-validite', {
+        displayLabel: 'Règlement intérieur — validité (FR)',
+        component: ReglementInterieurValiditeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5422,6 +5447,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // la négociation annuelle obligatoire + calculateur d'échéance. Thème
     // DIAGNOSTIC : diagnostic de la situation de conformité employeur (NAO).
     ['F-DT-66-nao-negociation-annuelle', 'DIAGNOSTIC'],
+    // SF-218-36 : F-DT-100-reglement-interieur-validite — analyseur de validité
+    // et d'opposabilité du règlement intérieur (3 checklists + verdict). Thème
+    // DIAGNOSTIC : diagnostic de la situation de conformité employeur (RI),
+    // groupé avec les analyseurs de conformité / diagnostic.
+    ['F-DT-100-reglement-interieur-validite', 'DIAGNOSTIC'],
     // SF-218-22 : F-DT-109-stagiaire-gratification-requalification gratification
     // minimale du stagiaire + risque de requalification en CDI (Travail FR).
     // Thème INDEMNITES — l'outil calcule un montant de gratification due / rappel
