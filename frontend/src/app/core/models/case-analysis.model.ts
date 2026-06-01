@@ -359,6 +359,60 @@ export interface TravailExtractedData {
    */
   naoDetectee?: boolean | null;
   /**
+   * SF-218-36 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de règlement intérieur (mentions « règlement intérieur », « échelle des
+   * sanctions », « clause du règlement intérieur », « dépôt au greffe »,
+   * « consultation CSE règlement »). FR-only. Déclenche l'apparition de
+   * F-DT-100-reglement-interieur-validite (n'est PAS un champ de formulaire).
+   */
+  reglementInterieurDetecte?: boolean | null;
+  /**
+   * SF-218-36 : true si un règlement intérieur existe effectivement dans
+   * l'entreprise, détecté par l'IA dans les pièces du dossier. Pré-fill du champ
+   * `reglementExiste` de F-DT-100-reglement-interieur-validite (FR uniquement).
+   */
+  reglementInterieurPresent?: boolean | null;
+  /**
+   * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
+   * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
+   * pour pré-fill du champ `typeMandat` de
+   * F-DT-69-delegation-syndicale-protection (FR uniquement).
+   */
+  mandatSyndicalType?: 'DELEGUE_SYNDICAL' | 'RSS' | null;
+  /**
+   * SF-218-34 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de désignation d'un délégué syndical (DS) ou d'un représentant de section
+   * syndicale (RSS) (mentions « délégué syndical », « RSS », « représentant de
+   * section syndicale », « désignation syndicale », « section syndicale »).
+   * FR-only. Déclenche l'apparition de F-DT-69-delegation-syndicale-protection
+   * (n'est PAS un champ de formulaire).
+   */
+  delegationSyndicaleDetectee?: boolean | null;
+  /**
+   * SF-218-32 : % des suffrages exprimés au 1er tour des dernières élections
+   * recueilli par les syndicats signataires d'un accord d'entreprise, détecté par
+   * l'IA (∈ [0 ; 100]). Pré-fill du champ `pourcentageSuffragesSignataires` de
+   * F-DT-67-accord-entreprise-validite (FR uniquement). Mappe la clé JSON backend
+   * `accord_pourcentage_signataires`.
+   */
+  accordPourcentageSignataires?: number | null;
+  /**
+   * SF-218-32 : type d'opération portant sur l'accord d'entreprise détecté par
+   * l'IA (CONCLUSION / REVISION / DENONCIATION). Pré-fill du champ `typeOperation`
+   * de F-DT-67-accord-entreprise-validite (FR uniquement). Mappe la clé JSON
+   * backend `accord_type_operation`.
+   */
+  accordTypeOperation?: string | null;
+  /**
+   * SF-218-32 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de validité d'un accord d'entreprise (mentions « accord d'entreprise », «
+   * avenant de révision », « dénonciation de l'accord », « conditions de majorité
+   * L.2232-12 », « référendum de validation »). FR-only. Déclenche l'apparition de
+   * F-DT-67-accord-entreprise-validite (n'est PAS un champ de formulaire). Mappe la
+   * clé JSON backend `accord_entreprise_detecte`.
+   */
+  accordEntrepriseDetecte?: boolean | null;
+  /**
    * SF-218-22 : date de début du stage détectée par l'IA dans la convention de
    * stage (ISO YYYY-MM-DD), pour pré-fill F-DT-109-stagiaire-gratification-
    * requalification (FR uniquement).

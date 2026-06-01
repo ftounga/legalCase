@@ -748,13 +748,14 @@ public record CaseAnalysisResponse(
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // (plafond JVM 255) du constructeur canonical du record. Voir NaoDetail.
             @JsonUnwrapped NaoDetail naoDetail,
-            // SF-218-33 : sous-objet pré-fill IA pour l'outil F-DT-69 (délégué
-            // syndical / RSS : désignation et protection, FR). Regroupe le flag
-            // pivot CONTEXTUAL `delegation_syndicale_detectee` et l'énum
-            // `mandat_syndical_type` en un seul composant (@JsonUnwrapped) pour
-            // rester sous la limite de paramètres (plafond JVM 255) du
-            // constructeur canonical du record. Voir MandatSyndicalDetail.
-            @JsonUnwrapped MandatSyndicalDetail mandatSyndicalDetail) {
+            // SF-218-31 + SF-218-33 : sous-objet pré-fill IA combiné pour les outils
+            // IRP/négociation F-DT-67 (accord d'entreprise — validité, FR) et F-DT-69
+            // (délégué syndical / RSS : désignation et protection, FR). Regroupe les
+            // flags pivots CONTEXTUAL `accord_entreprise_detecte` et
+            // `delegation_syndicale_detectee` et leurs champs associés en un seul
+            // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
+            // (plafond JVM 255) du constructeur canonical du record. Voir Sf218cIrpDetail.
+            @JsonUnwrapped Sf218cIrpDetail sf218cIrpDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1279,16 +1280,28 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
-         * SF-218-33 — sous-objet pré-fill IA pour l'outil F-DT-69 (délégué syndical /
-         * RSS : désignation et protection, FRANCE UNIQUEMENT — art. L.2143-1 et s.,
-         * L.2142-1-1, L.2143-3, L.2411-3 CT). Regroupe le flag pivot CONTEXTUAL et le
-         * type de mandat détecté en un seul composant {@code @JsonUnwrapped} (aplati
-         * en JSON sous les clés {@code delegation_syndicale_detectee} et
-         * {@code mandat_syndical_type}, contrat externe inchangé) afin de ne pas
-         * dépasser la limite de paramètres (plafond JVM 255) du constructeur canonical
-         * de {@link TravailExtractedData}. Distinct de F-DT-30 (statut protégé RP
-         * général) et de F-DT-65 (élections CSE / représentativité).
+         * SF-218-31 + SF-218-33 — sous-objet pré-fill IA combiné pour les outils
+         * IRP/négociation F-DT-67 (Accord d'entreprise — validité, FRANCE UNIQUEMENT —
+         * art. L.2232-12 CT) et F-DT-69 (délégué syndical / RSS : désignation et
+         * protection, FRANCE UNIQUEMENT). Regroupe les deux flags pivots CONTEXTUAL et
+         * leurs champs associés en un seul composant {@code @JsonUnwrapped} (aplati en
+         * JSON sous les clés {@code accord_entreprise_detecte},
+         * {@code accord_pourcentage_signataires}, {@code accord_type_operation},
+         * {@code delegation_syndicale_detectee} et {@code mandat_syndical_type},
+         * contrat externe inchangé) afin de ne pas dépasser la limite de paramètres
+         * (plafond JVM 255) du constructeur canonical de {@link TravailExtractedData}.
+         * Distinct de F-DT-66 (NAO — négociation annuelle obligatoire).
          *
+         * @param accordEntrepriseDetecte flag pivot — true si les pièces révèlent un
+         *        accord d'entreprise (mentions « accord d'entreprise », « accord
+         *        collectif », « suffrages exprimés au 1er tour », « référendum de
+         *        validation », « dénonciation d'accord », « avenant de révision »,
+         *        « syndicats signataires »). FR-only, default false.
+         * @param accordPourcentageSignataires pourcentage des suffrages exprimés au
+         *        1er tour recueilli par les syndicats signataires (€/null) — pré-fill
+         *        du champ {@code pourcentageSuffragesSignataires} du formulaire F-DT-67.
+         * @param accordTypeOperation type d'opération détecté (CONCLUSION / REVISION /
+         *        DENONCIATION, nullable) — pré-fill du champ {@code typeOperation}.
          * @param delegationSyndicaleDetectee flag pivot — true si les pièces révèlent
          *        une délégation syndicale (mentions « délégué syndical », « DS »,
          *        « représentant de section syndicale », « RSS », « désignation
@@ -1298,7 +1311,10 @@ public record CaseAnalysisResponse(
          *        nullable) — pré-remplit le champ « type de mandat » du formulaire
          *        F-DT-69.
          */
-        public record MandatSyndicalDetail(
+        public record Sf218cIrpDetail(
+                boolean accordEntrepriseDetecte,
+                Double accordPourcentageSignataires,
+                String accordTypeOperation,
                 boolean delegationSyndicaleDetectee,
                 String mandatSyndicalType
         ) {}
@@ -1713,8 +1729,9 @@ public record CaseAnalysisResponse(
                     .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail)
                     // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
                     .naoDetail(naoDetail)
-                    // SF-218-33 — délégué syndical / RSS : désignation et protection (FR)
-                    .mandatSyndicalDetail(mandatSyndicalDetail);
+                    // SF-218-31 + SF-218-33 — accord d'entreprise / validité (F-DT-67) +
+                    // délégué syndical / RSS : désignation et protection (F-DT-69) (FR)
+                    .sf218cIrpDetail(sf218cIrpDetail);
         }
 
         public static final class Builder {
@@ -2022,8 +2039,8 @@ public record CaseAnalysisResponse(
             // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
             private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
             private NaoDetail naoDetail;
-            // SF-218-33 — delegation_syndicale_detectee / mandat_syndical_type (FRANCE uniquement) — sous-record IA F-DT-69.
-            private MandatSyndicalDetail mandatSyndicalDetail;
+            // SF-218-31 + SF-218-33 — accord_entreprise_* (F-DT-67) + delegation_syndicale_detectee / mandat_syndical_type (F-DT-69) (FRANCE uniquement) — sous-record IA combiné.
+            private Sf218cIrpDetail sf218cIrpDetail;
 
             private Builder() {}
 
@@ -2332,8 +2349,8 @@ public record CaseAnalysisResponse(
             public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
             // SF-218-29 — nao_detectee / delegue_syndical_present (FRANCE uniquement) — sous-record IA F-DT-66.
             public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
-            // SF-218-33 — delegation_syndicale_detectee / mandat_syndical_type (FRANCE uniquement) — sous-record IA F-DT-69.
-            public Builder mandatSyndicalDetail(MandatSyndicalDetail v) { this.mandatSyndicalDetail = v; return this; }
+            // SF-218-31 + SF-218-33 — accord_entreprise_* (F-DT-67) + delegation_syndicale_detectee / mandat_syndical_type (F-DT-69) (FRANCE uniquement) — sous-record IA combiné.
+            public Builder sf218cIrpDetail(Sf218cIrpDetail v) { this.sf218cIrpDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2536,8 +2553,9 @@ public record CaseAnalysisResponse(
                         harcelementProcedureInterneDetail,
                         // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
                         naoDetail,
-                        // SF-218-33 — délégué syndical / RSS : désignation et protection (FR)
-                        mandatSyndicalDetail);
+                        // SF-218-31 + SF-218-33 — accord d'entreprise / validité (F-DT-67) +
+                        // délégué syndical / RSS : désignation et protection (F-DT-69) (FR)
+                        sf218cIrpDetail);
             }
         }
     }
@@ -6063,8 +6081,14 @@ public record CaseAnalysisResponse(
                     .naoDetail(new TravailExtractedData.NaoDetail(
                             booleanOrFalse(node, "nao_detectee"),
                             booleanOrFalse(node, "delegue_syndical_present")))
-                    // SF-218-33 : flag pivot CONTEXTUAL + champ — déclenche F-DT-69 délégué syndical / RSS : désignation et protection (FR).
-                    .mandatSyndicalDetail(new TravailExtractedData.MandatSyndicalDetail(
+                    // SF-218-31 + SF-218-33 : flags pivots CONTEXTUAL + champs — déclenchent
+                    // F-DT-67 accord d'entreprise / validité (FR) et F-DT-69 délégué
+                    // syndical / RSS : désignation et protection (FR).
+                    .sf218cIrpDetail(new TravailExtractedData.Sf218cIrpDetail(
+                            booleanOrFalse(node, "accord_entreprise_detecte"),
+                            doubleOrNull(node, "accord_pourcentage_signataires"),
+                            whitelistedOrNull(stringOrNull(node, "accord_type_operation"),
+                                    "CONCLUSION", "REVISION", "DENONCIATION"),
                             booleanOrFalse(node, "delegation_syndicale_detectee"),
                             stringOrNull(node, "mandat_syndical_type")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
