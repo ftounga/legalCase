@@ -1,0 +1,251 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="is-body">
+    <mat-icon class="is-icon">gavel</mat-icon>
+    <span class="is-title">ACCORD ENTREPRISE — VALIDITÉ (FR)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)" data-testid="statut-chip">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="is-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Validité de l'accord d'entreprise — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Les conditions de majorité de validité d'un accord d'entreprise
+              (signature par des syndicats représentatifs ayant recueilli plus de
+              50 % des suffrages exprimés au 1er tour, validation par référendum
+              entre 30 % et 50 %) reposent sur l'art. L.2232-12 du Code du travail
+              français, et les conditions de révision (L.2261-7) / dénonciation
+              (L.2261-9 et s.) sur le même code : ce régime n'a pas d'équivalent
+              direct en droit du travail belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>checklist</mat-icon>
+                <span>Validité d'un accord d'entreprise au regard des conditions de majorité (art. L.2232-12 CT) et, selon l'opération, des conditions de révision (L.2261-7) ou de dénonciation (L.2261-9 et s.).</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type d'opération</mat-label>
+                  <mat-select [ngModel]="typeOperation()"
+                              (ngModelChange)="onTypeOperationChange($event)"
+                              name="typeOperation"
+                              data-testid="type-operation-select">
+                    <mat-option value="CONCLUSION">Conclusion</mat-option>
+                    <mat-option value="REVISION">Révision</mat-option>
+                    <mat-option value="DENONCIATION">Dénonciation</mat-option>
+                  </mat-select>
+                  <mat-hint>Conclusion / révision (parties habilitées) / dénonciation (préavis + survie)</mat-hint>
+                </mat-form-field>
+                @if (provenanceTypeOperation() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-type-operation"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>% des suffrages exprimés recueilli par les signataires</mat-label>
+                  <input matInput type="number" min="0" max="100" step="0.01"
+                         [ngModel]="pourcentageSuffragesSignataires()"
+                         (ngModelChange)="onPourcentageChange($event)"
+                         name="pourcentageSuffragesSignataires"
+                         data-testid="pourcentage-input" />
+                  <mat-hint>1er tour des dernières élections (art. L.2232-12 CT)</mat-hint>
+                </mat-form-field>
+                @if (provenancePourcentage() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-pourcentage"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="is-check-wrap is-check-wrap--indice">
+                <mat-checkbox [ngModel]="referendumOrganise()"
+                              (ngModelChange)="onReferendumOrganiseChange($event)"
+                              name="referendumOrganise"
+                              data-testid="referendum-organise">
+                  Un référendum de validation a été organisé (signataires entre 30 % et 50 %)
+                </mat-checkbox>
+              </div>
+
+              <div class="is-check-wrap">
+                <mat-checkbox [ngModel]="referendumApprouve()"
+                              (ngModelChange)="onReferendumApprouveChange($event)"
+                              name="referendumApprouve"
+                              data-testid="referendum-approuve">
+                  Le référendum a approuvé l'accord à la majorité des suffrages exprimés
+                </mat-checkbox>
+              </div>
+
+              @if (isRevision()) {
+                <div class="is-check-wrap" data-testid="revision-block">
+                  <mat-checkbox [ngModel]="signePartiesHabilitees()"
+                                (ngModelChange)="onSignePartiesHabiliteesChange($event)"
+                                name="signePartiesHabilitees"
+                                data-testid="parties-habilitees">
+                    L'avenant est signé par les parties habilitées à engager la révision (art. L.2261-7)
+                  </mat-checkbox>
+                </div>
+              }
+
+              @if (isDenonciation()) {
+                <div class="is-check-wrap" data-testid="denonciation-preavis-block">
+                  <mat-checkbox [ngModel]="preavisDenonciationRespecte()"
+                                (ngModelChange)="onPreavisDenonciationChange($event)"
+                                name="preavisDenonciationRespecte"
+                                data-testid="preavis-denonciation">
+                    Le préavis de dénonciation de 3 mois est respecté (art. L.2261-9)
+                  </mat-checkbox>
+                </div>
+
+                <div class="is-field-wrap" data-testid="denonciation-date-block">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de la dénonciation</mat-label>
+                    <input matInput type="date"
+                           [ngModel]="dateDenonciation()"
+                           (ngModelChange)="onDateDenonciationChange($event)"
+                           name="dateDenonciation"
+                           data-testid="date-denonciation-input" />
+                    <mat-hint>Point de départ du calcul de la fin de survie de l'accord (préavis 3 mois + survie 12 mois)</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
+
+              @if (coherenceAlerts().length > 0) {
+                <div class="is-coherence" role="note" data-testid="coherence-alerts">
+                  @for (alert of coherenceAlerts(); track alert) {
+                    <div class="is-coherence-item">
+                      <mat-icon>warning_amber</mat-icon>
+                      <span>{{ alert }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la validité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div [class]="bannerClass(result()!.statut)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statut) }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">{{ statutLabel(result()!.statut) }}</div>
+                  <div class="is-banner-sub">
+                    Opération : {{ typeOperationLabel(result()!.typeOperation) }}
+                    @if (result()!.statut === 'VALIDE_SOUS_RESERVE') {
+                      — validité subordonnée à la régularité du référendum (art. L.2232-12 CT).
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Condition de majorité + % suffrages (JetBrains Mono) -->
+              <div class="is-badges">
+                <span [class]="conditionMajoriteChipClass(result()!.conditionMajorite)" data-testid="condition-majorite-chip">
+                  {{ conditionMajoriteLabel(result()!.conditionMajorite) }}
+                </span>
+                <span class="is-count-value" data-testid="pourcentage-value">
+                  {{ result()!.pourcentageSuffragesSignataires }} %
+                </span>
+                <span class="is-count-value" data-testid="items-non-conformes">
+                  {{ result()!.itemsNonConformes }} item(s) non conforme(s)
+                </span>
+              </div>
+
+              <!-- Checklist de validité avec coche / croix -->
+              <ul class="is-criteres" data-testid="checklist">
+                @for (item of result()!.checklist; track item.item) {
+                  <li class="is-critere" [class.is-critere--ok]="item.conforme" [class.is-critere--ko]="!item.conforme">
+                    <mat-icon class="is-critere-icon">{{ item.conforme ? 'check_circle' : 'cancel' }}</mat-icon>
+                    <div class="is-critere-content">
+                      <span class="is-critere-label">{{ item.item }}</span>
+                      @if (item.commentaire) {
+                        <span class="is-critere-comment">{{ item.commentaire }}</span>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              <!-- Fin de survie de l'accord (dénonciation) -->
+              @if (result()!.dateFinSurvie) {
+                <div class="is-figure" data-testid="fin-survie-figure">
+                  <span class="is-figure-label">Fin de survie de l'accord</span>
+                  <span class="is-figure-row">
+                    <span class="is-figure-value" data-testid="date-fin-survie">{{ result()!.dateFinSurvie }}</span>
+                  </span>
+                </div>
+                <div class="is-note" role="note" data-testid="survie-note">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>En cas de dénonciation, l'accord continue de produire effet pendant le préavis de 3 mois puis survit pendant 12 mois, à défaut d'accord de substitution (art. L.2261-9 à L.2261-11 CT).</span>
+                </div>
+              }
+
+              <!-- Conséquences / points de vigilance -->
+              @if (result()!.consequences.length > 0) {
+                <ul class="is-consequences" data-testid="consequences">
+                  @for (c of result()!.consequences; track c) {
+                    <li class="is-consequence-item">
+                      <mat-icon>arrow_right</mat-icon>
+                      <span>{{ c }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 SF-JU-03-99c — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

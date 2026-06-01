@@ -93,6 +93,8 @@ import { HarcelementProcedureInterneSectionComponent } from '../harcelement-proc
 import { NaoNegociationAnnuelleSectionComponent } from '../nao-negociation-annuelle-section/nao-negociation-annuelle-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
+// SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
+import { AccordEntrepriseValiditeSectionComponent } from '../accord-entreprise-validite-section/accord-entreprise-validite-section.component';
 // SF-218-22 : composant complet F-DT-109-stagiaire-gratification-requalification — gratification minimale obligatoire + risque de requalification du stage en CDI (Travail FR).
 import { StagiaireGratificationSectionComponent } from '../stagiaire-gratification-section/stagiaire-gratification-section.component';
 // SF-218-24 : composant complet F-DT-110-apprentissage-rupture — validité de la rupture du contrat d'apprentissage (Travail FR).
@@ -1940,6 +1942,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-69-delegation-syndicale-protection', {
         displayLabel: 'Délégué syndical / RSS (FR)',
         component: DelegationSyndicaleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite —
+      // analyseur de validité d'un accord d'entreprise (Travail FR). FR
+      // uniquement, CONTEXTUAL (flag accordEntrepriseDetecte). Apprécie la
+      // condition de majorité (art. L.2232-12 CT : MAJORITE_50 / REFERENDUM_30 /
+      // INSUFFISANTE) et, selon l'opération (CONCLUSION / REVISION /
+      // DENONCIATION), les conditions de révision (parties habilitées, L.2261-7)
+      // ou de dénonciation (préavis 3 mois + survie 12 mois, L.2261-9 à
+      // L.2261-11) → verdict VALIDE / VALIDE_SOUS_RESERVE / NON_VALIDE +
+      // checklist + date de fin de survie en dénonciation. Distinct de F-DT-66
+      // (NAO : conformité de la négociation annuelle obligatoire). Pré-fill IA 2
+      // champs (pourcentageSuffragesSignataires, typeOperation) via static
+      // getPrefillCount + AccordEntrepriseValiditePrefillRules.
+      ['F-DT-67-accord-entreprise-validite', {
+        displayLabel: 'Accord d\'entreprise — validité (FR)',
+        component: AccordEntrepriseValiditeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5451,6 +5475,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Thème DIAGNOSTIC : diagnostic de statut + protection (analyseur de situation
     // syndicale), groupé avec les analyseurs de statut / conformité.
     ['F-DT-69-delegation-syndicale-protection', 'DIAGNOSTIC'],
+    // SF-218-32 : F-DT-67-accord-entreprise-validite — validité d'un accord
+    // d'entreprise au regard des conditions de majorité (L.2232-12 CT) +
+    // révision (L.2261-7) / dénonciation (L.2261-9 et s.). Thème VALIDITE —
+    // analyseur de validité multi-conditions (verdict VALIDE / VALIDE_SOUS_RESERVE
+    // / NON_VALIDE), cohérent avec les autres analyseurs de validité.
+    ['F-DT-67-accord-entreprise-validite', 'VALIDITE'],
     // SF-218-22 : F-DT-109-stagiaire-gratification-requalification gratification
     // minimale du stagiaire + risque de requalification en CDI (Travail FR).
     // Thème INDEMNITES — l'outil calcule un montant de gratification due / rappel

@@ -375,6 +375,30 @@ export interface TravailExtractedData {
    */
   delegationSyndicaleDetectee?: boolean | null;
   /**
+   * SF-218-32 : % des suffrages exprimés au 1er tour des dernières élections
+   * recueilli par les syndicats signataires d'un accord d'entreprise, détecté par
+   * l'IA (∈ [0 ; 100]). Pré-fill du champ `pourcentageSuffragesSignataires` de
+   * F-DT-67-accord-entreprise-validite (FR uniquement). Mappe la clé JSON backend
+   * `accord_pourcentage_signataires`.
+   */
+  accordPourcentageSignataires?: number | null;
+  /**
+   * SF-218-32 : type d'opération portant sur l'accord d'entreprise détecté par
+   * l'IA (CONCLUSION / REVISION / DENONCIATION). Pré-fill du champ `typeOperation`
+   * de F-DT-67-accord-entreprise-validite (FR uniquement). Mappe la clé JSON
+   * backend `accord_type_operation`.
+   */
+  accordTypeOperation?: string | null;
+  /**
+   * SF-218-32 : flag de visibilité CONTEXTUAL — true si l'IA détecte des signaux
+   * de validité d'un accord d'entreprise (mentions « accord d'entreprise », «
+   * avenant de révision », « dénonciation de l'accord », « conditions de majorité
+   * L.2232-12 », « référendum de validation »). FR-only. Déclenche l'apparition de
+   * F-DT-67-accord-entreprise-validite (n'est PAS un champ de formulaire). Mappe la
+   * clé JSON backend `accord_entreprise_detecte`.
+   */
+  accordEntrepriseDetecte?: boolean | null;
+  /**
    * SF-218-22 : date de début du stage détectée par l'IA dans la convention de
    * stage (ISO YYYY-MM-DD), pour pré-fill F-DT-109-stagiaire-gratification-
    * requalification (FR uniquement).
