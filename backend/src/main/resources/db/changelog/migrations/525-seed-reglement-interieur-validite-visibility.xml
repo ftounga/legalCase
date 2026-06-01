@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="35ff2060-cd76-40dd-eb35-0f6a7b8c9da6" author="legalcase">
+        <comment>
+            SF-218-35 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Reglement interieur — validite"
+            (F-DT-100-reglement-interieur-validite, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de reglement interieur (mentions « reglement interieur »,
+            « echelle des sanctions », « clause du reglement interieur », « depot
+            au greffe », « consultation CSE reglement », « sanction disciplinaire
+            fondee sur le reglement interieur »). Flag pivot
+            `reglement_interieur_detecte` = true. trigger_field =
+            'reglement_interieur_detecte', trigger_value = 'true'. priority 90 —
+            valeur libre pre-assignee pour le couple (DROIT_DU_TRAVAIL, FRANCE)
+            au-dela du seed CONTEXTUAL FR le plus recent (F-DT-66 NAO = 87).
+
+            Source juridique : art. L.1311-1 a L.1322-4 ; L.1321-1 ; L.1321-2 ;
+            L.1321-3 ; L.1331-2 ; L.1321-4 CT.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+
+            NB master-red transitoire ATTENDU : sur cette branche backend isolee,
+            l'entree TOOL_REGISTRY frontend pour
+            F-DT-100-reglement-interieur-validite est livree dans la PR frontend
+            SF-218-36 (mergee juste apres). Le test
+            DecisionToolVisibilityIntegrityIT (qui extrait dynamiquement le
+            TOOL_REGISTRY frontend) repasse vert une fois la PR frontend mergee
+            sur master.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('35ff2060-cd76-40dd-eb35-0f6a7b8c9da6', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-100-reglement-interieur-validite', 'CONTEXTUAL', 'reglement_interieur_detecte', 'true', 90);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '35ff2060-cd76-40dd-eb35-0f6a7b8c9da6';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

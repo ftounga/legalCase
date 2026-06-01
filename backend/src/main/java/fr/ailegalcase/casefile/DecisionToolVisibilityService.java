@@ -283,6 +283,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "harcelement_procedure_interne_detectee");
         // SF-218-29 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-66 NAO / négociation annuelle obligatoire.
         addBooleanFlagIfTrue(detected, travailNode, "nao_detectee");
+        // SF-218-35 : nouveau flag pivot CONTEXTUAL — déclenche F-DT-100 règlement intérieur / validité.
+        addBooleanFlagIfTrue(detected, travailNode, "reglement_interieur_detecte");
         addBooleanFlagIfTrue(detected, travailNode, "faute_grave_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "faute_lourde_envisagee");
         addBooleanFlagIfTrue(detected, travailNode, "cdd_requalification_envisagee");

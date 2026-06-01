@@ -747,7 +747,14 @@ public record CaseAnalysisResponse(
             // `nao_detectee` et le booléen `delegue_syndical_present` en un seul
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // (plafond JVM 255) du constructeur canonical du record. Voir NaoDetail.
-            @JsonUnwrapped NaoDetail naoDetail) {
+            @JsonUnwrapped NaoDetail naoDetail,
+            // SF-218-35 : sous-objet pré-fill IA pour l'outil F-DT-100 (règlement
+            // intérieur — validité, FR). Regroupe le flag pivot CONTEXTUAL
+            // `reglement_interieur_detecte` et le booléen `reglement_interieur_present`
+            // en un seul composant (@JsonUnwrapped) pour rester sous la limite de
+            // paramètres (plafond JVM 255) du constructeur canonical du record. Voir
+            // ReglementInterieurDetail.
+            @JsonUnwrapped ReglementInterieurDetail reglementInterieurDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1272,6 +1279,31 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218-35 — sous-objet pré-fill IA pour l'outil F-DT-100 (Règlement
+         * intérieur — validité, FRANCE UNIQUEMENT — art. L.1311-1 à L.1322-4,
+         * L.1321-1 et s. CT). Regroupe le flag pivot CONTEXTUAL et la présence d'un
+         * règlement intérieur en un seul composant {@code @JsonUnwrapped} (aplati en
+         * JSON sous les clés {@code reglement_interieur_detecte} et
+         * {@code reglement_interieur_present}, contrat externe inchangé) afin de ne
+         * pas dépasser la limite de paramètres (plafond JVM 255) du constructeur
+         * canonical de {@link TravailExtractedData}. Distinct de la validité d'une
+         * sanction disciplinaire fondée sur le RI et du lanceur d'alerte (F-DT-61).
+         *
+         * @param reglementInterieurDetecte flag pivot — true si les pièces révèlent
+         *        une question de règlement intérieur (mentions « règlement intérieur »,
+         *        « échelle des sanctions », « clause du règlement intérieur », « dépôt
+         *        au greffe », « consultation CSE règlement »). FR-only, default false.
+         * @param reglementInterieurPresent true si un règlement intérieur existe
+         *        effectivement dans l'entreprise (pré-fill du champ
+         *        {@code reglementExiste} du formulaire F-DT-100). FR-only, default
+         *        false.
+         */
+        public record ReglementInterieurDetail(
+                boolean reglementInterieurDetecte,
+                boolean reglementInterieurPresent
+        ) {}
+
+        /**
          * SF-218-03 (consolidé par SF-218-29) — sous-objet pré-fill IA pour l'outil
          * F-DT-88 (exécution du jugement CPH, FRANCE UNIQUEMENT — F-205). Regroupe le
          * flag pivot, le montant des condamnations et la situation de l'employeur
@@ -1680,7 +1712,9 @@ public record CaseAnalysisResponse(
                     // SF-218-27 — harcèlement / procédure interne de signalement (FR)
                     .harcelementProcedureInterneDetail(harcelementProcedureInterneDetail)
                     // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
-                    .naoDetail(naoDetail);
+                    .naoDetail(naoDetail)
+                    // SF-218-35 — règlement intérieur / validité (FR)
+                    .reglementInterieurDetail(reglementInterieurDetail);
         }
 
         public static final class Builder {
@@ -1988,6 +2022,7 @@ public record CaseAnalysisResponse(
             // SF-218-27 — harcelement_procedure_interne_detail (FRANCE uniquement) — sous-record IA F-DT-59.
             private HarcelementProcedureInterneDetail harcelementProcedureInterneDetail;
             private NaoDetail naoDetail;
+            private ReglementInterieurDetail reglementInterieurDetail;
 
             private Builder() {}
 
@@ -2296,6 +2331,8 @@ public record CaseAnalysisResponse(
             public Builder harcelementProcedureInterneDetail(HarcelementProcedureInterneDetail v) { this.harcelementProcedureInterneDetail = v; return this; }
             // SF-218-29 — nao_detectee / delegue_syndical_present (FRANCE uniquement) — sous-record IA F-DT-66.
             public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
+            // SF-218-35 — reglement_interieur_detecte / reglement_interieur_present (FRANCE uniquement) — sous-record IA F-DT-100.
+            public Builder reglementInterieurDetail(ReglementInterieurDetail v) { this.reglementInterieurDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2497,7 +2534,9 @@ public record CaseAnalysisResponse(
                         // SF-218-27 — harcèlement / procédure interne de signalement (FR)
                         harcelementProcedureInterneDetail,
                         // SF-218-29 — NAO / négociation annuelle obligatoire (FR)
-                        naoDetail);
+                        naoDetail,
+                        // SF-218-35 — règlement intérieur / validité (FR)
+                        reglementInterieurDetail);
             }
         }
     }
@@ -6023,6 +6062,10 @@ public record CaseAnalysisResponse(
                     .naoDetail(new TravailExtractedData.NaoDetail(
                             booleanOrFalse(node, "nao_detectee"),
                             booleanOrFalse(node, "delegue_syndical_present")))
+                    // SF-218-35 : flag pivot CONTEXTUAL + champ — déclenche F-DT-100 règlement intérieur / validité (FR).
+                    .reglementInterieurDetail(new TravailExtractedData.ReglementInterieurDetail(
+                            booleanOrFalse(node, "reglement_interieur_detecte"),
+                            booleanOrFalse(node, "reglement_interieur_present")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
