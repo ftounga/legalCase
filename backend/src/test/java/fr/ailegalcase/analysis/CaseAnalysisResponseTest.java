@@ -2204,14 +2204,14 @@ class CaseAnalysisResponseTest {
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "rappel_salaire_detecte": true } }
                 """)).travailExtractedData();
         assertThat(t).isNotNull();
-        assertThat(t.rappelSalaireDetecte()).isTrue();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
-        assertThat(t.statutProtegeDetecte()).isFalse();
-        assertThat(t.transactionEnvisagee()).isFalse();
-        assertThat(t.atMpDetecte()).isFalse();
-        assertThat(t.urgenceProcedurale()).isFalse();
-        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().atMpDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isFalse();
     }
 
     @Test
@@ -2219,8 +2219,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "travail_dissimule_detecte": true } }
                 """)).travailExtractedData();
-        assertThat(t.travailDissimuleDetecte()).isTrue();
-        assertThat(t.rappelSalaireDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isFalse();
     }
 
     @Test
@@ -2228,8 +2228,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "clause_non_concurrence_detectee": true } }
                 """)).travailExtractedData();
-        assertThat(t.clauseNonConcurrenceDetectee()).isTrue();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
     }
 
     @Test
@@ -2237,8 +2237,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "statut_protege_detecte": true } }
                 """)).travailExtractedData();
-        assertThat(t.statutProtegeDetecte()).isTrue();
-        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isFalse();
     }
 
     @Test
@@ -2246,8 +2246,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "transaction_envisagee": true } }
                 """)).travailExtractedData();
-        assertThat(t.transactionEnvisagee()).isTrue();
-        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
     }
 
     @Test
@@ -2255,8 +2255,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "at_mp_detecte": true } }
                 """)).travailExtractedData();
-        assertThat(t.atMpDetecte()).isTrue();
-        assertThat(t.transactionEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().atMpDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isFalse();
     }
 
     @Test
@@ -2264,8 +2264,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "urgence_procedurale": true } }
                 """)).travailExtractedData();
-        assertThat(t.urgenceProcedurale()).isTrue();
-        assertThat(t.atMpDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().atMpDetecte()).isFalse();
     }
 
     @Test
@@ -2273,8 +2273,8 @@ class CaseAnalysisResponseTest {
         var t = CaseAnalysisResponse.from(analysis("""
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "contestation_are_envisagee": true } }
                 """)).travailExtractedData();
-        assertThat(t.contestationAreEnvisagee()).isTrue();
-        assertThat(t.urgenceProcedurale()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isFalse();
     }
 
     @Test
@@ -2295,14 +2295,14 @@ class CaseAnalysisResponseTest {
                 }
                 """)).travailExtractedData();
         assertThat(t).isNotNull();
-        assertThat(t.rappelSalaireDetecte()).isFalse();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
-        assertThat(t.statutProtegeDetecte()).isFalse();
-        assertThat(t.transactionEnvisagee()).isFalse();
-        assertThat(t.atMpDetecte()).isFalse();
-        assertThat(t.urgenceProcedurale()).isFalse();
-        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().atMpDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isFalse();
     }
 
     @Test
@@ -2312,14 +2312,14 @@ class CaseAnalysisResponseTest {
                 { "travail_extracted_data": { "convention_collective": "SYNTEC", "salaire_brut_mensuel": 3200 } }
                 """)).travailExtractedData();
         assertThat(t).isNotNull();
-        assertThat(t.rappelSalaireDetecte()).isFalse();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
-        assertThat(t.statutProtegeDetecte()).isFalse();
-        assertThat(t.transactionEnvisagee()).isFalse();
-        assertThat(t.atMpDetecte()).isFalse();
-        assertThat(t.urgenceProcedurale()).isFalse();
-        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().atMpDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isFalse();
     }
 
     @Test
@@ -2337,10 +2337,10 @@ class CaseAnalysisResponseTest {
                 }
                 """)).travailExtractedData();
         assertThat(t).isNotNull();
-        assertThat(t.rappelSalaireDetecte()).isFalse();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
-        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
     }
 
     @Test
@@ -2357,10 +2357,10 @@ class CaseAnalysisResponseTest {
                   }
                 }
                 """)).travailExtractedData();
-        assertThat(t.rappelSalaireDetecte()).isTrue();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.clauseNonConcurrenceDetectee()).isTrue();
-        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
     }
 
     @Test
@@ -2378,14 +2378,14 @@ class CaseAnalysisResponseTest {
                 .congesContractuels(25)
                 .primeAncienneteContractuelle(0.5)
                 .build();
-        assertThat(t.rappelSalaireDetecte()).isFalse();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
-        assertThat(t.statutProtegeDetecte()).isFalse();
-        assertThat(t.transactionEnvisagee()).isFalse();
-        assertThat(t.atMpDetecte()).isFalse();
-        assertThat(t.urgenceProcedurale()).isFalse();
-        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().statutProtegeDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().atMpDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isFalse();
     }
 
     @Test
@@ -2409,8 +2409,8 @@ class CaseAnalysisResponseTest {
                 .motifNullitePressenti("HARCELEMENT_MORAL")
                 .avisMedecinTravailDate("2024-06-01")
                 .build();
-        assertThat(t.rappelSalaireDetecte()).isFalse();
-        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isFalse();
         assertThat(t.motifNullitePressenti()).isEqualTo("HARCELEMENT_MORAL");
     }
 
@@ -2427,11 +2427,11 @@ class CaseAnalysisResponseTest {
                   }
                 }
                 """)).travailExtractedData();
-        assertThat(t.rappelSalaireDetecte()).isTrue();
-        assertThat(t.urgenceProcedurale()).isTrue();
-        assertThat(t.transactionEnvisagee()).isTrue();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
-        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().urgenceProcedurale()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().transactionEnvisagee()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().contestationAreEnvisagee()).isFalse();
     }
 
     // ===========================================================================
@@ -2559,8 +2559,8 @@ class CaseAnalysisResponseTest {
         assertThat(t.resiliationJudiciaireEnvisagee()).isFalse();
         assertThat(t.mediationJudiciaireEnvisagee()).isFalse();
         // Vérifier que les flags F-166 sont préservés (rappelSalaireDetecte = true)
-        assertThat(t.rappelSalaireDetecte()).isTrue();
-        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.sf166ContextualFlagsDetail().rappelSalaireDetecte()).isTrue();
+        assertThat(t.sf166ContextualFlagsDetail().travailDissimuleDetecte()).isFalse();
     }
 
     @Test

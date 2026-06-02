@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -138,24 +139,18 @@ public record CaseAnalysisResponse(
             // SF-166-01 : 8 flags décisionnels niveau 3 — Travail FR uniquement, default false.
             // Permettent à F-IA-04 de basculer F-DT-20/21/24/30/31/33/34/35 en CONTEXTUAL (SF-166-02).
             // Dossiers BE : tous false (régimes BE équivalents distincts → backlog jumeau).
-            boolean rappelSalaireDetecte,
-            boolean travailDissimuleDetecte,
-            boolean clauseNonConcurrenceDetectee,
-            boolean statutProtegeDetecte,
-            boolean transactionEnvisagee,
-            boolean atMpDetecte,
-            boolean urgenceProcedurale,
-            boolean contestationAreEnvisagee,
+            // SF-218d-00 : regroupés en sous-record @JsonUnwrapped (pattern F-256) pour libérer
+            // 7 slots du constructeur canonical (plafond JVM 255). JSON HTTP plat préservé —
+            // les 8 clés camelCase restent au niveau racine, contrat externe inchangé.
+            @JsonUnwrapped Sf166ContextualFlagsDetail sf166ContextualFlagsDetail,
             // === Flags BE (F-204) ===
             // F-204 : 5 flags décisionnels niveau 3 — Travail BELGIQUE uniquement, default false.
             // Permettent à F-IA-04 de basculer F-DT-11/12/15/19/27 (BE) en CONTEXTUAL.
             // Dossiers FR : tous false (les régimes FR équivalents sont gérés par les flags FR ci-dessus
             // ou par F-205 ultérieur).
-            boolean harcelementBeDetecte,
-            boolean discriminationBeDetectee,
-            boolean inaptitudeMedicaleBeDetectee,
-            boolean heuresSupMentionneesBe,
-            boolean motifGraveBeEnvisage,
+            // SF-218d-00 : regroupés en sous-record @JsonUnwrapped (pattern F-256) pour libérer
+            // 4 slots du constructeur canonical. JSON HTTP plat préservé.
+            @JsonUnwrapped Sf204ContextualFlagsDetail sf204ContextualFlagsDetail,
             // === F-205 (P1+P2 flags FR) ===
             // F-205 : 23 flags décisionnels niveau 3 additionnels — Travail FRANCE uniquement, default false.
             // Préparent l'arrivée des outils manquants P1 (F-206) et P2 (F-212) listés dans
@@ -756,7 +751,12 @@ public record CaseAnalysisResponse(
             // `reglement_interieur_detecte` et leurs champs associés en un seul
             // composant (@JsonUnwrapped) pour rester sous la limite de paramètres
             // (plafond JVM 255) du constructeur canonical du record. Voir Sf218cIrpDetail.
-            @JsonUnwrapped Sf218cIrpDetail sf218cIrpDetail) {
+            @JsonUnwrapped Sf218cIrpDetail sf218cIrpDetail,
+            // SF-218d-00 — sous-record @JsonUnwrapped des 9 outils F-218d (FR). 9 flags
+            // pivots + champs de valeur de pré-remplissage en un seul composant
+            // (clés JSON snake_case via @JsonProperty). Un seul slot ajouté au
+            // constructeur canonical (244 params : 254 − 11 consolidés + 1).
+            @JsonUnwrapped Sf218dDetail sf218dDetail) {
 
         /**
          * SF-212-23 — sous-objet pré-fill IA pour l'outil F-DT-56 (égalité
@@ -1335,6 +1335,87 @@ public record CaseAnalysisResponse(
         ) {}
 
         /**
+         * SF-218d-00 — sous-record {@code @JsonUnwrapped} regroupant les 8 flags
+         * décisionnels niveau 3 FR de F-166 (Travail FRANCE uniquement, default
+         * false). Consolidation pattern F-256 : les 8 booléens sont aplatis en JSON
+         * sous leurs clés camelCase d'origine ({@code rappelSalaireDetecte},
+         * {@code travailDissimuleDetecte}, {@code clauseNonConcurrenceDetectee},
+         * {@code statutProtegeDetecte}, {@code transactionEnvisagee},
+         * {@code atMpDetecte}, {@code urgenceProcedurale},
+         * {@code contestationAreEnvisagee}) — contrat HTTP externe strictement
+         * inchangé. Libère 7 slots du constructeur canonical de
+         * {@link TravailExtractedData} (plafond JVM 255). Permettent à F-IA-04 de
+         * basculer F-DT-20/21/24/30/31/33/34/35 en CONTEXTUAL (SF-166-02). Dossiers
+         * BE : tous false (régimes BE équivalents distincts).
+         */
+        public record Sf166ContextualFlagsDetail(
+                boolean rappelSalaireDetecte,
+                boolean travailDissimuleDetecte,
+                boolean clauseNonConcurrenceDetectee,
+                boolean statutProtegeDetecte,
+                boolean transactionEnvisagee,
+                boolean atMpDetecte,
+                boolean urgenceProcedurale,
+                boolean contestationAreEnvisagee
+        ) {}
+
+        /**
+         * SF-218d-00 — sous-record {@code @JsonUnwrapped} regroupant les 5 flags
+         * décisionnels niveau 3 BE de F-204 (Travail BELGIQUE uniquement, default
+         * false). Consolidation pattern F-256 : les 5 booléens sont aplatis en JSON
+         * sous leurs clés camelCase d'origine ({@code harcelementBeDetecte},
+         * {@code discriminationBeDetectee}, {@code inaptitudeMedicaleBeDetectee},
+         * {@code heuresSupMentionneesBe}, {@code motifGraveBeEnvisage}) — contrat
+         * HTTP externe strictement inchangé. Libère 4 slots du constructeur canonical
+         * de {@link TravailExtractedData}. Permettent à F-IA-04 de basculer
+         * F-DT-11/12/15/19/27 (BE) en CONTEXTUAL. Dossiers FR : tous false.
+         */
+        public record Sf204ContextualFlagsDetail(
+                boolean harcelementBeDetecte,
+                boolean discriminationBeDetectee,
+                boolean inaptitudeMedicaleBeDetectee,
+                boolean heuresSupMentionneesBe,
+                boolean motifGraveBeEnvisage
+        ) {}
+
+        /**
+         * SF-218d-00 — sous-record {@code @JsonUnwrapped} pré-fill IA des 9 outils
+         * F-218d (Travail FRANCE uniquement). Regroupe les 9 flags pivots niveau 3
+         * et les champs de valeur de pré-remplissage en un seul composant aplati en
+         * JSON sous les clés snake_case déclarées via {@code @JsonProperty} (contrat
+         * LLM stocké inchangé). N'ajoute qu'un seul slot au constructeur canonical de
+         * {@link TravailExtractedData}. Tous les flags default false, tous les champs
+         * de valeur nullables (un dossier sans la situation correspondante les laisse
+         * neutres). Couvre : monétisation RTT (F-DT-XXX), prime de partage de la
+         * valeur (PPV), épargne salariale (intéressement / participation), congé pour
+         * événement familial, congé parental, congé de proche aidant, acquisition de
+         * RTT, temps de trajet, droit à la déconnexion.
+         */
+        public record Sf218dDetail(
+                @JsonProperty("rtt_monetisation_detectee") boolean rttMonetisationDetectee,
+                @JsonProperty("ppv_detectee") boolean ppvDetectee,
+                @JsonProperty("epargne_salariale_detectee") boolean epargneSalarialeDetectee,
+                @JsonProperty("conge_evt_familial_detecte") boolean congeEvtFamilialDetecte,
+                @JsonProperty("conge_parental_detecte") boolean congeParentalDetecte,
+                @JsonProperty("conge_proche_aidant_detecte") boolean congeProcheAidantDetecte,
+                @JsonProperty("rtt_acquisition_detectee") boolean rttAcquisitionDetectee,
+                @JsonProperty("temps_trajet_detecte") boolean tempsTrajetDetecte,
+                @JsonProperty("droit_deconnexion_detecte") boolean droitDeconnexionDetecte,
+                @JsonProperty("nombre_jours_rtt_renonces") Integer nombreJoursRttRenonces,
+                @JsonProperty("salaire_journalier_brut") java.math.BigDecimal salaireJournalierBrut,
+                @JsonProperty("montant_ppv") java.math.BigDecimal montantPpv,
+                @JsonProperty("accord_interessement_present") Boolean accordInteressementPresent,
+                @JsonProperty("accord_participation_present") Boolean accordParticipationPresent,
+                @JsonProperty("type_evenement_familial") String typeEvenementFamilial,
+                @JsonProperty("date_naissance_ou_adoption") java.time.LocalDate dateNaissanceOuAdoption,
+                @JsonProperty("lien_personne_aidee") String lienPersonneAidee,
+                @JsonProperty("horaire_hebdomadaire_collectif") Double horaireHebdomadaireCollectif,
+                @JsonProperty("type_trajet") String typeTrajet,
+                @JsonProperty("temps_trajet_quotidien_minutes") Integer tempsTrajetQuotidienMinutes,
+                @JsonProperty("accord_deconnexion_present") Boolean accordDeconnexionPresent
+        ) {}
+
+        /**
          * SF-218-03 (consolidé par SF-218-29) — sous-objet pré-fill IA pour l'outil
          * F-DT-88 (exécution du jugement CPH, FRANCE UNIQUEMENT — F-205). Regroupe le
          * flag pivot, le montant des condamnations et la situation de l'employeur
@@ -1464,19 +1545,21 @@ public record CaseAnalysisResponse(
                     .avisMedecinTravailDate(avisMedecinTravailDate)
                     .reclassementRespecteDetected(reclassementRespecteDetected)
                     .heuresSupMentionneesDansDossier(heuresSupMentionneesDansDossier)
-                    .rappelSalaireDetecte(rappelSalaireDetecte)
-                    .travailDissimuleDetecte(travailDissimuleDetecte)
-                    .clauseNonConcurrenceDetectee(clauseNonConcurrenceDetectee)
-                    .statutProtegeDetecte(statutProtegeDetecte)
-                    .transactionEnvisagee(transactionEnvisagee)
-                    .atMpDetecte(atMpDetecte)
-                    .urgenceProcedurale(urgenceProcedurale)
-                    .contestationAreEnvisagee(contestationAreEnvisagee)
-                    .harcelementBeDetecte(harcelementBeDetecte)
-                    .discriminationBeDetectee(discriminationBeDetectee)
-                    .inaptitudeMedicaleBeDetectee(inaptitudeMedicaleBeDetectee)
-                    .heuresSupMentionneesBe(heuresSupMentionneesBe)
-                    .motifGraveBeEnvisage(motifGraveBeEnvisage)
+                    // SF-218d-00 : flags FR (F-166) / BE (F-204) lus depuis les sous-records
+                    // consolidés @JsonUnwrapped (guard null → false par défaut).
+                    .rappelSalaireDetecte(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.rappelSalaireDetecte())
+                    .travailDissimuleDetecte(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.travailDissimuleDetecte())
+                    .clauseNonConcurrenceDetectee(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.clauseNonConcurrenceDetectee())
+                    .statutProtegeDetecte(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.statutProtegeDetecte())
+                    .transactionEnvisagee(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.transactionEnvisagee())
+                    .atMpDetecte(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.atMpDetecte())
+                    .urgenceProcedurale(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.urgenceProcedurale())
+                    .contestationAreEnvisagee(sf166ContextualFlagsDetail != null && sf166ContextualFlagsDetail.contestationAreEnvisagee())
+                    .harcelementBeDetecte(sf204ContextualFlagsDetail != null && sf204ContextualFlagsDetail.harcelementBeDetecte())
+                    .discriminationBeDetectee(sf204ContextualFlagsDetail != null && sf204ContextualFlagsDetail.discriminationBeDetectee())
+                    .inaptitudeMedicaleBeDetectee(sf204ContextualFlagsDetail != null && sf204ContextualFlagsDetail.inaptitudeMedicaleBeDetectee())
+                    .heuresSupMentionneesBe(sf204ContextualFlagsDetail != null && sf204ContextualFlagsDetail.heuresSupMentionneesBe())
+                    .motifGraveBeEnvisage(sf204ContextualFlagsDetail != null && sf204ContextualFlagsDetail.motifGraveBeEnvisage())
                     .abandonPosteDetecte(abandonPosteDetecte)
                     .arretMaladieLongDetecte(arretMaladieLongDetecte)
                     .priseActeEnvisagee(priseActeEnvisagee)
@@ -1747,7 +1830,8 @@ public record CaseAnalysisResponse(
                     // SF-218-31 + SF-218-33 + SF-218-35 — accord d'entreprise / validité
                     // (F-DT-67) + délégué syndical / RSS (F-DT-69) + règlement intérieur /
                     // validité (F-DT-100) (FR)
-                    .sf218cIrpDetail(sf218cIrpDetail);
+                    .sf218cIrpDetail(sf218cIrpDetail)
+                    .sf218dDetail(sf218dDetail);
         }
 
         public static final class Builder {
@@ -2057,6 +2141,8 @@ public record CaseAnalysisResponse(
             private NaoDetail naoDetail;
             // SF-218-31 + SF-218-33 + SF-218-35 — accord_entreprise_* (F-DT-67) + delegation_syndicale_detectee / mandat_syndical_type (F-DT-69) + reglement_interieur_* (F-DT-100) (FRANCE uniquement) — sous-record IA combiné.
             private Sf218cIrpDetail sf218cIrpDetail;
+            // SF-218d-00 — sous-record des 9 outils F-218d (FRANCE uniquement).
+            private Sf218dDetail sf218dDetail;
 
             private Builder() {}
 
@@ -2367,6 +2453,7 @@ public record CaseAnalysisResponse(
             public Builder naoDetail(NaoDetail v) { this.naoDetail = v; return this; }
             // SF-218-31 + SF-218-33 + SF-218-35 — accord_entreprise_* (F-DT-67) + delegation_syndicale_detectee / mandat_syndical_type (F-DT-69) + reglement_interieur_* (F-DT-100) (FRANCE uniquement) — sous-record IA combiné.
             public Builder sf218cIrpDetail(Sf218cIrpDetail v) { this.sf218cIrpDetail = v; return this; }
+            public Builder sf218dDetail(Sf218dDetail v) { this.sf218dDetail = v; return this; }
 
             public TravailExtractedData build() {
                 return new TravailExtractedData(
@@ -2381,11 +2468,15 @@ public record CaseAnalysisResponse(
                         avisMedecinTravailDate,
                         reclassementRespecteDetected,
                         heuresSupMentionneesDansDossier,
-                        rappelSalaireDetecte, travailDissimuleDetecte, clauseNonConcurrenceDetectee,
-                        statutProtegeDetecte, transactionEnvisagee, atMpDetecte,
-                        urgenceProcedurale, contestationAreEnvisagee,
-                        harcelementBeDetecte, discriminationBeDetectee, inaptitudeMedicaleBeDetectee,
-                        heuresSupMentionneesBe, motifGraveBeEnvisage,
+                        // SF-218d-00 — 8 flags FR (F-166) consolidés en sous-record @JsonUnwrapped.
+                        new Sf166ContextualFlagsDetail(
+                                rappelSalaireDetecte, travailDissimuleDetecte, clauseNonConcurrenceDetectee,
+                                statutProtegeDetecte, transactionEnvisagee, atMpDetecte,
+                                urgenceProcedurale, contestationAreEnvisagee),
+                        // SF-218d-00 — 5 flags BE (F-204) consolidés en sous-record @JsonUnwrapped.
+                        new Sf204ContextualFlagsDetail(
+                                harcelementBeDetecte, discriminationBeDetectee, inaptitudeMedicaleBeDetectee,
+                                heuresSupMentionneesBe, motifGraveBeEnvisage),
                         abandonPosteDetecte, arretMaladieLongDetecte, priseActeEnvisagee,
                         resiliationJudiciaireEnvisagee, forfaitJoursDetecte, transfertEntrepriseDetecte,
                         fauteInexcusableEnvisagee, csCrpEnvisage, cspPropose,
@@ -2572,7 +2663,9 @@ public record CaseAnalysisResponse(
                         // SF-218-31 + SF-218-33 + SF-218-35 — accord d'entreprise / validité
                         // (F-DT-67) + délégué syndical / RSS (F-DT-69) + règlement intérieur /
                         // validité (F-DT-100) (FR)
-                        sf218cIrpDetail);
+                        sf218cIrpDetail,
+                        // SF-218d-00 — sous-record @JsonUnwrapped des 9 outils F-218d (FR).
+                        sf218dDetail);
             }
         }
     }
@@ -6111,6 +6204,31 @@ public record CaseAnalysisResponse(
                             stringOrNull(node, "mandat_syndical_type"),
                             booleanOrFalse(node, "reglement_interieur_detecte"),
                             booleanOrFalse(node, "reglement_interieur_present")))
+                    // SF-218d-00 : sous-record consolidé des 9 outils F-218d (FRANCE
+                    // uniquement) — 9 flags pivots fail-safe à false + champs de valeur de
+                    // pré-remplissage nullables. Clés snake_case via @JsonProperty.
+                    .sf218dDetail(new TravailExtractedData.Sf218dDetail(
+                            booleanOrFalse(node, "rtt_monetisation_detectee"),
+                            booleanOrFalse(node, "ppv_detectee"),
+                            booleanOrFalse(node, "epargne_salariale_detectee"),
+                            booleanOrFalse(node, "conge_evt_familial_detecte"),
+                            booleanOrFalse(node, "conge_parental_detecte"),
+                            booleanOrFalse(node, "conge_proche_aidant_detecte"),
+                            booleanOrFalse(node, "rtt_acquisition_detectee"),
+                            booleanOrFalse(node, "temps_trajet_detecte"),
+                            booleanOrFalse(node, "droit_deconnexion_detecte"),
+                            nonNegativeIntOrNull(node, "nombre_jours_rtt_renonces"),
+                            bigDecimalOrNull(node, "salaire_journalier_brut"),
+                            bigDecimalOrNull(node, "montant_ppv"),
+                            booleanOrNull(node, "accord_interessement_present"),
+                            booleanOrNull(node, "accord_participation_present"),
+                            stringOrNull(node, "type_evenement_familial"),
+                            localDateOrNull(node, "date_naissance_ou_adoption"),
+                            stringOrNull(node, "lien_personne_aidee"),
+                            doubleOrNull(node, "horaire_hebdomadaire_collectif"),
+                            stringOrNull(node, "type_trajet"),
+                            nonNegativeIntOrNull(node, "temps_trajet_quotidien_minutes"),
+                            booleanOrNull(node, "accord_deconnexion_present")))
                     .fauteGraveEnvisagee(booleanOrFalse(node, "faute_grave_envisagee"))
                     .fauteLourdeEnvisagee(booleanOrFalse(node, "faute_lourde_envisagee"))
                     .cddRequalificationEnvisagee(booleanOrFalse(node, "cdd_requalification_envisagee"))
@@ -7592,6 +7710,22 @@ public record CaseAnalysisResponse(
         if (raw == null) return null;
         String trimmed = raw.trim();
         return ISO_DATE_PATTERN.matcher(trimmed).matches() ? trimmed : null;
+    }
+
+    /**
+     * SF-218d-00 : variante typée {@link java.time.LocalDate} de {@link #isoDateOrNull}.
+     * Valide le format ISO yyyy-MM-dd puis parse en {@code LocalDate}. Retourne
+     * {@code null} si absent, non ISO ou non parsable (fail-open). Utilisé par le
+     * sous-record {@code Sf218dDetail} (champ {@code date_naissance_ou_adoption}).
+     */
+    private static java.time.LocalDate localDateOrNull(JsonNode node, String field) {
+        String iso = isoDateOrNull(node, field);
+        if (iso == null) return null;
+        try {
+            return java.time.LocalDate.parse(iso);
+        } catch (java.time.format.DateTimeParseException e) {
+            return null;
+        }
     }
 
     /**
