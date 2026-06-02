@@ -1290,6 +1290,72 @@ public final class LegalDomainPromptBuilder {
             """;
 
     /**
+     * SF-218d-00 — instructions pour la détection des 9 flags pivots F-218d et de
+     * leurs champs de valeur de pré-remplissage (FRANCE UNIQUEMENT). Une instruction
+     * par flag (PART36 à PART44). Tous les flags false par défaut, tous les champs de
+     * valeur null si non factualisable. Pour un dossier travail BELGIQUE, laisser
+     * tous ces flags à false et tous les champs associés à null (régimes propres au
+     * droit français, hors périmètre des outils FR correspondants).
+     */
+    private static final String TRAVAIL_INSTRUCTION_PART36 = """
+              SF-218d — Flag `rtt_monetisation_detectee` (FRANCE UNIQUEMENT).
+              "rtt_monetisation_detectee" : booléen — true uniquement si les pièces révèlent une MONÉTISATION DE JOURS DE RTT (renonciation à des jours de RTT contre rémunération majorée, art. 5 loi 2022-1157 du 16 août 2022 / loi pouvoir d'achat) : mention « rachat de RTT », « monétisation de RTT », « renonciation à des jours de repos », « jours de RTT payés ». False par défaut. Pertinent pour l'outil de monétisation des RTT.
+              "nombre_jours_rtt_renonces" : entier ≥ 0 — nombre de jours de RTT auxquels le salarié renonce, si mentionné. null si non factualisable.
+              "salaire_journalier_brut" : nombre décimal (€ bruts) — salaire journalier brut servant de base au calcul de la majoration, si mentionné ou déductible du salaire mensuel. null si non factualisable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART37 = """
+              SF-218d — Flag `ppv_detectee` (FRANCE UNIQUEMENT).
+              "ppv_detectee" : booléen — true uniquement si les pièces révèlent une PRIME DE PARTAGE DE LA VALEUR (PPV, loi 2022-1158 du 16 août 2022, ex-« prime Macron ») : mention « prime de partage de la valeur », « PPV », « prime exceptionnelle de pouvoir d'achat », accord ou décision unilatérale d'attribution. False par défaut. Pertinent pour l'outil PPV.
+              "montant_ppv" : nombre décimal (€) — montant de la PPV attribuée, si mentionné. null si non factualisable.
+              "accord_interessement_present" : booléen — true si l'entreprise dispose d'un accord d'intéressement (conditionne le plafond d'exonération PPV). false/null si non factualisable. Champ MUTUALISÉ avec l'épargne salariale (cf. flag suivant).
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART38 = """
+              SF-218d — Flag `epargne_salariale_detectee` (FRANCE UNIQUEMENT).
+              "epargne_salariale_detectee" : booléen — true uniquement si les pièces révèlent un dispositif d'ÉPARGNE SALARIALE (intéressement art. L.3312-1 et s. CT, participation art. L.3322-1 et s. CT, PEE/PERCO) : mention « intéressement », « participation aux résultats », « plan d'épargne entreprise », « PEE », « PERCO », « abondement employeur ». False par défaut. Pertinent pour l'outil épargne salariale.
+              "accord_interessement_present" : booléen — true si un accord d'intéressement existe. false/null si non factualisable. Champ MUTUALISÉ avec la PPV (PART37).
+              "accord_participation_present" : booléen — true si un accord ou régime de participation existe. false/null si non factualisable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART39 = """
+              SF-218d — Flag `conge_evt_familial_detecte` (FRANCE UNIQUEMENT).
+              "conge_evt_familial_detecte" : booléen — true uniquement si les pièces révèlent un CONGÉ POUR ÉVÉNEMENT FAMILIAL (art. L.3142-1 et s. CT : mariage/PACS, naissance, décès, annonce de handicap d'un enfant...) : mention « congé pour mariage », « congé naissance », « congé pour décès », « congé événement familial ». False par défaut. Pertinent pour l'outil congé événement familial.
+              "type_evenement_familial" : chaîne — type d'événement identifié (ex. MARIAGE, PACS, NAISSANCE, DECES_CONJOINT, DECES_ENFANT, ANNONCE_HANDICAP_ENFANT). null si non déterminable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART40 = """
+              SF-218d — Flag `conge_parental_detecte` (FRANCE UNIQUEMENT).
+              "conge_parental_detecte" : booléen — true uniquement si les pièces révèlent un CONGÉ PARENTAL D'ÉDUCATION (art. L.1225-47 et s. CT) : mention « congé parental », « congé parental d'éducation », « passage à temps partiel pour élever un enfant », « demande de congé parental ». False par défaut. Pertinent pour l'outil congé parental.
+              "date_naissance_ou_adoption" : date ISO yyyy-MM-dd — date de naissance ou d'arrivée au foyer de l'enfant (base de calcul de la durée du congé parental). null si non factualisable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART41 = """
+              SF-218d — Flag `conge_proche_aidant_detecte` (FRANCE UNIQUEMENT).
+              "conge_proche_aidant_detecte" : booléen — true uniquement si les pièces révèlent un CONGÉ DE PROCHE AIDANT (art. L.3142-16 et s. CT) : mention « congé de proche aidant », « aidant familial », « accompagnement d'un proche en perte d'autonomie / en situation de handicap », « AJPA ». False par défaut. Pertinent pour l'outil congé de proche aidant.
+              "lien_personne_aidee" : chaîne — lien entre le salarié et la personne aidée (ex. CONJOINT, ENFANT, PARENT, ASCENDANT, AUTRE). null si non déterminable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART42 = """
+              SF-218d — Flag `rtt_acquisition_detectee` (FRANCE UNIQUEMENT).
+              "rtt_acquisition_detectee" : booléen — true uniquement si les pièces posent une question d'ACQUISITION / de calcul de DROITS À RTT (réduction du temps de travail, accord de modulation, forfait heures) : mention « jours de RTT acquis », « acquisition de RTT », « calcul des RTT », « accord de réduction du temps de travail ». NE PAS confondre avec la monétisation des RTT (PART36), situation distincte. False par défaut. Pertinent pour l'outil acquisition de RTT.
+              "horaire_hebdomadaire_collectif" : nombre décimal (heures) — horaire hebdomadaire collectif de travail servant de base au calcul des jours de RTT acquis (ex. 37, 39). null si non factualisable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART43 = """
+              SF-218d — Flag `temps_trajet_detecte` (FRANCE UNIQUEMENT).
+              "temps_trajet_detecte" : booléen — true uniquement si les pièces posent une question relative au TEMPS DE TRAJET (art. L.3121-4 CT : trajet domicile-travail anormal, temps de déplacement professionnel) : mention « temps de trajet », « temps de déplacement professionnel », « contrepartie au temps de trajet », « trajet domicile-lieu de travail anormalement long ». False par défaut. Pertinent pour l'outil temps de trajet.
+              "type_trajet" : chaîne — type de trajet identifié (ex. DOMICILE_TRAVAIL, DEPLACEMENT_PROFESSIONNEL, MISSION). null si non déterminable.
+              "temps_trajet_quotidien_minutes" : entier ≥ 0 — durée quotidienne du trajet en minutes, si mentionnée. null si non factualisable.
+            """;
+
+    private static final String TRAVAIL_INSTRUCTION_PART44 = """
+              SF-218d — Flag `droit_deconnexion_detecte` (FRANCE UNIQUEMENT).
+              "droit_deconnexion_detecte" : booléen — true uniquement si les pièces révèlent une question relative au DROIT À LA DÉCONNEXION (art. L.2242-17, 7° CT) : mention « droit à la déconnexion », « sollicitations hors temps de travail », « charte / accord déconnexion », « emails ou messages professionnels en dehors des horaires ». False par défaut. Pertinent pour l'outil droit à la déconnexion.
+              "accord_deconnexion_present" : booléen — true si l'entreprise dispose d'un accord ou d'une charte de droit à la déconnexion. false/null si non factualisable.
+            """;
+
+    /**
      * Concaténation des 17 parts du prompt TRAVAIL — voir commentaire au-dessus
      * de PART1. La concaténation est faite à runtime via {@link String#concat(String)}
      * pour empêcher l'optimisation compile-time qui produirait à nouveau un
@@ -1330,7 +1396,17 @@ public final class LegalDomainPromptBuilder {
                     .concat(TRAVAIL_INSTRUCTION_PART32)
                     .concat(TRAVAIL_INSTRUCTION_PART33)
                     .concat(TRAVAIL_INSTRUCTION_PART34)
-                    .concat(TRAVAIL_INSTRUCTION_PART35);
+                    .concat(TRAVAIL_INSTRUCTION_PART35)
+                    // SF-218d-00 — 9 instructions F-218d (FRANCE uniquement).
+                    .concat(TRAVAIL_INSTRUCTION_PART36)
+                    .concat(TRAVAIL_INSTRUCTION_PART37)
+                    .concat(TRAVAIL_INSTRUCTION_PART38)
+                    .concat(TRAVAIL_INSTRUCTION_PART39)
+                    .concat(TRAVAIL_INSTRUCTION_PART40)
+                    .concat(TRAVAIL_INSTRUCTION_PART41)
+                    .concat(TRAVAIL_INSTRUCTION_PART42)
+                    .concat(TRAVAIL_INSTRUCTION_PART43)
+                    .concat(TRAVAIL_INSTRUCTION_PART44);
 
     private static final String IMMIGRATION_INSTRUCTION_PART1 = """
 
