@@ -101,6 +101,8 @@ import { PpvExonerationSectionComponent } from '../ppv-exoneration-section/ppv-e
 import { EpargneSalarialeConformiteSectionComponent } from '../epargne-salariale-conformite-section/epargne-salariale-conformite-section.component';
 // SF-218-44 : composant complet F-DT-76-conges-evenements-familiaux — durée du congé pour évènement familial (art. L.3142-1 à L.3142-5 CT : mariage/PACS, naissance, décès, annonce de handicap d'un enfant ; durée légale vs conventionnelle plus favorable ; maintien intégral du salaire) (Travail FR).
 import { CongesEvenementsFamiliauxSectionComponent } from '../conges-evenements-familiaux-section/conges-evenements-familiaux-section.component';
+// SF-218-46 : composant complet F-DT-78-conge-parental-education — éligibilité (1 an d'ancienneté à la naissance/adoption, L.1225-47) + date de fin maximale au 3e anniversaire de l'enfant (L.1225-48) + réintégration garantie (L.1225-55) + information PreParE CAF (Travail FR).
+import { CongeParentalEducationSectionComponent } from '../conge-parental-education-section/conge-parental-education-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -2039,6 +2041,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-76-conges-evenements-familiaux', {
         displayLabel: 'Congés pour évènements familiaux (FR)',
         component: CongesEvenementsFamiliauxSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-46 : composant complet F-DT-78-conge-parental-education —
+      // éligibilité + date de fin maximale du congé parental d'éducation
+      // (Travail FR). FR uniquement, CONTEXTUAL (flag congeParentalDetecte).
+      // Art. L.1225-47 à L.1225-60 CT : un an d'ancienneté minimum à la date de
+      // naissance / adoption (L.1225-47) ; congé pris jusqu'au 3e anniversaire
+      // de l'enfant (durée d'un an renouvelable deux fois, L.1225-48) ;
+      // réintégration dans le précédent emploi ou un emploi similaire à l'issue
+      // du congé (L.1225-55) ; information PreParE (CAF), montant non calculé.
+      // Distinct du congé de paternité/maternité (F-212) et du congé pour
+      // évènements familiaux (F-DT-76). Pré-fill IA 1 champ
+      // (dateNaissanceOuAdoption) via static getPrefillCount +
+      // CongeParentalEducationPrefillRules.
+      ['F-DT-78-conge-parental-education', {
+        displayLabel: 'Congé parental d\'éducation (FR)',
+        component: CongeParentalEducationSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5420,6 +5444,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // congé (jours) + maintien intégral du salaire (droit à congé / quantum),
     // cohérent avec les autres outils INDEMNITES (calculateur de quantum).
     ['F-DT-76-conges-evenements-familiaux', 'INDEMNITES'],
+    // SF-218-46 : F-DT-78 congé parental d'éducation (art. L.1225-47 à
+    // L.1225-60 CT, FR-only) — thème DIAGNOSTIC : l'outil rend un diagnostic
+    // d'éligibilité (ELIGIBLE / NON_ELIGIBLE) + date de fin maximale du droit,
+    // cohérent avec les autres outils DIAGNOSTIC (analyse de situation).
+    ['F-DT-78-conge-parental-education', 'DIAGNOSTIC'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).
