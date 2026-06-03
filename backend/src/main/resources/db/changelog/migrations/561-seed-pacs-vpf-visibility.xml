@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="561-seed-pacs-vpf-visibility" author="legalcase">
+        <comment>
+            SF-220-04 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "VPF au titre d'un PACS L.423-23"
+            (F-IM-50-pacs-vpf-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte un contexte de PACS (flag pivot booléen
+            `pacs_detecte` extrait dans immigration_extracted_data et propagé par
+            DecisionToolVisibilityService — même mécanique addBooleanFlagIfTrue
+            que les autres flags pivots Immigration FR). À défaut de détection, la
+            card reste au catalogue (jamais ALWAYS_ON).
+
+            priority 81 — au-dessus de F-IM-49 VPF jeune majeur (priority 80),
+            priorité maximale actuelle des outils Immigration FRANCE.
+
+            Distinct de F-IM-21 (conjoint MARIÉ de Français, droit automatique) et
+            de F-IM-27 (VPF liens personnels L.423-23 générale) : ici le PACS est
+            apprécié comme FAISCEAU d'indices (ancienneté ~1 an + intensité de la
+            communauté de vie), angle propre au PACS.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-220 : f2200008-0000-0000-0000-220000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2200008-0000-0000-0000-220000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-50-pacs-vpf-fr', 'CONTEXTUAL', 'pacs_detecte', 'true', 81);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2200008-0000-0000-0000-220000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

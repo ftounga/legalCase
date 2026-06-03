@@ -2906,6 +2906,14 @@ public record CaseAnalysisResponse(
             Set.of("VPF", "SALARIE", "ETUDIANT", "RESIDENT", "AUTRE");
 
     /**
+     * SF-220-04 : intensité de la communauté de vie pour l'outil F-IM-50 VPF au
+     * titre d'un PACS (CESEDA L.423-23). FRANCE uniquement. Un code hors whitelist
+     * renvoyé par le LLM est ramené à {@code null} par {@code normalizeEnumCode()}.
+     */
+    static final Set<String> PACS_INTENSITE_COMMUNAUTE_VIE_CODES =
+            Set.of("FORTE", "MOYENNE", "FAIBLE", "NON_ETABLIE");
+
+    /**
      * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
      * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
      * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
@@ -3516,7 +3524,21 @@ public record CaseAnalysisResponse(
             /** SF-220-03 : true si pris en charge par l'aide sociale à l'enfance (ASE). Null si non extractible ou dossier BE. */
             Boolean jeuneMajeurPriseEnChargeAse,
             /** SF-220-03 : true si scolarisé ou en formation. Null si non extractible ou dossier BE. */
-            Boolean jeuneMajeurScolarise) {
+            Boolean jeuneMajeurScolarise,
+            // === SF-220-04 — F-IM-50 VPF au titre d'un PACS L.423-23 (FRANCE UNIQUEMENT, null pour BE) ===
+            // Flag pivot CONTEXTUAL `pacsDetecte` (PACS apprécié comme faisceau d'indices de vie
+            // privée et familiale) + 4 champs de pré-fill. Tous null/false pour dossier BE.
+            /** SF-220-04 : true si un contexte de PACS est détecté — pilote la visibilité CONTEXTUAL. */
+            boolean pacsDetecte,
+            /** SF-220-04 : true si un PACS a été conclu. Null si non extractible ou dossier BE. */
+            Boolean pacsConclu,
+            /** SF-220-04 : date du PACS (ISO yyyy-MM-dd). Null si non extractible ou dossier BE. */
+            String pacsDate,
+            /** SF-220-04 : durée de vie commune en mois (≥ 0). Null si non extractible ou dossier BE. */
+            Integer pacsDureeVieCommune,
+            /** SF-220-04 : intensité de la communauté de vie — whitelist
+             *  (FORTE / MOYENNE / FAIBLE / NON_ETABLIE). Null si non extractible ou dossier BE. */
+            String pacsIntensiteCommunauteVie) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3664,7 +3686,13 @@ public record CaseAnalysisResponse(
                     .jeuneMajeurAge(jeuneMajeurAge)
                     .jeuneMajeurEntreMineur(jeuneMajeurEntreMineur)
                     .jeuneMajeurPriseEnChargeAse(jeuneMajeurPriseEnChargeAse)
-                    .jeuneMajeurScolarise(jeuneMajeurScolarise);
+                    .jeuneMajeurScolarise(jeuneMajeurScolarise)
+                    // SF-220-04 : F-IM-50 VPF au titre d'un PACS L.423-23 FR
+                    .pacsDetecte(pacsDetecte)
+                    .pacsConclu(pacsConclu)
+                    .pacsDate(pacsDate)
+                    .pacsDureeVieCommune(pacsDureeVieCommune)
+                    .pacsIntensiteCommunauteVie(pacsIntensiteCommunauteVie);
         }
 
         public static final class Builder {
@@ -3832,6 +3860,11 @@ public record CaseAnalysisResponse(
             private Boolean jeuneMajeurEntreMineur;
             private Boolean jeuneMajeurPriseEnChargeAse;
             private Boolean jeuneMajeurScolarise;
+            private boolean pacsDetecte;
+            private Boolean pacsConclu;
+            private String pacsDate;
+            private Integer pacsDureeVieCommune;
+            private String pacsIntensiteCommunauteVie;
 
             private Builder() {}
 
@@ -3986,6 +4019,11 @@ public record CaseAnalysisResponse(
             public Builder jeuneMajeurEntreMineur(Boolean v) { this.jeuneMajeurEntreMineur = v; return this; }
             public Builder jeuneMajeurPriseEnChargeAse(Boolean v) { this.jeuneMajeurPriseEnChargeAse = v; return this; }
             public Builder jeuneMajeurScolarise(Boolean v) { this.jeuneMajeurScolarise = v; return this; }
+            public Builder pacsDetecte(boolean v) { this.pacsDetecte = v; return this; }
+            public Builder pacsConclu(Boolean v) { this.pacsConclu = v; return this; }
+            public Builder pacsDate(String v) { this.pacsDate = v; return this; }
+            public Builder pacsDureeVieCommune(Integer v) { this.pacsDureeVieCommune = v; return this; }
+            public Builder pacsIntensiteCommunauteVie(String v) { this.pacsIntensiteCommunauteVie = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4105,7 +4143,12 @@ public record CaseAnalysisResponse(
                         jeuneMajeurAge,
                         jeuneMajeurEntreMineur,
                         jeuneMajeurPriseEnChargeAse,
-                        jeuneMajeurScolarise);
+                        jeuneMajeurScolarise,
+                        pacsDetecte,
+                        pacsConclu,
+                        pacsDate,
+                        pacsDureeVieCommune,
+                        pacsIntensiteCommunauteVie);
             }
         }
     }
@@ -7559,6 +7602,17 @@ public record CaseAnalysisResponse(
         Boolean jeuneMajeurEntreMineur = booleanOrNull(root, "jeune_majeur_entre_mineur");
         Boolean jeuneMajeurPriseEnChargeAse = booleanOrNull(root, "jeune_majeur_prise_en_charge_ase");
         Boolean jeuneMajeurScolarise = booleanOrNull(root, "jeune_majeur_scolarise");
+        // SF-220-04 : F-IM-50 VPF au titre d'un PACS L.423-23 FR — flag pivot CONTEXTUAL
+        // `pacs_detecte` + 4 champs de pré-fill. Intensité whitelistée (4 codes), durée de vie
+        // commune en mois (≥ 0), date du PACS (ISO yyyy-MM-dd). Tous null/false pour dossier BE.
+        boolean pacsDetecte = Boolean.TRUE.equals(booleanOrNull(root, "pacs_detecte"));
+        Boolean pacsConclu = booleanOrNull(root, "pacs_conclu");
+        String pacsDateRaw = textOrNull(root, "pacs_date");
+        String pacsDate = (pacsDateRaw != null && pacsDateRaw.matches("\\d{4}-\\d{2}-\\d{2}"))
+                ? pacsDateRaw : null;
+        Integer pacsDureeVieCommune = nonNegativeIntOrNull(root, "pacs_duree_vie_commune");
+        String pacsIntensiteCommunauteVie = normalizeEnumCode(
+                textOrNull(root, "pacs_intensite_communaute_vie"), PACS_INTENSITE_COMMUNAUTE_VIE_CODES);
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7694,7 +7748,13 @@ public record CaseAnalysisResponse(
                 && jeuneMajeurAge == null
                 && jeuneMajeurEntreMineur == null
                 && jeuneMajeurPriseEnChargeAse == null
-                && jeuneMajeurScolarise == null) return null;
+                && jeuneMajeurScolarise == null
+                // SF-220-04 : F-IM-50 VPF au titre d'un PACS L.423-23 FR (1 flag pivot + 4 champs IA)
+                && !pacsDetecte
+                && pacsConclu == null
+                && pacsDate == null
+                && pacsDureeVieCommune == null
+                && pacsIntensiteCommunauteVie == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -7858,6 +7918,12 @@ public record CaseAnalysisResponse(
                 .jeuneMajeurEntreMineur(jeuneMajeurEntreMineur)
                 .jeuneMajeurPriseEnChargeAse(jeuneMajeurPriseEnChargeAse)
                 .jeuneMajeurScolarise(jeuneMajeurScolarise)
+                // SF-220-04 : F-IM-50 VPF au titre d'un PACS L.423-23 FR
+                .pacsDetecte(pacsDetecte)
+                .pacsConclu(pacsConclu)
+                .pacsDate(pacsDate)
+                .pacsDureeVieCommune(pacsDureeVieCommune)
+                .pacsIntensiteCommunauteVie(pacsIntensiteCommunauteVie)
                 .build();
     }
 

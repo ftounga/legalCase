@@ -1687,6 +1687,13 @@ public final class LegalDomainPromptBuilder {
             "jeune_majeur_entre_mineur" : booléen ou null — FRANCE UNIQUEMENT. true si le jeune est entré en France avant sa majorité (mineur). null si non identifiable. Pour un dossier belge : toujours null.
             "jeune_majeur_prise_en_charge_ase" : booléen ou null — FRANCE UNIQUEMENT. true si le jeune est ou a été pris en charge par l'aide sociale à l'enfance (ASE). null si non identifiable. Pour un dossier belge : toujours null.
             "jeune_majeur_scolarise" : booléen ou null — FRANCE UNIQUEMENT. true si le jeune est scolarisé ou en formation. null si non identifiable. Pour un dossier belge : toujours null.
+
+            SF-220-04 — F-IM-50 VPF au titre d'un PACS L.423-23 (FRANCE UNIQUEMENT). 1 flag pivot + 4 champs de pré-fill pour l'outil décisionnel qui apprécie le PACS comme FAISCEAU d'indices de vie privée et familiale (carte « vie privée et familiale » de l'art. L.423-23 CESEDA). Le PACS n'ouvre PAS de droit automatique au séjour (DISTINCT du conjoint MARIÉ de Français F-IM-21) ; sa valeur probante dépend de l'ancienneté (~1 an) et de l'intensité / stabilité de la communauté de vie. Angle propre au PACS, DISTINCT de la VPF « liens personnels » générale L.423-23 (F-IM-27). Ne renseigner ces champs que si un PACS est identifié dans les pièces (convention de PACS, attestation, mention de partenaire pacsé). Pour un dossier belge : champs toujours null/false.
+            "pacs_detecte" : booléen — FRANCE UNIQUEMENT. true UNIQUEMENT si le dossier concerne un PACS apprécié au titre du séjour (vie privée et familiale). false par défaut. Pour un dossier belge : toujours false.
+            "pacs_conclu" : booléen ou null — FRANCE UNIQUEMENT. true si un PACS a effectivement été conclu. null si non identifiable. Pour un dossier belge : toujours null.
+            "pacs_date" : chaîne au format AAAA-MM-JJ ou null — FRANCE UNIQUEMENT. Date de conclusion du PACS. null si non identifiable. Pour un dossier belge : toujours null.
+            "pacs_duree_vie_commune" : entier ≥ 0 ou null — FRANCE UNIQUEMENT. Durée de vie commune en mois entiers. null si non identifiable. Pour un dossier belge : toujours null.
+            "pacs_intensite_communaute_vie" : chaîne ou null — FRANCE UNIQUEMENT. Intensité de la communauté de vie, l'une des valeurs exactes : "FORTE", "MOYENNE", "FAIBLE", "NON_ETABLIE". null si non identifiable. Pour un dossier belge : toujours null.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION =

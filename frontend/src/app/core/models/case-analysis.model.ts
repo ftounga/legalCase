@@ -2230,6 +2230,21 @@ export interface ImmigrationExtractedData {
   jeuneMajeurEntreMineur?: boolean | null;
   jeuneMajeurPriseEnChargeAse?: boolean | null;
   jeuneMajeurScolarise?: boolean | null;
+
+  /**
+   * SF-220-04 — F-IM-50 VPF au titre d'un PACS L.423-23 (FR uniquement, null/false pour BE).
+   * 1 flag pivot CONTEXTUAL (`pacsDetecte`) + 4 champs de pré-fill.
+   * `pacsDetecte` : contexte de PACS détecté (pilote la visibilité de l'outil).
+   * `pacsConclu` : PACS effectivement conclu.
+   * `pacsDate` : date du PACS (ISO yyyy-MM-dd).
+   * `pacsDureeVieCommune` : durée de vie commune en mois (≥ 0).
+   * `pacsIntensiteCommunauteVie` : intensité de la communauté de vie (whitelist 4 codes).
+   */
+  pacsDetecte?: boolean | null;
+  pacsConclu?: boolean | null;
+  pacsDate?: string | null;
+  pacsDureeVieCommune?: number | null;
+  pacsIntensiteCommunauteVie?: 'FORTE' | 'MOYENNE' | 'FAIBLE' | 'NON_ETABLIE' | null;
 }
 
 export interface CaseAnalysisVersionSummary {

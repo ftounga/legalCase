@@ -64,6 +64,8 @@ import { RegroupementFamilialSectionComponent } from '../regroupement-familial-s
 import { RegimeTunisienSectionComponent } from '../regime-tunisien-section/regime-tunisien-section.component';
 import { RegimeMayotteSectionComponent } from '../regime-mayotte-section/regime-mayotte-section.component';
 import { VpfJeuneMajeurSectionComponent } from '../vpf-jeune-majeur-section/vpf-jeune-majeur-section.component';
+// SF-220-04 : composant complet F-IM-50-pacs-vpf-fr — VPF au titre d'un PACS L.423-23 (FR, faisceau).
+import { PacsVpfSectionComponent } from '../pacs-vpf-section/pacs-vpf-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
@@ -1690,6 +1692,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-49-vpf-jeune-majeur-l42322-fr', {
         displayLabel: 'VPF jeune majeur L.423-22 (FR)',
         component: VpfJeuneMajeurSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-220-04 : composant complet F-IM-50 VPF au titre d'un PACS L.423-23 CESEDA
+      // (FR). FR uniquement, CONTEXTUAL sur le flag pivot pacs_detecte. Outil
+      // d'analyse de FAISCEAU d'indices (vie privée et familiale) — le PACS n'ouvre
+      // pas de droit automatique au séjour. Distinct de F-IM-21 (conjoint marié) et
+      // F-IM-27 (VPF liens personnels générale). Pré-fill IA 4 champs (PACS conclu,
+      // date, durée vie commune, intensité) via static getPrefillCount +
+      // PacsVpfPrefillRules.
+      ['F-IM-50-pacs-vpf-fr', {
+        displayLabel: 'VPF au titre d\'un PACS L.423-23 (FR)',
+        component: PacsVpfSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5786,6 +5805,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // d'éligibilité (4 verdicts). Thème VALIDITE, aligné sur F-IM-27 VPF liens
     // personnels / autres analyseurs d'éligibilité Immigration FR.
     ['F-IM-49-vpf-jeune-majeur-l42322-fr', 'VALIDITE'],
+    // SF-220-04 : F-IM-50 VPF au titre d'un PACS L.423-23 CESEDA (FR) — analyseur
+    // de faisceau d'indices (4 verdicts). Thème VALIDITE, aligné sur F-IM-27 VPF
+    // liens personnels / autres analyseurs d'éligibilité Immigration FR.
+    ['F-IM-50-pacs-vpf-fr', 'VALIDITE'],
     // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.
