@@ -1,0 +1,136 @@
+<!--
+  SF-222-04 : template de l'outil assistance éducative — mineur en danger
+  (F-FA-ASSISTANCE-EDUCATIVE, FRANCE uniquement — art. 375 et s. Cciv).
+  Invariant « 1 situation = 1 outil » : AED / AEMO / OPP-placement / pas de mesure.
+  Pattern : habilitation-familiale-section (SF-222-03).
+-->
+<section class="ae-section" [class.ae-section--collapsed]="collapsed()">
+  <header class="ae-section__header" (click)="toggleCollapse()">
+    <mat-icon class="ae-section__icon">child_care</mat-icon>
+    <h3 class="ae-section__title">Assistance éducative (enfant en danger)</h3>
+    <span class="ae-section__country">FR</span>
+    <mat-icon class="ae-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="ae-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="ae-banner ae-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France (art. 375 et s. Cciv). La protection
+        de l'enfant en danger relève en Belgique d'un cadre distinct (aide à la
+        jeunesse).
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="ae-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="ae-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="ae-form__intro">
+          Évaluez la situation d'un mineur en danger (art. 375 Cciv) et obtenez une
+          orientation vers la mesure de protection adaptée. UN SEUL outil couvre les
+          quatre issues d'une même situation : aide éducative à domicile (AED, mesure
+          administrative ASE), action éducative en milieu ouvert (AEMO, mesure
+          judiciaire), ordonnance de placement provisoire / placement (OPP), ou
+          absence de mesure. L'outil conseille l'avocat ; la mesure judiciaire est
+          ordonnée par le juge des enfants, la mesure administrative par l'ASE. Les
+          critères de l'art. 375 et s. Cciv sont à vérifier par l'avocat.
+        </p>
+
+        <div class="ae-form__row ae-form__row--checks">
+          <mat-checkbox [checked]="dangerCaracterise()"
+                        (change)="onDangerChange($event.checked)"
+                        name="danger">
+            Danger caractérisé : santé, sécurité, moralité, conditions d'éducation ou développement gravement compromis (art. 375 Cciv)
+            <mat-icon *ngIf="provenanceDanger() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="urgence()"
+                        (change)="onUrgenceChange($event.checked)"
+                        name="urgence">
+            Urgence : danger immédiat justifiant une mesure provisoire (art. 375-5 Cciv)
+            <mat-icon *ngIf="provenanceUrgence() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="adhesionFamille()"
+                        (change)="onAdhesionChange($event.checked)"
+                        name="adhesion">
+            Adhésion des titulaires de l'autorité parentale à une mesure
+            <mat-icon *ngIf="provenanceAdhesion() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="maintienMilieuFamilialPossible()"
+                        (change)="onMaintienChange($event.checked)"
+                        name="maintien">
+            Maintien du mineur dans son milieu familial possible (art. 375-2 Cciv)
+            <mat-icon *ngIf="provenanceMaintien() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="mesureAmiableASEEnvisageable()"
+                        (change)="onMesureAmiableChange($event.checked)"
+                        name="amiable">
+            Mesure amiable ASE (AED) envisageable (art. L. 222-3 CASF)
+            <mat-icon *ngIf="provenanceMesureAmiable() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+        </div>
+
+        <div class="ae-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Analyse en cours…' : 'Évaluer l\'assistance éducative' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="ae-result" *ngIf="!showForm() && result() as r">
+        <div class="ae-result__verdict" [ngClass]="verdictClass(r.verdict)">
+          <mat-icon>fact_check</mat-icon>
+          <div>
+            <span class="ae-result__verdict-label">Mesure orientée</span>
+            <strong class="ae-result__verdict-value">{{ verdictLabel(r.verdict) }}</strong>
+          </div>
+        </div>
+
+        <div class="ae-result__juridiction" *ngIf="r.juridiction">
+          <h4>Juridiction compétente</h4>
+          <p>{{ r.juridiction }}</p>
+        </div>
+
+        <div class="ae-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Analyse et conseils</h4>
+          <ul>
+            <li *ngFor="let msg of r.messages">{{ msg }}</li>
+          </ul>
+        </div>
+
+        <div class="ae-result__base" *ngIf="r.basesJuridiques.length > 0">
+          <h4>Bases juridiques</h4>
+          <ul>
+            <li *ngFor="let b of r.basesJuridiques">{{ b | legalCitations }}</li>
+          </ul>
+        </div>
+
+        <div class="ae-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+  <app-tool-jurisprudence-citations
+    [toolId]="toolIdForJurisprudence"
+    [branchActive]="brancheActiveForJurisprudence">
+  </app-tool-jurisprudence-citations>
+</section>

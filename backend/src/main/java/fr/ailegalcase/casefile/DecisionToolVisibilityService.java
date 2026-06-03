@@ -513,6 +513,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `habilitation_familiale_detection.detecte` (même pattern, art. 494-1 et s. Cciv).
         addBooleanFlagIfTrueNested(detected, familleNode, "habilitation_familiale_detection", "detecte",
                 "habilitation_familiale_detectee");
+        // === SF-222-04 — 1 flag CONTEXTUAL Famille FR : assistance éducative (mineur en danger) ===
+        // Lire depuis sous-objet `assistance_educative_detection.detecte` (même pattern, art. 375 et s. Cciv).
+        addBooleanFlagIfTrueNested(detected, familleNode, "assistance_educative_detection", "detecte",
+                "assistance_educative_detectee");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

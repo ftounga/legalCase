@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="551-create-assistance-educative-analyses" author="legalcase">
+        <comment>
+            SF-222-04 (F-222) : table dediee a l'outil decisionnel "Assistance
+            educative" (F-FA-ASSISTANCE-EDUCATIVE, FRANCE — mineur en danger,
+            art. 375 et s. Cciv).
+
+            UN SEUL outil oriente vers les 4 issues d'UNE situation (mineur en
+            danger), selon les criteres de l'art. 375 et s. (invariant "1
+            situation = 1 outil") : AED (aide educative a domicile, mesure
+            administrative ASE, art. L. 222-3 CASF), AEMO (action educative en
+            milieu ouvert, mesure judiciaire, juge des enfants, art. 375-2 Cciv),
+            OPP_PLACEMENT (ordonnance de placement provisoire / placement, art.
+            375-3 / 375-5 Cciv) ou PAS_DE_MESURE (danger caracterise non etabli).
+
+            Logique d'orientation : pas de danger -> PAS_DE_MESURE ; danger +
+            (urgence OU maintien impossible) -> OPP_PLACEMENT ; danger + maintien
+            possible + adhesion + amiable -> AED ; sinon -> AEMO. La juridiction
+            competente (ASE vs juge des enfants) est indiquee dans le resultat.
+
+            L'outil CONSEILLE l'avocat ; la mesure judiciaire est ordonnee par le
+            juge des enfants, la mesure administrative par les services de l'ASE.
+            Les criteres de l'art. 375 et s. Cciv sont a verifier par l'avocat.
+
+            Outil single-country FRANCE. Snapshot JSON complet (inputs + outputs)
+            dans result_data pour restitution UI sans recalcul.
+
+            Le seed de la regle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porte par la migration 552 (couple a l'entree TOOL_REGISTRY livree
+            dans la meme PR — pattern SF-222-01 / SF-222-02 / SF-222-03).
+        </comment>
+
+        <createTable tableName="assistance_educative_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_assist_educ_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="assistance_educative_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_assist_educ_analyses_case_file"/>
+
+        <createIndex tableName="assistance_educative_analyses"
+                     indexName="idx_assist_educ_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="assistance_educative_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
