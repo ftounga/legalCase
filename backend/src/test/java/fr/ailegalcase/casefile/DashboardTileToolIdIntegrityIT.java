@@ -1243,7 +1243,13 @@ class DashboardTileToolIdIntegrityIT {
             // CCE distinct de l'annulation 30j (F-IM-31) et de l'extrême urgence 5j (F-IM-32).
             // Outil décisionnel CONTEXTUAL BE, pas de tuile dashboard. Seed visibility
             // (migration 575) + entrée TOOL_REGISTRY frontend livrées dans la même PR back+front.
-            "F-IM-57-cce-suspension-be"
+            "F-IM-57-cce-suspension-be",
+            // SF-221-06 : F-IM-58-victime-traite-be — titre de séjour victime de la traite
+            // des êtres humains (art. 61/2 et s. Loi 15/12/1980, circulaire du 26/09/2008).
+            // Régime BE propre (3 phases), distinct du pendant FR F-IM-35 (L. 425-1 CESEDA).
+            // Outil décisionnel CONTEXTUAL BE, pas de tuile dashboard. Seed visibility
+            // (migration 577) + entrée TOOL_REGISTRY frontend livrées dans la même PR back+front.
+            "F-IM-58-victime-traite-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

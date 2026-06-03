@@ -3058,6 +3058,14 @@ public record CaseAnalysisResponse(
             "REFUS_EMBAUCHE", "LICENCIEMENT", "MUTATION", "SANCTION_DISCIPLINAIRE",
             "PROMOTION_REFUSEE", "REMUNERATION_INFERIEURE", "HARCELEMENT", "AUTRE");
 
+    /**
+     * SF-221-06 : whitelist des phases de la procédure « victime de la traite des êtres
+     * humains » BE (enum {@code VictimeTraiteBePhase} — F-IM-58). Toute valeur hors liste
+     * est ramenée à null au pré-fill.
+     */
+    static final Set<String> VICTIME_TRAITE_BE_PHASES = Set.of(
+            "REFLEXION_45J", "DECLARATION_FAITE", "PROCEDURE_PENALE_EN_COURS", "AUCUNE");
+
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
             String typeProcedureDetectee, String dateDepotProcedure,
@@ -3672,7 +3680,37 @@ public record CaseAnalysisResponse(
             /** SF-221-05 : true si l'urgence (non extrême) est invocable / documentée. Null si non extractible ou dossier FR. */
             Boolean cceSuspensionUrgence,
             /** SF-221-05 : true si un risque de préjudice grave difficilement réparable est documenté. Null si non extractible ou dossier FR. */
-            Boolean cceSuspensionPrejudiceGrave) {
+            Boolean cceSuspensionPrejudiceGrave,
+            // === SF-221-06 — F-IM-58 Titre victime de la traite des êtres humains BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            // SF-221-06 : regroupés en sous-record @JsonUnwrapped (pattern F-256) pour libérer
+            // trois slots du constructeur canonical (plafond JVM 255). Clés JSON aplaties inchangées.
+            @JsonUnwrapped VictimeTraiteBeDetail victimeTraiteBeDetail) {
+
+        /**
+         * SF-221-06 — sous-objet pré-fill IA pour l'outil F-IM-58 (titre victime de la
+         * traite des êtres humains, BELGIQUE UNIQUEMENT — F-221). Regroupe le flag pivot
+         * et les 3 champs de pré-fill en un seul composant {@code @JsonUnwrapped} (aplati
+         * en JSON sous les clés {@code victime_traite_detecte},
+         * {@code victime_traite_phase}, {@code victime_traite_rupture} et
+         * {@code victime_traite_accompagnement}, contrat externe inchangé) afin de libérer
+         * trois slots du constructeur canonical de {@link ImmigrationExtractedData}
+         * (plafond JVM 255). Régime BE PROPRE, distinct du pivot FR
+         * {@code victime_traite_detectee} (F-IM-35).
+         *
+         * @param victimeTraiteDetecte flag pivot — true si le dossier évoque une situation
+         *        de traite des êtres humains (BE). FR-only : toujours false.
+         * @param victimeTraitePhase phase de la procédure (REFLEXION_45J / DECLARATION_FAITE
+         *        / PROCEDURE_PENALE_EN_COURS / AUCUNE, nullable).
+         * @param victimeTraiteRupture true si la rupture avec le réseau est documentée (nullable).
+         * @param victimeTraiteAccompagnement true si l'accompagnement par un centre spécialisé
+         *        agréé est documenté (nullable).
+         */
+        public record VictimeTraiteBeDetail(
+                @JsonProperty("victime_traite_detecte") boolean victimeTraiteDetecte,
+                @JsonProperty("victime_traite_phase") String victimeTraitePhase,
+                @JsonProperty("victime_traite_rupture") Boolean victimeTraiteRupture,
+                @JsonProperty("victime_traite_accompagnement") Boolean victimeTraiteAccompagnement
+        ) {}
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3860,7 +3898,8 @@ public record CaseAnalysisResponse(
                     .cceSuspensionDetecte(cceSuspensionDetecte)
                     .cceSuspensionDateNotification(cceSuspensionDateNotification)
                     .cceSuspensionUrgence(cceSuspensionUrgence)
-                    .cceSuspensionPrejudiceGrave(cceSuspensionPrejudiceGrave);
+                    .cceSuspensionPrejudiceGrave(cceSuspensionPrejudiceGrave)
+                    .victimeTraiteBeDetail(victimeTraiteBeDetail);
         }
 
         public static final class Builder {
@@ -4067,6 +4106,7 @@ public record CaseAnalysisResponse(
             private String cceSuspensionDateNotification;
             private Boolean cceSuspensionUrgence;
             private Boolean cceSuspensionPrejudiceGrave;
+            private VictimeTraiteBeDetail victimeTraiteBeDetail;
 
             private Builder() {}
 
@@ -4259,6 +4299,7 @@ public record CaseAnalysisResponse(
             public Builder cceSuspensionDateNotification(String v) { this.cceSuspensionDateNotification = v; return this; }
             public Builder cceSuspensionUrgence(Boolean v) { this.cceSuspensionUrgence = v; return this; }
             public Builder cceSuspensionPrejudiceGrave(Boolean v) { this.cceSuspensionPrejudiceGrave = v; return this; }
+            public Builder victimeTraiteBeDetail(VictimeTraiteBeDetail v) { this.victimeTraiteBeDetail = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4419,7 +4460,9 @@ public record CaseAnalysisResponse(
                         cceSuspensionDetecte,
                         cceSuspensionDateNotification,
                         cceSuspensionUrgence,
-                        cceSuspensionPrejudiceGrave);
+                        cceSuspensionPrejudiceGrave,
+                        // SF-221-06 : F-IM-58 titre victime de la traite BE (sous-record @JsonUnwrapped)
+                        victimeTraiteBeDetail);
             }
         }
     }
@@ -7985,6 +8028,18 @@ public record CaseAnalysisResponse(
                         ? cceSuspensionDateNotificationRaw : null;
         Boolean cceSuspensionUrgence = booleanOrNull(root, "cce_suspension_urgence");
         Boolean cceSuspensionPrejudiceGrave = booleanOrNull(root, "cce_suspension_prejudice_grave");
+        // SF-221-06 : F-IM-58 titre victime de la traite des êtres humains BE — flag pivot
+        // `victime_traite_detecte` + 3 champs de pré-fill (BELGIQUE uniquement). Phase de
+        // procédure classée dans une whitelist de 4 valeurs (sinon null), rupture avec le
+        // réseau, accompagnement par un centre spécialisé. Tous null/false pour dossier FR.
+        // Régime BE propre, distinct du pivot FR `victime_traite_detectee` (F-IM-35).
+        boolean victimeTraiteDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "victime_traite_detecte"));
+        String victimeTraitePhaseRaw = textOrNull(root, "victime_traite_phase");
+        String victimeTraitePhase =
+                VICTIME_TRAITE_BE_PHASES.contains(victimeTraitePhaseRaw) ? victimeTraitePhaseRaw : null;
+        Boolean victimeTraiteRupture = booleanOrNull(root, "victime_traite_rupture");
+        Boolean victimeTraiteAccompagnement = booleanOrNull(root, "victime_traite_accompagnement");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -8161,7 +8216,12 @@ public record CaseAnalysisResponse(
                 && !cceSuspensionDetecte
                 && cceSuspensionDateNotification == null
                 && cceSuspensionUrgence == null
-                && cceSuspensionPrejudiceGrave == null) return null;
+                && cceSuspensionPrejudiceGrave == null
+                // SF-221-06 : F-IM-58 titre victime de la traite BE (1 flag pivot + 3 champs IA)
+                && !victimeTraiteDetecte
+                && victimeTraitePhase == null
+                && victimeTraiteRupture == null
+                && victimeTraiteAccompagnement == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -8367,6 +8427,12 @@ public record CaseAnalysisResponse(
                 .cceSuspensionDateNotification(cceSuspensionDateNotification)
                 .cceSuspensionUrgence(cceSuspensionUrgence)
                 .cceSuspensionPrejudiceGrave(cceSuspensionPrejudiceGrave)
+                // SF-221-06 : F-IM-58 titre victime de la traite des êtres humains BE
+                .victimeTraiteBeDetail(new ImmigrationExtractedData.VictimeTraiteBeDetail(
+                        victimeTraiteDetecte,
+                        victimeTraitePhase,
+                        victimeTraiteRupture,
+                        victimeTraiteAccompagnement))
                 .build();
     }
 

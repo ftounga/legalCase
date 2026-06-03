@@ -2350,6 +2350,25 @@ export interface ImmigrationExtractedData {
   cceSuspensionDateNotification?: string | null;
   cceSuspensionUrgence?: boolean | null;
   cceSuspensionPrejudiceGrave?: boolean | null;
+  /**
+   * SF-221-06 — F-IM-58 titre de séjour VICTIME DE LA TRAITE DES ÊTRES HUMAINS
+   * (art. 61/2 et s. Loi 15/12/1980, circulaire du 26/09/2008) — BELGIQUE uniquement.
+   * Régime BE PROPRE (3 phases), distinct du pendant FR `victimeTraiteDetectee` (F-IM-35).
+   * 1 flag pivot CONTEXTUAL (`victimeTraiteDetecte`) + 3 champs de pré-fill.
+   * `victimeTraiteDetecte` : contexte de traite des êtres humains détecté (pilote la visibilité).
+   * `victimeTraitePhase` : phase de la procédure (REFLEXION_45J / DECLARATION_FAITE / PROCEDURE_PENALE_EN_COURS / AUCUNE).
+   * `victimeTraiteRupture` : rupture avec le réseau documentée.
+   * `victimeTraiteAccompagnement` : accompagnement par un centre spécialisé agréé documenté.
+   */
+  victimeTraiteDetecte?: boolean | null;
+  victimeTraitePhase?:
+    | 'REFLEXION_45J'
+    | 'DECLARATION_FAITE'
+    | 'PROCEDURE_PENALE_EN_COURS'
+    | 'AUCUNE'
+    | null;
+  victimeTraiteRupture?: boolean | null;
+  victimeTraiteAccompagnement?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {
