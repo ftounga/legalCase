@@ -20,7 +20,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violences_physiques_isRecognized() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.violencesAlleguees()).containsExactly("PHYSIQUES");
     }
 
@@ -28,7 +28,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violences_psychologiques_isRecognized() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PSYCHOLOGIQUES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.violencesAlleguees()).containsExactly("PSYCHOLOGIQUES");
     }
 
@@ -36,7 +36,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violences_sexuelles_isRecognized() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("SEXUELLES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.violencesAlleguees()).containsExactly("SEXUELLES");
     }
 
@@ -44,7 +44,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violences_economiques_isRecognized() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("ECONOMIQUES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.violencesAlleguees()).containsExactly("ECONOMIQUES");
     }
 
@@ -52,7 +52,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violences_menacesMort_isRecognized() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("MENACES_MORT"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.violencesAlleguees()).containsExactly("MENACES_MORT");
     }
 
@@ -68,7 +68,7 @@ class OrdonnanceProtectionCalculatorTest {
                 "JUGEMENT_CORRECTIONNEL", "AUTRE");
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), all,
-                false, false, null, false, false, false, List.of());
+                false, false, null, false, false, false, List.of(), false);
         assertThat(r.preuvesViolences()).hasSize(8).containsAll(all);
     }
 
@@ -83,7 +83,7 @@ class OrdonnanceProtectionCalculatorTest {
                 "INTERDICTION_PARAITRE", "OBLIGATION_SOIN", "RESIDENCE_ENFANTS");
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), true, true, null,
-                true, false, false, all);
+                true, false, false, all, false);
         assertThat(r.demandeMesures()).hasSize(7).containsAll(all);
     }
 
@@ -101,7 +101,7 @@ class OrdonnanceProtectionCalculatorTest {
                 List.of("CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL", "TEMOIGNAGES"),
                 true, true, List.of(5, 8),
                 true, true, false,
-                List.of("EVICTION_CONJOINT", "INTERDICTION_APPROCHER", "TGD", "BAR"));
+                List.of("EVICTION_CONJOINT", "INTERDICTION_APPROCHER", "TGD", "BAR"), false);
         assertThat(r.scoreVraisemblance()).isEqualTo(100);
         assertThat(r.verdictProbabiliteOctroi()).isEqualTo("ELEVEE");
     }
@@ -111,7 +111,7 @@ class OrdonnanceProtectionCalculatorTest {
         // 0 (1 violence < 3) + 0 (1 preuve < 3) + 0 + 0 + 0 + 5 (1ère) = 5
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of("MAIN_COURANTE"),
-                false, false, null, false, false, false, List.of());
+                false, false, null, false, false, false, List.of(), false);
         assertThat(r.scoreVraisemblance()).isEqualTo(5);
         assertThat(r.verdictProbabiliteOctroi()).isEqualTo("FAIBLE");
     }
@@ -123,7 +123,7 @@ class OrdonnanceProtectionCalculatorTest {
                 D, List.of("PHYSIQUES", "PSYCHOLOGIQUES"),
                 List.of("CONSTAT_HUISSIER", "CERTIFICAT_MEDICAL", "TEMOIGNAGES"),
                 true, true, List.of(3),
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.scoreVraisemblance()).isEqualTo(65);
         assertThat(r.verdictProbabiliteOctroi()).isEqualTo("MOYENNE");
     }
@@ -137,7 +137,7 @@ class OrdonnanceProtectionCalculatorTest {
                 List.of("CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL",
                         "TEMOIGNAGES", "PHOTOS", "PLAINTE_DEPOSEE", "JUGEMENT_CORRECTIONNEL", "AUTRE"),
                 true, true, List.of(5),
-                true, true, false, List.of());
+                true, true, false, List.of(), false);
         assertThat(r.scoreVraisemblance()).isLessThanOrEqualTo(100);
     }
 
@@ -147,7 +147,7 @@ class OrdonnanceProtectionCalculatorTest {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES", "PSYCHOLOGIQUES", "MENACES_MORT"),
                 List.of("CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL"),
-                true, true, null, true, true, true, List.of());
+                true, true, null, true, true, true, List.of(), false);
         assertThat(r.scoreVraisemblance()).isEqualTo(95);
     }
 
@@ -161,7 +161,7 @@ class OrdonnanceProtectionCalculatorTest {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES", "PSYCHOLOGIQUES", "MENACES_MORT"),
                 List.of("CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL"),
-                true, false, null, false, false, true, List.of());
+                true, false, null, false, false, true, List.of(), false);
         assertThat(r.scoreVraisemblance()).isEqualTo(80);
         assertThat(r.verdictProbabiliteOctroi()).isEqualTo("ELEVEE");
     }
@@ -171,7 +171,7 @@ class OrdonnanceProtectionCalculatorTest {
         // 30 (3 violences) + 0 + 0 + 0 + 0 + 5 = 35 FAIBLE
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES", "PSYCHOLOGIQUES", "MENACES_MORT"),
-                List.of(), false, false, null, false, false, false, List.of());
+                List.of(), false, false, null, false, false, false, List.of(), false);
         assertThat(r.scoreVraisemblance()).isEqualTo(35);
         assertThat(r.verdictProbabiliteOctroi()).isEqualTo("FAIBLE");
     }
@@ -184,10 +184,10 @@ class OrdonnanceProtectionCalculatorTest {
     void mesures_tgd_seulementSiDangerImmediat() {
         OrdonnanceProtectionResult avec = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), true, false, null,
-                false, false, false, List.of("TGD"));
+                false, false, false, List.of("TGD"), false);
         OrdonnanceProtectionResult sans = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of("TGD"));
+                false, false, false, List.of("TGD"), false);
         assertThat(avec.mesuresRecommandees()).contains("TGD");
         assertThat(sans.mesuresRecommandees()).doesNotContain("TGD");
     }
@@ -196,22 +196,59 @@ class OrdonnanceProtectionCalculatorTest {
     void mesures_bar_seulementSiDangerImmediat() {
         OrdonnanceProtectionResult avec = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), true, false, null,
-                false, false, false, List.of("BAR"));
+                false, false, false, List.of("BAR"), false);
         OrdonnanceProtectionResult sans = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of("BAR"));
+                false, false, false, List.of("BAR"), false);
         assertThat(avec.mesuresRecommandees()).contains("BAR");
         assertThat(sans.mesuresRecommandees()).doesNotContain("BAR");
+    }
+
+    // =========================================================================
+    // SF-222-05 : DEC (Dispositif Électronique de Contrôle)
+    // =========================================================================
+
+    @Test
+    void dec_recommande_siEnvisageEtDangerImmediat() {
+        OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
+                D, List.of("PHYSIQUES"), List.of(), true, false, null,
+                false, false, false, List.of("INTERDICTION_APPROCHER"), true);
+        assertThat(r.decEnvisage()).isTrue();
+        assertThat(r.mesuresRecommandees()).contains("DEC");
+        assertThat(r.messages()).anySatisfy(m ->
+                assertThat(m).contains("DEC").contains("rapprochement"));
+    }
+
+    @Test
+    void dec_nonRecommande_siEnvisageMaisPasDeDangerImmediat() {
+        OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
+                D, List.of("PHYSIQUES"), List.of(), false, false, null,
+                false, false, false, List.of("INTERDICTION_APPROCHER"), true);
+        assertThat(r.decEnvisage()).isTrue();
+        assertThat(r.mesuresRecommandees()).doesNotContain("DEC");
+        assertThat(r.messages()).anySatisfy(m ->
+                assertThat(m).contains("DEC").contains("danger immédiat"));
+    }
+
+    @Test
+    void dec_nonRecommande_siNonEnvisageMemeAvecDangerImmediat() {
+        OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
+                D, List.of("PHYSIQUES"), List.of(), true, false, null,
+                false, false, false, List.of("BAR"), false);
+        assertThat(r.decEnvisage()).isFalse();
+        assertThat(r.mesuresRecommandees()).doesNotContain("DEC");
+        // anti-régression : le BAR reste recommandé indépendamment du DEC.
+        assertThat(r.mesuresRecommandees()).contains("BAR");
     }
 
     @Test
     void mesures_eviction_seulementSiLogementCommun() {
         OrdonnanceProtectionResult avec = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                true, false, false, List.of("EVICTION_CONJOINT"));
+                true, false, false, List.of("EVICTION_CONJOINT"), false);
         OrdonnanceProtectionResult sans = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of("EVICTION_CONJOINT"));
+                false, false, false, List.of("EVICTION_CONJOINT"), false);
         assertThat(avec.mesuresRecommandees()).contains("EVICTION_CONJOINT");
         assertThat(sans.mesuresRecommandees()).doesNotContain("EVICTION_CONJOINT");
     }
@@ -220,10 +257,10 @@ class OrdonnanceProtectionCalculatorTest {
     void mesures_residenceEnfants_seulementSiPresenceEnfants() {
         OrdonnanceProtectionResult avec = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, true, List.of(5),
-                false, false, false, List.of("RESIDENCE_ENFANTS"));
+                false, false, false, List.of("RESIDENCE_ENFANTS"), false);
         OrdonnanceProtectionResult sans = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of("RESIDENCE_ENFANTS"));
+                false, false, false, List.of("RESIDENCE_ENFANTS"), false);
         assertThat(avec.mesuresRecommandees()).contains("RESIDENCE_ENFANTS");
         assertThat(sans.mesuresRecommandees()).doesNotContain("RESIDENCE_ENFANTS");
     }
@@ -232,7 +269,7 @@ class OrdonnanceProtectionCalculatorTest {
     void mesures_interdictionApprocher_toujoursRetenue() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of("INTERDICTION_APPROCHER"));
+                false, false, false, List.of("INTERDICTION_APPROCHER"), false);
         assertThat(r.mesuresRecommandees()).containsExactly("INTERDICTION_APPROCHER");
     }
 
@@ -241,7 +278,7 @@ class OrdonnanceProtectionCalculatorTest {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
                 false, false, false,
-                List.of("INTERDICTION_PARAITRE", "OBLIGATION_SOIN"));
+                List.of("INTERDICTION_PARAITRE", "OBLIGATION_SOIN"), false);
         assertThat(r.mesuresRecommandees()).contains("INTERDICTION_PARAITRE", "OBLIGATION_SOIN");
     }
 
@@ -253,7 +290,7 @@ class OrdonnanceProtectionCalculatorTest {
     void delai_estTujours6Jours() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.delaiTraitementJoursPrevisionnel()).isEqualTo(6);
     }
 
@@ -261,7 +298,7 @@ class OrdonnanceProtectionCalculatorTest {
     void baseJuridique_contientArticles() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.baseJuridique())
                 .contains("515-9").contains("515-13").contains("30/07/2020");
     }
@@ -272,7 +309,7 @@ class OrdonnanceProtectionCalculatorTest {
                 D, List.of("PHYSIQUES", "PSYCHOLOGIQUES", "MENACES_MORT"),
                 List.of("CONSTAT_HUISSIER", "MAIN_COURANTE", "CERTIFICAT_MEDICAL"),
                 true, true, null, true, false, false,
-                List.of("EVICTION_CONJOINT", "TGD"));
+                List.of("EVICTION_CONJOINT", "TGD"), false);
         assertThat(r.formule())
                 .contains("Score").contains(String.valueOf(r.scoreVraisemblance()));
     }
@@ -281,7 +318,7 @@ class OrdonnanceProtectionCalculatorTest {
     void messages_audienceUrgente_estPresent() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of());
+                false, false, false, List.of(), false);
         assertThat(r.messages()).anySatisfy(m ->
                 assertThat(m).contains("urgence").contains("515-11"));
     }
@@ -290,7 +327,7 @@ class OrdonnanceProtectionCalculatorTest {
     void messages_tgd24h_siTgdRecommande() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), true, false, null,
-                false, false, false, List.of("TGD"));
+                false, false, false, List.of("TGD"), false);
         assertThat(r.messages()).anySatisfy(m ->
                 assertThat(m).contains("TGD").contains("24h"));
     }
@@ -299,7 +336,7 @@ class OrdonnanceProtectionCalculatorTest {
     void messages_bar_siBarRecommande() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), true, false, null,
-                false, false, false, List.of("BAR"));
+                false, false, false, List.of("BAR"), false);
         assertThat(r.messages()).anySatisfy(m ->
                 assertThat(m).contains("BAR").contains("30/07/2020"));
     }
@@ -312,7 +349,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violencesVides_throws() {
         assertThatThrownBy(() -> OrdonnanceProtectionCalculator.compute(
                 D, List.of(), List.of(), false, false, null,
-                false, false, false, List.of()))
+                false, false, false, List.of(), false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("violencesAlleguees");
     }
@@ -321,7 +358,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violenceInconnue_throws() {
         assertThatThrownBy(() -> OrdonnanceProtectionCalculator.compute(
                 D, List.of("HARCELEMENT"), List.of(), false, false, null,
-                false, false, false, List.of()))
+                false, false, false, List.of(), false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Violence inconnue");
     }
@@ -330,7 +367,7 @@ class OrdonnanceProtectionCalculatorTest {
     void preuveInconnue_throws() {
         assertThatThrownBy(() -> OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of("VIDEO"),
-                false, false, null, false, false, false, List.of()))
+                false, false, null, false, false, false, List.of(), false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Preuve inconnue");
     }
@@ -339,7 +376,7 @@ class OrdonnanceProtectionCalculatorTest {
     void mesureInconnue_throws() {
         assertThatThrownBy(() -> OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"), List.of(), false, false, null,
-                false, false, false, List.of("ASSIGNATION_RESIDENCE")))
+                false, false, false, List.of("ASSIGNATION_RESIDENCE"), false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Mesure inconnue");
     }
@@ -348,7 +385,7 @@ class OrdonnanceProtectionCalculatorTest {
     void violencesDupliquees_estDeduplique() {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES", "PHYSIQUES"), List.of(),
-                false, false, null, false, false, false, List.of());
+                false, false, null, false, false, false, List.of(), false);
         assertThat(r.violencesAlleguees()).hasSize(1);
     }
 
@@ -357,7 +394,7 @@ class OrdonnanceProtectionCalculatorTest {
         OrdonnanceProtectionResult r = OrdonnanceProtectionCalculator.compute(
                 D, List.of("PHYSIQUES"),
                 List.of("CONSTAT_HUISSIER", "", "  "),
-                false, false, null, false, false, false, List.of());
+                false, false, null, false, false, false, List.of(), false);
         assertThat(r.preuvesViolences()).hasSize(1);
     }
 }

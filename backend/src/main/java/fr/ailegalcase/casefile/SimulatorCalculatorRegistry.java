@@ -608,7 +608,9 @@ public class SimulatorCalculatorRegistry {
                         req.logementCommun(),
                         req.victimeFinanciairementDependante(),
                         req.demandeurDejaProtege(),
-                        req.demandeMesures() != null ? req.demandeMesures() : Collections.emptyList()));
+                        req.demandeMesures() != null ? req.demandeMesures() : Collections.emptyList(),
+                        // SF-222-05 : DEC envisagé (suivi électronique du contact), défaut false.
+                        Boolean.TRUE.equals(req.decEnvisage())));
 
         register("F-FA-15-recompenses", RecompensesRequest.class,
                 (req, country) -> RecompensesCalculator.compute(

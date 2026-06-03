@@ -139,6 +139,16 @@
                 }
               </div>
 
+              <!-- SF-222-05 : DEC (suivi électronique du contact), voisin du BAR. -->
+              <div class="op-toggle-row op-field-full">
+                <mat-slide-toggle
+                    [ngModel]="decEnvisage()"
+                    (ngModelChange)="onDecEnvisageChange($event)"
+                    name="decEnvisage">
+                  Envisager un DEC (Dispositif Électronique de Contrôle — suivi électronique du contact)
+                </mat-slide-toggle>
+              </div>
+
               <div class="op-toggle-row op-field-full">
                 <mat-slide-toggle
                     [ngModel]="presenceEnfants()"

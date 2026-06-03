@@ -28,6 +28,9 @@ export type MesureCode =
   | 'INTERDICTION_APPROCHER'
   | 'TGD'
   | 'BAR'
+  // SF-222-05 : DEC (Dispositif Électronique de Contrôle — suivi électronique
+  // du contact). Branche conditionnelle voisine du BAR (danger immédiat).
+  | 'DEC'
   | 'INTERDICTION_PARAITRE'
   | 'OBLIGATION_SOIN'
   | 'RESIDENCE_ENFANTS';
@@ -45,6 +48,8 @@ export interface OrdonnanceProtectionRequest {
   victimeFinanciairementDependante: boolean;
   demandeurDejaProtege: boolean;
   demandeMesures: MesureCode[];
+  // SF-222-05 : l'avocat envisage-t-il un DEC ?
+  decEnvisage: boolean;
 }
 
 export interface OrdonnanceProtectionResponse {
@@ -59,6 +64,8 @@ export interface OrdonnanceProtectionResponse {
   victimeFinanciairementDependante: boolean;
   demandeurDejaProtege: boolean;
   demandeMesures: MesureCode[];
+  // SF-222-05 : DEC envisagé par l'avocat (suivi électronique du contact).
+  decEnvisage: boolean;
   scoreVraisemblance: number;
   verdictProbabiliteOctroi: VerdictProbabiliteOctroi;
   mesuresRecommandees: MesureCode[];
@@ -108,6 +115,7 @@ export const MESURES_FR: MesureOption[] = [
   { code: 'INTERDICTION_APPROCHER', label: 'Interdiction d\'approcher' },
   { code: 'TGD', label: 'TGD (Téléphone Grave Danger)' },
   { code: 'BAR', label: 'BAR (Bracelet Anti-Rapprochement)' },
+  { code: 'DEC', label: 'DEC (Dispositif Électronique de Contrôle)' },
   { code: 'INTERDICTION_PARAITRE', label: 'Interdiction de paraître certains lieux' },
   { code: 'OBLIGATION_SOIN', label: 'Obligation de soin' },
   { code: 'RESIDENCE_ENFANTS', label: 'Fixation de la résidence des enfants' },

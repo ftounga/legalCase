@@ -13,5 +13,8 @@ public record OrdonnanceProtectionRequest(
         Boolean logementCommun,
         Boolean victimeFinanciairementDependante,
         Boolean demandeurDejaProtege,
-        List<String> demandeMesures
+        List<String> demandeMesures,
+        // SF-222-05 : l'avocat envisage-t-il un DEC (suivi électronique du
+        // contact) ? Branche conditionnelle voisine du BAR (danger immédiat).
+        Boolean decEnvisage
 ) {}

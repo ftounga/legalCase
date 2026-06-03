@@ -16,6 +16,8 @@ public record OrdonnanceProtectionResponse(
         boolean victimeFinanciairementDependante,
         boolean demandeurDejaProtege,
         List<String> demandeMesures,
+        // SF-222-05 : DEC envisagé par l'avocat (suivi électronique du contact).
+        boolean decEnvisage,
         int scoreVraisemblance,
         String verdictProbabiliteOctroi,
         List<String> mesuresRecommandees,

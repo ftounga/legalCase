@@ -92,7 +92,9 @@ public class OrdonnanceProtectionService {
                     request.logementCommun(),
                     request.victimeFinanciairementDependante(),
                     request.demandeurDejaProtege(),
-                    request.demandeMesures() != null ? request.demandeMesures() : Collections.emptyList());
+                    request.demandeMesures() != null ? request.demandeMesures() : Collections.emptyList(),
+                    // SF-222-05 : decEnvisage optionnel, défaut false.
+                    Boolean.TRUE.equals(request.decEnvisage()));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -114,6 +116,7 @@ public class OrdonnanceProtectionService {
         entity.setVictimeFinanciairementDependante(result.victimeFinanciairementDependante());
         entity.setDemandeurDejaProtege(result.demandeurDejaProtege());
         entity.setDemandeMesures(serialize(result.demandeMesures()));
+        entity.setDecEnvisage(result.decEnvisage());
         entity.setCountry(country);
         entity.setResultData(serialize(result));
         repository.save(entity);
@@ -176,6 +179,7 @@ public class OrdonnanceProtectionService {
                 r.victimeFinanciairementDependante(),
                 r.demandeurDejaProtege(),
                 r.demandeMesures() != null ? r.demandeMesures() : List.of(),
+                r.decEnvisage(),
                 r.scoreVraisemblance(),
                 r.verdictProbabiliteOctroi(),
                 r.mesuresRecommandees() != null ? r.mesuresRecommandees() : List.of(),

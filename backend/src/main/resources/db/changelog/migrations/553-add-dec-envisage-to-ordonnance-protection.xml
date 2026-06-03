@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="553-add-dec-envisage-to-ordonnance-protection" author="legalcase">
+        <comment>
+            SF-222-05 : extension de l'outil existant F-FA-14 (ordonnance de
+            protection FR). Ajout de la colonne dec_envisage portant le toggle
+            "l'avocat envisage un DEC (Dispositif Électronique de Contrôle —
+            suivi électronique du respect de l'interdiction de rapprochement)".
+            Branche conditionnelle voisine du BAR (même condition : danger
+            immédiat caractérisé). Pas un nouvel outil, pas de nouvelle table,
+            pas de nouvelle règle de visibilité. Colonne nullable=false avec
+            défaut false pour ne pas casser les lignes existantes.
+        </comment>
+
+        <addColumn tableName="ordonnance_protection_analyses">
+            <column name="dec_envisage" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="ordonnance_protection_analyses" columnName="dec_envisage"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

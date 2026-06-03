@@ -74,7 +74,8 @@ public final class OrdonnanceProtectionCalculator {
                                                      boolean logementCommun,
                                                      boolean victimeFinanciairementDependante,
                                                      boolean demandeurDejaProtege,
-                                                     List<String> demandeMesures) {
+                                                     List<String> demandeMesures,
+                                                     boolean decEnvisage) {
         List<String> violences = validateAndNormalizeViolences(violencesAlleguees);
         List<String> preuves = validateAndNormalizePreuves(preuvesViolences);
         List<String> mesures = validateAndNormalizeMesures(demandeMesures);
@@ -91,14 +92,14 @@ public final class OrdonnanceProtectionCalculator {
         String verdict = verdictProbabilite(score);
 
         List<String> mesuresRecommandees = computeMesuresRecommandees(
-                mesures, dangerImmediat, presenceEnfants, logementCommun);
+                mesures, dangerImmediat, presenceEnfants, logementCommun, decEnvisage);
 
         String formule = buildFormule(score, verdict, mesuresRecommandees,
                 dangerImmediat, presenceEnfants);
 
         List<String> messages = buildMessages(score, verdict, mesuresRecommandees,
                 dangerImmediat, presenceEnfants, victimeFinanciairementDependante,
-                demandeurDejaProtege, preuves.size());
+                demandeurDejaProtege, preuves.size(), decEnvisage);
 
         return new OrdonnanceProtectionResult(
                 dateRequete,
@@ -111,6 +112,7 @@ public final class OrdonnanceProtectionCalculator {
                 victimeFinanciairementDependante,
                 demandeurDejaProtege,
                 mesures,
+                decEnvisage,
                 score,
                 verdict,
                 mesuresRecommandees,
@@ -211,12 +213,19 @@ public final class OrdonnanceProtectionCalculator {
     private static List<String> computeMesuresRecommandees(List<String> demandeMesures,
                                                            boolean dangerImmediat,
                                                            boolean presenceEnfants,
-                                                           boolean logementCommun) {
+                                                           boolean logementCommun,
+                                                           boolean decEnvisage) {
         List<String> out = new ArrayList<>();
         for (String code : demandeMesures) {
-            if (mesureAppropriee(code, dangerImmediat, presenceEnfants, logementCommun)) {
+            if (mesureAppropriee(code, dangerImmediat, presenceEnfants, logementCommun, decEnvisage)) {
                 out.add(code);
             }
+        }
+        // SF-222-05 : le DEC se pilote par un toggle dédié (decEnvisage), pas par
+        // la liste demandeMesures. Même condition juridique que le BAR : danger
+        // immédiat caractérisé. Ajouté sans doublon.
+        if (decEnvisage && dangerImmediat && !out.contains("DEC")) {
+            out.add("DEC");
         }
         return out;
     }
@@ -224,11 +233,13 @@ public final class OrdonnanceProtectionCalculator {
     private static boolean mesureAppropriee(String code,
                                             boolean dangerImmediat,
                                             boolean presenceEnfants,
-                                            boolean logementCommun) {
+                                            boolean logementCommun,
+                                            boolean decEnvisage) {
         OrdonnanceProtectionMesureType type = OrdonnanceProtectionMesureType.valueOf(code);
         return switch (type) {
             case EVICTION_CONJOINT -> logementCommun;
             case TGD, BAR -> dangerImmediat;
+            case DEC -> dangerImmediat && decEnvisage;
             case RESIDENCE_ENFANTS -> presenceEnfants;
             case INTERDICTION_APPROCHER, INTERDICTION_PARAITRE, OBLIGATION_SOIN -> true;
         };
@@ -285,7 +296,8 @@ public final class OrdonnanceProtectionCalculator {
                                               boolean presenceEnfants,
                                               boolean dependance,
                                               boolean dejaProtege,
-                                              int nbPreuves) {
+                                              int nbPreuves,
+                                              boolean decEnvisage) {
         List<String> messages = new ArrayList<>();
         messages.add("Audience à demander en urgence — délai indicatif "
                 + DELAI_TRAITEMENT_JOURS + " jours (art. 515-11 Cciv)");
@@ -296,6 +308,16 @@ public final class OrdonnanceProtectionCalculator {
         }
         if (mesuresRecommandees.contains("BAR")) {
             messages.add("BAR autorisé depuis Loi 30/07/2020 si danger immédiat caractérisé");
+        }
+        // SF-222-05 : DEC (Dispositif Électronique de Contrôle — suivi
+        // électronique du respect de l'interdiction de rapprochement).
+        if (mesuresRecommandees.contains("DEC")) {
+            messages.add("DEC (Dispositif Électronique de Contrôle) recommandé : "
+                    + "suivi électronique du respect de l'interdiction de rapprochement, "
+                    + "en complément ou en alternative du BAR selon le besoin de surveillance du contact (art. 515-11 Cciv).");
+        } else if (decEnvisage && !dangerImmediat) {
+            messages.add("DEC envisagé : comme le BAR, le suivi électronique du contact suppose un "
+                    + "danger immédiat caractérisé — à défaut, privilégier interdictions de paraître / d'approcher.");
         }
         if (mesuresRecommandees.contains("EVICTION_CONJOINT")) {
             messages.add("Éviction du conjoint violent du domicile commun — mesure phare de l'art. 515-11 Cciv.");
