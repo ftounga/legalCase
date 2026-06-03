@@ -1229,7 +1229,15 @@ class DashboardTileToolIdIntegrityIT {
             // décisionnel CONTEXTUAL BE, pas de tuile dashboard. Seed visibility (migration 571) +
             // entrée TOOL_REGISTRY frontend livrées dans la même PR back+front. Préventif
             // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-IM-55-residence-longue-duree-ue-be"
+            "F-IM-55-residence-longue-duree-ue-be",
+            // SF-221-04 : F-IM-56 détention en centre fermé + requête de mise en liberté (BE) —
+            // calculateur de durée de détention + fenêtre de requête 5 j devant la chambre du
+            // conseil (art. 7/27/29/74/5 + 71 et s. Loi 15/12/1980, AR 02/08/2002). Juridiction
+            // JUDICIAIRE distincte du CCE. Outil décisionnel CONTEXTUAL BE, pas de tuile dashboard.
+            // Seed visibility (migration 573) + entrée TOOL_REGISTRY frontend livrées dans la même
+            // PR back+front. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-IM-56-detention-centre-ferme-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="35e33fd8-9c26-418c-a328-b402de259f1d-seed-detention-centre-ferme-be" author="legalcase">
+        <comment>
+            SF-221-04 : seed visibility pour l'outil decisionnel "Detention en centre ferme +
+            requete de mise en liberte BE" (F-IM-56-detention-centre-ferme-be). Livree DANS
+            LA MEME PR que la table (pattern F-215).
+
+            Visibility CONTEXTUAL : l'outil apparait dans le panel F-IA-04 sur les dossiers
+            BELGIQUE x DROIT_IMMIGRATION des que l'IA detecte un indice de maintien en centre
+            ferme via le flag pivot `detention_centre_ferme_detecte` extrait depuis le prompt
+            IMMIGRATION_INSTRUCTION (mots-cles "centre ferme", "maintien", "detention
+            administrative", "art. 7 al. 3", "art. 27", "art. 74/5 Loi 15/12/1980", "chambre
+            du conseil", "requete de mise en liberte").
+
+            Priority 213 — juste apres F-IM-55 residence longue duree UE BE (priority 212)
+            pour coherence d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            L'entree TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) est ajoutee
+            dans la MEME PR (SF-221-04 back+front), de sorte que DecisionToolVisibilityIntegrityIT
+            (DB -> frontend) reste vert sans orphelin transitoire.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'e3015f30-1be4-42b8-bbe7-fcb75931375c',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-56-detention-centre-ferme-be',
+                'CONTEXTUAL',
+                'detention_centre_ferme_detecte',
+                'true',
+                213
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'e3015f30-1be4-42b8-bbe7-fcb75931375c';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

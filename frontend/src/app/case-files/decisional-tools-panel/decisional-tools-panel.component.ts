@@ -181,6 +181,8 @@ import { CarteAProrogationBeSectionComponent } from '../carte-a-prorogation-be-s
 import { CarteBSejourIllimiteBeSectionComponent } from '../carte-b-sejour-illimite-be-section/carte-b-sejour-illimite-be-section.component';
 // SF-221-03 : composant complet F-IM-55-residence-longue-duree-ue-be (Immigration BE, statut résident longue durée UE — Loi 15/12/1980 art. 15bis, directive 2003/109/CE, 5 ans de séjour légal + mobilité intra-UE).
 import { ResidenceLongueDureeUeBeSectionComponent } from '../residence-longue-duree-ue-be-section/residence-longue-duree-ue-be-section.component';
+// SF-221-04 : composant complet F-IM-56-detention-centre-ferme-be (Immigration BE, détention en centre fermé + requête de mise en liberté — Loi 15/12/1980 art. 7/27/29/74/5 + 71 et s., AR 02/08/2002, chambre du conseil = juridiction judiciaire distincte du CCE).
+import { DetentionCentreFermeBeSectionComponent } from '../detention-centre-ferme-be-section/detention-centre-ferme-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -2852,6 +2854,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-55-residence-longue-duree-ue-be', {
         displayLabel: 'Résident longue durée UE (BE)',
         component: ResidenceLongueDureeUeBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-221-04 : composant complet F-IM-56-detention-centre-ferme-be — DÉTENTION en
+      // CENTRE FERMÉ (art. 7 al. 3 / 27 / 29 / 74/5 Loi 15/12/1980 ; AR 02/08/2002) +
+      // requête de mise en liberté devant la CHAMBRE DU CONSEIL (art. 71 et s. ; fenêtre
+      // indicative 5 j). UNE SEULE situation fusionnée : la détention ET son recours.
+      // BELGIQUE uniquement, CONTEXTUAL via flag `detention_centre_ferme_detecte`.
+      // Calculateur de durée + fenêtre de requête, verdict 5 états (REQUETE_OUVERTE +
+      // PROLONGATION_A_CONTESTER vert / REQUETE_TARDIVE orange / DETENTION_EN_COURS +
+      // REQUETE_DEPOSEE bleu). Pré-fill IA RÉEL 3 champs (dateDebutDetention,
+      // baseLegaleDetention, dateNotificationDecisionDetention) via static getPrefillCount
+      // + DetentionCentreFermeBePrefillRules. prolongationNotifiee / dateProlongation /
+      // requeteMiseEnLiberteDeposee aspirationnels (jamais comptés). La chambre du conseil
+      // est une juridiction JUDICIAIRE — DISTINCT des recours CCE (F-IM-31 annulation 30j,
+      // F-IM-32 extrême urgence 5j, F-IM-57 suspension), de l'OQT (F-IM-08) et de l'IE (F-IM-33).
+      ['F-IM-56-detention-centre-ferme-be', {
+        displayLabel: 'Détention centre fermé (BE)',
+        component: DetentionCentreFermeBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6173,6 +6198,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // autres analyseurs d'éligibilité Immigration BE (F-IM-54 carte B, F-IM-27
     // regroupement 10bis).
     ['F-IM-55-residence-longue-duree-ue-be', 'VALIDITE'],
+    // SF-221-04 : F-IM-56-detention-centre-ferme-be détention en centre fermé + requête
+    // mise en liberté (BE). Thème DELAIS — calculateur de durée de détention + fenêtre
+    // indicative de 5 j pour saisir la chambre du conseil (date limite de requête +
+    // jours restants + verdict 5 états). Aligné sur les autres calculateurs de délais
+    // Immigration BE (F-IM-53 carte A prorogation, F-IM-32 extrême urgence).
+    ['F-IM-56-detention-centre-ferme-be', 'DELAIS'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

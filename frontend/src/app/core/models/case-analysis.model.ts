@@ -2322,6 +2322,20 @@ export interface ImmigrationExtractedData {
   rlueRessourcesSuffisantes?: boolean | null;
   rlueAssuranceMaladie?: boolean | null;
   rlueIntegrationRemplie?: boolean | null;
+
+  /**
+   * SF-221-04 — F-IM-56 détention en CENTRE FERMÉ + requête de mise en liberté (BE,
+   * art. 7/27/29/74/5 + 71 et s. Loi 15/12/1980, AR 02/08/2002) — BELGIQUE uniquement.
+   * 1 flag pivot CONTEXTUAL (`detentionCentreFermeDetecte`) + 3 champs de pré-fill.
+   * `detentionCentreFermeDetecte` : contexte de détention en centre fermé détecté (pilote la visibilité).
+   * `detentionDateDebut` : date de début de la détention (ISO yyyy-MM-dd, non future).
+   * `detentionBaseLegale` : base légale du maintien — ART_7 / ART_27 / ART_29 / ART_74_5 / AUTRE.
+   * `detentionDateNotification` : date de notification de la décision de détention (ISO yyyy-MM-dd, non future).
+   */
+  detentionCentreFermeDetecte?: boolean | null;
+  detentionDateDebut?: string | null;
+  detentionBaseLegale?: string | null;
+  detentionDateNotification?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
