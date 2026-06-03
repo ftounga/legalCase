@@ -5823,11 +5823,23 @@ public record CaseAnalysisResponse(
             // Pays d'origine de la kafala (code ISO 3166-1 alpha-2), sinon null.
             String kafalaPaysOrigineDetecte,
             // Date de l'acte de kafala (ISO YYYY-MM-DD), sinon null.
-            String kafalaDateActeDetectee
+            String kafalaDateActeDetectee,
+            // SF-223-04 — flag pivot CONTEXTUAL de l'outil
+            // gpa-be-situation-contentieuse. Lu à plat sur le nœud famille
+            // (@JsonUnwrapped) par DecisionToolVisibilityService → trigger
+            // `gpa_be_situation_contentieuse_detectee`. BELGIQUE UNIQUEMENT.
+            Boolean gpaBeSituationContentieuseDetectee,
+            // SF-223-04 — lieu de réalisation de la GPA pré-rempli si
+            // factualisable ("BELGIQUE" / "ETRANGER"), sinon null.
+            String gpaBeLieuDetecte,
+            // SF-223-04 — lien génétique du parent intentionnel pré-rempli si
+            // factualisable (PERE_INTENTIONNEL / MERE_INTENTIONNELLE / AUCUN /
+            // LES_DEUX), sinon null.
+            String gpaBeLienGenetiqueDetecte
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
-            return new Sf223Detail(null, null, null, null, null, null, null);
+            return new Sf223Detail(null, null, null, null, null, null, null, null, null, null);
         }
     }
 
@@ -7408,6 +7420,14 @@ public record CaseAnalysisResponse(
     /** SF-223-02 : whitelist type d'adoption BE (loi du 24/04/2003 ; CC art. 343-1 et s.). */
     private static final java.util.Set<String> ADOPTION_BE_TYPE_WHITELIST = java.util.Set.of(
             "PLENIERE", "SIMPLE", "CO_PARENTALE");
+
+    /** SF-223-04 : whitelist lieu de réalisation de la GPA BE (gpa-be-situation-contentieuse). */
+    private static final java.util.Set<String> GPA_BE_LIEU_WHITELIST = java.util.Set.of(
+            "BELGIQUE", "ETRANGER");
+
+    /** SF-223-04 : whitelist lien génétique du parent intentionnel BE (gpa-be-situation-contentieuse). */
+    private static final java.util.Set<String> GPA_BE_LIEN_WHITELIST = java.util.Set.of(
+            "PERE_INTENTIONNEL", "MERE_INTENTIONNELLE", "AUCUN", "LES_DEUX");
 
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
@@ -9360,6 +9380,19 @@ public record CaseAnalysisResponse(
                 ? textOrNull(kafBe, "pays_origine") : null;
         String kafalaDateActeDetectee = kafBeObject
                 ? textOrNull(kafBe, "date_acte") : null;
+        // SF-223-04 : flag pivot `gpa_be_situation_contentieuse_detectee` (lu à
+        // plat, @JsonUnwrapped) + sous-objet `gpa_be_detection` — outil
+        // gpa-be-situation-contentieuse (vide juridique GPA BE — à vérifier).
+        // BELGIQUE UNIQUEMENT — null si dossier FR. Le flag gouverne la
+        // visibilité CONTEXTUAL de l'outil.
+        Boolean gpaBeSituationContentieuseDetectee =
+                booleanOrNull(node, "gpa_be_situation_contentieuse_detectee");
+        JsonNode gpaBe = node.get("gpa_be_detection");
+        boolean gpaBeObject = gpaBe != null && gpaBe.isObject();
+        String gpaBeLieuDetecte = gpaBeObject
+                ? normalizeEnumCode(textOrNull(gpaBe, "lieu_gpa"), GPA_BE_LIEU_WHITELIST) : null;
+        String gpaBeLienGenetiqueDetecte = gpaBeObject
+                ? normalizeEnumCode(textOrNull(gpaBe, "lien_genetique"), GPA_BE_LIEN_WHITELIST) : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
@@ -9367,7 +9400,10 @@ public record CaseAnalysisResponse(
                 adoptionBeTypeDetecte,
                 adoptionBeAgrementMentionneBeDetecte,
                 kafalaPaysOrigineDetecte,
-                kafalaDateActeDetectee);
+                kafalaDateActeDetectee,
+                gpaBeSituationContentieuseDetectee,
+                gpaBeLieuDetecte,
+                gpaBeLienGenetiqueDetecte);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
