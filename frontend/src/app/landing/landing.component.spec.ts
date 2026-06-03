@@ -155,6 +155,46 @@ describe('LandingComponent', () => {
     expect(prev?.hasAttribute('disabled')).toBe(true);
   });
 
+  // SF-158-05 : section « Rédaction de conclusions » + jurisprudence vérifiable
+  it('SF-158-05 — rend une section #conclusions', () => {
+    const section = fixture.nativeElement.querySelector('section#conclusions');
+    expect(section).toBeTruthy();
+  });
+
+  it('SF-158-05 — la section #conclusions vend le projet de conclusions dans le style, export Word/.docx', () => {
+    const section = fixture.nativeElement.querySelector('section#conclusions') as HTMLElement;
+    const txt = section?.textContent ?? '';
+    expect(txt).toContain('projet de conclusions');
+    expect(txt).toContain('style');
+    expect(txt.includes('.docx') || txt.includes('Word')).toBe(true);
+  });
+
+  it('SF-158-05 — le pipeline rend exactement 6 étapes', () => {
+    const steps = fixture.nativeElement.querySelectorAll('.pipeline-step');
+    expect(steps.length).toBe(6);
+  });
+
+  it('SF-158-05 — la 6ᵉ étape du pipeline est « Conclusions »', () => {
+    const labels: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.pipeline-step .step-label')
+    );
+    expect(labels[labels.length - 1]?.textContent).toContain('Conclusions');
+  });
+
+  it('SF-158-05 — la différenciation contient une carte « Jurisprudence vérifiable »', () => {
+    const whyUs = fixture.nativeElement.querySelector('.why-us:not(#conclusions)') as HTMLElement;
+    const cards: HTMLElement[] = Array.from(whyUs?.querySelectorAll('.why-card') ?? []);
+    const jurisCard = cards.find(c => c.textContent?.includes('Jurisprudence vérifiable'));
+    expect(jurisCard).toBeTruthy();
+  });
+
+  it('SF-158-05 — ANTI-OVERCLAIM : aucune mention de jurisprudence/Cassation belge', () => {
+    const html = (fixture.nativeElement.innerHTML as string).toLowerCase();
+    expect(html).not.toContain('jurisprudence belge');
+    expect(html).not.toContain('cassation belge');
+    expect(html).not.toContain('cour de cassation belge');
+  });
+
   // SF-240-04 : lien DPA dans le footer
   it('LDF-01 — footer contient un lien Télécharger le DPA pointant vers /api/v1/legal/dpa', () => {
     const footerLinks = fixture.nativeElement.querySelectorAll('footer .footer-links a');

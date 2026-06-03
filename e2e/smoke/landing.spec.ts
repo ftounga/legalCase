@@ -53,6 +53,14 @@ test.describe('Landing V3 — repositionnement F-158', () => {
     await expect(visionCard).toBeVisible();
   });
 
+  test('section #conclusions (rédaction de conclusions) présente', async ({ page }) => {
+    await page.goto('/');
+    const section = page.locator('section#conclusions');
+    await section.scrollIntoViewIfNeeded();
+    await expect(section).toBeVisible();
+    await expect(section).toContainText('projet de conclusions');
+  });
+
   test('nav header expose un lien /blog', async ({ page }) => {
     await page.goto('/');
     const blogLink = page.locator('header nav a[href="/blog"]');
