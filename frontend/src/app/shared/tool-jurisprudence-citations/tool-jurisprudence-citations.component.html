@@ -9,7 +9,9 @@
             <span class="juris-citation__ref">{{ c.arretRef }}</span>
             <span class="juris-citation__juridiction">{{ c.juridiction }}</span>
           </div>
-          <p class="juris-citation__chapeau">« {{ c.chapeauOfficiel }} »</p>
+          @if (c.chapeauOfficiel && c.chapeauOfficiel.trim()) {
+            <p class="juris-citation__chapeau">« {{ c.chapeauOfficiel }} »</p>
+          }
 
           <div class="juris-citation__actions">
             <a class="juris-citation__legifrance"

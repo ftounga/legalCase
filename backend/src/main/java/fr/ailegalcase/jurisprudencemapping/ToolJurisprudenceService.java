@@ -1,10 +1,13 @@
 package fr.ailegalcase.jurisprudencemapping;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +25,16 @@ import java.util.UUID;
 @Service
 public class ToolJurisprudenceService {
 
+    /**
+     * SF-JU-01-FIX (2026-06-03) — seuil de confiance minimal pour qu'une citation
+     * soit affichée/citée. En dessous, l'arrêt est jugé trop incertain → masqué
+     * (invariant « silence &gt; erreur »). Décision PO 2026-06-03.
+     */
+    private static final BigDecimal MIN_DISPLAY_CONFIDENCE = new BigDecimal("0.60");
+
+    /** Limite : top 3 citations parmi les candidats « affichables ». */
+    private static final Pageable TOP_3 = PageRequest.of(0, 3);
+
     private final ToolJurisprudenceMappingRepository repository;
     private final JurisprudenceWatchFlagRepository flagRepository;
 
@@ -32,7 +45,10 @@ public class ToolJurisprudenceService {
     }
 
     /**
-     * Récupère les 1 à 3 arrêts structurants pour une branche d'un outil.
+     * Récupère les 1 à 3 arrêts structurants « affichables » pour une branche d'un
+     * outil. SF-JU-01-FIX : exclut les citations à chapeau vide ou à confiance
+     * &lt; {@link #MIN_DISPLAY_CONFIDENCE}. Point de lecture commun à l'affichage
+     * outil (F-JU-01) et aux conclusions générées (F-JU-02).
      */
     @Transactional(readOnly = true)
     public List<ToolJurisprudenceCitationResponse> findByToolAndBranch(String toolId, String brancheCalculId) {
@@ -40,8 +56,7 @@ public class ToolJurisprudenceService {
             return List.of();
         }
         return repository
-                .findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                        toolId, brancheCalculId)
+                .findDisplayableByToolAndBranch(toolId, brancheCalculId, MIN_DISPLAY_CONFIDENCE, TOP_3)
                 .stream()
                 .map(ToolJurisprudenceCitationResponse::from)
                 .toList();

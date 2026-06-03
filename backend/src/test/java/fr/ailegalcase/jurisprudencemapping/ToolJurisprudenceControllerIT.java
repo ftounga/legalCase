@@ -201,9 +201,38 @@ class ToolJurisprudenceControllerIT {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
+    @Test
+    void getCitations_excludesEmptyChapeauAndLowConfidence() throws Exception {
+        // SF-JU-01-FIX (2026-06-03) — filtre qualité : ne servir que les citations
+        // à chapeau non vide ET confiance >= 0,60. Reproduit le cas réel F-DT-09
+        // (un chapeau vide + une confiance 0,55) découvert sur staging.
+        saveMappingWithChapeau("f-dt-30", "branche-filtre", "Bonne citation",
+                new BigDecimal("0.90"), LocalDate.of(2025, 1, 1), "Chapeau valide et fiable.");
+        saveMappingWithChapeau("f-dt-30", "branche-filtre", "Chapeau vide",
+                new BigDecimal("0.80"), LocalDate.of(2025, 2, 1), "");
+        saveMappingWithChapeau("f-dt-30", "branche-filtre", "Confiance faible",
+                new BigDecimal("0.55"), LocalDate.of(2025, 3, 1), "Chapeau présent mais peu fiable.");
+        saveMappingWithChapeau("f-dt-30", "branche-filtre", "Chapeau blanc",
+                new BigDecimal("0.95"), LocalDate.of(2025, 4, 1), "   ");
+
+        mockMvc.perform(get("/api/v1/tools/{toolId}/jurisprudence-citations", "f-dt-30")
+                        .param("branch", "branche-filtre")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].arretRef").value("Bonne citation"));
+    }
+
     private ToolJurisprudenceMapping saveMapping(String toolId, String brancheCalculId,
                                                   String arretRef, BigDecimal confidenceScore,
                                                   LocalDate dateArret) {
+        return saveMappingWithChapeau(toolId, brancheCalculId, arretRef, confidenceScore,
+                dateArret, "Chapeau test.");
+    }
+
+    private ToolJurisprudenceMapping saveMappingWithChapeau(String toolId, String brancheCalculId,
+                                                            String arretRef, BigDecimal confidenceScore,
+                                                            LocalDate dateArret, String chapeauOfficiel) {
         ToolJurisprudenceMapping mapping = new ToolJurisprudenceMapping();
         mapping.setToolId(toolId);
         mapping.setBrancheCalculId(brancheCalculId);
@@ -212,7 +241,7 @@ class ToolJurisprudenceControllerIT {
         mapping.setDateArret(dateArret);
         mapping.setNumeroPourvoi("23-12.345");
         mapping.setLienLegifrance("https://www.legifrance.gouv.fr/juri/id/X");
-        mapping.setChapeauOfficiel("Chapeau test.");
+        mapping.setChapeauOfficiel(chapeauOfficiel);
         mapping.setLastVerifiedAt(Instant.parse("2026-05-01T03:00:00Z"));
         mapping.setConfidenceScore(confidenceScore);
         mapping.setArchived(false);

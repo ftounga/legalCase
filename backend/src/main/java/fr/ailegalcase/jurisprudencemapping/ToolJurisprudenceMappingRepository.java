@@ -1,7 +1,11 @@
 package fr.ailegalcase.jurisprudencemapping;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,13 +15,31 @@ import java.util.UUID;
 public interface ToolJurisprudenceMappingRepository extends JpaRepository<ToolJurisprudenceMapping, UUID> {
 
     /**
-     * Récupère les 3 arrêts les plus pertinents pour une branche d'un outil :
-     * tri par {@code confidence_score DESC, date_arret DESC}, exclut les
-     * mappings archivés. Spring Data JPA garantit la limite stricte à 3
-     * résultats via le préfixe {@code findTop3}.
+     * SF-JU-01-FIX (2026-06-03) — citations « affichables » pour une branche d'un
+     * outil : non archivées, <strong>chapeau officiel non vide</strong> et
+     * <strong>confiance ≥ {@code minConfidence}</strong>, triées
+     * {@code confidence_score DESC, date_arret DESC}. Le filtre qualité est
+     * appliqué AVANT la limite (via {@code Pageable}) pour ne pas gâcher un slot
+     * du top-N avec une citation vide ou peu fiable. Aligné sur l'invariant
+     * « silence &gt; erreur » : ne jamais servir de citation vide / douteuse à
+     * l'avocat (l'affichage outil F-JU-01 et les conclusions générées F-JU-02
+     * partagent ce point de lecture via {@code ToolJurisprudenceService}).
      */
-    List<ToolJurisprudenceMapping> findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-            String toolId, String brancheCalculId);
+    @Query("""
+            SELECT m FROM ToolJurisprudenceMapping m
+            WHERE m.toolId = :toolId
+              AND m.brancheCalculId = :brancheCalculId
+              AND m.archived = false
+              AND m.chapeauOfficiel IS NOT NULL
+              AND TRIM(m.chapeauOfficiel) <> ''
+              AND m.confidenceScore >= :minConfidence
+            ORDER BY m.confidenceScore DESC, m.dateArret DESC
+            """)
+    List<ToolJurisprudenceMapping> findDisplayableByToolAndBranch(
+            @Param("toolId") String toolId,
+            @Param("brancheCalculId") String brancheCalculId,
+            @Param("minConfidence") BigDecimal minConfidence,
+            Pageable pageable);
 
     /**
      * SF-JU-01-14 — vérifie si un mapping existe déjà pour le triplet couvert par
