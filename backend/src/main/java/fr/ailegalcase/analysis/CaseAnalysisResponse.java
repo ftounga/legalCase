@@ -5058,7 +5058,12 @@ public record CaseAnalysisResponse(
             Boolean aeUrgence,                          // FR — true si danger immédiat justifiant une mesure provisoire (art. 375-5)
             Boolean aeAdhesionFamille,                  // FR — true si adhésion des titulaires de l'autorité parentale à une mesure
             Boolean aeMaintienMilieu,                   // FR — true si maintien du mineur dans son milieu familial possible (art. 375-2)
-            Boolean aeMesureAmiable) {                  // FR — true si mesure amiable ASE (AED) envisageable (art. L. 222-3 CASF)
+            Boolean aeMesureAmiable,                    // FR — true si mesure amiable ASE (AED) envisageable (art. L. 222-3 CASF)
+            // SF-223-01 : champs IA value de l'outil cohabitation-legale-be regroupés
+            // en sous-record @JsonUnwrapped (pattern F-256 / consolidation params) — JSON
+            // HTTP plat préservé, 1 seul param consommé sur le record (plafond JVM 255).
+            // BELGIQUE UNIQUEMENT — alimente le sous-objet IA `cohabitation_legale_be_detection`.
+            @JsonUnwrapped Sf223Detail sf223Detail) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -5553,6 +5558,9 @@ public record CaseAnalysisResponse(
             public Builder aeAdhesionFamille(Boolean v) { this.aeAdhesionFamille = v; return this; }
             public Builder aeMaintienMilieu(Boolean v) { this.aeMaintienMilieu = v; return this; }
             public Builder aeMesureAmiable(Boolean v) { this.aeMesureAmiable = v; return this; }
+            // SF-223-01 : sous-record @JsonUnwrapped cohabitation-legale-be (BELGIQUE).
+            private Sf223Detail sf223Detail = Sf223Detail.empty();
+            public Builder sf223Detail(Sf223Detail v) { this.sf223Detail = v != null ? v : Sf223Detail.empty(); return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -5762,8 +5770,36 @@ public record CaseAnalysisResponse(
                         aeUrgence,
                         aeAdhesionFamille,
                         aeMaintienMilieu,
-                        aeMesureAmiable);
+                        aeMesureAmiable,
+                        // SF-223-01 : sous-record @JsonUnwrapped cohabitation-legale-be.
+                        sf223Detail);
             }
+        }
+    }
+
+    /**
+     * SF-223-01 : sous-record @JsonUnwrapped des champs IA value de l'outil
+     * décisionnel `cohabitation-legale-be` (régime de la cohabitation légale BE
+     * — loi du 23/11/1998 ; CC art. 1475-1479). Regroupé en un seul composant
+     * pour économiser les paramètres de {@link FamilleExtractedData} (plafond
+     * JVM 255 ; pattern F-256 / feedback consolidation).
+     *
+     * <p>BELGIQUE UNIQUEMENT. Le flag pivot CONTEXTUAL
+     * {@code cohabitationLegaleBeDetectee} reste porté par le record parent
+     * (ajouté F-202) ; ce sous-record porte les champs value pré-remplissables.
+     * Tous nullables — le prompt impose null hors BE / hors certitude.</p>
+     */
+    public record Sf223Detail(
+            // Mention d'une déclaration de cohabitation légale enregistrée
+            // devant l'officier de l'état civil (CC art. 1476 — à vérifier).
+            Boolean declarationCohabitationLegaleMentionneeBeDetectee,
+            // Existence d'un domicile commun documenté (pertinent vue EFFETS —
+            // CC art. 1477 — à vérifier).
+            Boolean domicileCommunBeDetecte
+    ) {
+        /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
+        public static Sf223Detail empty() {
+            return new Sf223Detail(null, null);
         }
     }
 
@@ -9259,6 +9295,19 @@ public record CaseAnalysisResponse(
                 || aeAdhesionFamille != null
                 || aeMaintienMilieu != null
                 || aeMesureAmiable != null;
+        // SF-223-01 : sous-objet `cohabitation_legale_be_detection` — 2 champs IA value
+        // pour l'outil cohabitation-legale-be (loi du 23/11/1998 ; CC art. 1475-1479).
+        // BELGIQUE UNIQUEMENT — null si dossier FR. Le flag pivot CONTEXTUAL
+        // `cohabitation_legale_be_detectee` reste lu plus haut (record parent, F-202).
+        JsonNode clbe = node.get("cohabitation_legale_be_detection");
+        boolean clbeObject = clbe != null && clbe.isObject();
+        Boolean declarationCohabitationLegaleMentionneeBeDetectee = clbeObject
+                ? booleanOrNull(clbe, "declaration_cohabitation_legale_mentionnee") : null;
+        Boolean domicileCommunBeDetecte = clbeObject
+                ? booleanOrNull(clbe, "domicile_commun") : null;
+        Sf223Detail sf223Detail = new Sf223Detail(
+                declarationCohabitationLegaleMentionneeBeDetectee,
+                domicileCommunBeDetecte);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
@@ -9715,6 +9764,7 @@ public record CaseAnalysisResponse(
                 .aeAdhesionFamille(aeAdhesionFamille)
                 .aeMaintienMilieu(aeMaintienMilieu)
                 .aeMesureAmiable(aeMesureAmiable)
+                .sf223Detail(sf223Detail)
                 .build();
     }
 

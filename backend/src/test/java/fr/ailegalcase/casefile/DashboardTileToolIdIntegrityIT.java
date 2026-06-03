@@ -209,6 +209,11 @@ class DashboardTileToolIdIntegrityIT {
             // SF-217-16 (2026-05-21) : mariage-etranger-be-reconnaissance livré sans
             // mapper DashboardTile — même pattern transitoire Vague 3.
             "mariage-etranger-be-reconnaissance",
+            // SF-223-01 (2026-06-03) : cohabitation-legale-be livré sans mapper
+            // DashboardTile côté backend — composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat (même pattern transitoire BE).
+            "cohabitation-legale-be",
             // SF-217-18 (2026-05-21) : contestation-filiation-be livré sans mapper
             // DashboardTile côté backend — exclusion transitoire alignée sur les
             // 2 autres outils F-217 Vague 3 (mêmes raisons : composant frontend

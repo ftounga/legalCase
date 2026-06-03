@@ -426,6 +426,12 @@ public final class LegalDomainPromptBuilder {
                 - "mesure_amiable_ase_envisageable" : booléen ou null. **FRANCE UNIQUEMENT** — true si une mesure administrative amiable (aide éducative à domicile AED, contractualisée avec l'ASE, art. L. 222-3 CASF) est envisageable ; false sinon ; null si non documenté.
               **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 6 champs sans erreur.
               **RÈGLE FRANCE** : pour un dossier famille BELGIQUE, ce sous-objet DOIT être null.
+            SF-223-01 — Nouveau sous-objet `cohabitation_legale_be_detection` (BELGIQUE UNIQUEMENT — loi du 23/11/1998 ; Code civil belge art. 1475-1479 / régime de la cohabitation légale). Distinct du PACS français (`vie_commune_detection`) et de la cohabitation de fait. Alimente le pré-remplissage de l'outil décisionnel `cohabitation-legale-be`. Le flag pivot `cohabitation_legale_be_detectee` (déclaré plus haut) gouverne l'affichage de l'outil ; ce sous-objet porte les champs value extractibles.
+              "cohabitation_legale_be_detection" : objet OU null. **BELGIQUE UNIQUEMENT** — renseigne-le UNIQUEMENT pour un dossier de droit de la famille BELGIQUE évoquant la cohabitation légale au sens de la loi du 23/11/1998 (mots-clés « cohabitation légale », « déclaration commune devant l'officier de l'état civil », « dissolution de cohabitation légale », « déclaration unilatérale »). Pour un dossier famille FRANCE, ce sous-objet DOIT rester null. Les champs internes :
+                - "declaration_cohabitation_legale_mentionnee" : booléen ou null. **BELGIQUE UNIQUEMENT** — true si les pièces mentionnent une déclaration de cohabitation légale enregistrée devant l'officier de l'état civil (CC art. 1476 — à vérifier) ; false si explicitement écartée ; null si non documenté.
+                - "domicile_commun" : booléen ou null. **BELGIQUE UNIQUEMENT** — true si un domicile commun des cohabitants est documenté dans les pièces ; false s'il est explicitement écarté ; null si non documenté.
+              **RÈGLE NO-OP GRACIEUX** : sous-objet absent ou null → extracteur retourne null pour les 2 champs sans erreur.
+              **RÈGLE BELGIQUE** : pour un dossier famille FRANCE, ce sous-objet DOIT être null.
             """;
 
     // Le prompt TRAVAIL est découpé en 2 constantes (PART1 + PART2) puis

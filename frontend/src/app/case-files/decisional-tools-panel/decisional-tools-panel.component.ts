@@ -481,6 +481,7 @@ import { SuccessionBeDevolutionReserveSectionComponent } from '../succession-be-
 import { SuccessionBeAcceptationRenonciationSectionComponent } from '../succession-be-acceptation-renonciation-section/succession-be-acceptation-renonciation-section.component';
 // F-217 SF-217-17 — section décisionnelle Vague 3 Famille BE — Reconnaissance mariage / divorce étranger (talaq inclus). Backend SF-217-16 bundle.
 import { MariageEtrangerBeReconnaissanceSectionComponent } from '../mariage-etranger-be-reconnaissance-section/mariage-etranger-be-reconnaissance-section.component';
+import { CohabitationLegaleBeSectionComponent } from '../cohabitation-legale-be-section/cohabitation-legale-be-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5766,6 +5767,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-01 : régime de la cohabitation légale BE (loi du 23/11/1998 ;
+      // CC art. 1475-1479 — à vérifier). Outil multi-vues unique (FORMATION /
+      // EFFETS / DISSOLUTION). Migration 579 — CONTEXTUAL, flag pivot
+      // `cohabitation_legale_be_detectee` (déjà extrait F-202). Pré-fill IA V1 =
+      // 0 champ (PREFILL_COUNT_ALWAYS_ZERO). Backend SF-223-01 bundle.
+      ['cohabitation-legale-be', {
+        displayLabel: 'Cohabitation légale — régime (Belgique)',
+        component: CohabitationLegaleBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6523,6 +6539,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // F-217 SF-217-17 : reconnaissance mariage / divorce étranger BE — analyse
     // de validité d'ordre public (CDIP art. 21+ / 27 — talaq inclus).
     ['mariage-etranger-be-reconnaissance', 'VALIDITE'],
+    ['cohabitation-legale-be', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,

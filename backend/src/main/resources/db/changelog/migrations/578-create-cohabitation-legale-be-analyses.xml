@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="578-create-cohabitation-legale-be-analyses" author="legalcase">
+        <comment>
+            SF-223-01 : table dédiée à l'outil décisionnel "Régime de la
+            cohabitation légale en Belgique" (loi du 23/11/1998 ; Code civil
+            belge art. 1475-1479 — à vérifier par avocat belge, renumérotation
+            CC post-réformes 2017-2019).
+
+            Outil multi-vues unique (1 outil = 1 situation « régime de la
+            cohabitation légale ») couvrant FORMATION (conditions de la
+            déclaration à l'officier de l'état civil — CC art. 1475), EFFETS
+            (protection du logement familial commun + contribution aux charges
+            — CC art. 1477) et DISSOLUTION (déclaration commune / unilatérale
+            signifiée par huissier / mariage / décès — CC art. 1476).
+
+            Verdict en 4 niveaux : FORMATION_VALIDE / FORMATION_IMPOSSIBLE /
+            EFFETS_QUALIFIES / DISSOLUTION_QUALIFIEE.
+
+            BELGIQUE UNIQUEMENT — ≠ PACS français (F-FA-12, structurellement
+            distinct) et ≠ cohabitation de fait (P4 F-224).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul
+            (pattern F-DT-36).
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 579
+            livrée dans le même bundle SF-223-01 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 578 = numéro libre suivant après 577 (seed F-221
+            victime-traite-be).
+        </comment>
+
+        <createTable tableName="cohabitation_legale_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_cohabitation_legale_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="cohabitation_legale_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_cohabitation_legale_be_analyses_case_file"/>
+
+        <createIndex tableName="cohabitation_legale_be_analyses"
+                     indexName="idx_cohabitation_legale_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="cohabitation_legale_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
