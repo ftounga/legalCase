@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="6eaaab2b-e3b7-4eae-8f47-2501d710d8f6" author="legalcase">
+        <comment>
+            SF-218-45 — seed `decision_tool_visibility_rules` pour l'outil
+            decisionnel "Conge parental d'education"
+            (F-DT-78-conge-parental-education, FRANCE uniquement).
+
+            Mode CONTEXTUAL (niveau 2), DROIT_DU_TRAVAIL / FRANCE : l'outil
+            n'apparait dans le panneau decisionnel que lorsque l'IA detecte des
+            signaux de conge parental d'education (mentions « conge parental »,
+            « conge parental d'education », « PreParE », « reintegration apres
+            conge parental », « temps partiel pour elever un enfant »). Flag pivot
+            `conge_parental_detecte` = true. trigger_field =
+            'conge_parental_detecte', trigger_value = 'true'. priority 95 — valeur
+            libre pre-assignee pour le couple (DROIT_DU_TRAVAIL, FRANCE) au-dela
+            du seed CONTEXTUAL FR le plus recent (F-DT-76 conges evenements
+            familiaux = 94).
+
+            Source juridique : art. L.1225-47 a L.1225-60 du Code du travail.
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            renvoie 400 cote service ; gate domaine `legalDomain != DROIT_DU_TRAVAIL`
+            renvoie 400.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('6eaaab2b-e3b7-4eae-8f47-2501d710d8f6', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-78-conge-parental-education', 'CONTEXTUAL', 'conge_parental_detecte', 'true', 95);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '6eaaab2b-e3b7-4eae-8f47-2501d710d8f6';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

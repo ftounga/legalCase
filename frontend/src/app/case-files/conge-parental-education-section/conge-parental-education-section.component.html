@@ -1,0 +1,196 @@
+<section class="is-section">
+  <header class="is-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cpe-body">
+    <mat-icon class="is-icon">child_care</mat-icon>
+    <span class="is-title">CONGÉ PARENTAL D'ÉDUCATION (FR)</span>
+    @if (result()) {
+      <span [class]="statutChipClass(result()!.statut)" data-testid="statut-chip">
+        {{ statutLabel(result()!.statut) }}
+      </span>
+    }
+    <mat-icon class="is-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cpe-body" class="is-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="is-banner is-banner--navy" role="note" data-testid="country-gate-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="is-banner-content">
+            <div class="is-banner-title">Congé parental d'éducation — régime français uniquement</div>
+            <div class="is-banner-sub">
+              Le congé parental d'éducation (art. L.1225-47 à L.1225-60 du Code du
+              travail) est propre au droit du travail français : il n'a pas
+              d'équivalent direct en droit belge.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="is-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="is-form" (ngSubmit)="analyze()">
+              <div class="is-criteres-intro" role="note">
+                <mat-icon>child_care</mat-icon>
+                <span>Éligibilité au congé parental d'éducation (art. L.1225-47 à L.1225-60 CT) : un an d'ancienneté minimum à la date de naissance / adoption, congé pris jusqu'au 3e anniversaire de l'enfant, réintégration garantie à l'issue du congé.</span>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté à la naissance / adoption (mois)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="ancienneteMois()"
+                         (ngModelChange)="onAncienneteChange($event)"
+                         name="ancienneteMois"
+                         data-testid="anciennete-input" required />
+                  <mat-hint>≥ 12 mois requis pour ouvrir le droit (L.1225-47).</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de naissance / arrivée de l'enfant</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateNaissanceOuAdoption()"
+                         (ngModelChange)="onDateChange($event)"
+                         name="dateNaissanceOuAdoption"
+                         data-testid="date-input" required />
+                  <mat-hint>Détermine la date de fin maximale du droit (3e anniversaire).</mat-hint>
+                </mat-form-field>
+                @if (provenanceDate() === 'IA') {
+                  <span class="provenance-note" data-testid="provenance-date"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NAISSANCE; as alert) {
+                  <span class="is-coherence-badge"
+                        data-testid="coherence-date"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning_amber</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Modalité d'exercice</mat-label>
+                  <mat-select [ngModel]="modalite()"
+                              (ngModelChange)="onModaliteChange($event)"
+                              name="modalite"
+                              data-testid="modalite-select" required>
+                    @for (opt of modaliteOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Congé total ou activité à temps partiel.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nombre d'enfants concernés</mat-label>
+                  <input matInput type="number" min="1" step="1"
+                         [ngModel]="nombreEnfants()"
+                         (ngModelChange)="onNombreEnfantsChange($event)"
+                         name="nombreEnfants"
+                         data-testid="nombre-enfants-input" required />
+                  <mat-hint>Naissances / adoptions multiples le cas échéant.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="is-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Évaluer l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="is-result">
+              <div class="is-banner"
+                   [class.is-banner--success]="result()!.statut === 'ELIGIBLE'"
+                   [class.is-banner--danger]="result()!.statut === 'NON_ELIGIBLE'"
+                   role="status" data-testid="result-banner">
+                <mat-icon>{{ result()!.statut === 'ELIGIBLE' ? 'check_circle' : 'cancel' }}</mat-icon>
+                <div class="is-banner-content">
+                  <div class="is-banner-title">
+                    {{ statutLabel(result()!.statut) }} — congé parental d'éducation
+                  </div>
+                  <div class="is-banner-sub">
+                    @if (result()!.statut === 'ELIGIBLE') {
+                      Date de fin maximale du droit :
+                      <span class="is-mono">{{ result()!.dateFinMax }}</span>
+                      (3e anniversaire de l'enfant) — durée maximale
+                      <span class="is-mono">{{ result()!.dureeMaxMois }}</span> mois.
+                    } @else {
+                      Un an d'ancienneté minimum à la date de naissance / adoption est
+                      requis (art. L.1225-47 CT). Ancienneté retenue :
+                      {{ result()!.ancienneteMois }} mois.
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.statut === 'ELIGIBLE') {
+                <div class="is-badges">
+                  <span class="is-chip is-chip--neutral is-mono" data-testid="modalite-chip">
+                    {{ modaliteLabel(result()!.modaliteRetenue) }}
+                  </span>
+                  @if (result()!.protectionReintegration) {
+                    <span class="is-chip is-chip--success" data-testid="protection-chip">
+                      <mat-icon class="is-chip-icon">verified_user</mat-icon>
+                      Réintégration garantie (L.1225-55)
+                    </span>
+                  }
+                  @if (result()!.mentionPreparE) {
+                    <span class="is-chip is-chip--info" data-testid="prepare-chip">
+                      <mat-icon class="is-chip-icon">savings</mat-icon>
+                      PreParE possible (CAF)
+                    </span>
+                  }
+                </div>
+              }
+
+              @if (result()!.notes && result()!.notes.length > 0) {
+                <ul class="is-consequences" data-testid="notes">
+                  @for (n of result()!.notes; track n) {
+                    <li class="is-consequence-item">
+                      <mat-icon>arrow_right</mat-icon>
+                      <span>{{ n }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <div class="is-meta">
+                <div class="is-bases">
+                  <span class="is-meta-base is-mono">{{ result()!.baseJuridique }}</span>
+                </div>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

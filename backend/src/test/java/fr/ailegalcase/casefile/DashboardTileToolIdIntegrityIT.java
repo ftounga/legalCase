@@ -1112,6 +1112,13 @@ class DashboardTileToolIdIntegrityIT {
             // (pattern uniforme F-213 / F-219 / F-218 vagues, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
             "F-DT-76-conges-evenements-familiaux",
+            // SF-218-45 : outil F-DT-78 congé parental d'éducation (art. L.1225-47
+            // à L.1225-60 CT — éligibilité 1 an d'ancienneté + date de fin
+            // maximale au 3e anniversaire de l'enfant, FR-only, CONTEXTUAL) — pas
+            // de tuile dashboard. Frontend SF-218-46 (même PR). Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme F-213 / F-219 / F-218
+            // vagues, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-DT-78-conge-parental-education",
             // SF-218-33 : outil F-DT-69 délégué syndical / RSS : désignation et
             // protection (art. L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT,
             // FR-only, CONTEXTUAL) — pas de tuile dashboard. Frontend SF-218-34 à

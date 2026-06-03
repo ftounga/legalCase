@@ -455,6 +455,23 @@ export interface TravailExtractedData {
    */
   type_evenement_familial?: string | null;
   /**
+   * SF-218-46 : flag pivot CONTEXTUAL — l'IA a détecté des signaux de congé
+   * parental d'éducation (mentions « congé parental », « congé parental
+   * d'éducation », « PreParE », « réintégration après congé parental », « temps
+   * partiel pour élever un enfant »). Déclenche l'apparition de
+   * F-DT-78-conge-parental-education (FR uniquement). Clé JSON SNAKE_CASE
+   * (Sf218dDetail `@JsonProperty`).
+   */
+  conge_parental_detecte?: boolean | null;
+  /**
+   * SF-218-46 : date de naissance ou d'arrivée de l'enfant au foyer identifiée
+   * par l'IA dans les pièces du dossier, pour pré-fill du champ
+   * `dateNaissanceOuAdoption` de F-DT-78-conge-parental-education (FR
+   * uniquement). Format ISO yyyy-MM-dd. Clé JSON SNAKE_CASE (Sf218dDetail
+   * `@JsonProperty`).
+   */
+  date_naissance_ou_adoption?: string | null;
+  /**
    * SF-218-34 : type de mandat syndical (DELEGUE_SYNDICAL / RSS) détecté par
    * l'IA dans les pièces du dossier (lettre de désignation, procès-verbal CSE),
    * pour pré-fill du champ `typeMandat` de

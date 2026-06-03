@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="f6b2e7b2-11ef-43c9-b67e-e1a96a0e7b9b" author="legalcase">
+        <comment>
+            SF-218-45 — table `conge_parental_education_analyses` pour l'outil
+            decisionnel "Conge parental d'education"
+            (F-DT-78-conge-parental-education, FRANCE).
+
+            Outil single-country FR : determine l'eligibilite au conge parental
+            d'education (art. L.1225-47 a L.1225-60 CT) et sa date de fin
+            maximale. Eligibilite : un an d'anciennete minimum a la date de
+            naissance / d'arrivee de l'enfant adopte (anciennete_mois sup. ou egal
+            a 12, art. L.1225-47), sinon NON_ELIGIBLE. Date de fin maximale :
+            date_naissance_ou_adoption plus 3 ans (3e anniversaire de l'enfant ;
+            duree d'un an renouvelable deux fois, art. L.1225-48 ; en cas
+            d'adoption, duree egalement plafonnee a 3 ans a compter de l'arrivee).
+            A l'issue du conge, reintegration dans le precedent emploi ou un
+            emploi similaire assorti d'une remuneration au moins equivalente
+            (art. L.1225-55). Information PreParE (CAF) sans calcul de montant.
+            Persiste l'analyse 1:1 par dossier (upsert).
+
+            Distinct du conge de paternite/maternite (F-212) et du conge pour
+            evenements familiaux (F-DT-76) — invariant « un outil = une situation ».
+
+            Source juridique : art. L.1225-47 a L.1225-60 du Code du travail.
+        </comment>
+
+        <createTable tableName="conge_parental_education_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_conge_parental_education_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="anciennete_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modalite" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_enfants" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_naissance_ou_adoption" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_max" type="DATE"/>
+            <column name="duree_max_mois" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="protection_reintegration" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="conge_parental_education_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
