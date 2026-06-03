@@ -2278,6 +2278,20 @@ export interface ImmigrationExtractedData {
     | 'AUTRE'
     | null;
   signalementSisTitreSejourValide?: boolean | null;
+
+  /**
+   * SF-221-01 — F-IM-53 prorogation de la carte A (séjour temporaire BE,
+   * art. 13 Loi 15/12/1980 + art. 33 AR 08/10/1981) — BELGIQUE uniquement.
+   * 1 flag pivot CONTEXTUAL (`carteAProrogationDetecte`) + 3 champs de pré-fill.
+   * `carteAProrogationDetecte` : contexte de prorogation carte A détecté (pilote la visibilité).
+   * `carteAProrogationDateExpiration` : date d'expiration de la carte A (ISO yyyy-MM-dd, future ou passée).
+   * `carteAProrogationMotifPersiste` : le motif de séjour persiste à l'identique.
+   * `carteAProrogationConditionsReunies` : les conditions initiales sont toujours réunies.
+   */
+  carteAProrogationDetecte?: boolean | null;
+  carteAProrogationDateExpiration?: string | null;
+  carteAProrogationMotifPersiste?: boolean | null;
+  carteAProrogationConditionsReunies?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

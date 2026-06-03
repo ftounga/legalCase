@@ -3588,7 +3588,23 @@ public record CaseAnalysisResponse(
              *  (IRTF / MESURE_ELOIGNEMENT_ETRANGERE / MENACE_ORDRE_PUBLIC / AUTRE). Null si non extractible ou dossier BE. */
             String signalementSisMotifSignalement,
             /** SF-220-06 : true si l'étranger détient un titre de séjour FR valide. Null si non extractible ou dossier BE. */
-            Boolean signalementSisTitreSejourValide) {
+            Boolean signalementSisTitreSejourValide,
+            // === SF-221-01 — F-IM-53 Prorogation carte A BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-221-01 : true si les pièces évoquent une prorogation de la carte A
+             * (séjour temporaire / limité) au même motif (mentions « prorogation carte A »,
+             * « renouvellement séjour limité », « art. 13 Loi 15/12/1980 », « demande de
+             * prorogation à la commune », « expiration carte A même motif »). Pivot pour la
+             * visibility rule CONTEXTUAL de F-IM-53 (trigger {@code carte_a_prorogation_detecte}).
+             * Dossiers FR : toujours false.
+             */
+            boolean carteAProrogationDetecte,
+            /** SF-221-01 : date d'expiration de la carte A au format YYYY-MM-DD (future ou passée). Null si non extractible ou dossier FR. */
+            String carteAProrogationDateExpiration,
+            /** SF-221-01 : true si le motif de séjour persiste à l'identique. Null si non extractible ou dossier FR. */
+            Boolean carteAProrogationMotifPersiste,
+            /** SF-221-01 : true si les conditions initiales du séjour sont toujours réunies. Null si non extractible ou dossier FR. */
+            Boolean carteAProrogationConditionsReunies) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3753,7 +3769,12 @@ public record CaseAnalysisResponse(
                     .signalementSisDetecte(signalementSisDetecte)
                     .signalementSisEtatSignalant(signalementSisEtatSignalant)
                     .signalementSisMotifSignalement(signalementSisMotifSignalement)
-                    .signalementSisTitreSejourValide(signalementSisTitreSejourValide);
+                    .signalementSisTitreSejourValide(signalementSisTitreSejourValide)
+                    // SF-221-01 : F-IM-53 prorogation carte A BE
+                    .carteAProrogationDetecte(carteAProrogationDetecte)
+                    .carteAProrogationDateExpiration(carteAProrogationDateExpiration)
+                    .carteAProrogationMotifPersiste(carteAProrogationMotifPersiste)
+                    .carteAProrogationConditionsReunies(carteAProrogationConditionsReunies);
         }
 
         public static final class Builder {
@@ -3937,6 +3958,11 @@ public record CaseAnalysisResponse(
             private String signalementSisEtatSignalant;
             private String signalementSisMotifSignalement;
             private Boolean signalementSisTitreSejourValide;
+            // SF-221-01 : F-IM-53 prorogation carte A BE
+            private boolean carteAProrogationDetecte;
+            private String carteAProrogationDateExpiration;
+            private Boolean carteAProrogationMotifPersiste;
+            private Boolean carteAProrogationConditionsReunies;
 
             private Builder() {}
 
@@ -4107,6 +4133,11 @@ public record CaseAnalysisResponse(
             public Builder signalementSisEtatSignalant(String v) { this.signalementSisEtatSignalant = v; return this; }
             public Builder signalementSisMotifSignalement(String v) { this.signalementSisMotifSignalement = v; return this; }
             public Builder signalementSisTitreSejourValide(Boolean v) { this.signalementSisTitreSejourValide = v; return this; }
+            // SF-221-01 : F-IM-53 prorogation carte A BE
+            public Builder carteAProrogationDetecte(boolean v) { this.carteAProrogationDetecte = v; return this; }
+            public Builder carteAProrogationDateExpiration(String v) { this.carteAProrogationDateExpiration = v; return this; }
+            public Builder carteAProrogationMotifPersiste(Boolean v) { this.carteAProrogationMotifPersiste = v; return this; }
+            public Builder carteAProrogationConditionsReunies(Boolean v) { this.carteAProrogationConditionsReunies = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4242,7 +4273,12 @@ public record CaseAnalysisResponse(
                         signalementSisDetecte,
                         signalementSisEtatSignalant,
                         signalementSisMotifSignalement,
-                        signalementSisTitreSejourValide);
+                        signalementSisTitreSejourValide,
+                        // SF-221-01 : F-IM-53 prorogation carte A BE
+                        carteAProrogationDetecte,
+                        carteAProrogationDateExpiration,
+                        carteAProrogationMotifPersiste,
+                        carteAProrogationConditionsReunies);
             }
         }
     }
@@ -7731,6 +7767,18 @@ public record CaseAnalysisResponse(
         String signalementSisMotifSignalement = normalizeEnumCode(
                 textOrNull(root, "signalement_sis_motif_signalement"), SIGNALEMENT_SIS_MOTIF_CODES);
         Boolean signalementSisTitreSejourValide = booleanOrNull(root, "signalement_sis_titre_sejour_valide");
+        // SF-221-01 : F-IM-53 prorogation carte A BE — flag pivot `carte_a_prorogation_detecte`
+        // + 3 champs de pré-fill (BELGIQUE uniquement). Date d'expiration ISO (future ou passée),
+        // motif persiste / conditions réunies booléens. Tous null/false pour dossier FRANCE.
+        boolean carteAProrogationDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "carte_a_prorogation_detecte"));
+        String carteAProrogationDateExpirationRaw = textOrNull(root, "carte_a_prorogation_date_expiration");
+        String carteAProrogationDateExpiration =
+                (carteAProrogationDateExpirationRaw != null
+                        && carteAProrogationDateExpirationRaw.matches(ISO_DATE_SF214))
+                        ? carteAProrogationDateExpirationRaw : null;
+        Boolean carteAProrogationMotifPersiste = booleanOrNull(root, "carte_a_prorogation_motif_persiste");
+        Boolean carteAProrogationConditionsReunies = booleanOrNull(root, "carte_a_prorogation_conditions_reunies");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7882,7 +7930,12 @@ public record CaseAnalysisResponse(
                 && !signalementSisDetecte
                 && signalementSisEtatSignalant == null
                 && signalementSisMotifSignalement == null
-                && signalementSisTitreSejourValide == null) return null;
+                && signalementSisTitreSejourValide == null
+                // SF-221-01 : F-IM-53 prorogation carte A BE (1 flag pivot + 3 champs IA, nullables)
+                && !carteAProrogationDetecte
+                && carteAProrogationDateExpiration == null
+                && carteAProrogationMotifPersiste == null
+                && carteAProrogationConditionsReunies == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -8063,6 +8116,11 @@ public record CaseAnalysisResponse(
                 .signalementSisEtatSignalant(signalementSisEtatSignalant)
                 .signalementSisMotifSignalement(signalementSisMotifSignalement)
                 .signalementSisTitreSejourValide(signalementSisTitreSejourValide)
+                // SF-221-01 : F-IM-53 prorogation carte A BE
+                .carteAProrogationDetecte(carteAProrogationDetecte)
+                .carteAProrogationDateExpiration(carteAProrogationDateExpiration)
+                .carteAProrogationMotifPersiste(carteAProrogationMotifPersiste)
+                .carteAProrogationConditionsReunies(carteAProrogationConditionsReunies)
                 .build();
     }
 

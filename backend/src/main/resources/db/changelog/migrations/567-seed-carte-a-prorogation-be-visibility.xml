@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="0524253b-b14c-40b8-b079-a9529a19041d-seed-carte-a-prorogation-be" author="legalcase">
+        <comment>
+            SF-221-01 : seed visibility pour l'outil décisionnel "Prorogation de la carte A BE"
+            (F-IM-53-carte-a-prorogation-be). Livrée DANS LA MÊME PR que la table (pattern F-215).
+
+            Visibility CONTEXTUAL : l'outil apparaît dans le panel F-IA-04 sur les dossiers
+            BELGIQUE × DROIT_IMMIGRATION dès que l'IA détecte un indice de prorogation de carte A
+            via le flag pivot `carte_a_prorogation_detecte` extrait depuis le prompt
+            IMMIGRATION_INSTRUCTION (mots-clés "prorogation carte A", "renouvellement séjour
+            limité", "art. 13 Loi 15/12/1980", "demande de prorogation à la commune",
+            "expiration carte A même motif").
+
+            Priority 210 — juste après le dernier outil Immigration BE existant
+            (F-IM-34 protection temporaire Ukraine, priority 209) pour cohérence d'ordre
+            dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            L'entrée TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) est ajoutée
+            dans la MÊME PR (SF-221-01 back+front), de sorte que DecisionToolVisibilityIntegrityIT
+            (DB → frontend) reste vert sans orphelin transitoire.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                '03f192e2-42af-4a30-b512-4f85dbc4ab8a',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-53-carte-a-prorogation-be',
+                'CONTEXTUAL',
+                'carte_a_prorogation_detecte',
+                'true',
+                210
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = '03f192e2-42af-4a30-b512-4f85dbc4ab8a';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

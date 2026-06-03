@@ -1,0 +1,213 @@
+<section class="cap-section">
+  <header class="cap-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cap-body">
+    <mat-icon class="cap-icon">event_repeat</mat-icon>
+    <span class="cap-title">PROROGATION CARTE A (BE)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="cap-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cap-body" class="cap-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="cap-banner cap-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="cap-banner-content">
+            <div class="cap-banner-title">Outil Belgique uniquement</div>
+            <div class="cap-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. La prorogation de la
+              carte A (séjour temporaire, Loi 15/12/1980) ne s'applique qu'en Belgique.
+              Pour la France, voir les outils de renouvellement de titre de séjour CESEDA.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="cap-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="cap-form" (ngSubmit)="analyze()">
+              <div class="cap-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'expiration de la carte A</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-expiration-input"
+                         [ngModel]="dateExpirationCarteA()"
+                         (ngModelChange)="onDateExpirationChange($event)"
+                         name="dateExpirationCarteA" />
+                </mat-form-field>
+                @if (provenanceDateExpiration() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_EXPIRATION; as alert) {
+                  <span class="cap-coherence-badge coherence-warning"
+                        data-testid="coherence-date-expiration"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [attr.aria-label]="alertBadgeLabel(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="cap-field-wrap cap-field-wrap--full">
+                <mat-checkbox
+                    data-testid="motif-persiste-checkbox"
+                    [ngModel]="motifSejourPersiste()"
+                    (ngModelChange)="onMotifPersisteChange($event)"
+                    name="motifSejourPersiste">
+                  Le motif de séjour persiste à l'identique
+                </mat-checkbox>
+                @if (provenanceMotifPersiste() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="cap-field-wrap cap-field-wrap--full">
+                <mat-checkbox
+                    data-testid="conditions-reunies-checkbox"
+                    [ngModel]="conditionsInitialesToujoursReunies()"
+                    (ngModelChange)="onConditionsReuniesChange($event)"
+                    name="conditionsInitialesToujoursReunies">
+                  Les conditions initiales du séjour sont toujours réunies
+                </mat-checkbox>
+                @if (provenanceConditionsReunies() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="cap-field-wrap cap-field-wrap--full">
+                <mat-checkbox
+                    data-testid="demande-deposee-checkbox"
+                    [ngModel]="demandeDeposee()"
+                    (ngModelChange)="onDemandeDeposeeChange($event)"
+                    name="demandeDeposee">
+                  Une demande de prorogation a déjà été déposée
+                </mat-checkbox>
+              </div>
+
+              @if (demandeDeposee()) {
+                <div class="cap-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de dépôt de la demande</mat-label>
+                    <input matInput type="date" required
+                           data-testid="date-demande-input"
+                           [ngModel]="dateDemande()"
+                           (ngModelChange)="onDateDemandeChange($event)"
+                           name="dateDemande" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="cap-hint">
+                Fenêtre de dépôt recommandée : 30 à 45 jours calendaires avant
+                l'expiration, auprès de la commune (Loi 15/12/1980 art. 13 + AR
+                08/10/1981 art. 33 — à vérifier par avocat).
+              </div>
+
+              <div class="cap-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Calculer le délai</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="cap-result">
+              <div [class]="verdictBannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+                <div class="cap-banner-content">
+                  <div class="cap-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <div class="cap-banner-sub">
+                    Limite recommandée de dépôt :
+                    <span class="cap-date-mono" data-testid="date-limite">{{ formatDateFr(result()!.dateLimiteRecommandee) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cap-jours-block">
+                <span class="cap-jours-label">Jours avant expiration</span>
+                <span [class]="joursClass(result()!.joursAvantExpiration)" data-testid="jours-avant-expiration">
+                  {{ result()!.joursAvantExpiration }}
+                </span>
+              </div>
+
+              @if (result()!.messages && result()!.messages.length) {
+                <ul class="cap-messages" data-testid="messages">
+                  @for (msg of result()!.messages; track msg) {
+                    <li>{{ msg }}</li>
+                  }
+                </ul>
+              }
+
+              <ul class="cap-breakdown">
+                <li>
+                  <span class="cap-bd-label">Expiration de la carte A</span>
+                  <span class="cap-bd-value cap-bd-value--mono">{{ formatDateFr(result()!.dateExpirationCarteA) }}</span>
+                </li>
+                <li>
+                  <span class="cap-bd-label">Ouverture de la fenêtre (−45 j)</span>
+                  <span class="cap-bd-value cap-bd-value--mono">{{ formatDateFr(result()!.dateOuvertureFenetre) }}</span>
+                </li>
+                <li>
+                  <span class="cap-bd-label">Motif de séjour persiste</span>
+                  <span class="cap-bd-value">{{ result()!.motifSejourPersiste ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="cap-bd-label">Conditions initiales réunies</span>
+                  <span class="cap-bd-value">{{ result()!.conditionsInitialesToujoursReunies ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="cap-bd-label">Demande déjà déposée</span>
+                  <span class="cap-bd-value">{{ result()!.demandeDeposee ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.demandeDeposee && result()!.dateDemande) {
+                  <li>
+                    <span class="cap-bd-label">Date de la demande</span>
+                    <span class="cap-bd-value cap-bd-value--mono">{{ formatDateFr(result()!.dateDemande) }}</span>
+                  </li>
+                }
+              </ul>
+
+              <div class="cap-meta">
+                @if (result()!.basesJuridiques && result()!.basesJuridiques.length) {
+                  <span class="cap-meta-base" [innerHTML]="result()!.basesJuridiques.join(' · ') | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

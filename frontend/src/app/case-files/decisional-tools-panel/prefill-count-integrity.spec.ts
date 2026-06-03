@@ -308,6 +308,11 @@ const FOLDER_OVERRIDES: ReadonlyMap<string, string> = new Map([
   // standard collerait `Semaine4Jours` → `semaine4-jours-be-section`.
   // Même pattern que Belgian9bis / Naturalisation12bis.
   ['Semaine4JoursBeSectionComponent', 'semaine-4-jours-be-section'],
+  // SF-221-01 : F-IM-53 prorogation carte A BE — le dossier suit la convention
+  // `carte-a-prorogation-be-section`, alors que la dérivation kebab-case standard
+  // collerait `CarteAProrogation` → `carte-aprorogation` (deux capitales `AP`
+  // consécutives sans frontière minuscule→majuscule).
+  ['CarteAProrogationBeSectionComponent', 'carte-a-prorogation-be-section'],
 ]);
 
 function deriveFolderFromClassName(className: string): string {

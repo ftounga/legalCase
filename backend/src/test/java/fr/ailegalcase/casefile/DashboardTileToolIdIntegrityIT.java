@@ -1207,7 +1207,15 @@ class DashboardTileToolIdIntegrityIT {
             // décisionnel CONTEXTUAL FR, pas de tuile dashboard. Préventif
             // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-IM-52-signalement-sis-fr"
+            "F-IM-52-signalement-sis-fr",
+            // SF-221-01 : F-IM-53 prorogation de la carte A (séjour temporaire BE) —
+            // calculateur de délai de dépôt 30-45 j + conditions de prorogation
+            // (art. 13 Loi 15/12/1980 + art. 33 AR 08/10/1981). Outil décisionnel
+            // CONTEXTUAL BE, pas de tuile dashboard. Seed visibility (migration 567)
+            // + entrée TOOL_REGISTRY frontend livrées dans la même PR back+front.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-IM-53-carte-a-prorogation-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

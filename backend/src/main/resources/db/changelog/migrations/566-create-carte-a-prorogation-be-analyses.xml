@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="8ffc79ea-16fb-4189-9f8f-97c514b97667-create-carte-a-prorogation-be" author="legalcase">
+        <comment>
+            SF-221-01 : table dédiée à l'outil décisionnel "Prorogation de la carte A BE"
+            (F-IM-53-carte-a-prorogation-be, BELGIQUE — fondement : Loi du 15/12/1980 art. 13
+            sur la durée et la prorogation du séjour limité + AR du 08/10/1981 art. 33 sur la
+            demande de prorogation introduite auprès de la commune.
+            (à vérifier par avocat BE 2026 — fenêtre de dépôt 30-45 jours avant expiration).
+
+            L'outil calcule :
+            - dateOuvertureFenetre = dateExpirationCarteA − 45 jours ;
+            - dateLimiteRecommandee = dateExpirationCarteA − 30 jours ;
+            - joursAvantExpiration = dateExpirationCarteA − aujourd'hui ;
+            - le verdict 5 états : PROROGEABLE / A_DEPOSER_URGENT / CONDITIONS_NON_REUNIES /
+              EXPIREE / DEMANDE_DEPOSEE ;
+            - la liste des bases juridiques annotées "(à vérifier par avocat)" + messages.
+
+            Outil single-country BELGIQUE — distinct de F-IM-48 (passage carte A → séjour
+            illimité après 5 ans), de la délivrance initiale (F-IM-05/F-IM-01) et du
+            renouvellement single permit travail (F-IM-25). Ne traite que le MAINTIEN
+            temporaire du même motif de séjour.
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (567-seed-carte-a-prorogation-be-visibility.xml) est livrée dans la MÊME PR
+            que cette table.
+        </comment>
+
+        <createTable tableName="carte_a_prorogation_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_carte_a_prorogation_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_expiration_carte_a" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_sejour_persiste" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="conditions_initiales_toujours_reunies" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_deposee" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_demande" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="carte_a_prorogation_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_carte_a_prorogation_be_case_file"/>
+
+        <createIndex tableName="carte_a_prorogation_be_analyses"
+                     indexName="idx_carte_a_prorogation_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="carte_a_prorogation_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

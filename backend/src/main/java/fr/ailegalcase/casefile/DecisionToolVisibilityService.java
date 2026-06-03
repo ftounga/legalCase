@@ -355,6 +355,8 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "interdiction_entree_be_detectee");
         // SF-215-19 : F-IM-34 Protection temporaire Ukraine BE — flag pivot CONTEXTUAL Immigration BE.
         addBooleanFlagIfTrue(detected, immigrationNode, "protection_temporaire_ukraine_detectee");
+        // SF-221-01 : F-IM-53 Prorogation carte A BE — flag pivot CONTEXTUAL Immigration BE.
+        addBooleanFlagIfTrue(detected, immigrationNode, "carte_a_prorogation_detecte");
         // SF-214-03 : F-IM-26 Regroupement familial FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "regroupement_familial_envisage");
         // SF-214-05 : F-IM-27 VPF liens personnels L.423-23 FR — flag pivot CONTEXTUAL Immigration FR.

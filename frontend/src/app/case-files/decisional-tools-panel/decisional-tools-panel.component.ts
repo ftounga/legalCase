@@ -175,6 +175,8 @@ import { CceExtremeUrgenceBeSectionComponent } from '../cce-extreme-urgence-be-s
 import { Annexe13quinquiesBeSectionComponent } from '../annexe13quinquies-be-section/annexe13quinquies-be-section.component';
 // SF-215-20 : composant complet F-IM-34-protection-temporaire-ukraine-be (Immigration BE, protection temporaire Ukraine — décision (UE) 2022/382).
 import { ProtectionTemporaireUkraineBeSectionComponent } from '../protection-temporaire-ukraine-be-section/protection-temporaire-ukraine-be-section.component';
+// SF-221-01 : composant complet F-IM-53-carte-a-prorogation-be (Immigration BE, prorogation carte A séjour temporaire — Loi 15/12/1980 art. 13 + AR 08/10/1981 art. 33).
+import { CarteAProrogationBeSectionComponent } from '../carte-a-prorogation-be-section/carte-a-prorogation-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -2780,6 +2782,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-34-protection-temporaire-ukraine-be', {
         displayLabel: 'Protection temporaire Ukraine (BE)',
         component: ProtectionTemporaireUkraineBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-221-01 : composant complet F-IM-53-carte-a-prorogation-be — prorogation
+      // de la carte A (séjour TEMPORAIRE / LIMITÉ), instruite par la commune.
+      // BELGIQUE uniquement, CONTEXTUAL via flag `carte_a_prorogation_detecte`.
+      // Calculateur du délai de dépôt (fenêtre 30-45 j avant expiration, Loi
+      // 15/12/1980 art. 13 + AR 08/10/1981 art. 33) + verdict 5 états
+      // (PROROGEABLE vert / A_DEPOSER_URGENT orange / CONDITIONS_NON_REUNIES +
+      // EXPIREE rouge / DEMANDE_DEPOSEE bleu). Pré-fill IA RÉEL 3 champs
+      // (dateExpirationCarteA, motifSejourPersiste, conditionsInitialesToujoursReunies)
+      // via static getPrefillCount + CarteAProrogationBePrefillRules. demandeDeposee
+      // (checkbox) + dateDemande (date conditionnelle) aspirationnels (jamais comptés).
+      // DISTINCT de F-IM-48 (passage carte A → séjour illimité 5 ans) et F-IM-25
+      // (renouvellement single permit travail).
+      ['F-IM-53-carte-a-prorogation-be', {
+        displayLabel: 'Prorogation carte A (BE)',
+        component: CarteAProrogationBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6082,6 +6106,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // procédural). Aligné sur les autres analyseurs d'éligibilité Immigration BE
     // (F-IM-27 regroupement 10bis, F-IM-28 naturalisation 12bis).
     ['F-IM-34-protection-temporaire-ukraine-be', 'VALIDITE'],
+    // SF-221-01 : F-IM-53-carte-a-prorogation-be prorogation carte A (BE).
+    // Thème DELAIS — calculateur de délai de dépôt (fenêtre 30-45 j avant
+    // expiration, date limite recommandée + jours avant expiration + verdict
+    // 5 états). Aligné sur F-IM-31-cce-annulation-30j-be et les autres
+    // calculateurs de délais Immigration BE.
+    ['F-IM-53-carte-a-prorogation-be', 'DELAIS'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).
