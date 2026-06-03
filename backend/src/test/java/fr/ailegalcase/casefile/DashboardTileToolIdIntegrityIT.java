@@ -1222,7 +1222,14 @@ class DashboardTileToolIdIntegrityIT {
             // BE, pas de tuile dashboard. Seed visibility (migration 569) + entrée TOOL_REGISTRY
             // frontend livrées dans la même PR back+front. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // (pattern uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-IM-54-carte-b-sejour-illimite-be"
+            "F-IM-54-carte-b-sejour-illimite-be",
+            // SF-221-03 : F-IM-55 statut résident longue durée UE (BE) — analyseur d'éligibilité
+            // (art. 15bis Loi 15/12/1980, directive 2003/109/CE : 5 ans = 60 mois de séjour légal
+            // ininterrompu + ressources / assurance / intégration + mobilité intra-UE). Outil
+            // décisionnel CONTEXTUAL BE, pas de tuile dashboard. Seed visibility (migration 571) +
+            // entrée TOOL_REGISTRY frontend livrées dans la même PR back+front. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-IM-55-residence-longue-duree-ue-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

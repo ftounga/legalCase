@@ -179,6 +179,8 @@ import { ProtectionTemporaireUkraineBeSectionComponent } from '../protection-tem
 import { CarteAProrogationBeSectionComponent } from '../carte-a-prorogation-be-section/carte-a-prorogation-be-section.component';
 // SF-221-02 : composant complet F-IM-54-carte-b-sejour-illimite-be (Immigration BE, carte B séjour ILLIMITÉ ressortissant tiers — Loi 15/12/1980 art. 14, passage carte A → carte B après 5 ans).
 import { CarteBSejourIllimiteBeSectionComponent } from '../carte-b-sejour-illimite-be-section/carte-b-sejour-illimite-be-section.component';
+// SF-221-03 : composant complet F-IM-55-residence-longue-duree-ue-be (Immigration BE, statut résident longue durée UE — Loi 15/12/1980 art. 15bis, directive 2003/109/CE, 5 ans de séjour légal + mobilité intra-UE).
+import { ResidenceLongueDureeUeBeSectionComponent } from '../residence-longue-duree-ue-be-section/residence-longue-duree-ue-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -2827,6 +2829,29 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-54-carte-b-sejour-illimite-be', {
         displayLabel: 'Carte B séjour illimité (BE)',
         component: CarteBSejourIllimiteBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-221-03 : composant complet F-IM-55-residence-longue-duree-ue-be — statut de
+      // RÉSIDENT LONGUE DURÉE UE (art. 15bis Loi 15/12/1980, directive 2003/109/CE) après
+      // 5 ans (60 mois) de séjour légal ININTERROMPU + ressources stables/suffisantes +
+      // assurance maladie + condition d'intégration, sans absences hors UE excessives.
+      // BELGIQUE uniquement, CONTEXTUAL via flag `residence_longue_duree_ue_detecte`.
+      // Analyseur d'éligibilité + verdict 5 états (ELIGIBLE vert / DUREE_INSUFFISANTE +
+      // CONDITIONS_MATERIELLES_NON_REUNIES orange / CONTINUITE_ROMPUE rouge / A_EXAMINER
+      // bleu). Pré-fill IA RÉEL 4 champs (dateDebutSejourLegal, ressourcesStablesSuffisantes,
+      // assuranceMaladie, conditionIntegrationRemplie) via static getPrefillCount +
+      // ResidenceLongueDureeUeBePrefillRules. sejourLegalIninterrompu +
+      // absencesHorsUeExcessives aspirationnels (jamais comptés). DISTINCT de F-IM-54
+      // (carte B = séjour ILLIMITÉ NATIONAL sans mobilité UE ; ce statut confère la
+      // mobilité intra-UE et ajoute des conditions matérielles propres).
+      ['F-IM-55-residence-longue-duree-ue-be', {
+        displayLabel: 'Résident longue durée UE (BE)',
+        component: ResidenceLongueDureeUeBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6141,6 +6166,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // Aligné sur les autres analyseurs d'éligibilité Immigration BE (F-IM-27
     // regroupement 10bis, F-IM-34 protection temporaire Ukraine).
     ['F-IM-54-carte-b-sejour-illimite-be', 'VALIDITE'],
+    // SF-221-03 : F-IM-55-residence-longue-duree-ue-be résident longue durée UE (BE).
+    // Thème VALIDITE — analyseur d'éligibilité au statut résident longue durée UE
+    // (seuil 5 ans / 60 mois + continuité + conditions matérielles ressources /
+    // assurance / intégration + mobilité intra-UE, verdict 5 états). Aligné sur les
+    // autres analyseurs d'éligibilité Immigration BE (F-IM-54 carte B, F-IM-27
+    // regroupement 10bis).
+    ['F-IM-55-residence-longue-duree-ue-be', 'VALIDITE'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

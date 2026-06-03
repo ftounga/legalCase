@@ -2306,6 +2306,22 @@ export interface ImmigrationExtractedData {
   carteBDateDebutSejour?: string | null;
   carteBSejourIninterrompu?: boolean | null;
   carteBMotifStable?: boolean | null;
+
+  /**
+   * SF-221-03 — F-IM-55 statut de RÉSIDENT LONGUE DURÉE UE (BE, art. 15bis Loi
+   * 15/12/1980, directive 2003/109/CE, 5 ans de séjour légal) — BELGIQUE uniquement.
+   * 1 flag pivot CONTEXTUAL (`residenceLongueDureeUeDetecte`) + 4 champs de pré-fill.
+   * `residenceLongueDureeUeDetecte` : contexte de statut résident longue durée UE détecté (pilote la visibilité).
+   * `rlueDateDebutSejour` : date de début du séjour légal ininterrompu (ISO yyyy-MM-dd, non future).
+   * `rlueRessourcesSuffisantes` : ressources stables, régulières et suffisantes.
+   * `rlueAssuranceMaladie` : assurance maladie couvrant l'ensemble des risques.
+   * `rlueIntegrationRemplie` : condition d'intégration remplie.
+   */
+  residenceLongueDureeUeDetecte?: boolean | null;
+  rlueDateDebutSejour?: string | null;
+  rlueRessourcesSuffisantes?: boolean | null;
+  rlueAssuranceMaladie?: boolean | null;
+  rlueIntegrationRemplie?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

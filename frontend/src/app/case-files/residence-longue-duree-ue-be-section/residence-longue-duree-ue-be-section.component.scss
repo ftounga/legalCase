@@ -1,0 +1,138 @@
+/* SF-221-03 — Outil décisionnel « Résident longue durée UE (BE) »
+   (F-IM-55-residence-longue-duree-ue-be). Pattern miroir : carte-b-sejour-illimite-be-section.
+   THEME Immigration : accent or + navy, palette verdicts F-IA-04. */
+@import '../../simulators/standalone-banner';
+
+.rlue-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.rlue-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  cursor: pointer; user-select: none;
+  &:focus-visible { outline: 2px solid var(--ds-accent-gold, #c9a54b); outline-offset: -2px; }
+}
+
+.rlue-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.rlue-title {
+  flex: 1; font-weight: 700; font-size: 14px; letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.rlue-chip {
+  padding: 4px 8px; border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10); color: var(--ds-text-primary, #1a2330);
+  font-weight: 600; font-size: 12px;
+  &--success { background: rgba(32, 128, 64, 0.14); color: #156135; }
+  &--warning { background: rgba(201, 165, 75, 0.22); color: var(--ds-accent-gold-dark, #8a6a16); }
+  &--danger  { background: rgba(192, 36, 36, 0.14); color: #9a1c1c; }
+  &--info    { background: rgba(26, 55, 95, 0.12); color: var(--ds-navy, #1a375f); }
+}
+
+.rlue-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.rlue-body { padding: 16px 20px; border-top: 1px solid var(--ds-border, #e6e1d4); }
+.rlue-loading { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary, #6a7485); }
+
+.rlue-form {
+  display: flex; flex-direction: column; gap: 14px;
+  mat-form-field { width: 100%; }
+}
+.rlue-field-wrap { display: flex; flex-direction: column; gap: 4px; }
+.rlue-field-wrap--full { grid-column: 1 / -1; }
+
+.rlue-hint {
+  font-size: 12px; color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.4;
+}
+
+.rlue-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ds-accent-gold-dark, #8a6a16);
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+.rlue-coherence-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600;
+  padding: 2px 8px; border-radius: 12px; cursor: pointer;
+  background: rgba(201, 165, 75, 0.18); color: var(--ds-accent-gold-dark, #8a6a16);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+.coherence-warning { background: rgba(201, 165, 75, 0.18); color: var(--ds-accent-gold-dark, #8a6a16); }
+
+.rlue-result { display: flex; flex-direction: column; gap: 12px; }
+
+.rlue-banner {
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+  border-radius: 8px; border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+  mat-icon { color: var(--ds-navy, #1a375f); flex-shrink: 0; }
+  &--info { border-left-color: var(--ds-navy, #1a375f); background: rgba(26, 55, 95, 0.06); mat-icon { color: var(--ds-navy, #1a375f); } }
+  &--success { border-left-color: #208040; background: rgba(32, 128, 64, 0.10); mat-icon { color: #156135; } .rlue-banner-title { color: #156135; } }
+  &--warning { border-left-color: var(--ds-accent-gold, #c9a54b); background: rgba(201, 165, 75, 0.14); mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); } .rlue-banner-title { color: var(--ds-accent-gold-dark, #8a6a16); } }
+  &--danger { border-left-color: #c02424; background: rgba(192, 36, 36, 0.10); mat-icon { color: #9a1c1c; } .rlue-banner-title { color: #9a1c1c; } }
+}
+
+.rlue-banner-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.rlue-banner-title { font-weight: 700; font-size: 14px; color: var(--ds-text-primary, #1a2330); }
+.rlue-banner-sub { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.4; }
+
+.rlue-date-mono,
+.rlue-bd-value--mono {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-weight: 600; letter-spacing: 0.02em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.rlue-jours-block {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 8px 0;
+}
+.rlue-jours-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.rlue-jours {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 22px; font-weight: 700; color: var(--ds-text-primary, #1a2330);
+}
+
+.rlue-conditions {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #8a6a16; font-weight: 600;
+    mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+}
+
+.rlue-messages {
+  list-style: disc; margin: 0; padding-left: 20px;
+  display: flex; flex-direction: column; gap: 4px;
+  li { font-size: 13px; color: var(--ds-text-secondary, #6a7485); line-height: 1.4; }
+}
+
+.rlue-breakdown {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  li {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 0; border-bottom: 1px solid var(--ds-border, #e6e1d4);
+    &:last-child { border-bottom: none; }
+  }
+}
+.rlue-bd-label { font-size: 13px; color: var(--ds-text-secondary, #6a7485); }
+.rlue-bd-value { font-size: 13px; font-weight: 600; color: var(--ds-text-primary, #1a2330); text-align: right; }
+
+.rlue-meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-top: 4px;
+}
+.rlue-meta-base { font-size: 12px; color: var(--ds-text-secondary, #6a7485); line-height: 1.4; }

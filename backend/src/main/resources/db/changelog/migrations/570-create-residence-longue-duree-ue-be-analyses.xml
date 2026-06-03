@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="b1d4e6a2-2f8c-4d31-9a7e-3c0f5e9d1a44-create-residence-longue-duree-ue-be" author="legalcase">
+        <comment>
+            SF-221-03 : table dediee a l'outil decisionnel "Resident longue duree UE BE"
+            (F-IM-55-residence-longue-duree-ue-be, BELGIQUE — fondement : Loi du 15/12/1980
+            art. 15bis transposant la directive 2003/109/CE).
+
+            Statut de RESIDENT LONGUE DUREE UE : 5 ans (= 60 mois indicatif) de sejour legal
+            ININTERROMPU + ressources stables, regulieres et suffisantes + assurance maladie
+            + condition d'integration, sans absences hors UE excessives.
+            (a verifier par avocat BE 2026 — seuil 5 ans = 60 mois, variantes/exceptions).
+
+            L'outil calcule :
+            - dureeSejourMois = mois ecoules depuis dateDebutSejourLegal ;
+            - moisRestants = max(0, 60 - dureeSejourMois) ;
+            - le verdict 5 etats : ELIGIBLE / DUREE_INSUFFISANTE /
+              CONDITIONS_MATERIELLES_NON_REUNIES / CONTINUITE_ROMPUE / A_EXAMINER ;
+            - la liste conditionsManquantes (ressources / assurance / integration) ;
+            - la liste des bases juridiques annotees "(a verifier par avocat)" + messages.
+
+            Outil single-country BELGIQUE — DISTINCT de F-IM-54 (carte B, sejour ILLIMITE
+            NATIONAL sans mobilite UE). Le statut resident longue duree UE ajoute des
+            CONDITIONS PROPRES (ressources / assurance / integration) et confere la
+            MOBILITE intra-UE (directive 2003/109/CE). Entrees et verdicts differents :
+            aucun chevauchement de formulaire.
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42 / SF-213-01).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (571-seed-residence-longue-duree-ue-be-visibility.xml) est livree dans la MEME PR
+            que cette table.
+        </comment>
+
+        <createTable tableName="residence_longue_duree_ue_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_residence_longue_duree_ue_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_debut_sejour_legal" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sejour_legal_ininterrompu" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ressources_stables_suffisantes" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assurance_maladie" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condition_integration_remplie" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="absences_hors_ue_excessives" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="residence_longue_duree_ue_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_residence_longue_duree_ue_be_case_file"/>
+
+        <createIndex tableName="residence_longue_duree_ue_be_analyses"
+                     indexName="idx_residence_longue_duree_ue_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="residence_longue_duree_ue_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
