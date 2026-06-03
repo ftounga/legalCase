@@ -15,18 +15,28 @@ describe('LandingToolsShowcaseComponent', () => {
     fixture.detectChanges();
   });
 
-  it('expose le catalogue de 92 outils décisionnels', () => {
-    expect(LANDING_TOOLS_CATALOG.length).toBe(92);
+  // SF-158-04 : catalogue régénéré depuis TOOL_REGISTRY (254 entrées au 2026-06-03).
+  // Garde-fou anti-dérive : le registre réel doit rester au-dessus de 250.
+  it('expose le catalogue régénéré (>= 250 outils, ids uniques)', () => {
+    expect(LANDING_TOOLS_CATALOG.length).toBeGreaterThanOrEqual(250);
+    const ids = LANDING_TOOLS_CATALOG.map(t => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('aucun outil n\'a de label vide', () => {
+    LANDING_TOOLS_CATALOG.forEach(t => {
+      expect(t.label.trim().length).toBeGreaterThan(0);
+    });
   });
 
   it('affiche tous les outils par défaut', () => {
     const cards = fixture.nativeElement.querySelectorAll('.tool-card:not(.tool-card--empty)');
-    expect(cards.length).toBe(92);
+    expect(cards.length).toBe(LANDING_TOOLS_CATALOG.length);
   });
 
   it('le titre mentionne le nombre total d\'outils', () => {
     const title = fixture.nativeElement.querySelector('.tools-showcase__title');
-    expect(title?.textContent).toContain('92 outils décisionnels');
+    expect(title?.textContent).toContain(`${LANDING_TOOLS_CATALOG.length} outils décisionnels`);
   });
 
   it('filtre par domaine TRAVAIL réduit la liste', () => {

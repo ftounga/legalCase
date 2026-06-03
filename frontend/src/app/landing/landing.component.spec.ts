@@ -53,9 +53,32 @@ describe('LandingComponent', () => {
     expect(link?.href).toContain('legalcase.fr');
   });
 
-  it('affiche le titre principal — repositionnement plateforme outils décisionnels', () => {
+  // SF-158-04 : hero « chaîne de valeur » — H1 nomme l'état terminal (conclusions),
+  // ne contient plus le chiffre d'outils « 92 » (devenu faux, 254 au registre).
+  it('le H1 nomme la chaîne de valeur jusqu\'aux conclusions', () => {
     const h1 = fixture.nativeElement.querySelector('h1');
-    expect(h1?.textContent).toContain('92 outils décisionnels');
+    expect(h1?.textContent).toContain('conclusions');
+  });
+
+  it('le H1 ne contient plus le chiffre d\'outils « 92 »', () => {
+    const h1 = fixture.nativeElement.querySelector('h1');
+    expect(h1?.textContent).not.toContain('92');
+  });
+
+  it('le bouton outline annonce « 250+ outils »', () => {
+    const btn = fixture.nativeElement.querySelector('.hero-actions .btn-outline');
+    expect(btn?.textContent).toContain('250+');
+    expect(btn?.textContent).not.toContain('92');
+  });
+
+  it('le titre de la section Outils ne contient plus « 92 »', () => {
+    const sectionTitles: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.section-title')
+    );
+    const toolsTitle = sectionTitles.find(t => t.textContent?.includes('outils décisionnels'));
+    expect(toolsTitle).toBeTruthy();
+    expect(toolsTitle?.textContent).not.toContain('92');
+    expect(toolsTitle?.textContent).toContain('250+');
   });
 
   it('repricing V7 — Solo 99 €, Team 219 €, Pro 429 €', () => {
