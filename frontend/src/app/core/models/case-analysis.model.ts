@@ -2216,6 +2216,20 @@ export interface ImmigrationExtractedData {
   mayotteTitreDelivreAMayotte?: boolean | null;
   mayotteTypeTitre?: 'VPF' | 'SALARIE' | 'ETUDIANT' | 'RESIDENT' | 'AUTRE' | null;
   mayotteProjetDeplacementMetropole?: boolean | null;
+  /**
+   * SF-220-03 — F-IM-49 VPF jeune majeur L.423-22 (FR uniquement, null/false pour BE).
+   * 1 flag pivot CONTEXTUAL (`jeuneMajeurExMnaDetecte`) + 4 champs de pré-fill.
+   * `jeuneMajeurExMnaDetecte` : jeune majeur ex-MNA scolarisé détecté (pilote la visibilité).
+   * `jeuneMajeurAge` : âge du jeune (≥ 0).
+   * `jeuneMajeurEntreMineur` : entré en France mineur.
+   * `jeuneMajeurPriseEnChargeAse` : pris en charge par l'aide sociale à l'enfance (ASE).
+   * `jeuneMajeurScolarise` : scolarisé ou en formation.
+   */
+  jeuneMajeurExMnaDetecte?: boolean | null;
+  jeuneMajeurAge?: number | null;
+  jeuneMajeurEntreMineur?: boolean | null;
+  jeuneMajeurPriseEnChargeAse?: boolean | null;
+  jeuneMajeurScolarise?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="558-create-vpf-jeune-majeur-analyses" author="legalcase">
+        <comment>
+            SF-220-03 — table `vpf_jeune_majeur_analyses` pour l'outil décisionnel
+            "VPF jeune majeur L.423-22" (F-IM-49-vpf-jeune-majeur-l42322-fr, FRANCE).
+
+            Outil single-country FR : évalue l'éligibilité d'un jeune majeur
+            (16-21 ans, entré mineur, scolarisé / pris en charge ASE) à la carte
+            "vie privée et familiale" de l'art. L.423-22 CESEDA (transition à la
+            majorité / sortie ASE). L'ancienneté de prise en charge requise varie
+            selon l'âge d'entrée (avant 16 ans : de plein droit L.423-22 ;
+            16-18 ans : admission exceptionnelle L.435-3). Distinct de F-IM-27
+            (VPF liens personnels L.423-23), F-IM-19 (mineurs) et F-IM-38
+            (évaluation de l'âge). Persiste l'analyse 1:1 par dossier.
+
+            Verdict eligibilite : ELIGIBLE_L42322 / ELIGIBLE_SOUS_RESERVE /
+            NON_ELIGIBLE / ORIENTER_AES.
+
+            Source juridique (à vérifier par avocat) : CESEDA L.423-22 ;
+            CESEDA L.435-3.
+
+            UUID namespace F-220 : f2200005-0000-0000-0000-220000000001.
+        </comment>
+
+        <createTable tableName="vpf_jeune_majeur_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_vpf_jeune_majeur_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="age" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entre_mineur" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_entree_france" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="age_entree_ase" type="INT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="prise_en_charge_ase" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_debut_prise_en_charge" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="anciennete_mois_prise_en_charge" type="INT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="scolarise_ou_formation" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="caractere_reel_serieux_formation" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="vpf_jeune_majeur_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

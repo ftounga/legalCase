@@ -1,0 +1,246 @@
+<section class="vjm-section">
+  <header class="vjm-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="vjm-body">
+    <mat-icon class="vjm-icon">school</mat-icon>
+    <span class="vjm-title">VPF JEUNE MAJEUR L.423-22 (FR)</span>
+    @if (result()) {
+      <span class="vjm-chip"
+            [class.vjm-chip--success]="result()!.eligibilite === 'ELIGIBLE_L42322'"
+            [class.vjm-chip--warning]="result()!.eligibilite === 'ELIGIBLE_SOUS_RESERVE' || result()!.eligibilite === 'ORIENTER_AES'"
+            [class.vjm-chip--neutral]="result()!.eligibilite === 'NON_ELIGIBLE'">
+        {{ eligibiliteLabel(result()!.eligibilite) }}
+      </span>
+    }
+    <mat-icon class="vjm-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="vjm-body" class="vjm-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="vjm-banner vjm-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="vjm-banner-content">
+            <div class="vjm-banner-title">VPF jeune majeur — procédure française uniquement</div>
+            <div class="vjm-banner-sub">
+              La voie L.423-22 CESEDA (jeune majeur entré mineur) ne concerne que le séjour en France.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="vjm-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <p class="vjm-intro">
+              Éligibilité d'un jeune majeur (16-21 ans) entré mineur et pris en charge par
+              l'ASE à la carte « vie privée et familiale » de l'art. L.423-22 CESEDA.
+              L'ancienneté de prise en charge requise <strong>varie selon l'âge d'entrée</strong>.
+              Les particularités sont à vérifier par l'avocat.
+            </p>
+            <form class="vjm-form" (ngSubmit)="analyze()">
+              <div class="vjm-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âge du jeune</mat-label>
+                  <input matInput type="number" min="1" max="30" required
+                         [ngModel]="age()"
+                         (ngModelChange)="onAgeChange($event)"
+                         name="age" />
+                </mat-form-field>
+                @if (provenanceAge() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="vjm-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âge d'entrée à l'ASE</mat-label>
+                  <input matInput type="number" min="0" max="30"
+                         [ngModel]="ageEntreeAse()"
+                         (ngModelChange)="ageEntreeAse.set($event)"
+                         name="ageEntreeAse" />
+                  <mat-hint>Optionnel — pilote l'ancienneté requise</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="vjm-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée en France</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateEntreeFrance()"
+                         (ngModelChange)="dateEntreeFrance.set($event)"
+                         name="dateEntreeFrance" />
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="vjm-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté prise en charge (mois)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="ancienneteMoisPriseEnCharge()"
+                         (ngModelChange)="ancienneteMoisPriseEnCharge.set($event)"
+                         name="ancienneteMoisPriseEnCharge" />
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="vjm-field-wrap vjm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="entreMineur()"
+                              (ngModelChange)="onEntreMineurChange($event)"
+                              name="entreMineur">
+                  Entré en France mineur
+                </mat-checkbox>
+                @if (provenanceEntreMineur() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="vjm-field-wrap vjm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="priseEnChargeAse()"
+                              (ngModelChange)="onPriseEnChargeChange($event)"
+                              name="priseEnChargeAse">
+                  Pris en charge par l'ASE
+                </mat-checkbox>
+                @if (provenancePriseEnCharge() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="vjm-field-wrap vjm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="scolariseOuFormation()"
+                              (ngModelChange)="onScolariseChange($event)"
+                              name="scolariseOuFormation">
+                  Scolarisé ou en formation
+                </mat-checkbox>
+                @if (provenanceScolarise() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="vjm-field-wrap vjm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="caractereReelEtSerieuxFormation()"
+                              (ngModelChange)="caractereReelEtSerieuxFormation.set($event)"
+                              name="caractereReelEtSerieuxFormation">
+                  Formation réelle et sérieuse
+                </mat-checkbox>
+              </div>
+
+              <div class="vjm-field-wrap vjm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="avisStructureFavorable()"
+                              (ngModelChange)="avisStructureFavorable.set($event)"
+                              name="avisStructureFavorable">
+                  Avis favorable de la structure d'accueil
+                </mat-checkbox>
+              </div>
+
+              <div class="vjm-field-wrap vjm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="absenceLienFamillePays()"
+                              (ngModelChange)="absenceLienFamillePays.set($event)"
+                              name="absenceLienFamillePays">
+                  Absence de lien avec la famille au pays
+                </mat-checkbox>
+              </div>
+
+              <div class="vjm-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="vjm-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="vjm-banner-content">
+                  <div class="vjm-banner-title">{{ eligibiliteLabel(result()!.eligibilite) }}</div>
+                  <div class="vjm-banner-sub">
+                    Ancienneté de prise en charge requise : {{ result()!.ancienneteRequiseMois }} mois.
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresManquants?.length) {
+                <div class="vjm-block">
+                  <div class="vjm-block-label">Critères manquants / à confirmer</div>
+                  <ul class="vjm-list">
+                    @for (c of result()!.criteresManquants; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <div class="vjm-block">
+                  <div class="vjm-block-label">Points d'attention</div>
+                  <ul class="vjm-list vjm-list--muted">
+                    @for (m of result()!.messages; track m) {
+                      <li>{{ m }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="vjm-breakdown">
+                <li>
+                  <span class="vjm-bd-label">Âge</span>
+                  <span class="vjm-bd-value">{{ result()!.age }} ans</span>
+                </li>
+                <li>
+                  <span class="vjm-bd-label">Entré mineur</span>
+                  <span class="vjm-bd-value">{{ result()!.entreMineur ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="vjm-bd-label">Prise en charge ASE</span>
+                  <span class="vjm-bd-value">{{ result()!.priseEnChargeAse ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="vjm-bd-label">Scolarisé / formation</span>
+                  <span class="vjm-bd-value">{{ result()!.scolariseOuFormation ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.dateEntreeFrance) {
+                  <li>
+                    <span class="vjm-bd-label">Date d'entrée en France</span>
+                    <span class="vjm-bd-value">{{ result()!.dateEntreeFrance }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.basesJuridiques?.length) {
+                <div class="vjm-meta">
+                  <span class="vjm-meta-base" [innerHTML]="result()!.basesJuridiques.join(' ; ') | legalCitations"></span>
+                  <button mat-stroked-button type="button" (click)="editMode()">
+                    <mat-icon>edit</mat-icon> Modifier
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

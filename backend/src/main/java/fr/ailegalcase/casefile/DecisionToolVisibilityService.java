@@ -379,6 +379,10 @@ public class DecisionToolVisibilityService {
         // Pas de trigger « territoire » natif (extractDetectedSituations) : on utilise un flag
         // pivot booléen `mayotte_detecte` extrait dans immigration_extracted_data.
         addBooleanFlagIfTrue(detected, immigrationNode, "mayotte_detecte");
+        // SF-220-03 : F-IM-49 VPF jeune majeur L.423-22 FR — flag pivot CONTEXTUAL Immigration FR.
+        // Détecte un jeune majeur ex-MNA scolarisé (transition à la majorité / sortie ASE) :
+        // flag pivot booléen `jeune_majeur_ex_mna_detecte` extrait dans immigration_extracted_data.
+        addBooleanFlagIfTrue(detected, immigrationNode, "jeune_majeur_ex_mna_detecte");
         // SF-214-11 : F-IM-30 AES calcul présence prouvée FR — flag pivot DÉRIVÉ.
         // L'outil de calcul de présence est transversal aux 4 voies AES : il se déclenche
         // dès qu'au moins une des 4 voies AES est détectée. Le flag pivot

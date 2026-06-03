@@ -63,6 +63,7 @@ import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etran
 import { RegroupementFamilialSectionComponent } from '../regroupement-familial-section/regroupement-familial-section.component';
 import { RegimeTunisienSectionComponent } from '../regime-tunisien-section/regime-tunisien-section.component';
 import { RegimeMayotteSectionComponent } from '../regime-mayotte-section/regime-mayotte-section.component';
+import { VpfJeuneMajeurSectionComponent } from '../vpf-jeune-majeur-section/vpf-jeune-majeur-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
@@ -1672,6 +1673,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-48-regime-mayotte-fr', {
         displayLabel: 'Portée territoriale Mayotte (FR)',
         component: RegimeMayotteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-220-03 : composant complet F-IM-49 VPF jeune majeur L.423-22 CESEDA
+      // (FR). FR uniquement, CONTEXTUAL sur le flag pivot jeune_majeur_ex_mna_detecte.
+      // Outil d'analyse d'éligibilité (transition à la majorité / sortie ASE,
+      // ex-MNA scolarisé). Distinct de F-IM-27 (VPF liens personnels L.423-23),
+      // F-IM-19 (mineurs) et F-IM-38 (évaluation de l'âge). Pré-fill IA 4 champs
+      // (âge, entrée mineur, prise en charge ASE, scolarisé) via static
+      // getPrefillCount + VpfJeuneMajeurPrefillRules.
+      ['F-IM-49-vpf-jeune-majeur-l42322-fr', {
+        displayLabel: 'VPF jeune majeur L.423-22 (FR)',
+        component: VpfJeuneMajeurSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5764,6 +5782,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // mahoraise). Thème VALIDITE, cohérent avec F-IM-47 régime tunisien / autres
     // aiguillages Immigration FR.
     ['F-IM-48-regime-mayotte-fr', 'VALIDITE'],
+    // SF-220-03 : F-IM-49 VPF jeune majeur L.423-22 CESEDA (FR) — analyseur
+    // d'éligibilité (4 verdicts). Thème VALIDITE, aligné sur F-IM-27 VPF liens
+    // personnels / autres analyseurs d'éligibilité Immigration FR.
+    ['F-IM-49-vpf-jeune-majeur-l42322-fr', 'VALIDITE'],
     // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.
