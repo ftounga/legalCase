@@ -1171,7 +1171,14 @@ class DashboardTileToolIdIntegrityIT {
             // Frontend SF-218-32 à venir. Préventif KNOWN_NO_DASHBOARD_TILE_IDS
             // dès le backend (pattern uniforme F-213 / F-219 / F-218 vagues,
             // cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-DT-67-accord-entreprise-validite"
+            "F-DT-67-accord-entreprise-validite",
+            // SF-220-01 : outil F-IM-47 régime franco-tunisien (accord du
+            // 17/03/1988, FR-only, CONTEXTUAL sur nationalite='Tunisienne') —
+            // outil d'aiguillage (droit commun CESEDA SAUF particularités
+            // accord 1988), pas de tuile dashboard. Préventif
+            // KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-IM-47-regime-tunisien-fr"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
