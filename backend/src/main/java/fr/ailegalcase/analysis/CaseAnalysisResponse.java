@@ -3503,7 +3503,20 @@ public record CaseAnalysisResponse(
              *  (VPF / SALARIE / ETUDIANT / RESIDENT / AUTRE). Null si non extractible ou dossier BE. */
             String mayotteTypeTitre,
             /** SF-220-02 : true si un déplacement vers la métropole est projeté. Null si non extractible ou dossier BE. */
-            Boolean mayotteProjetDeplacementMetropole) {
+            Boolean mayotteProjetDeplacementMetropole,
+            // === SF-220-03 — F-IM-49 VPF jeune majeur L.423-22 (FRANCE UNIQUEMENT, null pour BE) ===
+            // Flag pivot CONTEXTUAL `jeuneMajeurExMnaDetecte` (transition à la majorité / sortie ASE)
+            // + 4 champs de pré-fill. Tous null/false pour dossier BE.
+            /** SF-220-03 : true si un jeune majeur ex-MNA scolarisé est détecté — pilote la visibilité CONTEXTUAL. */
+            boolean jeuneMajeurExMnaDetecte,
+            /** SF-220-03 : âge du jeune majeur (≥ 0). Null si non extractible ou dossier BE. */
+            Integer jeuneMajeurAge,
+            /** SF-220-03 : true si entré en France mineur. Null si non extractible ou dossier BE. */
+            Boolean jeuneMajeurEntreMineur,
+            /** SF-220-03 : true si pris en charge par l'aide sociale à l'enfance (ASE). Null si non extractible ou dossier BE. */
+            Boolean jeuneMajeurPriseEnChargeAse,
+            /** SF-220-03 : true si scolarisé ou en formation. Null si non extractible ou dossier BE. */
+            Boolean jeuneMajeurScolarise) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3646,7 +3659,12 @@ public record CaseAnalysisResponse(
                     .mayotteDetecte(mayotteDetecte)
                     .mayotteTitreDelivreAMayotte(mayotteTitreDelivreAMayotte)
                     .mayotteTypeTitre(mayotteTypeTitre)
-                    .mayotteProjetDeplacementMetropole(mayotteProjetDeplacementMetropole);
+                    .mayotteProjetDeplacementMetropole(mayotteProjetDeplacementMetropole)
+                    .jeuneMajeurExMnaDetecte(jeuneMajeurExMnaDetecte)
+                    .jeuneMajeurAge(jeuneMajeurAge)
+                    .jeuneMajeurEntreMineur(jeuneMajeurEntreMineur)
+                    .jeuneMajeurPriseEnChargeAse(jeuneMajeurPriseEnChargeAse)
+                    .jeuneMajeurScolarise(jeuneMajeurScolarise);
         }
 
         public static final class Builder {
@@ -3809,6 +3827,11 @@ public record CaseAnalysisResponse(
             private Boolean mayotteTitreDelivreAMayotte;
             private String mayotteTypeTitre;
             private Boolean mayotteProjetDeplacementMetropole;
+            private boolean jeuneMajeurExMnaDetecte;
+            private Integer jeuneMajeurAge;
+            private Boolean jeuneMajeurEntreMineur;
+            private Boolean jeuneMajeurPriseEnChargeAse;
+            private Boolean jeuneMajeurScolarise;
 
             private Builder() {}
 
@@ -3958,6 +3981,11 @@ public record CaseAnalysisResponse(
             public Builder mayotteTitreDelivreAMayotte(Boolean v) { this.mayotteTitreDelivreAMayotte = v; return this; }
             public Builder mayotteTypeTitre(String v) { this.mayotteTypeTitre = v; return this; }
             public Builder mayotteProjetDeplacementMetropole(Boolean v) { this.mayotteProjetDeplacementMetropole = v; return this; }
+            public Builder jeuneMajeurExMnaDetecte(boolean v) { this.jeuneMajeurExMnaDetecte = v; return this; }
+            public Builder jeuneMajeurAge(Integer v) { this.jeuneMajeurAge = v; return this; }
+            public Builder jeuneMajeurEntreMineur(Boolean v) { this.jeuneMajeurEntreMineur = v; return this; }
+            public Builder jeuneMajeurPriseEnChargeAse(Boolean v) { this.jeuneMajeurPriseEnChargeAse = v; return this; }
+            public Builder jeuneMajeurScolarise(Boolean v) { this.jeuneMajeurScolarise = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4072,7 +4100,12 @@ public record CaseAnalysisResponse(
                         mayotteDetecte,
                         mayotteTitreDelivreAMayotte,
                         mayotteTypeTitre,
-                        mayotteProjetDeplacementMetropole);
+                        mayotteProjetDeplacementMetropole,
+                        jeuneMajeurExMnaDetecte,
+                        jeuneMajeurAge,
+                        jeuneMajeurEntreMineur,
+                        jeuneMajeurPriseEnChargeAse,
+                        jeuneMajeurScolarise);
             }
         }
     }
@@ -7518,6 +7551,14 @@ public record CaseAnalysisResponse(
                 textOrNull(root, "mayotte_type_titre"), REGIME_MAYOTTE_TYPE_TITRE_CODES);
         Boolean mayotteProjetDeplacementMetropole =
                 booleanOrNull(root, "mayotte_projet_deplacement_metropole");
+        // SF-220-03 : F-IM-49 VPF jeune majeur L.423-22 (transition à la majorité / sortie ASE) FR —
+        // flag pivot CONTEXTUAL `jeune_majeur_ex_mna_detecte` + 4 champs de pré-fill. Tous null/false pour BE.
+        boolean jeuneMajeurExMnaDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "jeune_majeur_ex_mna_detecte"));
+        Integer jeuneMajeurAge = nonNegativeIntOrNull(root, "jeune_majeur_age");
+        Boolean jeuneMajeurEntreMineur = booleanOrNull(root, "jeune_majeur_entre_mineur");
+        Boolean jeuneMajeurPriseEnChargeAse = booleanOrNull(root, "jeune_majeur_prise_en_charge_ase");
+        Boolean jeuneMajeurScolarise = booleanOrNull(root, "jeune_majeur_scolarise");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7647,7 +7688,13 @@ public record CaseAnalysisResponse(
                 && !mayotteDetecte
                 && mayotteTitreDelivreAMayotte == null
                 && mayotteTypeTitre == null
-                && mayotteProjetDeplacementMetropole == null) return null;
+                && mayotteProjetDeplacementMetropole == null
+                // SF-220-03 : F-IM-49 VPF jeune majeur L.423-22 FR (1 flag pivot + 4 champs IA)
+                && !jeuneMajeurExMnaDetecte
+                && jeuneMajeurAge == null
+                && jeuneMajeurEntreMineur == null
+                && jeuneMajeurPriseEnChargeAse == null
+                && jeuneMajeurScolarise == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -7805,6 +7852,12 @@ public record CaseAnalysisResponse(
                 .mayotteTitreDelivreAMayotte(mayotteTitreDelivreAMayotte)
                 .mayotteTypeTitre(mayotteTypeTitre)
                 .mayotteProjetDeplacementMetropole(mayotteProjetDeplacementMetropole)
+                // SF-220-03 : F-IM-49 VPF jeune majeur L.423-22 FR
+                .jeuneMajeurExMnaDetecte(jeuneMajeurExMnaDetecte)
+                .jeuneMajeurAge(jeuneMajeurAge)
+                .jeuneMajeurEntreMineur(jeuneMajeurEntreMineur)
+                .jeuneMajeurPriseEnChargeAse(jeuneMajeurPriseEnChargeAse)
+                .jeuneMajeurScolarise(jeuneMajeurScolarise)
                 .build();
     }
 

@@ -1184,7 +1184,13 @@ class DashboardTileToolIdIntegrityIT {
             // pivot mayotte_detecte) — outil d'analyse de portée territoriale, pas
             // de tuile dashboard. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern
             // uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-IM-48-regime-mayotte-fr"
+            "F-IM-48-regime-mayotte-fr",
+            // SF-220-03 : outil F-IM-49 VPF jeune majeur L.423-22 (CESEDA, FR-only,
+            // CONTEXTUAL sur flag pivot jeune_majeur_ex_mna_detecte) — outil
+            // d'analyse d'éligibilité (transition à la majorité / sortie ASE), pas
+            // de tuile dashboard. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern
+            // uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
+            "F-IM-49-vpf-jeune-majeur-l42322-fr"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */
