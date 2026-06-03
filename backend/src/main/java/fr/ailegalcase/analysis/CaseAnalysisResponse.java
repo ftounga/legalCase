@@ -4580,7 +4580,18 @@ public record CaseAnalysisResponse(
             Boolean hfConsensus,                        // FR — true si consensus familial (absence d'opposition d'un proche)
             Boolean hfActesPatrimoniaux,                // FR — true si besoin d'actes patrimoniaux
             Boolean hfActesPersonnels,                  // FR — true si besoin d'actes relatifs à la personne
-            String hfEtendue) {                         // FR — PONCTUELLE | GENERALE | null
+            String hfEtendue,                           // FR — PONCTUELLE | GENERALE | null
+            // SF-222-04 : 6 champs IA assistance éducative — mineur en danger FR (F-FA-ASSISTANCE-EDUCATIVE, art. 375 et s. Cciv).
+            // Source : `famille_extracted_data.assistance_educative_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // `assistanceEducativeDetectee` (flag CONTEXTUAL F-IA-04) active la visibilité de l'outil.
+            // Invariant « 1 situation = 1 outil » : un seul outil oriente vers AED / AEMO / OPP-placement / pas de mesure.
+            Boolean assistanceEducativeDetectee,        // FR — CONTEXTUAL : mention assistance éducative / mineur en danger / art. 375 Cciv / signalement / AEMO / placement
+            Boolean aeDangerCaracterise,                // FR — true si danger caractérisé (santé / sécurité / moralité / conditions d'éducation gravement compromises, art. 375)
+            Boolean aeUrgence,                          // FR — true si danger immédiat justifiant une mesure provisoire (art. 375-5)
+            Boolean aeAdhesionFamille,                  // FR — true si adhésion des titulaires de l'autorité parentale à une mesure
+            Boolean aeMaintienMilieu,                   // FR — true si maintien du mineur dans son milieu familial possible (art. 375-2)
+            Boolean aeMesureAmiable) {                  // FR — true si mesure amiable ASE (AED) envisageable (art. L. 222-3 CASF)
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -5056,6 +5067,12 @@ public record CaseAnalysisResponse(
             private Boolean hfActesPatrimoniaux;
             private Boolean hfActesPersonnels;
             private String hfEtendue;
+            private Boolean assistanceEducativeDetectee;
+            private Boolean aeDangerCaracterise;
+            private Boolean aeUrgence;
+            private Boolean aeAdhesionFamille;
+            private Boolean aeMaintienMilieu;
+            private Boolean aeMesureAmiable;
             public Builder habilitationFamilialeDetectee(Boolean v) { this.habilitationFamilialeDetectee = v; return this; }
             public Builder hfAlteration(Boolean v) { this.hfAlteration = v; return this; }
             public Builder hfLienFamilial(String v) { this.hfLienFamilial = v; return this; }
@@ -5063,6 +5080,12 @@ public record CaseAnalysisResponse(
             public Builder hfActesPatrimoniaux(Boolean v) { this.hfActesPatrimoniaux = v; return this; }
             public Builder hfActesPersonnels(Boolean v) { this.hfActesPersonnels = v; return this; }
             public Builder hfEtendue(String v) { this.hfEtendue = v; return this; }
+            public Builder assistanceEducativeDetectee(Boolean v) { this.assistanceEducativeDetectee = v; return this; }
+            public Builder aeDangerCaracterise(Boolean v) { this.aeDangerCaracterise = v; return this; }
+            public Builder aeUrgence(Boolean v) { this.aeUrgence = v; return this; }
+            public Builder aeAdhesionFamille(Boolean v) { this.aeAdhesionFamille = v; return this; }
+            public Builder aeMaintienMilieu(Boolean v) { this.aeMaintienMilieu = v; return this; }
+            public Builder aeMesureAmiable(Boolean v) { this.aeMesureAmiable = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -5266,7 +5289,13 @@ public record CaseAnalysisResponse(
                         hfConsensus,
                         hfActesPatrimoniaux,
                         hfActesPersonnels,
-                        hfEtendue);
+                        hfEtendue,
+                        assistanceEducativeDetectee,
+                        aeDangerCaracterise,
+                        aeUrgence,
+                        aeAdhesionFamille,
+                        aeMaintienMilieu,
+                        aeMesureAmiable);
             }
         }
     }
@@ -8468,6 +8497,24 @@ public record CaseAnalysisResponse(
                 || hfActesPatrimoniaux != null
                 || hfActesPersonnels != null
                 || hfEtendue != null;
+        // SF-222-04 : sous-objet `assistance_educative_detection` — 6 champs IA pour
+        // l'outil assistance éducative FR — mineur en danger (art. 375 et s. Cciv).
+        // Invariant « 1 situation = 1 outil » : un seul outil oriente AED / AEMO / OPP-placement / pas de mesure.
+        // FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode ae = node.get("assistance_educative_detection");
+        boolean aeObject = ae != null && ae.isObject();
+        Boolean assistanceEducativeDetectee = aeObject ? booleanOrNull(ae, "detecte") : null;
+        Boolean aeDangerCaracterise = aeObject ? booleanOrNull(ae, "danger_caracterise") : null;
+        Boolean aeUrgence = aeObject ? booleanOrNull(ae, "urgence") : null;
+        Boolean aeAdhesionFamille = aeObject ? booleanOrNull(ae, "adhesion_famille") : null;
+        Boolean aeMaintienMilieu = aeObject ? booleanOrNull(ae, "maintien_milieu_familial_possible") : null;
+        Boolean aeMesureAmiable = aeObject ? booleanOrNull(ae, "mesure_amiable_ase_envisageable") : null;
+        boolean sf222_04Present = assistanceEducativeDetectee != null
+                || aeDangerCaracterise != null
+                || aeUrgence != null
+                || aeAdhesionFamille != null
+                || aeMaintienMilieu != null
+                || aeMesureAmiable != null;
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
@@ -8666,7 +8713,8 @@ public record CaseAnalysisResponse(
                 && !sf216_29Present
                 && !sf222_01Present
                 && !sf222_02Present
-                && !sf222_03Present) {
+                && !sf222_03Present
+                && !sf222_04Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -8917,6 +8965,12 @@ public record CaseAnalysisResponse(
                 .hfActesPatrimoniaux(hfActesPatrimoniaux)
                 .hfActesPersonnels(hfActesPersonnels)
                 .hfEtendue(hfEtendue)
+                .assistanceEducativeDetectee(assistanceEducativeDetectee)
+                .aeDangerCaracterise(aeDangerCaracterise)
+                .aeUrgence(aeUrgence)
+                .aeAdhesionFamille(aeAdhesionFamille)
+                .aeMaintienMilieu(aeMaintienMilieu)
+                .aeMesureAmiable(aeMesureAmiable)
                 .build();
     }
 

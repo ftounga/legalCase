@@ -979,6 +979,22 @@ export interface FamilleExtractedData {
   hfEtendue?: 'PONCTUELLE' | 'GENERALE' | string | null;
 
   /**
+   * SF-222-04 : FRANCE — détection assistance éducative (F-FA-ASSISTANCE-EDUCATIVE,
+   * mineur en danger, art. 375 et s. Cciv). Source backend : `assistance_educative_detection.detecte`. Flag CONTEXTUAL.
+   */
+  assistanceEducativeDetectee?: boolean | null;
+  /** SF-222-04 : FRANCE — danger caractérisé (art. 375). Source : `assistance_educative_detection.danger_caracterise`. */
+  aeDangerCaracterise?: boolean | null;
+  /** SF-222-04 : FRANCE — danger immédiat / urgence (art. 375-5). Source : `assistance_educative_detection.urgence`. */
+  aeUrgence?: boolean | null;
+  /** SF-222-04 : FRANCE — adhésion des titulaires de l'autorité parentale. Source : `assistance_educative_detection.adhesion_famille`. */
+  aeAdhesionFamille?: boolean | null;
+  /** SF-222-04 : FRANCE — maintien dans le milieu familial possible (art. 375-2). Source : `assistance_educative_detection.maintien_milieu_familial_possible`. */
+  aeMaintienMilieu?: boolean | null;
+  /** SF-222-04 : FRANCE — mesure amiable ASE (AED) envisageable (art. L. 222-3 CASF). Source : `assistance_educative_detection.mesure_amiable_ase_envisageable`. */
+  aeMesureAmiable?: boolean | null;
+
+  /**
    * SF-216-09 : FRANCE — flag CONTEXTUAL délégation autorité parentale envisagée
    * (art. 376-1 Cciv). Source backend : `delegation_ap_detection.envisagee`.
    */
