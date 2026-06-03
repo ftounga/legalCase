@@ -183,6 +183,8 @@ import { CarteBSejourIllimiteBeSectionComponent } from '../carte-b-sejour-illimi
 import { ResidenceLongueDureeUeBeSectionComponent } from '../residence-longue-duree-ue-be-section/residence-longue-duree-ue-be-section.component';
 // SF-221-04 : composant complet F-IM-56-detention-centre-ferme-be (Immigration BE, détention en centre fermé + requête de mise en liberté — Loi 15/12/1980 art. 7/27/29/74/5 + 71 et s., AR 02/08/2002, chambre du conseil = juridiction judiciaire distincte du CCE).
 import { DetentionCentreFermeBeSectionComponent } from '../detention-centre-ferme-be-section/detention-centre-ferme-be-section.component';
+// SF-221-05 : composant complet F-IM-57-cce-suspension-be (Immigration BE, recours CCE en SUSPENSION ORDINAIRE — référé administratif art. 39/82 Loi 15/12/1980, loi 15/09/2006, 3e recours CCE distinct de l'annulation 30j F-IM-31 et de l'extrême urgence 5j F-IM-32).
+import { CceSuspensionBeSectionComponent } from '../cce-suspension-be-section/cce-suspension-be-section.component';
 // SF-215-06 : composant complet F-IM-27-regroupement-10bis-be (Immigration BE, regroupement familial art. 10bis — séjour LIMITÉ carte A).
 import { Regroupement10bisBeSectionComponent } from '../regroupement-10bis-be-section/regroupement-10bis-be-section.component';
 // SF-215-08 : composant complet F-IM-28-naturalisation-12bis-be (Immigration BE, naturalisation art. 12bis — voie 5/10 ans).
@@ -2877,6 +2879,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-56-detention-centre-ferme-be', {
         displayLabel: 'Détention centre fermé (BE)',
         component: DetentionCentreFermeBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-221-05 : composant complet F-IM-57-cce-suspension-be — recours CCE en
+      // SUSPENSION ORDINAIRE (référé administratif art. 39/82 Loi 15/12/1980 ; loi
+      // 15/09/2006). UNE SEULE situation : la suspension ordinaire (urgence non extrême
+      // + préjudice grave difficilement réparable), greffée sur la requête en annulation
+      // 30j. BELGIQUE uniquement, CONTEXTUAL via flag `cce_suspension_detecte`. Verdict
+      // 5 états (CONDITIONS_REUNIES vert / URGENCE/PREJUDICE/HORS_DELAI orange /
+      // REORIENTER_EXTREME_URGENCE bleu avec renvoi vers F-IM-32). Pré-fill IA RÉEL
+      // 3 champs (dateNotificationDecision, urgenceInvocable, risquePrejudiceGrave) via
+      // static getPrefillCount + CceSuspensionBePrefillRules. recoursAnnulationIntroduit /
+      // mesureEloignementImminente aspirationnels (jamais comptés). 3e recours CCE DISTINCT
+      // de l'annulation 30j (F-IM-31) et de l'extrême urgence 5j ouvrables (F-IM-32).
+      ['F-IM-57-cce-suspension-be', {
+        displayLabel: 'Recours CCE suspension (BE)',
+        component: CceSuspensionBeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -6204,6 +6227,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // jours restants + verdict 5 états). Aligné sur les autres calculateurs de délais
     // Immigration BE (F-IM-53 carte A prorogation, F-IM-32 extrême urgence).
     ['F-IM-56-detention-centre-ferme-be', 'DELAIS'],
+    // SF-221-05 : F-IM-57-cce-suspension-be recours CCE en suspension ordinaire (BE).
+    // Thème DELAIS — calculateur de délai (joursDepuisNotification + délai d'annulation
+    // 30j sur lequel se greffe la suspension + verdict 5 états dont réorientation extrême
+    // urgence). Aligné sur les autres recours CCE Immigration BE (F-IM-31 annulation 30j,
+    // F-IM-32 extrême urgence 5j).
+    ['F-IM-57-cce-suspension-be', 'DELAIS'],
     // SF-215-06 : F-IM-27-regroupement-10bis-be regroupement familial 10bis (BE).
     // Thème VALIDITE — analyseur d'éligibilité (scoring 0-100 + 3 verdicts +
     // condition supplémentaire `conditionTitreEnCours` sur validité carte A).

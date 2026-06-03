@@ -3655,7 +3655,24 @@ public record CaseAnalysisResponse(
             /** SF-221-04 : base légale du maintien — l'une des valeurs ART_7 / ART_27 / ART_29 / ART_74_5 / AUTRE. Null si non extractible ou dossier FR. */
             String detentionBaseLegale,
             /** SF-221-04 : date de notification de la décision de détention au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
-            String detentionDateNotification) {
+            String detentionDateNotification,
+            // === SF-221-05 — F-IM-57 Recours CCE en suspension ordinaire BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-221-05 : true si les pièces évoquent un recours CCE en SUSPENSION ORDINAIRE
+             * (référé administratif art. 39/82 Loi 15/12/1980 ; loi 15/09/2006) — mentions
+             * « suspension », « référé administratif », « art. 39/82 », « préjudice grave
+             * difficilement réparable », « urgence », « loi du 15/09/2006 ». Pivot pour la
+             * visibility rule CONTEXTUAL de F-IM-57 (trigger {@code cce_suspension_detecte}).
+             * Distinct de l'annulation 30j (F-IM-31) et de l'extrême urgence 5j (F-IM-32).
+             * Dossiers FR : toujours false.
+             */
+            boolean cceSuspensionDetecte,
+            /** SF-221-05 : date de notification de la décision attaquée au format YYYY-MM-DD (non future ; point de départ du délai d'annulation 30j). Null si non extractible ou dossier FR. */
+            String cceSuspensionDateNotification,
+            /** SF-221-05 : true si l'urgence (non extrême) est invocable / documentée. Null si non extractible ou dossier FR. */
+            Boolean cceSuspensionUrgence,
+            /** SF-221-05 : true si un risque de préjudice grave difficilement réparable est documenté. Null si non extractible ou dossier FR. */
+            Boolean cceSuspensionPrejudiceGrave) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3839,7 +3856,11 @@ public record CaseAnalysisResponse(
                     .detentionCentreFermeDetecte(detentionCentreFermeDetecte)
                     .detentionDateDebut(detentionDateDebut)
                     .detentionBaseLegale(detentionBaseLegale)
-                    .detentionDateNotification(detentionDateNotification);
+                    .detentionDateNotification(detentionDateNotification)
+                    .cceSuspensionDetecte(cceSuspensionDetecte)
+                    .cceSuspensionDateNotification(cceSuspensionDateNotification)
+                    .cceSuspensionUrgence(cceSuspensionUrgence)
+                    .cceSuspensionPrejudiceGrave(cceSuspensionPrejudiceGrave);
         }
 
         public static final class Builder {
@@ -4042,6 +4063,10 @@ public record CaseAnalysisResponse(
             private String detentionDateDebut;
             private String detentionBaseLegale;
             private String detentionDateNotification;
+            private boolean cceSuspensionDetecte;
+            private String cceSuspensionDateNotification;
+            private Boolean cceSuspensionUrgence;
+            private Boolean cceSuspensionPrejudiceGrave;
 
             private Builder() {}
 
@@ -4230,6 +4255,10 @@ public record CaseAnalysisResponse(
             public Builder detentionDateDebut(String v) { this.detentionDateDebut = v; return this; }
             public Builder detentionBaseLegale(String v) { this.detentionBaseLegale = v; return this; }
             public Builder detentionDateNotification(String v) { this.detentionDateNotification = v; return this; }
+            public Builder cceSuspensionDetecte(boolean v) { this.cceSuspensionDetecte = v; return this; }
+            public Builder cceSuspensionDateNotification(String v) { this.cceSuspensionDateNotification = v; return this; }
+            public Builder cceSuspensionUrgence(Boolean v) { this.cceSuspensionUrgence = v; return this; }
+            public Builder cceSuspensionPrejudiceGrave(Boolean v) { this.cceSuspensionPrejudiceGrave = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4385,7 +4414,12 @@ public record CaseAnalysisResponse(
                         detentionCentreFermeDetecte,
                         detentionDateDebut,
                         detentionBaseLegale,
-                        detentionDateNotification);
+                        detentionDateNotification,
+                        // SF-221-05 : F-IM-57 recours CCE en suspension ordinaire BE
+                        cceSuspensionDetecte,
+                        cceSuspensionDateNotification,
+                        cceSuspensionUrgence,
+                        cceSuspensionPrejudiceGrave);
             }
         }
     }
@@ -7937,6 +7971,20 @@ public record CaseAnalysisResponse(
                 (detentionDateNotificationRaw != null
                         && detentionDateNotificationRaw.matches(ISO_DATE_SF214))
                         ? detentionDateNotificationRaw : null;
+        // SF-221-05 : F-IM-57 recours CCE en suspension ordinaire BE — flag pivot
+        // `cce_suspension_detecte` + 3 champs de pré-fill (BELGIQUE uniquement). Date de
+        // notification de la décision attaquée ISO (non future, point de départ du délai
+        // d'annulation 30j), urgence invocable, préjudice grave difficilement réparable.
+        // Tous null/false pour dossier FRANCE.
+        boolean cceSuspensionDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "cce_suspension_detecte"));
+        String cceSuspensionDateNotificationRaw = textOrNull(root, "cce_suspension_date_notification");
+        String cceSuspensionDateNotification =
+                (cceSuspensionDateNotificationRaw != null
+                        && cceSuspensionDateNotificationRaw.matches(ISO_DATE_SF214))
+                        ? cceSuspensionDateNotificationRaw : null;
+        Boolean cceSuspensionUrgence = booleanOrNull(root, "cce_suspension_urgence");
+        Boolean cceSuspensionPrejudiceGrave = booleanOrNull(root, "cce_suspension_prejudice_grave");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -8108,7 +8156,12 @@ public record CaseAnalysisResponse(
                 && !detentionCentreFermeDetecte
                 && detentionDateDebut == null
                 && detentionBaseLegale == null
-                && detentionDateNotification == null) return null;
+                && detentionDateNotification == null
+                // SF-221-05 : F-IM-57 recours CCE en suspension ordinaire BE (1 flag pivot + 3 champs IA)
+                && !cceSuspensionDetecte
+                && cceSuspensionDateNotification == null
+                && cceSuspensionUrgence == null
+                && cceSuspensionPrejudiceGrave == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -8309,6 +8362,11 @@ public record CaseAnalysisResponse(
                 .detentionDateDebut(detentionDateDebut)
                 .detentionBaseLegale(detentionBaseLegale)
                 .detentionDateNotification(detentionDateNotification)
+                // SF-221-05 : F-IM-57 recours CCE en suspension ordinaire BE
+                .cceSuspensionDetecte(cceSuspensionDetecte)
+                .cceSuspensionDateNotification(cceSuspensionDateNotification)
+                .cceSuspensionUrgence(cceSuspensionUrgence)
+                .cceSuspensionPrejudiceGrave(cceSuspensionPrejudiceGrave)
                 .build();
     }
 

@@ -113,6 +113,7 @@ export const LANDING_TOOLS_CATALOG: LandingTool[] = [
   { id: 'F-IM-54-carte-b-sejour-illimite-be', label: 'Carte B séjour illimité (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-55-residence-longue-duree-ue-be', label: 'Résident longue durée UE (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-56-detention-centre-ferme-be', label: 'Détention centre fermé (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
+  { id: 'F-IM-57-cce-suspension-be', label: 'Recours CCE suspension (BE)', domain: 'IMMIGRATION', country: 'BE', type: 'OUTIL' },
   { id: 'F-IM-01-checklist-pieces', label: 'Checklist pièces immigration', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-05-arbre-decisionnel-titre', label: 'Arbre décisionnel titre de séjour (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'OUTIL' },
   { id: 'F-IM-06-recours', label: 'Recours immigration (FR)', domain: 'IMMIGRATION', country: 'FR', type: 'GÉNÉRATEUR' },

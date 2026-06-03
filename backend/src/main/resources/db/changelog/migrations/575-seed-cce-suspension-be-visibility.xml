@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="1c6883a9-6f18-4e89-b517-3d04754fc917-seed-cce-suspension-be" author="legalcase">
+        <comment>
+            SF-221-05 : seed visibility pour l'outil decisionnel "Recours CCE en suspension
+            BE" (F-IM-57-cce-suspension-be). Livree DANS LA MEME PR que la table (pattern
+            F-215).
+
+            Visibility CONTEXTUAL : l'outil apparait dans le panel F-IA-04 sur les dossiers
+            BELGIQUE x DROIT_IMMIGRATION des que l'IA detecte un indice de recours CCE en
+            suspension ordinaire via le flag pivot `cce_suspension_detecte` extrait depuis le
+            prompt IMMIGRATION_INSTRUCTION (mots-cles "suspension", "refere administratif",
+            "art. 39/82", "prejudice grave difficilement reparable", "urgence", "loi du
+            15/09/2006").
+
+            Priority 214 — juste apres F-IM-56 detention centre ferme (priority 213) pour
+            coherence d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            3e recours CCE DISTINCT de F-IM-31 (annulation 30j) et F-IM-32 (extreme urgence
+            5j ouvrables).
+
+            L'entree TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) est ajoutee
+            dans la MEME PR (SF-221-05 back+front), de sorte que DecisionToolVisibilityIntegrityIT
+            (DB -> frontend) reste vert sans orphelin transitoire.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                '49eeff50-70f6-46bb-a436-7474413e8bc3',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-57-cce-suspension-be',
+                'CONTEXTUAL',
+                'cce_suspension_detecte',
+                'true',
+                214
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = '49eeff50-70f6-46bb-a436-7474413e8bc3';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
