@@ -560,6 +560,10 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, familleNode, "adoption_be_detectee");
         addBooleanFlagIfTrue(detected, familleNode, "pacte_successoral_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "kafala_recueil_detecte");
+        // SF-223-04 — flag pivot CONTEXTUAL Famille BE : situation contentieuse
+        // post-GPA (vide juridique GPA en Belgique — à vérifier). Consolidé dans
+        // Sf223Detail (@JsonUnwrapped) → aplati sur familleNode → lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "gpa_be_situation_contentieuse_detectee");
         return detected;
     }
 

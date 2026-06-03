@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="584-create-gpa-be-situation-contentieuse-analyses" author="legalcase">
+        <comment>
+            SF-223-04 : table dédiée à l'outil décisionnel "Situation
+            contentieuse post-GPA — Belgique" (vide juridique GPA en Belgique :
+            ni autorisée ni pénalement interdite — à vérifier par avocat belge,
+            renumérotation CC post-réformes 2017-2019).
+
+            Outil unique (1 outil = 1 situation « établissement de la filiation
+            après gestation pour autrui en Belgique ») cadrant l'arbre des voies
+            de droit commun : la convention de GPA n'est pas opposable (mater
+            semper certa — la mère porteuse est la mère en droit), la filiation
+            s'établit par reconnaissance (parent génétique), adoption après
+            naissance (parent sans lien génétique) ou reconnaissance de l'acte
+            étranger (GPA réalisée à l'étranger — renvoi DIP).
+
+            Verdict en 4 niveaux : FILIATION_PAR_RECONNAISSANCE /
+            FILIATION_PAR_ADOPTION_POST_NAISSANCE /
+            RECONNAISSANCE_ACTE_ETRANGER_A_INSTRUIRE / QUALIFICATION_INCOMPLETE.
+
+            BELGIQUE UNIQUEMENT — outil de cadrage contentieux, DISTINCT de
+            `adoption-be` (l'adoption peut être UNE voie du verdict, pas la
+            situation cadrée) et de `contestation-filiation-be` (F-217). Ne
+            tranche pas l'aspect international (renvoi
+            `dip-be-reconnaissance-decision-etrangere` /
+            `dip-be-loi-applicable-famille`). BE-only pur (vide juridique belge
+            distinct de l'interdiction FR). Aucune citation jurisprudentielle
+            (F-JU-04 parké — silence &gt; erreur en matière de vide juridique).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 585
+            livrée dans le même bundle SF-223-04 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 584 = numéro libre suivant après 583 (seed SF-223-03
+            kafala-be-recueil-legal).
+        </comment>
+
+        <createTable tableName="gpa_be_situation_contentieuse_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_gpa_be_situation_contentieuse_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="gpa_be_situation_contentieuse_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_gpa_be_situation_contentieuse_analyses_case_file"/>
+
+        <createIndex tableName="gpa_be_situation_contentieuse_analyses"
+                     indexName="idx_gpa_be_situation_contentieuse_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="gpa_be_situation_contentieuse_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

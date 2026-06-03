@@ -1,0 +1,175 @@
+<section class="gpa-section">
+  <header class="gpa-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="gpa-body">
+    <mat-icon class="gpa-icon">family_restroom</mat-icon>
+    <span class="gpa-title">GPA — FILIATION (BELGIQUE)</span>
+    @if (result()) {
+      <span class="gpa-chip-summary"
+            [class.gpa-chip-summary--ok]="result()!.verdict === 'FILIATION_PAR_RECONNAISSANCE'"
+            [class.gpa-chip-summary--warn]="result()!.verdict === 'FILIATION_PAR_ADOPTION_POST_NAISSANCE' || result()!.verdict === 'RECONNAISSANCE_ACTE_ETRANGER_A_INSTRUIRE'"
+            [class.gpa-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="gpa-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="gpa-body" class="gpa-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="gpa-country-banner" data-testid="gpa-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — établissement de la filiation après gestation pour autrui (GPA). Vide juridique en Belgique (GPA ni autorisée ni pénalement interdite — à vérifier par avocat belge) : la convention de GPA n'est pas opposable, la mère porteuse est la mère en droit (mater semper certa).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="gpa-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="gpa-form" (ngSubmit)="calculate()">
+            <div class="gpa-block gpa-full">
+              <span class="gpa-block-label">Réalisation de la GPA</span>
+              <mat-form-field appearance="outline" class="gpa-inline-field">
+                <mat-label>Lieu de réalisation</mat-label>
+                <mat-select [ngModel]="gpaRealiseeEnBelgiqueOuEtranger()"
+                            (ngModelChange)="gpaRealiseeEnBelgiqueOuEtranger.set($event)"
+                            name="gpaRealiseeEnBelgiqueOuEtranger" required>
+                  @for (opt of lieuOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="gpa-block gpa-full">
+              <span class="gpa-block-label">Lien génétique du ou des parents intentionnels</span>
+              <mat-form-field appearance="outline" class="gpa-inline-field">
+                <mat-label>Lien génétique</mat-label>
+                <mat-select [ngModel]="lienGenetiqueParentIntentionnel()"
+                            (ngModelChange)="lienGenetiqueParentIntentionnel.set($event)"
+                            name="lienGenetiqueParentIntentionnel" required>
+                  @for (opt of lienOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="gpa-block gpa-full">
+              <span class="gpa-block-label">Éléments complémentaires</span>
+              <mat-slide-toggle [ngModel]="acteNaissanceEtrangerEtabli()"
+                                (ngModelChange)="acteNaissanceEtrangerEtabli.set($event)"
+                                name="acteNaissanceEtrangerEtabli">
+                Acte de naissance étranger établi (GPA réalisée à l'étranger)
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="merePorteuseDesignee()"
+                                (ngModelChange)="merePorteuseDesignee.set($event)"
+                                name="merePorteuseDesignee">
+                Mère porteuse identifiée / désignée
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="consentementMerePorteuse()"
+                                (ngModelChange)="consentementMerePorteuse.set($event)"
+                                name="consentementMerePorteuse">
+                Consentement de la mère porteuse documenté
+              </mat-slide-toggle>
+              <mat-slide-toggle [ngModel]="coupleIntentionnelMarieOuCohabitant()"
+                                (ngModelChange)="coupleIntentionnelMarieOuCohabitant.set($event)"
+                                name="coupleIntentionnelMarieOuCohabitant">
+                Parents intentionnels mariés ou cohabitants légaux
+              </mat-slide-toggle>
+            </div>
+
+            <div class="gpa-block gpa-full">
+              <mat-form-field appearance="outline" class="gpa-inline-field">
+                <mat-label>Commentaire (facultatif)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="gpa-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Analyser la situation post-GPA
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="gpa-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="gpa-verdict-text">
+                <span class="gpa-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="gpa-verdict-type">{{ lienLabel(r.lienGenetiqueParentIntentionnel) }} — {{ lieuLabel(r.gpaRealiseeEnBelgiqueOuEtranger) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="gpa-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.cheminContentieux.length) {
+              <div class="gpa-list-block">
+                <span class="gpa-list-title">Chemin d'établissement de la filiation recommandé</span>
+                <ul>
+                  @for (c of r.cheminContentieux; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.risques.length) {
+              <div class="gpa-list-block">
+                <span class="gpa-list-title">Risques et réserves</span>
+                <ul>
+                  @for (a of r.risques; track a) {
+                    <li [innerHTML]="a | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="gpa-list-block gpa-bases">
+                <span class="gpa-list-title">Bases juridiques (à vérifier par avocat belge — vide juridique GPA)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="gpa-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

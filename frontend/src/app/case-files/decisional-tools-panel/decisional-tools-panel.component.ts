@@ -484,6 +484,7 @@ import { MariageEtrangerBeReconnaissanceSectionComponent } from '../mariage-etra
 import { CohabitationLegaleBeSectionComponent } from '../cohabitation-legale-be-section/cohabitation-legale-be-section.component';
 import { AdoptionBeSectionComponent } from '../adoption-be-section/adoption-be-section.component';
 import { KafalaBeRecueilLegalSectionComponent } from '../kafala-be-recueil-legal-section/kafala-be-recueil-legal-section.component';
+import { GpaBeSituationContentieuseSectionComponent } from '../gpa-be-situation-contentieuse-section/gpa-be-situation-contentieuse-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5815,6 +5816,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-04 : situation contentieuse post-GPA BE (vide juridique GPA en
+      // Belgique — ni autorisée ni pénalement interdite, à vérifier). Outil de
+      // cadrage contentieux : la convention de GPA n'est pas opposable (mater
+      // semper certa) → arbre des voies de droit commun (reconnaissance,
+      // adoption post-naissance, reconnaissance acte étranger). DISTINCT de
+      // `adoption-be` (l'adoption peut être UNE voie du verdict). Migration 585
+      // — CONTEXTUAL, NOUVEAU flag pivot `gpa_be_situation_contentieuse_detectee`
+      // (Sf223Detail). Pré-fill IA F-246 : lieu + lien génétique (sous-objet
+      // `gpa_be_detection`). Backend SF-223-04 bundle.
+      ['gpa-be-situation-contentieuse', {
+        displayLabel: 'Filiation post-GPA — Belgique',
+        component: GpaBeSituationContentieuseSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6579,6 +6599,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-223-03 : recueil légal (kafala) BE (CDIP ; CC art. 343 al. 2). VALIDITE
     // — qualification du sort de la kafala (reconnaissance / exclusion), pas un délai.
     ['kafala-be-recueil-legal', 'VALIDITE'],
+    // SF-223-04 : situation contentieuse post-GPA BE (vide juridique). VALIDITE
+    // — cadrage de l'établissement de la filiation (voies de droit commun), pas un délai.
+    ['gpa-be-situation-contentieuse', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,

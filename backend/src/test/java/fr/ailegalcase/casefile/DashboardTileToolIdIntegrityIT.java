@@ -224,6 +224,11 @@ class DashboardTileToolIdIntegrityIT {
             // auto-suffisant, restitution via GET du snapshot, pas de besoin
             // métier tuile dashboard immédiat (même pattern transitoire BE).
             "kafala-be-recueil-legal",
+            // SF-223-04 (2026-06-03) : gpa-be-situation-contentieuse livré sans
+            // mapper DashboardTile côté backend — composant frontend standalone
+            // auto-suffisant, restitution via GET du snapshot, pas de besoin
+            // métier tuile dashboard immédiat (même pattern transitoire BE).
+            "gpa-be-situation-contentieuse",
             // SF-217-18 (2026-05-21) : contestation-filiation-be livré sans mapper
             // DashboardTile côté backend — exclusion transitoire alignée sur les
             // 2 autres outils F-217 Vague 3 (mêmes raisons : composant frontend
