@@ -579,6 +579,12 @@ public class DecisionToolVisibilityService {
         // 650/2012 ; CDIP). Consolidé dans Sf223Detail (@JsonUnwrapped) → aplati
         // sur familleNode → lu à plat.
         addBooleanFlagIfTrue(detected, familleNode, "dip_famille_be_detecte");
+        // SF-223-08 — flag pivot CONTEXTUAL Famille BE : reconnaissance /
+        // exequatur d'une décision familiale étrangère (CDIP art. 22-27 ;
+        // art. 21 Const. / CC art. 161 pour le mariage religieux non-civil).
+        // Consolidé dans Sf223Detail (@JsonUnwrapped) → aplati sur familleNode →
+        // lu à plat.
+        addBooleanFlagIfTrue(detected, familleNode, "dip_reconnaissance_decision_be_detectee");
         return detected;
     }
 

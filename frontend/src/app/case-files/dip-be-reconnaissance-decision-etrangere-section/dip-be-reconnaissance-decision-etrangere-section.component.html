@@ -1,0 +1,195 @@
+<section class="dip-section">
+  <header class="dip-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dipreco-body">
+    <mat-icon class="dip-icon">gavel</mat-icon>
+    <span class="dip-title">RECONNAISSANCE / EXEQUATUR — DÉCISION FAMILIALE ÉTRANGÈRE (BELGIQUE)</span>
+    @if (result()) {
+      <span class="dip-chip-summary"
+            [class.dip-chip-summary--ok]="result()!.verdict === 'RECONNAISSANCE_DE_PLEIN_DROIT'"
+            [class.dip-chip-summary--warn]="result()!.verdict === 'EXEQUATUR_REQUIS'"
+            [class.dip-chip-summary--ko]="result()!.verdict === 'RECONNAISSANCE_REFUSEE'"
+            [class.dip-chip-summary--info]="result()!.verdict === 'QUALIFICATION_INCOMPLETE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="dip-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dipreco-body" class="dip-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="dip-country-banner" data-testid="dipreco-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — reconnaissance / exequatur d'une décision familiale étrangère (CDIP art. 22-27) ou mariage religieux non précédé d'un mariage civil (art. 21 Const. / CC art. 161 — à vérifier par avocat belge).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="dip-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="dip-form" (ngSubmit)="calculate()">
+            <div class="dip-block dip-full">
+              <span class="dip-block-label">Nature de la décision</span>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Nature</mat-label>
+                <mat-select [ngModel]="natureDecision()"
+                            (ngModelChange)="natureDecision.set($event)"
+                            name="natureDecision" required>
+                  @for (opt of natureOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="dip-block dip-full">
+              <span class="dip-block-label">Origine de la décision (facultatif)</span>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Pays d'origine (code ISO, ex. MA, DZ)</mat-label>
+                <input matInput maxlength="2"
+                       [ngModel]="paysOrigine()"
+                       (ngModelChange)="paysOrigine.set($event)"
+                       name="paysOrigine" placeholder="ex. MA">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="dip-inline-field">
+                <mat-label>Date de la décision</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateDecision()"
+                       (ngModelChange)="dateDecision.set($event)"
+                       name="dateDecision">
+              </mat-form-field>
+            </div>
+
+            @if (isJugement()) {
+              <div class="dip-block dip-full">
+                <span class="dip-block-label">Conditions de reconnaissance (CDIP art. 22-25)</span>
+                <mat-checkbox [ngModel]="decisionDefinitive()"
+                              (ngModelChange)="decisionDefinitive.set($event)"
+                              name="decisionDefinitive">
+                  La décision est définitive (passée en force de chose jugée)
+                </mat-checkbox>
+                <mat-checkbox [ngModel]="droitsDefenseRespectes()"
+                              (ngModelChange)="droitsDefenseRespectes.set($event)"
+                              name="droitsDefenseRespectes">
+                  Les droits de la défense ont été respectés
+                </mat-checkbox>
+                <mat-checkbox [ngModel]="conformiteOrdrePublicBelge()"
+                              (ngModelChange)="conformiteOrdrePublicBelge.set($event)"
+                              name="conformiteOrdrePublicBelge">
+                  La décision n'est pas contraire à l'ordre public belge
+                </mat-checkbox>
+                <mat-checkbox [ngModel]="absenceFraude()"
+                              (ngModelChange)="absenceFraude.set($event)"
+                              name="absenceFraude">
+                  Absence de fraude (à la loi / au jugement)
+                </mat-checkbox>
+              </div>
+            }
+
+            @if (isMariageReligieux()) {
+              <div class="dip-block dip-full">
+                <span class="dip-block-label">Mariage religieux (art. 21 Const. / CC art. 161)</span>
+                <mat-checkbox [ngModel]="mariageCivilPrealable()"
+                              (ngModelChange)="mariageCivilPrealable.set($event)"
+                              name="mariageCivilPrealable">
+                  Un mariage civil a précédé la célébration religieuse
+                </mat-checkbox>
+                <span class="dip-hint">Si aucun mariage civil n'a précédé, le mariage religieux ne produit aucun effet civil en Belgique. À distinguer de la reconnaissance d'un mariage valablement célébré à l'étranger.</span>
+              </div>
+            }
+
+            <div class="dip-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Qualifier la reconnaissance
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="dip-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="dip-verdict-text">
+                <span class="dip-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="dip-verdict-type">{{ natureLabel(r.natureDecision) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="dip-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.motifs.length) {
+              <div class="dip-list-block">
+                <span class="dip-list-title">Motifs</span>
+                <ul>
+                  @for (mo of r.motifs; track mo) {
+                    <li [innerHTML]="mo | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.actesAProduire.length) {
+              <div class="dip-list-block">
+                <span class="dip-list-title">Actes à produire</span>
+                <ul>
+                  @for (a of r.actesAProduire; track a) {
+                    <li [innerHTML]="a | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.conseils.length) {
+              <div class="dip-list-block">
+                <span class="dip-list-title">Conseils / points de vigilance</span>
+                <ul>
+                  @for (c of r.conseils; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="dip-list-block dip-bases">
+                <span class="dip-list-title">Bases juridiques (à vérifier par avocat belge — CDIP + Constitution / CC)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="dip-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

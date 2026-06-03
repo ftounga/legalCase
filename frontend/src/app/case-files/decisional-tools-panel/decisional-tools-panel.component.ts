@@ -488,6 +488,7 @@ import { GpaBeSituationContentieuseSectionComponent } from '../gpa-be-situation-
 import { RegimeAlgerienBeSectionComponent } from '../regime-algerien-be-section/regime-algerien-be-section.component';
 import { RegimeBeSeparationBiensSectionComponent } from '../regime-be-separation-biens-section/regime-be-separation-biens-section.component';
 import { DipBeLoiApplicableFamilleSectionComponent } from '../dip-be-loi-applicable-famille-section/dip-be-loi-applicable-famille-section.component';
+import { DipBeReconnaissanceDecisionEtrangereSectionComponent } from '../dip-be-reconnaissance-decision-etrangere-section/dip-be-reconnaissance-decision-etrangere-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5895,6 +5896,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-08 — reconnaissance / exequatur d'une décision familiale étrangère
+      // BE (CDIP art. 22-27 ; art. 21 Const. / CC 161 mariage religieux non-civil).
+      // Migration 593 — CONTEXTUAL, NOUVEAU flag pivot
+      // `dip_reconnaissance_decision_be_detectee` (Sf223Detail). Pré-fill IA
+      // F-246 : nature + pays + date (sous-objet
+      // `dip_reconnaissance_decision_be_detection`). Backend SF-223-08 bundle.
+      // DISTINCT de dip-be-loi-applicable-famille (SF-223-07) et de
+      // mariage-etranger-be-reconnaissance (F-217).
+      ['dip-be-reconnaissance-decision-etrangere', {
+        displayLabel: 'Reconnaissance / exequatur d\'une décision familiale étrangère (Belgique)',
+        component: DipBeReconnaissanceDecisionEtrangereSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6674,6 +6693,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // détermination de la loi applicable et de son fondement de rattachement, pas
     // un délai.
     ['dip-be-loi-applicable-famille', 'VALIDITE'],
+    // SF-223-08 : reconnaissance / exequatur d'une décision familiale étrangère
+    // BE. VALIDITE — qualification de la reconnaissance et de ses conditions,
+    // pas un délai.
+    ['dip-be-reconnaissance-decision-etrangere', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,
