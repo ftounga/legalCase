@@ -54,29 +54,25 @@ $shadow-hover:  0 4px 12px rgba(16, 35, 65, .12), 0 8px 24px rgba(16, 35, 65, .1
   .error-text { font-size: 1rem; margin: 0; }
 }
 
-// ── Bandeau d'accueil sobre (DESIGN_SYSTEM §10 — dérogation réduite) ─────────
+// ── En-tête d'accueil sobre — sans fond bleu (DESIGN_SYSTEM §10) ─────────────
 .hero {
-  border-radius: 12px;
-  margin-bottom: 16px;
-  padding: 16px 24px;
-  background: linear-gradient(135deg, $navy 0%, $navy-dark 100%);
-  box-shadow: $shadow-card;
+  margin-bottom: 20px;
   animation: dashRise .5s $ease both;
 }
 
 .hero-greeting {
   margin: 0;
   font-family: 'Merriweather', serif;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #fff;
+  color: $navy;
   line-height: 1.25;
 }
 
 .hero-date {
   margin: 4px 0 0;
   font-size: .85rem;
-  color: rgba(255, 255, 255, .62);
+  color: $muted;
 
   &::first-letter { text-transform: uppercase; }
 }

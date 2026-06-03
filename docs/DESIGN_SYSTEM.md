@@ -217,7 +217,9 @@ Border-radius des badges : `4px`, padding : `4px 8px`, police Inter 500 12px.
 
 > Ajoutée par **F-249** (refonte du tableau de bord d'accueil). **Dérogation strictement limitée à l'écran `/dashboard`** (`frontend/src/app/dashboard/`). Le reste du produit reste régi sans exception par les sections 1 à 9.
 >
-> **Amendement SF-249-02 (2026-06-03, retour PO).** Le hero « futuriste » livré par SF-249-01 (gros dégradé navy + halo doré + KPI glassmorphism) a été jugé **trop massif et grossier**. La dérogation est **réduite** : le bandeau d'accueil devient sobre (bande navy fine portant uniquement salutation + date), le **halo / glow doré** et le **glassmorphism** sont **supprimés**, et les **KPI repassent en cartes blanches standard** (section 5) posées sous le bandeau, hors du bleu. Seul subsiste un léger dégradé navy sur la seule bande d'accueil.
+> **Amendement SF-249-02 (2026-06-03, retour PO).** Le hero « futuriste » livré par SF-249-01 (gros dégradé navy + halo doré + KPI glassmorphism) a été jugé **trop massif et grossier**. La dérogation est **réduite** : le bandeau d'accueil devient sobre (bande navy fine portant uniquement salutation + date), le **halo / glow doré** et le **glassmorphism** sont **supprimés**, et les **KPI repassent en cartes blanches standard** (section 5) posées sous le bandeau, hors du bleu.
+>
+> **Amendement SF-249-03 (2026-06-04, retour PO) — dérogation close.** Le bandeau navy, même affiné, restait indésirable. **Tout aplat / dégradé bleu de l'en-tête d'accueil est supprimé** : « Bonjour Maître X » est un simple titre `#1A3A5C` (Merriweather) sur le fond clair de page, la date en gris (`--muted`). L'écran `/dashboard` ne comporte plus **aucune dérogation** : il est désormais entièrement régi par les sections 1 à 9 (en-tête texte + cartes blanches). Cette section 10 est conservée pour mémoire.
 
 Le tableau de bord d'accueil est la page d'accueil de l'application — la première chose que voit l'avocat à chaque session. Pour lui donner un caractère soigné et une salutation personnalisée, une **bande d'accueil** discrète est autorisée sur ce seul écran. Elle n'introduit **aucune couleur ni police nouvelle** — uniquement de nouvelles *façons d'utiliser* la palette existante.
 
@@ -225,7 +227,7 @@ Le tableau de bord d'accueil est la page d'accueil de l'application — la premi
 
 | Élément | Règle |
 |---|---|
-| **Dégradé navy (bande d'accueil)** | Dégradé linéaire léger entre nuances de navy de la palette Material primary (`#1A3A5C` → `#0E2341`, soit primary 500 → 800). Réservé à la **seule bande d'accueil fine** (salutation + date). Aucune autre teinte, aucun autre bloc. |
+| ~~**Dégradé navy (bande d'accueil)**~~ | **Obsolète (SF-249-03).** Plus aucun fond/dégradé bleu sur l'en-tête d'accueil. La salutation est un titre texte `#1A3A5C` sur fond clair (section 5/2), la date en `--muted`. |
 | ~~**Halo / glow doré**~~ | **Obsolète (SF-249-02).** Supprimé du hero et des cartes. Ne plus réintroduire de lueur dorée en aplat ou en accent. |
 | ~~**Glassmorphism**~~ | **Obsolète (SF-249-02).** Plus de surfaces translucides ni de `backdrop-filter`. Les compteurs KPI sont des **cartes blanches opaques** standard (section 5). |
 | **Compteurs animés** | Animation *count-up* des valeurs KPI à l'entrée de page, **une seule fois**, durée ≤ 800 ms. Jamais en boucle. |
