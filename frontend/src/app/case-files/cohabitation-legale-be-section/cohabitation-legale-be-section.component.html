@@ -1,0 +1,190 @@
+<section class="clbe-section">
+  <header class="clbe-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="clbe-body">
+    <mat-icon class="clbe-icon">diversity_3</mat-icon>
+    <span class="clbe-title">COHABITATION LÉGALE — RÉGIME (BELGIQUE)</span>
+    @if (result()) {
+      <span class="clbe-chip-summary"
+            [class.clbe-chip-summary--ok]="result()!.verdict === 'FORMATION_VALIDE'"
+            [class.clbe-chip-summary--ko]="result()!.verdict === 'FORMATION_IMPOSSIBLE'"
+            [class.clbe-chip-summary--info]="result()!.verdict === 'EFFETS_QUALIFIES' || result()!.verdict === 'DISSOLUTION_QUALIFIEE'">
+        {{ verdictBannerLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="clbe-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="clbe-body" class="clbe-body">
+      @if (workspaceCountry !== 'BELGIQUE') {
+        <div class="clbe-country-banner" data-testid="clbe-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil propre au droit belge — régime de la cohabitation légale (loi du 23/11/1998 ; CC art. 1475-1479 — à vérifier par avocat belge). Distinct du PACS français (outil séparé) et de la cohabitation de fait.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="clbe-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="clbe-form" (ngSubmit)="calculate()">
+            <div class="clbe-block clbe-full">
+              <span class="clbe-block-label">Vue analysée</span>
+              <mat-form-field appearance="outline" class="clbe-inline-field">
+                <mat-label>Étape du régime à analyser</mat-label>
+                <mat-select [ngModel]="vue()"
+                            (ngModelChange)="onVueChange($event)"
+                            name="vue" required>
+                  @for (opt of vueOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            @if (isFormation()) {
+              <div class="clbe-block clbe-full">
+                <span class="clbe-block-label">Conditions de formation (CC art. 1475 — à vérifier)</span>
+                <mat-slide-toggle [ngModel]="deuxPersonnesNonMariees()"
+                                  (ngModelChange)="deuxPersonnesNonMariees.set($event)"
+                                  name="deuxPersonnesNonMariees">
+                  Les deux personnes ne sont pas mariées
+                </mat-slide-toggle>
+                <mat-slide-toggle [ngModel]="capaciteJuridique()"
+                                  (ngModelChange)="capaciteJuridique.set($event)"
+                                  name="capaciteJuridique">
+                  Les deux personnes sont capables de contracter
+                </mat-slide-toggle>
+                <mat-slide-toggle [ngModel]="pasDejaLieParMariageOuAutreCohabitation()"
+                                  (ngModelChange)="pasDejaLieParMariageOuAutreCohabitation.set($event)"
+                                  name="pasDejaLieParMariageOuAutreCohabitation">
+                  Aucune n'est déjà liée par un mariage ou une autre cohabitation légale
+                </mat-slide-toggle>
+              </div>
+            }
+
+            @if (isEffets()) {
+              <div class="clbe-block clbe-full">
+                <span class="clbe-block-label">Effets patrimoniaux (CC art. 1477 — à vérifier)</span>
+                <mat-slide-toggle [ngModel]="domicileCommun()"
+                                  (ngModelChange)="domicileCommun.set($event)"
+                                  name="domicileCommun">
+                  Domicile commun documenté
+                </mat-slide-toggle>
+                <mat-slide-toggle [ngModel]="logementFamilialEnJeu()"
+                                  (ngModelChange)="logementFamilialEnJeu.set($event)"
+                                  name="logementFamilialEnJeu">
+                  Logement familial commun en jeu
+                </mat-slide-toggle>
+              </div>
+            }
+
+            @if (isDissolution()) {
+              <div class="clbe-block clbe-full">
+                <span class="clbe-block-label">Mode de dissolution (CC art. 1476 — à vérifier)</span>
+                <mat-form-field appearance="outline" class="clbe-inline-field">
+                  <mat-label>Mode de dissolution envisagé</mat-label>
+                  <mat-select [ngModel]="modeDissolutionEnvisage()"
+                              (ngModelChange)="modeDissolutionEnvisage.set($event)"
+                              name="modeDissolutionEnvisage" required>
+                    @for (opt of modeDissolutionOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            }
+
+            <div class="clbe-block clbe-full">
+              <mat-form-field appearance="outline" class="clbe-inline-field">
+                <mat-label>Commentaire (facultatif)</mat-label>
+                <textarea matInput rows="2" maxlength="1000"
+                          [ngModel]="commentaire()"
+                          (ngModelChange)="commentaire.set($event)"
+                          name="commentaire"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="clbe-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  Analyser le régime
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          @let r = result()!;
+          <div class="clbe-result">
+            <div [class]="verdictBannerClass(r.verdict)">
+              <mat-icon>{{ verdictBannerIcon(r.verdict) }}</mat-icon>
+              <div class="clbe-verdict-text">
+                <span class="clbe-verdict-label">{{ verdictBannerLabel(r.verdict) }}</span>
+                <span class="clbe-verdict-vue">{{ vueLabel(r.vue) }}</span>
+              </div>
+            </div>
+
+            @if (r.messages.length) {
+              <ul class="clbe-messages">
+                @for (m of r.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (r.conditions.length) {
+              <div class="clbe-list-block">
+                <span class="clbe-list-title">Conditions / éléments qualifiés</span>
+                <ul>
+                  @for (c of r.conditions; track c) {
+                    <li [innerHTML]="c | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.actesAProduire.length) {
+              <div class="clbe-list-block">
+                <span class="clbe-list-title">Actes à produire</span>
+                <ul>
+                  @for (a of r.actesAProduire; track a) {
+                    <li [innerHTML]="a | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.basesJuridiques.length) {
+              <div class="clbe-list-block clbe-bases">
+                <span class="clbe-list-title">Bases juridiques (à vérifier par avocat belge)</span>
+                <ul>
+                  @for (b of r.basesJuridiques; track b) {
+                    <li [innerHTML]="b | legalCitations"></li>
+                  }
+                </ul>
+              </div>
+            }
+
+            <div class="clbe-actions">
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- F-JU-03 — citations jurisprudentielles F-JU-01 (BE parké F-JU-04 : aucune en V1 ; skip standalone) -->
+      @if (!standaloneMode) {
+        <app-tool-jurisprudence-citations
+          [toolId]="toolIdForJurisprudence"
+          [branchActive]="brancheActiveForJurisprudence">
+        </app-tool-jurisprudence-citations>
+      }
+    </div>
+  }
+</section>

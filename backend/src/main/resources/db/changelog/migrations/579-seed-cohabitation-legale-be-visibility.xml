@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="579-seed-cohabitation-legale-be-visibility" author="legalcase">
+        <comment>
+            SF-223-01 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `cohabitation-legale-be` (BELGIQUE).
+
+            Mode `CONTEXTUAL`. Le flag pivot `cohabitation_legale_be_detectee`
+            existe DÉJÀ dans `FamilleExtractedData` (ajouté par F-202) et est
+            câblé dans `DecisionToolVisibilityService.buildResponse`
+            (addBooleanFlagIfTrue, ligne ~556). Réutilisé tel quel comme
+            `trigger_field` — pas de nouveau flag créé.
+
+            La contrainte CK_DTVR_LAYER_TRIGGER (migration 104) impose qu'une
+            règle CONTEXTUAL ait des `trigger_field` / `trigger_value` non nuls.
+
+            priority = 76 : numéro suivant après la priorité MAX des seeds
+            Famille BELGIQUE (= 75 : pacte-successoral-be-2018, divorce-dc-be,
+            divorce-ddi-3voies-be, F-152-divorce-consentement-scoring).
+
+            Le seed est couplé à l'entrée TOOL_REGISTRY frontend livrée dans le
+            même commit (decisional-tools-panel.component.ts) — sans ce
+            couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue.
+            tool_id = `cohabitation-legale-be` (identique à la clé TOOL_REGISTRY
+            et au TOOL_ID du ToolBranchRegistry).
+
+            Numéro 579 = numéro libre suivant après 578 (création table).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('e71024cc-2f0d-4fa0-8888-634cfae3bbf4', 'DROIT_FAMILLE', 'BELGIQUE', 'cohabitation-legale-be', 'CONTEXTUAL', 'cohabitation_legale_be_detectee', 'true', 76);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'e71024cc-2f0d-4fa0-8888-634cfae3bbf4';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
