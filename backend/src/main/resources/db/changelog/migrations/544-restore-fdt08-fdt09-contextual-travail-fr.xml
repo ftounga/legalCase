@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="544-restore-fdt08-fdt09-contextual-travail-fr" author="legalcase">
+        <comment>
+            F-165 / SF-165-FIX — Bugfix de régression production (révélé 2026-06-03).
+
+            Les outils F-DT-08-licenciement-validity et F-DT-09-comparateur-indemnites
+            n'apparaissaient PLUS sur aucun dossier de licenciement Travail FRANCE
+            (ni alwaysOn, ni contextual, ni catalog) → outils phares inaccessibles.
+
+            Cause racine (audit déterministe H2 + simulateur, 0 divergence) :
+              - migration 106 : DELETE des règles CONTEXTUAL (layer='CONTEXTUAL')
+                de F-DT-08 et F-DT-09 (le DELETE passait ces outils en ALWAYS_ON).
+              - migration 194 : DELETE des ALWAYS_ON FR de F-DT-08/09 sur
+                l'hypothèse FAUSSE que « les CONTEXTUAL prennent le relais »
+                (déjà supprimés par 106) → 0 règle FR restante.
+            La Belgique conservait son ALWAYS_ON (bbbb21/22) → non touchée.
+            L'extraction IA est hors de cause (compensation_data.type_rupture
+            = LICENCIEMENT est correctement détecté).
+
+            Ce changeSet RESTAURE les règles CONTEXTUAL type_rupture des 2 outils
+            en DROIT_DU_TRAVAIL / FRANCE, avec les priorités du seed initial 105
+            (F-DT-08 priority 10, F-DT-09 priority 20). On ne réintroduit PAS
+            RUPTURE_CONVENTIONNELLE pour F-DT-09 (retrait volontaire migration 196).
+            État cible aligné sur les outils voisins (F-DT-16, F-DT-25, F-DT-26)
+            qui sont CONTEXTUAL sur type_rupture LICENCIEMENT/LICENCIEMENT_ECONOMIQUE.
+
+            F-DT-08 et F-DT-09 ont déjà leur entrée TOOL_REGISTRY frontend
+            (decisional-tools-panel.component.ts) → pas de risque d'orphelin.
+
+            UUID namespace dédié : f1a04001-0000-0000-0000-fd08/fd09…
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-fd0800000001', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 10);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-fd0800000002', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 10);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-fd0900000001', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 20);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-fd0900000002', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 20);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN (
+    'f1a04001-0000-0000-0000-fd0800000001',
+    'f1a04001-0000-0000-0000-fd0800000002',
+    'f1a04001-0000-0000-0000-fd0900000001',
+    'f1a04001-0000-0000-0000-fd0900000002'
+);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

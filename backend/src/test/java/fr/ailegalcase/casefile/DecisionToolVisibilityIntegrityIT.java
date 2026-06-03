@@ -101,6 +101,49 @@ class DecisionToolVisibilityIntegrityIT {
                 .isEmpty();
     }
 
+    /**
+     * SF-165-FIX (bug prod 2026-06-03) : outils Travail FR "core" qui DOIVENT
+     * conserver au moins une règle de visibilité en (DROIT_DU_TRAVAIL, FRANCE).
+     * F-DT-08 (validité licenciement) et F-DT-09 (comparateur d'indemnités) ont
+     * été rendus invisibles sur tout dossier de licenciement FR par l'effet
+     * combiné des migrations 106 (suppression CONTEXTUAL) + 194 (suppression
+     * ALWAYS_ON) → 0 règle restante. Restaurés par la migration 544.
+     * Ce garde-fou couvre le sens "outil frontend sans règle DB" — inverse du
+     * test ci-dessus (règle DB sans entrée frontend).
+     */
+    private static final List<String> CORE_TRAVAIL_FR_TOOLS = List.of(
+            "F-DT-08-licenciement-validity",
+            "F-DT-09-comparateur-indemnites");
+
+    @Test
+    void les_outils_licenciement_core_travail_fr_ont_au_moins_une_regle_de_visibilite() {
+        List<String> missing = CORE_TRAVAIL_FR_TOOLS.stream()
+                .filter(toolId -> {
+                    Integer count = jdbc.queryForObject(
+                            "SELECT count(*) FROM decision_tool_visibility_rules "
+                                    + "WHERE tool_id = ? AND legal_domain = 'DROIT_DU_TRAVAIL' AND country = 'FRANCE'",
+                            Integer.class, toolId);
+                    return count == null || count == 0;
+                })
+                .sorted()
+                .collect(Collectors.toList());
+
+        assertThat(missing)
+                .withFailMessage(() -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("SF-165-FIX — outils Travail FR 'core' SANS aucune règle de visibilité\n")
+                      .append("en (DROIT_DU_TRAVAIL, FRANCE) → silencieusement invisibles sur les dossiers\n")
+                      .append("de licenciement (ni alwaysOn, ni contextual, ni catalog) :\n");
+                    missing.forEach(id -> sb.append(" - ").append(id).append("\n"));
+                    sb.append("\nRégression type : un DELETE de règles (ALWAYS_ON et/ou CONTEXTUAL) sans\n")
+                      .append("réinsertion — cf. migrations 106 + 194 (bug 2026-06-03), corrigé par 544.\n")
+                      .append("Action : ajouter une migration Liquibase qui (ré)insère au moins une règle\n")
+                      .append("de visibilité FR pour ces outils.");
+                    return sb.toString();
+                })
+                .isEmpty();
+    }
+
     private Set<String> extractToolIdsFromFrontendRegistry() throws IOException {
         Path path = Paths.get(TOOL_REGISTRY_SOURCE);
         String source = String.join("\n", Files.readAllLines(path));
