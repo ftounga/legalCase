@@ -1,0 +1,232 @@
+<section class="pvp-section">
+  <header class="pvp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pvp-body">
+    <mat-icon class="pvp-icon">favorite</mat-icon>
+    <span class="pvp-title">VPF AU TITRE D'UN PACS L.423-23 (FR)</span>
+    @if (result()) {
+      <span class="pvp-chip"
+            [class.pvp-chip--success]="result()!.eligibilite === 'FAISCEAU_FAVORABLE'"
+            [class.pvp-chip--warning]="result()!.eligibilite === 'FAISCEAU_INSUFFISANT' || result()!.eligibilite === 'A_CONSOLIDER'"
+            [class.pvp-chip--neutral]="result()!.eligibilite === 'NON_ELIGIBLE'">
+        {{ eligibiliteLabel(result()!.eligibilite) }}
+      </span>
+    }
+    <mat-icon class="pvp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pvp-body" class="pvp-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="pvp-banner pvp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pvp-banner-content">
+            <div class="pvp-banner-title">VPF au titre d'un PACS — procédure française uniquement</div>
+            <div class="pvp-banner-sub">
+              La voie L.423-23 CESEDA (PACS comme faisceau d'indices) ne concerne que le séjour en France.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pvp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <p class="pvp-intro">
+              Le PACS est apprécié comme <strong>faisceau d'indices</strong> de vie privée et
+              familiale (L.423-23 CESEDA) : il <strong>n'ouvre pas</strong> de droit automatique au
+              séjour (différence avec le conjoint marié). Sa valeur probante dépend de l'ancienneté
+              (~1 an) et de l'intensité de la communauté de vie. À vérifier par l'avocat.
+            </p>
+            <form class="pvp-form" (ngSubmit)="analyze()">
+              <div class="pvp-field-wrap pvp-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="pacsConclu()"
+                              (ngModelChange)="onPacsConcluChange($event)"
+                              name="pacsConclu">
+                  PACS conclu
+                </mat-checkbox>
+                @if (provenancePacsConclu() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pvp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du PACS</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="datePacs()"
+                         (ngModelChange)="onDatePacsChange($event)"
+                         name="datePacs" />
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+                @if (provenanceDatePacs() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pvp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Statut du partenaire</mat-label>
+                  <mat-select [ngModel]="partenaireStatut()"
+                              (ngModelChange)="partenaireStatut.set($event)"
+                              name="partenaireStatut">
+                    @for (p of partenaireStatuts; track p) {
+                      <mat-option [value]="p">{{ partenaireLabel(p) }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="pvp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée de vie commune (mois)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="dureeVieCommuneMois()"
+                         (ngModelChange)="onDureeChange($event)"
+                         name="dureeVieCommuneMois" />
+                  <mat-hint>Optionnel — seuil indicatif ~12 mois</mat-hint>
+                </mat-form-field>
+                @if (provenanceDuree() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pvp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Intensité de la communauté de vie</mat-label>
+                  <mat-select [ngModel]="intensiteCommunauteVie()"
+                              (ngModelChange)="onIntensiteChange($event)"
+                              name="intensiteCommunauteVie">
+                    @for (i of intensites; track i) {
+                      <mat-option [value]="i">{{ intensiteLabel(i) }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceIntensite() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="pvp-field-wrap pvp-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="autresLiensPrivesFamiliaux()"
+                              (ngModelChange)="autresLiensPrivesFamiliaux.set($event)"
+                              name="autresLiensPrivesFamiliaux">
+                  Autres liens privés et familiaux
+                </mat-checkbox>
+              </div>
+
+              <div class="pvp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le faisceau</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pvp-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="pvp-banner-content">
+                  <div class="pvp-banner-title">{{ eligibiliteLabel(result()!.eligibilite) }}</div>
+                  <div class="pvp-banner-sub">
+                    Le PACS est un élément du faisceau L.423-23, pas un droit automatique au séjour.
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.elementsFavorables?.length) {
+                <div class="pvp-block">
+                  <div class="pvp-block-label">Éléments favorables</div>
+                  <ul class="pvp-list">
+                    @for (e of result()!.elementsFavorables; track e) {
+                      <li>{{ e }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.elementsManquants?.length) {
+                <div class="pvp-block">
+                  <div class="pvp-block-label">Éléments manquants / à consolider</div>
+                  <ul class="pvp-list">
+                    @for (c of result()!.elementsManquants; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <div class="pvp-block">
+                  <div class="pvp-block-label">Points d'attention</div>
+                  <ul class="pvp-list pvp-list--muted">
+                    @for (m of result()!.messages; track m) {
+                      <li>{{ m }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="pvp-breakdown">
+                <li>
+                  <span class="pvp-bd-label">PACS conclu</span>
+                  <span class="pvp-bd-value">{{ result()!.pacsConclu ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="pvp-bd-label">Partenaire</span>
+                  <span class="pvp-bd-value">{{ partenaireLabel(result()!.partenaireStatut) }}</span>
+                </li>
+                <li>
+                  <span class="pvp-bd-label">Intensité communauté de vie</span>
+                  <span class="pvp-bd-value">{{ intensiteLabel(result()!.intensiteCommunauteVie) }}</span>
+                </li>
+                @if (result()!.dureeVieCommuneMois !== null) {
+                  <li>
+                    <span class="pvp-bd-label">Durée de vie commune</span>
+                    <span class="pvp-bd-value">{{ result()!.dureeVieCommuneMois }} mois</span>
+                  </li>
+                }
+                @if (result()!.datePacs) {
+                  <li>
+                    <span class="pvp-bd-label">Date du PACS</span>
+                    <span class="pvp-bd-value">{{ result()!.datePacs }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.basesJuridiques?.length) {
+                <div class="pvp-meta">
+                  <span class="pvp-meta-base" [innerHTML]="result()!.basesJuridiques.join(' ; ') | legalCitations"></span>
+                  <button mat-stroked-button type="button" (click)="editMode()">
+                    <mat-icon>edit</mat-icon> Modifier
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

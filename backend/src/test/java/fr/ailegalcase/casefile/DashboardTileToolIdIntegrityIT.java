@@ -1190,7 +1190,13 @@ class DashboardTileToolIdIntegrityIT {
             // d'analyse d'éligibilité (transition à la majorité / sortie ASE), pas
             // de tuile dashboard. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern
             // uniforme, cf. CLAUDE.md feedback_pre_merge_visibility_seed_check).
-            "F-IM-49-vpf-jeune-majeur-l42322-fr"
+            "F-IM-49-vpf-jeune-majeur-l42322-fr",
+            // SF-220-04 : outil F-IM-50 VPF au titre d'un PACS L.423-23 (CESEDA,
+            // FR-only, CONTEXTUAL sur flag pivot pacs_detecte) — outil d'analyse de
+            // faisceau d'indices (vie privée et familiale), pas de tuile dashboard.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-IM-50-pacs-vpf-fr"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

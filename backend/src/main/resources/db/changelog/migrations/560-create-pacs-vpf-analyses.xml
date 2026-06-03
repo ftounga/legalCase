@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="560-create-pacs-vpf-analyses" author="legalcase">
+        <comment>
+            SF-220-04 — table `pacs_vpf_analyses` pour l'outil décisionnel
+            "VPF au titre d'un PACS L.423-23" (F-IM-50-pacs-vpf-fr, FRANCE).
+
+            Outil single-country FR : apprécie le PACS comme FAISCEAU d'indices
+            de vie privée et familiale (CESEDA L.423-23), pas comme droit
+            automatique au séjour (distinct du conjoint marié F-IM-21). La valeur
+            probante du PACS dépend de l'ancienneté (~1 an) et de l'intensité /
+            stabilité de la communauté de vie. Distinct de F-IM-27 (VPF liens
+            personnels L.423-23 générale) : l'angle est ici spécifiquement le
+            PACS. Persiste l'analyse 1:1 par dossier.
+
+            Verdict eligibilite : FAISCEAU_FAVORABLE / FAISCEAU_INSUFFISANT /
+            A_CONSOLIDER / NON_ELIGIBLE.
+
+            Source juridique (à vérifier par avocat) : CESEDA L.423-23 ;
+            jurisprudence sur la valeur probante du PACS.
+
+            UUID namespace F-220 : f2200007-0000-0000-0000-220000000001.
+        </comment>
+
+        <createTable tableName="pacs_vpf_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_pacs_vpf_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="pacs_conclu" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_pacs" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="partenaire_statut" type="VARCHAR(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="duree_vie_commune_mois" type="INT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="intensite_communaute_vie" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="autres_liens_prives_familiaux" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="pacs_vpf_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
