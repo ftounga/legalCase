@@ -1,0 +1,202 @@
+<section class="rm-section">
+  <header class="rm-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rm-body">
+    <mat-icon class="rm-icon">public</mat-icon>
+    <span class="rm-title">PORTÉE TERRITORIALE DU TITRE À MAYOTTE (FR)</span>
+    @if (result()) {
+      <span class="rm-chip"
+            [class.rm-chip--warning]="result()!.porteeTerritoriale === 'MAYOTTE_UNIQUEMENT' && result()!.sousStatutDeplacement === 'BLOCAGE_DEPLACEMENT'"
+            [class.rm-chip--info]="result()!.porteeTerritoriale === 'MAYOTTE_UNIQUEMENT' && result()!.sousStatutDeplacement !== 'BLOCAGE_DEPLACEMENT'"
+            [class.rm-chip--neutral]="result()!.porteeTerritoriale === 'DROIT_COMMUN'">
+        {{ porteeLabel(result()!.porteeTerritoriale) }}
+      </span>
+    }
+    <mat-icon class="rm-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rm-body" class="rm-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="rm-banner rm-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rm-banner-content">
+            <div class="rm-banner-title">Régime Mayotte — procédure française uniquement</div>
+            <div class="rm-banner-sub">
+              Le régime mahorais (Ord. 2014-464, CESEDA L.832-1 et s.) ne concerne que le séjour en France.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rm-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <p class="rm-intro">
+              Portée territoriale d'un titre délivré à Mayotte : un titre mahorais
+              <strong>ne vaut pas</strong> autorisation de circuler ou de séjourner en
+              métropole sans démarche spécifique. Les particularités sont à vérifier par l'avocat.
+            </p>
+            <form class="rm-form" (ngSubmit)="analyze()">
+              <div class="rm-field-wrap rm-field-wrap--full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de titre</mat-label>
+                  <mat-select required
+                              [ngModel]="typeTitre()"
+                              (ngModelChange)="onTypeTitreChange($event)"
+                              name="typeTitre">
+                    @for (opt of typeTitreOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceTypeTitre() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rm-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de délivrance</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDelivrance()"
+                         (ngModelChange)="onDateChange($event)"
+                         name="dateDelivrance" />
+                  <mat-hint>Optionnel</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="rm-field-wrap rm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="titreDelivreAMayotte()"
+                              (ngModelChange)="onTitreMayotteChange($event)"
+                              name="titreDelivreAMayotte">
+                  Titre délivré à Mayotte
+                </mat-checkbox>
+                @if (provenanceTitreMayotte() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rm-field-wrap rm-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="projetDeplacementMetropole()"
+                              (ngModelChange)="onProjetChange($event)"
+                              name="projetDeplacementMetropole">
+                  Projet de déplacement vers la métropole
+                </mat-checkbox>
+                @if (provenanceProjet() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="rm-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la portée territoriale</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rm-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="rm-banner-content">
+                  <div class="rm-banner-title">{{ porteeLabel(result()!.porteeTerritoriale) }}</div>
+                  <div class="rm-banner-sub">{{ deplacementLabel(result()) }}</div>
+                  @if (result()!.porteeTerritoriale === 'DROIT_COMMUN') {
+                    <div class="rm-banner-sub">
+                      Pour le choix du titre lui-même, voir F-IM-05 (arbre décisionnel titre).
+                    </div>
+                  }
+                </div>
+              </div>
+
+              @if (result()!.obligationsSpecifiques?.length) {
+                <div class="rm-block">
+                  <div class="rm-block-label">Obligations spécifiques (à vérifier par avocat)</div>
+                  <ul class="rm-list">
+                    @for (o of result()!.obligationsSpecifiques; track o) {
+                      <li>{{ o }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.demarchesDeplacementMetropole?.length) {
+                <div class="rm-block">
+                  <div class="rm-block-label">Démarches pour un déplacement en métropole</div>
+                  <ul class="rm-list">
+                    @for (d of result()!.demarchesDeplacementMetropole; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <div class="rm-block">
+                  <div class="rm-block-label">Points d'attention</div>
+                  <ul class="rm-list rm-list--muted">
+                    @for (m of result()!.messages; track m) {
+                      <li>{{ m }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="rm-breakdown">
+                <li>
+                  <span class="rm-bd-label">Type de titre</span>
+                  <span class="rm-bd-value">{{ typeTitreLabel(result()!.typeTitre) }}</span>
+                </li>
+                <li>
+                  <span class="rm-bd-label">Titre délivré à Mayotte</span>
+                  <span class="rm-bd-value">{{ result()!.titreDelivreAMayotte ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="rm-bd-label">Projet déplacement métropole</span>
+                  <span class="rm-bd-value">{{ result()!.projetDeplacementMetropole ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.dateDelivrance) {
+                  <li>
+                    <span class="rm-bd-label">Date de délivrance</span>
+                    <span class="rm-bd-value">{{ result()!.dateDelivrance }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.basesJuridiques?.length) {
+                <div class="rm-meta">
+                  <span class="rm-meta-base" [innerHTML]="result()!.basesJuridiques.join(' ; ') | legalCitations"></span>
+                  <button mat-stroked-button type="button" (click)="editMode()">
+                    <mat-icon>edit</mat-icon> Modifier
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

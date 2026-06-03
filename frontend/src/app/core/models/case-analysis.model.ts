@@ -2204,6 +2204,18 @@ export interface ImmigrationExtractedData {
   regimeTunisienCategorie?: 'ETUDIANT' | 'COMMERCANT' | 'SALARIE' | 'FAMILIAL' | 'AUTRE' | null;
   regimeTunisienDureeSejour?: number | null;
   regimeTunisienTitreEnCours?: boolean | null;
+  /**
+   * SF-220-02 — F-IM-48 portée territoriale du titre à Mayotte (FR uniquement, null/false pour BE).
+   * 1 flag pivot CONTEXTUAL (`mayotteDetecte`) + 3 champs de pré-fill.
+   * `mayotteDetecte` : contexte mahorais détecté (pilote la visibilité de l'outil).
+   * `mayotteTitreDelivreAMayotte` : titre délivré à Mayotte (portée territorialisée).
+   * `mayotteTypeTitre` : type de titre (whitelist 5 codes).
+   * `mayotteProjetDeplacementMetropole` : déplacement vers la métropole projeté.
+   */
+  mayotteDetecte?: boolean | null;
+  mayotteTitreDelivreAMayotte?: boolean | null;
+  mayotteTypeTitre?: 'VPF' | 'SALARIE' | 'ETUDIANT' | 'RESIDENT' | 'AUTRE' | null;
+  mayotteProjetDeplacementMetropole?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

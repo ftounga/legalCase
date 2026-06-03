@@ -375,6 +375,10 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, immigrationNode, "retrait_titre_fraude_detecte");
         // SF-214-39 : F-IM-44 séjour UE/EEE/Suisse directive 2004/38 FR — flag pivot CONTEXTUAL Immigration FR.
         addBooleanFlagIfTrue(detected, immigrationNode, "nationalite_ue");
+        // SF-220-02 : F-IM-48 portée territoriale du titre à Mayotte FR — flag pivot CONTEXTUAL Immigration FR.
+        // Pas de trigger « territoire » natif (extractDetectedSituations) : on utilise un flag
+        // pivot booléen `mayotte_detecte` extrait dans immigration_extracted_data.
+        addBooleanFlagIfTrue(detected, immigrationNode, "mayotte_detecte");
         // SF-214-11 : F-IM-30 AES calcul présence prouvée FR — flag pivot DÉRIVÉ.
         // L'outil de calcul de présence est transversal aux 4 voies AES : il se déclenche
         // dès qu'au moins une des 4 voies AES est détectée. Le flag pivot
