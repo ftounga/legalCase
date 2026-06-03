@@ -103,6 +103,8 @@ import { EpargneSalarialeConformiteSectionComponent } from '../epargne-salariale
 import { CongesEvenementsFamiliauxSectionComponent } from '../conges-evenements-familiaux-section/conges-evenements-familiaux-section.component';
 // SF-218-46 : composant complet F-DT-78-conge-parental-education — éligibilité (1 an d'ancienneté à la naissance/adoption, L.1225-47) + date de fin maximale au 3e anniversaire de l'enfant (L.1225-48) + réintégration garantie (L.1225-55) + information PreParE CAF (Travail FR).
 import { CongeParentalEducationSectionComponent } from '../conge-parental-education-section/conge-parental-education-section.component';
+// SF-218-48 : composant complet F-DT-79-conge-proche-aidant — éligibilité (personne aidée résidant en France/EEE, L.3142-16) + durée maximale 12 mois sur la carrière (L.3142-19) + estimation indicative de l'AJPA (plafond 66 jours, loi n° 2020-220 du 06/03/2020) (Travail FR).
+import { CongeProcheAidantSectionComponent } from '../conge-proche-aidant-section/conge-proche-aidant-section.component';
 // SF-218-34 : composant complet F-DT-69-delegation-syndicale-protection — régularité de la désignation DS / RSS + risque de nullité du licenciement de salarié protégé (L.2143-1 et s., L.2142-1-1, L.2143-3, L.2411-3 CT) (Travail FR).
 import { DelegationSyndicaleSectionComponent } from '../delegation-syndicale-section/delegation-syndicale-section.component';
 // SF-218-32 : composant complet F-DT-67-accord-entreprise-validite — validité d'un accord d'entreprise au regard des conditions de majorité (L.2232-12 CT) + révision (L.2261-7) / dénonciation (L.2261-9 et s.) (Travail FR).
@@ -2063,6 +2065,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-DT-78-conge-parental-education', {
         displayLabel: 'Congé parental d\'éducation (FR)',
         component: CongeParentalEducationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-218-48 : composant complet F-DT-79-conge-proche-aidant — éligibilité +
+      // durée maximale + estimation AJPA du congé de proche aidant (Travail FR).
+      // FR uniquement, CONTEXTUAL (flag congeProcheAidantDetecte). Art. L.3142-16
+      // à L.3142-27 CT, loi n° 2020-220 du 06/03/2020 : la personne aidée doit
+      // résider en France/EEE (L.3142-16) ; durée de 3 mois renouvelable, dans la
+      // limite d'un an sur l'ensemble de la carrière (L.3142-19) ; allocation
+      // journalière du proche aidant (AJPA) versée par la CAF, plafonnée à
+      // 66 jours indemnisés (montant à vérifier). Distinct du congé parental
+      // d'éducation (F-DT-78) et du congé pour évènements familiaux (F-DT-76).
+      // Pré-fill IA 1 champ (lienPersonneAidee) via static getPrefillCount +
+      // CongeProcheAidantPrefillRules.
+      ['F-DT-79-conge-proche-aidant', {
+        displayLabel: 'Congé de proche aidant (FR)',
+        component: CongeProcheAidantSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5449,6 +5472,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // d'éligibilité (ELIGIBLE / NON_ELIGIBLE) + date de fin maximale du droit,
     // cohérent avec les autres outils DIAGNOSTIC (analyse de situation).
     ['F-DT-78-conge-parental-education', 'DIAGNOSTIC'],
+    ['F-DT-79-conge-proche-aidant', 'INDEMNITES'],
     ['F-DT-20-rappel-salaire', 'INDEMNITES'],
     // SF-213-02b : rappel de salaire BE — chiffrage arriérés + intérêts moratoires
     // 10 % + prescription (Loi 12/04/1965 art. 10 + Loi 03/07/1978 art. 15).
