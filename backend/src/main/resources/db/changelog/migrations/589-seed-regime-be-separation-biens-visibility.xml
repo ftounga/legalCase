@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="589-seed-regime-be-separation-biens-visibility" author="legalcase">
+        <comment>
+            SF-223-06 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel `regime-be-separation-biens` (BELGIQUE).
+
+            Mode `CONTEXTUAL`. NOUVEAU flag pivot
+            `regime_separation_biens_be_detecte`, ajouté dans le sous-record
+            `Sf223Detail` (@JsonUnwrapped → aplati sur `familleExtractedData`) et
+            câblé dans `DecisionToolVisibilityService.buildResponse`
+            (addBooleanFlagIfTrue). Lu à plat sur `familleNode`. BELGIQUE
+            UNIQUEMENT (null / false hors BE). Ne pas confondre avec
+            `regime_communaute_universelle_detecte` (FR) ni avec le régime de
+            communauté légale BE (F-217).
+
+            La contrainte CK_DTVR_LAYER_TRIGGER (migration 104) impose qu'une
+            règle CONTEXTUAL ait des `trigger_field` / `trigger_value` non nuls.
+
+            priority = 81 : numéro suivant après 80 (regime-algerien-be,
+            SF-223-05).
+
+            Le seed est couplé à l'entrée TOOL_REGISTRY frontend livrée dans le
+            même commit (decisional-tools-panel.component.ts) — sans ce
+            couplage, le garde-fou DecisionToolVisibilityIntegrityIT échoue.
+            tool_id = `regime-be-separation-biens` (identique à la clé
+            TOOL_REGISTRY et au TOOL_ID du ToolBranchRegistry).
+
+            Numéro 589 = numéro libre suivant après 588 (création table).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('318c62c5-c0e7-4675-9899-eac2518a57c3', 'DROIT_FAMILLE', 'BELGIQUE', 'regime-be-separation-biens', 'CONTEXTUAL', 'regime_separation_biens_be_detecte', 'true', 81);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = '318c62c5-c0e7-4675-9899-eac2518a57c3';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -486,6 +486,7 @@ import { AdoptionBeSectionComponent } from '../adoption-be-section/adoption-be-s
 import { KafalaBeRecueilLegalSectionComponent } from '../kafala-be-recueil-legal-section/kafala-be-recueil-legal-section.component';
 import { GpaBeSituationContentieuseSectionComponent } from '../gpa-be-situation-contentieuse-section/gpa-be-situation-contentieuse-section.component';
 import { RegimeAlgerienBeSectionComponent } from '../regime-algerien-be-section/regime-algerien-be-section.component';
+import { RegimeBeSeparationBiensSectionComponent } from '../regime-be-separation-biens-section/regime-be-separation-biens-section.component';
 // F-217 SF-217-15 — section décisionnelle Vague 3 Famille BE — Protection du majeur (backend SF-217-14).
 import { ProtectionMajeurBeSectionComponent } from '../protection-majeur-be-section/protection-majeur-be-section.component';
 // F-217 SF-217-19 — section décisionnelle Vague 3 Famille BE — Contestation de filiation (CC art. 318 nouveau).
@@ -5855,6 +5856,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           standaloneMode: ctx.standaloneMode ?? false,
         }),
       }],
+      // SF-223-06 : régime de séparation de biens BE et ses variantes (séparation
+      // pure, société d'acquêts adjointe, participation aux acquêts — Livre 3 CC ;
+      // loi du 22/07/2018 — à vérifier). DISTINCT du régime de COMMUNAUTÉ légale
+      // BE (`regime-mat-be-communaute-legale`, F-217) et de la liquidation-partage
+      // chiffrée (`liquidation-partage-be`, F-217), vers laquelle il renvoie.
+      // Migration 589 — CONTEXTUAL, NOUVEAU flag pivot
+      // `regime_separation_biens_be_detecte` (Sf223Detail). Pré-fill IA F-246 :
+      // variante + date contrat + patrimoines (sous-objet
+      // `regime_separation_biens_be_detection`). Backend SF-223-06 bundle.
+      ['regime-be-separation-biens', {
+        displayLabel: 'Régime de séparation de biens (Belgique)',
+        component: RegimeBeSeparationBiensSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
       // F-217 SF-217-19 : contestation de filiation BE (CC art. 318 nouveau —
       // qualité à agir + délai 1 an + possession d'état conforme 5 ans).
       // Migration 281 — CONTEXTUAL avec trigger non extrait V1
@@ -6626,6 +6646,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // algéro-belge). VALIDITE — qualification du sort de l'acte (reconnaissance /
     // refus ordre public / effet patrimonial de la dot), pas un délai.
     ['regime-algerien-be', 'VALIDITE'],
+    // SF-223-06 : régime de séparation de biens BE (Livre 3 CC ; loi 22/07/2018).
+    // VALIDITE — qualification du régime et de ses effets patrimoniaux (variante,
+    // créance de participation, correctif équitable), pas un délai.
+    ['regime-be-separation-biens', 'VALIDITE'],
     // F-217 SF-217-15 : protection du majeur BE — outil d'orientation /
     // qualification de la mesure adéquate (loi 17/03/2013). VALIDITE plutôt
     // que DELAIS malgré l'urgence potentielle (qui est qualifiée à l'audience,

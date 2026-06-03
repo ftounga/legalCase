@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="588-create-regime-be-separation-biens-analyses" author="legalcase">
+        <comment>
+            SF-223-06 : table dédiée à l'outil décisionnel "Régime de séparation
+            de biens (Belgique)" (Livre 3 du Code civil ; loi du 22/07/2018 — à
+            vérifier par avocat belge, renumérotation CC post-réformes
+            2017-2019).
+
+            Outil unique (1 outil = 1 situation « régime de séparation de biens BE
+            et ses variantes ») qualifiant : séparation pure, séparation avec
+            adjonction d'une société d'acquêts, séparation avec clause de
+            participation aux acquêts (créance de participation, loi 2018) et le
+            jeu du correctif équitable 2018 (correction judiciaire en équité en
+            cas de disproportion patrimoniale alléguée — signalé, non chiffré).
+
+            DISTINCT de la communauté légale BE
+            (`regime-mat-be-communaute-legale`, F-217) et de la
+            liquidation-partage notariale chiffrée (`liquidation-partage-be`,
+            F-217), vers laquelle l'outil renvoie pour tout chiffrage de la
+            créance de participation ou du partage des acquêts.
+
+            Verdict en 4 niveaux : SEPARATION_PURE_QUALIFIEE /
+            SOCIETE_ACQUETS_QUALIFIEE / PARTICIPATION_ACQUETS_QUALIFIEE /
+            QUALIFICATION_INCOMPLETE.
+
+            BELGIQUE UNIQUEMENT — BE-only pur (P3 Famille BE — F-223). Aucune
+            citation jurisprudentielle (F-JU-04 parké).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la
+            restitution UI et la ré-édition du formulaire sans recalcul.
+
+            Le seed de la règle d'affichage F-IA-04
+            (decision_tool_visibility_rules) est porté par la migration 589
+            livrée dans le même bundle SF-223-06 — couplé à l'entrée
+            TOOL_REGISTRY frontend, conformément au garde-fou
+            DecisionToolVisibilityIntegrityIT.
+
+            Numéro 588 = numéro libre suivant après 587 (seed SF-223-05
+            regime-algerien-be).
+        </comment>
+
+        <createTable tableName="regime_be_separation_biens_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_regime_be_separation_biens_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="regime_be_separation_biens_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_regime_be_separation_biens_analyses_case_file"/>
+
+        <createIndex tableName="regime_be_separation_biens_analyses"
+                     indexName="idx_regime_be_separation_biens_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="regime_be_separation_biens_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

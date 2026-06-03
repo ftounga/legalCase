@@ -5849,12 +5849,30 @@ public record CaseAnalysisResponse(
             String regimeAlgerienBeDateActeDetectee,
             // SF-223-05 — montant de la dot (mahr) pré-rempli si factualisable
             // (chaîne numérique), sinon null.
-            String regimeAlgerienBeMontantDotDetecte
+            String regimeAlgerienBeMontantDotDetecte,
+            // SF-223-06 — flag pivot CONTEXTUAL de l'outil
+            // regime-be-separation-biens (régime de séparation de biens BE et
+            // ses variantes — Livre 3 CC ; loi du 22/07/2018). Lu à plat sur le
+            // nœud famille (@JsonUnwrapped) par DecisionToolVisibilityService →
+            // trigger `regime_separation_biens_be_detecte`. BELGIQUE UNIQUEMENT.
+            Boolean regimeSeparationBiensBeDetecte,
+            // SF-223-06 — variante du régime pré-remplie si factualisable
+            // (SEPARATION_PURE / SEPARATION_AVEC_SOCIETE_ACQUETS /
+            // SEPARATION_AVEC_PARTICIPATION_ACQUETS), sinon null.
+            String regimeSeparationBiensBeVarianteDetectee,
+            // SF-223-06 — date du contrat de mariage (ISO YYYY-MM-DD), sinon null.
+            String regimeSeparationBiensBeDateContratDetectee,
+            // SF-223-06 — patrimoine propre de l'époux 1 pré-rempli si
+            // factualisable (chaîne numérique), sinon null.
+            String regimeSeparationBiensBePatrimoineEpoux1Detecte,
+            // SF-223-06 — patrimoine propre de l'époux 2 pré-rempli si
+            // factualisable (chaîne numérique), sinon null.
+            String regimeSeparationBiensBePatrimoineEpoux2Detecte
     ) {
         /** Instance vide (tous champs null) — défaut pour les dossiers hors BE. */
         public static Sf223Detail empty() {
             return new Sf223Detail(null, null, null, null, null, null, null, null, null, null,
-                    null, null, null, null);
+                    null, null, null, null, null, null, null, null, null);
         }
     }
 
@@ -7447,6 +7465,10 @@ public record CaseAnalysisResponse(
     /** SF-223-05 : whitelist nature de l'acte du corridor algérien BE (regime-algerien-be). */
     private static final java.util.Set<String> REGIME_ALGERIEN_BE_NATURE_WHITELIST = java.util.Set.of(
             "MARIAGE_ALGERIEN", "TALAQ_ALGERIEN", "DOT_MAHR");
+
+    /** SF-223-06 : whitelist variante du régime de séparation de biens BE (regime-be-separation-biens). */
+    private static final java.util.Set<String> REGIME_SEPARATION_BIENS_BE_VARIANTE_WHITELIST = java.util.Set.of(
+            "SEPARATION_PURE", "SEPARATION_AVEC_SOCIETE_ACQUETS", "SEPARATION_AVEC_PARTICIPATION_ACQUETS");
 
     /** SF-222-01 : whitelist état de paiement pension pour l'ASF FR (art. L. 523-1 CSS). */
     private static final java.util.Set<String> ASF_PENSION_PAYEE_WHITELIST = java.util.Set.of(
@@ -9427,6 +9449,24 @@ public record CaseAnalysisResponse(
                 ? textOrNull(raBe, "date_acte") : null;
         String regimeAlgerienBeMontantDotDetecte = raBeObject
                 ? textOrNull(raBe, "montant_dot") : null;
+        // SF-223-06 : flag pivot `regime_separation_biens_be_detecte` (lu à plat,
+        // @JsonUnwrapped) + sous-objet `regime_separation_biens_be_detection` —
+        // outil regime-be-separation-biens (régime de séparation de biens BE et
+        // ses variantes — Livre 3 CC ; loi du 22/07/2018). BELGIQUE UNIQUEMENT —
+        // null si dossier FR. Le flag gouverne la visibilité CONTEXTUAL de l'outil.
+        Boolean regimeSeparationBiensBeDetecte =
+                booleanOrNull(node, "regime_separation_biens_be_detecte");
+        JsonNode rsbBe = node.get("regime_separation_biens_be_detection");
+        boolean rsbBeObject = rsbBe != null && rsbBe.isObject();
+        String regimeSeparationBiensBeVarianteDetectee = rsbBeObject
+                ? normalizeEnumCode(textOrNull(rsbBe, "variante_regime"),
+                        REGIME_SEPARATION_BIENS_BE_VARIANTE_WHITELIST) : null;
+        String regimeSeparationBiensBeDateContratDetectee = rsbBeObject
+                ? textOrNull(rsbBe, "date_contrat") : null;
+        String regimeSeparationBiensBePatrimoineEpoux1Detecte = rsbBeObject
+                ? textOrNull(rsbBe, "patrimoine_epoux1") : null;
+        String regimeSeparationBiensBePatrimoineEpoux2Detecte = rsbBeObject
+                ? textOrNull(rsbBe, "patrimoine_epoux2") : null;
         Sf223Detail sf223Detail = new Sf223Detail(
                 declarationCohabitationLegaleMentionneeBeDetectee,
                 domicileCommunBeDetecte,
@@ -9441,7 +9481,12 @@ public record CaseAnalysisResponse(
                 regimeAlgerienBeDetecte,
                 regimeAlgerienBeNatureActeDetecte,
                 regimeAlgerienBeDateActeDetectee,
-                regimeAlgerienBeMontantDotDetecte);
+                regimeAlgerienBeMontantDotDetecte,
+                regimeSeparationBiensBeDetecte,
+                regimeSeparationBiensBeVarianteDetectee,
+                regimeSeparationBiensBeDateContratDetectee,
+                regimeSeparationBiensBePatrimoineEpoux1Detecte,
+                regimeSeparationBiensBePatrimoineEpoux2Detecte);
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
