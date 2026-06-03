@@ -3,6 +3,7 @@ package fr.ailegalcase.jurisprudencemapping;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,6 +20,12 @@ import static org.mockito.Mockito.when;
 
 /**
  * F-JU-01 / SF-JU-01-01 — tests unitaires de {@link ToolJurisprudenceService}.
+ *
+ * <p>SF-JU-01-FIX (2026-06-03) : le service délègue désormais à
+ * {@code findDisplayableByToolAndBranch} (filtre chapeau vide + seuil de
+ * confiance appliqué côté requête). Ces tests vérifient la délégation, le
+ * passage du seuil/limite et le mapping DTO ; le filtre SQL réel est couvert par
+ * {@link ToolJurisprudenceCitationFilterIT}.</p>
  */
 class ToolJurisprudenceServiceTest {
 
@@ -35,8 +42,8 @@ class ToolJurisprudenceServiceTest {
 
     @Test
     void findByToolAndBranch_returnsEmpty_whenNoMappingExists() {
-        when(repository.findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                "f-dt-30", "anciennete-superieure-10-ans"))
+        when(repository.findDisplayableByToolAndBranch(
+                eq("f-dt-30"), eq("anciennete-superieure-10-ans"), any(), any()))
                 .thenReturn(List.of());
 
         List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch(
@@ -50,8 +57,8 @@ class ToolJurisprudenceServiceTest {
         ToolJurisprudenceMapping mapping = buildMapping(
                 "Cass. soc. 8 janv. 2025, n° 23-12.345", new BigDecimal("0.92"),
                 LocalDate.of(2025, 1, 8));
-        when(repository.findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                "f-dt-30", "anciennete-superieure-10-ans"))
+        when(repository.findDisplayableByToolAndBranch(
+                eq("f-dt-30"), eq("anciennete-superieure-10-ans"), any(), any()))
                 .thenReturn(List.of(mapping));
 
         List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch(
@@ -67,8 +74,8 @@ class ToolJurisprudenceServiceTest {
         ToolJurisprudenceMapping high = buildMapping("Arret 1", new BigDecimal("0.95"), LocalDate.of(2025, 3, 1));
         ToolJurisprudenceMapping mid = buildMapping("Arret 2", new BigDecimal("0.85"), LocalDate.of(2024, 6, 1));
         ToolJurisprudenceMapping low = buildMapping("Arret 3", new BigDecimal("0.75"), LocalDate.of(2023, 1, 1));
-        when(repository.findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                "f-dt-30", "branche-x"))
+        when(repository.findDisplayableByToolAndBranch(
+                eq("f-dt-30"), eq("branche-x"), any(), any()))
                 .thenReturn(List.of(high, mid, low));
 
         List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch(
@@ -82,53 +89,49 @@ class ToolJurisprudenceServiceTest {
     @Test
     void findByToolAndBranch_returnsImmutableDtos_notEntities() {
         ToolJurisprudenceMapping mapping = buildMapping("Arret", new BigDecimal("0.80"), LocalDate.of(2024, 1, 1));
-        when(repository.findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                any(), any()))
+        when(repository.findDisplayableByToolAndBranch(any(), any(), any(), any()))
                 .thenReturn(List.of(mapping));
 
         List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch("f-dt-30", "branche-x");
 
-        // record Java = immutable par construction, vérifie que le service mappe bien
-        // l'entité vers le DTO (pas l'entité retournée telle quelle)
         assertThat(result).hasSize(1);
         assertThat(result.get(0)).isInstanceOf(ToolJurisprudenceCitationResponse.class);
     }
 
     @Test
     void findByToolAndBranch_returnsEmpty_whenToolIdIsNull() {
-        List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch(null, "branche-x");
-
-        assertThat(result).isEmpty();
+        assertThat(service.findByToolAndBranch(null, "branche-x")).isEmpty();
     }
 
     @Test
     void findByToolAndBranch_returnsEmpty_whenBranchIsNull() {
-        List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch("f-dt-30", null);
-
-        assertThat(result).isEmpty();
+        assertThat(service.findByToolAndBranch("f-dt-30", null)).isEmpty();
     }
 
     @Test
     void findByToolAndBranch_returnsEmpty_whenBranchIsBlank() {
-        List<ToolJurisprudenceCitationResponse> result = service.findByToolAndBranch("f-dt-30", "   ");
-
-        assertThat(result).isEmpty();
+        assertThat(service.findByToolAndBranch("f-dt-30", "   ")).isEmpty();
     }
 
     @Test
-    void findByToolAndBranch_passesToolIdAndBranchToRepository() {
-        when(repository.findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                any(), any()))
+    void findByToolAndBranch_passesToolBranchSeuilEtLimiteTop3AuRepository() {
+        when(repository.findDisplayableByToolAndBranch(any(), any(), any(), any()))
                 .thenReturn(List.of());
 
         service.findByToolAndBranch("F-DT-30-tool", "branche-haute-anciennete");
 
         ArgumentCaptor<String> toolIdCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> branchCaptor = ArgumentCaptor.forClass(String.class);
-        verify(repository).findTop3ByToolIdAndBrancheCalculIdAndArchivedFalseOrderByConfidenceScoreDescDateArretDesc(
-                toolIdCaptor.capture(), branchCaptor.capture());
+        ArgumentCaptor<BigDecimal> minConfCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findDisplayableByToolAndBranch(
+                toolIdCaptor.capture(), branchCaptor.capture(), minConfCaptor.capture(), pageableCaptor.capture());
+
         assertThat(toolIdCaptor.getValue()).isEqualTo("F-DT-30-tool");
         assertThat(branchCaptor.getValue()).isEqualTo("branche-haute-anciennete");
+        // SF-JU-01-FIX : seuil d'affichage 0,60 et limite top 3
+        assertThat(minConfCaptor.getValue()).isEqualByComparingTo(new BigDecimal("0.60"));
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(3);
     }
 
     private ToolJurisprudenceMapping buildMapping(String arretRef, BigDecimal confidenceScore, LocalDate dateArret) {
@@ -152,17 +155,16 @@ class ToolJurisprudenceServiceTest {
 
     @Test
     void signalProblem_createsFlagWithUserSignalSource() {
-        java.util.UUID citationId = java.util.UUID.randomUUID();
+        UUID citationId = UUID.randomUUID();
         ToolJurisprudenceMapping mapping = buildMapping("Cass. soc. 8 janv. 2025, n° 23-12.345",
-                new java.math.BigDecimal("0.90"), java.time.LocalDate.of(2025, 1, 8));
+                new BigDecimal("0.90"), LocalDate.of(2025, 1, 8));
         mapping.setId(citationId);
-        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+        when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
 
         service.signalProblem("f-dt-30", citationId, "L'arrêt cité est obsolète à mon avis");
 
-        org.mockito.ArgumentCaptor<JurisprudenceWatchFlag> captor =
-                org.mockito.ArgumentCaptor.forClass(JurisprudenceWatchFlag.class);
-        org.mockito.Mockito.verify(flagRepository).save(captor.capture());
+        ArgumentCaptor<JurisprudenceWatchFlag> captor = ArgumentCaptor.forClass(JurisprudenceWatchFlag.class);
+        verify(flagRepository).save(captor.capture());
         JurisprudenceWatchFlag saved = captor.getValue();
         assertThat(saved.getSource()).isEqualTo(JurisprudenceWatchFlagSource.USER_SIGNAL);
         assertThat(saved.getStatut()).isEqualTo(JurisprudenceWatchFlagStatut.PENDING);
@@ -173,8 +175,8 @@ class ToolJurisprudenceServiceTest {
 
     @Test
     void signalProblem_throwsNotFound_whenCitationMissing() {
-        java.util.UUID citationId = java.util.UUID.randomUUID();
-        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.empty());
+        UUID citationId = UUID.randomUUID();
+        when(repository.findById(citationId)).thenReturn(java.util.Optional.empty());
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
@@ -183,12 +185,11 @@ class ToolJurisprudenceServiceTest {
 
     @Test
     void signalProblem_throwsNotFound_whenCitationArchived() {
-        java.util.UUID citationId = java.util.UUID.randomUUID();
-        ToolJurisprudenceMapping mapping = buildMapping("ref", new java.math.BigDecimal("0.90"),
-                java.time.LocalDate.of(2024, 1, 1));
+        UUID citationId = UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("ref", new BigDecimal("0.90"), LocalDate.of(2024, 1, 1));
         mapping.setId(citationId);
         mapping.setArchived(true);
-        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+        when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
@@ -197,12 +198,11 @@ class ToolJurisprudenceServiceTest {
 
     @Test
     void signalProblem_throwsNotFound_whenToolIdMismatches() {
-        java.util.UUID citationId = java.util.UUID.randomUUID();
-        ToolJurisprudenceMapping mapping = buildMapping("ref", new java.math.BigDecimal("0.90"),
-                java.time.LocalDate.of(2024, 1, 1));
+        UUID citationId = UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("ref", new BigDecimal("0.90"), LocalDate.of(2024, 1, 1));
         mapping.setId(citationId);
         mapping.setToolId("f-dt-30");
-        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+        when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
@@ -211,17 +211,15 @@ class ToolJurisprudenceServiceTest {
 
     @Test
     void signalProblem_nullComment_savesFlagWithoutComment() {
-        java.util.UUID citationId = java.util.UUID.randomUUID();
-        ToolJurisprudenceMapping mapping = buildMapping("ref", new java.math.BigDecimal("0.90"),
-                java.time.LocalDate.of(2024, 1, 1));
+        UUID citationId = UUID.randomUUID();
+        ToolJurisprudenceMapping mapping = buildMapping("ref", new BigDecimal("0.90"), LocalDate.of(2024, 1, 1));
         mapping.setId(citationId);
-        org.mockito.Mockito.when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
+        when(repository.findById(citationId)).thenReturn(java.util.Optional.of(mapping));
 
         service.signalProblem("f-dt-30", citationId, null);
 
-        org.mockito.ArgumentCaptor<JurisprudenceWatchFlag> captor =
-                org.mockito.ArgumentCaptor.forClass(JurisprudenceWatchFlag.class);
-        org.mockito.Mockito.verify(flagRepository).save(captor.capture());
+        ArgumentCaptor<JurisprudenceWatchFlag> captor = ArgumentCaptor.forClass(JurisprudenceWatchFlag.class);
+        verify(flagRepository).save(captor.capture());
         assertThat(captor.getValue().getCommentUser()).isNull();
     }
 }
