@@ -66,6 +66,8 @@ import { RegimeMayotteSectionComponent } from '../regime-mayotte-section/regime-
 import { VpfJeuneMajeurSectionComponent } from '../vpf-jeune-majeur-section/vpf-jeune-majeur-section.component';
 // SF-220-04 : composant complet F-IM-50-pacs-vpf-fr — VPF au titre d'un PACS L.423-23 (FR, faisceau).
 import { PacsVpfSectionComponent } from '../pacs-vpf-section/pacs-vpf-section.component';
+// SF-220-05 : composant complet F-IM-51-decheance-nationalite-fr — validité déchéance de nationalité (FR, Cciv 25/25-1).
+import { DecheanceNationaliteSectionComponent } from '../decheance-nationalite-section/decheance-nationalite-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
@@ -1709,6 +1711,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-50-pacs-vpf-fr', {
         displayLabel: 'VPF au titre d\'un PACS L.423-23 (FR)',
         component: PacsVpfSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-220-05 : composant complet F-IM-51 validité déchéance de nationalité
+      // (Code civil art. 25 et 25-1, FR). FR uniquement, CONTEXTUAL sur le flag pivot
+      // decheance_nationalite_detectee. Outil de VALIDITÉ d'une mesure (apatridie /
+      // délai Cciv 25-1 / délai de recours REP Conseil d'État). Distinct de F-IM-13
+      // (acquisition) et F-IM-39/40 (recours refus naturalisation). Pré-fill IA 4 champs
+      // (motif, binational, mesure prononcée, date du décret) via static getPrefillCount +
+      // DecheanceNationalitePrefillRules.
+      ['F-IM-51-decheance-nationalite-fr', {
+        displayLabel: 'Validité déchéance de nationalité (Cciv 25 / 25-1) (FR)',
+        component: DecheanceNationaliteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5809,6 +5828,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // de faisceau d'indices (4 verdicts). Thème VALIDITE, aligné sur F-IM-27 VPF
     // liens personnels / autres analyseurs d'éligibilité Immigration FR.
     ['F-IM-50-pacs-vpf-fr', 'VALIDITE'],
+    // SF-220-05 : F-IM-51 validité déchéance de nationalité (Code civil art. 25 et
+    // 25-1, FR) — analyseur de validité d'une mesure (4 verdicts). Thème VALIDITE,
+    // aligné sur les autres analyseurs de validité de mesure Immigration FR.
+    ['F-IM-51-decheance-nationalite-fr', 'VALIDITE'],
     // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.

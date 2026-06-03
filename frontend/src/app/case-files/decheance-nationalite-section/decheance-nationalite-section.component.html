@@ -1,0 +1,244 @@
+<section class="dech-section">
+  <header class="dech-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dech-body">
+    <mat-icon class="dech-icon">gavel</mat-icon>
+    <span class="dech-title">VALIDITÉ DÉCHÉANCE DE NATIONALITÉ (Cciv 25 / 25-1) (FR)</span>
+    @if (result()) {
+      <span class="dech-chip"
+            [class.dech-chip--success]="result()!.validite === 'CONDITIONS_REUNIES'"
+            [class.dech-chip--warning]="result()!.validite === 'MESURE_CONTESTABLE'"
+            [class.dech-chip--danger]="result()!.validite === 'MESURE_IRREGULIERE'"
+            [class.dech-chip--neutral]="result()!.validite === 'INDETERMINE'">
+        {{ validiteLabel(result()!.validite) }}
+      </span>
+    }
+    <mat-icon class="dech-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dech-body" class="dech-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isFrance()) {
+        <div class="dech-banner dech-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="dech-banner-content">
+            <div class="dech-banner-title">Déchéance de nationalité — procédure française uniquement</div>
+            <div class="dech-banner-sub">
+              La déchéance de la nationalité (Code civil art. 25 et 25-1) ne concerne que la nationalité française.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="dech-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <p class="dech-intro">
+              La déchéance de nationalité (Code civil art. 25) est une mesure
+              <strong>exceptionnelle</strong> : elle suppose un <strong>binational</strong>
+              (interdiction de créer un apatride), des faits commis dans le
+              <strong>délai</strong> de l'art. 25-1 et est soumise au contrôle de
+              proportionnalité. Le décret est attaquable devant le Conseil d'État
+              (2 mois). À vérifier par l'avocat.
+            </p>
+            <form class="dech-form" (ngSubmit)="analyze()">
+              <div class="dech-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de déchéance (Cciv 25)</mat-label>
+                  <mat-select [ngModel]="motif()"
+                              (ngModelChange)="onMotifChange($event)"
+                              name="motif" required>
+                    @for (m of motifs; track m) {
+                      <mat-option [value]="m">{{ motifLabel(m) }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Requis</mat-hint>
+                </mat-form-field>
+                @if (provenanceMotif() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="dech-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Personne binationale</mat-label>
+                  <mat-select [ngModel]="binational()"
+                              (ngModelChange)="onBinationalChange($event)"
+                              name="binational">
+                    <mat-option [value]="true">Oui (seconde nationalité)</mat-option>
+                    <mat-option [value]="false">Non (risque d'apatridie)</mat-option>
+                    <mat-option [value]="null">Non précisé</mat-option>
+                  </mat-select>
+                  <mat-hint>La déchéance ne peut rendre apatride</mat-hint>
+                </mat-form-field>
+                @if (provenanceBinational() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="dech-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'acquisition de la nationalité</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateAcquisitionNationalite()"
+                         (ngModelChange)="dateAcquisitionNationalite.set($event)"
+                         name="dateAcquisitionNationalite" />
+                  <mat-hint>Optionnel — pour le délai Cciv 25-1</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="dech-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date des faits reprochés</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateFaits()"
+                         (ngModelChange)="dateFaits.set($event)"
+                         name="dateFaits" />
+                  <mat-hint>Optionnel — pour le délai Cciv 25-1</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="dech-field-wrap dech-field-wrap--checkbox">
+                <mat-checkbox [ngModel]="mesurePrononcee()"
+                              (ngModelChange)="onMesurePrononceeChange($event)"
+                              name="mesurePrononcee">
+                  Mesure déjà prononcée par décret
+                </mat-checkbox>
+                @if (provenanceMesurePrononcee() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              @if (mesurePrononcee()) {
+                <div class="dech-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date du décret de déchéance</mat-label>
+                    <input matInput type="date"
+                           [ngModel]="dateDecret()"
+                           (ngModelChange)="onDateDecretChange($event)"
+                           name="dateDecret" />
+                    <mat-hint>Point de départ du délai de recours (2 mois)</mat-hint>
+                  </mat-form-field>
+                  @if (provenanceDateDecret() === 'IA') {
+                    <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                  }
+                </div>
+              }
+
+              <div class="dech-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la validité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="dech-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="dech-banner-content">
+                  <div class="dech-banner-title">{{ validiteLabel(result()!.validite) }}</div>
+                  <div class="dech-banner-sub">
+                    Mesure exceptionnelle (Cciv 25) sous contrôle de proportionnalité. À vérifier par l'avocat.
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.conditionsManquantes?.length) {
+                <div class="dech-block">
+                  <div class="dech-block-label">Conditions manquantes / fragilités</div>
+                  <ul class="dech-list">
+                    @for (c of result()!.conditionsManquantes; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.voiesRecours?.length) {
+                <div class="dech-block">
+                  <div class="dech-block-label">Voies de recours</div>
+                  <ul class="dech-list">
+                    @for (v of result()!.voiesRecours; track v) {
+                      <li>{{ v }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <div class="dech-block">
+                  <div class="dech-block-label">Points d'attention</div>
+                  <ul class="dech-list dech-list--muted">
+                    @for (m of result()!.messages; track m) {
+                      <li>{{ m }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <ul class="dech-breakdown">
+                <li>
+                  <span class="dech-bd-label">Motif</span>
+                  <span class="dech-bd-value">{{ motifLabel(result()!.motif) }}</span>
+                </li>
+                <li>
+                  <span class="dech-bd-label">Binational</span>
+                  <span class="dech-bd-value">
+                    {{ result()!.binational === true ? 'Oui' : (result()!.binational === false ? 'Non' : 'Non précisé') }}
+                  </span>
+                </li>
+                <li>
+                  <span class="dech-bd-label">Mesure prononcée</span>
+                  <span class="dech-bd-value">{{ result()!.mesurePrononcee ? 'Oui' : 'Non' }}</span>
+                </li>
+                @if (result()!.delaiRecoursJours !== null) {
+                  <li>
+                    <span class="dech-bd-label">Délai de recours (Conseil d'État)</span>
+                    <span class="dech-bd-value">{{ result()!.delaiRecoursJours }} jours</span>
+                  </li>
+                }
+                @if (result()!.dateDecret) {
+                  <li>
+                    <span class="dech-bd-label">Date du décret</span>
+                    <span class="dech-bd-value">{{ result()!.dateDecret }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.basesJuridiques?.length) {
+                <div class="dech-meta">
+                  <span class="dech-meta-base" [innerHTML]="result()!.basesJuridiques.join(' ; ') | legalCitations"></span>
+                  <button mat-stroked-button type="button" (click)="editMode()">
+                    <mat-icon>edit</mat-icon> Modifier
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>

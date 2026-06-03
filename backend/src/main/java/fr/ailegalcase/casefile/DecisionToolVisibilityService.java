@@ -387,6 +387,10 @@ public class DecisionToolVisibilityService {
         // Détecte un contexte de PACS apprécié comme faisceau d'indices de vie privée et familiale :
         // flag pivot booléen `pacs_detecte` extrait dans immigration_extracted_data.
         addBooleanFlagIfTrue(detected, immigrationNode, "pacs_detecte");
+        // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR — flag pivot CONTEXTUAL Immigration FR.
+        // Détecte un contexte de mesure (envisagée ou prononcée) de déchéance de la nationalité française :
+        // flag pivot booléen `decheance_nationalite_detectee` extrait dans immigration_extracted_data.
+        addBooleanFlagIfTrue(detected, immigrationNode, "decheance_nationalite_detectee");
         // SF-214-11 : F-IM-30 AES calcul présence prouvée FR — flag pivot DÉRIVÉ.
         // L'outil de calcul de présence est transversal aux 4 voies AES : il se déclenche
         // dès qu'au moins une des 4 voies AES est détectée. Le flag pivot
