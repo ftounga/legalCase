@@ -501,6 +501,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `pension_alimentaire_detection.envisagee` (même pattern).
         addBooleanFlagIfTrueNested(detected, familleNode, "pension_alimentaire_detection", "envisagee",
                 "pension_alimentaire_envisagee");
+        // === SF-222-01 — 1 flag CONTEXTUAL Famille FR : ASF allocation de soutien familial ===
+        // Lire depuis sous-objet `asf_caf_detection.detecte` (même pattern, art. L. 523-1 CSS).
+        addBooleanFlagIfTrueNested(detected, familleNode, "asf_caf_detection", "detecte",
+                "asf_caf_detecte");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

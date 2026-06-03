@@ -926,6 +926,25 @@ export interface FamilleExtractedData {
    * Source backend : `pension_alimentaire_detection.mode_residence`.
    */
   modeResidenceEnfantsDetecte?: 'ALTERNEE' | 'PRINCIPALE_PARENT1' | 'PRINCIPALE_PARENT2' | string | null;
+
+  // ── SF-222-01 : 6 champs IA ASF allocation de soutien familial FR (F-FA-ASF-CAF) ──
+  /**
+   * SF-222-01 : FRANCE — flag CONTEXTUAL indiquant qu'une situation ASF est
+   * détectée (parent isolé + autre parent défaillant / décédé / inconnu —
+   * art. L. 523-1 CSS). Source backend : `asf_caf_detection.detecte`.
+   */
+  asfCafDetecte?: boolean | null;
+  /** SF-222-01 : FRANCE — parent isolé. Source : `asf_caf_detection.parent_isole`. */
+  asfParentIsole?: boolean | null;
+  /** SF-222-01 : FRANCE — pension fixée par titre exécutoire. Source : `asf_caf_detection.pension_fixee`. */
+  asfPensionFixee?: boolean | null;
+  /** SF-222-01 : FRANCE — montant pension mensuelle (€, ≥ 0). Source : `asf_caf_detection.montant_pension_mensuel`. */
+  asfMontantPension?: number | null;
+  /** SF-222-01 : FRANCE — état de paiement (NON_PAYEE / PARTIELLE / PAYEE). Source : `asf_caf_detection.pension_payee`. */
+  asfPensionPayee?: 'NON_PAYEE' | 'PARTIELLE' | 'PAYEE' | string | null;
+  /** SF-222-01 : FRANCE — nombre d'enfants à charge (≥ 1). Source : `asf_caf_detection.nb_enfants`. */
+  asfNbEnfants?: number | null;
+
   /**
    * SF-216-09 : FRANCE — flag CONTEXTUAL délégation autorité parentale envisagée
    * (art. 376-1 Cciv). Source backend : `delegation_ap_detection.envisagee`.

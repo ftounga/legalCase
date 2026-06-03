@@ -125,6 +125,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-04-liquidation-communaute",
             // SF-216-07 : outil ARIPA recouvrement — table dédiée, pas de tile dashboard.
             "F-FA-ARIPA-RECOUVREMENT",
+            // SF-222-01 : outil ASF allocation de soutien familial — table dédiée, pas de tile dashboard.
+            "F-FA-ASF-CAF",
             // SF-216-15 : outil Adoption intra-familiale — table dédiée, pas de tile dashboard.
             "F-FA-ADOPTION-INTRA",
             // SF-216-17 : outil Adoption internationale — table dédiée, pas de tile dashboard.

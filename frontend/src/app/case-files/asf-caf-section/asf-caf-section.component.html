@@ -1,0 +1,157 @@
+<!--
+  SF-222-01 : template de l'outil ASF allocation de soutien familial
+  (F-FA-ASF-CAF, FRANCE uniquement — art. L. 523-1 CSS).
+  Pattern : aripa-recouvrement-fr-section.
+-->
+<section class="asf-section" [class.asf-section--collapsed]="collapsed()">
+  <header class="asf-section__header" (click)="toggleCollapse()">
+    <mat-icon class="asf-section__icon">family_restroom</mat-icon>
+    <h3 class="asf-section__title">Allocation de soutien familial (ASF)</h3>
+    <span class="asf-section__country">FR</span>
+    <mat-icon class="asf-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="asf-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="asf-banner asf-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France (art. L. 523-1 CSS). En Belgique, le
+        soutien aux familles monoparentales relève des allocations familiales
+        régionalisées et du SECAL — outil distinct.
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="asf-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="asf-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="asf-form__intro">
+          Évaluez le droit à l'ASF versée par la CAF lorsque l'autre parent ne paie
+          pas (ou paie insuffisamment) la pension alimentaire, et estimez le montant
+          mensuel. Le recouvrement forcé de la pension relève de l'outil ARIPA.
+        </p>
+
+        <div class="asf-form__row asf-form__row--checks">
+          <mat-checkbox [checked]="parentIsole()"
+                        (change)="onParentIsoleChange($event.checked)"
+                        name="parentIsole">
+            Parent isolé assumant seul la charge de l'enfant
+            <mat-icon *ngIf="provenanceParentIsole() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="pensionFixee()"
+                        (change)="onPensionFixeeChange($event.checked)"
+                        name="pensionFixee">
+            Pension alimentaire fixée par titre exécutoire
+            <mat-icon *ngIf="provenancePensionFixee() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="autreParentDecedeOuInconnu()"
+                        (change)="onAutreParentChange($event.checked)"
+                        name="autreParent">
+            Autre parent décédé, hors d'état ou non identifié
+          </mat-checkbox>
+        </div>
+
+        <div class="asf-form__row">
+          <mat-form-field appearance="outline" class="asf-form__field">
+            <mat-label>Montant pension mensuelle (€/mois)</mat-label>
+            <input matInput type="number" min="0" step="10"
+                   [ngModel]="montantPensionMensuel()"
+                   (ngModelChange)="onMontantPensionChange($event)"
+                   name="montantPension" />
+            <mat-icon *ngIf="provenanceMontantPension() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="asf-form__field">
+            <mat-label>État de paiement de la pension</mat-label>
+            <mat-select [ngModel]="pensionPayee()"
+                        (ngModelChange)="onPensionPayeeChange($event)"
+                        name="pensionPayee">
+              <mat-option *ngFor="let opt of pensionPayeeOptions" [value]="opt.value">{{ opt.label }}</mat-option>
+            </mat-select>
+            <mat-icon *ngIf="provenancePensionPayee() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="asf-form__field">
+            <mat-label>Nombre d'enfants à charge</mat-label>
+            <input matInput type="number" min="1" step="1"
+                   [ngModel]="nbEnfantsACharge()"
+                   (ngModelChange)="onNbEnfantsChange($event)"
+                   name="nbEnfants"
+                   required />
+            <mat-icon *ngIf="provenanceNbEnfants() === 'IA'" matSuffix matTooltip="Pré-rempli par l'IA">auto_awesome</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <div class="asf-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Calcul en cours…' : 'Évaluer le droit à l\'ASF' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="asf-result" *ngIf="!showForm() && result() as r">
+        <div class="asf-result__verdict" [ngClass]="verdictClass(r.verdict)">
+          <mat-icon>fact_check</mat-icon>
+          <div>
+            <span class="asf-result__verdict-label">Verdict</span>
+            <strong class="asf-result__verdict-value">{{ verdictLabel(r.verdict) }}</strong>
+          </div>
+        </div>
+
+        <div class="asf-result__metrics">
+          <div class="asf-metric" *ngIf="r.montantMensuelEstime > 0">
+            <span class="asf-metric__label">Montant ASF mensuel estimé</span>
+            <strong class="asf-metric__value">{{ formatEuros(r.montantMensuelEstime) }}</strong>
+          </div>
+        </div>
+
+        <div class="asf-result__recouvrement" *ngIf="r.recouvrementApplicable">
+          <mat-icon>swap_horiz</mat-icon>
+          <span>
+            Pension impayée : la CAF se subroge dans le recouvrement. Voir l'outil
+            <strong>ARIPA recouvrement</strong> (F-FA-ARIPA-RECOUVREMENT) — cet outil
+            ne calcule pas le recouvrement.
+          </span>
+        </div>
+
+        <div class="asf-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Informations</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="asf-result__base" *ngIf="r.basesJuridiques.length > 0">
+          <h4>Bases juridiques</h4>
+          <ul>
+            <li *ngFor="let b of r.basesJuridiques">{{ b | legalCitations }}</li>
+          </ul>
+        </div>
+
+        <div class="asf-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+  <app-tool-jurisprudence-citations
+    [toolId]="toolIdForJurisprudence"
+    [branchActive]="brancheActiveForJurisprudence">
+  </app-tool-jurisprudence-citations>
+</section>

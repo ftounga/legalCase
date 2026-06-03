@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="546-seed-asf-caf-visibility" author="legalcase">
+        <comment>
+            SF-222-01 (F-222) — seed decision_tool_visibility_rules pour l'outil
+            decisionnel "Allocation de soutien familial" (ASF — F-FA-ASF-CAF,
+            FRANCE, art. L. 523-1 CSS).
+
+            Mode CONTEXTUAL : l'outil n'apparait que si le pipeline IA detecte une
+            situation ASF — trigger asf_caf_detecte lu depuis le sous-objet
+            famille_extracted_data.asf_caf_detection.detecte par
+            DecisionToolVisibilityService (methode addBooleanFlagIfTrueNested,
+            reutilisee depuis SF-216).
+
+            priority 113 — rang suivant le max actuel des outils Famille FR
+            (112 = F-FA-DONATION-PARTAGE, SF-216-29).
+
+            UUID namespace dedie F-222 : f1a05222-0000-0000-0000-eeee22200001.
+
+            Anti-doublon F-FA-ARIPA-RECOUVREMENT : l'ASF est le droit + montant de
+            la prestation CAF ; le recouvrement force de la pension reste l'outil
+            ARIPA distinct.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a05222-0000-0000-0000-eeee22200001', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-ASF-CAF',
+        'CONTEXTUAL', 'asf_caf_detecte', 'true', 113);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a05222-0000-0000-0000-eeee22200001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
