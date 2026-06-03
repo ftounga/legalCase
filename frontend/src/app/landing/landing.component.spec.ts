@@ -27,12 +27,28 @@ describe('LandingComponent', () => {
   });
 
   it('définit le title SEO au chargement', () => {
-    expect(titleService.getTitle()).toContain('92 outils décisionnels');
+    expect(titleService.getTitle()).toContain('250+ outils décisionnels');
+    expect(titleService.getTitle()).not.toContain('92');
+  });
+
+  // SF-158-06 : SEO aligné V4 — title < 70 car, description < 160 car (bonnes pratiques)
+  it('le title SEO fait moins de 70 caractères', () => {
+    expect(titleService.getTitle().length).toBeLessThan(70);
+  });
+
+  it('la meta description SEO fait moins de 160 caractères et mentionne « 250+ » + conclusions', () => {
+    const tag = metaService.getTag('name="description"');
+    expect(tag?.content.length).toBeLessThan(160);
+    expect(tag?.content).toContain('250+');
+    expect(tag?.content).toContain('conclusions');
+    expect(tag?.content).not.toContain('92');
   });
 
   it('définit la meta description SEO au chargement', () => {
     const tag = metaService.getTag('name="description"');
-    expect(tag?.content).toContain('Essai gratuit 14 jours');
+    // SF-158-06 : description V4 (< 160 car) — essentiel = 250+ outils + conclusions + FR/BE
+    expect(tag?.content).toContain('250+');
+    expect(tag?.content).toContain('FR/BE');
   });
 
   it('définit la meta og:title au chargement', () => {
@@ -44,7 +60,8 @@ describe('LandingComponent', () => {
     const card = metaService.getTag('name="twitter:card"');
     expect(card?.content).toBe('summary_large_image');
     const tw = metaService.getTag('name="twitter:title"');
-    expect(tw?.content).toContain('92 outils');
+    expect(tw?.content).toContain('250+ outils');
+    expect(tw?.content).not.toContain('92');
   });
 
   it('insère un link rel="canonical"', () => {
@@ -203,5 +220,33 @@ describe('LandingComponent', () => {
     ) as HTMLAnchorElement | undefined;
     expect(dpaLink).toBeTruthy();
     expect(dpaLink?.getAttribute('href')).toBe('/api/v1/legal/dpa');
+  });
+
+  // SF-158-06 : nettoyage claims non sourcés + allègement charge écran
+  it('SF-158-06 — le hero ne contient plus le claim « 10× » ni « Plus rapide qu\'une lecture manuelle »', () => {
+    const hero = fixture.nativeElement.querySelector('.hero-stats') as HTMLElement;
+    const txt = hero?.textContent ?? '';
+    expect(txt).not.toContain('10×');
+    expect(txt).not.toContain('Plus rapide qu\'une lecture manuelle');
+  });
+
+  it('SF-158-06 — le hero expose une stat factuelle « France & Belgique »', () => {
+    const hero = fixture.nativeElement.querySelector('.hero-stats') as HTMLElement;
+    expect(hero?.textContent).toContain('France & Belgique');
+  });
+
+  it('SF-158-06 — la section OCR ne contient plus le claim « 200 dpi »', () => {
+    const html = fixture.nativeElement.innerHTML as string;
+    expect(html).not.toContain('200 dpi');
+  });
+
+  it('SF-158-06 — la section Fonctionnalités rend exactement 6 cartes', () => {
+    const cards = fixture.nativeElement.querySelectorAll('#fonctionnalites .feature-card');
+    expect(cards.length).toBe(6);
+  });
+
+  it('SF-158-06 — garde-fou : le template ne contient plus « 92 »', () => {
+    const html = fixture.nativeElement.innerHTML as string;
+    expect(html).not.toContain('92');
   });
 });
