@@ -2336,6 +2336,20 @@ export interface ImmigrationExtractedData {
   detentionDateDebut?: string | null;
   detentionBaseLegale?: string | null;
   detentionDateNotification?: string | null;
+  /**
+   * SF-221-05 — F-IM-57 recours CCE en SUSPENSION ORDINAIRE (référé administratif,
+   * art. 39/82 Loi 15/12/1980, loi 15/09/2006) — BELGIQUE uniquement. Distinct de
+   * l'annulation 30j (F-IM-31) et de l'extrême urgence 5j (F-IM-32).
+   * 1 flag pivot CONTEXTUAL (`cceSuspensionDetecte`) + 3 champs de pré-fill.
+   * `cceSuspensionDetecte` : contexte de recours en suspension détecté (pilote la visibilité).
+   * `cceSuspensionDateNotification` : date de notification de la décision attaquée (ISO yyyy-MM-dd, non future).
+   * `cceSuspensionUrgence` : urgence (non extrême) invocable / documentée.
+   * `cceSuspensionPrejudiceGrave` : risque de préjudice grave difficilement réparable documenté.
+   */
+  cceSuspensionDetecte?: boolean | null;
+  cceSuspensionDateNotification?: string | null;
+  cceSuspensionUrgence?: boolean | null;
+  cceSuspensionPrejudiceGrave?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

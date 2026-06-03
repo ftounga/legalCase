@@ -1237,7 +1237,13 @@ class DashboardTileToolIdIntegrityIT {
             // Seed visibility (migration 573) + entrée TOOL_REGISTRY frontend livrées dans la même
             // PR back+front. Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-IM-56-detention-centre-ferme-be"
+            "F-IM-56-detention-centre-ferme-be",
+            // SF-221-05 : F-IM-57-cce-suspension-be — recours CCE en SUSPENSION ORDINAIRE
+            // (référé administratif art. 39/82 Loi 15/12/1980, loi 15/09/2006). 3e recours
+            // CCE distinct de l'annulation 30j (F-IM-31) et de l'extrême urgence 5j (F-IM-32).
+            // Outil décisionnel CONTEXTUAL BE, pas de tuile dashboard. Seed visibility
+            // (migration 575) + entrée TOOL_REGISTRY frontend livrées dans la même PR back+front.
+            "F-IM-57-cce-suspension-be"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

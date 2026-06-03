@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="58c8f520-58ac-42bd-b7d6-e004780b8ef1-create-cce-suspension-be" author="legalcase">
+        <comment>
+            SF-221-05 : table dediee a l'outil decisionnel "Recours CCE en suspension BE"
+            (F-IM-57-cce-suspension-be, BELGIQUE — fondement : Loi du 15/12/1980 art. 39/82
+            (demande de suspension de l'execution de l'acte attaque devant le CCE, greffee
+            sur la requete en annulation) ; Loi du 15/09/2006 (reforme du contentieux des
+            etrangers — conditions : urgence + risque de prejudice grave difficilement
+            reparable). (a verifier par avocat BE 2026).
+
+            UNE SEULE situation = la SUSPENSION ORDINAIRE (refere administratif). 3e recours
+            CCE DISTINCT des deux deja livres en P2 (audit 6.2 : ne pas fusionner) :
+            - F-IM-31-cce-annulation-30j-be = annulation, 30 j calendaires (legalite) ;
+            - F-IM-32-cce-extreme-urgence-5j-be = suspension EXTREME urgence, 5 j ouvrables
+              (eloignement imminent) ;
+            - F-IM-57-cce-suspension-be (cet outil) = suspension ORDINAIRE : urgence (non
+              extreme) + prejudice grave difficilement reparable, greffee sur l'annulation.
+            DISTINCT du generateur F-IM-06 (qui produit le document de recours).
+
+            L'outil calcule :
+            - joursDepuisNotification = jours ecoules depuis dateNotificationDecision ;
+            - le verdict 5 etats : CONDITIONS_REUNIES / URGENCE_NON_DEMONTREE /
+              PREJUDICE_NON_DEMONTRE / HORS_DELAI_ANNULATION / REORIENTER_EXTREME_URGENCE ;
+            - renvoiOutil = F-IM-32-cce-extreme-urgence-5j-be si eloignement imminent ;
+            - la liste des bases juridiques annotees "(a verifier par avocat)" + messages.
+
+            Snapshot JSON complet (inputs + outputs) dans result_data pour permettre la
+            restitution UI sans recalcul (pattern F-DT-42).
+
+            Pattern F-215 : la migration de seed visibility CONTEXTUAL
+            (575-seed-cce-suspension-be-visibility.xml) est livree dans la MEME PR que
+            cette table.
+        </comment>
+
+        <createTable tableName="cce_suspension_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_cce_suspension_be_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_notification_decision" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recours_annulation_introduit" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="urgence_invocable" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_prejudice_grave" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mesure_eloignement_imminente" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="BELGIQUE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="cce_suspension_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_cce_suspension_be_case_file"/>
+
+        <createIndex tableName="cce_suspension_be_analyses"
+                     indexName="idx_cce_suspension_be_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="cce_suspension_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,213 @@
+<section class="susp-section">
+  <header class="susp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="susp-body">
+    <mat-icon class="susp-icon">pause_circle</mat-icon>
+    <span class="susp-title">RECOURS CCE SUSPENSION (BE)</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }}
+      </span>
+    }
+    <mat-icon class="susp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="susp-body" class="susp-body">
+      @if (standaloneMode) {
+        <div class="standalone-banner" data-testid="standalone-banner">
+          <span class="standalone-banner__emoji" aria-hidden="true">🧪</span>
+          <span class="standalone-banner__text">
+            <strong>Mode simulateur</strong> — les données saisies ne sont pas
+            sauvegardées sur un dossier client.
+          </span>
+        </div>
+      }
+      @if (!isBelgique()) {
+        <div class="susp-banner susp-banner--info" role="note" data-testid="fr-banner">
+          <mat-icon>info_outline</mat-icon>
+          <div class="susp-banner-content">
+            <div class="susp-banner-title">Outil Belgique uniquement</div>
+            <div class="susp-banner-sub">
+              Vous êtes sur un workspace <strong>FRANCE</strong>. Le recours CCE en
+              suspension (art. 39/82 Loi 15/12/1980, loi 15/09/2006) ne s'applique qu'en
+              Belgique. Pour la France, voir les outils OQTF / référé suspension TA.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="susp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="susp-form" (ngSubmit)="analyze()">
+              <div class="susp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Notification de la décision attaquée</mat-label>
+                  <input matInput type="date" required
+                         data-testid="date-notification-input"
+                         [ngModel]="dateNotificationDecision()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationDecision" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="susp-coherence-badge coherence-warning"
+                        data-testid="coherence-date-notification"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [attr.aria-label]="alertBadgeLabel(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+                <span class="susp-field-hint">
+                  Point de départ du délai d'annulation de 30 jours sur lequel se greffe la suspension.
+                </span>
+              </div>
+
+              <div class="susp-field-wrap susp-field-wrap--full">
+                <mat-checkbox
+                    data-testid="urgence-checkbox"
+                    [ngModel]="urgenceInvocable()"
+                    (ngModelChange)="onUrgenceChange($event)"
+                    name="urgenceInvocable">
+                  Une urgence (non extrême) est invocable
+                </mat-checkbox>
+                @if (provenanceUrgence() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="susp-field-wrap susp-field-wrap--full">
+                <mat-checkbox
+                    data-testid="prejudice-checkbox"
+                    [ngModel]="risquePrejudiceGraveDifficilementReparable()"
+                    (ngModelChange)="onPrejudiceChange($event)"
+                    name="risquePrejudiceGraveDifficilementReparable">
+                  Risque de préjudice grave difficilement réparable
+                </mat-checkbox>
+                @if (provenancePrejudice() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="susp-field-wrap susp-field-wrap--full">
+                <mat-checkbox
+                    data-testid="recours-annulation-checkbox"
+                    [ngModel]="recoursAnnulationIntroduit()"
+                    (ngModelChange)="onRecoursAnnulationChange($event)"
+                    name="recoursAnnulationIntroduit">
+                  Un recours en annulation (30j) a déjà été introduit
+                </mat-checkbox>
+              </div>
+
+              <div class="susp-field-wrap susp-field-wrap--full">
+                <mat-checkbox
+                    data-testid="eloignement-checkbox"
+                    [ngModel]="mesureEloignementImminente()"
+                    (ngModelChange)="onEloignementChange($event)"
+                    name="mesureEloignementImminente">
+                  Une mesure d'éloignement est imminente
+                </mat-checkbox>
+              </div>
+
+              <div class="susp-hint">
+                Évaluation des conditions de la <strong>suspension ordinaire</strong>
+                (référé administratif : urgence + préjudice grave difficilement réparable,
+                art. 39/82 Loi 15/12/1980 ; loi 15/09/2006), greffée sur la requête en
+                annulation 30j. Distinct de l'annulation 30j (F-IM-31) et de l'extrême
+                urgence 5j ouvrables (F-IM-32) — délais et conditions à vérifier par avocat.
+              </div>
+
+              <div class="susp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Évaluer la suspension</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="susp-result">
+              <div [class]="verdictBannerClass(result()!.verdict)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdict) }}</mat-icon>
+                <div class="susp-banner-content">
+                  <div class="susp-banner-title">{{ verdictLabel(result()!.verdict) }}</div>
+                  <div class="susp-banner-sub">
+                    Jours depuis la notification :
+                    <span class="susp-date-mono" data-testid="jours-depuis">{{ result()!.joursDepuisNotification }} jour(s)</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.renvoiOutil) {
+                <div class="susp-renvoi" data-testid="renvoi-outil" role="note">
+                  <mat-icon>bolt</mat-icon>
+                  <span>
+                    Une mesure d'éloignement est imminente : la suspension en
+                    <strong>extrême urgence</strong> (5 jours ouvrables) prime. Réorienter
+                    vers l'outil « Recours CCE extrême urgence 5j » ({{ result()!.renvoiOutil }}).
+                  </span>
+                </div>
+              }
+
+              @if (result()!.messages && result()!.messages.length) {
+                <ul class="susp-messages" data-testid="messages">
+                  @for (msg of result()!.messages; track msg) {
+                    <li>{{ msg }}</li>
+                  }
+                </ul>
+              }
+
+              <ul class="susp-breakdown">
+                <li>
+                  <span class="susp-bd-label">Notification de la décision attaquée</span>
+                  <span class="susp-bd-value susp-bd-value--mono">{{ formatDateFr(result()!.dateNotificationDecision) }}</span>
+                </li>
+                <li>
+                  <span class="susp-bd-label">Urgence invocable</span>
+                  <span class="susp-bd-value">{{ result()!.urgenceInvocable ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="susp-bd-label">Préjudice grave difficilement réparable</span>
+                  <span class="susp-bd-value">{{ result()!.risquePrejudiceGraveDifficilementReparable ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="susp-bd-label">Recours en annulation introduit</span>
+                  <span class="susp-bd-value">{{ result()!.recoursAnnulationIntroduit ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="susp-bd-label">Mesure d'éloignement imminente</span>
+                  <span class="susp-bd-value">{{ result()!.mesureEloignementImminente ? 'Oui' : 'Non' }}</span>
+                </li>
+              </ul>
+
+              <div class="susp-meta">
+                @if (result()!.basesJuridiques && result()!.basesJuridiques.length) {
+                  <span class="susp-meta-base" [innerHTML]="result()!.basesJuridiques.join(' · ') | legalCitations"></span>
+                }
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+
+            <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+            <app-tool-jurisprudence-citations
+              [toolId]="toolIdForJurisprudence"
+              [branchActive]="brancheActiveForJurisprudence">
+            </app-tool-jurisprudence-citations>
+          }
+        }
+      }
+    </div>
+  }
+</section>
