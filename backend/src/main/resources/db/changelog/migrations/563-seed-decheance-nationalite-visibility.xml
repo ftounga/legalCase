@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="563-seed-decheance-nationalite-visibility" author="legalcase">
+        <comment>
+            SF-220-05 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "validité d'une mesure de déchéance de nationalité"
+            (F-IM-51-decheance-nationalite-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte un contexte de déchéance de nationalité
+            (flag pivot booléen `decheance_nationalite_detectee` extrait dans
+            immigration_extracted_data et propagé par DecisionToolVisibilityService
+            via addBooleanFlagIfTrue, même mécanique que les autres flags pivots
+            Immigration FR). À défaut de détection, la card reste au catalogue
+            (jamais ALWAYS_ON).
+
+            priority 82 — au-dessus de F-IM-50 VPF PACS (priority 81), priorité
+            maximale actuelle des outils Immigration FRANCE.
+
+            Distinct de F-IM-13 (acquisition de la nationalité) et de F-IM-39/40
+            (recours refus naturalisation) : ici l'objet est la PERTE par
+            déchéance (Code civil art. 25 et 25-1).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-220 : f220000a-0000-0000-0000-220000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f220000a-0000-0000-0000-220000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-51-decheance-nationalite-fr', 'CONTEXTUAL', 'decheance_nationalite_detectee', 'true', 82);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f220000a-0000-0000-0000-220000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

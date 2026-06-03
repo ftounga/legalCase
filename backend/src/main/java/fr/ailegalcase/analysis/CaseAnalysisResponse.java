@@ -2914,6 +2914,14 @@ public record CaseAnalysisResponse(
             Set.of("FORTE", "MOYENNE", "FAIBLE", "NON_ETABLIE");
 
     /**
+     * SF-220-05 : codes whitelistés du motif de déchéance de la nationalité
+     * (F-IM-51, Cciv 25). Tout code hors liste renvoyé par le LLM est ramené à
+     * {@code null} par {@code normalizeEnumCode()}.
+     */
+    static final Set<String> DECHEANCE_MOTIF_CODES =
+            Set.of("TERRORISME", "ATTEINTE_INTERETS_NATION", "FRAUDE_ACQUISITION", "AUTRE");
+
+    /**
      * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
      * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
      * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
@@ -3538,7 +3546,21 @@ public record CaseAnalysisResponse(
             Integer pacsDureeVieCommune,
             /** SF-220-04 : intensité de la communauté de vie — whitelist
              *  (FORTE / MOYENNE / FAIBLE / NON_ETABLIE). Null si non extractible ou dossier BE. */
-            String pacsIntensiteCommunauteVie) {
+            String pacsIntensiteCommunauteVie,
+            // === SF-220-05 — F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) (FRANCE UNIQUEMENT, null pour BE) ===
+            // Flag pivot CONTEXTUAL `decheanceNationaliteDetectee` (mesure envisagée ou prononcée de
+            // déchéance de la nationalité française) + 4 champs de pré-fill. Tous null/false pour dossier BE.
+            /** SF-220-05 : true si un contexte de déchéance de nationalité est détecté — pilote la visibilité CONTEXTUAL. */
+            boolean decheanceNationaliteDetectee,
+            /** SF-220-05 : motif de déchéance — whitelist
+             *  (TERRORISME / ATTEINTE_INTERETS_NATION / FRAUDE_ACQUISITION / AUTRE). Null si non extractible ou dossier BE. */
+            String decheanceMotif,
+            /** SF-220-05 : true si la personne est binationale (la déchéance ne peut rendre apatride). Null si non extractible ou dossier BE. */
+            Boolean decheanceBinational,
+            /** SF-220-05 : true si la mesure de déchéance a déjà été prononcée (décret). Null si non extractible ou dossier BE. */
+            Boolean decheanceMesurePrononcee,
+            /** SF-220-05 : date du décret de déchéance (ISO yyyy-MM-dd). Null si non extractible ou dossier BE. */
+            String decheanceDateDecret) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3692,7 +3714,13 @@ public record CaseAnalysisResponse(
                     .pacsConclu(pacsConclu)
                     .pacsDate(pacsDate)
                     .pacsDureeVieCommune(pacsDureeVieCommune)
-                    .pacsIntensiteCommunauteVie(pacsIntensiteCommunauteVie);
+                    .pacsIntensiteCommunauteVie(pacsIntensiteCommunauteVie)
+                    // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR
+                    .decheanceNationaliteDetectee(decheanceNationaliteDetectee)
+                    .decheanceMotif(decheanceMotif)
+                    .decheanceBinational(decheanceBinational)
+                    .decheanceMesurePrononcee(decheanceMesurePrononcee)
+                    .decheanceDateDecret(decheanceDateDecret);
         }
 
         public static final class Builder {
@@ -3865,6 +3893,12 @@ public record CaseAnalysisResponse(
             private String pacsDate;
             private Integer pacsDureeVieCommune;
             private String pacsIntensiteCommunauteVie;
+            // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR
+            private boolean decheanceNationaliteDetectee;
+            private String decheanceMotif;
+            private Boolean decheanceBinational;
+            private Boolean decheanceMesurePrononcee;
+            private String decheanceDateDecret;
 
             private Builder() {}
 
@@ -4024,6 +4058,12 @@ public record CaseAnalysisResponse(
             public Builder pacsDate(String v) { this.pacsDate = v; return this; }
             public Builder pacsDureeVieCommune(Integer v) { this.pacsDureeVieCommune = v; return this; }
             public Builder pacsIntensiteCommunauteVie(String v) { this.pacsIntensiteCommunauteVie = v; return this; }
+            // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR
+            public Builder decheanceNationaliteDetectee(boolean v) { this.decheanceNationaliteDetectee = v; return this; }
+            public Builder decheanceMotif(String v) { this.decheanceMotif = v; return this; }
+            public Builder decheanceBinational(Boolean v) { this.decheanceBinational = v; return this; }
+            public Builder decheanceMesurePrononcee(Boolean v) { this.decheanceMesurePrononcee = v; return this; }
+            public Builder decheanceDateDecret(String v) { this.decheanceDateDecret = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4148,7 +4188,13 @@ public record CaseAnalysisResponse(
                         pacsConclu,
                         pacsDate,
                         pacsDureeVieCommune,
-                        pacsIntensiteCommunauteVie);
+                        pacsIntensiteCommunauteVie,
+                        // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR
+                        decheanceNationaliteDetectee,
+                        decheanceMotif,
+                        decheanceBinational,
+                        decheanceMesurePrononcee,
+                        decheanceDateDecret);
             }
         }
     }
@@ -7613,6 +7659,20 @@ public record CaseAnalysisResponse(
         Integer pacsDureeVieCommune = nonNegativeIntOrNull(root, "pacs_duree_vie_commune");
         String pacsIntensiteCommunauteVie = normalizeEnumCode(
                 textOrNull(root, "pacs_intensite_communaute_vie"), PACS_INTENSITE_COMMUNAUTE_VIE_CODES);
+        // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR — flag pivot
+        // `decheance_nationalite_detectee` + 4 champs de pré-fill (FR uniquement). Motif whitelisté
+        // (4 codes), binational/mesure prononcée booléens, date du décret (ISO yyyy-MM-dd).
+        // Tous null/false pour dossier BE.
+        boolean decheanceNationaliteDetectee =
+                Boolean.TRUE.equals(booleanOrNull(root, "decheance_nationalite_detectee"));
+        String decheanceMotif = normalizeEnumCode(
+                textOrNull(root, "decheance_motif"), DECHEANCE_MOTIF_CODES);
+        Boolean decheanceBinational = booleanOrNull(root, "decheance_binational");
+        Boolean decheanceMesurePrononcee = booleanOrNull(root, "decheance_mesure_prononcee");
+        String decheanceDateDecretRaw = textOrNull(root, "decheance_date_decret");
+        String decheanceDateDecret =
+                (decheanceDateDecretRaw != null && decheanceDateDecretRaw.matches("\\d{4}-\\d{2}-\\d{2}"))
+                        ? decheanceDateDecretRaw : null;
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7754,7 +7814,13 @@ public record CaseAnalysisResponse(
                 && pacsConclu == null
                 && pacsDate == null
                 && pacsDureeVieCommune == null
-                && pacsIntensiteCommunauteVie == null) return null;
+                && pacsIntensiteCommunauteVie == null
+                // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR (1 flag pivot + 4 champs IA)
+                && !decheanceNationaliteDetectee
+                && decheanceMotif == null
+                && decheanceBinational == null
+                && decheanceMesurePrononcee == null
+                && decheanceDateDecret == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -7924,6 +7990,12 @@ public record CaseAnalysisResponse(
                 .pacsDate(pacsDate)
                 .pacsDureeVieCommune(pacsDureeVieCommune)
                 .pacsIntensiteCommunauteVie(pacsIntensiteCommunauteVie)
+                // SF-220-05 : F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) FR
+                .decheanceNationaliteDetectee(decheanceNationaliteDetectee)
+                .decheanceMotif(decheanceMotif)
+                .decheanceBinational(decheanceBinational)
+                .decheanceMesurePrononcee(decheanceMesurePrononcee)
+                .decheanceDateDecret(decheanceDateDecret)
                 .build();
     }
 

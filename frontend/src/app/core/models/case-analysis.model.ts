@@ -2245,6 +2245,20 @@ export interface ImmigrationExtractedData {
   pacsDate?: string | null;
   pacsDureeVieCommune?: number | null;
   pacsIntensiteCommunauteVie?: 'FORTE' | 'MOYENNE' | 'FAIBLE' | 'NON_ETABLIE' | null;
+  /**
+   * SF-220-05 — F-IM-51 déchéance de nationalité (Cciv 25 / 25-1) — FRANCE uniquement.
+   * 1 flag pivot CONTEXTUAL (`decheanceNationaliteDetectee`) + 4 champs de pré-fill.
+   * `decheanceNationaliteDetectee` : contexte de déchéance détecté (pilote la visibilité de l'outil).
+   * `decheanceMotif` : motif de déchéance (whitelist 4 codes).
+   * `decheanceBinational` : personne binationale (la déchéance ne peut rendre apatride).
+   * `decheanceMesurePrononcee` : mesure déjà prononcée par décret.
+   * `decheanceDateDecret` : date du décret (ISO yyyy-MM-dd).
+   */
+  decheanceNationaliteDetectee?: boolean | null;
+  decheanceMotif?: 'TERRORISME' | 'ATTEINTE_INTERETS_NATION' | 'FRAUDE_ACQUISITION' | 'AUTRE' | null;
+  decheanceBinational?: boolean | null;
+  decheanceMesurePrononcee?: boolean | null;
+  decheanceDateDecret?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

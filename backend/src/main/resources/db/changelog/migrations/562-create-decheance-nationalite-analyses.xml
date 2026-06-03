@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="562-create-decheance-nationalite-analyses" author="legalcase">
+        <comment>
+            SF-220-05 — table `decheance_nationalite_analyses` pour l'outil
+            décisionnel "validité d'une mesure de déchéance de nationalité"
+            (F-IM-51-decheance-nationalite-fr, FRANCE).
+
+            Outil single-country FR : apprécie la validité d'une mesure
+            (envisagée ou prononcée) de déchéance de la nationalité française
+            (Code civil art. 25 et 25-1 : motifs terrorisme / atteinte aux
+            intérêts de la Nation / fraude). Vérifie l'interdiction d'apatridie
+            (binational requis), le délai Cciv 25-1, et calcule le délai de
+            recours (REP devant le Conseil d'État, 2 mois) à partir de la date du
+            décret. Persiste l'analyse 1:1 par dossier.
+
+            Distinct de F-IM-13 (acquisition de la nationalité) : ici l'objet est
+            la PERTE par déchéance. Distinct de F-IM-39/40 (recours refus
+            naturalisation TJ / TA Nantes).
+
+            Verdict validite : CONDITIONS_REUNIES / MESURE_CONTESTABLE /
+            MESURE_IRREGULIERE / INDETERMINE.
+
+            Source juridique (à vérifier par avocat) : Code civil art. 25 et 25-1 ;
+            recours pour excès de pouvoir devant le Conseil d'État (2 mois).
+
+            UUID namespace F-220 : f2200009-0000-0000-0000-220000000001.
+        </comment>
+
+        <createTable tableName="decheance_nationalite_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_decheance_nat_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="motif" type="VARCHAR(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="binational" type="BOOLEAN">
+                <constraints nullable="true"/>
+            </column>
+            <column name="date_acquisition_nationalite" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="date_faits" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="mesure_prononcee" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_decret" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="decheance_nationalite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

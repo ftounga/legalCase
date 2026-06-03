@@ -1196,7 +1196,12 @@ class DashboardTileToolIdIntegrityIT {
             // faisceau d'indices (vie privée et familiale), pas de tuile dashboard.
             // Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
             // feedback_pre_merge_visibility_seed_check).
-            "F-IM-50-pacs-vpf-fr"
+            "F-IM-50-pacs-vpf-fr",
+            // SF-220-05 : F-IM-51 validité d'une mesure de déchéance de nationalité
+            // (Cciv 25 / 25-1) — outil décisionnel CONTEXTUAL FR, pas de tuile dashboard.
+            // Préventif KNOWN_NO_DASHBOARD_TILE_IDS (pattern uniforme, cf. CLAUDE.md
+            // feedback_pre_merge_visibility_seed_check).
+            "F-IM-51-decheance-nationalite-fr"
     );
 
     /** Source à scanner — chemin relatif au répertoire de travail Maven (= backend/). */

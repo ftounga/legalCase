@@ -1694,6 +1694,11 @@ public final class LegalDomainPromptBuilder {
             "pacs_date" : chaîne au format AAAA-MM-JJ ou null — FRANCE UNIQUEMENT. Date de conclusion du PACS. null si non identifiable. Pour un dossier belge : toujours null.
             "pacs_duree_vie_commune" : entier ≥ 0 ou null — FRANCE UNIQUEMENT. Durée de vie commune en mois entiers. null si non identifiable. Pour un dossier belge : toujours null.
             "pacs_intensite_communaute_vie" : chaîne ou null — FRANCE UNIQUEMENT. Intensité de la communauté de vie, l'une des valeurs exactes : "FORTE", "MOYENNE", "FAIBLE", "NON_ETABLIE". null si non identifiable. Pour un dossier belge : toujours null.
+            "decheance_nationalite_detectee" : booléen — FRANCE UNIQUEMENT. true UNIQUEMENT si le dossier concerne une mesure (envisagée ou prononcée) de déchéance de la nationalité française (Cciv 25 / 25-1). false par défaut. Pour un dossier belge : toujours false.
+            "decheance_motif" : chaîne ou null — FRANCE UNIQUEMENT. Motif de déchéance, l'une des valeurs exactes : "TERRORISME", "ATTEINTE_INTERETS_NATION", "FRAUDE_ACQUISITION", "AUTRE". null si non identifiable. Pour un dossier belge : toujours null.
+            "decheance_binational" : booléen ou null — FRANCE UNIQUEMENT. true si la personne est binationale (la déchéance ne peut rendre apatride). null si non identifiable. Pour un dossier belge : toujours null.
+            "decheance_mesure_prononcee" : booléen ou null — FRANCE UNIQUEMENT. true si la mesure de déchéance a déjà été prononcée par décret. null si non identifiable. Pour un dossier belge : toujours null.
+            "decheance_date_decret" : chaîne au format AAAA-MM-JJ ou null — FRANCE UNIQUEMENT. Date du décret de déchéance. null si non identifiable. Pour un dossier belge : toujours null.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION =
