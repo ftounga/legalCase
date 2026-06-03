@@ -3620,7 +3620,25 @@ public record CaseAnalysisResponse(
             /** SF-221-02 : true si le séjour régulier a été ininterrompu. Null si non extractible ou dossier FR. */
             Boolean carteBSejourIninterrompu,
             /** SF-221-02 : true si le motif de séjour est stable. Null si non extractible ou dossier FR. */
-            Boolean carteBMotifStable) {
+            Boolean carteBMotifStable,
+            // === SF-221-03 — F-IM-55 Résident longue durée UE BE (BELGIQUE UNIQUEMENT, null/false pour FR) ===
+            /**
+             * SF-221-03 : true si les pièces évoquent une demande de statut de RÉSIDENT
+             * LONGUE DURÉE UE (art. 15bis Loi 15/12/1980, directive 2003/109/CE) après
+             * 5 ans de séjour légal (mentions « résident longue durée UE », « longue durée »,
+             * « directive 2003/109 », « art. 15bis Loi 15/12/1980 », « mobilité intra-UE »,
+             * « 5 ans de séjour légal »). Pivot pour la visibility rule CONTEXTUAL de F-IM-55
+             * (trigger {@code residence_longue_duree_ue_detecte}). Dossiers FR : toujours false.
+             */
+            boolean residenceLongueDureeUeDetecte,
+            /** SF-221-03 : date de début du séjour légal ininterrompu au format YYYY-MM-DD (non future). Null si non extractible ou dossier FR. */
+            String rlueDateDebutSejour,
+            /** SF-221-03 : true si les ressources sont stables, régulières et suffisantes. Null si non extractible ou dossier FR. */
+            Boolean rlueRessourcesSuffisantes,
+            /** SF-221-03 : true si une assurance maladie couvre l'ensemble des risques. Null si non extractible ou dossier FR. */
+            Boolean rlueAssuranceMaladie,
+            /** SF-221-03 : true si la condition d'intégration est remplie. Null si non extractible ou dossier FR. */
+            Boolean rlueIntegrationRemplie) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3794,7 +3812,13 @@ public record CaseAnalysisResponse(
                     .carteBSejourIllimiteDetecte(carteBSejourIllimiteDetecte)
                     .carteBDateDebutSejour(carteBDateDebutSejour)
                     .carteBSejourIninterrompu(carteBSejourIninterrompu)
-                    .carteBMotifStable(carteBMotifStable);
+                    .carteBMotifStable(carteBMotifStable)
+                    // SF-221-03 : F-IM-55 résident longue durée UE BE
+                    .residenceLongueDureeUeDetecte(residenceLongueDureeUeDetecte)
+                    .rlueDateDebutSejour(rlueDateDebutSejour)
+                    .rlueRessourcesSuffisantes(rlueRessourcesSuffisantes)
+                    .rlueAssuranceMaladie(rlueAssuranceMaladie)
+                    .rlueIntegrationRemplie(rlueIntegrationRemplie);
         }
 
         public static final class Builder {
@@ -3987,6 +4011,12 @@ public record CaseAnalysisResponse(
             private String carteBDateDebutSejour;
             private Boolean carteBSejourIninterrompu;
             private Boolean carteBMotifStable;
+            // SF-221-03 : F-IM-55 résident longue durée UE BE
+            private boolean residenceLongueDureeUeDetecte;
+            private String rlueDateDebutSejour;
+            private Boolean rlueRessourcesSuffisantes;
+            private Boolean rlueAssuranceMaladie;
+            private Boolean rlueIntegrationRemplie;
 
             private Builder() {}
 
@@ -4166,6 +4196,11 @@ public record CaseAnalysisResponse(
             public Builder carteBDateDebutSejour(String v) { this.carteBDateDebutSejour = v; return this; }
             public Builder carteBSejourIninterrompu(Boolean v) { this.carteBSejourIninterrompu = v; return this; }
             public Builder carteBMotifStable(Boolean v) { this.carteBMotifStable = v; return this; }
+            public Builder residenceLongueDureeUeDetecte(boolean v) { this.residenceLongueDureeUeDetecte = v; return this; }
+            public Builder rlueDateDebutSejour(String v) { this.rlueDateDebutSejour = v; return this; }
+            public Builder rlueRessourcesSuffisantes(Boolean v) { this.rlueRessourcesSuffisantes = v; return this; }
+            public Builder rlueAssuranceMaladie(Boolean v) { this.rlueAssuranceMaladie = v; return this; }
+            public Builder rlueIntegrationRemplie(Boolean v) { this.rlueIntegrationRemplie = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -4311,7 +4346,13 @@ public record CaseAnalysisResponse(
                         carteBSejourIllimiteDetecte,
                         carteBDateDebutSejour,
                         carteBSejourIninterrompu,
-                        carteBMotifStable);
+                        carteBMotifStable,
+                        // SF-221-03 : F-IM-55 résident longue durée UE BE
+                        residenceLongueDureeUeDetecte,
+                        rlueDateDebutSejour,
+                        rlueRessourcesSuffisantes,
+                        rlueAssuranceMaladie,
+                        rlueIntegrationRemplie);
             }
         }
     }
@@ -7824,6 +7865,20 @@ public record CaseAnalysisResponse(
                         ? carteBDateDebutSejourRaw : null;
         Boolean carteBSejourIninterrompu = booleanOrNull(root, "carte_b_sejour_ininterrompu");
         Boolean carteBMotifStable = booleanOrNull(root, "carte_b_motif_stable");
+        // SF-221-03 : F-IM-55 résident longue durée UE BE — flag pivot `residence_longue_duree_ue_detecte`
+        // + 4 champs de pré-fill (BELGIQUE uniquement). Date de début de séjour légal ISO (non
+        // future), ressources suffisantes / assurance maladie / intégration booléens. Tous
+        // null/false pour dossier FRANCE.
+        boolean residenceLongueDureeUeDetecte =
+                Boolean.TRUE.equals(booleanOrNull(root, "residence_longue_duree_ue_detecte"));
+        String rlueDateDebutSejourRaw = textOrNull(root, "rlue_date_debut_sejour");
+        String rlueDateDebutSejour =
+                (rlueDateDebutSejourRaw != null
+                        && rlueDateDebutSejourRaw.matches(ISO_DATE_SF214))
+                        ? rlueDateDebutSejourRaw : null;
+        Boolean rlueRessourcesSuffisantes = booleanOrNull(root, "rlue_ressources_suffisantes");
+        Boolean rlueAssuranceMaladie = booleanOrNull(root, "rlue_assurance_maladie");
+        Boolean rlueIntegrationRemplie = booleanOrNull(root, "rlue_integration_remplie");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7985,7 +8040,13 @@ public record CaseAnalysisResponse(
                 && !carteBSejourIllimiteDetecte
                 && carteBDateDebutSejour == null
                 && carteBSejourIninterrompu == null
-                && carteBMotifStable == null) return null;
+                && carteBMotifStable == null
+                // SF-221-03 : F-IM-55 résident longue durée UE BE (1 flag pivot + 4 champs IA, nullables)
+                && !residenceLongueDureeUeDetecte
+                && rlueDateDebutSejour == null
+                && rlueRessourcesSuffisantes == null
+                && rlueAssuranceMaladie == null
+                && rlueIntegrationRemplie == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -8176,6 +8237,12 @@ public record CaseAnalysisResponse(
                 .carteBDateDebutSejour(carteBDateDebutSejour)
                 .carteBSejourIninterrompu(carteBSejourIninterrompu)
                 .carteBMotifStable(carteBMotifStable)
+                // SF-221-03 : F-IM-55 résident longue durée UE BE
+                .residenceLongueDureeUeDetecte(residenceLongueDureeUeDetecte)
+                .rlueDateDebutSejour(rlueDateDebutSejour)
+                .rlueRessourcesSuffisantes(rlueRessourcesSuffisantes)
+                .rlueAssuranceMaladie(rlueAssuranceMaladie)
+                .rlueIntegrationRemplie(rlueIntegrationRemplie)
                 .build();
     }
 

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="c5f7a91b-4e23-4ad8-bc60-7d2e1f8a3b55-seed-residence-longue-duree-ue-be" author="legalcase">
+        <comment>
+            SF-221-03 : seed visibility pour l'outil decisionnel "Resident longue duree UE BE"
+            (F-IM-55-residence-longue-duree-ue-be). Livree DANS LA MEME PR que la table (pattern F-215).
+
+            Visibility CONTEXTUAL : l'outil apparait dans le panel F-IA-04 sur les dossiers
+            BELGIQUE x DROIT_IMMIGRATION des que l'IA detecte un indice de demande de statut
+            de RESIDENT LONGUE DUREE UE via le flag pivot `residence_longue_duree_ue_detecte`
+            extrait depuis le prompt IMMIGRATION_INSTRUCTION (mots-cles "resident longue duree
+            UE", "longue duree", "directive 2003/109", "art. 15bis Loi 15/12/1980", "mobilite
+            intra-UE", "5 ans de sejour legal").
+
+            Priority 212 — juste apres F-IM-54 carte B sejour illimite BE (priority 211) pour
+            coherence d'ordre dans la liste de visibility CONTEXTUAL Immigration BE.
+
+            L'entree TOOL_REGISTRY frontend (decisional-tools-panel.component.ts) est ajoutee
+            dans la MEME PR (SF-221-03 back+front), de sorte que DecisionToolVisibilityIntegrityIT
+            (DB -> frontend) reste vert sans orphelin transitoire.
+        </comment>
+        <sql>
+            INSERT INTO decision_tool_visibility_rules
+                (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES (
+                'd3a8c20e-91b5-4c47-a1f9-6e84b0d2c977',
+                'DROIT_IMMIGRATION',
+                'BELGIQUE',
+                'F-IM-55-residence-longue-duree-ue-be',
+                'CONTEXTUAL',
+                'residence_longue_duree_ue_detecte',
+                'true',
+                212
+            );
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'd3a8c20e-91b5-4c47-a1f9-6e84b0d2c977';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
