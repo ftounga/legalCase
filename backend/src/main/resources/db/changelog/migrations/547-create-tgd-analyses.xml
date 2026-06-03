@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="547-create-tgd-analyses" author="legalcase">
+        <comment>
+            SF-222-02 (F-222) : table dediee a l'outil decisionnel "Telephone
+            Grave Danger — eligibilite" (TGD — F-FA-TGD, FRANCE — art. 41-3-1 CPP).
+
+            Outil d'ANALYSE de l'eligibilite au dispositif TGD : danger grave ET
+            violences averees ou vraisemblables ET interdiction de contact issue
+            d'une procedure ET non-cohabitation ET consentement de la victime.
+            L'outil CONSEILLE l'avocat ; l'ATTRIBUTION du TGD releve du procureur
+            de la Republique (art. 41-3-1 CPP). Verdict 3 niveaux : ELIGIBLE_TGD /
+            ELIGIBLE_SOUS_RESERVE (interdiction de contact non encore prononcee —
+            conseiller de la demander, ex. ordonnance de protection F-FA-14) /
+            NON_ELIGIBLE.
+
+            Anti-doublon F-FA-14 (ordonnance de protection) : le TGD existe DEJA
+            comme MESURE recommandee par l'outil ordonnance de protection
+            (OrdonnanceProtectionMesureType.TGD). Cet outil F-FA-TGD est DISTINCT :
+            c'est un analyzer d'ELIGIBILITE au dispositif TGD, il ne refait pas la
+            recommandation de mesures de protection de F-FA-14 (renvoi croise en
+            cas d'interdiction de contact manquante).
+
+            Outil single-country FRANCE. Snapshot JSON complet (inputs + outputs)
+            dans result_data pour restitution UI sans recalcul.
+
+            Le seed de la regle d'affichage F-IA-04 (decision_tool_visibility_rules)
+            est porte par la migration 548 (couple a l'entree TOOL_REGISTRY livree
+            dans la meme PR — pattern SF-216 / SF-222-01).
+        </comment>
+
+        <createTable tableName="tgd_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_tgd_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="tgd_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_tgd_analyses_case_file"/>
+
+        <createIndex tableName="tgd_analyses"
+                     indexName="idx_tgd_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="tgd_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

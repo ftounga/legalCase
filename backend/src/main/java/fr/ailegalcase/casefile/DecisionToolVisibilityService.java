@@ -505,6 +505,10 @@ public class DecisionToolVisibilityService {
         // Lire depuis sous-objet `asf_caf_detection.detecte` (même pattern, art. L. 523-1 CSS).
         addBooleanFlagIfTrueNested(detected, familleNode, "asf_caf_detection", "detecte",
                 "asf_caf_detecte");
+        // === SF-222-02 — 1 flag CONTEXTUAL Famille FR : TGD téléphone grave danger éligibilité ===
+        // Lire depuis sous-objet `tgd_detection.detecte` (même pattern, art. 41-3-1 CPP).
+        addBooleanFlagIfTrueNested(detected, familleNode, "tgd_detection", "detecte",
+                "tgd_detecte");
         // === Flags BE (F-202) — 5 ===
         addBooleanFlagIfTrue(detected, familleNode, "divorce_dc_envisage");
         addBooleanFlagIfTrue(detected, familleNode, "divorce_ddi_envisage");

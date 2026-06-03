@@ -1,0 +1,132 @@
+<!--
+  SF-222-02 : template de l'outil TGD téléphone grave danger éligibilité
+  (F-FA-TGD, FRANCE uniquement — art. 41-3-1 CPP).
+  Pattern : asf-caf-section (SF-222-01).
+-->
+<section class="tgd-section" [class.tgd-section--collapsed]="collapsed()">
+  <header class="tgd-section__header" (click)="toggleCollapse()">
+    <mat-icon class="tgd-section__icon">phone_in_talk</mat-icon>
+    <h3 class="tgd-section__title">Téléphone Grave Danger (éligibilité)</h3>
+    <span class="tgd-section__country">FR</span>
+    <mat-icon class="tgd-section__chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  <div class="tgd-section__body" *ngIf="!collapsed()">
+    <!-- Country gate BE → bannière info -->
+    <div class="tgd-banner tgd-banner--info" *ngIf="workspaceCountry !== 'FRANCE'">
+      <mat-icon>info</mat-icon>
+      <p>
+        Outil applicable uniquement en France (art. 41-3-1 CPP). Le dispositif de
+        téléprotection des victimes relève en Belgique d'un cadre distinct.
+      </p>
+    </div>
+
+    <ng-container *ngIf="workspaceCountry === 'FRANCE'">
+      <!-- Loader -->
+      <div class="tgd-loader" *ngIf="loading()">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Chargement…</span>
+      </div>
+
+      <!-- FORMULAIRE -->
+      <form class="tgd-form" *ngIf="showForm() && !loading()" (submit)="$event.preventDefault(); calculate()">
+        <p class="tgd-form__intro">
+          Évaluez l'éligibilité de la victime au dispositif Téléphone Grave Danger
+          (art. 41-3-1 CPP). Cet outil conseille l'avocat ; l'attribution du TGD
+          relève du procureur de la République. L'analyse ne refait pas la
+          recommandation de mesures de protection (outil ordonnance de protection).
+        </p>
+
+        <div class="tgd-form__row tgd-form__row--checks">
+          <mat-checkbox [checked]="dangerGrave()"
+                        (change)="onDangerGraveChange($event.checked)"
+                        name="dangerGrave">
+            Danger grave caractérisé pour la victime
+            <mat-icon *ngIf="provenanceDangerGrave() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="violencesAvereesOuVraisemblables()"
+                        (change)="onViolencesChange($event.checked)"
+                        name="violences">
+            Violences avérées ou vraisemblables
+            <mat-icon *ngIf="provenanceViolences() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="interdictionContactProcedure()"
+                        (change)="onInterdictionChange($event.checked)"
+                        name="interdiction">
+            Interdiction de contact issue d'une procédure (ordonnance de protection, contrôle judiciaire, SME, condamnation)
+            <mat-icon *ngIf="provenanceInterdiction() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="nonCohabitation()"
+                        (change)="onNonCohabitationChange($event.checked)"
+                        name="nonCohabitation">
+            Absence de cohabitation entre l'auteur et la victime
+            <mat-icon *ngIf="provenanceNonCohabitation() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+
+          <mat-checkbox [checked]="consentementVictime()"
+                        (change)="onConsentementChange($event.checked)"
+                        name="consentement">
+            Consentement exprès de la victime au dispositif
+            <mat-icon *ngIf="provenanceConsentement() === 'IA'" matTooltip="Détecté par l'IA">auto_awesome</mat-icon>
+          </mat-checkbox>
+        </div>
+
+        <div class="tgd-form__actions">
+          <button mat-raised-button color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || calculating()">
+            <mat-icon>play_arrow</mat-icon>
+            {{ calculating() ? 'Analyse en cours…' : 'Évaluer l\'éligibilité au TGD' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- RÉSULTAT -->
+      <div class="tgd-result" *ngIf="!showForm() && result() as r">
+        <div class="tgd-result__verdict" [ngClass]="verdictClass(r.verdict)">
+          <mat-icon>fact_check</mat-icon>
+          <div>
+            <span class="tgd-result__verdict-label">Verdict</span>
+            <strong class="tgd-result__verdict-value">{{ verdictLabel(r.verdict) }}</strong>
+          </div>
+        </div>
+
+        <div class="tgd-result__manquants" *ngIf="r.criteresManquants.length > 0">
+          <h4>Critères manquants</h4>
+          <ul>
+            <li *ngFor="let c of r.criteresManquants">{{ c }}</li>
+          </ul>
+        </div>
+
+        <div class="tgd-result__messages" *ngIf="r.messages.length > 0">
+          <h4>Analyse et conseils</h4>
+          <ul>
+            <li *ngFor="let m of r.messages">{{ m }}</li>
+          </ul>
+        </div>
+
+        <div class="tgd-result__base" *ngIf="r.basesJuridiques.length > 0">
+          <h4>Bases juridiques</h4>
+          <ul>
+            <li *ngFor="let b of r.basesJuridiques">{{ b | legalCitations }}</li>
+          </ul>
+        </div>
+
+        <div class="tgd-result__actions">
+          <button mat-button color="primary" (click)="editMode()">
+            <mat-icon>edit</mat-icon> Modifier la saisie
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- F-JU-03 — citations jurisprudentielles F-JU-01 sous le résultat -->
+  <app-tool-jurisprudence-citations
+    [toolId]="toolIdForJurisprudence"
+    [branchActive]="brancheActiveForJurisprudence">
+  </app-tool-jurisprudence-citations>
+</section>
