@@ -2193,6 +2193,17 @@ export interface ImmigrationExtractedData {
   retraitTitreFraudeDetecte?: boolean | null;
   retraitTitreDateRetrait?: string | null;
   retraitTitreMotif?: 'MARIAGE_GRIS' | 'FAUSSES_DECLARATIONS' | 'FRAUDE_DOCUMENTAIRE' | 'PERTE_CONDITIONS' | null;
+  /**
+   * SF-220-01 — F-IM-47 régime franco-tunisien (accord 17/03/1988, FR uniquement, null pour BE).
+   * 3 champs de pré-fill. La visibilité de l'outil est conditionnée au champ `nationalite`='Tunisienne'
+   * (pas de flag pivot dédié).
+   * `regimeTunisienCategorie` : catégorie de demande (whitelist 5 codes).
+   * `regimeTunisienDureeSejour` : durée de séjour envisagée en mois (≥ 0).
+   * `regimeTunisienTitreEnCours` : titre de séjour déjà en cours.
+   */
+  regimeTunisienCategorie?: 'ETUDIANT' | 'COMMERCANT' | 'SALARIE' | 'FAMILIAL' | 'AUTRE' | null;
+  regimeTunisienDureeSejour?: number | null;
+  regimeTunisienTitreEnCours?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

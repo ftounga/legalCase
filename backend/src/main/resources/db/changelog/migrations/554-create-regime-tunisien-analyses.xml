@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="554-create-regime-tunisien-analyses" author="legalcase">
+        <comment>
+            SF-220-01 — table `regime_tunisien_analyses` pour l'outil décisionnel
+            "Régime franco-tunisien (accord du 17/03/1988)" (F-IM-47-regime-tunisien-fr, FRANCE).
+
+            Outil single-country FR : aiguille l'avocat sur le régime de séjour
+            applicable à un ressortissant tunisien — droit commun CESEDA SAUF
+            particularités dérogatoires de l'accord franco-tunisien du 17/03/1988
+            (étudiant, commerçant, salarié). Distinct de F-IM-17 (régime algérien
+            fermé) : la Tunisie reste largement renvoyée au CESEDA. Persiste
+            l'analyse 1:1 par dossier.
+
+            Verdict regime : ACCORD_1988_DEROGATOIRE / DROIT_COMMUN_CESEDA / MIXTE.
+
+            Source juridique (à vérifier par avocat) : accord franco-tunisien du
+            17/03/1988 relatif au séjour et au travail + protocole + avenants ;
+            CESEDA (droit commun par renvoi).
+
+            UUID namespace F-220 : f2200001-0000-0000-0000-220000000001.
+        </comment>
+
+        <createTable tableName="regime_tunisien_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="fk_regime_tunisien_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="categorie" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_sejour_envisagee_mois" type="INT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="titre_en_cours" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deja_resident" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="regime_tunisien_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

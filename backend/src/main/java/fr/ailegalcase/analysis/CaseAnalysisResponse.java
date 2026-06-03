@@ -2889,6 +2889,14 @@ public record CaseAnalysisResponse(
             Set.of("MARIAGE_GRIS", "FAUSSES_DECLARATIONS", "FRAUDE_DOCUMENTAIRE", "PERTE_CONDITIONS");
 
     /**
+     * SF-220-01 : catégories de demande pour l'outil F-IM-47 régime franco-tunisien
+     * (accord du 17/03/1988). FRANCE uniquement. Un code hors whitelist renvoyé par
+     * le LLM est ramené à {@code null} par {@code normalizeEnumCode()}.
+     */
+    static final Set<String> REGIME_TUNISIEN_CATEGORIE_CODES =
+            Set.of("ETUDIANT", "COMMERCANT", "SALARIE", "FAMILIAL", "AUTRE");
+
+    /**
      * SF-212-29 : codes de type de congé maternité / paternité (F-DT-77)
      * — alignés sur l'enum {@code CongeMaternitePaterniteInput.TypeConge} et
      * le prompt PART14. Un code hors whitelist renvoyé par le LLM est ramené
@@ -3462,7 +3470,19 @@ public record CaseAnalysisResponse(
              * (MARIAGE_GRIS / FAUSSES_DECLARATIONS / FRAUDE_DOCUMENTAIRE / PERTE_CONDITIONS).
              * Sert au pré-remplissage de l'outil F-IM-45. Null si non extractible ou dossier BE.
              */
-            String retraitTitreMotif) {
+            String retraitTitreMotif,
+            // === SF-220-01 — F-IM-47 Régime franco-tunisien (accord 17/03/1988, FRANCE UNIQUEMENT, null pour BE) ===
+            // Pas de nouveau flag pivot : la visibilité de l'outil est conditionnée au
+            // champ texte F-235 `nationalite` = "Tunisienne" (déjà extrait/propagé par
+            // DecisionToolVisibilityService, même pattern que F-IM-17 régime algérien).
+            // 3 champs de pré-fill (FR uniquement) ; tous null pour dossier BE.
+            /** SF-220-01 : catégorie de demande — whitelist {@link #REGIME_TUNISIEN_CATEGORIE_CODES}
+             *  (ETUDIANT / COMMERCANT / SALARIE / FAMILIAL / AUTRE). Null si non extractible ou dossier BE. */
+            String regimeTunisienCategorie,
+            /** SF-220-01 : durée de séjour envisagée en mois entiers (≥ 0). Null si non extractible ou dossier BE. */
+            Integer regimeTunisienDureeSejour,
+            /** SF-220-01 : true si un titre de séjour est déjà en cours. Null si non extractible ou dossier BE. */
+            Boolean regimeTunisienTitreEnCours) {
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link ImmigrationExtractedData}.
@@ -3596,7 +3616,11 @@ public record CaseAnalysisResponse(
                     // SF-214-41 : F-IM-45 Retrait de titre pour fraude L. 412-7 FR
                     .retraitTitreFraudeDetecte(retraitTitreFraudeDetecte)
                     .retraitTitreDateRetrait(retraitTitreDateRetrait)
-                    .retraitTitreMotif(retraitTitreMotif);
+                    .retraitTitreMotif(retraitTitreMotif)
+                    // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
+                    .regimeTunisienCategorie(regimeTunisienCategorie)
+                    .regimeTunisienDureeSejour(regimeTunisienDureeSejour)
+                    .regimeTunisienTitreEnCours(regimeTunisienTitreEnCours);
         }
 
         public static final class Builder {
@@ -3750,6 +3774,10 @@ public record CaseAnalysisResponse(
             private boolean retraitTitreFraudeDetecte;
             private String retraitTitreDateRetrait;
             private String retraitTitreMotif;
+            // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
+            private String regimeTunisienCategorie;
+            private Integer regimeTunisienDureeSejour;
+            private Boolean regimeTunisienTitreEnCours;
 
             private Builder() {}
 
@@ -3890,6 +3918,10 @@ public record CaseAnalysisResponse(
             public Builder retraitTitreFraudeDetecte(boolean v) { this.retraitTitreFraudeDetecte = v; return this; }
             public Builder retraitTitreDateRetrait(String v) { this.retraitTitreDateRetrait = v; return this; }
             public Builder retraitTitreMotif(String v) { this.retraitTitreMotif = v; return this; }
+            // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
+            public Builder regimeTunisienCategorie(String v) { this.regimeTunisienCategorie = v; return this; }
+            public Builder regimeTunisienDureeSejour(Integer v) { this.regimeTunisienDureeSejour = v; return this; }
+            public Builder regimeTunisienTitreEnCours(Boolean v) { this.regimeTunisienTitreEnCours = v; return this; }
 
             public ImmigrationExtractedData build() {
                 return new ImmigrationExtractedData(
@@ -3995,7 +4027,11 @@ public record CaseAnalysisResponse(
                         // SF-214-41 : F-IM-45 Retrait de titre pour fraude L. 412-7 FR
                         retraitTitreFraudeDetecte,
                         retraitTitreDateRetrait,
-                        retraitTitreMotif);
+                        retraitTitreMotif,
+                        // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
+                        regimeTunisienCategorie,
+                        regimeTunisienDureeSejour,
+                        regimeTunisienTitreEnCours);
             }
         }
     }
@@ -7420,6 +7456,17 @@ public record CaseAnalysisResponse(
         }
         String retraitTitreMotif = normalizeEnumCode(
                 textOrNull(root, "retrait_titre_motif"), RETRAIT_TITRE_FRAUDE_MOTIF_CODES);
+        // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR — 3 champs
+        // de pré-fill (FR uniquement). Catégorie whitelistée (5 codes), durée de séjour
+        // envisagée en mois (≥ 0), titre en cours booléen. La visibilité de l'outil est
+        // pilotée par le champ texte F-235 `nationalite`='Tunisienne' (pas de flag dédié).
+        String regimeTunisienCategorie = normalizeEnumCode(
+                textOrNull(root, "regime_tunisien_categorie"), REGIME_TUNISIEN_CATEGORIE_CODES);
+        Integer regimeTunisienDureeSejourRaw = intOrNull(root, "regime_tunisien_duree_sejour");
+        Integer regimeTunisienDureeSejour =
+                (regimeTunisienDureeSejourRaw != null && regimeTunisienDureeSejourRaw >= 0)
+                        ? regimeTunisienDureeSejourRaw : null;
+        Boolean regimeTunisienTitreEnCours = booleanOrNull(root, "regime_tunisien_titre_en_cours");
         // SF-214-37 : F-IM-43 ITF judiciaire (peine complémentaire C. pén. 131-30) FR —
         // 2 champs de pré-fill (FR uniquement). Réutilise le flag pivot
         // mesure_eloignement_detectee (déjà extrait) pour la visibilité de l'outil.
@@ -7540,7 +7587,11 @@ public record CaseAnalysisResponse(
                 // SF-214-41 : F-IM-45 retrait de titre pour fraude L. 412-7 FR (1 flag pivot + 2 champs IA)
                 && !retraitTitreFraudeDetecte
                 && retraitTitreDateRetrait == null
-                && retraitTitreMotif == null) return null;
+                && retraitTitreMotif == null
+                // SF-220-01 : F-IM-47 régime franco-tunisien FR (3 champs IA, nullables)
+                && regimeTunisienCategorie == null
+                && regimeTunisienDureeSejour == null
+                && regimeTunisienTitreEnCours == null) return null;
         // F-234 SF-234-01 : construction via Builder.
         return ImmigrationExtractedData.builder()
                 .dateExpirationTitre(dateExpiration)
@@ -7689,6 +7740,10 @@ public record CaseAnalysisResponse(
                 .retraitTitreFraudeDetecte(retraitTitreFraudeDetecte)
                 .retraitTitreDateRetrait(retraitTitreDateRetrait)
                 .retraitTitreMotif(retraitTitreMotif)
+                // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988) FR
+                .regimeTunisienCategorie(regimeTunisienCategorie)
+                .regimeTunisienDureeSejour(regimeTunisienDureeSejour)
+                .regimeTunisienTitreEnCours(regimeTunisienTitreEnCours)
                 .build();
     }
 

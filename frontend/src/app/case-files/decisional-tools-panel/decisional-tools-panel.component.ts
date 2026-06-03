@@ -61,6 +61,7 @@ import { VictimeViolencesL4256SectionComponent } from '../victime-violences-l425
 import { EtrangerMaladeSectionComponent } from '../etranger-malade-section/etranger-malade-section.component';
 // SF-214-04 : composant complet F-IM-26 regroupement familial L.434-1+ CESEDA (FR).
 import { RegroupementFamilialSectionComponent } from '../regroupement-familial-section/regroupement-familial-section.component';
+import { RegimeTunisienSectionComponent } from '../regime-tunisien-section/regime-tunisien-section.component';
 // SF-214-06 : composant complet F-IM-27-vpf-liens-personnels-l42323-fr — VPF liens personnels L.423-23 (FR, scoring).
 import { VpfLiensPersonnelsSectionComponent } from '../vpf-liens-personnels-section/vpf-liens-personnels-section.component';
 // SF-214-08 : composant complet F-IM-28-vls-ts-validation-ofii-fr — validation VLS-TS OFII (FR, calculateur délai 3 mois).
@@ -1639,6 +1640,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       ['F-IM-26-regroupement-familial-fr', {
         displayLabel: 'Regroupement familial (FR)',
         component: RegroupementFamilialSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          standaloneMode: ctx.standaloneMode ?? false,
+        }),
+      }],
+      // SF-220-01 : composant complet F-IM-47 régime franco-tunisien (accord du
+      // 17/03/1988, FR). FR uniquement, CONTEXTUAL sur nationalite='Tunisienne'.
+      // Outil d'aiguillage (droit commun CESEDA SAUF particularités accord 1988).
+      // Pré-fill IA 3 champs (catégorie, durée séjour, titre en cours) via static
+      // getPrefillCount + RegimeTunisienPrefillRules.
+      ['F-IM-47-regime-tunisien-fr', {
+        displayLabel: 'Régime franco-tunisien 1988 (FR)',
+        component: RegimeTunisienSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
@@ -5721,6 +5737,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     // SF-214-04 : F-IM-26 regroupement familial L.434-1+ CESEDA (FR) — analyseur
     // d'éligibilité (ressources SMIC + surface habitable). Thème VALIDITE.
     ['F-IM-26-regroupement-familial-fr', 'VALIDITE'],
+    // SF-220-01 : F-IM-47 régime franco-tunisien (accord 17/03/1988, FR) — outil
+    // d'aiguillage du régime de séjour (droit commun CESEDA SAUF particularités
+    // accord 1988). Thème VALIDITE (analyse de régime applicable, cohérent avec
+    // F-IM-17 régime algérien / autres aiguillages Immigration FR).
+    ['F-IM-47-regime-tunisien-fr', 'VALIDITE'],
     // SF-214-06 : F-IM-27-vpf-liens-personnels-l42323-fr VPF liens personnels
     // L.423-23 CESEDA (FR). Thème VALIDITE — analyseur d'éligibilité (scoring
     // 0-100 + 4 verdicts). Aligné sur regroupement-familial-fr / etranger-malade.

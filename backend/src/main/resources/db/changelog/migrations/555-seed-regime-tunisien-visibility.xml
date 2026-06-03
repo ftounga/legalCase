@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="555-seed-regime-tunisien-visibility" author="legalcase">
+        <comment>
+            SF-220-01 — seed `decision_tool_visibility_rules` pour l'outil
+            décisionnel "Régime franco-tunisien (accord du 17/03/1988)"
+            (F-IM-47-regime-tunisien-fr, FRANCE uniquement).
+
+            Mode CONTEXTUAL, DROIT_IMMIGRATION / FRANCE : l'outil n'apparaît que
+            si le pipeline IA détecte une nationalité tunisienne. Trigger texte
+            F-235 `nationalite` = 'Tunisienne' (mécanique déjà prête : le champ
+            texte `nationalite` est extrait dans immigration_extracted_data,
+            normalisé titlecase et propagé par DecisionToolVisibilityService —
+            aucun nouveau flag pivot ni câblage requis, même pattern que
+            F-IM-17 régime franco-algérien sur nationalite='Algérienne').
+
+            priority 78 — juste après F-IM-17 régime algérien (priority 77),
+            priorité maximale actuelle des outils Immigration FRANCE.
+
+            Distinct de F-IM-17 (régime algérien fermé accord 1968) : la Tunisie
+            reste largement renvoyée au CESEDA, l'accord 1988 n'apporte que des
+            particularités ponctuelles (étudiant, commerçant, salarié).
+
+            Outil single-country FRANCE : gate hard `workspace.country != FRANCE`
+            → 400 côté service.
+
+            UUID namespace F-220 : f2200002-0000-0000-0000-220000000001.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f2200002-0000-0000-0000-220000000001', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-47-regime-tunisien-fr', 'CONTEXTUAL', 'nationalite', 'Tunisienne', 78);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f2200002-0000-0000-0000-220000000001';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
