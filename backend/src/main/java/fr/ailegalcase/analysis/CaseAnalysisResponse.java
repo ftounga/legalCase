@@ -4557,7 +4557,18 @@ public record CaseAnalysisResponse(
             Boolean asfPensionFixee,                    // FR — true si pension alimentaire fixée par titre exécutoire
             Integer asfMontantPension,                  // FR — >= 0 EUR/mois, montant pension mensuelle fixée
             String asfPensionPayee,                     // FR — NON_PAYEE | PARTIELLE | PAYEE | null
-            Integer asfNbEnfants) {                     // FR — >= 1, nombre d'enfants à charge ouvrant droit à l'ASF
+            Integer asfNbEnfants,                       // FR — >= 1, nombre d'enfants à charge ouvrant droit à l'ASF
+            // SF-222-02 : 6 champs IA TGD téléphone grave danger — éligibilité FR (F-FA-TGD).
+            // Source : `famille_extracted_data.tgd_detection`.
+            // FRANCE UNIQUEMENT — prompt impose null hors FR / hors certitude.
+            // `tgdDetecte` (flag CONTEXTUAL F-IA-04) active la visibilité de l'outil.
+            // Anti-doublon F-FA-14 : analyzer d'éligibilité, distinct de la mesure TGD de l'ordonnance de protection.
+            Boolean tgdDetecte,                         // FR — CONTEXTUAL : mention TGD / téléphone grave danger / art. 41-3-1 CPP / violences conjugales graves
+            Boolean tgdDangerGrave,                     // FR — true si danger grave caractérisé pour la victime
+            Boolean tgdViolences,                       // FR — true si violences avérées ou vraisemblables documentées
+            Boolean tgdInterdictionContact,             // FR — true si interdiction de contact issue d'une procédure (OP / CJ / SME / condamnation)
+            Boolean tgdNonCohabitation,                 // FR — true si auteur et victime ne cohabitent pas
+            Boolean tgdConsentement) {                  // FR — true si la victime consent expressément au dispositif
 
         /**
          * F-234 SF-234-01 : Builder pattern pour {@link FamilleExtractedData}.
@@ -5012,6 +5023,19 @@ public record CaseAnalysisResponse(
             public Builder asfMontantPension(Integer v) { this.asfMontantPension = v; return this; }
             public Builder asfPensionPayee(String v) { this.asfPensionPayee = v; return this; }
             public Builder asfNbEnfants(Integer v) { this.asfNbEnfants = v; return this; }
+            // SF-222-02 : setters des 6 champs IA TGD téléphone grave danger éligibilité FR.
+            private Boolean tgdDetecte;
+            private Boolean tgdDangerGrave;
+            private Boolean tgdViolences;
+            private Boolean tgdInterdictionContact;
+            private Boolean tgdNonCohabitation;
+            private Boolean tgdConsentement;
+            public Builder tgdDetecte(Boolean v) { this.tgdDetecte = v; return this; }
+            public Builder tgdDangerGrave(Boolean v) { this.tgdDangerGrave = v; return this; }
+            public Builder tgdViolences(Boolean v) { this.tgdViolences = v; return this; }
+            public Builder tgdInterdictionContact(Boolean v) { this.tgdInterdictionContact = v; return this; }
+            public Builder tgdNonCohabitation(Boolean v) { this.tgdNonCohabitation = v; return this; }
+            public Builder tgdConsentement(Boolean v) { this.tgdConsentement = v; return this; }
 
             public FamilleExtractedData build() {
                 return new FamilleExtractedData(
@@ -5200,7 +5224,14 @@ public record CaseAnalysisResponse(
                         asfPensionFixee,
                         asfMontantPension,
                         asfPensionPayee,
-                        asfNbEnfants);
+                        asfNbEnfants,
+                        // SF-222-02 : 6 champs IA TGD téléphone grave danger éligibilité FR.
+                        tgdDetecte,
+                        tgdDangerGrave,
+                        tgdViolences,
+                        tgdInterdictionContact,
+                        tgdNonCohabitation,
+                        tgdConsentement);
             }
         }
     }
@@ -8354,6 +8385,24 @@ public record CaseAnalysisResponse(
                 || asfMontantPension != null
                 || asfPensionPayee != null
                 || asfNbEnfants != null;
+        // SF-222-02 : sous-objet `tgd_detection` — 6 champs IA pour l'outil TGD
+        // téléphone grave danger éligibilité FR (art. 41-3-1 CPP). Anti-doublon
+        // F-FA-14 : analyzer d'éligibilité, distinct de la mesure TGD de l'ordonnance
+        // de protection. FRANCE UNIQUEMENT — null si dossier BE.
+        JsonNode tgd = node.get("tgd_detection");
+        boolean tgdObject = tgd != null && tgd.isObject();
+        Boolean tgdDetecte = tgdObject ? booleanOrNull(tgd, "detecte") : null;
+        Boolean tgdDangerGrave = tgdObject ? booleanOrNull(tgd, "danger_grave") : null;
+        Boolean tgdViolences = tgdObject ? booleanOrNull(tgd, "violences_averees_ou_vraisemblables") : null;
+        Boolean tgdInterdictionContact = tgdObject ? booleanOrNull(tgd, "interdiction_contact_procedure") : null;
+        Boolean tgdNonCohabitation = tgdObject ? booleanOrNull(tgd, "non_cohabitation") : null;
+        Boolean tgdConsentement = tgdObject ? booleanOrNull(tgd, "consentement_victime") : null;
+        boolean sf222_02Present = tgdDetecte != null
+                || tgdDangerGrave != null
+                || tgdViolences != null
+                || tgdInterdictionContact != null
+                || tgdNonCohabitation != null
+                || tgdConsentement != null;
         // SF-216-09 : sous-objet `delegation_ap_detection` — 3 champs IA pour la
         // délégation autorité parentale FR (art. 376-1 Cciv).
         // FRANCE UNIQUEMENT — null si dossier BE.
@@ -8550,7 +8599,8 @@ public record CaseAnalysisResponse(
                 && !sf216_27Present
                 && !sf216_25Present
                 && !sf216_29Present
-                && !sf222_01Present) {
+                && !sf222_01Present
+                && !sf222_02Present) {
             return null;
         }
         // F-234 SF-234-01 : construction via Builder.
@@ -8786,6 +8836,13 @@ public record CaseAnalysisResponse(
                 .asfMontantPension(asfMontantPension)
                 .asfPensionPayee(asfPensionPayee)
                 .asfNbEnfants(asfNbEnfants)
+                // SF-222-02 : 6 champs IA TGD téléphone grave danger éligibilité FR.
+                .tgdDetecte(tgdDetecte)
+                .tgdDangerGrave(tgdDangerGrave)
+                .tgdViolences(tgdViolences)
+                .tgdInterdictionContact(tgdInterdictionContact)
+                .tgdNonCohabitation(tgdNonCohabitation)
+                .tgdConsentement(tgdConsentement)
                 .build();
     }
 

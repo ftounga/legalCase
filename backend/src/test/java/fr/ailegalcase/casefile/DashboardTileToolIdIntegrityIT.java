@@ -127,6 +127,8 @@ class DashboardTileToolIdIntegrityIT {
             "F-FA-ARIPA-RECOUVREMENT",
             // SF-222-01 : outil ASF allocation de soutien familial — table dédiée, pas de tile dashboard.
             "F-FA-ASF-CAF",
+            // SF-222-02 : outil TGD téléphone grave danger éligibilité — table dédiée, pas de tile dashboard.
+            "F-FA-TGD",
             // SF-216-15 : outil Adoption intra-familiale — table dédiée, pas de tile dashboard.
             "F-FA-ADOPTION-INTRA",
             // SF-216-17 : outil Adoption internationale — table dédiée, pas de tile dashboard.

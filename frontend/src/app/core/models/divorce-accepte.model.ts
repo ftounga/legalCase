@@ -944,6 +944,21 @@ export interface FamilleExtractedData {
   asfPensionPayee?: 'NON_PAYEE' | 'PARTIELLE' | 'PAYEE' | string | null;
   /** SF-222-01 : FRANCE — nombre d'enfants à charge (≥ 1). Source : `asf_caf_detection.nb_enfants`. */
   asfNbEnfants?: number | null;
+  /**
+   * SF-222-02 : FRANCE — détection TGD téléphone grave danger éligibilité (F-FA-TGD,
+   * art. 41-3-1 CPP). Source backend : `tgd_detection.detecte`. Flag CONTEXTUAL.
+   */
+  tgdDetecte?: boolean | null;
+  /** SF-222-02 : FRANCE — danger grave caractérisé. Source : `tgd_detection.danger_grave`. */
+  tgdDangerGrave?: boolean | null;
+  /** SF-222-02 : FRANCE — violences avérées ou vraisemblables. Source : `tgd_detection.violences_averees_ou_vraisemblables`. */
+  tgdViolences?: boolean | null;
+  /** SF-222-02 : FRANCE — interdiction de contact issue d'une procédure. Source : `tgd_detection.interdiction_contact_procedure`. */
+  tgdInterdictionContact?: boolean | null;
+  /** SF-222-02 : FRANCE — non-cohabitation auteur / victime. Source : `tgd_detection.non_cohabitation`. */
+  tgdNonCohabitation?: boolean | null;
+  /** SF-222-02 : FRANCE — consentement exprès de la victime. Source : `tgd_detection.consentement_victime`. */
+  tgdConsentement?: boolean | null;
 
   /**
    * SF-216-09 : FRANCE — flag CONTEXTUAL délégation autorité parentale envisagée
